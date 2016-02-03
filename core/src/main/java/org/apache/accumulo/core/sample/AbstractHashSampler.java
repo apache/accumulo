@@ -17,12 +17,14 @@
 
 package org.apache.accumulo.core.sample;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
+
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
@@ -70,11 +72,11 @@ public abstract class AbstractHashSampler implements Sampler {
     String hasherOpt = config.getOptions().get("hasher");
     String modulusOpt = config.getOptions().get("modulus");
 
-    Preconditions.checkNotNull(hasherOpt, "Hasher not specified");
-    Preconditions.checkNotNull(modulusOpt, "Modulus not specified");
+    requireNonNull(hasherOpt, "Hasher not specified");
+    requireNonNull(modulusOpt, "Modulus not specified");
 
     for (String option : config.getOptions().keySet()) {
-      Preconditions.checkArgument(isValidOption(option), "Unknown option : %s", option);
+      checkArgument(isValidOption(option), "Unknown option : %s", option);
     }
 
     switch (hasherOpt) {

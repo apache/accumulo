@@ -19,7 +19,7 @@
 package org.apache.accumulo.server.security.delegation;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -70,7 +70,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    *          Maximum age (in milliseconds) before a token expires and is no longer valid
    */
   public AuthenticationTokenSecretManager(Instance instance, long tokenMaxLifetime) {
-    checkNotNull(instance);
+    requireNonNull(instance);
     checkArgument(tokenMaxLifetime > 0, "Max lifetime must be positive");
     this.instance = instance;
     this.tokenMaxLifetime = tokenMaxLifetime;
@@ -150,8 +150,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    */
   public Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> generateToken(String username, DelegationTokenConfig cfg)
       throws AccumuloException {
-    checkNotNull(username);
-    checkNotNull(cfg);
+    requireNonNull(username);
+    requireNonNull(cfg);
 
     final AuthenticationTokenIdentifier id = new AuthenticationTokenIdentifier(username, cfg);
 
@@ -179,7 +179,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    *          The key to add.
    */
   public synchronized void addKey(AuthenticationKey key) {
-    checkNotNull(key);
+    requireNonNull(key);
 
     log.debug("Adding AuthenticationKey with keyId {}", key.getKeyId());
 
@@ -197,7 +197,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    * @return True if the key was removed, otherwise false.
    */
   synchronized boolean removeKey(Integer keyId) {
-    checkNotNull(keyId);
+    requireNonNull(keyId);
 
     log.debug("Removing AuthenticatioKey with keyId {}", keyId);
 

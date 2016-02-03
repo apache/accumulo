@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.core.replication;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.nio.charset.CharacterCodingException;
 
@@ -31,8 +33,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  *
@@ -50,9 +50,9 @@ public class ReplicationSchema {
     private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("work");
 
     public static void getFile(Key k, Text buff) {
-      Preconditions.checkNotNull(k);
-      Preconditions.checkNotNull(buff);
-      Preconditions.checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication work key with incorrect colfam");
+      requireNonNull(k);
+      requireNonNull(buff);
+      checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication work key with incorrect colfam");
       _getFile(k, buff);
     }
 
@@ -61,7 +61,7 @@ public class ReplicationSchema {
     }
 
     public static ReplicationTarget getTarget(Key k, Text buff) {
-      Preconditions.checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication work key with incorrect colfam");
+      checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication work key with incorrect colfam");
       k.getColumnQualifier(buff);
 
       return ReplicationTarget.from(buff);
@@ -112,8 +112,8 @@ public class ReplicationSchema {
      *          Text to place table ID into
      */
     public static void getTableId(Key k, Text buff) {
-      Preconditions.checkNotNull(k);
-      Preconditions.checkNotNull(buff);
+      requireNonNull(k);
+      requireNonNull(buff);
 
       k.getColumnQualifier(buff);
     }
@@ -127,9 +127,9 @@ public class ReplicationSchema {
      *          Text to place file name into
      */
     public static void getFile(Key k, Text buff) {
-      Preconditions.checkNotNull(k);
-      Preconditions.checkNotNull(buff);
-      Preconditions.checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication status key with incorrect colfam");
+      requireNonNull(k);
+      requireNonNull(buff);
+      checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()), "Given replication status key with incorrect colfam");
 
       _getFile(k, buff);
     }
@@ -180,8 +180,8 @@ public class ReplicationSchema {
      *          Text to place table ID into
      */
     public static void getTableId(Key k, Text buff) {
-      Preconditions.checkNotNull(k);
-      Preconditions.checkNotNull(buff);
+      requireNonNull(k);
+      requireNonNull(buff);
 
       k.getColumnQualifier(buff);
     }
@@ -203,8 +203,8 @@ public class ReplicationSchema {
      * @return Mutation for the Order section
      */
     public static Mutation createMutation(String file, long timeInMillis) {
-      Preconditions.checkNotNull(file);
-      Preconditions.checkArgument(timeInMillis >= 0, "timeInMillis must be greater than zero");
+      requireNonNull(file);
+      checkArgument(timeInMillis >= 0, "timeInMillis must be greater than zero");
 
       // Encode the time so it sorts properly
       byte[] rowPrefix = longEncoder.encode(timeInMillis);

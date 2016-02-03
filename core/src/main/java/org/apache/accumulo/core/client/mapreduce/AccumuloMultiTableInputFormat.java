@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.List;
@@ -62,7 +62,7 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    * @since 1.6.0
    */
   public static void setInputTableConfigs(Job job, Map<String,InputTableConfig> configs) {
-    checkNotNull(configs);
+    requireNonNull(configs);
     InputConfigurator.setInputTableConfigs(CLASS, job.getConfiguration(), configs);
   }
 

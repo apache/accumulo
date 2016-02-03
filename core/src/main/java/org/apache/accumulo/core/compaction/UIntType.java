@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.core.compaction;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
 
 class UIntType implements Type {
   @Override
   public String convert(String str) {
-    Preconditions.checkArgument(Integer.parseInt(str) > 0);
+    checkArgument(Integer.parseInt(str) > 0);
     return str;
   }
 }

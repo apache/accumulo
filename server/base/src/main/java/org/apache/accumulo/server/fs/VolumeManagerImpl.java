@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.fs;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.net.URI;
@@ -114,7 +114,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FSDataOutputStream create(Path path) throws IOException {
-    checkNotNull(path);
+    requireNonNull(path);
 
     Volume v = getVolumeByPath(path);
 
@@ -123,7 +123,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FSDataOutputStream create(Path path, boolean overwrite) throws IOException {
-    checkNotNull(path);
+    requireNonNull(path);
 
     Volume v = getVolumeByPath(path);
 
@@ -148,7 +148,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FSDataOutputStream create(Path path, boolean overwrite, int bufferSize, short replication, long blockSize) throws IOException {
-    checkNotNull(path);
+    requireNonNull(path);
 
     Volume v = getVolumeByPath(path);
     FileSystem fs = v.getFileSystem();
@@ -159,7 +159,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public boolean createNewFile(Path path) throws IOException {
-    checkNotNull(path);
+    requireNonNull(path);
 
     Volume v = getVolumeByPath(path);
     return v.getFileSystem().createNewFile(path);

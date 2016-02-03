@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.iteratortest;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -53,13 +54,13 @@ public class IteratorTestInput {
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, Map<String,String> iteratorOptions, Range range,
       SortedMap<Key,Value> input) {
     // Already immutable
-    this.iteratorClass = Objects.requireNonNull(iteratorClass);
+    this.iteratorClass = requireNonNull(iteratorClass);
     // Make it immutable to the test
-    this.iteratorOptions = Collections.unmodifiableMap(Objects.requireNonNull(iteratorOptions));
+    this.iteratorOptions = Collections.unmodifiableMap(requireNonNull(iteratorOptions));
     // Already immutable
-    this.range = Objects.requireNonNull(range);
+    this.range = requireNonNull(range);
     // Make it immutable to the test
-    this.input = Collections.unmodifiableSortedMap((Objects.requireNonNull(input)));
+    this.input = Collections.unmodifiableSortedMap((requireNonNull(input)));
   }
 
   public Class<? extends SortedKeyValueIterator<Key,Value>> getIteratorClass() {

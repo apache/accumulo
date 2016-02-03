@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -39,8 +41,6 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.hadoop.security.UserGroupInformation;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials and have access to the system files and configuration.
@@ -86,9 +86,8 @@ public class AccumuloServerContext extends ClientContext {
       throw new RuntimeException("Could not get login user", e);
     }
 
-    Preconditions.checkArgument(loginUser.hasKerberosCredentials(), "Server does not have Kerberos credentials");
-    Preconditions.checkArgument(kerberosPrincipal.equals(loginUser.getUserName()),
-        "Expected login user to be " + kerberosPrincipal + " but was " + loginUser.getUserName());
+    checkArgument(loginUser.hasKerberosCredentials(), "Server does not have Kerberos credentials");
+    checkArgument(kerberosPrincipal.equals(loginUser.getUserName()), "Expected login user to be " + kerberosPrincipal + " but was " + loginUser.getUserName());
   }
 
   /**

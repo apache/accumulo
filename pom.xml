@@ -559,6 +559,14 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.gaul</groupId>
+          <artifactId>modernizer-maven-plugin</artifactId>
+          <version>1.4.0</version>
+          <configuration>
+            <javaVersion>${maven.compiler.target}</javaVersion>
+          </configuration>
+        </plugin>
+        <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>findbugs-maven-plugin</artifactId>
           <version>${findbugs.version}</version>
@@ -851,6 +859,18 @@
             <id>enforce-mvn</id>
             <goals>
               <goal>enforce</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.gaul</groupId>
+        <artifactId>modernizer-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>modernizer</id>
+            <goals>
+              <goal>modernizer</goal>
             </goals>
           </execution>
         </executions>
@@ -1165,6 +1185,19 @@
                         <versionRange>[0.4,)</versionRange>
                         <goals>
                           <goal>format</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <ignore />
+                      </action>
+                    </pluginExecution>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>org.gaul</groupId>
+                        <artifactId>modernizer-maven-plugin</artifactId>
+                        <versionRange>[1.4.0,)</versionRange>
+                        <goals>
+                          <goal>modernizer</goal>
                         </goals>
                       </pluginExecutionFilter>
                       <action>

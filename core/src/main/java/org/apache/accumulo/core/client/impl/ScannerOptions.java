@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,8 +41,6 @@ import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Preconditions;
 
 public class ScannerOptions implements ScannerBase {
 
@@ -217,7 +216,7 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public synchronized void setSamplerConfiguration(SamplerConfiguration samplerConfig) {
-    Preconditions.checkNotNull(samplerConfig);
+    requireNonNull(samplerConfig);
     this.samplerConfig = samplerConfig;
   }
 
@@ -250,7 +249,7 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public void setClassLoaderContext(String classLoaderContext) {
-    Preconditions.checkNotNull(classLoaderContext, "classloader context name cannot be null");
+    requireNonNull(classLoaderContext, "classloader context name cannot be null");
     this.classLoaderContext = classLoaderContext;
   }
 

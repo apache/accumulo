@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.mapreduce.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -35,7 +35,7 @@ public class DelegationTokenStub implements AuthenticationToken {
   private String serviceName;
 
   public DelegationTokenStub(String serviceName) {
-    checkNotNull(serviceName);
+    requireNonNull(serviceName);
     this.serviceName = serviceName;
   }
 

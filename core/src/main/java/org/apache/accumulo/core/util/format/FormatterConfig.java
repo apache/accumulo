@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.core.util.format;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.text.DateFormat;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 
 /**
@@ -90,7 +91,7 @@ public class FormatterConfig {
    * @return {@code this} to allow chaining of set methods
    */
   public FormatterConfig setShownLength(int shownLength) {
-    Preconditions.checkArgument(shownLength >= 0, "Shown length cannot be negative");
+    checkArgument(shownLength >= 0, "Shown length cannot be negative");
     this.shownLength = shownLength;
     return this;
   }

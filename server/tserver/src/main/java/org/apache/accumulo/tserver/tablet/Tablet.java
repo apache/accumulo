@@ -18,6 +18,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -150,7 +151,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -327,7 +327,7 @@ public class Tablet implements TabletCommitter {
     if (null == tblConf) {
       Tables.clearCache(tabletServer.getInstance());
       tblConf = tabletServer.getTableConfiguration(extent);
-      Preconditions.checkNotNull(tblConf, "Could not get table configuration for " + extent.getTableId().toString());
+      requireNonNull(tblConf, "Could not get table configuration for " + extent.getTableId().toString());
     }
 
     this.tableConfiguration = tblConf;

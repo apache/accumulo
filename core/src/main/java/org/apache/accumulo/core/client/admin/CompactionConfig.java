@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.client.admin;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,8 +26,6 @@ import java.util.List;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Preconditions;
 
 /**
  * This class exist to pass parameters to {@link TableOperations#compact(String, CompactionConfig)}
@@ -136,7 +136,7 @@ public class CompactionConfig {
    * @return this
    */
   public CompactionConfig setCompactionStrategy(CompactionStrategyConfig csConfig) {
-    Preconditions.checkNotNull(csConfig);
+    requireNonNull(csConfig);
     this.compactionStrategy = csConfig;
     return this;
   }

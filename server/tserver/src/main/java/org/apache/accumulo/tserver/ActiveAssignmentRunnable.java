@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  *
@@ -38,9 +38,9 @@ public class ActiveAssignmentRunnable implements Runnable {
   private volatile Thread executingThread;
 
   public ActiveAssignmentRunnable(ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments, KeyExtent extent, Runnable delegate) {
-    Preconditions.checkNotNull(activeAssignments);
-    Preconditions.checkNotNull(extent);
-    Preconditions.checkNotNull(delegate);
+    requireNonNull(activeAssignments);
+    requireNonNull(extent);
+    requireNonNull(delegate);
     this.activeAssignments = activeAssignments;
     this.extent = extent;
     this.delegate = delegate;

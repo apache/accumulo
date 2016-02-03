@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.impl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -124,7 +125,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class TableOperationsImpl extends TableOperationsHelper {
@@ -1586,8 +1586,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Locations locate(String tableName, Collection<Range> ranges) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    Preconditions.checkNotNull(tableName, "tableName must be non null");
-    Preconditions.checkNotNull(ranges, "ranges must be non null");
+    requireNonNull(tableName, "tableName must be non null");
+    requireNonNull(ranges, "ranges must be non null");
 
     String tableId = Tables.getTableId(context.getInstance(), tableName);
     TabletLocator locator = TabletLocator.getLocator(context, new Text(tableId));

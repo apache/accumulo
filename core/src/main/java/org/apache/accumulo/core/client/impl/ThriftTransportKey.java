@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
@@ -35,7 +35,7 @@ public class ThriftTransportKey {
 
   @VisibleForTesting
   public ThriftTransportKey(HostAndPort server, long timeout, ClientContext context) {
-    checkNotNull(server, "location is null");
+    requireNonNull(server, "location is null");
     this.server = server;
     this.timeout = timeout;
     this.sslParams = context.getClientSslParams();
@@ -52,7 +52,7 @@ public class ThriftTransportKey {
    * Visible only for testing
    */
   ThriftTransportKey(HostAndPort server, long timeout, SslConnectionParams sslParams, SaslConnectionParams saslParams) {
-    checkNotNull(server, "location is null");
+    requireNonNull(server, "location is null");
     this.server = server;
     this.timeout = timeout;
     this.sslParams = sslParams;

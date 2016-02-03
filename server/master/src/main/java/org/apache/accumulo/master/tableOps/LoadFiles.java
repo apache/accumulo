@@ -194,7 +194,7 @@ class LoadFiles extends MasterRepo {
   }
 
   static String sampleList(Collection<?> potentiallyLongList, int max) {
-    StringBuffer result = new StringBuffer();
+    StringBuilder result = new StringBuilder();
     result.append("[");
     int i = 0;
     for (Object obj : potentiallyLongList) {

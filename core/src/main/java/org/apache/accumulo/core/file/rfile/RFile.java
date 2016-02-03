@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
@@ -73,7 +75,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 
 public class RFile {
 
@@ -1308,7 +1309,7 @@ public class RFile {
 
     @Override
     public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
-      Preconditions.checkNotNull(sampleConfig);
+      requireNonNull(sampleConfig);
 
       if (this.samplerConfig != null && this.samplerConfig.equals(sampleConfig)) {
         Reader copy = new Reader(this, sampleReaders);

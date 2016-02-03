@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 
@@ -48,7 +48,7 @@ public class ReplicationClient {
    * @return Client to the ReplicationCoordinator service
    */
   public static ReplicationCoordinator.Client getCoordinatorConnectionWithRetry(ClientContext context) throws AccumuloException {
-    checkNotNull(context);
+    requireNonNull(context);
     Instance instance = context.getInstance();
 
     for (int attempts = 1; attempts <= 10; attempts++) {
@@ -122,8 +122,8 @@ public class ReplicationClient {
    * @return A ReplicationServicer client to the given host in the given instance
    */
   public static ReplicationServicer.Client getServicerConnection(ClientContext context, HostAndPort server) throws TTransportException {
-    checkNotNull(context);
-    checkNotNull(server);
+    requireNonNull(context);
+    requireNonNull(server);
 
     try {
       return ThriftUtil.getClientNoTimeout(new ReplicationServicer.Client.Factory(), server, context);

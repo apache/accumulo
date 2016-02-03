@@ -18,7 +18,7 @@
 
 package org.apache.accumulo.server.security.delegation;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -47,7 +47,7 @@ public class AuthenticationKey implements Writable {
   }
 
   public AuthenticationKey(int keyId, long creationDate, long expirationDate, SecretKey key) {
-    checkNotNull(key);
+    requireNonNull(key);
     authKey = new TAuthenticationKey(ByteBuffer.wrap(key.getEncoded()));
     authKey.setCreationDate(creationDate);
     authKey.setKeyId(keyId);
@@ -56,27 +56,27 @@ public class AuthenticationKey implements Writable {
   }
 
   public int getKeyId() {
-    checkNotNull(authKey);
+    requireNonNull(authKey);
     return authKey.getKeyId();
   }
 
   public long getCreationDate() {
-    checkNotNull(authKey);
+    requireNonNull(authKey);
     return authKey.getCreationDate();
   }
 
   public void setCreationDate(long creationDate) {
-    checkNotNull(authKey);
+    requireNonNull(authKey);
     authKey.setCreationDate(creationDate);
   }
 
   public long getExpirationDate() {
-    checkNotNull(authKey);
+    requireNonNull(authKey);
     return authKey.getExpirationDate();
   }
 
   public void setExpirationDate(long expirationDate) {
-    checkNotNull(authKey);
+    requireNonNull(authKey);
     authKey.setExpirationDate(expirationDate);
   }
 

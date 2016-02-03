@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.minicluster.impl;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +41,6 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
@@ -58,7 +59,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   final List<Process> tabletServerProcesses = new ArrayList<Process>();
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
-    Preconditions.checkNotNull(cluster);
+    requireNonNull(cluster);
     this.cluster = cluster;
   }
 
@@ -100,7 +101,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   private String readAll(InputStream is) throws IOException {
     byte[] buffer = new byte[4096];
-    StringBuffer result = new StringBuffer();
+    StringBuilder result = new StringBuilder();
     while (true) {
       int n = is.read(buffer);
       if (n <= 0)

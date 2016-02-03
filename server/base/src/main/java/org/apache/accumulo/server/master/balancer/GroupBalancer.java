@@ -17,6 +17,9 @@
 
 package org.apache.accumulo.server.master.balancer;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,7 +51,6 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
@@ -322,7 +324,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     public void addGroup(String group) {
-      Preconditions.checkState(!finishedAdding);
+      checkState(!finishedAdding);
 
       MutableInt mi = initialCounts.get(group);
       if (mi == null) {
@@ -334,7 +336,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     public void finishedAdding(Map<String,Integer> expectedCounts) {
-      Preconditions.checkState(!finishedAdding);
+      checkState(!finishedAdding);
       finishedAdding = true;
       this.expectedCounts = expectedCounts;
 
@@ -355,16 +357,16 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     public void moveOff(String group, int num) {
-      Preconditions.checkArgument(num > 0);
-      Preconditions.checkState(finishedAdding);
+      checkArgument(num > 0);
+      checkState(finishedAdding);
 
       Integer extraCount = extraCounts.get(group);
 
-      Preconditions.checkArgument(extraCount != null && extraCount >= num, "group=%s num=%s extraCount=%s", group, num, extraCount);
+      checkArgument(extraCount != null && extraCount >= num, "group=%s num=%s extraCount=%s", group, num, extraCount);
 
       MutableInt initialCount = initialCounts.get(group);
 
-      Preconditions.checkArgument(initialCount.intValue() >= num);
+      checkArgument(initialCount.intValue() >= num);
 
       initialCount.subtract(num);
 
@@ -376,9 +378,9 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     public void moveTo(String group, int num) {
-      Preconditions.checkArgument(num > 0);
-      Preconditions.checkArgument(expectedCounts.containsKey(group));
-      Preconditions.checkState(finishedAdding);
+      checkArgument(num > 0);
+      checkArgument(expectedCounts.containsKey(group));
+      checkState(finishedAdding);
 
       Integer deficit = expectedDeficits.get(group);
       if (deficit != null) {
@@ -404,12 +406,12 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     public Map<String,Integer> getExpectedDeficits() {
-      Preconditions.checkState(finishedAdding);
+      checkState(finishedAdding);
       return Collections.unmodifiableMap(expectedDeficits);
     }
 
     public Map<String,Integer> getExtras() {
-      Preconditions.checkState(finishedAdding);
+      checkState(finishedAdding);
       return Collections.unmodifiableMap(extraCounts);
     }
 
@@ -455,8 +457,8 @@ public abstract class GroupBalancer extends TabletBalancer {
     private int totalMoves = 0;
 
     public void move(String group, int num, TserverGroupInfo src, TserverGroupInfo dest) {
-      Preconditions.checkArgument(num > 0);
-      Preconditions.checkArgument(!src.equals(dest));
+      checkArgument(num > 0);
+      checkArgument(!src.equals(dest));
 
       src.moveOff(group, num);
       dest.moveTo(group, num);

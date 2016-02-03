@@ -17,10 +17,10 @@
 package org.apache.accumulo.test.iterator;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -84,7 +84,7 @@ public class SummingCombinerTest extends BaseJUnit4IteratorTest {
   }
 
   private static final byte[] bytes(String value) {
-    return Objects.requireNonNull(value).getBytes(UTF_8);
+    return requireNonNull(value).getBytes(UTF_8);
   }
 
   private static TreeMap<Key,Value> createOutputData() {

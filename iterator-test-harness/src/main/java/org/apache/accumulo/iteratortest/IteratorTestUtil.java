@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.iteratortest;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -32,13 +32,13 @@ public class IteratorTestUtil {
 
   public static SortedKeyValueIterator<Key,Value> instantiateIterator(IteratorTestInput input) {
     try {
-      return Objects.requireNonNull(input.getIteratorClass()).newInstance();
+      return requireNonNull(input.getIteratorClass()).newInstance();
     } catch (InstantiationException | IllegalAccessException e) {
       throw new RuntimeException(e);
     }
   }
 
   public static SortedKeyValueIterator<Key,Value> createSource(IteratorTestInput input) {
-    return new SimpleKVReusingIterator(new ColumnFamilySkippingIterator(new SortedMapIterator(Objects.requireNonNull(input).getInput())));
+    return new SimpleKVReusingIterator(new ColumnFamilySkippingIterator(new SortedMapIterator(requireNonNull(input).getInput())));
   }
 }

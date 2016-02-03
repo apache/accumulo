@@ -17,7 +17,7 @@
 package org.apache.accumulo.cluster;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,16 +35,16 @@ public class ClusterUser {
   private File keytab;
 
   public ClusterUser(String principal, File keytab) {
-    checkNotNull(principal, "Principal was null");
-    checkNotNull(keytab, "Keytab was null");
+    requireNonNull(principal, "Principal was null");
+    requireNonNull(keytab, "Keytab was null");
     checkArgument(keytab.exists() && keytab.isFile(), "Keytab should be a file");
     this.principal = principal;
     this.keytab = keytab;
   }
 
   public ClusterUser(String principal, String password) {
-    checkNotNull(principal, "Principal was null");
-    checkNotNull(password, "Password was null");
+    requireNonNull(principal, "Principal was null");
+    requireNonNull(password, "Password was null");
     this.principal = principal;
     this.password = password;
   }

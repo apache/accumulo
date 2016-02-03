@@ -18,13 +18,12 @@
 package org.apache.accumulo.core.client.admin;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.google.common.base.Preconditions;
 
 /**
  * This class encapsultes configuration and options needed to setup and use sampling.
@@ -38,12 +37,12 @@ public class SamplerConfiguration {
   private Map<String,String> options = new HashMap<>();
 
   public SamplerConfiguration(String samplerClassName) {
-    Preconditions.checkNotNull(samplerClassName);
+    requireNonNull(samplerClassName);
     this.className = samplerClassName;
   }
 
   public SamplerConfiguration setOptions(Map<String,String> options) {
-    Preconditions.checkNotNull(options);
+    requireNonNull(options);
     this.options = new HashMap<>(options.size());
 
     for (Entry<String,String> entry : options.entrySet()) {

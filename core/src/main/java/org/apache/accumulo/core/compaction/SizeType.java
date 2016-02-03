@@ -16,15 +16,15 @@
  */
 package org.apache.accumulo.core.compaction;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Preconditions;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
 class SizeType implements Type {
   @Override
   public String convert(String str) {
     long size = AccumuloConfiguration.getMemoryInBytes(str);
-    Preconditions.checkArgument(size > 0);
+    checkArgument(size > 0);
     return Long.toString(size);
   }
 }

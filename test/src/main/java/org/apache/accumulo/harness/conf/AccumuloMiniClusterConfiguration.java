@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.harness.conf;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -32,8 +34,6 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Extract configuration properties for a MiniAccumuloCluster from Java properties
@@ -111,7 +111,7 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
   }
 
   public void setClientConf(ClientConfiguration conf) {
-    Preconditions.checkNotNull(conf, "Client configuration was null");
+    requireNonNull(conf, "Client configuration was null");
     this.clientConf = conf;
   }
 }

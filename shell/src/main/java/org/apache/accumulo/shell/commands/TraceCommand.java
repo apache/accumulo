@@ -45,10 +45,10 @@ public class TraceCommand extends DebugCommand {
         if (Trace.isTracing()) {
           final long trace = Trace.currentTraceId();
           Trace.off();
-          StringBuffer sb = new StringBuffer();
+          StringBuilder sb = new StringBuilder();
           int traceCount = 0;
           for (int i = 0; i < 30; i++) {
-            sb = new StringBuffer();
+            sb = new StringBuilder();
             try {
               final Map<String,String> properties = shellState.getConnector().instanceOperations().getSystemConfiguration();
               final String table = properties.get(Property.TRACE_TABLE.getKey());
@@ -56,7 +56,7 @@ public class TraceCommand extends DebugCommand {
               final Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
               final Scanner scanner = shellState.getConnector().createScanner(table, auths);
               scanner.setRange(new Range(new Text(Long.toHexString(trace))));
-              final StringBuffer finalSB = sb;
+              final StringBuilder finalSB = sb;
               traceCount = TraceDump.printTrace(scanner, new Printer() {
                 @Override
                 public void print(final String line) {

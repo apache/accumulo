@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.server.security.delegation;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -50,8 +50,8 @@ public class ZooAuthenticationKeyDistributor {
   private AtomicBoolean initialized = new AtomicBoolean(false);
 
   public ZooAuthenticationKeyDistributor(ZooReaderWriter zk, String baseNode) {
-    checkNotNull(zk);
-    checkNotNull(baseNode);
+    requireNonNull(zk);
+    requireNonNull(baseNode);
     this.zk = zk;
     this.baseNode = baseNode;
   }
@@ -129,7 +129,7 @@ public class ZooAuthenticationKeyDistributor {
    */
   public synchronized void advertise(AuthenticationKey newKey) throws KeeperException, InterruptedException {
     checkState(initialized.get(), "Not initialized");
-    checkNotNull(newKey);
+    requireNonNull(newKey);
 
     // Make sure the node doesn't already exist
     String path = qualifyPath(newKey);
@@ -163,7 +163,7 @@ public class ZooAuthenticationKeyDistributor {
    */
   public synchronized void remove(AuthenticationKey key) throws KeeperException, InterruptedException {
     checkState(initialized.get(), "Not initialized");
-    checkNotNull(key);
+    requireNonNull(key);
 
     String path = qualifyPath(key);
     if (!zk.exists(path)) {

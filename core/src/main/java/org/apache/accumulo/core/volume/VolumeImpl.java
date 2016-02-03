@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.volume;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -38,16 +38,16 @@ public class VolumeImpl implements Volume {
   protected final String basePath;
 
   public VolumeImpl(Path path, Configuration conf) throws IOException {
-    checkNotNull(path);
-    checkNotNull(conf);
+    requireNonNull(path);
+    requireNonNull(conf);
 
     this.fs = path.getFileSystem(conf);
     this.basePath = path.toUri().getPath();
   }
 
   public VolumeImpl(FileSystem fs, String basePath) {
-    checkNotNull(fs);
-    checkNotNull(basePath);
+    requireNonNull(fs);
+    requireNonNull(basePath);
 
     this.fs = fs;
     this.basePath = basePath;
@@ -70,7 +70,7 @@ public class VolumeImpl implements Volume {
 
   @Override
   public boolean isValidPath(Path p) {
-    checkNotNull(p);
+    requireNonNull(p);
 
     FileSystem other;
     try {

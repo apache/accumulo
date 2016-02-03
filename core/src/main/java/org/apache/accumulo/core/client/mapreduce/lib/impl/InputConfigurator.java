@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -76,7 +77,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
@@ -965,7 +965,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   public static void setSamplerConfiguration(Class<?> implementingClass, Configuration conf, SamplerConfiguration samplerConfig) {
-    Preconditions.checkNotNull(samplerConfig);
+    requireNonNull(samplerConfig);
 
     String key = enumToConfKey(implementingClass, ScanOpts.SAMPLER_CONFIG);
     String val = toBase64(new SamplerConfigurationImpl(samplerConfig));

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static java.util.Objects.requireNonNull;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,8 +36,6 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 public class ZooUtil {
   private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
@@ -92,7 +92,7 @@ public class ZooUtil {
     byte[] auth;
 
     public ZooKeeperConnectionInfo(String keepers, int timeout, String scheme, byte[] auth) {
-      Preconditions.checkNotNull(keepers);
+      requireNonNull(keepers);
       this.keepers = keepers;
       this.timeout = timeout;
       this.scheme = scheme;
@@ -159,6 +159,7 @@ public class ZooUtil {
   public static final List<ACL> PRIVATE;
   public static final List<ACL> PUBLIC;
   private static final RetryFactory RETRY_FACTORY;
+
   static {
     PRIVATE = new ArrayList<ACL>();
     PRIVATE.addAll(Ids.CREATOR_ALL_ACL);

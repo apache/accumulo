@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.iterators;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -50,8 +52,6 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 public class IteratorUtil {
 
@@ -90,7 +90,7 @@ public class IteratorUtil {
    * Fetch the correct configuration key prefix for the given scope. Throws an IllegalArgumentException if no property exists for the given scope.
    */
   static Property getProperty(IteratorScope scope) {
-    Preconditions.checkNotNull(scope);
+    requireNonNull(scope);
     switch (scope) {
       case scan:
         return Property.TABLE_ITERATOR_SCAN_PREFIX;

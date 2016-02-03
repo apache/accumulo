@@ -18,8 +18,6 @@ package org.apache.accumulo.examples.simple.filedata;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -108,7 +106,7 @@ public class ChunkInputStreamTest {
       cis.setSource(pi);
       fail();
     } catch (IOException e) {
-      assertNull(null);
+      /* expected */
     }
     cis.close();
   }
@@ -121,9 +119,9 @@ public class ChunkInputStreamTest {
     cis.setSource(pi);
     try {
       cis.getVisibilities();
-      assertNotNull(null);
+      fail();
     } catch (RuntimeException e) {
-      assertNull(null);
+      /* expected */
     }
     cis.close();
     cis.getVisibilities();

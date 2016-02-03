@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -51,13 +51,13 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
   }
 
   public AuthenticationTokenIdentifier(String principal, DelegationTokenConfig cfg) {
-    checkNotNull(principal);
+    requireNonNull(principal);
     impl = new TAuthenticationTokenIdentifier(principal);
     this.cfg = cfg;
   }
 
   public AuthenticationTokenIdentifier(String principal, int keyId, long issueDate, long expirationDate, String instanceId) {
-    checkNotNull(principal);
+    requireNonNull(principal);
     impl = new TAuthenticationTokenIdentifier(principal);
     impl.setKeyId(keyId);
     impl.setIssueDate(issueDate);
@@ -66,12 +66,12 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
   }
 
   public AuthenticationTokenIdentifier(AuthenticationTokenIdentifier identifier) {
-    checkNotNull(identifier);
+    requireNonNull(identifier);
     impl = new TAuthenticationTokenIdentifier(identifier.getThriftIdentifier());
   }
 
   public AuthenticationTokenIdentifier(TAuthenticationTokenIdentifier identifier) {
-    checkNotNull(identifier);
+    requireNonNull(identifier);
     impl = new TAuthenticationTokenIdentifier(identifier);
   }
 
@@ -80,42 +80,42 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
   }
 
   public int getKeyId() {
-    checkNotNull(impl, "Identifier not initialized");
+    requireNonNull(impl, "Identifier not initialized");
     return impl.getKeyId();
   }
 
   public void setIssueDate(long issueDate) {
-    checkNotNull(impl, "Identifier not initialized");
+    requireNonNull(impl, "Identifier not initialized");
     impl.setIssueDate(issueDate);
   }
 
   public long getIssueDate() {
-    checkNotNull(impl, "Identifier not initialized");
+    requireNonNull(impl, "Identifier not initialized");
     return impl.getIssueDate();
   }
 
   public void setExpirationDate(long expirationDate) {
-    checkNotNull(impl, "Identifier not initialized");
+    requireNonNull(impl, "Identifier not initialized");
     impl.setExpirationDate(expirationDate);
   }
 
   public long getExpirationDate() {
-    checkNotNull(impl, "Identifier not initialized");
+    requireNonNull(impl, "Identifier not initialized");
     return impl.getExpirationDate();
   }
 
   public void setInstanceId(String instanceId) {
-    checkNotNull(impl, "Identifier not initialized");
+    requireNonNull(impl, "Identifier not initialized");
     impl.setInstanceId(instanceId);
   }
 
   public String getInstanceId() {
-    checkNotNull(impl, "Identifier not initialized");
+    requireNonNull(impl, "Identifier not initialized");
     return impl.getInstanceId();
   }
 
   public TAuthenticationTokenIdentifier getThriftIdentifier() {
-    checkNotNull(impl);
+    requireNonNull(impl);
     return impl;
   }
 

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -59,26 +59,26 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   private final ClientContext context;
 
   public ReplicationOperationsImpl(ClientContext context) {
-    checkNotNull(context);
+    requireNonNull(context);
     this.context = context;
   }
 
   @Override
   public void addPeer(final String name, final String replicaType) throws AccumuloException, AccumuloSecurityException, PeerExistsException {
-    checkNotNull(name);
-    checkNotNull(replicaType);
+    requireNonNull(name);
+    requireNonNull(replicaType);
     context.getConnector().instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + name, replicaType);
   }
 
   @Override
   public void removePeer(final String name) throws AccumuloException, AccumuloSecurityException, PeerNotFoundException {
-    checkNotNull(name);
+    requireNonNull(name);
     context.getConnector().instanceOperations().removeProperty(Property.REPLICATION_PEERS.getKey() + name);
   }
 
   @Override
   public void drain(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    checkNotNull(tableName);
+    requireNonNull(tableName);
 
     Set<String> wals = referencedFiles(tableName);
 
@@ -87,7 +87,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
 
   @Override
   public void drain(final String tableName, final Set<String> wals) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    checkNotNull(tableName);
+    requireNonNull(tableName);
 
     final TInfo tinfo = Tracer.traceInfo();
     final TCredentials rpcCreds = context.rpcCreds();
@@ -138,7 +138,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
 
   @Override
   public Set<String> referencedFiles(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    checkNotNull(tableName);
+    requireNonNull(tableName);
 
     log.debug("Collecting referenced files for replication of table {}", tableName);
 

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -25,7 +27,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
@@ -148,7 +149,7 @@ public enum PropertyType {
 
     @Override
     public String apply(final String input) {
-      Preconditions.checkNotNull(input);
+      requireNonNull(input);
       return SUFFIX_REGEX.matcher(input.trim()).replaceAll("");
     }
   }
@@ -163,7 +164,7 @@ public enum PropertyType {
 
     @Override
     public boolean apply(final String input) {
-      Preconditions.checkNotNull(input);
+      requireNonNull(input);
       Matcher m = StripUnits.SUFFIX_REGEX.matcher(input);
       if (m.find()) {
         if (m.groupCount() != 0) {
@@ -243,11 +244,11 @@ public enum PropertyType {
     }
 
     public Matches(final String pattern, int flags) {
-      this(Pattern.compile(Preconditions.checkNotNull(pattern), flags));
+      this(Pattern.compile(requireNonNull(pattern), flags));
     }
 
     public Matches(final Pattern pattern) {
-      Preconditions.checkNotNull(pattern);
+      requireNonNull(pattern);
       this.pattern = pattern;
     }
 

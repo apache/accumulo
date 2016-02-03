@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
+
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -24,8 +27,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Describes the table schema used for metadata tables
@@ -254,8 +255,8 @@ public class MetadataSchema {
      *          Text to place table ID into
      */
     public static void getTableId(Key k, Text buff) {
-      Preconditions.checkNotNull(k);
-      Preconditions.checkNotNull(buff);
+      requireNonNull(k);
+      requireNonNull(buff);
 
       k.getColumnQualifier(buff);
     }
@@ -269,9 +270,9 @@ public class MetadataSchema {
      *          Text to place file name into
      */
     public static void getFile(Key k, Text buff) {
-      Preconditions.checkNotNull(k);
-      Preconditions.checkNotNull(buff);
-      Preconditions.checkArgument(COLF_BYTE_SEQ.equals(k.getColumnFamilyData()), "Given metadata replication status key with incorrect colfam");
+      requireNonNull(k);
+      requireNonNull(buff);
+      checkArgument(COLF_BYTE_SEQ.equals(k.getColumnFamilyData()), "Given metadata replication status key with incorrect colfam");
 
       k.getRow(buff);
 

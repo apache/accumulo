@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.iteratortest;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 
@@ -31,10 +31,10 @@ public class IteratorTestReport {
   private final IteratorTestOutput actualOutput;
 
   public IteratorTestReport(IteratorTestInput input, IteratorTestOutput expectedOutput, IteratorTestOutput actualOutput, IteratorTestCase testCase) {
-    this.input = Objects.requireNonNull(input);
-    this.expectedOutput = Objects.requireNonNull(expectedOutput);
-    this.testCase = Objects.requireNonNull(testCase);
-    this.actualOutput = Objects.requireNonNull(actualOutput);
+    this.input = requireNonNull(input);
+    this.expectedOutput = requireNonNull(expectedOutput);
+    this.testCase = requireNonNull(testCase);
+    this.actualOutput = requireNonNull(actualOutput);
   }
 
   public IteratorTestInput getInput() {

@@ -77,9 +77,9 @@ public class VisibilityConstraint implements Constraint {
             return Collections.singletonList(Short.valueOf((short) 2));
 
         } catch (BadArgumentException bae) {
-          return Collections.singletonList(new Short((short) 1));
+          return Collections.singletonList(Short.valueOf((short) 1));
         } catch (VisibilityParseException e) {
-          return Collections.singletonList(new Short((short) 1));
+          return Collections.singletonList(Short.valueOf((short) 1));
         }
 
         if (ok != null)

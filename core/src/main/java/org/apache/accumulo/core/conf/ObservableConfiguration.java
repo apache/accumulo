@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-
-import com.google.common.base.Preconditions;
 
 /**
  * A configuration that can be observed. Handling of observers is thread-safe.
@@ -45,7 +45,7 @@ public abstract class ObservableConfiguration extends AccumuloConfiguration {
    *           if co is null
    */
   public void addObserver(ConfigurationObserver co) {
-    Preconditions.checkNotNull(co);
+    requireNonNull(co);
     observers.add(co);
   }
 

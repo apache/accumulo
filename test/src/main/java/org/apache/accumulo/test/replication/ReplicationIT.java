@@ -314,7 +314,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     Assert.assertTrue("'root' user could not read the replication table",
         conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ));
 
-    Set<String> replRows = Sets.newHashSet();
+    Set<String> replRows = new HashSet<>();
     Scanner scanner;
     attempts = 5;
     while (replRows.isEmpty() && attempts > 0) {
@@ -334,7 +334,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
     }
 
-    Set<String> wals = Sets.newHashSet();
+    Set<String> wals = new HashSet<>();
     attempts = 5;
     Instance i = conn.getInstance();
     ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");

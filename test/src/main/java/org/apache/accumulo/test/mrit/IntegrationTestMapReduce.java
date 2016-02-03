@@ -154,7 +154,7 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
 
     @Override
     protected void reduce(Text code, Iterable<Text> tests, Reducer<Text,Text,Text,Text>.Context context) throws IOException, InterruptedException {
-      StringBuffer result = new StringBuffer("\n");
+      StringBuilder result = new StringBuilder("\n");
       for (Text test : tests) {
         result.append("   ");
         result.append(test.toString());

@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.admin;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,8 +26,6 @@ import java.util.Map;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-
-import com.google.common.base.Preconditions;
 
 /**
  * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to include default iterators, and user-specified initial
@@ -130,7 +129,7 @@ public class NewTableConfiguration {
    * @since 1.8.0
    */
   public NewTableConfiguration enableSampling(SamplerConfiguration samplerConfiguration) {
-    Preconditions.checkNotNull(samplerConfiguration);
+    requireNonNull(samplerConfiguration);
     checkDisjoint(properties, samplerConfiguration);
     this.samplerConfiguration = samplerConfiguration;
     return this;

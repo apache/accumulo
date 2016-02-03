@@ -17,12 +17,11 @@
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.security.Authorizations;
-
-import com.google.common.base.Preconditions;
 
 /**
  *
@@ -149,7 +148,7 @@ public class ConditionalWriterConfig {
    * @since 1.8.0
    */
   public void setClassLoaderContext(String classLoaderContext) {
-    Preconditions.checkNotNull(classLoaderContext, "context name cannot be null");
+    requireNonNull(classLoaderContext, "context name cannot be null");
     this.classLoaderContext = classLoaderContext;
   }
 

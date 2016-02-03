@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.cluster;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -24,8 +26,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.util.Shell.ShellCommandExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Execute a command, leveraging Hadoop's {@link ShellCommandExecutor}, on a remote host. SSH configuration provided by {@link RemoteShellOptions}.
@@ -61,7 +61,7 @@ public class RemoteShell extends ShellCommandExecutor {
   }
 
   public void setRemoteShellOptions(RemoteShellOptions options) {
-    Preconditions.checkNotNull(options);
+    requireNonNull(options);
     this.options = options;
   }
 

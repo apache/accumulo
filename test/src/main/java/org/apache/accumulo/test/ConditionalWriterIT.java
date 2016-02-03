@@ -1444,7 +1444,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     final Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
     loop: while (true) {
-      final StringBuffer finalBuffer = new StringBuffer();
+      final StringBuilder finalBuffer = new StringBuilder();
       int traceCount = TraceDump.printTrace(scanner, new Printer() {
         @Override
         public void print(final String line) {

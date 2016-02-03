@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
@@ -44,8 +46,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Preconditions;
 
 /**
  * A scanner that instantiates iterators on the client side instead of on the tablet server. This can be useful for testing iterators or in cases where you
@@ -368,7 +368,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    * @since 1.8.0
    */
   public void setIteratorSamplerConfiguration(SamplerConfiguration sc) {
-    Preconditions.checkNotNull(sc);
+    requireNonNull(sc);
     this.iteratorSamplerConfig = sc;
   }
 

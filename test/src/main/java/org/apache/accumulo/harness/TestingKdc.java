@@ -17,7 +17,7 @@
 package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -86,8 +86,8 @@ public class TestingKdc {
   }
 
   public TestingKdc(File kdcDir, File keytabDir, long maxTicketLifetime) throws Exception {
-    checkNotNull(kdcDir, "KDC directory was null");
-    checkNotNull(keytabDir, "Keytab directory was null");
+    requireNonNull(kdcDir, "KDC directory was null");
+    requireNonNull(keytabDir, "Keytab directory was null");
     checkArgument(maxTicketLifetime > 0, "Ticket lifetime must be positive");
 
     this.keytabDir = keytabDir;

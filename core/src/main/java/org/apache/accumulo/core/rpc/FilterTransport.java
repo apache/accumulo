@@ -18,10 +18,10 @@
 
 package org.apache.accumulo.core.rpc;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Transport that simply wraps another transport. This is the equivalent of FilterInputStream for Thrift transports.
@@ -30,7 +30,7 @@ public class FilterTransport extends TTransport {
   private final TTransport wrapped;
 
   public FilterTransport(TTransport wrapped) {
-    Preconditions.checkNotNull(wrapped);
+    requireNonNull(wrapped);
     this.wrapped = wrapped;
   }
 

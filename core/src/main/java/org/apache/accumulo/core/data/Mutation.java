@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -34,8 +36,6 @@ import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
-
-import com.google.common.base.Preconditions;
 
 /**
  * <p>
@@ -926,7 +926,7 @@ public class Mutation implements Writable {
    * @since 1.7.0
    */
   public void setReplicationSources(Set<String> sources) {
-    Preconditions.checkNotNull(sources);
+    requireNonNull(sources);
     this.replicationSources = sources;
   }
 

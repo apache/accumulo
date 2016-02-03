@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -57,7 +57,7 @@ public class ThriftMessageUtil {
    *           When serialization fails
    */
   public ByteBuffer serialize(TBase<?,?> msg) throws IOException {
-    checkNotNull(msg);
+    requireNonNull(msg);
     transport.reset();
     try {
       msg.write(protocol);
@@ -89,7 +89,7 @@ public class ThriftMessageUtil {
    *           When deserialization fails
    */
   public <T extends TBase<?,?>> T deserialize(byte[] serialized, int offset, int length, T instance) throws IOException {
-    checkNotNull(instance);
+    requireNonNull(instance);
     TCompactProtocol proto = new TCompactProtocol(new TMemoryInputTransport(serialized, offset, length));
     try {
       instance.read(proto);

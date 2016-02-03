@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -47,16 +47,16 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
   }
 
   public DelegationTokenImpl(byte[] delegationTokenPassword, AuthenticationTokenIdentifier identifier) {
-    checkNotNull(delegationTokenPassword);
-    checkNotNull(identifier);
+    requireNonNull(delegationTokenPassword);
+    requireNonNull(identifier);
     setPassword(delegationTokenPassword);
     this.identifier = identifier;
   }
 
   public DelegationTokenImpl(Instance instance, UserGroupInformation user, AuthenticationTokenIdentifier identifier) {
-    checkNotNull(instance);
-    checkNotNull(user);
-    checkNotNull(identifier);
+    requireNonNull(instance);
+    requireNonNull(user);
+    requireNonNull(identifier);
 
     Credentials creds = user.getCredentials();
     Token<? extends TokenIdentifier> token = creds.getToken(new Text(SERVICE_NAME + "-" + instance.getInstanceID()));
@@ -67,8 +67,8 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
   }
 
   public DelegationTokenImpl(Token<? extends TokenIdentifier> token, AuthenticationTokenIdentifier identifier) {
-    checkNotNull(token);
-    checkNotNull(identifier);
+    requireNonNull(token);
+    requireNonNull(identifier);
     setPasswordFromToken(token, identifier);
   }
 
@@ -94,7 +94,7 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
    * The service name used to identify the {@link Token}
    */
   public Text getServiceName() {
-    checkNotNull(identifier);
+    requireNonNull(identifier);
     return new Text(SERVICE_NAME + "-" + identifier.getInstanceId());
   }
 

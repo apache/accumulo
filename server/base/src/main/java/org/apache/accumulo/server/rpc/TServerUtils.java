@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -63,7 +64,6 @@ import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -490,7 +490,7 @@ public class TServerUtils {
 
     // This is presently not supported. It's hypothetically possible, I believe, to work, but it would require changes in how the transports
     // work at the Thrift layer to ensure that both the SSL and SASL handshakes function. SASL's quality of protection addresses privacy issues.
-    Preconditions.checkArgument(!(sslParams != null && saslParams != null), "Cannot start a Thrift server using both SSL and SASL");
+    checkArgument(!(sslParams != null && saslParams != null), "Cannot start a Thrift server using both SSL and SASL");
 
     ServerAddress serverAddress;
     switch (serverType) {
@@ -570,7 +570,7 @@ public class TServerUtils {
    * @return A {@link UGIAssumingProcessor} which wraps the provided processor
    */
   private static TProcessor updateSaslProcessor(ThriftServerType serverType, TProcessor processor) {
-    Preconditions.checkArgument(ThriftServerType.SASL == serverType);
+    checkArgument(ThriftServerType.SASL == serverType);
 
     // Wrap the provided processor in our special processor which proxies the provided UGI on the logged-in UGI
     // Important that we have Timed -> UGIAssuming -> [provided] to make sure that the metrics are still reported

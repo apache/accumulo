@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.iterators.ValueFormatException;
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
-import com.google.common.base.Preconditions;
+import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
  * AbstractEncoder is an {@link org.apache.accumulo.core.client.lexicoder.Encoder} that implements all of Encoder's methods validating the input, but has those
@@ -35,7 +36,7 @@ public abstract class AbstractEncoder<T> implements Encoder<T> {
 
   @Override
   public T decode(byte[] b) {
-    Preconditions.checkNotNull(b, "cannot decode null byte array");
+    requireNonNull(b, "cannot decode null byte array");
     return decodeUnchecked(b, 0, b.length);
   }
 
@@ -48,10 +49,10 @@ public abstract class AbstractEncoder<T> implements Encoder<T> {
    *           if {@code offset + len} exceeds the length of {@code b}
    */
   public T decode(byte[] b, int offset, int len) {
-    Preconditions.checkNotNull(b, "cannot decode null byte array");
-    Preconditions.checkArgument(offset >= 0, "offset %s cannot be negative", offset);
-    Preconditions.checkArgument(len >= 0, "length %s cannot be negative", len);
-    Preconditions.checkArgument(offset + len <= b.length, "offset + length %s exceeds byte array length %s", (offset + len), b.length);
+    requireNonNull(b, "cannot decode null byte array");
+    checkArgument(offset >= 0, "offset %s cannot be negative", offset);
+    checkArgument(len >= 0, "length %s cannot be negative", len);
+    checkArgument(offset + len <= b.length, "offset + length %s exceeds byte array length %s", (offset + len), b.length);
 
     return decodeUnchecked(b, offset, len);
   }

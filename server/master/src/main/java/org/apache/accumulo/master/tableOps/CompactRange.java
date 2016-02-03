@@ -17,6 +17,7 @@
 package org.apache.accumulo.master.tableOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 
@@ -41,8 +42,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 public class CompactRange extends MasterRepo {
   private static final Logger log = LoggerFactory.getLogger(CompactRange.class);
 
@@ -55,9 +54,9 @@ public class CompactRange extends MasterRepo {
   public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators, CompactionStrategyConfig compactionStrategy)
       throws AcceptableThriftTableOperationException {
 
-    Preconditions.checkNotNull(tableId, "Invalid argument: null tableId");
-    Preconditions.checkNotNull(iterators, "Invalid argument: null iterator list");
-    Preconditions.checkNotNull(compactionStrategy, "Invalid argument: null compactionStrategy");
+    requireNonNull(tableId, "Invalid argument: null tableId");
+    requireNonNull(iterators, "Invalid argument: null iterator list");
+    requireNonNull(compactionStrategy, "Invalid argument: null compactionStrategy");
 
     this.tableId = tableId;
     this.startRow = startRow.length == 0 ? null : startRow;

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.harness.conf;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -28,8 +30,6 @@ import java.util.Properties;
 import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Base class for extracting configuration values from Java Properties
@@ -125,7 +125,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   }
 
   public Map<String,String> getConfiguration(ClusterType type) {
-    Preconditions.checkNotNull(type);
+    requireNonNull(type);
 
     String prefix;
     switch (type) {
