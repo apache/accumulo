@@ -48,6 +48,7 @@ import org.apache.accumulo.minicluster.impl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.proxy.Proxy;
+import org.apache.accumulo.server.conf.ConfigSanityCheck;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.Info;
@@ -97,6 +98,7 @@ public class KeywordStartIT {
     assumeTrue(new File(System.getProperty("user.dir") + "/src").exists());
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
+    expectSet.put("check-server-config", ConfigSanityCheck.class);
     expectSet.put("classpath", Classpath.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("gc", GCExecutable.class);
