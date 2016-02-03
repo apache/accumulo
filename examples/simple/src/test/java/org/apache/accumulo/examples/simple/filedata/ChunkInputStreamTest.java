@@ -16,12 +16,14 @@
  */
 package org.apache.accumulo.examples.simple.filedata;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -45,7 +47,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ChunkInputStreamTest extends TestCase {
+public class ChunkInputStreamTest {
   private static final Logger log = LoggerFactory.getLogger(ChunkInputStream.class);
   List<Entry<Key,Value>> data;
   List<Entry<Key,Value>> baddata;
@@ -115,7 +117,7 @@ public class ChunkInputStreamTest extends TestCase {
       cis.setSource(pi);
       fail();
     } catch (IOException e) {
-      assertNull(null);
+      /* expected */
     }
     cis.close();
   }
@@ -128,9 +130,9 @@ public class ChunkInputStreamTest extends TestCase {
     cis.setSource(pi);
     try {
       cis.getVisibilities();
-      assertNotNull(null);
+      fail();
     } catch (RuntimeException e) {
-      assertNull(null);
+      /* expected */
     }
     cis.close();
     cis.getVisibilities();

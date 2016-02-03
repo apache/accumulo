@@ -108,7 +108,7 @@ public class DefaultCryptoModule implements CryptoModule {
     return cipherSuite.split("/");
   }
 
-  private boolean validateNotEmpty(String givenValue, boolean allIsWell, StringBuffer buf, String errorMessage) {
+  private boolean validateNotEmpty(String givenValue, boolean allIsWell, StringBuilder buf, String errorMessage) {
     if (givenValue == null || givenValue.equals("")) {
       buf.append(errorMessage);
       buf.append("\n");
@@ -118,7 +118,7 @@ public class DefaultCryptoModule implements CryptoModule {
     return true && allIsWell;
   }
 
-  private boolean validateNotNull(Object givenValue, boolean allIsWell, StringBuffer buf, String errorMessage) {
+  private boolean validateNotNull(Object givenValue, boolean allIsWell, StringBuilder buf, String errorMessage) {
     if (givenValue == null) {
       buf.append(errorMessage);
       buf.append("\n");
@@ -128,7 +128,7 @@ public class DefaultCryptoModule implements CryptoModule {
     return true && allIsWell;
   }
 
-  private boolean validateNotZero(int givenValue, boolean allIsWell, StringBuffer buf, String errorMessage) {
+  private boolean validateNotZero(int givenValue, boolean allIsWell, StringBuilder buf, String errorMessage) {
     if (givenValue == 0) {
       buf.append(errorMessage);
       buf.append("\n");
@@ -142,7 +142,7 @@ public class DefaultCryptoModule implements CryptoModule {
 
     if (cipherMode == Cipher.ENCRYPT_MODE) {
 
-      StringBuffer errorBuf = new StringBuffer(
+      StringBuilder errorBuf = new StringBuilder(
           "The following problems were found with the CryptoModuleParameters object you provided for an encrypt operation:\n");
       boolean allIsWell = true;
 
@@ -168,7 +168,7 @@ public class DefaultCryptoModule implements CryptoModule {
       return allIsWell;
 
     } else if (cipherMode == Cipher.DECRYPT_MODE) {
-      StringBuffer errorBuf = new StringBuffer(
+      StringBuilder errorBuf = new StringBuilder(
           "The following problems were found with the CryptoModuleParameters object you provided for a decrypt operation:\n");
       boolean allIsWell = true;
 

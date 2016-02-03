@@ -156,7 +156,7 @@ public class FunctionalTestUtils {
 
   static public String readAll(InputStream is) throws IOException {
     byte[] buffer = new byte[4096];
-    StringBuffer result = new StringBuffer();
+    StringBuilder result = new StringBuilder();
     while (true) {
       int n = is.read(buffer);
       if (n <= 0)

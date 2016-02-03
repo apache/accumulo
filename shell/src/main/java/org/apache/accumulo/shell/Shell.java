@@ -230,8 +230,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private boolean masking = false;
 
   public Shell() throws IOException {
-    this(new ConsoleReader(), new PrintWriter(new OutputStreamWriter(System.out, System.getProperty("jline.WindowsTerminal.output.encoding",
-        System.getProperty("file.encoding")))));
+    this(new ConsoleReader(), new PrintWriter(new OutputStreamWriter(System.out, Charset.forName(System.getProperty("jline.WindowsTerminal.output.encoding",
+        System.getProperty("file.encoding"))))));
   }
 
   public Shell(ConsoleReader reader, PrintWriter writer) {
