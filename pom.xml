@@ -131,7 +131,7 @@
     <!-- extra release args for testing -->
     <extraReleaseArgs />
     <!-- findbugs-maven-plugin won't work on jdk8 or later; set to 3.0.0 or newer -->
-    <findbugs.version>3.0.1</findbugs.version>
+    <findbugs.version>3.0.3</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
     <!-- overwritten in hadoop profiles -->

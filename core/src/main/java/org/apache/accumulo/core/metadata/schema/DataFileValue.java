@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import org.apache.accumulo.core.data.Value;
+
 public class DataFileValue {
   private long size;
   private long numEntries;
@@ -34,7 +38,7 @@ public class DataFileValue {
   }
 
   public DataFileValue(byte[] encodedDFV) {
-    String[] ba = new String(encodedDFV).split(",");
+    String[] ba = new String(encodedDFV, UTF_8).split(",");
 
     size = Long.parseLong(ba[0]);
     numEntries = Long.parseLong(ba[1]);
@@ -62,9 +66,17 @@ public class DataFileValue {
   }
 
   public byte[] encode() {
+    return encodeAsString().getBytes(UTF_8);
+  }
+
+  public String encodeAsString() {
     if (time >= 0)
-      return ("" + size + "," + numEntries + "," + time).getBytes();
-    return ("" + size + "," + numEntries).getBytes();
+      return ("" + size + "," + numEntries + "," + time);
+    return ("" + size + "," + numEntries);
+  }
+
+  public Value encodeAsValue() {
+    return new Value(encode());
   }
 
   @Override

@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -82,12 +83,12 @@ public class MetadataBulkLoadFilterTest {
 
     // following should not be deleted by filter
     put(tm1, "2;m", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t1");
-    put(tm1, "2;m", DataFileColumnFamily.NAME, "/t1/file1", "1,1");
+    put(tm1, "2;m", DataFileColumnFamily.NAME, "/t1/file1", new DataFileValue(1, 1).encodeAsString());
     put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file1", "5");
     put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file3", "7");
     put(tm1, "2;m", TabletsSection.BulkFileColumnFamily.NAME, "/t1/file4", "9");
     put(tm1, "2<", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t2");
-    put(tm1, "2<", DataFileColumnFamily.NAME, "/t2/file2", "1,1");
+    put(tm1, "2<", DataFileColumnFamily.NAME, "/t2/file2", new DataFileValue(1, 1).encodeAsString());
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file6", "5");
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file7", "7");
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/file8", "9");

@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -82,7 +83,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
-    mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf", "1,200");
+    mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf", new DataFileValue(1, 200).encodeAsString());
 
     BatchWriter bw1 = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
@@ -96,7 +97,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
     Mutation mut2 = new Mutation(ke.getMetadataEntry());
     mut2.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
-    mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf", "2,300");
+    mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf", new DataFileValue(2, 300).encodeAsString());
 
     bw1.addMutation(mut2);
     bw1.flush();
@@ -236,7 +237,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes()));
-    mut.put(DataFileColumnFamily.NAME.toString(), file, "10,200");
+    mut.put(DataFileColumnFamily.NAME.toString(), file, new DataFileValue(10, 200).encodeAsString());
 
     return mut;
   }
@@ -375,7 +376,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
     bw1.addMutation(deleteTablet("0", "m", null, "/d1", "/d1/file1"));
     Mutation mut = createTablet("0", null, null, "/d2", "/d2/file2");
-    mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1", "10,200");
+    mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1", new DataFileValue(10, 200).encodeAsString());
     bw1.addMutation(mut);
 
     bw1.flush();
