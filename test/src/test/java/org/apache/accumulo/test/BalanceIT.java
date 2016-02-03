@@ -68,7 +68,7 @@ public class BalanceIT extends ConfigurableMacIT {
       String host = entry.getKey().getColumnQualifier().toString();
       Integer count = counts.get(host);
       if (count == null) {
-        count = new Integer(0);
+        count = Integer.valueOf(0);
       }
       counts.put(host, count.intValue() + 1);
     }

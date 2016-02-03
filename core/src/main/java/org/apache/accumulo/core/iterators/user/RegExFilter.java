@@ -19,7 +19,8 @@ package org.apache.accumulo.core.iterators.user;
 import static com.google.common.base.Charsets.UTF_8;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -65,7 +66,7 @@ public class RegExFilter extends Filter {
   private boolean orFields = false;
   private boolean matchSubstring = false;
 
-  private String encoding = ENCODING_DEFAULT;
+  private Charset encoding = Charset.forName(ENCODING_DEFAULT);
 
   private Matcher copyMatcher(Matcher m) {
     if (m == null)
@@ -76,24 +77,16 @@ public class RegExFilter extends Filter {
 
   private boolean matches(Matcher matcher, ByteSequence bs) {
     if (matcher != null) {
-      try {
-        matcher.reset(new String(bs.getBackingArray(), bs.offset(), bs.length(), encoding));
-        return matchSubstring ? matcher.find() : matcher.matches();
-      } catch (UnsupportedEncodingException e) {
-        e.printStackTrace();
-      }
+      matcher.reset(new String(bs.getBackingArray(), bs.offset(), bs.length(), encoding));
+      return matchSubstring ? matcher.find() : matcher.matches();
     }
     return !orFields;
   }
 
   private boolean matches(Matcher matcher, byte data[], int offset, int len) {
     if (matcher != null) {
-      try {
-        matcher.reset(new String(data, offset, len, encoding));
-        return matchSubstring ? matcher.find() : matcher.matches();
-      } catch (UnsupportedEncodingException e) {
-        e.printStackTrace();
-      }
+      matcher.reset(new String(data, offset, len, encoding));
+      return matchSubstring ? matcher.find() : matcher.matches();
     }
     return !orFields;
   }
@@ -149,7 +142,7 @@ public class RegExFilter extends Filter {
     }
 
     if (options.containsKey(ENCODING)) {
-      encoding = options.get(ENCODING);
+      encoding = Charset.forName(options.get(ENCODING));
     }
   }
 
@@ -191,11 +184,9 @@ public class RegExFilter extends Filter {
 
     if (options.containsKey(ENCODING)) {
       try {
-        this.encoding = options.get(ENCODING);
-        if ("".equals(this.encoding))
-          encoding = ENCODING_DEFAULT;
-        new String("test".getBytes(UTF_8), encoding);
-      } catch (UnsupportedEncodingException e) {
+        String encodingOpt = options.get(ENCODING);
+        this.encoding = Charset.forName(encodingOpt.isEmpty() ? ENCODING_DEFAULT : encodingOpt);
+      } catch (UnsupportedCharsetException e) {
         throw new IllegalArgumentException("invalid encoding " + ENCODING + ":" + this.encoding, e);
       }
     }

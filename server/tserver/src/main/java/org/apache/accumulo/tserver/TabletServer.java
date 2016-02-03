@@ -399,7 +399,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     private long maxIdle;
     private long maxUpdateIdle;
     private List<Session> idleSessions = new ArrayList<Session>();
-    private final Long expiredSessionMarker = new Long(-1);
+    private final Long expiredSessionMarker = Long.valueOf(-1);
 
     SessionManager(AccumuloConfiguration conf) {
       random = new SecureRandom();

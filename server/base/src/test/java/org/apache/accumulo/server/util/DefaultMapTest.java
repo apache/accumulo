@@ -29,10 +29,10 @@ public class DefaultMapTest {
   public void testDefaultMap() {
     Integer value = new DefaultMap<String,Integer>(0).get("test");
     assertNotNull(value);
-    assertEquals(new Integer(0), value);
+    assertEquals(Integer.valueOf(0), value);
     value = new DefaultMap<String,Integer>(1).get("test");
     assertNotNull(value);
-    assertEquals(new Integer(1), value);
+    assertEquals(Integer.valueOf(1), value);
 
     AtomicInteger canConstruct = new DefaultMap<String,AtomicInteger>(new AtomicInteger(1)).get("test");
     assertNotNull(canConstruct);

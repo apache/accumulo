@@ -29,8 +29,7 @@ public class PerformanceTest {
 
     long now = System.currentTimeMillis();
     for (long i = 0; i < 1000 * 1000; i++) {
-      @SuppressWarnings("unused")
-      Long x = new Long(i);
+      Long.valueOf(i);
     }
     System.out.println(String.format("Trivial took %d millis", System.currentTimeMillis() - now));
     now = System.currentTimeMillis();

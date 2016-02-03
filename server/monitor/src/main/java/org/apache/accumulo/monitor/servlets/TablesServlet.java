@@ -123,7 +123,7 @@ public class TablesServlet extends BasicServlet {
       TableInfo tableInfo = tableStats.get(tableName);
       Double holdTime = compactingByTable.get(tableId);
       if (holdTime == null)
-        holdTime = new Double(0.);
+        holdTime = Double.valueOf(0.);
       TableRow row = tableList.prepareRow();
       row.add(tableId);
       row.add(tableManager.getTableState(tableId));

@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -175,6 +176,7 @@ import org.apache.log4j.Logger;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
+import com.google.common.base.Charsets;
 
 import jline.console.ConsoleReader;
 import jline.console.UserInterruptException;
@@ -187,7 +189,7 @@ public class Shell extends ShellOptions {
   public static final Logger log = Logger.getLogger(Shell.class);
   private static final Logger audit = Logger.getLogger(Shell.class.getName() + ".audit");
 
-  public static final String CHARSET = "ISO-8859-1";
+  public static final Charset CHARSET = Charsets.ISO_8859_1;
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
   public static final String COMMENT_PREFIX = "#";
   public static final String HISTORY_DIR_NAME = ".accumulo";
@@ -228,8 +230,8 @@ public class Shell extends ShellOptions {
   private boolean masking = false;
 
   public Shell() throws IOException {
-    this(new ConsoleReader(), new PrintWriter(new OutputStreamWriter(System.out, System.getProperty("jline.WindowsTerminal.output.encoding",
-        System.getProperty("file.encoding")))));
+    this(new ConsoleReader(), new PrintWriter(new OutputStreamWriter(System.out, Charset.forName(System.getProperty("jline.WindowsTerminal.output.encoding",
+        System.getProperty("file.encoding"))))));
   }
 
   public Shell(ConsoleReader reader, PrintWriter writer) {
