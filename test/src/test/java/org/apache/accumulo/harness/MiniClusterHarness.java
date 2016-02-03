@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.harness;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedOutputStream;
@@ -43,7 +44,6 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 
 /**
@@ -113,7 +113,7 @@ public class MiniClusterHarness {
 
     String rootPasswd;
     if (token instanceof PasswordToken) {
-      rootPasswd = new String(((PasswordToken) token).getPassword(), Charsets.UTF_8);
+      rootPasswd = new String(((PasswordToken) token).getPassword(), UTF_8);
     } else {
       rootPasswd = UUID.randomUUID().toString();
     }

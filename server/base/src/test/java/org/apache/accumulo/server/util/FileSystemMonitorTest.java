@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 public class FileSystemMonitorTest {
   private static final Logger log = LoggerFactory.getLogger(FileSystemMonitorTest.class);
-  private static final Charset UTF_8 = Charset.forName("UTF-8");
 
   @Test
   public void testFilteredMountEntries() throws Exception {

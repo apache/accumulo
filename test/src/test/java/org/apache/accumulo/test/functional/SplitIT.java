@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -54,8 +55,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 public class SplitIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
@@ -172,7 +171,7 @@ public class SplitIT extends AccumuloClusterIT {
           cluster.getZooKeepers()};
     } else {
       PasswordToken token = (PasswordToken) getAdminToken();
-      args = new String[] {"-i", cluster.getInstanceName(), "-u", "root", "-p", new String(token.getPassword(), Charsets.UTF_8), "-z", cluster.getZooKeepers()};
+      args = new String[] {"-i", cluster.getInstanceName(), "-u", "root", "-p", new String(token.getPassword(), UTF_8), "-z", cluster.getZooKeepers()};
     }
 
     assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class, args));
@@ -208,7 +207,7 @@ public class SplitIT extends AccumuloClusterIT {
     if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
       keytab = getAdminUser().getKeytab().getAbsolutePath();
     } else {
-      password = new String(((PasswordToken) getAdminToken()).getPassword(), Charsets.UTF_8);
+      password = new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8);
     }
     DeleteIT.deleteTest(c, getCluster(), getAdminPrincipal(), password, tableName, keytab);
     c.tableOperations().flush(tableName, null, null, true);

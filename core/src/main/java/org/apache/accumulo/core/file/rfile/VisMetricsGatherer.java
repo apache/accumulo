@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,7 +30,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.Charsets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
@@ -127,7 +128,7 @@ public class VisMetricsGatherer implements MetricsGatherer<Map<String,ArrayList<
       out.println("Number of keys" + "\t   " + "Percent of keys" + "\t" + "Number of blocks" + "\t" + "Percent of blocks");
       for (Entry<String,Long> entry : metric.get(lGName).asMap().entrySet()) {
         HashFunction hf = Hashing.md5();
-        HashCode hc = hf.newHasher().putString(entry.getKey(), Charsets.UTF_8).hash();
+        HashCode hc = hf.newHasher().putString(entry.getKey(), UTF_8).hash();
         if (hash)
           out.printf("%-20s", hc.toString().substring(0, 8));
         else

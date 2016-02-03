@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.start.classloader.vfs.providers;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 
 import org.apache.commons.vfs2.RandomAccessContent;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -115,7 +116,7 @@ public class HdfsRandomAccessContent implements RandomAccessContent {
 
   @Override
   public String readLine() throws IOException {
-    BufferedReader d = new BufferedReader(new InputStreamReader(this.fis, Charset.forName("UTF-8")));
+    BufferedReader d = new BufferedReader(new InputStreamReader(this.fis, UTF_8));
     return d.readLine();
   }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.start.classloader.vfs.providers;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import org.apache.commons.vfs2.FileContent;
 import org.apache.commons.vfs2.FileContentInfo;
 import org.apache.commons.vfs2.FileContentInfoFactory;
@@ -29,7 +31,7 @@ import org.apache.commons.vfs2.impl.DefaultFileContentInfo;
  */
 public class HdfsFileContentInfoFactory implements FileContentInfoFactory {
   private static final String CONTENT = "text/plain";
-  private static final String ENCODING = "UTF-8";
+  private static final String ENCODING = UTF_8.name();
 
   /**
    * Creates a FileContentInfo for a the given FileContent.
