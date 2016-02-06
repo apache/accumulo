@@ -75,6 +75,7 @@ public class UserImpersonationTest {
     setUsersOrHosts(user, ".users", users);
   }
 
+  @SuppressWarnings("deprecation")
   void setUsersOrHosts(String user, String suffix, String value) {
     cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + user + suffix, value);
   }
@@ -478,6 +479,7 @@ public class UserImpersonationTest {
     assertNull(impersonation.get(client3));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testSingleUser() throws Exception {
     final String server = "server/hostname@EXAMPLE.COM", client = "client@EXAMPLE.COM";

@@ -39,7 +39,8 @@ import org.slf4j.LoggerFactory;
  * <code>INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION=rpc_user:user,user,user;...</code>
  * <code>INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION=host,host:host...</code>
  *
- * @see Property#INSTANCE_RPC_SASL_PROXYUSERS
+ * @see Property#INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION
+ * @see Property#INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION
  */
 public class UserImpersonation {
 
@@ -172,6 +173,7 @@ public class UserImpersonation {
 
   private final Map<String,UsersWithHosts> proxyUsers;
 
+  @SuppressWarnings("deprecation")
   public UserImpersonation(AccumuloConfiguration conf) {
     proxyUsers = new HashMap<>();
 
@@ -257,7 +259,9 @@ public class UserImpersonation {
    * @param configProperties
    *          The relevant configuration properties for impersonation.
    */
+  @SuppressWarnings("javadoc")
   private void parseMultiPropertyConfiguration(Map<String,String> configProperties) {
+    @SuppressWarnings("deprecation")
     final String configKey = Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey();
     for (Entry<String,String> entry : configProperties.entrySet()) {
       String aclKey = entry.getKey().substring(configKey.length());
