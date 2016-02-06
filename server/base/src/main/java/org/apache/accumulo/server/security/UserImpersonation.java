@@ -35,9 +35,12 @@ import org.slf4j.LoggerFactory;
  * When SASL is enabled, this parses properties from the site configuration to build up a set of all users capable of impersonating another user, the users
  * which may be impersonated and the hosts in which the impersonator may issue requests from.
  *
- * <code>rpc_user=&gt;{allowed_accumulo_users=[...], allowed_client_hosts=[...]</code>
+ * <code>INSTANCE_RPC_SASL_PROXYUSERS=rpc_user={allowed_accumulo_users=[...], allowed_client_hosts=[...]</code>
+ * <code>INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION=rpc_user:user,user,user;...</code>
+ * <code>INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION=host,host:host...</code>
  *
- * @see Property#INSTANCE_RPC_SASL_PROXYUSERS
+ * @see Property#INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION
+ * @see Property#INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION
  */
 public class UserImpersonation {
 
@@ -170,11 +173,97 @@ public class UserImpersonation {
 
   private final Map<String,UsersWithHosts> proxyUsers;
 
+  @SuppressWarnings("deprecation")
   public UserImpersonation(AccumuloConfiguration conf) {
-    Map<String,String> entries = conf.getAllPropertiesWithPrefix(Property.INSTANCE_RPC_SASL_PROXYUSERS);
     proxyUsers = new HashMap<>();
+
+    // Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION is treated as the "new config style" switch
+    final String userConfig = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION);
+    if (!Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION.getDefaultValue().equals(userConfig)) {
+      String hostConfig = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION);
+      parseOnelineConfiguration(userConfig, hostConfig);
+    } else {
+      // Otherwise, assume the old-style
+      parseMultiPropertyConfiguration(conf.getAllPropertiesWithPrefix(Property.INSTANCE_RPC_SASL_PROXYUSERS));
+    }
+  }
+
+  /**
+   * Parses the impersonation configuration for all users from a single property.
+   *
+   * @param userConfigString
+   *          Semi-colon separated list of {@code remoteUser:alloweduser,alloweduser,...}.
+   * @param hostConfigString
+   *          Semi-colon separated list of hosts.
+   */
+  private void parseOnelineConfiguration(String userConfigString, String hostConfigString) {
+    // Pull out the config values, defaulting to at least one value
+    final String[] userConfigs;
+    if (userConfigString.trim().isEmpty()) {
+      userConfigs = new String[] {""};
+    } else {
+      userConfigs = StringUtils.split(userConfigString, ';');
+    }
+    final String[] hostConfigs;
+    if (hostConfigString.trim().isEmpty()) {
+      hostConfigs = new String[] {""};
+    } else {
+      hostConfigs = StringUtils.split(hostConfigString, ';');
+    }
+
+    if (userConfigs.length != hostConfigs.length) {
+      String msg = String.format("Should have equal number of user and host impersonation elements in configuration. Got %d and %d elements, respectively.",
+          userConfigs.length, hostConfigs.length);
+      throw new IllegalArgumentException(msg);
+    }
+
+    for (int i = 0; i < userConfigs.length; i++) {
+      final String userConfig = userConfigs[i];
+      final String hostConfig = hostConfigs[i];
+
+      final String[] splitUserConfig = StringUtils.split(userConfig, ':');
+      if (2 != splitUserConfig.length) {
+        throw new IllegalArgumentException("Expect a single colon-separated pair, but found '" + userConfig + "'");
+      }
+
+      final String remoteUser = splitUserConfig[0];
+      final String allowedImpersonationsForRemoteUser = splitUserConfig[1];
+      final UsersWithHosts usersWithHosts = new UsersWithHosts();
+
+      proxyUsers.put(remoteUser.trim(), usersWithHosts);
+
+      if (ALL.equals(allowedImpersonationsForRemoteUser)) {
+        usersWithHosts.setAcceptAllUsers(true);
+      } else {
+        String[] allowedUsers = StringUtils.split(allowedImpersonationsForRemoteUser, ",");
+        Set<String> usersSet = new HashSet<>();
+        usersSet.addAll(Arrays.asList(allowedUsers));
+        usersWithHosts.setUsers(usersSet);
+      }
+
+      if (ALL.equals(hostConfig)) {
+        usersWithHosts.setAcceptAllHosts(true);
+      } else {
+        String[] allowedHosts = StringUtils.split(hostConfig, ",");
+        Set<String> hostsSet = new HashSet<>();
+        hostsSet.addAll(Arrays.asList(allowedHosts));
+        usersWithHosts.setHosts(hostsSet);
+      }
+    }
+  }
+
+  /**
+   * Parses all properties that start with {@link Property#INSTANCE_RPC_SASL_PROXYUSERS}. This approach was the original configuration method, but does not work
+   * with Ambari.
+   *
+   * @param configProperties
+   *          The relevant configuration properties for impersonation.
+   */
+  @SuppressWarnings("javadoc")
+  private void parseMultiPropertyConfiguration(Map<String,String> configProperties) {
+    @SuppressWarnings("deprecation")
     final String configKey = Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey();
-    for (Entry<String,String> entry : entries.entrySet()) {
+    for (Entry<String,String> entry : configProperties.entrySet()) {
       String aclKey = entry.getKey().substring(configKey.length());
       int index = aclKey.lastIndexOf('.');
 

@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.rpc;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,7 +25,9 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.junit.After;
@@ -32,14 +35,34 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Predicate;
+
 public class TCredentialsUpdatingInvocationHandlerTest {
+  private static final DefaultConfiguration DEFAULT_CONFIG = DefaultConfiguration.getInstance();
 
   TCredentialsUpdatingInvocationHandler<Object> proxy;
-  ConfigurationCopy conf;
+  ConfigurationCopy cc;
+  AccumuloConfiguration conf;
 
   @Before
   public void setup() {
-    conf = new ConfigurationCopy();
+    cc = new ConfigurationCopy();
+    conf = new AccumuloConfiguration() {
+      @Override
+      public String get(Property property) {
+        String value = cc.get(property);
+        if (null == value) {
+          return DEFAULT_CONFIG.get(property);
+        }
+        return value;
+      }
+
+      @Override
+      public void getProperties(Map<String,String> props, Predicate<String> filter) {
+        cc.getProperties(props, filter);
+      }
+    };
+
     proxy = new TCredentialsUpdatingInvocationHandler<Object>(new Object(), conf);
   }
 
@@ -97,8 +120,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   @Test
   public void testAllowedAnyImpersonationForAnyUser() throws Exception {
     final String proxyServer = "proxy";
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", "*");
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", "*");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", "*");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", "*");
     proxy = new TCredentialsUpdatingInvocationHandler<Object>(new Object(), conf);
     TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
@@ -108,8 +131,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   @Test
   public void testAllowedImpersonationForSpecificUsers() throws Exception {
     final String proxyServer = "proxy";
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", "client1,client2");
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", "*");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", "client1,client2");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", "*");
     proxy = new TCredentialsUpdatingInvocationHandler<Object>(new Object(), conf);
     TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
@@ -122,8 +145,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   public void testDisallowedImpersonationForUser() throws Exception {
     final String proxyServer = "proxy";
     // let "otherproxy" impersonate, but not "proxy"
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy" + ".users", "*");
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy" + ".hosts", "*");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy" + ".users", "*");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy" + ".hosts", "*");
     proxy = new TCredentialsUpdatingInvocationHandler<Object>(new Object(), conf);
     TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
@@ -134,10 +157,10 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   public void testDisallowedImpersonationForMultipleUsers() throws Exception {
     final String proxyServer = "proxy";
     // let "otherproxy" impersonate, but not "proxy"
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy1" + ".users", "*");
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy1" + ".hosts", "*");
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy2" + ".users", "client1,client2");
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy2" + ".hosts", "*");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy1" + ".users", "*");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy1" + ".hosts", "*");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy2" + ".users", "client1,client2");
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + "otherproxy2" + ".hosts", "*");
     proxy = new TCredentialsUpdatingInvocationHandler<Object>(new Object(), conf);
     TCredentials tcreds = new TCredentials("client1", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
@@ -147,8 +170,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   @Test
   public void testAllowedImpersonationFromSpecificHost() throws Exception {
     final String proxyServer = "proxy", client = "client", host = "host.domain.com";
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", client);
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", host);
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", client);
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", host);
     proxy = new TCredentialsUpdatingInvocationHandler<Object>(new Object(), conf);
     TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
@@ -159,8 +182,8 @@ public class TCredentialsUpdatingInvocationHandlerTest {
   @Test(expected = ThriftSecurityException.class)
   public void testDisallowedImpersonationFromSpecificHost() throws Exception {
     final String proxyServer = "proxy", client = "client", host = "host.domain.com";
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", client);
-    conf.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", host);
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".users", client);
+    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyServer + ".hosts", host);
     proxy = new TCredentialsUpdatingInvocationHandler<Object>(new Object(), conf);
     TCredentials tcreds = new TCredentials("client", KerberosToken.class.getName(), ByteBuffer.allocate(0), UUID.randomUUID().toString());
     UGIAssumingProcessor.rpcPrincipal.set(proxyServer);
