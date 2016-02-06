@@ -158,8 +158,13 @@ public enum Property {
    */
   INSTANCE_RPC_SASL_ENABLED("instance.rpc.sasl.enabled", "false", PropertyType.BOOLEAN,
       "Configures Thrift RPCs to require SASL with GSSAPI which supports Kerberos authentication. Mutually exclusive with SSL RPC configuration."),
+  @Deprecated
   INSTANCE_RPC_SASL_PROXYUSERS("instance.rpc.sasl.impersonation.", null, PropertyType.PREFIX,
       "Prefix that allows configuration of users that are allowed to impersonate other users"),
+  INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION("instance.rpc.sasl.allowed.user.impersonation", "", PropertyType.STRING,
+      "One-line configuration property controlling what users are allowed to impersonate other users"),
+  INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION("instance.rpc.sasl.allowed.host.impersonation", "", PropertyType.STRING,
+      "One-line configuration property controlling the network locations (hostnames) that are allowed to impersonate other users"),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,

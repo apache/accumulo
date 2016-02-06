@@ -35,7 +35,7 @@ Kerberos implements. In the Java programming language, the language itself also 
 GSSAPI which is leveraged by other applications, like Apache Hadoop and Apache Thrift.
 SASL, simple authentication and security layer, is a framework for authentication and
 and security over the network. SASL provides a number of mechanisms for authentication,
-one of which is GSSAPI. Thus, SASL provides the transport which authenticates 
+one of which is GSSAPI. Thus, SASL provides the transport which authenticates
 using GSSAPI that Kerberos implements.
 
 Kerberos is a very complicated software application and is deserving of much
@@ -269,29 +269,45 @@ it can only connect to Accumulo as itself. Impersonation, in this context, refer
 of the proxy to authenticate to Accumulo as itself, but act on behalf of an Accumulo user.
 
 Accumulo supports basic impersonation of end-users by a third party via static rules in Accumulo's
-site configuration file.
+site configuration file. These two properties are semi-colon separated properties which are aligned
+by index. This first element in the user impersonation property value matches the first element
+in the host impersonation property value, etc.
 
 ----
 <property>
-  <name>instance.rpc.sasl.impersonation.$PROXY_USER.users</name>
-  <value>*</value>
+  <name>instance.rpc.sasl.allowed.user.impersonation</name>
+  <value>$PROXY_USER:*</value>
 </property>
 
 <property>
-  <name>instance.rpc.sasl.impersonation.$PROXY_USER.hosts</name>
+  <name>instance.rpc.sasl.allowed.host.impersonation</name>
   <value>*</value>
 </property>
 ----
 
-The value +$PROXY_USER+ is the Kerberos principal of the server which is acting on behalf of a user.
-Impersonation is enforced by the Kerberos principal and the host from which the RPC originated. Both
-of the above properties expects values which are comma-separated lists. The value of each user in the
-list should be the complete Kerberos principal of the user which the give +$PROXY_USER+ can impersonate,
-and each value of the hosts list should be the FQDN of the machine which the +$PROXY_USER+ can submit
-requests from.
+Here, +$PROXY_USER+ can impersonate any user from any host.
 
-Both the hosts and users configuration properties also accept a value of +*+ to denote that any user or host
-is acceptable for +$PROXY_USER+.
+The following is an example of specifying a subset of users +$PROXY_USER+ can impersonate and also
+limiting the hosts from which +$PROXY_USER+ can initiate requests from.
+
+----
+<property>
+  <name>instance.rpc.sasl.allowed.user.impersonation</name>
+  <value>$PROXY_USER:user1,user2;$PROXY_USER2:user2,user4</value>
+</property>
+
+<property>
+  <name>instance.rpc.sasl.allowed.host.impersonation</name>
+  <value>host1.domain.com,host2.domain.com;*</value>
+</property>
+----
+
+Here, +$PROXY_USER+ can impersonate user1 and user2 only from host1.domain.com or host2.domain.com.
++$PROXY_USER2+ can impersonate user2 and user4 from any host.
+
+In these examples, the value +$PROXY_USER+ is the Kerberos principal of the server which is acting on behalf of a user.
+Impersonation is enforced by the Kerberos principal and the host from which the RPC originated (from the perspective
+of the Accumulo TabletServers/Masters). An asterisk (*) can be used to specify all users or all hosts (depending on the context).
 
 ===== Delegation Tokens
 
@@ -299,7 +315,7 @@ Within Accumulo services, the primary task to implement delegation tokens is the
 of a shared secret among all Accumulo tabletservers and the master. The secret key allows for generation
 of delegation tokens for users and verification of delegation tokens presented by clients. If a server
 process is unaware of the secret key used to create a delegation token, the client cannot be authenticated.
-As ZooKeeper distribution is an asynchronous operation (typically on the order of seconds), the 
+As ZooKeeper distribution is an asynchronous operation (typically on the order of seconds), the
 value for `general.delegation.token.update.interval` should be on the order of hours to days to reduce the
 likelihood of servers rejecting valid clients because the server did not yet see a new secret key.
 
@@ -422,7 +438,7 @@ JVM to each YARN task is secure, even in multi-tenant instances.
 
 ==== Debugging
 
-*Q*: I have valid Kerberos credentials and a correct client configuration file but 
+*Q*: I have valid Kerberos credentials and a correct client configuration file but
 I still get errors like:
 
 ----
@@ -436,7 +452,7 @@ value, and ensure it matches the value reported by `klist`.
 ----
 $ echo $KRB5CCNAME
 
-$ klist 
+$ klist
 Ticket cache: FILE:/tmp/krb5cc_123
 Default principal: user@EXAMPLE.COM
 
@@ -462,7 +478,7 @@ diagnose some high-level configuration problem. Client applications can add this
 hand to the command line and Accumulo server processes or applications started using the `accumulo`
 script by adding the property to +ACCUMULO_GENERAL_OPTS+ in +$ACCUMULO_CONF_DIR/accumulo-env.sh+.
 
-Additionally, you can increase the log4j levels on +org.apache.hadoop.security+, which includes the 
+Additionally, you can increase the log4j levels on +org.apache.hadoop.security+, which includes the
 Hadoop +UserGroupInformation+ class, which will include some high-level debug statements. This
 can be controlled in your client application, or using +$ACCUMULO_CONF_DIR/generic_logger.xml+
 
@@ -513,7 +529,7 @@ Caused by: KrbException: Identifier doesn't match expected value (906)
         ... 25 more
 ----
 
-or 
+or
 
 ----
 2015-01-12 14:47:29,440 [server.TThreadPoolServer] ERROR: Error occurred during processing of message.
