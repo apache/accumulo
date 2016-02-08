@@ -140,8 +140,8 @@ public class KerberosProxyIT extends AccumuloITBase {
         cfg.setNumTservers(1);
         Map<String,String> siteCfg = cfg.getSiteConfig();
         // Allow the proxy to impersonate the client user, but no one else
-        siteCfg.put(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyPrincipal + ".users", kdc.getRootUser().getPrincipal());
-        siteCfg.put(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + proxyPrincipal + ".hosts", "*");
+        siteCfg.put(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION.getKey(), proxyPrincipal + ":" + kdc.getRootUser().getPrincipal());
+        siteCfg.put(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION.getKey(), "*");
         cfg.setSiteConfig(siteCfg);
       }
 
