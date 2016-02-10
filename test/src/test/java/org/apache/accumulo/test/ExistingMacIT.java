@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -100,7 +101,8 @@ public class ExistingMacIT extends ConfigurableMacIT {
     }
 
     // TODO clean out zookeeper? following sleep waits for ephemeral nodes to go away
-    UtilWaitThread.sleep(10000);
+    long zkTimeout = AccumuloConfiguration.getTimeInMillis(getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
+    UtilWaitThread.sleep(zkTimeout + 500);
 
     File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf");
     FileUtils.deleteQuietly(hadoopConfDir);
