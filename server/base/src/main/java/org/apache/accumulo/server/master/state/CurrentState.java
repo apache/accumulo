@@ -29,5 +29,5 @@ public interface CurrentState {
 
   Collection<MergeInfo> merges();
 
-  Collection<KeyExtent> migrations();
+  Set<KeyExtent> migrations();
 }
