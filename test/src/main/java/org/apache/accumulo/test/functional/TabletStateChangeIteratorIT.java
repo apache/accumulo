@@ -229,8 +229,8 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
     }
 
     @Override
-    public Collection<KeyExtent> migrations() {
-      return Collections.emptyList();
+    public Set<KeyExtent> migrationsSnapshot() {
+      return Collections.emptySet();
     }
 
     @Override

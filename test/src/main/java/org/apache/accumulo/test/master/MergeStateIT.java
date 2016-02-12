@@ -80,8 +80,8 @@ public class MergeStateIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Collection<KeyExtent> migrations() {
-      return Collections.emptyList();
+    public Set<KeyExtent> migrationsSnapshot() {
+      return Collections.emptySet();
     }
 
     @Override
