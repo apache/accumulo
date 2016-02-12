@@ -83,8 +83,8 @@ public class TestMergeState {
     }
 
     @Override
-    public Collection<KeyExtent> migrations() {
-      return Collections.emptyList();
+    public Set<KeyExtent> migrationsSnapshot() {
+      return Collections.emptySet();
     }
 
     @Override

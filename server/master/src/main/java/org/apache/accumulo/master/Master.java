@@ -1012,11 +1012,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
     private long balanceTablets() {
       List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
-      Set<KeyExtent> migrationsCopy = new HashSet<KeyExtent>();
-      synchronized (migrations) {
-        migrationsCopy.addAll(migrations.keySet());
-      }
-      long wait = tabletBalancer.balance(Collections.unmodifiableSortedMap(tserverStatus), Collections.unmodifiableSet(migrationsCopy), migrationsOut);
+      long wait = tabletBalancer.balance(Collections.unmodifiableSortedMap(tserverStatus), migrationsSnapshot(), migrationsOut);
 
       for (TabletMigration m : TabletBalancer.checkMigrationSanity(tserverStatus.keySet(), migrationsOut)) {
         if (migrations.containsKey(m.tablet)) {
@@ -1570,12 +1566,12 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   }
 
   @Override
-  public Collection<KeyExtent> migrations() {
+  public Set<KeyExtent> migrationsSnapshot() {
     Set<KeyExtent> migrationKeys = new HashSet<KeyExtent>();
     synchronized (migrations) {
       migrationKeys.addAll(migrations.keySet());
     }
-    return migrationKeys;
+    return Collections.unmodifiableSet(migrationKeys);
   }
 
   @Override
