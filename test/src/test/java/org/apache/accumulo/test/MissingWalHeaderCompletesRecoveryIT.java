@@ -136,7 +136,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacIT {
 
     log.info("{} is offline", tableName);
 
-    Text row = MetadataSchema.TabletsSection.getRow(new Text(tableId), null);
+    Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
     Mutation m = new Mutation(row);
     m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
@@ -195,7 +195,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacIT {
 
     log.info("{} is offline", tableName);
 
-    Text row = MetadataSchema.TabletsSection.getRow(new Text(tableId), null);
+    Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
     Mutation m = new Mutation(row);
     m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 

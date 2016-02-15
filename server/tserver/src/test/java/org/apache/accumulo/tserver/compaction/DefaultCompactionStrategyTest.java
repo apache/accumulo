@@ -59,6 +59,7 @@ public class DefaultCompactionStrategyTest {
   }
 
   static final Map<String,Pair<Key,Key>> fakeFiles = new HashMap<String,Pair<Key,Key>>();
+
   static {
     fakeFiles.put("file1", keys("b", "m"));
     fakeFiles.put("file2", keys("n", "z"));
@@ -151,7 +152,7 @@ public class DefaultCompactionStrategyTest {
   }
 
   private MajorCompactionRequest createRequest(MajorCompactionReason reason, Object... objs) throws IOException {
-    return createRequest(new KeyExtent(new Text("0"), null, null), reason, objs);
+    return createRequest(new KeyExtent("0", null, null), reason, objs);
   }
 
   private MajorCompactionRequest createRequest(KeyExtent extent, MajorCompactionReason reason, Object... objs) throws IOException {

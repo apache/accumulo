@@ -102,7 +102,7 @@ public class TestMergeState {
     // Create a fake METADATA table with these splits
     String splits[] = {"a", "e", "j", "o", "t", "z"};
     // create metadata for a table "t" with the splits above
-    Text tableId = new Text("t");
+    String tableId = "t";
     Text pr = null;
     for (String s : splits) {
       Text split = new Text(s);

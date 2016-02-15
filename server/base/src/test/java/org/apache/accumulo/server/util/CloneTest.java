@@ -47,7 +47,7 @@ public class CloneTest {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
 
-    KeyExtent ke = new KeyExtent(new Text("0"), null, null);
+    KeyExtent ke = new KeyExtent("0", null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
@@ -76,7 +76,7 @@ public class CloneTest {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
 
-    KeyExtent ke = new KeyExtent(new Text("0"), null, null);
+    KeyExtent ke = new KeyExtent("0", null, null);
     Mutation mut = ke.getPrevRowUpdateMutation();
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
@@ -109,7 +109,7 @@ public class CloneTest {
     assertEquals(0, rc);
 
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
+    scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
     HashSet<String> files = new HashSet<String>();
 
@@ -149,7 +149,7 @@ public class CloneTest {
     assertEquals(0, rc);
 
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
+    scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
     HashSet<String> files = new HashSet<String>();
 
@@ -198,7 +198,7 @@ public class CloneTest {
     assertEquals(0, rc);
 
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
+    scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
     HashSet<String> files = new HashSet<String>();
 
@@ -217,7 +217,7 @@ public class CloneTest {
   }
 
   private static Mutation deleteTablet(String tid, String endRow, String prevRow, String dir, String file) throws Exception {
-    KeyExtent ke = new KeyExtent(new Text(tid), endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow));
+    KeyExtent ke = new KeyExtent(tid, endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow));
     Mutation mut = new Mutation(ke.getMetadataEntry());
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.putDelete(mut);
     TabletsSection.ServerColumnFamily.TIME_COLUMN.putDelete(mut);
@@ -228,7 +228,7 @@ public class CloneTest {
   }
 
   private static Mutation createTablet(String tid, String endRow, String prevRow, String dir, String file) throws Exception {
-    KeyExtent ke = new KeyExtent(new Text(tid), endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow));
+    KeyExtent ke = new KeyExtent(tid, endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow));
     Mutation mut = ke.getPrevRowUpdateMutation();
 
     TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
@@ -267,7 +267,7 @@ public class CloneTest {
     assertEquals(0, rc);
 
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
+    scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
     HashSet<String> files = new HashSet<String>();
 
@@ -332,7 +332,7 @@ public class CloneTest {
     assertEquals(0, rc);
 
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
+    scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
     HashSet<String> files = new HashSet<String>();
 

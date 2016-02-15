@@ -131,7 +131,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacIT {
     waitForCleanStore(store);
     // now jam up the metadata table
     bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    assignment = new Mutation(new KeyExtent(new Text(MetadataTable.ID), null, null).getMetadataEntry());
+    assignment = new Mutation(new KeyExtent(MetadataTable.ID, null, null).getMetadataEntry());
     assignment.put(CurrentLocationColumnFamily.NAME, moved.current.asColumnQualifier(), moved.current.asMutationValue());
     bw.addMutation(assignment);
     bw.close();

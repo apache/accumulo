@@ -379,7 +379,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads(), new NamingThreadFactory(this.getClass().getSimpleName()));
-    this.locator = TabletLocator.getLocator(instance, new Text(tableId));
+    this.locator = TabletLocator.getLocator(instance, tableId);
     this.serverQueues = new HashMap<String,ServerQueue>();
     this.tableId = tableId;
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);

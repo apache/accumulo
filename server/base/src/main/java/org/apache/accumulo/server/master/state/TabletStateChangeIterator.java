@@ -42,7 +42,6 @@ import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class TabletStateChangeIterator extends SkippingIterator {
@@ -56,7 +55,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
 
   Set<TServerInstance> current;
   Set<String> onlineTables;
-  Map<Text,MergeInfo> merges;
+  Map<String,MergeInfo> merges;
   boolean debug = false;
   Set<KeyExtent> migrations;
 
@@ -116,11 +115,11 @@ public class TabletStateChangeIterator extends SkippingIterator {
     return result;
   }
 
-  private Map<Text,MergeInfo> parseMerges(String merges) {
+  private Map<String,MergeInfo> parseMerges(String merges) {
     if (merges == null)
       return null;
     try {
-      Map<Text,MergeInfo> result = new HashMap<Text,MergeInfo>();
+      Map<String,MergeInfo> result = new HashMap<String,MergeInfo>();
       DataInputBuffer buffer = new DataInputBuffer();
       byte[] data = Base64.decodeBase64(merges.getBytes(UTF_8));
       buffer.reset(data, data.length);

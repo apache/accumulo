@@ -131,7 +131,7 @@ public class BulkImporter {
     final Map<Path,List<KeyExtent>> completeFailures = Collections.synchronizedSortedMap(new TreeMap<Path,List<KeyExtent>>());
 
     ClientService.Client client = null;
-    final TabletLocator locator = TabletLocator.getLocator(instance, new Text(tableId));
+    final TabletLocator locator = TabletLocator.getLocator(instance, tableId);
 
     try {
       final Map<Path,List<TabletLocation>> assignments = Collections.synchronizedSortedMap(new TreeMap<Path,List<TabletLocation>>());

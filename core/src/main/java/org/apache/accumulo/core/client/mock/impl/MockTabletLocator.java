@@ -52,7 +52,7 @@ public class MockTabletLocator extends TabletLocator {
   @Override
   public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    binnedRanges.put("", Collections.singletonMap(new KeyExtent(new Text(), null, null), ranges));
+    binnedRanges.put("", Collections.singletonMap(new KeyExtent("", null, null), ranges));
     return Collections.emptyList();
   }
 

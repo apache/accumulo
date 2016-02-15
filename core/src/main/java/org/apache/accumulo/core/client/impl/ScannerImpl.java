@@ -29,7 +29,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.hadoop.io.Text;
 
 /**
  * provides scanner functionality
@@ -49,7 +48,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   private Instance instance;
   private Credentials credentials;
   private Authorizations authorizations;
-  private Text table;
+  private String table;
 
   private int size;
 
@@ -61,7 +60,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     ArgumentChecker.notNull(instance, credentials, table, authorizations);
     this.instance = instance;
     this.credentials = credentials;
-    this.table = new Text(table);
+    this.table = table;
     this.range = new Range((Key) null, (Key) null);
     this.authorizations = authorizations;
 

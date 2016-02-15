@@ -154,7 +154,7 @@ public class ChaoticLoadBalancerTest {
   }
 
   private static KeyExtent makeExtent(String table, String end, String prev) {
-    return new KeyExtent(new Text(table), toText(end), toText(prev));
+    return new KeyExtent(table, toText(end), toText(prev));
   }
 
   private static Text toText(String value) {

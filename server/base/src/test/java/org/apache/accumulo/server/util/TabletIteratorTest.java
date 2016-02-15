@@ -18,8 +18,6 @@ package org.apache.accumulo.server.util;
 
 import java.util.Map.Entry;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -38,6 +36,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
 
+import junit.framework.TestCase;
+
 public class TabletIteratorTest extends TestCase {
 
   class TestTabletIterator extends TabletIterator {
@@ -53,7 +53,7 @@ public class TabletIteratorTest extends TestCase {
     protected void resetScanner() {
       try {
         Scanner ds = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-        Text tablet = new KeyExtent(new Text("0"), new Text("m"), null).getMetadataEntry();
+        Text tablet = new KeyExtent("0", new Text("m"), null).getMetadataEntry();
         ds.setRange(new Range(tablet, true, tablet, true));
 
         Mutation m = new Mutation(tablet);
@@ -82,11 +82,11 @@ public class TabletIteratorTest extends TestCase {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", new PasswordToken(""));
 
-    KeyExtent ke1 = new KeyExtent(new Text("0"), new Text("m"), null);
+    KeyExtent ke1 = new KeyExtent("0", new Text("m"), null);
     Mutation mut1 = ke1.getPrevRowUpdateMutation();
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut1, new Value("/d1".getBytes()));
 
-    KeyExtent ke2 = new KeyExtent(new Text("0"), null, null);
+    KeyExtent ke2 = new KeyExtent("0", null, null);
     Mutation mut2 = ke2.getPrevRowUpdateMutation();
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut2, new Value("/d2".getBytes()));
 

@@ -181,7 +181,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       else
         startRow = new Text();
 
-      nextRange = new Range(new KeyExtent(new Text(tableId), startRow, null).getMetadataEntry(), true, null, false);
+      nextRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
     } else {
 
       if (currentExtent.getEndRow() == null) {

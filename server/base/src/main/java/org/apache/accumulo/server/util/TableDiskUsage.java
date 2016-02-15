@@ -49,7 +49,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
@@ -177,7 +176,7 @@ public class TableDiskUsage {
         throw new RuntimeException(e);
       }
       mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      mdScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
+      mdScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
       if (!mdScanner.iterator().hasNext()) {
         emptyTableIds.add(tableId);

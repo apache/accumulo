@@ -2147,7 +2147,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       }
 
-      Text tid = new Text(cs.tableId);
+      String tid = cs.tableId;
       long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
 
       try {
@@ -2241,7 +2241,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         onlineTabletsCopy = new TreeMap<KeyExtent,Tablet>(onlineTablets);
       }
       List<TabletStats> result = new ArrayList<TabletStats>();
-      Text text = new Text(tableId);
+      String text = tableId;
       KeyExtent start = new KeyExtent(text, new Text(), null);
       for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.tailMap(start).entrySet()) {
         KeyExtent ke = entry.getKey();
@@ -2417,7 +2417,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
       ArrayList<Tablet> tabletsToFlush = new ArrayList<Tablet>();
 
-      KeyExtent ke = new KeyExtent(new Text(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
+      KeyExtent ke = new KeyExtent(tableId, ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
       synchronized (onlineTablets) {
         for (Tablet tablet : onlineTablets.values())
@@ -2535,7 +2535,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throw new RuntimeException(e);
       }
 
-      KeyExtent ke = new KeyExtent(new Text(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
+      KeyExtent ke = new KeyExtent(tableId, ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
       ArrayList<Tablet> tabletsToCompact = new ArrayList<Tablet>();
       synchronized (onlineTablets) {
@@ -3594,7 +3594,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           extents = new ArrayList<KeyExtent>(onlineTablets.keySet());
         }
 
-        Set<Text> tables = new HashSet<Text>();
+        Set<String> tables = new HashSet<String>();
 
         for (KeyExtent keyExtent : extents) {
           tables.add(keyExtent.getTableId());
@@ -3602,7 +3602,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
         HashSet<String> contexts = new HashSet<String>();
 
-        for (Text tableid : tables) {
+        for (String tableid : tables) {
           String context = getTableConfiguration(new KeyExtent(tableid, null, null)).get(Property.TABLE_CLASSPATH);
           if (!context.equals("")) {
             contexts.add(context);

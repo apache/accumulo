@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
@@ -49,7 +48,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   // The fraction of memory that needs to be used before we begin flushing.
   private double compactionThreshold;
   private long maxObserved;
-  private final HashMap<Text,Long> mincIdleThresholds = new HashMap<Text,Long>();
+  private final HashMap<String,Long> mincIdleThresholds = new HashMap<String,Long>();
   private ServerConfiguration config = null;
 
   private static class TabletInfo {
@@ -137,9 +136,9 @@ public class LargestFirstMemoryManager implements MemoryManager {
   }
 
   private long getMinCIdleThreshold(KeyExtent extent) {
-    Text tableId = extent.getTableId();
+    String tableId = extent.getTableId();
     if (!mincIdleThresholds.containsKey(tableId))
-      mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId.toString()).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
+      mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
     return mincIdleThresholds.get(tableId);
   }
 

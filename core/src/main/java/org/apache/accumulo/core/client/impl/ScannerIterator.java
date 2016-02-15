@@ -42,7 +42,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class ScannerIterator implements Iterator<Entry<Key,Value>> {
@@ -50,7 +49,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private static final Logger log = Logger.getLogger(ScannerIterator.class);
 
   // scanner options
-  private Text tableId;
   private int timeOut;
 
   // scanner state
@@ -123,15 +121,14 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   }
 
-  ScannerIterator(Instance instance, Credentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
+  ScannerIterator(Instance instance, Credentials credentials, String tableId, Authorizations authorizations, Range range, int size, int timeOut,
       ScannerOptions options, boolean isolated) {
-    this(instance, credentials, table, authorizations, range, size, timeOut, options, isolated, Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD);
+    this(instance, credentials, tableId, authorizations, range, size, timeOut, options, isolated, Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD);
   }
 
-  ScannerIterator(Instance instance, Credentials credentials, Text table, Authorizations authorizations, Range range, int size, int timeOut,
+  ScannerIterator(Instance instance, Credentials credentials, String tableId, Authorizations authorizations, Range range, int size, int timeOut,
       ScannerOptions options, boolean isolated, long readaheadThreshold) {
     this.instance = instance;
-    this.tableId = new Text(table);
     this.timeOut = timeOut;
     this.credentials = credentials;
     this.readaheadThreshold = readaheadThreshold;

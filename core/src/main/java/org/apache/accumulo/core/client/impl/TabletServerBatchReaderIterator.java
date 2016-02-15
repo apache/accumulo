@@ -64,7 +64,6 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.trace.instrument.TraceRunnable;
 import org.apache.accumulo.trace.instrument.Tracer;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
@@ -143,7 +142,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<List<Entry<Key,Value>>>(numThreads);
 
-    this.locator = new TimeoutTabletLocator(TabletLocator.getLocator(instance, new Text(table)), timeout);
+    this.locator = new TimeoutTabletLocator(TabletLocator.getLocator(instance, table), timeout);
 
     timeoutTrackers = Collections.synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
     timedoutServers = Collections.synchronizedSet(new HashSet<String>());

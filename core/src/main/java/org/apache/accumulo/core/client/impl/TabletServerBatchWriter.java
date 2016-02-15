@@ -67,7 +67,6 @@ import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.accumulo.trace.thrift.TInfo;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
@@ -631,7 +630,7 @@ public class TabletServerBatchWriter {
     private TabletLocator getLocator(String tableId) {
       TabletLocator ret = locators.get(tableId);
       if (ret == null) {
-        ret = TabletLocator.getLocator(instance, new Text(tableId));
+        ret = TabletLocator.getLocator(instance, tableId);
         ret = new TimeoutTabletLocator(ret, timeout);
         locators.put(tableId, ret);
       }
@@ -671,7 +670,7 @@ public class TabletServerBatchWriter {
         // assume an IOError communicating with metadata tablet
         failedMutations.add(mutationsToProcess);
       } catch (AccumuloSecurityException e) {
-        updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(new Text(MetadataTable.ID), null, null),
+        updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(MetadataTable.ID, null, null),
             SecurityErrorCode.valueOf(e.getSecurityErrorCode().name())));
       } catch (TableDeletedException e) {
         updateUnknownErrors(e.getMessage(), e);
@@ -831,7 +830,7 @@ public class TabletServerBatchWriter {
             tables.add(ke.getTableId().toString());
 
           for (String table : tables)
-            TabletLocator.getLocator(instance, new Text(table)).invalidateCache(location);
+            TabletLocator.getLocator(instance, table).invalidateCache(location);
 
           failedMutations.add(location, tsm);
         } finally {
@@ -870,7 +869,7 @@ public class TabletServerBatchWriter {
               client.update(tinfo, credentials.toThrift(instance), entry.getKey().toThrift(), entry.getValue().get(0).toThrift());
             } catch (NotServingTabletException e) {
               allFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
-              TabletLocator.getLocator(instance, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
+              TabletLocator.getLocator(instance, entry.getKey().getTableId()).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
               updatedConstraintViolations(Translator.translate(e.violationSummaries, Translators.TCVST));
             }
@@ -911,7 +910,7 @@ public class TabletServerBatchWriter {
 
               String table = failedExtent.getTableId().toString();
 
-              TabletLocator.getLocator(instance, new Text(table)).invalidateCache(failedExtent);
+              TabletLocator.getLocator(instance, table).invalidateCache(failedExtent);
 
               ArrayList<Mutation> mutations = (ArrayList<Mutation>) tabMuts.get(failedExtent);
               allFailures.addAll(table, mutations.subList(numCommitted, mutations.size()));

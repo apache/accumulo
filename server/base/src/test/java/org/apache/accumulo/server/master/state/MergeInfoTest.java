@@ -65,7 +65,7 @@ public class MergeInfoTest {
 
   @Test
   public void testSerialization() throws Exception {
-    Text table = new Text("table");
+    String table = "table";
     Text endRow = new Text("end");
     Text prevEndRow = new Text("begin");
     keyExtent = new KeyExtent(table, endRow, prevEndRow);
@@ -85,10 +85,10 @@ public class MergeInfoTest {
 
   @Test
   public void testNeedsToBeChopped_DifferentTables() {
-    expect(keyExtent.getTableId()).andReturn(new Text("table1"));
+    expect(keyExtent.getTableId()).andReturn("table1");
     replay(keyExtent);
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
-    expect(keyExtent2.getTableId()).andReturn(new Text("table2"));
+    expect(keyExtent2.getTableId()).andReturn("table2");
     replay(keyExtent2);
     mi = new MergeInfo(keyExtent, MergeInfo.Operation.MERGE);
     assertFalse(mi.needsToBeChopped(keyExtent2));
@@ -96,9 +96,9 @@ public class MergeInfoTest {
 
   @Test
   public void testNeedsToBeChopped_NotDelete() {
-    expect(keyExtent.getTableId()).andReturn(new Text("table1"));
+    expect(keyExtent.getTableId()).andReturn("table1");
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
-    expect(keyExtent2.getTableId()).andReturn(new Text("table1"));
+    expect(keyExtent2.getTableId()).andReturn("table1");
     replay(keyExtent2);
     expect(keyExtent.overlaps(keyExtent2)).andReturn(true);
     replay(keyExtent);
@@ -122,11 +122,11 @@ public class MergeInfoTest {
   }
 
   private void testNeedsToBeChopped_Delete(String prevEndRow, boolean expected) {
-    expect(keyExtent.getTableId()).andReturn(new Text("table1"));
+    expect(keyExtent.getTableId()).andReturn("table1");
     expect(keyExtent.getEndRow()).andReturn(new Text("prev"));
     replay(keyExtent);
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
-    expect(keyExtent2.getTableId()).andReturn(new Text("table1"));
+    expect(keyExtent2.getTableId()).andReturn("table1");
     expect(keyExtent2.getPrevEndRow()).andReturn(prevEndRow != null ? new Text(prevEndRow) : null);
     expectLastCall().anyTimes();
     replay(keyExtent2);
@@ -147,9 +147,9 @@ public class MergeInfoTest {
   public void testOverlaps_DoesNotNeedChopping() {
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
     expect(keyExtent.overlaps(keyExtent2)).andReturn(false);
-    expect(keyExtent.getTableId()).andReturn(new Text("table1"));
+    expect(keyExtent.getTableId()).andReturn("table1");
     replay(keyExtent);
-    expect(keyExtent2.getTableId()).andReturn(new Text("table2"));
+    expect(keyExtent2.getTableId()).andReturn("table2");
     replay(keyExtent2);
     mi = new MergeInfo(keyExtent, MergeInfo.Operation.MERGE);
     assertFalse(mi.overlaps(keyExtent2));
@@ -159,10 +159,10 @@ public class MergeInfoTest {
   public void testOverlaps_NeedsChopping() {
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
     expect(keyExtent.overlaps(keyExtent2)).andReturn(false);
-    expect(keyExtent.getTableId()).andReturn(new Text("table1"));
+    expect(keyExtent.getTableId()).andReturn("table1");
     expect(keyExtent.getEndRow()).andReturn(new Text("prev"));
     replay(keyExtent);
-    expect(keyExtent2.getTableId()).andReturn(new Text("table1"));
+    expect(keyExtent2.getTableId()).andReturn("table1");
     expect(keyExtent2.getPrevEndRow()).andReturn(new Text("prev"));
     expectLastCall().anyTimes();
     replay(keyExtent2);

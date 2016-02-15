@@ -245,7 +245,7 @@ class PopulateMetadataTable extends MasterRepo {
             val.readFields(in);
 
             Text endRow = new KeyExtent(key.getRow(), (Text) null).getEndRow();
-            Text metadataRow = new KeyExtent(new Text(tableInfo.tableId), endRow, null).getMetadataEntry();
+            Text metadataRow = new KeyExtent(tableInfo.tableId, endRow, null).getMetadataEntry();
 
             Text cq;
 
