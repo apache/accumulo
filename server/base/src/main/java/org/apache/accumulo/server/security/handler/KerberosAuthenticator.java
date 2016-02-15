@@ -100,12 +100,13 @@ public class KerberosAuthenticator implements Authenticator {
           log.info("Removed " + zkUserPath + "/" + " from zookeeper");
         }
 
-        principal = Base64.encodeBase64String(principal.getBytes(UTF_8));
-
         // prep parent node of users with root username
-        zoo.putPersistentData(zkUserPath, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
+        // ACCUMULO-4140 The root user needs to be stored un-base64 encoded in the znode's value
+        byte[] principalData = principal.getBytes(UTF_8);
+        zoo.putPersistentData(zkUserPath, principalData, NodeExistsPolicy.FAIL);
 
-        createUserNodeInZk(principal);
+        // Create the root user in ZK using base64 encoded name (since the name is included in the znode)
+        createUserNodeInZk(Base64.encodeBase64String(principalData));
       }
     } catch (KeeperException | InterruptedException e) {
       log.error("Failed to initialize security", e);
