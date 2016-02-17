@@ -627,6 +627,18 @@ public class KerberosIT extends AccumuloITBase {
         identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60 * 1000));
   }
 
+  @Test(expected = AccumuloSecurityException.class)
+  public void testRootUserHasIrrevocablePermissions() throws Exception {
+    // Login as the client (provided to `accumulo init` as the "root" user)
+    UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+
+    final Connector conn = mac.getConnector(rootUser.getPrincipal(), new KerberosToken());
+
+    // The server-side implementation should prevent the revocation of the 'root' user's systems permissions
+    // because once they're gone, it's possible that they could never be restored.
+    conn.securityOperations().revokeSystemPermission(rootUser.getPrincipal(), SystemPermission.GRANT);
+  }
+
   /**
    * Creates a table, adds a record to it, and then compacts the table. A simple way to make sure that the system user exists (since the master does an RPC to
    * the tserver which will create the system user if it doesn't already exist).
