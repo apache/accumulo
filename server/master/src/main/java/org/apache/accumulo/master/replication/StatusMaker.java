@@ -90,7 +90,7 @@ public class StatusMaker {
       s.fetchColumnFamily(ReplicationSection.COLF);
       s.setRange(ReplicationSection.getRange());
 
-      Text file = new Text(), tableId = new Text();
+      Text file = new Text();
       for (Entry<Key,Value> entry : s) {
         // Get a writer to the replication table
         if (null == replicationWriter) {
@@ -106,7 +106,7 @@ public class StatusMaker {
         }
         // Extract the useful bits from the status key
         MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
-        MetadataSchema.ReplicationSection.getTableId(entry.getKey(), tableId);
+        String tableId = MetadataSchema.ReplicationSection.getTableId(entry.getKey());
 
         Status status;
         try {
@@ -158,10 +158,10 @@ public class StatusMaker {
   /**
    * Create a status record in the replication table
    */
-  protected boolean addStatusRecord(Text file, Text tableId, Value v) {
+  protected boolean addStatusRecord(Text file, String tableId, Value v) {
     try {
       Mutation m = new Mutation(file);
-      m.put(StatusSection.NAME, tableId, v);
+      m.put(StatusSection.NAME, new Text(tableId), v);
 
       try {
         replicationWriter.addMutation(m);
@@ -194,7 +194,7 @@ public class StatusMaker {
    * @param value
    *          Serialized version of the Status msg
    */
-  protected boolean addOrderRecord(Text file, Text tableId, Status stat, Value value) {
+  protected boolean addOrderRecord(Text file, String tableId, Status stat, Value value) {
     try {
       if (!stat.hasCreatedTime()) {
         log.error("Status record ({}) for {} in table {} was written to metadata table which lacked createdTime", ProtobufUtil.toString(stat), file, tableId);

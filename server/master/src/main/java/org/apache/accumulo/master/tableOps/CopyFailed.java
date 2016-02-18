@@ -44,7 +44,6 @@ import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +112,7 @@ class CopyFailed extends MasterRepo {
     // determine which failed files were loaded
     Connector conn = master.getConnector();
     Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-    mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
+    mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
     mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
 
     for (Entry<Key,Value> entry : mscanner) {

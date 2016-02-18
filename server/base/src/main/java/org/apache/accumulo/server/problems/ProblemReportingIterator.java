@@ -35,13 +35,13 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   private boolean sawError = false;
   private boolean continueOnError;
   private String resource;
-  private String table;
+  private String tableId;
   private final AccumuloServerContext context;
 
-  public ProblemReportingIterator(AccumuloServerContext context, String table, String resource, boolean continueOnError,
+  public ProblemReportingIterator(AccumuloServerContext context, String tableId, String resource, boolean continueOnError,
       SortedKeyValueIterator<Key,Value> source) {
     this.context = context;
-    this.table = table;
+    this.tableId = tableId;
     this.resource = resource;
     this.continueOnError = continueOnError;
     this.source = source;
@@ -49,7 +49,7 @@ public class ProblemReportingIterator implements InterruptibleIterator {
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new ProblemReportingIterator(context, table, resource, continueOnError, source.deepCopy(env));
+    return new ProblemReportingIterator(context, tableId, resource, continueOnError, source.deepCopy(env));
   }
 
   @Override
@@ -81,7 +81,7 @@ public class ProblemReportingIterator implements InterruptibleIterator {
       source.next();
     } catch (IOException ioe) {
       sawError = true;
-      ProblemReports.getInstance(context).report(new ProblemReport(table, ProblemType.FILE_READ, resource, ioe));
+      ProblemReports.getInstance(context).report(new ProblemReport(tableId, ProblemType.FILE_READ, resource, ioe));
       if (!continueOnError) {
         throw ioe;
       }
@@ -98,7 +98,7 @@ public class ProblemReportingIterator implements InterruptibleIterator {
       source.seek(range, columnFamilies, inclusive);
     } catch (IOException ioe) {
       sawError = true;
-      ProblemReports.getInstance(context).report(new ProblemReport(table, ProblemType.FILE_READ, resource, ioe));
+      ProblemReports.getInstance(context).report(new ProblemReport(tableId, ProblemType.FILE_READ, resource, ioe));
       if (!continueOnError) {
         throw ioe;
       }

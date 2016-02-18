@@ -51,11 +51,11 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public KeyExtent(Text table, Text endRow, Text prevEndRow) {
-    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(table, endRow, prevEndRow);
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(table.toString(), endRow, prevEndRow);
   }
 
   public KeyExtent(KeyExtent extent) {
-    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(extent.getTableId(), extent.getEndRow(), extent.getPrevEndRow());
+    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(extent.getTableId().toString(), extent.getEndRow(), extent.getPrevEndRow());
   }
 
   public KeyExtent(TKeyExtent tke) {
@@ -78,11 +78,11 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public void setTableId(Text tId) {
-    wrapped.setTableId(tId);
+    wrapped.setTableId(tId.toString());
   }
 
   public Text getTableId() {
-    return wrapped.getTableId();
+    return new Text(wrapped.getTableId());
   }
 
   public void setEndRow(Text endRow) {
@@ -189,7 +189,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   private static KeyExtent wrap(org.apache.accumulo.core.data.impl.KeyExtent ke) {
-    return new KeyExtent(ke.getTableId(), ke.getEndRow(), ke.getPrevEndRow());
+    return new KeyExtent(new Text(ke.getTableId()), ke.getEndRow(), ke.getPrevEndRow());
   }
 
   private static SortedSet<KeyExtent> wrap(Collection<org.apache.accumulo.core.data.impl.KeyExtent> unwrapped) {
@@ -202,7 +202,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public static Text getMetadataEntry(Text tableId, Text endRow) {
-    return MetadataSchema.TabletsSection.getRow(tableId, endRow);
+    return MetadataSchema.TabletsSection.getRow(tableId.toString(), endRow);
   }
 
   /**

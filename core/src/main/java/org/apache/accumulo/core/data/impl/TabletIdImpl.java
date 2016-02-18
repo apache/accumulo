@@ -53,7 +53,7 @@ public class TabletIdImpl implements TabletId {
 
   @Deprecated
   public TabletIdImpl(org.apache.accumulo.core.data.KeyExtent ke) {
-    this.ke = new KeyExtent(ke.getTableId(), ke.getEndRow(), ke.getPrevEndRow());
+    this.ke = new KeyExtent(ke.getTableId().toString(), ke.getEndRow(), ke.getPrevEndRow());
   }
 
   public TabletIdImpl(KeyExtent ke) {
@@ -67,7 +67,7 @@ public class TabletIdImpl implements TabletId {
 
   @Override
   public Text getTableId() {
-    return ke.getTableId();
+    return new Text(ke.getTableId());
   }
 
   @Override

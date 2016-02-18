@@ -105,7 +105,7 @@ public class Admin implements KeywordExecutable {
     boolean fixFiles = false;
 
     @Parameter(names = {"-t", "--table"}, description = "Table to check, if not set checks all tables")
-    String table = null;
+    String tableName = null;
   }
 
   @Parameters(commandDescription = "stop the master")
@@ -147,7 +147,7 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandDescription = "redistribute tablet directories across the current volume list")
   static class RandomizeVolumesCommand {
     @Parameter(names = {"-t"}, description = "table to update", required = true)
-    String table = null;
+    String tableName = null;
   }
 
   public static void main(String[] args) {
@@ -231,14 +231,14 @@ public class Admin implements KeywordExecutable {
           rc = 4;
       } else if (cl.getParsedCommand().equals("checkTablets")) {
         System.out.println("\n*** Looking for offline tablets ***\n");
-        if (FindOfflineTablets.findOffline(context, checkTabletsCommand.table) != 0)
+        if (FindOfflineTablets.findOffline(context, checkTabletsCommand.tableName) != 0)
           rc = 5;
         System.out.println("\n*** Looking for missing files ***\n");
-        if (checkTabletsCommand.table == null) {
+        if (checkTabletsCommand.tableName == null) {
           if (RemoveEntriesForMissingFiles.checkAllTables(context, checkTabletsCommand.fixFiles) != 0)
             rc = 6;
         } else {
-          if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.table, checkTabletsCommand.fixFiles) != 0)
+          if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.tableName, checkTabletsCommand.fixFiles) != 0)
             rc = 6;
         }
 
@@ -249,7 +249,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        rc = RandomizeVolumes.randomize(context.getConnector(), randomizeVolumesOpts.table);
+        rc = RandomizeVolumes.randomize(context.getConnector(), randomizeVolumesOpts.tableName);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 

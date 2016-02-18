@@ -127,14 +127,14 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     String tableId = conn.tableOperations().tableIdMap().get(tableName);
     Assert.assertNotNull("Table ID was null", tableId);
 
-    LogEntry logEntry = new LogEntry(new KeyExtent(new Text(tableId), null, null), 0, "127.0.0.1:12345", emptyWalog.toURI().toString());
+    LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345", emptyWalog.toURI().toString());
 
     log.info("Taking {} offline", tableName);
     conn.tableOperations().offline(tableName, true);
 
     log.info("{} is offline", tableName);
 
-    Text row = MetadataSchema.TabletsSection.getRow(new Text(tableId), null);
+    Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
     Mutation m = new Mutation(row);
     m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
@@ -189,7 +189,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
     log.info("{} is offline", tableName);
 
-    Text row = MetadataSchema.TabletsSection.getRow(new Text(tableId), null);
+    Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
     Mutation m = new Mutation(row);
     m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 

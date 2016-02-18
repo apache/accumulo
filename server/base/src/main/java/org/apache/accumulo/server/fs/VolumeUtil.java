@@ -264,7 +264,7 @@ public class VolumeUtil {
       throw new IllegalArgumentException("Unexpected table dir " + dir);
     }
 
-    Path newDir = new Path(vm.choose(Optional.of(extent.getTableId().toString()), ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR
+    Path newDir = new Path(vm.choose(Optional.of(extent.getTableId()), ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR
         + Path.SEPARATOR + dir.getParent().getName() + Path.SEPARATOR + dir.getName());
 
     log.info("Updating directory for " + extent + " from " + dir + " to " + newDir);

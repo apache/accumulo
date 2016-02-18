@@ -41,7 +41,6 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -90,7 +89,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     long createTime = System.currentTimeMillis();
     try {
       Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
-      StatusSection.add(m, new Text("1"), StatusUtil.fileCreatedValue(createTime));
+      StatusSection.add(m, "1", StatusUtil.fileCreatedValue(createTime));
       bw.addMutation(m);
     } finally {
       bw.close();
@@ -103,7 +102,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     bw = ReplicationTable.getBatchWriter(conn);
     try {
       Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
-      StatusSection.add(m, new Text("1"), ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
+      StatusSection.add(m, "1", ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
       bw.addMutation(m);
     } finally {
       bw.close();

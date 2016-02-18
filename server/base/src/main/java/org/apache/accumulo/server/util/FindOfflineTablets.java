@@ -42,7 +42,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.tables.TableManager;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +100,7 @@ public class FindOfflineTablets {
     Range range = MetadataSchema.TabletsSection.getRange();
     if (tableName != null) {
       String tableId = Tables.getTableId(context.getInstance(), tableName);
-      range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+      range = new KeyExtent(tableId, null, null).toMetadataRange();
     }
 
     MetaDataTableScanner metaScanner = new MetaDataTableScanner(context, range, MetadataTable.NAME);
@@ -118,8 +117,7 @@ public class FindOfflineTablets {
     while (scanner.hasNext() && !System.out.checkError()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != null && state != TabletState.HOSTED
-          && TableManager.getInstance().getTableState(locationState.extent.getTableId().toString()) != TableState.OFFLINE) {
+      if (state != null && state != TabletState.HOSTED && TableManager.getInstance().getTableState(locationState.extent.getTableId()) != TableState.OFFLINE) {
         System.out.println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
         offline++;
       }

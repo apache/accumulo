@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
@@ -50,8 +51,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ReplicationOperationsImpl implements ReplicationOperations {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImpl.class);
@@ -118,22 +117,22 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     });
   }
 
-  protected Text getTableId(Connector conn, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  protected String getTableId(Connector conn, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TableOperations tops = conn.tableOperations();
 
     if (!conn.tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
     }
 
-    String strTableId = null;
-    while (null == strTableId) {
-      strTableId = tops.tableIdMap().get(tableName);
-      if (null == strTableId) {
+    String tableId = null;
+    while (null == tableId) {
+      tableId = tops.tableIdMap().get(tableName);
+      if (null == tableId) {
         sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
       }
     }
 
-    return new Text(strTableId);
+    return tableId;
   }
 
   @Override
@@ -143,13 +142,13 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     log.debug("Collecting referenced files for replication of table {}", tableName);
 
     Connector conn = context.getConnector();
-    Text tableId = getTableId(conn, tableName);
+    String tableId = getTableId(conn, tableName);
 
     log.debug("Found id of {} for name {}", tableId, tableName);
 
     // Get the WALs currently referenced by the table
     BatchScanner metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
-    metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(tableId.toString())));
+    metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(tableId)));
     metaBs.fetchColumnFamily(LogColumnFamily.NAME);
     Set<String> wals = new HashSet<>();
     try {
@@ -168,8 +167,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     try {
       Text buffer = new Text();
       for (Entry<Key,Value> entry : metaBs) {
-        ReplicationSection.getTableId(entry.getKey(), buffer);
-        if (buffer.equals(tableId)) {
+        if (tableId.equals(ReplicationSection.getTableId(entry.getKey()))) {
           ReplicationSection.getFile(entry.getKey(), buffer);
           wals.add(buffer.toString());
         }

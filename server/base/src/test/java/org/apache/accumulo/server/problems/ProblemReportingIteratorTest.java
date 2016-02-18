@@ -37,7 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ProblemReportingIteratorTest {
-  private static final String TABLE = "table";
+  private static final String TABLE_ID = "table";
   private static final String RESOURCE = "resource";
 
   private InterruptibleIterator ii;
@@ -46,7 +46,7 @@ public class ProblemReportingIteratorTest {
   @Before
   public void setUp() throws Exception {
     ii = EasyMock.createMock(InterruptibleIterator.class);
-    pri = new ProblemReportingIterator(null, TABLE, RESOURCE, false, ii);
+    pri = new ProblemReportingIterator(null, TABLE_ID, RESOURCE, false, ii);
   }
 
   @Test

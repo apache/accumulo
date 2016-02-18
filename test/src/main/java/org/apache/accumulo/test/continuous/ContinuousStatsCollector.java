@@ -52,7 +52,6 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.hadoop.mapred.JobClient;
 import org.slf4j.Logger;
@@ -99,7 +98,7 @@ public class ContinuousStatsCollector {
       scanner.setBatchSize(scanBatchSize);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.addScanIterator(new IteratorSetting(1000, "cfc", ColumnFamilyCounter.class.getName()));
-      scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
+      scanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
       Stat s = new Stat();
 

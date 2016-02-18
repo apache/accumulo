@@ -158,10 +158,11 @@ public class RandomBatchWriter {
       if (e.getSecurityErrorCodes().size() > 0) {
         HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<String,Set<SecurityErrorCode>>();
         for (Entry<TabletId,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
-          Set<SecurityErrorCode> secCodes = tables.get(ke.getKey().getTableId().toString());
+          String tableId = ke.getKey().getTableId().toString();
+          Set<SecurityErrorCode> secCodes = tables.get(tableId);
           if (secCodes == null) {
             secCodes = new HashSet<SecurityErrorCode>();
-            tables.put(ke.getKey().getTableId().toString(), secCodes);
+            tables.put(tableId, secCodes);
           }
           secCodes.addAll(ke.getValue());
         }

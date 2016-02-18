@@ -89,11 +89,11 @@ public class WorkMaker {
 
       TableConfiguration tableConf;
 
-      Text file = new Text(), tableId = new Text();
+      Text file = new Text();
       for (Entry<Key,Value> entry : s) {
         // Extract the useful bits from the status key
         ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
-        ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId);
+        String tableId = ReplicationSchema.StatusSection.getTableId(entry.getKey());
         log.info("Processing replication status record for " + file + " on table " + tableId);
 
         Status status;
@@ -112,7 +112,7 @@ public class WorkMaker {
         }
 
         // Get the table configuration for the table specified by the status record
-        tableConf = context.getServerConfigurationFactory().getTableConfiguration(tableId.toString());
+        tableConf = context.getServerConfigurationFactory().getTableConfiguration(tableId);
 
         // getTableConfiguration(String) returns null if the table no longer exists
         if (null == tableConf) {
@@ -129,7 +129,7 @@ public class WorkMaker {
         if (!replicationTargets.isEmpty()) {
           Span workSpan = Trace.start("createWorkMutations");
           try {
-            addWorkRecord(file, entry.getValue(), replicationTargets, tableId.toString());
+            addWorkRecord(file, entry.getValue(), replicationTargets, tableId);
           } finally {
             workSpan.stop();
           }

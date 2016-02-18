@@ -116,10 +116,10 @@ public class TableLoadBalancer extends TabletBalancer {
     // separate the unassigned into tables
     Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<String,Map<KeyExtent,TServerInstance>>();
     for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
-      Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId().toString());
+      Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId());
       if (tableUnassigned == null) {
         tableUnassigned = new HashMap<KeyExtent,TServerInstance>();
-        groupedUnassigned.put(e.getKey().getTableId().toString(), tableUnassigned);
+        groupedUnassigned.put(e.getKey().getTableId(), tableUnassigned);
       }
       tableUnassigned.put(e.getKey(), e.getValue());
     }

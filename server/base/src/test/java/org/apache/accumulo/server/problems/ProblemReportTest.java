@@ -43,7 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ProblemReportTest {
-  private static final String TABLE = "table";
+  private static final String TABLE_ID = "table";
   private static final String RESOURCE = "resource";
   private static final String SERVER = "server";
 
@@ -63,8 +63,8 @@ public class ProblemReportTest {
   @Test
   public void testGetters() {
     long now = System.currentTimeMillis();
-    r = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, null, now);
-    assertEquals(TABLE, r.getTableName());
+    r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null, now);
+    assertEquals(TABLE_ID, r.getTableName());
     assertSame(ProblemType.FILE_READ, r.getProblemType());
     assertEquals(RESOURCE, r.getResource());
     assertEquals(SERVER, r.getServer());
@@ -75,43 +75,43 @@ public class ProblemReportTest {
   @Test
   public void testWithException() {
     Exception e = new IllegalArgumentException("Oh noes");
-    r = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, e);
+    r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, e);
     assertEquals("Oh noes", r.getException());
   }
 
   @Test
   public void testEquals() {
-    r = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, null);
+    r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertTrue(r.equals(r));
-    ProblemReport r2 = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, null);
+    ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertTrue(r.equals(r2));
     assertTrue(r2.equals(r));
-    ProblemReport rx1 = new ProblemReport(TABLE + "x", ProblemType.FILE_READ, RESOURCE, SERVER, null);
+    ProblemReport rx1 = new ProblemReport(TABLE_ID + "x", ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertFalse(r.equals(rx1));
-    ProblemReport rx2 = new ProblemReport(TABLE, ProblemType.FILE_WRITE, RESOURCE, SERVER, null);
+    ProblemReport rx2 = new ProblemReport(TABLE_ID, ProblemType.FILE_WRITE, RESOURCE, SERVER, null);
     assertFalse(r.equals(rx2));
-    ProblemReport rx3 = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE + "x", SERVER, null);
+    ProblemReport rx3 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE + "x", SERVER, null);
     assertFalse(r.equals(rx3));
-    ProblemReport re1 = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER + "x", null);
+    ProblemReport re1 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x", null);
     assertTrue(r.equals(re1));
-    ProblemReport re2 = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, new IllegalArgumentException("yikes"));
+    ProblemReport re2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, new IllegalArgumentException("yikes"));
     assertTrue(r.equals(re2));
   }
 
   @Test
   public void testEqualsNull() {
-    r = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, null);
+    r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertFalse(r.equals(null));
   }
 
   @Test
   public void testHashCode() {
-    r = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, null);
-    ProblemReport r2 = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, null);
+    r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
+    ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertEquals(r.hashCode(), r2.hashCode());
-    ProblemReport re1 = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER + "x", null);
+    ProblemReport re1 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x", null);
     assertEquals(r.hashCode(), re1.hashCode());
-    ProblemReport re2 = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, new IllegalArgumentException("yikes"));
+    ProblemReport re2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, new IllegalArgumentException("yikes"));
     assertEquals(r.hashCode(), re2.hashCode());
   }
 
@@ -143,8 +143,8 @@ public class ProblemReportTest {
 
   @Test
   public void testRemoveFromZooKeeper() throws Exception {
-    r = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, null);
-    byte[] zpathFileName = makeZPathFileName(TABLE, ProblemType.FILE_READ, RESOURCE);
+    r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
+    byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
     String path = ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/" + Encoding.encodeAsBase64FileName(new Text(zpathFileName));
     zoorw.recursiveDelete(path, NodeMissingPolicy.SKIP);
     replay(zoorw);
@@ -156,8 +156,8 @@ public class ProblemReportTest {
   @Test
   public void testSaveToZooKeeper() throws Exception {
     long now = System.currentTimeMillis();
-    r = new ProblemReport(TABLE, ProblemType.FILE_READ, RESOURCE, SERVER, null, now);
-    byte[] zpathFileName = makeZPathFileName(TABLE, ProblemType.FILE_READ, RESOURCE);
+    r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null, now);
+    byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
     String path = ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/" + Encoding.encodeAsBase64FileName(new Text(zpathFileName));
     byte[] encoded = encodeReportData(now, SERVER, null);
     expect(zoorw.putPersistentData(eq(path), aryEq(encoded), eq(NodeExistsPolicy.OVERWRITE))).andReturn(true);
@@ -169,7 +169,7 @@ public class ProblemReportTest {
 
   @Test
   public void testDecodeZooKeeperEntry() throws Exception {
-    byte[] zpathFileName = makeZPathFileName(TABLE, ProblemType.FILE_READ, RESOURCE);
+    byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
     String node = Encoding.encodeAsBase64FileName(new Text(zpathFileName));
     long now = System.currentTimeMillis();
     byte[] encoded = encodeReportData(now, SERVER, "excmsg");
@@ -178,7 +178,7 @@ public class ProblemReportTest {
     replay(zoorw);
 
     r = ProblemReport.decodeZooKeeperEntry(node, zoorw, instance);
-    assertEquals(TABLE, r.getTableName());
+    assertEquals(TABLE_ID, r.getTableName());
     assertSame(ProblemType.FILE_READ, r.getProblemType());
     assertEquals(RESOURCE, r.getResource());
     assertEquals(SERVER, r.getServer());

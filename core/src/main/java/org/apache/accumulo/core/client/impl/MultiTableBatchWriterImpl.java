@@ -53,21 +53,21 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
   private class TableBatchWriter implements BatchWriter {
 
-    private String table;
+    private String tableId;
 
-    TableBatchWriter(String table) {
-      this.table = table;
+    TableBatchWriter(String tableId) {
+      this.tableId = tableId;
     }
 
     @Override
     public void addMutation(Mutation m) throws MutationsRejectedException {
       checkArgument(m != null, "m is null");
-      bw.addMutation(table, m);
+      bw.addMutation(tableId, m);
     }
 
     @Override
     public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
-      bw.addMutation(table, iterable.iterator());
+      bw.addMutation(tableId, iterable.iterator());
     }
 
     @Override

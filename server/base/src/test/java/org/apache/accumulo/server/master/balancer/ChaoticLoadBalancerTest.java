@@ -50,7 +50,7 @@ public class ChaoticLoadBalancerTest {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<String,TableInfo>();
       for (KeyExtent extent : extents) {
-        String table = extent.getTableId().toString();
+        String table = extent.getTableId();
         TableInfo info = result.tableMap.get(table);
         if (info == null)
           result.tableMap.put(table, info = new TableInfo());
@@ -71,7 +71,7 @@ public class ChaoticLoadBalancerTest {
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String table) throws ThriftSecurityException, TException {
       List<TabletStats> result = new ArrayList<TabletStats>();
       for (KeyExtent extent : servers.get(tserver).extents) {
-        if (extent.getTableId().toString().equals(table)) {
+        if (extent.getTableId().equals(table)) {
           result.add(new TabletStats(extent.toThrift(), null, null, null, 0l, 0., 0., 0));
         }
       }
@@ -154,7 +154,7 @@ public class ChaoticLoadBalancerTest {
   }
 
   private static KeyExtent makeExtent(String table, String end, String prev) {
-    return new KeyExtent(new Text(table), toText(end), toText(prev));
+    return new KeyExtent(table, toText(end), toText(prev));
   }
 
   private static Text toText(String value) {

@@ -327,7 +327,7 @@ public class Tablet implements TabletCommitter {
     if (null == tblConf) {
       Tables.clearCache(tabletServer.getInstance());
       tblConf = tabletServer.getTableConfiguration(extent);
-      requireNonNull(tblConf, "Could not get table configuration for " + extent.getTableId().toString());
+      requireNonNull(tblConf, "Could not get table configuration for " + extent.getTableId());
     }
 
     this.tableConfiguration = tblConf;
@@ -343,7 +343,7 @@ public class Tablet implements TabletCommitter {
     if (tabletPaths.dir.contains(":")) {
       locationPath = new Path(tabletPaths.dir);
     } else {
-      locationPath = tabletServer.getFileSystem().getFullPath(FileType.TABLE, extent.getTableId().toString() + tabletPaths.dir);
+      locationPath = tabletServer.getFileSystem().getFullPath(FileType.TABLE, extent.getTableId() + tabletPaths.dir);
     }
     this.location = locationPath;
     this.tabletDirectory = tabletPaths.dir;
@@ -1322,8 +1322,7 @@ public class Tablet implements TabletCommitter {
         }
       }
       if (err != null) {
-        ProblemReports.getInstance(tabletServer)
-            .report(new ProblemReport(extent.getTableId().toString(), ProblemType.TABLET_LOAD, this.extent.toString(), err));
+        ProblemReports.getInstance(tabletServer).report(new ProblemReport(extent.getTableId(), ProblemType.TABLET_LOAD, this.extent.toString(), err));
         log.error("Tablet closed consistency check has failed for " + this.extent + " giving up and closing");
       }
     }
@@ -2108,7 +2107,7 @@ public class Tablet implements TabletCommitter {
       KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
       KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
 
-      String lowDirectory = createTabletDirectory(getTabletServer().getFileSystem(), extent.getTableId().toString(), midRow);
+      String lowDirectory = createTabletDirectory(getTabletServer().getFileSystem(), extent.getTableId(), midRow);
 
       // write new tablet information to MetadataTable
       SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<FileRef,DataFileValue>();

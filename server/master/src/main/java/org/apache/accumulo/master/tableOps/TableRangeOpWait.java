@@ -21,7 +21,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,8 +49,7 @@ class TableRangeOpWait extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master env) throws Exception {
-    Text tableIdText = new Text(tableId);
-    if (!env.getMergeInfo(tableIdText).getState().equals(MergeState.NONE)) {
+    if (!env.getMergeInfo(tableId).getState().equals(MergeState.NONE)) {
       return 50;
     }
     return 0;
@@ -60,10 +58,9 @@ class TableRangeOpWait extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
-    Text tableIdText = new Text(tableId);
-    MergeInfo mergeInfo = master.getMergeInfo(tableIdText);
+    MergeInfo mergeInfo = master.getMergeInfo(tableId);
     log.info("removing merge information " + mergeInfo);
-    master.clearMergeState(tableIdText);
+    master.clearMergeState(tableId);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
     return null;

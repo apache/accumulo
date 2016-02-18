@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.replication;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayOutputStream;
@@ -82,7 +83,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class AccumuloReplicaSystem implements ReplicaSystem {
   private static final Logger log = LoggerFactory.getLogger(AccumuloReplicaSystem.class);
@@ -671,7 +671,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       switch (key.event) {
         case DEFINE_TABLET:
-          if (target.getSourceTableId().equals(key.tablet.getTableId().toString())) {
+          if (target.getSourceTableId().equals(key.tablet.getTableId())) {
             desiredTids.add(key.tid);
           }
           break;
@@ -716,7 +716,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       switch (key.event) {
         case DEFINE_TABLET:
           // For new DEFINE_TABLETs, we also need to record the new tids we see
-          if (target.getSourceTableId().equals(key.tablet.getTableId().toString())) {
+          if (target.getSourceTableId().equals(key.tablet.getTableId())) {
             desiredTids.add(key.tid);
           }
           break;
