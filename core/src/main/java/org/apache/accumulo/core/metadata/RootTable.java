@@ -18,7 +18,6 @@ package org.apache.accumulo.core.metadata;
 
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.hadoop.io.Text;
 
 /**
  *
@@ -43,7 +42,7 @@ public class RootTable {
   public static final String ZROOT_TABLET_WALOGS = ZROOT_TABLET + "/walogs";
   public static final String ZROOT_TABLET_PATH = ZROOT_TABLET + "/dir";
 
-  public static final KeyExtent EXTENT = new KeyExtent(new Text(ID), null, null);
-  public static final KeyExtent OLD_EXTENT = new KeyExtent(new Text(MetadataTable.ID), KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null), null);
+  public static final KeyExtent EXTENT = new KeyExtent(ID, null, null);
+  public static final KeyExtent OLD_EXTENT = new KeyExtent(MetadataTable.ID, KeyExtent.getMetadataEntry(MetadataTable.ID, null), null);
 
 }

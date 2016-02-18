@@ -31,7 +31,6 @@ import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MasterAssignmentIT extends AccumuloClusterIT {
@@ -87,7 +86,7 @@ public class MasterAssignmentIT extends AccumuloClusterIT {
 
   private TabletLocationState getTabletLocationState(Connector c, String tableId) {
     Credentials creds = new Credentials(getPrincipal(), getToken());
-    MetaDataTableScanner s = new MetaDataTableScanner(c.getInstance(), creds, new Range(KeyExtent.getMetadataEntry(new Text(tableId), null)));
+    MetaDataTableScanner s = new MetaDataTableScanner(c.getInstance(), creds, new Range(KeyExtent.getMetadataEntry(tableId, null)));
     TabletLocationState tlState = s.next();
     s.close();
     return tlState;

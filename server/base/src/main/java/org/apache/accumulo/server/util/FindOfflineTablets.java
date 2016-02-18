@@ -43,7 +43,6 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.tables.TableManager;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class FindOfflineTablets {
@@ -103,7 +102,7 @@ public class FindOfflineTablets {
     Range range = MetadataSchema.TabletsSection.getRange();
     if (tableName != null) {
       String tableId = Tables.getTableId(instance, tableName);
-      range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+      range = new KeyExtent(tableId, null, null).toMetadataRange();
     }
 
     MetaDataTableScanner metaScanner = new MetaDataTableScanner(instance, creds, range, MetadataTable.NAME);

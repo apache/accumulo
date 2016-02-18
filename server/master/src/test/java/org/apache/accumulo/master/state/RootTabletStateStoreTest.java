@@ -36,7 +36,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
-import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -191,7 +190,7 @@ public class RootTabletStateStoreTest {
     }
     assertEquals(count, 1);
 
-    KeyExtent notRoot = new KeyExtent(new Text("0"), null, null);
+    KeyExtent notRoot = new KeyExtent("0", null, null);
     try {
       tstore.setLocations(Collections.singletonList(new Assignment(notRoot, server)));
       Assert.fail("should not get here");

@@ -125,7 +125,7 @@ public class TableRangeOp extends MasterRepo {
     MergeInfo info = env.getMergeInfo(tableIdText);
 
     if (info.getState() == MergeState.NONE) {
-      KeyExtent range = new KeyExtent(tableIdText, end, start);
+      KeyExtent range = new KeyExtent(tableId, end, start);
       env.setMergeState(new MergeInfo(range, op), MergeState.STARTED);
     }
 

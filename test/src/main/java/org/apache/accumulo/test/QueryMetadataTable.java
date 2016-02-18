@@ -101,7 +101,7 @@ public class QueryMetadataTable {
     Connector connector = opts.getConnector();
     Scanner scanner = connector.createScanner(MetadataTable.NAME, opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
-    Text mdrow = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null));
+    Text mdrow = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, null));
 
     HashSet<Text> rowSet = new HashSet<Text>();
 

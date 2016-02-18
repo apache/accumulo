@@ -46,17 +46,13 @@ public class Writer {
 
   private Instance instance;
   private Credentials credentials;
-  private Text table;
+  private String table;
 
-  public Writer(Instance instance, Credentials credentials, Text table) {
+  public Writer(Instance instance, Credentials credentials, String table) {
     ArgumentChecker.notNull(instance, credentials, table);
     this.instance = instance;
     this.credentials = credentials;
     this.table = table;
-  }
-
-  public Writer(Instance instance, Credentials credentials, String table) {
-    this(instance, credentials, new Text(table));
   }
 
   private static void updateServer(Instance instance, Mutation m, KeyExtent extent, String server, Credentials ai, AccumuloConfiguration configuration)

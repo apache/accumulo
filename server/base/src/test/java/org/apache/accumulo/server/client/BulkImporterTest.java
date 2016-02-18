@@ -50,7 +50,8 @@ import org.junit.Test;
 public class BulkImporterTest {
 
   static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<KeyExtent>();
-  static final Text tableId = new Text("1");
+  static final String tableId = "1";
+
   static {
     fakeMetaData.add(new KeyExtent(tableId, new Text("a"), null));
     for (String part : new String[] {"b", "bm", "c", "cm", "d", "dm", "e", "em", "f", "g", "h", "i", "j", "k", "l"}) {
@@ -158,19 +159,19 @@ public class BulkImporterTest {
     // a correct startRow so that findOverlappingTablets works as intended.
 
     // 1;2;1
-    KeyExtent extent = new KeyExtent(new Text("1"), new Text("2"), new Text("1"));
+    KeyExtent extent = new KeyExtent("1", new Text("2"), new Text("1"));
     Assert.assertEquals(new Text("1\0"), BulkImporter.getStartRowForExtent(extent));
 
     // 1;2<
-    extent = new KeyExtent(new Text("1"), new Text("2"), null);
+    extent = new KeyExtent("1", new Text("2"), null);
     Assert.assertEquals(null, BulkImporter.getStartRowForExtent(extent));
 
     // 1<<
-    extent = new KeyExtent(new Text("1"), null, null);
+    extent = new KeyExtent("1", null, null);
     Assert.assertEquals(null, BulkImporter.getStartRowForExtent(extent));
 
     // 1;8;7777777
-    extent = new KeyExtent(new Text("1"), new Text("8"), new Text("7777777"));
+    extent = new KeyExtent("1", new Text("8"), new Text("7777777"));
     Assert.assertEquals(new Text("7777777\0"), BulkImporter.getStartRowForExtent(extent));
   }
 }

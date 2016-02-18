@@ -82,7 +82,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
@@ -414,7 +413,7 @@ class CopyFailed extends MasterRepo {
     // determine which failed files were loaded
     Connector conn = master.getConnector();
     Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-    mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
+    mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
     mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
 
     for (Entry<Key,Value> entry : mscanner) {

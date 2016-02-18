@@ -54,7 +54,7 @@ public class MetadataSchema {
       return new Range(new Key(tableId + ';'), true, new Key(tableId + '<').followingKey(PartialKey.ROW), false);
     }
 
-    public static Text getRow(Text tableId, Text endRow) {
+    public static Text getRow(String tableId, Text endRow) {
       Text entry = new Text(tableId);
 
       if (endRow == null) {

@@ -62,7 +62,6 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 
 class ExportInfo implements Serializable {
 
@@ -106,7 +105,7 @@ class WriteExportFiles extends MasterRepo {
     checkOffline(conn);
 
     Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    metaScanner.setRange(new KeyExtent(new Text(tableInfo.tableID), null, null).toMetadataRange());
+    metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetadataRange());
 
     // scan for locations
     metaScanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -224,7 +223,7 @@ class WriteExportFiles extends MasterRepo {
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
     TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
-    metaScanner.setRange(new KeyExtent(new Text(tableID), null, null).toMetadataRange());
+    metaScanner.setRange(new KeyExtent(tableID, null, null).toMetadataRange());
 
     for (Entry<Key,Value> entry : metaScanner) {
       entry.getKey().write(dataOut);

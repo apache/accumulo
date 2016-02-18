@@ -65,9 +65,9 @@ public abstract class TabletLocator {
 
   private static class LocatorKey {
     String instanceId;
-    Text tableName;
+    String tableName;
 
-    LocatorKey(String instanceId, Text table) {
+    LocatorKey(String instanceId, String table) {
       this.instanceId = instanceId;
       this.tableName = table;
     }
@@ -96,19 +96,19 @@ public abstract class TabletLocator {
     locators.clear();
   }
 
-  public static synchronized TabletLocator getLocator(Instance instance, Text tableId) {
+  public static synchronized TabletLocator getLocator(Instance instance, String tableId) {
 
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer(instance);
 
-      if (tableId.toString().equals(RootTable.ID)) {
+      if (tableId.equals(RootTable.ID)) {
         tl = new RootTabletLocator(instance, new ZookeeperLockChecker(instance));
-      } else if (tableId.toString().equals(MetadataTable.ID)) {
-        tl = new TabletLocatorImpl(new Text(MetadataTable.ID), getLocator(instance, new Text(RootTable.ID)), mlo, new ZookeeperLockChecker(instance));
+      } else if (tableId.equals(MetadataTable.ID)) {
+        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(instance, RootTable.ID), mlo, new ZookeeperLockChecker(instance));
       } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(instance, new Text(MetadataTable.ID)), mlo, new ZookeeperLockChecker(instance));
+        tl = new TabletLocatorImpl(tableId, getLocator(instance, MetadataTable.ID), mlo, new ZookeeperLockChecker(instance));
       }
       locators.put(key, tl);
     }

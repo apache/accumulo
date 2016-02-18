@@ -51,7 +51,6 @@ import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletStateChangeIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import com.google.common.base.Predicate;
@@ -101,7 +100,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterIT {
   private void removeLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
     String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
     BatchDeleter deleter = getConnector().createBatchDeleter(table, Authorizations.EMPTY, 1, new BatchWriterConfig());
-    deleter.setRanges(Collections.singleton(new KeyExtent(new Text(tableIdToModify), null, null).toMetadataRange()));
+    deleter.setRanges(Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetadataRange()));
     deleter.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     deleter.delete();
     deleter.close();

@@ -20,20 +20,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.server.master.state.TabletState;
-import org.apache.hadoop.io.Text;
 
 public class TableStats {
-  private Map<Text,TableCounts> last = new HashMap<Text,TableCounts>();
-  private Map<Text,TableCounts> next;
+  private Map<String,TableCounts> last = new HashMap<String,TableCounts>();
+  private Map<String,TableCounts> next;
   private long startScan = 0;
   private long endScan = 0;
 
   public synchronized void begin() {
-    next = new HashMap<Text,TableCounts>();
+    next = new HashMap<String,TableCounts>();
     startScan = System.currentTimeMillis();
   }
 
-  public synchronized void update(Text tableId, TabletState state) {
+  public synchronized void update(String tableId, TabletState state) {
     TableCounts counts = next.get(tableId);
     if (counts == null) {
       counts = new TableCounts();
@@ -48,11 +47,11 @@ public class TableStats {
     endScan = System.currentTimeMillis();
   }
 
-  public synchronized Map<Text,TableCounts> getLast() {
+  public synchronized Map<String,TableCounts> getLast() {
     return last;
   }
 
-  public synchronized TableCounts getLast(Text tableId) {
+  public synchronized TableCounts getLast(String tableId) {
     TableCounts result = last.get(tableId);
     if (result == null)
       return new TableCounts();

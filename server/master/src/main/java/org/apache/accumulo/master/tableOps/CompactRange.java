@@ -108,7 +108,7 @@ class CompactionDriver extends MasterRepo {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
     } else {
       scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-      Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
+      Range range = new KeyExtent(tableId, null, startRow == null ? null : new Text(startRow)).toMetadataRange();
       scanner.setRange(range);
     }
 

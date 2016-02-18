@@ -41,7 +41,7 @@ public class MergeInfoTest {
   }
 
   KeyExtent ke(String tableId, String endRow, String prevEndRow) {
-    return new KeyExtent(new Text(tableId), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
+    return new KeyExtent(tableId, endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
   }
 
   @Test

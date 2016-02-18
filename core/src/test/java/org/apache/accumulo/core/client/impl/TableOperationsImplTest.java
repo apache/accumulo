@@ -27,7 +27,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -44,7 +43,7 @@ public class TableOperationsImplTest {
     Connector connector = EasyMock.createMock(Connector.class);
     Scanner scanner = EasyMock.createMock(Scanner.class);
 
-    Range range = new KeyExtent(new Text("1"), null, null).toMetadataRange();
+    Range range = new KeyExtent("1", null, null).toMetadataRange();
 
     String user = "root";
     PasswordToken token = new PasswordToken("password");

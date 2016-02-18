@@ -70,7 +70,7 @@ public class CheckTabletMetadataTest {
   @Test
   public void testBadTabletMetadata() throws Exception {
 
-    KeyExtent ke = new KeyExtent(new Text("1"), null, null);
+    KeyExtent ke = new KeyExtent("1", null, null);
 
     TreeMap<Key,Value> tabletMeta = new TreeMap<Key,Value>();
 
@@ -89,9 +89,9 @@ public class CheckTabletMetadataTest {
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.2:9997", 4));
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.2:9997", 5));
 
-    assertFail(tabletMeta, new KeyExtent(new Text("1"), null, new Text("m")), tsi);
+    assertFail(tabletMeta, new KeyExtent("1", null, new Text("m")), tsi);
 
-    assertFail(tabletMeta, new KeyExtent(new Text("1"), new Text("r"), new Text("m")), tsi);
+    assertFail(tabletMeta, new KeyExtent("1", new Text("r"), new Text("m")), tsi);
 
     assertFail(tabletMeta, ke, tsi, nk("1<", TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN));
 

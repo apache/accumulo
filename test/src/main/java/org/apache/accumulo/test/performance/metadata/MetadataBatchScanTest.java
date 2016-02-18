@@ -71,7 +71,7 @@ public class MetadataBatchScanTest {
       splits.add((r.nextLong() & 0x7fffffffffffffffl) % 1000000000000l);
     }
 
-    Text tid = new Text("8");
+    String tid = "8";
     Text per = null;
 
     ArrayList<KeyExtent> extents = new ArrayList<KeyExtent>();

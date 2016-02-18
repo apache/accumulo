@@ -218,7 +218,7 @@ public class Merge {
     } catch (Exception e) {
       throw new MergeException(e);
     }
-    scanner.setRange(new KeyExtent(new Text(tableId), end, start).toMetadataRange());
+    scanner.setRange(new KeyExtent(tableId, end, start).toMetadataRange());
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     final Iterator<Entry<Key,Value>> iterator = scanner.iterator();

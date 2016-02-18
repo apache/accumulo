@@ -224,7 +224,7 @@ public class VolumeIT extends ConfigurableMacIT {
 
     Scanner metaScanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    metaScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
+    metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
     BatchWriter mbw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
@@ -402,7 +402,7 @@ public class VolumeIT extends ConfigurableMacIT {
     Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
     metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    metaScanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
+    metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
     int counts[] = new int[paths.length];
 

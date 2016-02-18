@@ -455,7 +455,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private void addSplits(String tableName, SortedSet<Text> partitionKeys, String tableId) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, AccumuloServerException {
-    TabletLocator tabLocator = TabletLocator.getLocator(instance, new Text(tableId));
+    TabletLocator tabLocator = TabletLocator.getLocator(instance, tableId);
 
     for (Text split : partitionKeys) {
       boolean successful = false;
@@ -1087,7 +1087,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Random random = new Random();
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     String tableId = Tables.getTableId(instance, tableName);
-    TabletLocator tl = TabletLocator.getLocator(instance, new Text(tableId));
+    TabletLocator tl = TabletLocator.getLocator(instance, tableId);
     // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
     tl.invalidateCache();
     while (!tl.binRanges(credentials, Collections.singletonList(range), binnedRanges).isEmpty()) {
@@ -1205,9 +1205,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
       }
 
-      Range range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+      Range range = new KeyExtent(tableId, null, null).toMetadataRange();
       if (startRow == null || lastRow == null)
-        range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+        range = new KeyExtent(tableId, null, null).toMetadataRange();
       else
         range = new Range(startRow, lastRow);
 
@@ -1391,7 +1391,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    TabletLocator tabLocator = TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName)));
+    TabletLocator tabLocator = TabletLocator.getLocator(instance, Tables.getTableId(instance, tableName));
     tabLocator.invalidateCache();
   }
 
