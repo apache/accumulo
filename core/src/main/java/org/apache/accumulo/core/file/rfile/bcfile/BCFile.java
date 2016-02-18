@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -53,6 +54,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
+
+import com.google.common.base.Charsets;
 
 /**
  * Block Compressed file, the underlying physical storage layer for TFile. BCFile provides the basic block level compression for the data block and meta blocks.
@@ -521,6 +524,30 @@ public final class BCFile {
     }
   }
 
+  // sha256 of some random data
+  private static final byte[] NO_CPYPTO_KEY = "ce18cf53c4c5077f771249b38033fa14bcb31cca0e5e95a371ee72daa8342ea2".getBytes(Charsets.UTF_8);
+
+  // This class is used as a place holder in the cache for RFiles that have no crypto....
+  private static final BCFileCryptoModuleParameters NO_CRYPTO = new BCFileCryptoModuleParameters() {
+
+    @Override
+    public Map<String,String> getAllOptions() {
+      return Collections.emptyMap();
+    }
+
+    @Override
+    public byte[] getEncryptedKey() {
+      return NO_CPYPTO_KEY;
+    }
+
+    @Override
+    public String getOpaqueKeyEncryptionKeyID() {
+      // NONE + sha256 of random data
+      return "NONE:a4007e6aefb095a5a47030cd6c850818fb3a685dc6e85ba1ecc5a44ba68b193b";
+    }
+
+  };
+
   private static class BCFileCryptoModuleParameters extends CryptoModuleParameters {
 
     public void write(DataOutput out) throws IOException {
@@ -888,17 +915,14 @@ public final class BCFile {
           cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy.decryptSecretKey(cryptoParams);
 
         } else if (cachedCryptoParams != null) {
-          cryptoParams = new BCFileCryptoModuleParameters();
-          cryptoParams.read(cachedCryptoParams);
-
-          this.cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoParams.getAllOptions().get(Property.CRYPTO_MODULE_CLASS.getKey()));
-          this.secretKeyEncryptionStrategy = CryptoModuleFactory.getSecretKeyEncryptionStrategy(cryptoParams.getKeyEncryptionStrategyClass());
-
-          // This call should put the decrypted session key within the cryptoParameters object
-          // secretKeyEncryptionStrategy.decryptSecretKey(cryptoParameters);
-
-          cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy.decryptSecretKey(cryptoParams);
-
+          setupCryptoFromCachedData(cachedCryptoParams);
+        } else {
+          // Place something in cache that indicates this file has no crypto metadata. See ACCUMULO-4141
+          ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          DataOutputStream dos = new DataOutputStream(baos);
+          NO_CRYPTO.write(dos);
+          dos.close();
+          cache.cacheMetaBlock(CRYPTO_BLOCK_NAME, baos.toByteArray());
         }
 
         if (cachedMetaIndex == null) {
@@ -931,15 +955,25 @@ public final class BCFile {
 
         metaIndex = new MetaIndex(cachedMetaIndex);
         dataIndex = new DataIndex(cachedDataIndex);
-        cryptoParams = new BCFileCryptoModuleParameters();
-        cryptoParams.read(cachedCryptoParams);
+        setupCryptoFromCachedData(cachedCryptoParams);
+      }
+    }
 
-        this.cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoParams.getAllOptions().get(Property.CRYPTO_MODULE_CLASS.getKey()));
-        this.secretKeyEncryptionStrategy = CryptoModuleFactory.getSecretKeyEncryptionStrategy(cryptoParams.getKeyEncryptionStrategyClass());
+    private void setupCryptoFromCachedData(BlockRead cachedCryptoParams) throws IOException {
+      BCFileCryptoModuleParameters params = new BCFileCryptoModuleParameters();
+      params.read(cachedCryptoParams);
+
+      if (Arrays.equals(params.getEncryptedKey(), NO_CRYPTO.getEncryptedKey())
+          && NO_CRYPTO.getOpaqueKeyEncryptionKeyID().equals(params.getOpaqueKeyEncryptionKeyID())) {
+        this.cryptoParams = null;
+        this.cryptoModule = null;
+        this.secretKeyEncryptionStrategy = null;
+      } else {
+        this.cryptoModule = CryptoModuleFactory.getCryptoModule(params.getAllOptions().get(Property.CRYPTO_MODULE_CLASS.getKey()));
+        this.secretKeyEncryptionStrategy = CryptoModuleFactory.getSecretKeyEncryptionStrategy(params.getKeyEncryptionStrategyClass());
 
         // This call should put the decrypted session key within the cryptoParameters object
-        cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy.decryptSecretKey(cryptoParams);
-
+        cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy.decryptSecretKey(params);
       }
     }
 
