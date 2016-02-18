@@ -56,15 +56,6 @@ public class MajorCompactionRequest implements Cloneable {
     this.files = mcr.files;
   }
 
-  /**
-   * @return org.apache.accumulo.core.data.KeyExtent
-   * @deprecated since 1.7. Use {@link #getTabletId()} instead.
-   */
-  @Deprecated
-  public org.apache.accumulo.core.data.KeyExtent getExtent() {
-    return new org.apache.accumulo.core.data.KeyExtent(extent.getTableId(), extent.getEndRow(), extent.getPrevEndRow());
-  }
-
   public TabletId getTabletId() {
     return new TabletIdImpl(extent);
   }

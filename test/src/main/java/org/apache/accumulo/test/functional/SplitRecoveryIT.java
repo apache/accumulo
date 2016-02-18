@@ -77,7 +77,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private KeyExtent nke(String table, String endRow, String prevEndRow) {
-    return new KeyExtent(new Text(table), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
+    return new KeyExtent(table, endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
   }
 
   private void run() throws Exception {

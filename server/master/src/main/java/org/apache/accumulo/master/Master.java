@@ -174,8 +174,6 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   final static Logger log = LoggerFactory.getLogger(Master.class);
 
   final static int ONE_SECOND = 1000;
-  final private static Text METADATA_TABLE_ID = new Text(MetadataTable.ID);
-  final private static Text ROOT_TABLE_ID = new Text(RootTable.ID);
   final static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
   final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   final static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
@@ -509,7 +507,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
   }
 
-  private int assignedOrHosted(Text tableId) {
+  private int assignedOrHosted(String tableId) {
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       TableCounts count = watcher.getStats(tableId);
@@ -529,7 +527,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   }
 
   private int nonMetaDataTabletsAssignedOrHosted() {
-    return totalAssignedOrHosted() - assignedOrHosted(new Text(MetadataTable.ID)) - assignedOrHosted(new Text(RootTable.ID));
+    return totalAssignedOrHosted() - assignedOrHosted(MetadataTable.ID) - assignedOrHosted(RootTable.ID);
   }
 
   private int notHosted() {
@@ -550,10 +548,10 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         // Count offline tablets for online tables
         for (TabletGroupWatcher watcher : watchers) {
           TableManager manager = TableManager.getInstance();
-          for (Entry<Text,TableCounts> entry : watcher.getStats().entrySet()) {
-            Text tableId = entry.getKey();
+          for (Entry<String,TableCounts> entry : watcher.getStats().entrySet()) {
+            String tableId = entry.getKey();
             TableCounts counts = entry.getValue();
-            TableState tableState = manager.getTableState(tableId.toString());
+            TableState tableState = manager.getTableState(tableId);
             if (tableState != null && tableState.equals(TableState.ONLINE)) {
               result += counts.unassigned() + counts.assignedToDeadServers() + counts.assigned();
             }
@@ -563,13 +561,13 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       case SAFE_MODE:
         // Count offline tablets for the metadata table
         for (TabletGroupWatcher watcher : watchers) {
-          result += watcher.getStats(METADATA_TABLE_ID).unassigned();
+          result += watcher.getStats(MetadataTable.ID).unassigned();
         }
         break;
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         for (TabletGroupWatcher watcher : watchers) {
-          result += watcher.getStats(METADATA_TABLE_ID).unassigned();
+          result += watcher.getStats(MetadataTable.ID).unassigned();
         }
         break;
       default:
@@ -925,19 +923,19 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
                 }
                   break;
                 case UNLOAD_METADATA_TABLETS: {
-                  int count = assignedOrHosted(METADATA_TABLE_ID);
+                  int count = assignedOrHosted(MetadataTable.ID);
                   log.debug(String.format("There are %d metadata tablets assigned or hosted", count));
                   if (count == 0 && goodStats())
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                 }
                   break;
                 case UNLOAD_ROOT_TABLET: {
-                  int count = assignedOrHosted(METADATA_TABLE_ID);
+                  int count = assignedOrHosted(MetadataTable.ID);
                   if (count > 0 && goodStats()) {
                     log.debug(String.format("%d metadata tablets online", count));
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                   }
-                  int root_count = assignedOrHosted(ROOT_TABLE_ID);
+                  int root_count = assignedOrHosted(RootTable.ID);
                   if (root_count > 0 && goodStats())
                     log.debug("The root tablet is still assigned or hosted");
                   if (count + root_count == 0 && goodStats()) {

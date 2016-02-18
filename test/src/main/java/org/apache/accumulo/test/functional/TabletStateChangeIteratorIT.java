@@ -108,7 +108,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
       @Override
       public Collection<MergeInfo> merges() {
         String tableIdToModify = getConnector().tableOperations().tableIdMap().get(t3);
-        return Collections.singletonList(new MergeInfo(new KeyExtent(new Text(tableIdToModify), null, null), MergeInfo.Operation.MERGE));
+        return Collections.singletonList(new MergeInfo(new KeyExtent(tableIdToModify, null, null), MergeInfo.Operation.MERGE));
       }
     };
     assertEquals("Should have 2 tablets that need to be chopped or unassigned", 1, findTabletsNeedingAttention(cloned, state));
@@ -125,7 +125,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
 
   private void addDuplicateLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
     String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
-    Mutation m = new Mutation(new KeyExtent(new Text(tableIdToModify), null, null).getMetadataEntry());
+    Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).getMetadataEntry());
     m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"), new Value("fake:9005".getBytes(UTF_8)));
     BatchWriter bw = getConnector().createBatchWriter(table, null);
     bw.addMutation(m);
@@ -135,7 +135,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
   private void reassignLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
     String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
     Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(new Text(tableIdToModify), null, null).toMetadataRange());
+    scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetadataRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     Entry<Key,Value> entry = scanner.iterator().next();
     Mutation m = new Mutation(entry.getKey().getRow());
@@ -150,7 +150,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
   private void removeLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
     String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
     BatchDeleter deleter = getConnector().createBatchDeleter(table, Authorizations.EMPTY, 1, new BatchWriterConfig());
-    deleter.setRanges(Collections.singleton(new KeyExtent(new Text(tableIdToModify), null, null).toMetadataRange()));
+    deleter.setRanges(Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetadataRange()));
     deleter.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     deleter.delete();
     deleter.close();

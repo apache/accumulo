@@ -28,7 +28,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
 
 /**
  * provides scanner functionality
@@ -47,7 +46,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   private final ClientContext context;
   private Authorizations authorizations;
-  private Text table;
+  private String table;
 
   private int size;
 
@@ -60,7 +59,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     checkArgument(table != null, "table is null");
     checkArgument(authorizations != null, "authorizations is null");
     this.context = context;
-    this.table = new Text(table);
+    this.table = table;
     this.range = new Range((Key) null, (Key) null);
     this.authorizations = authorizations;
 

@@ -141,8 +141,8 @@ public class ReplicationSchema {
       scanner.fetchColumnFamily(NAME);
     }
 
-    public static Mutation add(Mutation m, Text tableId, Value v) {
-      m.put(NAME, tableId, v);
+    public static Mutation add(Mutation m, String tableId, Value v) {
+      m.put(NAME, new Text(tableId), v);
       return m;
     }
   }
@@ -234,8 +234,8 @@ public class ReplicationSchema {
      *          Serialized Status msg
      * @return The original Mutation
      */
-    public static Mutation add(Mutation m, Text tableId, Value v) {
-      m.put(NAME, tableId, v);
+    public static Mutation add(Mutation m, String tableId, Value v) {
+      m.put(NAME, new Text(tableId), v);
       return m;
     }
 

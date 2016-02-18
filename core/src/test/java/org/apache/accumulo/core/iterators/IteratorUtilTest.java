@@ -40,7 +40,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.MultiIteratorTest;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
-import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -139,7 +138,7 @@ public class IteratorUtilTest {
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent(new Text("tab"), null, null), conf,
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent("tab", null, null), conf,
         new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
@@ -171,7 +170,7 @@ public class IteratorUtilTest {
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.majc, source, new KeyExtent(new Text("tab"), null, null), conf,
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.majc, source, new KeyExtent("tab", null, null), conf,
         new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
@@ -207,7 +206,7 @@ public class IteratorUtilTest {
     conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter", "2," + AddingIter.class.getName());
     conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".sqIter", "1," + SquaringIter.class.getName());
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent(new Text("tab"), null, null), conf,
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent("tab", null, null), conf,
         new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
@@ -243,7 +242,7 @@ public class IteratorUtilTest {
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent(new Text("tab"), null, null), conf,
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent("tab", null, null), conf,
         new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
@@ -279,7 +278,7 @@ public class IteratorUtilTest {
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
-    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent(new Text("tab"), null, null), conf,
+    SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source, new KeyExtent("tab", null, null), conf,
         new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 

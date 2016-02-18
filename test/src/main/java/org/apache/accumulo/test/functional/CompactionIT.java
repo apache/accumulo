@@ -46,6 +46,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -177,8 +178,8 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   private int countFiles(Connector c) throws Exception {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.TabletColumnFamily.NAME);
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.TabletColumnFamily.NAME));
+    s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME));
     return Iterators.size(s.iterator());
   }
 

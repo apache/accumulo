@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.concurrent.TimeUnit;
@@ -41,24 +42,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class Writer {
 
   private static final Logger log = LoggerFactory.getLogger(Writer.class);
 
   private ClientContext context;
-  private Text table;
+  private String table;
 
-  public Writer(ClientContext context, Text table) {
+  public Writer(ClientContext context, String table) {
     checkArgument(context != null, "context is null");
     checkArgument(table != null, "table is null");
     this.context = context;
     this.table = table;
-  }
-
-  public Writer(ClientContext context, String table) {
-    this(context, new Text(table));
   }
 
   private static void updateServer(ClientContext context, Mutation m, KeyExtent extent, HostAndPort server) throws TException, NotServingTabletException,

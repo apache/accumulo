@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.hadoop.io.Text;
 
 /**
  * A class that contains information about an ActiveScan
@@ -121,7 +122,7 @@ public class ActiveScanImpl extends ActiveScan {
   @Override
   @Deprecated
   public org.apache.accumulo.core.data.KeyExtent getExtent() {
-    return new org.apache.accumulo.core.data.KeyExtent(extent.getTableId(), extent.getEndRow(), extent.getPrevEndRow());
+    return new org.apache.accumulo.core.data.KeyExtent(new Text(extent.getTableId()), extent.getEndRow(), extent.getPrevEndRow());
   }
 
   @Override

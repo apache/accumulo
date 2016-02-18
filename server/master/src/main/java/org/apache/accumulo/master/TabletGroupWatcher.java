@@ -111,7 +111,7 @@ class TabletGroupWatcher extends Daemon {
     this.dependentWatcher = dependentWatcher;
   }
 
-  Map<Text,TableCounts> getStats() {
+  Map<String,TableCounts> getStats() {
     return stats.getLast();
   }
 
@@ -120,7 +120,7 @@ class TabletGroupWatcher extends Daemon {
     return masterState;
   }
 
-  TableCounts getStats(Text tableId) {
+  TableCounts getStats(String tableId) {
     return stats.getLast(tableId);
   }
 
@@ -142,8 +142,8 @@ class TabletGroupWatcher extends Daemon {
       int unloaded = 0;
       ClosableIterator<TabletLocationState> iter = null;
       try {
-        Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
-        Map<Text,MergeStats> currentMerges = new HashMap<Text,MergeStats>();
+        Map<String,MergeStats> mergeStatsCache = new HashMap<String,MergeStats>();
+        Map<String,MergeStats> currentMerges = new HashMap<String,MergeStats>();
         for (MergeInfo merge : master.merges()) {
           if (merge.getExtent() != null) {
             currentMerges.put(merge.getExtent().getTableId(), new MergeStats(merge));
@@ -200,7 +200,7 @@ class TabletGroupWatcher extends Daemon {
             unloaded = 0;
             eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
           }
-          Text tableId = tls.extent.getTableId();
+          String tableId = tls.extent.getTableId();
           MergeStats mergeStats = mergeStatsCache.get(tableId);
           if (mergeStats == null) {
             mergeStats = currentMerges.get(tableId);
@@ -478,7 +478,7 @@ class TabletGroupWatcher extends Daemon {
     }
   }
 
-  private void updateMergeState(Map<Text,MergeStats> mergeStatsCache) {
+  private void updateMergeState(Map<String,MergeStats> mergeStatsCache) {
     for (MergeStats stats : mergeStatsCache.values()) {
       try {
         MergeState update = stats.nextMergeState(this.master.getConnector(), this.master);

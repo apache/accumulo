@@ -25,7 +25,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -51,7 +50,7 @@ public class SizeLimitCompactionStrategyTest {
 
     slcs.init(opts);
 
-    KeyExtent ke = new KeyExtent(new Text("0"), null, null);
+    KeyExtent ke = new KeyExtent("0", null, null);
     MajorCompactionRequest mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null, AccumuloConfiguration.getDefaultConfiguration());
 
     mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G"));

@@ -49,7 +49,6 @@ import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -150,7 +149,7 @@ public class SplitIT extends AccumuloClusterHarness {
     }
     String id = c.tableOperations().tableIdMap().get(table);
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    KeyExtent extent = new KeyExtent(new Text(id), null, null);
+    KeyExtent extent = new KeyExtent(id, null, null);
     s.setRange(extent.toMetadataRange());
     MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
     int count = 0;

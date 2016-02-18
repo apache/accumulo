@@ -73,7 +73,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
@@ -267,7 +266,7 @@ public class NullTserver {
     String tableId = Tables.getTableId(zki, opts.tableName);
 
     // read the locations for the table
-    Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+    Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
     MetaDataTableScanner s = new MetaDataTableScanner(context, tableRange);
     long randomSessionID = opts.port;
     TServerInstance instance = new TServerInstance(addr, randomSessionID);
