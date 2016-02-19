@@ -23,7 +23,7 @@ public class DeleteRowsCommandTest {
 
   @Test
   public void testBeginRowHelp() {
-    assertTrue("-b should say it is NOT inclusive", new DeleteRowsCommand().getOptions().getOption("b").getDescription().contains("(NOT) inclusive"));
+    assertTrue("-b should say it is exclusive", new DeleteRowsCommand().getOptions().getOption("b").getDescription().contains("(exclusive)"));
   }
 
 }

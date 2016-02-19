@@ -23,7 +23,7 @@ public class CompactCommandTest {
 
   @Test
   public void testBeginRowHelp() {
-    assertTrue("-b should say it is NOT inclusive", new CompactCommand().getOptions().getOption("b").getDescription().contains("(NOT) inclusive"));
+    assertTrue("-b should say it is exclusive", new CompactCommand().getOptions().getOption("b").getDescription().contains("(exclusive)"));
   }
 
 }
