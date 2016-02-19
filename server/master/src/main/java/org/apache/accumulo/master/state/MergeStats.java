@@ -185,7 +185,7 @@ public class MergeStats {
     if (start == null) {
       start = new Text();
     }
-    Text tableId = extent.getTableId();
+    String tableId = extent.getTableId();
     Text first = KeyExtent.getMetadataEntry(tableId, start);
     Range range = new Range(first, false, null, true);
     scanner.setRange(range.clip(MetadataSchema.TabletsSection.getRange()));

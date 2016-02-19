@@ -136,7 +136,7 @@ public class ThriftScanner {
   public static class ScanState {
 
     boolean isolated;
-    Text tableId;
+    String tableId;
     Text startRow;
     boolean skipStartRow;
     long readaheadThreshold;
@@ -163,7 +163,7 @@ public class ThriftScanner {
 
     SamplerConfiguration samplerConfig;
 
-    public ScanState(ClientContext context, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
+    public ScanState(ClientContext context, String tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long readaheadThreshold,
         SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext) {
       this.context = context;
@@ -442,7 +442,7 @@ public class ThriftScanner {
           client.closeScan(tinfo, is.scanID);
 
       } else {
-        // log.debug("Calling continue scan : "+scanState.range+"  loc = "+loc);
+        // log.debug("Calling continue scan : "+scanState.range+" loc = "+loc);
         String msg = "Continuing scan tserver=" + loc.tablet_location + " scanid=" + scanState.scanID;
         Thread.currentThread().setName(msg);
 

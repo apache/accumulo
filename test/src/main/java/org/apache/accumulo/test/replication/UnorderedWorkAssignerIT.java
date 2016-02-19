@@ -138,14 +138,14 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     WorkSection.add(m, serializedTarget1, ProtobufUtil.toValue(status1));
     bw.addMutation(m);
     m = OrderSection.createMutation(file1, status1.getCreatedTime());
-    OrderSection.add(m, new Text(target1.getSourceTableId()), ProtobufUtil.toValue(status1));
+    OrderSection.add(m, target1.getSourceTableId(), ProtobufUtil.toValue(status1));
     bw.addMutation(m);
 
     m = new Mutation(file2);
     WorkSection.add(m, serializedTarget2, ProtobufUtil.toValue(status2));
     bw.addMutation(m);
     m = OrderSection.createMutation(file2, status2.getCreatedTime());
-    OrderSection.add(m, new Text(target2.getSourceTableId()), ProtobufUtil.toValue(status2));
+    OrderSection.add(m, target2.getSourceTableId(), ProtobufUtil.toValue(status2));
     bw.addMutation(m);
 
     bw.close();

@@ -136,12 +136,12 @@ public class MasterMetadataUtil {
 
     Text metadataPrevEndRow = KeyExtent.decodePrevEndRow(prevEndRowIBW);
 
-    Text table = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
+    String table = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
 
     return fixSplit(context, table, metadataEntry, metadataPrevEndRow, oper, splitRatio, tserver, time.toString(), initFlushID, initCompactID, lock);
   }
 
-  private static KeyExtent fixSplit(ClientContext context, Text table, Text metadataEntry, Text metadataPrevEndRow, Value oper, double splitRatio,
+  private static KeyExtent fixSplit(ClientContext context, String table, Text metadataEntry, Text metadataPrevEndRow, Value oper, double splitRatio,
       TServerInstance tserver, String time, long initFlushID, long initCompactID, ZooLock lock) throws AccumuloException, IOException {
     if (metadataPrevEndRow == null)
       // something is wrong, this should not happen... if a tablet is split, it will always have a

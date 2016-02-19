@@ -40,7 +40,6 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assume;
 import org.junit.Test;
@@ -85,7 +84,7 @@ public class TableIT extends AccumuloClusterHarness {
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     String id = to.tableIdMap().get(tableName);
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(new KeyExtent(new Text(id), null, null).toMetadataRange());
+    s.setRange(new KeyExtent(id, null, null).toMetadataRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     assertTrue(Iterators.size(s.iterator()) > 0);
 

@@ -66,7 +66,6 @@ import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -644,7 +643,7 @@ public class TabletServerBatchWriter {
     private TabletLocator getLocator(String tableId) {
       TabletLocator ret = locators.get(tableId);
       if (ret == null) {
-        ret = TabletLocator.getLocator(context, new Text(tableId));
+        ret = TabletLocator.getLocator(context, tableId);
         ret = new TimeoutTabletLocator(ret, timeout);
         locators.put(tableId, ret);
       }
@@ -686,8 +685,7 @@ public class TabletServerBatchWriter {
         // assume an IOError communicating with metadata tablet
         failedMutations.add(mutationsToProcess);
       } catch (AccumuloSecurityException e) {
-        updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(new Text(tableId), null, null),
-            SecurityErrorCode.valueOf(e.getSecurityErrorCode().name())));
+        updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(tableId, null, null), SecurityErrorCode.valueOf(e.getSecurityErrorCode().name())));
       } catch (TableDeletedException e) {
         updateUnknownErrors(e.getMessage(), e);
       } catch (TableOfflineException e) {
@@ -846,7 +844,7 @@ public class TabletServerBatchWriter {
             tables.add(ke.getTableId().toString());
 
           for (String table : tables)
-            TabletLocator.getLocator(context, new Text(table)).invalidateCache(context.getInstance(), location);
+            TabletLocator.getLocator(context, table).invalidateCache(context.getInstance(), location);
 
           failedMutations.add(location, tsm);
         } finally {
@@ -883,7 +881,7 @@ public class TabletServerBatchWriter {
               client.update(tinfo, context.rpcCreds(), entry.getKey().toThrift(), entry.getValue().get(0).toThrift(), DurabilityImpl.toThrift(durability));
             } catch (NotServingTabletException e) {
               allFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
-              TabletLocator.getLocator(context, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
+              TabletLocator.getLocator(context, entry.getKey().getTableId()).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
               updatedConstraintViolations(Translator.translate(e.violationSummaries, Translators.TCVST));
             }
@@ -924,7 +922,7 @@ public class TabletServerBatchWriter {
 
               String table = failedExtent.getTableId().toString();
 
-              TabletLocator.getLocator(context, new Text(table)).invalidateCache(failedExtent);
+              TabletLocator.getLocator(context, table).invalidateCache(failedExtent);
 
               ArrayList<Mutation> mutations = (ArrayList<Mutation>) tabMuts.get(failedExtent);
               allFailures.addAll(table, mutations.subList(numCommitted, mutations.size()));

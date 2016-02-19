@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
@@ -50,8 +51,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ReplicationOperationsImpl implements ReplicationOperations {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImpl.class);
@@ -168,7 +167,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     try {
       Text buffer = new Text();
       for (Entry<Key,Value> entry : metaBs) {
-        ReplicationSection.getTableId(entry.getKey(), buffer);
+        ReplicationSection.getTableId(entry.getKey());
         if (buffer.equals(tableId)) {
           ReplicationSection.getFile(entry.getKey(), buffer);
           wals.add(buffer.toString());

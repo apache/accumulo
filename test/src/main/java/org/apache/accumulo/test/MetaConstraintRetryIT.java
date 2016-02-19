@@ -27,7 +27,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MetaConstraintRetryIT extends AccumuloClusterHarness {
@@ -46,7 +45,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
     Credentials credentials = new Credentials(getAdminPrincipal(), getAdminToken());
     ClientContext context = new ClientContext(getConnector().getInstance(), credentials, cluster.getClientConfig());
     Writer w = new Writer(context, MetadataTable.ID);
-    KeyExtent extent = new KeyExtent(new Text("5"), null, null);
+    KeyExtent extent = new KeyExtent("5", null, null);
 
     Mutation m = new Mutation(extent.getMetadataEntry());
     // unknown columns should cause contraint violation

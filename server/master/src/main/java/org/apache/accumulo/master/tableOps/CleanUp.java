@@ -52,7 +52,6 @@ import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +89,7 @@ class CleanUp extends MasterRepo {
     }
 
     boolean done = true;
-    Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+    Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
     Scanner scanner = master.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);
