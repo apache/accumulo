@@ -49,7 +49,7 @@ public class MetadataSchema {
       return new Range(new Key(tableId + ';'), true, new Key(tableId + '<').followingKey(PartialKey.ROW), false);
     }
 
-    public static Text getRow(Text tableId, Text endRow) {
+    public static Text getRow(String tableId, Text endRow) {
       Text entry = new Text(tableId);
 
       if (endRow == null) {
@@ -247,18 +247,14 @@ public class MetadataSchema {
     }
 
     /**
-     * Extract the table ID from the colfam into the given {@link Text}
+     * Extract the table ID from the colfam
      *
      * @param k
      *          Key to extract from
-     * @param buff
-     *          Text to place table ID into
      */
-    public static void getTableId(Key k, Text buff) {
+    public static String getTableId(Key k) {
       requireNonNull(k);
-      requireNonNull(buff);
-
-      k.getColumnQualifier(buff);
+      return k.getColumnQualifier().toString();
     }
 
     /**

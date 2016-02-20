@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -51,8 +53,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * provides a reference to the replication table for updates by tablet servers
@@ -194,7 +194,7 @@ public class ReplicationTableUtil {
 
   private static Mutation createUpdateMutation(Text row, Value v, KeyExtent extent) {
     Mutation m = new Mutation(row);
-    m.put(MetadataSchema.ReplicationSection.COLF, extent.getTableId(), v);
+    m.put(MetadataSchema.ReplicationSection.COLF, new Text(extent.getTableId()), v);
     return m;
   }
 }

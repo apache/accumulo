@@ -65,7 +65,6 @@ public class TableRangeOp extends MasterRepo {
 
     Text start = startRow.length == 0 ? null : new Text(startRow);
     Text end = endRow.length == 0 ? null : new Text(endRow);
-    Text tableIdText = new Text(tableId);
 
     if (start != null && end != null)
       if (start.compareTo(end) >= 0)
@@ -74,10 +73,10 @@ public class TableRangeOp extends MasterRepo {
 
     env.mustBeOnline(tableId);
 
-    MergeInfo info = env.getMergeInfo(tableIdText);
+    MergeInfo info = env.getMergeInfo(tableId);
 
     if (info.getState() == MergeState.NONE) {
-      KeyExtent range = new KeyExtent(tableIdText, end, start);
+      KeyExtent range = new KeyExtent(tableId, end, start);
       env.setMergeState(new MergeInfo(range, op), MergeState.STARTED);
     }
 
@@ -88,11 +87,10 @@ public class TableRangeOp extends MasterRepo {
   public void undo(long tid, Master env) throws Exception {
     String namespaceId = Tables.getNamespaceId(env.getInstance(), tableId);
     // Not sure this is a good thing to do. The Master state engine should be the one to remove it.
-    Text tableIdText = new Text(tableId);
-    MergeInfo mergeInfo = env.getMergeInfo(tableIdText);
+    MergeInfo mergeInfo = env.getMergeInfo(tableId);
     if (mergeInfo.getState() != MergeState.NONE)
       log.info("removing merge information " + mergeInfo);
-    env.clearMergeState(tableIdText);
+    env.clearMergeState(tableId);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
   }

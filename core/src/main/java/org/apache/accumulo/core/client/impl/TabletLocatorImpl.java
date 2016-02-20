@@ -88,7 +88,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
   static final EndRowComparator endRowComparator = new EndRowComparator();
 
-  protected Text tableId;
+  protected String tableId;
   protected TabletLocator parent;
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<Text,TabletLocation>(endRowComparator);
   protected TabletLocationObtainer locationObtainer;
@@ -152,8 +152,8 @@ public class TabletLocatorImpl extends TabletLocator {
     }
   }
 
-  public TabletLocatorImpl(Text table, TabletLocator parent, TabletLocationObtainer tlo, TabletServerLockChecker tslc) {
-    this.tableId = table;
+  public TabletLocatorImpl(String tableId, TabletLocator parent, TabletLocationObtainer tlo, TabletServerLockChecker tslc) {
+    this.tableId = tableId;
     this.parent = parent;
     this.locationObtainer = tlo;
     this.lockChecker = tslc;

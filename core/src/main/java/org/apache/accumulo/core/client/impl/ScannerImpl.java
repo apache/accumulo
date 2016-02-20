@@ -28,7 +28,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
 
 /**
  * provides scanner functionality
@@ -47,7 +46,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   private final ClientContext context;
   private Authorizations authorizations;
-  private Text table;
+  private String tableId;
 
   private int size;
 
@@ -55,12 +54,12 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   private boolean isolated = false;
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
 
-  public ScannerImpl(ClientContext context, String table, Authorizations authorizations) {
+  public ScannerImpl(ClientContext context, String tableId, Authorizations authorizations) {
     checkArgument(context != null, "context is null");
-    checkArgument(table != null, "table is null");
+    checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");
     this.context = context;
-    this.table = new Text(table);
+    this.tableId = tableId;
     this.range = new Range((Key) null, (Key) null);
     this.authorizations = authorizations;
 
@@ -93,7 +92,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(context, table, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
+    return new ScannerIterator(context, tableId, authorizations, range, size, getTimeOut(), this, isolated, readaheadThreshold);
   }
 
   @Override

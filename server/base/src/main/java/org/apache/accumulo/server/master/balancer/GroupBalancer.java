@@ -48,7 +48,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.commons.lang.mutable.MutableInt;
-import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Function;
 import com.google.common.collect.HashBasedTable;
@@ -72,7 +71,6 @@ import com.google.common.collect.Table;
 public abstract class GroupBalancer extends TabletBalancer {
 
   private final String tableId;
-  private final Text textTableId;
   private long lastRun = 0;
 
   /**
@@ -82,7 +80,6 @@ public abstract class GroupBalancer extends TabletBalancer {
 
   public GroupBalancer(String tableId) {
     this.tableId = tableId;
-    this.textTableId = new Text(tableId);
   }
 
   protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
@@ -113,7 +110,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     for (KeyExtent keyExtent : migrations) {
-      if (keyExtent.getTableId().equals(textTableId)) {
+      if (keyExtent.getTableId().equals(tableId)) {
         return false;
       }
     }

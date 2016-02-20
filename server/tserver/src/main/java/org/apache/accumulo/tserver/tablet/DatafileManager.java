@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,8 +52,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.tserver.TLevel;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 class DatafileManager {
   private final Logger log = Logger.getLogger(DatafileManager.class);
@@ -218,7 +218,7 @@ class DatafileManager {
       boolean inTheRightDirectory = false;
       Path parent = tpath.path().getParent().getParent();
       for (String tablesDir : ServerConstants.getTablesDirs()) {
-        if (parent.equals(new Path(tablesDir, tablet.getExtent().getTableId().toString()))) {
+        if (parent.equals(new Path(tablesDir, tablet.getExtent().getTableId()))) {
           inTheRightDirectory = true;
           break;
         }

@@ -29,7 +29,7 @@ public class LogEntryTest {
 
   @Test
   public void test() throws Exception {
-    KeyExtent extent = new KeyExtent(new Text("1"), null, new Text(""));
+    KeyExtent extent = new KeyExtent("1", null, new Text(""));
     long ts = 12345678L;
     String server = "localhost:1234";
     String filename = "default/foo";

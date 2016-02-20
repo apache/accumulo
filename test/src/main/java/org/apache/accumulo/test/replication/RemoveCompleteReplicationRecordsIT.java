@@ -42,7 +42,6 @@ import org.apache.accumulo.master.replication.RemoveCompleteReplicationRecords;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
@@ -84,7 +83,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, new Text(Integer.toString(i)), StatusUtil.openWithUnknownLengthValue());
+      StatusSection.add(m, Integer.toString(i), StatusUtil.openWithUnknownLengthValue());
       bw.addMutation(m);
     }
 
@@ -117,7 +116,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
+      StatusSection.add(m, Integer.toString(i), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
       bw.addMutation(m);
     }
 
@@ -154,21 +153,21 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
+      StatusSection.add(m, Integer.toString(i), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
       replBw.addMutation(m);
     }
 
     // Add two records that we can delete
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
-    StatusSection.add(m, new Text("5"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
+    StatusSection.add(m, "5", ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
     replBw.addMutation(m);
 
     numRecords++;
 
     fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     m = new Mutation(fileToRemove);
-    StatusSection.add(m, new Text("6"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
+    StatusSection.add(m, "6", ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
     replBw.addMutation(m);
 
     numRecords++;
@@ -209,10 +208,10 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
       Value v = ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build());
-      StatusSection.add(m, new Text(Integer.toString(i)), v);
+      StatusSection.add(m, Integer.toString(i), v);
       replBw.addMutation(m);
       m = OrderSection.createMutation(file, time);
-      OrderSection.add(m, new Text(Integer.toString(i)), v);
+      OrderSection.add(m, Integer.toString(i), v);
       replBw.addMutation(m);
     }
 
@@ -227,12 +226,12 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     Mutation m = new Mutation(fileToRemove);
     ReplicationTarget target = new ReplicationTarget("peer1", "5", "5");
     Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
-    StatusSection.add(m, new Text("5"), value);
+    StatusSection.add(m, "5", value);
     WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
 
     m = OrderSection.createMutation(fileToRemove, time);
-    OrderSection.add(m, new Text("5"), value);
+    OrderSection.add(m, "5", value);
     replBw.addMutation(m);
     time++;
 
@@ -243,12 +242,12 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     m = new Mutation(fileToRemove);
     value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
     target = new ReplicationTarget("peer1", "6", "6");
-    StatusSection.add(m, new Text("6"), value);
+    StatusSection.add(m, "6", value);
     WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
 
     m = OrderSection.createMutation(fileToRemove, time);
-    OrderSection.add(m, new Text("6"), value);
+    OrderSection.add(m, "6", value);
     replBw.addMutation(m);
     time++;
 
@@ -297,7 +296,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
       Mutation m = new Mutation(file);
-      StatusSection.add(m, new Text(Integer.toString(i)), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
+      StatusSection.add(m, Integer.toString(i), ProtobufUtil.toValue(builder.setBegin(1000 * (i + 1)).build()));
       replBw.addMutation(m);
     }
 
@@ -306,7 +305,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     Mutation m = new Mutation(fileToRemove);
     ReplicationTarget target = new ReplicationTarget("peer1", "5", "5");
     Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
-    StatusSection.add(m, new Text("5"), value);
+    StatusSection.add(m, "5", value);
     WorkSection.add(m, target.toText(), value);
     target = new ReplicationTarget("peer2", "5", "5");
     WorkSection.add(m, target.toText(), value);

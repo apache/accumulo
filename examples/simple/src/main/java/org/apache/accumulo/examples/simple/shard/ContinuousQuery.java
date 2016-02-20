@@ -49,7 +49,7 @@ public class ContinuousQuery {
 
   static class Opts extends ClientOpts {
     @Parameter(names = "--shardTable", required = true, description = "name of the shard table")
-    String table = null;
+    String tableName = null;
     @Parameter(names = "--doc2Term", required = true, description = "name of the doc2Term table")
     String doc2Term;
     @Parameter(names = "--terms", required = true, description = "the number of terms in the query")
@@ -69,7 +69,7 @@ public class ContinuousQuery {
 
     Random rand = new Random();
 
-    BatchScanner bs = conn.createBatchScanner(opts.table, opts.auths, bsOpts.scanThreads);
+    BatchScanner bs = conn.createBatchScanner(opts.tableName, opts.auths, bsOpts.scanThreads);
     bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
 
     for (long i = 0; i < opts.iterations; i += 1) {

@@ -284,7 +284,7 @@ public class Compactor implements Callable<CompactionStats> {
 
         readers.add(reader);
 
-        SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context, extent.getTableId().toString(), mapFile.path().toString(), false, reader);
+        SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context, extent.getTableId(), mapFile.path().toString(), false, reader);
 
         if (filesToCompact.get(mapFile).isTimeSet()) {
           iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
@@ -294,7 +294,7 @@ public class Compactor implements Callable<CompactionStats> {
 
       } catch (Throwable e) {
 
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId().toString(), ProblemType.FILE_READ, mapFile.path().toString(), e));
+        ProblemReports.getInstance(context).report(new ProblemReport(extent.getTableId(), ProblemType.FILE_READ, mapFile.path().toString(), e));
 
         log.warn("Some problem opening map file {} {}", mapFile, e.getMessage(), e);
         // failed to open some map file... close the ones that were opened

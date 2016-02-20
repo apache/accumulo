@@ -1057,14 +1057,14 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   }
 
   private static class MutatorTask implements Runnable {
-    String table;
+    String tableName;
     ArrayList<ByteSequence> rows;
     ConditionalWriter cw;
     Connector conn;
     AtomicBoolean failed;
 
-    public MutatorTask(String table, Connector conn, ArrayList<ByteSequence> rows, ConditionalWriter cw, AtomicBoolean failed) {
-      this.table = table;
+    public MutatorTask(String tableName, Connector conn, ArrayList<ByteSequence> rows, ConditionalWriter cw, AtomicBoolean failed) {
+      this.tableName = tableName;
       this.rows = rows;
       this.conn = conn;
       this.cw = cw;
@@ -1076,7 +1076,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       try {
         Random rand = new Random();
 
-        Scanner scanner = new IsolatedScanner(conn.createScanner(table, Authorizations.EMPTY));
+        Scanner scanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
 
         for (int i = 0; i < 20; i++) {
           int numRows = rand.nextInt(10) + 1;
@@ -1119,23 +1119,23 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   public void testThreads() throws Exception {
     // test multiple threads using a single conditional writer
 
-    String table = getUniqueNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     Connector conn = getConnector();
 
-    conn.tableOperations().create(table);
+    conn.tableOperations().create(tableName);
 
     Random rand = new Random();
 
     switch (rand.nextInt(3)) {
       case 1:
-        conn.tableOperations().addSplits(table, nss("4"));
+        conn.tableOperations().addSplits(tableName, nss("4"));
         break;
       case 2:
-        conn.tableOperations().addSplits(table, nss("3", "5"));
+        conn.tableOperations().addSplits(tableName, nss("3", "5"));
         break;
     }
 
-    ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig());
+    ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
 
     ArrayList<ByteSequence> rows = new ArrayList<ByteSequence>();
 
@@ -1165,7 +1165,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     ExecutorService tp = Executors.newFixedThreadPool(5);
     for (int i = 0; i < 5; i++) {
-      tp.submit(new MutatorTask(table, conn, rows, cw, failed));
+      tp.submit(new MutatorTask(tableName, conn, rows, cw, failed));
     }
 
     tp.shutdown();
@@ -1176,7 +1176,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     Assert.assertFalse("A MutatorTask failed with an exception", failed.get());
 
-    Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
+    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
 
     RowIterator rowIter = new RowIterator(scanner);
 

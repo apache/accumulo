@@ -44,7 +44,7 @@ import org.junit.Test;
 
 public class KeyExtentTest {
   KeyExtent nke(String t, String er, String per) {
-    return new KeyExtent(new Text(t), er == null ? null : new Text(er), per == null ? null : new Text(per));
+    return new KeyExtent(t, er == null ? null : new Text(er), per == null ? null : new Text(per));
   }
 
   KeyExtent ke;
@@ -62,7 +62,7 @@ public class KeyExtentTest {
     ke = new KeyExtent(flattenedExtent, (Text) null);
 
     assertEquals(new Text("bar"), ke.getEndRow());
-    assertEquals(new Text("foo"), ke.getTableId());
+    assertEquals("foo", ke.getTableId());
     assertNull(ke.getPrevEndRow());
 
     flattenedExtent = new Text("foo<");
@@ -70,7 +70,7 @@ public class KeyExtentTest {
     ke = new KeyExtent(flattenedExtent, (Text) null);
 
     assertNull(ke.getEndRow());
-    assertEquals(new Text("foo"), ke.getTableId());
+    assertEquals("foo", ke.getTableId());
     assertNull(ke.getPrevEndRow());
 
     flattenedExtent = new Text("foo;bar;");
@@ -78,7 +78,7 @@ public class KeyExtentTest {
     ke = new KeyExtent(flattenedExtent, (Text) null);
 
     assertEquals(new Text("bar;"), ke.getEndRow());
-    assertEquals(new Text("foo"), ke.getTableId());
+    assertEquals("foo", ke.getTableId());
     assertNull(ke.getPrevEndRow());
 
   }

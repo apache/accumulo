@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * This class iterates over the metadata table returning all key values for a tablet in one chunk. As it scans the metadata table it checks the correctness of
@@ -118,8 +119,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         lastEndRow = new KeyExtent(lastTablet, (Text) null).getEndRow();
 
         // do table transition sanity check
-        String lastTable = new KeyExtent(lastTablet, (Text) null).getTableId().toString();
-        String currentTable = new KeyExtent(prevEndRowKey.getRow(), (Text) null).getTableId().toString();
+        String lastTable = new KeyExtent(lastTablet, (Text) null).getTableId();
+        String currentTable = new KeyExtent(prevEndRowKey.getRow(), (Text) null).getTableId();
 
         if (!lastTable.equals(currentTable) && (per != null || lastEndRow != null)) {
           log.info("Metadata inconsistency on table transition : " + lastTable + " " + currentTable + " " + per + " " + lastEndRow);

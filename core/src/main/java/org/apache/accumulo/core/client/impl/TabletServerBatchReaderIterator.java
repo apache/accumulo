@@ -65,7 +65,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.hadoop.io.Text;
 import org.apache.htrace.wrappers.TraceRunnable;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
@@ -82,7 +81,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private final ClientContext context;
   private final Instance instance;
-  private final String table;
+  private final String tableId;
   private Authorizations authorizations = Authorizations.EMPTY;
   private final int numThreads;
   private final ExecutorService queryThreadPool;
@@ -108,19 +107,19 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     void receive(List<Entry<Key,Value>> entries);
   }
 
-  public TabletServerBatchReaderIterator(ClientContext context, String table, Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
+  public TabletServerBatchReaderIterator(ClientContext context, String tableId, Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
       ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
 
     this.context = context;
     this.instance = context.getInstance();
-    this.table = table;
+    this.tableId = tableId;
     this.authorizations = authorizations;
     this.numThreads = numThreads;
     this.queryThreadPool = queryThreadPool;
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<List<Entry<Key,Value>>>(numThreads);
 
-    this.locator = new TimeoutTabletLocator(TabletLocator.getLocator(context, new Text(table)), timeout);
+    this.locator = new TimeoutTabletLocator(TabletLocator.getLocator(context, tableId), timeout);
 
     timeoutTrackers = Collections.synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
     timedoutServers = Collections.synchronizedSet(new HashSet<String>());
@@ -242,10 +241,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         // the table was deleted the tablet locator entries for the deleted table were not cleared... so
         // need to always do the check when failures occur
         if (failures.size() >= lastFailureSize)
-          if (!Tables.exists(instance, table))
-            throw new TableDeletedException(table);
-          else if (Tables.getTableState(instance, table) == TableState.OFFLINE)
-            throw new TableOfflineException(instance, table);
+          if (!Tables.exists(instance, tableId))
+            throw new TableDeletedException(tableId);
+          else if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+            throw new TableOfflineException(instance, tableId);
 
         lastFailureSize = failures.size();
 
@@ -313,7 +312,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private String getTableInfo() {
-    return Tables.getPrintableTableInfoFromId(instance, table);
+    return Tables.getPrintableTableInfoFromId(instance, tableId);
   }
 
   private class QueryTask implements Runnable {
@@ -374,8 +373,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         log.debug("AccumuloSecurityException thrown", e);
 
         Tables.clearCache(instance);
-        if (!Tables.exists(instance, table))
-          fatalException = new TableDeletedException(table);
+        if (!Tables.exists(instance, tableId))
+          fatalException = new TableDeletedException(tableId);
         else
           fatalException = e;
       } catch (SampleNotPresentException e) {
@@ -729,7 +728,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       log.debug("Server : " + server + " msg : " + e.getMessage(), e);
       String tableInfo = "?";
       if (e.getExtent() != null) {
-        String tableId = new KeyExtent(e.getExtent()).getTableId().toString();
+        String tableId = new KeyExtent(e.getExtent()).getTableId();
         tableInfo = Tables.getPrintableTableInfoFromId(context.getInstance(), tableId);
       }
       String message = "Table " + tableInfo + " does not have sampling configured or built";

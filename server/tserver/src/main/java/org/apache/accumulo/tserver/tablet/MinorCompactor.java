@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -38,8 +40,6 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class MinorCompactor extends Compactor {
 
@@ -75,7 +75,7 @@ public class MinorCompactor extends Compactor {
 
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(tabletServer.getInstance(), extent.getTableId().toString()) == TableState.DELETING;
+      return Tables.getTableState(tabletServer.getInstance(), extent.getTableId()) == TableState.DELETING;
     } catch (Exception e) {
       log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.
@@ -103,19 +103,19 @@ public class MinorCompactor extends Compactor {
           // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
 
           if (reportedProblem) {
-            ProblemReports.getInstance(tabletServer).deleteProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, outputFileName);
+            ProblemReports.getInstance(tabletServer).deleteProblemReport(getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName);
           }
 
           return ret;
         } catch (IOException e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
-          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, outputFileName, e));
+          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
         } catch (RuntimeException e) {
           // if this is coming from a user iterator, it is possible that the user could change the iterator config and that the
           // minor compaction would succeed
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
-          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, outputFileName, e));
+          ProblemReports.getInstance(tabletServer).report(new ProblemReport(getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
         } catch (CompactionCanceledException e) {
           throw new IllegalStateException(e);

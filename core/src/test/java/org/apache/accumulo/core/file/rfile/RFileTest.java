@@ -2132,7 +2132,7 @@ public class RFileTest {
 
     // mfw.startDefaultLocalityGroup();
 
-    Text tableExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+    Text tableExtent = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
     Key tableDirKey = new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
@@ -2150,7 +2150,7 @@ public class RFileTest {
     mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
 
     // ----------] default tablet info
-    Text defaultExtent = new Text(KeyExtent.getMetadataEntry(new Text(MetadataTable.ID), null));
+    Text defaultExtent = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, null));
 
     // default's directory
     Key defaultDirKey = new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),

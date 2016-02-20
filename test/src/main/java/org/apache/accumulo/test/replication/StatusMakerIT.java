@@ -98,13 +98,13 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
-    Text file = new Text(), tableId = new Text();
+    Text file = new Text();
     for (Entry<Key,Value> entry : s) {
       StatusSection.getFile(entry.getKey(), file);
-      StatusSection.getTableId(entry.getKey(), tableId);
+      String tableId = StatusSection.getTableId(entry.getKey());
 
       Assert.assertTrue("Found unexpected file: " + file, files.contains(file.toString()));
-      Assert.assertEquals(fileToTableId.get(file.toString()), new Integer(tableId.toString()));
+      Assert.assertEquals(fileToTableId.get(file.toString()), new Integer(tableId));
       timeCreated = fileToTimeCreated.get(file.toString());
       Assert.assertNotNull(timeCreated);
       Assert.assertEquals(StatusUtil.fileCreated(timeCreated), Status.parseFrom(entry.getValue().get()));

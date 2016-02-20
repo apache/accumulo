@@ -109,7 +109,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
       for (TabletLocationState tls : store) {
         if (tls != null && tls.current != null) {
           states.add(tls.current);
-        } else if (tls != null && tls.extent.equals(new KeyExtent(new Text(ReplicationTable.ID), null, null))) {
+        } else if (tls != null && tls.extent.equals(new KeyExtent(ReplicationTable.ID, null, null))) {
           replStates.add(tls.current);
         } else {
           allAssigned = false;
@@ -139,7 +139,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
     waitForCleanStore(store);
     // now jam up the metadata table
     bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    assignment = new Mutation(new KeyExtent(new Text(MetadataTable.ID), null, null).getMetadataEntry());
+    assignment = new Mutation(new KeyExtent(MetadataTable.ID, null, null).getMetadataEntry());
     moved.current.putLocation(assignment);
     bw.addMutation(assignment);
     bw.close();

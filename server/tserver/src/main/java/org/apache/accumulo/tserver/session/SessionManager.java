@@ -253,11 +253,11 @@ public class SessionManager {
       if (session instanceof ScanSession) {
         ScanSession ss = (ScanSession) session;
         nbt = ss.nextBatchTask;
-        tableID = ss.extent.getTableId().toString();
+        tableID = ss.extent.getTableId();
       } else if (session instanceof MultiScanSession) {
         MultiScanSession mss = (MultiScanSession) session;
         nbt = mss.lookupTask;
-        tableID = mss.threadPoolExtent.getTableId().toString();
+        tableID = mss.threadPoolExtent.getTableId();
       }
 
       if (nbt == null)
@@ -320,9 +320,8 @@ public class SessionManager {
           }
         }
 
-        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(), ss.extent.getTableId().toString(), ct - ss.startTime, ct - ss.lastAccessTime,
-            ScanType.SINGLE, state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio,
-            ss.auths.getAuthorizationsBB(), ss.context);
+        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(), ss.extent.getTableId(), ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE,
+            state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB(), ss.context);
 
         // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in ActiveScan constructor
         activeScan.setScanId(entry.getKey());
@@ -351,7 +350,7 @@ public class SessionManager {
           }
         }
 
-        activeScans.add(new ActiveScan(mss.client, mss.getUser(), mss.threadPoolExtent.getTableId().toString(), ct - mss.startTime, ct - mss.lastAccessTime,
+        activeScans.add(new ActiveScan(mss.client, mss.getUser(), mss.threadPoolExtent.getTableId(), ct - mss.startTime, ct - mss.lastAccessTime,
             ScanType.BATCH, state, mss.threadPoolExtent.toThrift(), Translator.translate(mss.columnSet, Translators.CT), mss.ssiList, mss.ssio, mss.auths
                 .getAuthorizationsBB(), mss.context));
       }

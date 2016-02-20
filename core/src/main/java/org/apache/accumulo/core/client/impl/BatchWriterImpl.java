@@ -25,28 +25,28 @@ import org.apache.accumulo.core.data.Mutation;
 
 public class BatchWriterImpl implements BatchWriter {
 
-  private final String table;
+  private final String tableId;
   private final TabletServerBatchWriter bw;
 
-  public BatchWriterImpl(ClientContext context, String table, BatchWriterConfig config) {
+  public BatchWriterImpl(ClientContext context, String tableId, BatchWriterConfig config) {
     checkArgument(context != null, "context is null");
-    checkArgument(table != null, "table is null");
+    checkArgument(tableId != null, "tableId is null");
     if (config == null)
       config = new BatchWriterConfig();
-    this.table = table;
+    this.tableId = tableId;
     this.bw = new TabletServerBatchWriter(context, config);
   }
 
   @Override
   public void addMutation(Mutation m) throws MutationsRejectedException {
     checkArgument(m != null, "m is null");
-    bw.addMutation(table, m);
+    bw.addMutation(tableId, m);
   }
 
   @Override
   public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
     checkArgument(iterable != null, "iterable is null");
-    bw.addMutation(table, iterable.iterator());
+    bw.addMutation(tableId, iterable.iterator());
   }
 
   @Override

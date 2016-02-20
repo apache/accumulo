@@ -88,7 +88,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
       connector.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME, TablePermission.WRITE);
       String tableId = connector.tableOperations().tableIdMap().get(tableName);
 
-      KeyExtent extent = new KeyExtent(new Text(tableId), null, new Text("b"));
+      KeyExtent extent = new KeyExtent(tableId, null, new Text("b"));
       Mutation m = extent.getPrevRowUpdateMutation();
 
       TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(0.5).getBytes()));
@@ -104,7 +104,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         scanner.setRange(extent.toMetadataRange());
         scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 
-        KeyExtent extent2 = new KeyExtent(new Text(tableId), new Text("b"), null);
+        KeyExtent extent2 = new KeyExtent(tableId, new Text("b"), null);
         m = extent2.getPrevRowUpdateMutation();
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t2".getBytes()));
         TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0".getBytes()));

@@ -145,10 +145,10 @@ public class FinishedWorkUpdater implements Runnable {
           Value serializedUpdatedStatus = ProtobufUtil.toValue(updatedStatus);
 
           // Pull the sourceTableId into a Text
-          buffer.set(entry.getKey());
+          String srcTableId = entry.getKey();
 
           // Make the mutation
-          StatusSection.add(replMutation, buffer, serializedUpdatedStatus);
+          StatusSection.add(replMutation, srcTableId, serializedUpdatedStatus);
 
           log.debug("Updating replication status entry for {} with {}", serializedRow.getKey().getRow(), ProtobufUtil.toString(updatedStatus));
 
