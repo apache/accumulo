@@ -26,6 +26,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -49,6 +50,9 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.NamespaceExistsException;
+import org.apache.accumulo.core.client.NamespaceNotEmptyException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -60,6 +64,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
@@ -304,6 +309,25 @@ public class ProxyServer implements AccumuloProxy.Iface {
       handleAccumuloSecurityException(e);
     } catch (TableNotFoundException e) {
       throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(ex.toString());
+    } catch (Exception e) {
+      throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
+    }
+  }
+
+  private void handleExceptionNNF(Exception ex) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      throw ex;
+    } catch (AccumuloException e) {
+      Throwable cause = e.getCause();
+      if (null != cause && NamespaceNotFoundException.class.equals(cause.getClass())) {
+        throw new org.apache.accumulo.proxy.thrift.NamespaceNotFoundException(cause.toString());
+      }
+      handleAccumuloException(e);
+    } catch (AccumuloSecurityException e) {
+      handleAccumuloSecurityException(e);
+    } catch (NamespaceNotFoundException e) {
+      throw new org.apache.accumulo.proxy.thrift.NamespaceNotFoundException(ex.toString());
     } catch (Exception e) {
       throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
     }
@@ -1546,6 +1570,238 @@ public class ProxyServer implements AccumuloProxy.Iface {
     PartialKey part_ = PartialKey.valueOf(part.toString());
     Key followingKey = key_.followingKey(part_);
     return getProxyKey(followingKey);
+  }
+
+  @Override
+  public String systemNamespace() throws TException {
+    return Namespaces.ACCUMULO_NAMESPACE;
+  }
+
+  @Override
+  public String defaultNamespace() throws TException {
+    return Namespaces.DEFAULT_NAMESPACE;
+  }
+
+  @Override
+  public List<String> listNamespaces(ByteBuffer login) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
+    try {
+      return new LinkedList<>(getConnector(login).namespaceOperations().list());
+    } catch (Exception e) {
+      handleException(e);
+      return null;
+    }
+  }
+
+  @Override
+  public boolean namespaceExists(ByteBuffer login, String namespaceName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
+    try {
+      return getConnector(login).namespaceOperations().exists(namespaceName);
+    } catch (Exception e) {
+      handleException(e);
+      return false;
+    }
+  }
+
+  @Override
+  public void createNamespace(ByteBuffer login, String namespaceName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceExistsException, TException {
+    try {
+      getConnector(login).namespaceOperations().create(namespaceName);
+    } catch (NamespaceNotFoundException e) {
+      throw new org.apache.accumulo.proxy.thrift.NamespaceExistsException(e.toString());
+    } catch (Exception e) {
+      handleException(e);
+    }
+  }
+
+  @Override
+  public void deleteNamespace(ByteBuffer login, String namespaceName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException,
+      org.apache.accumulo.proxy.thrift.NamespaceNotEmptyException, TException {
+    try {
+      getConnector(login).namespaceOperations().delete(namespaceName);
+    } catch (NamespaceNotFoundException e) {
+      throw new org.apache.accumulo.proxy.thrift.NamespaceExistsException(e.toString());
+    } catch (NamespaceNotEmptyException e) {
+      throw new org.apache.accumulo.proxy.thrift.NamespaceNotEmptyException(e.toString());
+    } catch (Exception e) {
+      handleException(e);
+    }
+  }
+
+  @Override
+  public void renameNamespace(ByteBuffer login, String oldNamespaceName, String newNamespaceName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException,
+      org.apache.accumulo.proxy.thrift.NamespaceExistsException, TException {
+    try {
+      getConnector(login).namespaceOperations().rename(oldNamespaceName, newNamespaceName);
+    } catch (NamespaceNotFoundException e) {
+      throw new org.apache.accumulo.proxy.thrift.NamespaceNotFoundException(e.toString());
+    } catch (NamespaceExistsException e) {
+      throw new org.apache.accumulo.proxy.thrift.NamespaceExistsException(e.toString());
+    } catch (Exception e) {
+      handleException(e);
+    }
+  }
+
+  @Override
+  public void setNamespaceProperty(ByteBuffer login, String namespaceName, String property, String value)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
+      org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      getConnector(login).namespaceOperations().setProperty(namespaceName, property, value);
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+    }
+  }
+
+  @Override
+  public void removeNamespaceProperty(ByteBuffer login, String namespaceName, String property) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      getConnector(login).namespaceOperations().removeProperty(namespaceName, property);
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+    }
+  }
+
+  @Override
+  public Map<String,String> getNamespaceProperties(ByteBuffer login, String namespaceName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      Map<String,String> props = new HashMap<>();
+      for (Map.Entry<String,String> entry : getConnector(login).namespaceOperations().getProperties(namespaceName)) {
+        props.put(entry.getKey(), entry.getValue());
+      }
+      return props;
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+      return null;
+    }
+  }
+
+  @Override
+  public Map<String,String> namespaceIdMap(ByteBuffer login) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
+    try {
+      return getConnector(login).namespaceOperations().namespaceIdMap();
+    } catch (Exception e) {
+      handleException(e);
+      return null;
+    }
+  }
+
+  @Override
+  public void attachNamespaceIterator(ByteBuffer login, String namespaceName, org.apache.accumulo.proxy.thrift.IteratorSetting setting,
+      Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      if (null != scopes && scopes.size() > 0) {
+        getConnector(login).namespaceOperations().attachIterator(namespaceName, getIteratorSetting(setting), getIteratorScopes(scopes));
+      } else {
+        getConnector(login).namespaceOperations().attachIterator(namespaceName, getIteratorSetting(setting));
+      }
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+    }
+  }
+
+  @Override
+  public void removeNamespaceIterator(ByteBuffer login, String namespaceName, String name, Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
+      org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      getConnector(login).namespaceOperations().removeIterator(namespaceName, name, getIteratorScopes(scopes));
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+    }
+  }
+
+  @Override
+  public org.apache.accumulo.proxy.thrift.IteratorSetting getNamespaceIteratorSetting(ByteBuffer login, String namespaceName, String name,
+      org.apache.accumulo.proxy.thrift.IteratorScope scope) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      IteratorSetting setting = getConnector(login).namespaceOperations().getIteratorSetting(namespaceName, name, getIteratorScope(scope));
+      return new org.apache.accumulo.proxy.thrift.IteratorSetting(setting.getPriority(), setting.getName(), setting.getIteratorClass(), setting.getOptions());
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+      return null;
+    }
+  }
+
+  @Override
+  public Map<String,Set<org.apache.accumulo.proxy.thrift.IteratorScope>> listNamespaceIterators(ByteBuffer login, String namespaceName)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
+      org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      Map<String,Set<org.apache.accumulo.proxy.thrift.IteratorScope>> namespaceIters = new HashMap<>();
+      for (Map.Entry<String,EnumSet<IteratorScope>> entry : getConnector(login).namespaceOperations().listIterators(namespaceName).entrySet()) {
+        namespaceIters.put(entry.getKey(), getProxyIteratorScopes(entry.getValue()));
+      }
+      return namespaceIters;
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+      return null;
+    }
+  }
+
+  @Override
+  public void checkNamespaceIteratorConflicts(ByteBuffer login, String namespaceName, org.apache.accumulo.proxy.thrift.IteratorSetting setting,
+      Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      getConnector(login).namespaceOperations().checkIteratorConflicts(namespaceName, getIteratorSetting(setting), getIteratorScopes(scopes));
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+    }
+  }
+
+  @Override
+  public int addNamespaceConstraint(ByteBuffer login, String namespaceName, String constraintClassName)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
+      org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      return getConnector(login).namespaceOperations().addConstraint(namespaceName, constraintClassName);
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+      return -1;
+    }
+  }
+
+  @Override
+  public void removeNamespaceConstraint(ByteBuffer login, String namespaceName, int id) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      getConnector(login).namespaceOperations().removeConstraint(namespaceName, id);
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+    }
+  }
+
+  @Override
+  public Map<String,Integer> listNamespaceConstraints(ByteBuffer login, String namespaceName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
+      org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      return getConnector(login).namespaceOperations().listConstraints(namespaceName);
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+      return null;
+    }
+  }
+
+  @Override
+  public boolean testNamespaceClassLoad(ByteBuffer login, String namespaceName, String className, String asTypeName)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
+      org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
+    try {
+      return getConnector(login).namespaceOperations().testClassLoad(namespaceName, className, asTypeName);
+    } catch (Exception e) {
+      handleExceptionNNF(e);
+      return false;
+    }
   }
 
   @Override
