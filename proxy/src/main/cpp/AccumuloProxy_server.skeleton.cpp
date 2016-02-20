@@ -338,6 +338,21 @@ class AccumuloProxyHandler : virtual public AccumuloProxyIf {
     printf("revokeTablePermission\n");
   }
 
+  void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    // Your implementation goes here
+    printf("grantNamespacePermission\n");
+  }
+
+  bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    // Your implementation goes here
+    printf("hasNamespacePermission\n");
+  }
+
+  void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    // Your implementation goes here
+    printf("revokeNamespacePermission\n");
+  }
+
   void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options) {
     // Your implementation goes here
     printf("createBatchScanner\n");

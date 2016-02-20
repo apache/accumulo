@@ -97,6 +97,9 @@ class AccumuloProxyIf {
   virtual void listLocalUsers(std::set<std::string> & _return, const std::string& login) = 0;
   virtual void revokeSystemPermission(const std::string& login, const std::string& user, const SystemPermission::type perm) = 0;
   virtual void revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm) = 0;
+  virtual void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) = 0;
+  virtual bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) = 0;
+  virtual void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) = 0;
   virtual void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options) = 0;
   virtual void createScanner(std::string& _return, const std::string& login, const std::string& tableName, const ScanOptions& options) = 0;
   virtual bool hasNext(const std::string& scanner) = 0;
@@ -348,6 +351,16 @@ class AccumuloProxyNull : virtual public AccumuloProxyIf {
     return;
   }
   void revokeTablePermission(const std::string& /* login */, const std::string& /* user */, const std::string& /* table */, const TablePermission::type /* perm */) {
+    return;
+  }
+  void grantNamespacePermission(const std::string& /* login */, const std::string& /* user */, const std::string& /* namespaceName */, const NamespacePermission::type /* perm */) {
+    return;
+  }
+  bool hasNamespacePermission(const std::string& /* login */, const std::string& /* user */, const std::string& /* namespaceName */, const NamespacePermission::type /* perm */) {
+    bool _return = false;
+    return _return;
+  }
+  void revokeNamespacePermission(const std::string& /* login */, const std::string& /* user */, const std::string& /* namespaceName */, const NamespacePermission::type /* perm */) {
     return;
   }
   void createBatchScanner(std::string& /* _return */, const std::string& /* login */, const std::string& /* tableName */, const BatchScanOptions& /* options */) {
@@ -8475,6 +8488,413 @@ class AccumuloProxy_revokeTablePermission_presult {
 
 };
 
+typedef struct _AccumuloProxy_grantNamespacePermission_args__isset {
+  _AccumuloProxy_grantNamespacePermission_args__isset() : login(false), user(false), namespaceName(false), perm(false) {}
+  bool login :1;
+  bool user :1;
+  bool namespaceName :1;
+  bool perm :1;
+} _AccumuloProxy_grantNamespacePermission_args__isset;
+
+class AccumuloProxy_grantNamespacePermission_args {
+ public:
+
+  AccumuloProxy_grantNamespacePermission_args(const AccumuloProxy_grantNamespacePermission_args&);
+  AccumuloProxy_grantNamespacePermission_args& operator=(const AccumuloProxy_grantNamespacePermission_args&);
+  AccumuloProxy_grantNamespacePermission_args() : login(), user(), namespaceName(), perm((NamespacePermission::type)0) {
+  }
+
+  virtual ~AccumuloProxy_grantNamespacePermission_args() throw();
+  std::string login;
+  std::string user;
+  std::string namespaceName;
+  NamespacePermission::type perm;
+
+  _AccumuloProxy_grantNamespacePermission_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_user(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_perm(const NamespacePermission::type val);
+
+  bool operator == (const AccumuloProxy_grantNamespacePermission_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(user == rhs.user))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(perm == rhs.perm))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_grantNamespacePermission_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_grantNamespacePermission_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_grantNamespacePermission_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_grantNamespacePermission_pargs() throw();
+  const std::string* login;
+  const std::string* user;
+  const std::string* namespaceName;
+  const NamespacePermission::type* perm;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_grantNamespacePermission_result__isset {
+  _AccumuloProxy_grantNamespacePermission_result__isset() : ouch1(false), ouch2(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_grantNamespacePermission_result__isset;
+
+class AccumuloProxy_grantNamespacePermission_result {
+ public:
+
+  AccumuloProxy_grantNamespacePermission_result(const AccumuloProxy_grantNamespacePermission_result&);
+  AccumuloProxy_grantNamespacePermission_result& operator=(const AccumuloProxy_grantNamespacePermission_result&);
+  AccumuloProxy_grantNamespacePermission_result() {
+  }
+
+  virtual ~AccumuloProxy_grantNamespacePermission_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_grantNamespacePermission_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  bool operator == (const AccumuloProxy_grantNamespacePermission_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_grantNamespacePermission_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_grantNamespacePermission_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_grantNamespacePermission_presult__isset {
+  _AccumuloProxy_grantNamespacePermission_presult__isset() : ouch1(false), ouch2(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_grantNamespacePermission_presult__isset;
+
+class AccumuloProxy_grantNamespacePermission_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_grantNamespacePermission_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_grantNamespacePermission_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_hasNamespacePermission_args__isset {
+  _AccumuloProxy_hasNamespacePermission_args__isset() : login(false), user(false), namespaceName(false), perm(false) {}
+  bool login :1;
+  bool user :1;
+  bool namespaceName :1;
+  bool perm :1;
+} _AccumuloProxy_hasNamespacePermission_args__isset;
+
+class AccumuloProxy_hasNamespacePermission_args {
+ public:
+
+  AccumuloProxy_hasNamespacePermission_args(const AccumuloProxy_hasNamespacePermission_args&);
+  AccumuloProxy_hasNamespacePermission_args& operator=(const AccumuloProxy_hasNamespacePermission_args&);
+  AccumuloProxy_hasNamespacePermission_args() : login(), user(), namespaceName(), perm((NamespacePermission::type)0) {
+  }
+
+  virtual ~AccumuloProxy_hasNamespacePermission_args() throw();
+  std::string login;
+  std::string user;
+  std::string namespaceName;
+  NamespacePermission::type perm;
+
+  _AccumuloProxy_hasNamespacePermission_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_user(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_perm(const NamespacePermission::type val);
+
+  bool operator == (const AccumuloProxy_hasNamespacePermission_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(user == rhs.user))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(perm == rhs.perm))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_hasNamespacePermission_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_hasNamespacePermission_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_hasNamespacePermission_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_hasNamespacePermission_pargs() throw();
+  const std::string* login;
+  const std::string* user;
+  const std::string* namespaceName;
+  const NamespacePermission::type* perm;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_hasNamespacePermission_result__isset {
+  _AccumuloProxy_hasNamespacePermission_result__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_hasNamespacePermission_result__isset;
+
+class AccumuloProxy_hasNamespacePermission_result {
+ public:
+
+  AccumuloProxy_hasNamespacePermission_result(const AccumuloProxy_hasNamespacePermission_result&);
+  AccumuloProxy_hasNamespacePermission_result& operator=(const AccumuloProxy_hasNamespacePermission_result&);
+  AccumuloProxy_hasNamespacePermission_result() : success(0) {
+  }
+
+  virtual ~AccumuloProxy_hasNamespacePermission_result() throw();
+  bool success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_hasNamespacePermission_result__isset __isset;
+
+  void __set_success(const bool val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  bool operator == (const AccumuloProxy_hasNamespacePermission_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_hasNamespacePermission_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_hasNamespacePermission_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_hasNamespacePermission_presult__isset {
+  _AccumuloProxy_hasNamespacePermission_presult__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_hasNamespacePermission_presult__isset;
+
+class AccumuloProxy_hasNamespacePermission_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_hasNamespacePermission_presult() throw();
+  bool* success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_hasNamespacePermission_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_revokeNamespacePermission_args__isset {
+  _AccumuloProxy_revokeNamespacePermission_args__isset() : login(false), user(false), namespaceName(false), perm(false) {}
+  bool login :1;
+  bool user :1;
+  bool namespaceName :1;
+  bool perm :1;
+} _AccumuloProxy_revokeNamespacePermission_args__isset;
+
+class AccumuloProxy_revokeNamespacePermission_args {
+ public:
+
+  AccumuloProxy_revokeNamespacePermission_args(const AccumuloProxy_revokeNamespacePermission_args&);
+  AccumuloProxy_revokeNamespacePermission_args& operator=(const AccumuloProxy_revokeNamespacePermission_args&);
+  AccumuloProxy_revokeNamespacePermission_args() : login(), user(), namespaceName(), perm((NamespacePermission::type)0) {
+  }
+
+  virtual ~AccumuloProxy_revokeNamespacePermission_args() throw();
+  std::string login;
+  std::string user;
+  std::string namespaceName;
+  NamespacePermission::type perm;
+
+  _AccumuloProxy_revokeNamespacePermission_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_user(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_perm(const NamespacePermission::type val);
+
+  bool operator == (const AccumuloProxy_revokeNamespacePermission_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(user == rhs.user))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(perm == rhs.perm))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_revokeNamespacePermission_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_revokeNamespacePermission_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_revokeNamespacePermission_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_revokeNamespacePermission_pargs() throw();
+  const std::string* login;
+  const std::string* user;
+  const std::string* namespaceName;
+  const NamespacePermission::type* perm;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_revokeNamespacePermission_result__isset {
+  _AccumuloProxy_revokeNamespacePermission_result__isset() : ouch1(false), ouch2(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_revokeNamespacePermission_result__isset;
+
+class AccumuloProxy_revokeNamespacePermission_result {
+ public:
+
+  AccumuloProxy_revokeNamespacePermission_result(const AccumuloProxy_revokeNamespacePermission_result&);
+  AccumuloProxy_revokeNamespacePermission_result& operator=(const AccumuloProxy_revokeNamespacePermission_result&);
+  AccumuloProxy_revokeNamespacePermission_result() {
+  }
+
+  virtual ~AccumuloProxy_revokeNamespacePermission_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_revokeNamespacePermission_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  bool operator == (const AccumuloProxy_revokeNamespacePermission_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_revokeNamespacePermission_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_revokeNamespacePermission_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_revokeNamespacePermission_presult__isset {
+  _AccumuloProxy_revokeNamespacePermission_presult__isset() : ouch1(false), ouch2(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_revokeNamespacePermission_presult__isset;
+
+class AccumuloProxy_revokeNamespacePermission_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_revokeNamespacePermission_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_revokeNamespacePermission_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 typedef struct _AccumuloProxy_createBatchScanner_args__isset {
   _AccumuloProxy_createBatchScanner_args__isset() : login(false), tableName(false), options(false) {}
   bool login :1;
@@ -13366,6 +13786,15 @@ class AccumuloProxyClient : virtual public AccumuloProxyIf {
   void revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm);
   void send_revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm);
   void recv_revokeTablePermission();
+  void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void send_grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void recv_grantNamespacePermission();
+  bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void send_hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  bool recv_hasNamespacePermission();
+  void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void send_revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void recv_revokeNamespacePermission();
   void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options);
   void send_createBatchScanner(const std::string& login, const std::string& tableName, const BatchScanOptions& options);
   void recv_createBatchScanner(std::string& _return);
@@ -13551,6 +13980,9 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_listLocalUsers(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_revokeSystemPermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_revokeTablePermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_grantNamespacePermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_hasNamespacePermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_revokeNamespacePermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_createBatchScanner(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_createScanner(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_hasNext(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -13651,6 +14083,9 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["listLocalUsers"] = &AccumuloProxyProcessor::process_listLocalUsers;
     processMap_["revokeSystemPermission"] = &AccumuloProxyProcessor::process_revokeSystemPermission;
     processMap_["revokeTablePermission"] = &AccumuloProxyProcessor::process_revokeTablePermission;
+    processMap_["grantNamespacePermission"] = &AccumuloProxyProcessor::process_grantNamespacePermission;
+    processMap_["hasNamespacePermission"] = &AccumuloProxyProcessor::process_hasNamespacePermission;
+    processMap_["revokeNamespacePermission"] = &AccumuloProxyProcessor::process_revokeNamespacePermission;
     processMap_["createBatchScanner"] = &AccumuloProxyProcessor::process_createBatchScanner;
     processMap_["createScanner"] = &AccumuloProxyProcessor::process_createScanner;
     processMap_["hasNext"] = &AccumuloProxyProcessor::process_hasNext;
@@ -14275,6 +14710,33 @@ class AccumuloProxyMultiface : virtual public AccumuloProxyIf {
     ifaces_[i]->revokeTablePermission(login, user, table, perm);
   }
 
+  void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->grantNamespacePermission(login, user, namespaceName, perm);
+    }
+    ifaces_[i]->grantNamespacePermission(login, user, namespaceName, perm);
+  }
+
+  bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->hasNamespacePermission(login, user, namespaceName, perm);
+    }
+    return ifaces_[i]->hasNamespacePermission(login, user, namespaceName, perm);
+  }
+
+  void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->revokeNamespacePermission(login, user, namespaceName, perm);
+    }
+    ifaces_[i]->revokeNamespacePermission(login, user, namespaceName, perm);
+  }
+
   void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options) {
     size_t sz = ifaces_.size();
     size_t i = 0;
@@ -14835,6 +15297,15 @@ class AccumuloProxyConcurrentClient : virtual public AccumuloProxyIf {
   void revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm);
   int32_t send_revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm);
   void recv_revokeTablePermission(const int32_t seqid);
+  void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  int32_t send_grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void recv_grantNamespacePermission(const int32_t seqid);
+  bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  int32_t send_hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  bool recv_hasNamespacePermission(const int32_t seqid);
+  void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  int32_t send_revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void recv_revokeNamespacePermission(const int32_t seqid);
   void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options);
   int32_t send_createBatchScanner(const std::string& login, const std::string& tableName, const BatchScanOptions& options);
   void recv_createBatchScanner(std::string& _return, const int32_t seqid);

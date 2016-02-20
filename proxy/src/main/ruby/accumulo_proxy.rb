@@ -1041,6 +1041,55 @@ module Accumulo
         return
       end
 
+      def grantNamespacePermission(login, user, namespaceName, perm)
+        send_grantNamespacePermission(login, user, namespaceName, perm)
+        recv_grantNamespacePermission()
+      end
+
+      def send_grantNamespacePermission(login, user, namespaceName, perm)
+        send_message('grantNamespacePermission', GrantNamespacePermission_args, :login => login, :user => user, :namespaceName => namespaceName, :perm => perm)
+      end
+
+      def recv_grantNamespacePermission()
+        result = receive_message(GrantNamespacePermission_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        return
+      end
+
+      def hasNamespacePermission(login, user, namespaceName, perm)
+        send_hasNamespacePermission(login, user, namespaceName, perm)
+        return recv_hasNamespacePermission()
+      end
+
+      def send_hasNamespacePermission(login, user, namespaceName, perm)
+        send_message('hasNamespacePermission', HasNamespacePermission_args, :login => login, :user => user, :namespaceName => namespaceName, :perm => perm)
+      end
+
+      def recv_hasNamespacePermission()
+        result = receive_message(HasNamespacePermission_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'hasNamespacePermission failed: unknown result')
+      end
+
+      def revokeNamespacePermission(login, user, namespaceName, perm)
+        send_revokeNamespacePermission(login, user, namespaceName, perm)
+        recv_revokeNamespacePermission()
+      end
+
+      def send_revokeNamespacePermission(login, user, namespaceName, perm)
+        send_message('revokeNamespacePermission', RevokeNamespacePermission_args, :login => login, :user => user, :namespaceName => namespaceName, :perm => perm)
+      end
+
+      def recv_revokeNamespacePermission()
+        result = receive_message(RevokeNamespacePermission_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        return
+      end
+
       def createBatchScanner(login, tableName, options)
         send_createBatchScanner(login, tableName, options)
         return recv_createBatchScanner()
@@ -2494,6 +2543,45 @@ module Accumulo
           result.ouch3 = ouch3
         end
         write_result(result, oprot, 'revokeTablePermission', seqid)
+      end
+
+      def process_grantNamespacePermission(seqid, iprot, oprot)
+        args = read_args(iprot, GrantNamespacePermission_args)
+        result = GrantNamespacePermission_result.new()
+        begin
+          @handler.grantNamespacePermission(args.login, args.user, args.namespaceName, args.perm)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        end
+        write_result(result, oprot, 'grantNamespacePermission', seqid)
+      end
+
+      def process_hasNamespacePermission(seqid, iprot, oprot)
+        args = read_args(iprot, HasNamespacePermission_args)
+        result = HasNamespacePermission_result.new()
+        begin
+          result.success = @handler.hasNamespacePermission(args.login, args.user, args.namespaceName, args.perm)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        end
+        write_result(result, oprot, 'hasNamespacePermission', seqid)
+      end
+
+      def process_revokeNamespacePermission(seqid, iprot, oprot)
+        args = read_args(iprot, RevokeNamespacePermission_args)
+        result = RevokeNamespacePermission_result.new()
+        begin
+          @handler.revokeNamespacePermission(args.login, args.user, args.namespaceName, args.perm)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        end
+        write_result(result, oprot, 'revokeNamespacePermission', seqid)
       end
 
       def process_createBatchScanner(seqid, iprot, oprot)
@@ -5400,6 +5488,137 @@ module Accumulo
         OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
         OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
         OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::TableNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class GrantNamespacePermission_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      USER = 2
+      NAMESPACENAME = 3
+      PERM = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        USER => {:type => ::Thrift::Types::STRING, :name => 'user'},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        PERM => {:type => ::Thrift::Types::I32, :name => 'perm', :enum_class => ::Accumulo::NamespacePermission}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+        unless @perm.nil? || ::Accumulo::NamespacePermission::VALID_VALUES.include?(@perm)
+          raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field perm!')
+        end
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class GrantNamespacePermission_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class HasNamespacePermission_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      USER = 2
+      NAMESPACENAME = 3
+      PERM = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        USER => {:type => ::Thrift::Types::STRING, :name => 'user'},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        PERM => {:type => ::Thrift::Types::I32, :name => 'perm', :enum_class => ::Accumulo::NamespacePermission}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+        unless @perm.nil? || ::Accumulo::NamespacePermission::VALID_VALUES.include?(@perm)
+          raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field perm!')
+        end
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class HasNamespacePermission_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RevokeNamespacePermission_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      USER = 2
+      NAMESPACENAME = 3
+      PERM = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        USER => {:type => ::Thrift::Types::STRING, :name => 'user'},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        PERM => {:type => ::Thrift::Types::I32, :name => 'perm', :enum_class => ::Accumulo::NamespacePermission}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+        unless @perm.nil? || ::Accumulo::NamespacePermission::VALID_VALUES.include?(@perm)
+          raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field perm!')
+        end
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RevokeNamespacePermission_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException}
       }
 
       def struct_fields; FIELDS; end

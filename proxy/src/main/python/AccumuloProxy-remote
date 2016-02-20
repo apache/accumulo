@@ -98,6 +98,9 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('   listLocalUsers(string login)')
   print('  void revokeSystemPermission(string login, string user, SystemPermission perm)')
   print('  void revokeTablePermission(string login, string user, string table, TablePermission perm)')
+  print('  void grantNamespacePermission(string login, string user, string namespaceName, NamespacePermission perm)')
+  print('  bool hasNamespacePermission(string login, string user, string namespaceName, NamespacePermission perm)')
+  print('  void revokeNamespacePermission(string login, string user, string namespaceName, NamespacePermission perm)')
   print('  string createBatchScanner(string login, string tableName, BatchScanOptions options)')
   print('  string createScanner(string login, string tableName, ScanOptions options)')
   print('  bool hasNext(string scanner)')
@@ -550,6 +553,24 @@ elif cmd == 'revokeTablePermission':
     print('revokeTablePermission requires 4 args')
     sys.exit(1)
   pp.pprint(client.revokeTablePermission(args[0],args[1],args[2],eval(args[3]),))
+
+elif cmd == 'grantNamespacePermission':
+  if len(args) != 4:
+    print('grantNamespacePermission requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.grantNamespacePermission(args[0],args[1],args[2],eval(args[3]),))
+
+elif cmd == 'hasNamespacePermission':
+  if len(args) != 4:
+    print('hasNamespacePermission requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.hasNamespacePermission(args[0],args[1],args[2],eval(args[3]),))
+
+elif cmd == 'revokeNamespacePermission':
+  if len(args) != 4:
+    print('revokeNamespacePermission requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.revokeNamespacePermission(args[0],args[1],args[2],eval(args[3]),))
 
 elif cmd == 'createBatchScanner':
   if len(args) != 3:

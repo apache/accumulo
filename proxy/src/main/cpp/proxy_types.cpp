@@ -87,6 +87,30 @@ const char* _kSystemPermissionNames[] = {
 };
 const std::map<int, const char*> _SystemPermission_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(8, _kSystemPermissionValues, _kSystemPermissionNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
+int _kNamespacePermissionValues[] = {
+  NamespacePermission::READ,
+  NamespacePermission::WRITE,
+  NamespacePermission::ALTER_NAMESPACE,
+  NamespacePermission::GRANT,
+  NamespacePermission::ALTER_TABLE,
+  NamespacePermission::CREATE_TABLE,
+  NamespacePermission::DROP_TABLE,
+  NamespacePermission::BULK_IMPORT,
+  NamespacePermission::DROP_NAMESPACE
+};
+const char* _kNamespacePermissionNames[] = {
+  "READ",
+  "WRITE",
+  "ALTER_NAMESPACE",
+  "GRANT",
+  "ALTER_TABLE",
+  "CREATE_TABLE",
+  "DROP_TABLE",
+  "BULK_IMPORT",
+  "DROP_NAMESPACE"
+};
+const std::map<int, const char*> _NamespacePermission_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(9, _kNamespacePermissionValues, _kNamespacePermissionNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+
 int _kScanTypeValues[] = {
   ScanType::SINGLE,
   ScanType::BATCH

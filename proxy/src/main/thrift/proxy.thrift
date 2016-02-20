@@ -133,6 +133,18 @@ enum SystemPermission {
   SYSTEM = 7,
 }
 
+enum NamespacePermission {
+  READ = 0,
+  WRITE = 1,
+  ALTER_NAMESPACE = 2,
+  GRANT = 3,
+  ALTER_TABLE = 4,
+  CREATE_TABLE = 5,
+  DROP_TABLE = 6,
+  BULK_IMPORT = 7,
+  DROP_NAMESPACE = 8
+}
+
 enum ScanType {
     SINGLE,
     BATCH
@@ -402,6 +414,12 @@ service AccumuloProxy
   set<string> listLocalUsers (1:binary login)                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   void revokeSystemPermission (1:binary login, 2:string user, 3:SystemPermission perm)               throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void revokeTablePermission (1:binary login, 2:string user, 3:string table, 4:TablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  void grantNamespacePermission (1:binary login, 2:string user, 3:string namespaceName,
+                                 4:NamespacePermission perm)                                         throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  bool hasNamespacePermission (1:binary login, 2:string user, 3:string namespaceName,
+                               4:NamespacePermission perm)                                           throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void revokeNamespacePermission (1:binary login, 2:string user, 3:string namespaceName,
+                                  4:NamespacePermission perm)                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
 
   // scanning
   string createBatchScanner(1:binary login, 2:string tableName, 3:BatchScanOptions options)          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);

@@ -76,6 +76,22 @@ struct SystemPermission {
 
 extern const std::map<int, const char*> _SystemPermission_VALUES_TO_NAMES;
 
+struct NamespacePermission {
+  enum type {
+    READ = 0,
+    WRITE = 1,
+    ALTER_NAMESPACE = 2,
+    GRANT = 3,
+    ALTER_TABLE = 4,
+    CREATE_TABLE = 5,
+    DROP_TABLE = 6,
+    BULK_IMPORT = 7,
+    DROP_NAMESPACE = 8
+  };
+};
+
+extern const std::map<int, const char*> _NamespacePermission_VALUES_TO_NAMES;
+
 struct ScanType {
   enum type {
     SINGLE = 0,

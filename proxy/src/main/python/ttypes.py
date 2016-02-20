@@ -114,6 +114,41 @@ class SystemPermission:
     "SYSTEM": 7,
   }
 
+class NamespacePermission:
+  READ = 0
+  WRITE = 1
+  ALTER_NAMESPACE = 2
+  GRANT = 3
+  ALTER_TABLE = 4
+  CREATE_TABLE = 5
+  DROP_TABLE = 6
+  BULK_IMPORT = 7
+  DROP_NAMESPACE = 8
+
+  _VALUES_TO_NAMES = {
+    0: "READ",
+    1: "WRITE",
+    2: "ALTER_NAMESPACE",
+    3: "GRANT",
+    4: "ALTER_TABLE",
+    5: "CREATE_TABLE",
+    6: "DROP_TABLE",
+    7: "BULK_IMPORT",
+    8: "DROP_NAMESPACE",
+  }
+
+  _NAMES_TO_VALUES = {
+    "READ": 0,
+    "WRITE": 1,
+    "ALTER_NAMESPACE": 2,
+    "GRANT": 3,
+    "ALTER_TABLE": 4,
+    "CREATE_TABLE": 5,
+    "DROP_TABLE": 6,
+    "BULK_IMPORT": 7,
+    "DROP_NAMESPACE": 8,
+  }
+
 class ScanType:
   SINGLE = 0
   BATCH = 1

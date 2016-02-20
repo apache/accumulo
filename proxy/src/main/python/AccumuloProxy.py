@@ -574,6 +574,36 @@ class Iface:
     """
     pass
 
+  def grantNamespacePermission(self, login, user, namespaceName, perm):
+    """
+    Parameters:
+     - login
+     - user
+     - namespaceName
+     - perm
+    """
+    pass
+
+  def hasNamespacePermission(self, login, user, namespaceName, perm):
+    """
+    Parameters:
+     - login
+     - user
+     - namespaceName
+     - perm
+    """
+    pass
+
+  def revokeNamespacePermission(self, login, user, namespaceName, perm):
+    """
+    Parameters:
+     - login
+     - user
+     - namespaceName
+     - perm
+    """
+    pass
+
   def createBatchScanner(self, login, tableName, options):
     """
     Parameters:
@@ -3214,6 +3244,125 @@ class Client(Iface):
       raise result.ouch3
     return
 
+  def grantNamespacePermission(self, login, user, namespaceName, perm):
+    """
+    Parameters:
+     - login
+     - user
+     - namespaceName
+     - perm
+    """
+    self.send_grantNamespacePermission(login, user, namespaceName, perm)
+    self.recv_grantNamespacePermission()
+
+  def send_grantNamespacePermission(self, login, user, namespaceName, perm):
+    self._oprot.writeMessageBegin('grantNamespacePermission', TMessageType.CALL, self._seqid)
+    args = grantNamespacePermission_args()
+    args.login = login
+    args.user = user
+    args.namespaceName = namespaceName
+    args.perm = perm
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_grantNamespacePermission(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = grantNamespacePermission_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    return
+
+  def hasNamespacePermission(self, login, user, namespaceName, perm):
+    """
+    Parameters:
+     - login
+     - user
+     - namespaceName
+     - perm
+    """
+    self.send_hasNamespacePermission(login, user, namespaceName, perm)
+    return self.recv_hasNamespacePermission()
+
+  def send_hasNamespacePermission(self, login, user, namespaceName, perm):
+    self._oprot.writeMessageBegin('hasNamespacePermission', TMessageType.CALL, self._seqid)
+    args = hasNamespacePermission_args()
+    args.login = login
+    args.user = user
+    args.namespaceName = namespaceName
+    args.perm = perm
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_hasNamespacePermission(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = hasNamespacePermission_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "hasNamespacePermission failed: unknown result")
+
+  def revokeNamespacePermission(self, login, user, namespaceName, perm):
+    """
+    Parameters:
+     - login
+     - user
+     - namespaceName
+     - perm
+    """
+    self.send_revokeNamespacePermission(login, user, namespaceName, perm)
+    self.recv_revokeNamespacePermission()
+
+  def send_revokeNamespacePermission(self, login, user, namespaceName, perm):
+    self._oprot.writeMessageBegin('revokeNamespacePermission', TMessageType.CALL, self._seqid)
+    args = revokeNamespacePermission_args()
+    args.login = login
+    args.user = user
+    args.namespaceName = namespaceName
+    args.perm = perm
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_revokeNamespacePermission(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = revokeNamespacePermission_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    return
+
   def createBatchScanner(self, login, tableName, options):
     """
     Parameters:
@@ -4643,6 +4792,9 @@ class Processor(Iface, TProcessor):
     self._processMap["listLocalUsers"] = Processor.process_listLocalUsers
     self._processMap["revokeSystemPermission"] = Processor.process_revokeSystemPermission
     self._processMap["revokeTablePermission"] = Processor.process_revokeTablePermission
+    self._processMap["grantNamespacePermission"] = Processor.process_grantNamespacePermission
+    self._processMap["hasNamespacePermission"] = Processor.process_hasNamespacePermission
+    self._processMap["revokeNamespacePermission"] = Processor.process_revokeNamespacePermission
     self._processMap["createBatchScanner"] = Processor.process_createBatchScanner
     self._processMap["createScanner"] = Processor.process_createScanner
     self._processMap["hasNext"] = Processor.process_hasNext
@@ -6279,6 +6431,81 @@ class Processor(Iface, TProcessor):
       logging.exception(ex)
       result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
     oprot.writeMessageBegin("revokeTablePermission", msg_type, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_grantNamespacePermission(self, seqid, iprot, oprot):
+    args = grantNamespacePermission_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = grantNamespacePermission_result()
+    try:
+      self._handler.grantNamespacePermission(args.login, args.user, args.namespaceName, args.perm)
+      msg_type = TMessageType.REPLY
+    except (TTransport.TTransportException, KeyboardInterrupt, SystemExit):
+      raise
+    except AccumuloException as ouch1:
+      msg_type = TMessageType.REPLY
+      result.ouch1 = ouch1
+    except AccumuloSecurityException as ouch2:
+      msg_type = TMessageType.REPLY
+      result.ouch2 = ouch2
+    except Exception as ex:
+      msg_type = TMessageType.EXCEPTION
+      logging.exception(ex)
+      result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+    oprot.writeMessageBegin("grantNamespacePermission", msg_type, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_hasNamespacePermission(self, seqid, iprot, oprot):
+    args = hasNamespacePermission_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = hasNamespacePermission_result()
+    try:
+      result.success = self._handler.hasNamespacePermission(args.login, args.user, args.namespaceName, args.perm)
+      msg_type = TMessageType.REPLY
+    except (TTransport.TTransportException, KeyboardInterrupt, SystemExit):
+      raise
+    except AccumuloException as ouch1:
+      msg_type = TMessageType.REPLY
+      result.ouch1 = ouch1
+    except AccumuloSecurityException as ouch2:
+      msg_type = TMessageType.REPLY
+      result.ouch2 = ouch2
+    except Exception as ex:
+      msg_type = TMessageType.EXCEPTION
+      logging.exception(ex)
+      result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+    oprot.writeMessageBegin("hasNamespacePermission", msg_type, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_revokeNamespacePermission(self, seqid, iprot, oprot):
+    args = revokeNamespacePermission_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = revokeNamespacePermission_result()
+    try:
+      self._handler.revokeNamespacePermission(args.login, args.user, args.namespaceName, args.perm)
+      msg_type = TMessageType.REPLY
+    except (TTransport.TTransportException, KeyboardInterrupt, SystemExit):
+      raise
+    except AccumuloException as ouch1:
+      msg_type = TMessageType.REPLY
+      result.ouch1 = ouch1
+    except AccumuloSecurityException as ouch2:
+      msg_type = TMessageType.REPLY
+      result.ouch2 = ouch2
+    except Exception as ex:
+      msg_type = TMessageType.EXCEPTION
+      logging.exception(ex)
+      result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+    oprot.writeMessageBegin("revokeNamespacePermission", msg_type, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -18509,6 +18736,570 @@ class revokeTablePermission_result:
     value = (value * 31) ^ hash(self.ouch1)
     value = (value * 31) ^ hash(self.ouch2)
     value = (value * 31) ^ hash(self.ouch3)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class grantNamespacePermission_args:
+  """
+  Attributes:
+   - login
+   - user
+   - namespaceName
+   - perm
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'user', None, None, ), # 2
+    (3, TType.STRING, 'namespaceName', None, None, ), # 3
+    (4, TType.I32, 'perm', None, None, ), # 4
+  )
+
+  def __init__(self, login=None, user=None, namespaceName=None, perm=None,):
+    self.login = login
+    self.user = user
+    self.namespaceName = namespaceName
+    self.perm = perm
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.user = iprot.readString()
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.namespaceName = iprot.readString()
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I32:
+          self.perm = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('grantNamespacePermission_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.user is not None:
+      oprot.writeFieldBegin('user', TType.STRING, 2)
+      oprot.writeString(self.user)
+      oprot.writeFieldEnd()
+    if self.namespaceName is not None:
+      oprot.writeFieldBegin('namespaceName', TType.STRING, 3)
+      oprot.writeString(self.namespaceName)
+      oprot.writeFieldEnd()
+    if self.perm is not None:
+      oprot.writeFieldBegin('perm', TType.I32, 4)
+      oprot.writeI32(self.perm)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.login)
+    value = (value * 31) ^ hash(self.user)
+    value = (value * 31) ^ hash(self.namespaceName)
+    value = (value * 31) ^ hash(self.perm)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class grantNamespacePermission_result:
+  """
+  Attributes:
+   - ouch1
+   - ouch2
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, ouch1=None, ouch2=None,):
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('grantNamespacePermission_result')
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.ouch1)
+    value = (value * 31) ^ hash(self.ouch2)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class hasNamespacePermission_args:
+  """
+  Attributes:
+   - login
+   - user
+   - namespaceName
+   - perm
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'user', None, None, ), # 2
+    (3, TType.STRING, 'namespaceName', None, None, ), # 3
+    (4, TType.I32, 'perm', None, None, ), # 4
+  )
+
+  def __init__(self, login=None, user=None, namespaceName=None, perm=None,):
+    self.login = login
+    self.user = user
+    self.namespaceName = namespaceName
+    self.perm = perm
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.user = iprot.readString()
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.namespaceName = iprot.readString()
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I32:
+          self.perm = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('hasNamespacePermission_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.user is not None:
+      oprot.writeFieldBegin('user', TType.STRING, 2)
+      oprot.writeString(self.user)
+      oprot.writeFieldEnd()
+    if self.namespaceName is not None:
+      oprot.writeFieldBegin('namespaceName', TType.STRING, 3)
+      oprot.writeString(self.namespaceName)
+      oprot.writeFieldEnd()
+    if self.perm is not None:
+      oprot.writeFieldBegin('perm', TType.I32, 4)
+      oprot.writeI32(self.perm)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.login)
+    value = (value * 31) ^ hash(self.user)
+    value = (value * 31) ^ hash(self.namespaceName)
+    value = (value * 31) ^ hash(self.perm)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class hasNamespacePermission_result:
+  """
+  Attributes:
+   - success
+   - ouch1
+   - ouch2
+  """
+
+  thrift_spec = (
+    (0, TType.BOOL, 'success', None, None, ), # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, success=None, ouch1=None, ouch2=None,):
+    self.success = success
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.BOOL:
+          self.success = iprot.readBool()
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('hasNamespacePermission_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.BOOL, 0)
+      oprot.writeBool(self.success)
+      oprot.writeFieldEnd()
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.success)
+    value = (value * 31) ^ hash(self.ouch1)
+    value = (value * 31) ^ hash(self.ouch2)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class revokeNamespacePermission_args:
+  """
+  Attributes:
+   - login
+   - user
+   - namespaceName
+   - perm
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'user', None, None, ), # 2
+    (3, TType.STRING, 'namespaceName', None, None, ), # 3
+    (4, TType.I32, 'perm', None, None, ), # 4
+  )
+
+  def __init__(self, login=None, user=None, namespaceName=None, perm=None,):
+    self.login = login
+    self.user = user
+    self.namespaceName = namespaceName
+    self.perm = perm
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.user = iprot.readString()
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.namespaceName = iprot.readString()
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I32:
+          self.perm = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('revokeNamespacePermission_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.user is not None:
+      oprot.writeFieldBegin('user', TType.STRING, 2)
+      oprot.writeString(self.user)
+      oprot.writeFieldEnd()
+    if self.namespaceName is not None:
+      oprot.writeFieldBegin('namespaceName', TType.STRING, 3)
+      oprot.writeString(self.namespaceName)
+      oprot.writeFieldEnd()
+    if self.perm is not None:
+      oprot.writeFieldBegin('perm', TType.I32, 4)
+      oprot.writeI32(self.perm)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.login)
+    value = (value * 31) ^ hash(self.user)
+    value = (value * 31) ^ hash(self.namespaceName)
+    value = (value * 31) ^ hash(self.perm)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class revokeNamespacePermission_result:
+  """
+  Attributes:
+   - ouch1
+   - ouch2
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, ouch1=None, ouch2=None,):
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('revokeNamespacePermission_result')
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.ouch1)
+    value = (value * 31) ^ hash(self.ouch2)
     return value
 
   def __repr__(self):
