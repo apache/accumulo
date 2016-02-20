@@ -1003,24 +1003,21 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
 
   @Override
-  public void grantNamespacePermission(ByteBuffer login, String user, String namespaceName,
-                                       org.apache.accumulo.proxy.thrift.NamespacePermission perm)
-          throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
+  public void grantNamespacePermission(ByteBuffer login, String user, String namespaceName, org.apache.accumulo.proxy.thrift.NamespacePermission perm)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
-      getConnector(login).securityOperations().grantNamespacePermission(user, namespaceName,
-              NamespacePermission.getPermissionById((byte) perm.getValue()));
+      getConnector(login).securityOperations().grantNamespacePermission(user, namespaceName, NamespacePermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
       handleException(e);
     }
   }
 
   @Override
-  public boolean hasNamespacePermission(ByteBuffer login, String user, String namespaceName,
-                                        org.apache.accumulo.proxy.thrift.NamespacePermission perm)
-          throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
+  public boolean hasNamespacePermission(ByteBuffer login, String user, String namespaceName, org.apache.accumulo.proxy.thrift.NamespacePermission perm)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
-      return getConnector(login).securityOperations().hasNamespacePermission(user, namespaceName,
-              NamespacePermission.getPermissionById((byte) perm.getValue()));
+      return getConnector(login).securityOperations()
+          .hasNamespacePermission(user, namespaceName, NamespacePermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
       handleException(e);
       return false;
@@ -1028,12 +1025,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
 
   @Override
-  public void revokeNamespacePermission(ByteBuffer login, String user, String namespaceName,
-                                        org.apache.accumulo.proxy.thrift.NamespacePermission perm)
-          throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
+  public void revokeNamespacePermission(ByteBuffer login, String user, String namespaceName, org.apache.accumulo.proxy.thrift.NamespacePermission perm)
+      throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
-      getConnector(login).securityOperations().revokeNamespacePermission(user, namespaceName,
-              NamespacePermission.getPermissionById((byte) perm.getValue()));
+      getConnector(login).securityOperations().revokeNamespacePermission(user, namespaceName, NamespacePermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
       handleException(e);
     }
