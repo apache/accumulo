@@ -81,13 +81,18 @@ public final class Compression {
    * Compression algorithms.
    */
   public static enum Algorithm {
+
     LZO(COMPRESSION_LZO) {
       private transient boolean checked = false;
       private static final String defaultClazz = "org.apache.hadoop.io.compress.LzoCodec";
       private transient CompressionCodec codec = null;
 
       @Override
-      public synchronized boolean isSupported() {
+      public boolean isSupported() {
+        return codec != null;
+      }
+
+      public void createCodec() {
         if (!checked) {
           checked = true;
           String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
@@ -99,15 +104,10 @@ public final class Compression {
             // that is okay
           }
         }
-        return codec != null;
       }
 
       @Override
       CompressionCodec getCodec() throws IOException {
-        if (!isSupported()) {
-          throw new IOException("LZO codec class not specified. Did you forget to set property " + CONF_LZO_CLASS + "?");
-        }
-
         return codec;
       }
 
@@ -147,16 +147,17 @@ public final class Compression {
     },
 
     GZ(COMPRESSION_GZ) {
-      private transient DefaultCodec codec;
+      private transient DefaultCodec codec = null;
 
       @Override
-      synchronized CompressionCodec getCodec() {
-        if (codec == null) {
-          codec = new DefaultCodec();
-          codec.setConf(conf);
-        }
-
+      CompressionCodec getCodec() {
         return codec;
+      }
+
+      @Override
+      public void createCodec() {
+        codec = new DefaultCodec();
+        codec.setConf(conf);
       }
 
       @Override
@@ -204,6 +205,10 @@ public final class Compression {
         return downStream;
       }
 
+      public void createCodec() {
+
+      }
+
       @Override
       public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
         if (downStreamBufferSize > 0) {
@@ -226,10 +231,22 @@ public final class Compression {
       private static final String defaultClazz = "org.apache.hadoop.io.compress.SnappyCodec";
 
       public CompressionCodec getCodec() throws IOException {
-        if (!isSupported()) {
-          throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
-        }
         return snappyCodec;
+      }
+
+      @Override
+      public void createCodec() {
+        if (!checked) {
+          checked = true;
+          String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null ? System.getProperty(CONF_SNAPPY_CLASS) : null);
+          String clazz = (extClazz != null) ? extClazz : defaultClazz;
+          try {
+            LOG.info("Trying to load snappy codec class: " + clazz);
+            snappyCodec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), conf);
+          } catch (ClassNotFoundException e) {
+            // that is okay
+          }
+        }
       }
 
       @Override
@@ -264,24 +281,21 @@ public final class Compression {
       }
 
       @Override
-      public synchronized boolean isSupported() {
-        if (!checked) {
-          checked = true;
-          String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null ? System.getProperty(CONF_SNAPPY_CLASS) : null);
-          String clazz = (extClazz != null) ? extClazz : defaultClazz;
-          try {
-            LOG.info("Trying to load snappy codec class: " + clazz);
-            snappyCodec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), conf);
-          } catch (ClassNotFoundException e) {
-            // that is okay
-          }
-        }
+      public boolean isSupported() {
+
         return snappyCodec != null;
       }
     };
+
+    static {
+      conf = new Configuration();
+      for (final Algorithm al : Algorithm.values()) {
+        al.createCodec();
+      }
+    }
     // We require that all compression related settings are configured
     // statically in the Configuration object.
-    protected static final Configuration conf = new Configuration();
+    protected static final Configuration conf;
     private final String compressName;
     // data input buffer size to absorb small reads from application.
     private static final int DATA_IBUF_SIZE = 1 * 1024;
@@ -295,6 +309,11 @@ public final class Compression {
     }
 
     abstract CompressionCodec getCodec() throws IOException;
+
+    /**
+     * function to create the codec
+     */
+    abstract void createCodec();
 
     public abstract InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException;
 
