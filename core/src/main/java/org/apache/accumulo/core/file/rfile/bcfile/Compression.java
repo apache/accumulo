@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -147,25 +148,27 @@ public final class Compression {
     },
 
     GZ(COMPRESSION_GZ) {
-      private transient DefaultCodec codec;
+      private transient AtomicReference<DefaultCodec> codec = new AtomicReference<DefaultCodec>();
 
       @Override
-      synchronized CompressionCodec getCodec() {
-        if (codec == null) {
-          codec = new DefaultCodec();
-          codec.setConf(conf);
+      CompressionCodec getCodec() {
+        DefaultCodec resultCodec = codec.get();
+        if (null == resultCodec) {
+          DefaultCodec newCodec = new DefaultCodec();
+          newCodec.setConf(conf);
+          codec.compareAndSet(null, newCodec);
         }
 
-        return codec;
+        return codec.get();
       }
 
       @Override
       public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
         // Set the internal buffer size to read from down stream.
         if (downStreamBufferSize > 0) {
-          codec.getConf().setInt("io.file.buffer.size", downStreamBufferSize);
+          codec.get().getConf().setInt("io.file.buffer.size", downStreamBufferSize);
         }
-        CompressionInputStream cis = codec.createInputStream(downStream, decompressor);
+        CompressionInputStream cis = codec.get().createInputStream(downStream, decompressor);
         BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
         return bis2;
       }
@@ -178,8 +181,8 @@ public final class Compression {
         } else {
           bos1 = downStream;
         }
-        codec.getConf().setInt("io.file.buffer.size", 32 * 1024);
-        CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
+        codec.get().getConf().setInt("io.file.buffer.size", 32 * 1024);
+        CompressionOutputStream cos = codec.get().createOutputStream(bos1, compressor);
         BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
