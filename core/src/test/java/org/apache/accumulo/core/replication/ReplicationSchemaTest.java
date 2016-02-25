@@ -61,18 +61,16 @@ public class ReplicationSchemaTest {
 
   @Test
   public void extractTableId() {
-    Text tableId = new Text("1");
-    Key k = new Key(new Text("foo"), StatusSection.NAME, tableId);
-    Assert.assertEquals(tableId.toString(), StatusSection.getTableId(k));
+    String tableId = "1";
+    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId));
+    Assert.assertEquals(tableId, StatusSection.getTableId(k));
   }
 
   @Test
   public void extractTableIdUsingText() {
-    Text tableId = new Text("1");
-    Key k = new Key(new Text("foo"), StatusSection.NAME, tableId);
-    Text buffer = new Text();
-    StatusSection.getTableId(k, buffer);
-    Assert.assertEquals(tableId.toString(), buffer.toString());
+    String tableId = "1";
+    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId));
+    Assert.assertEquals(tableId, StatusSection.getTableId(k));
   }
 
   @Test(expected = NullPointerException.class)

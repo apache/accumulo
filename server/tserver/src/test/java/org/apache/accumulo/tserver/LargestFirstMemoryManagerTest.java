@@ -214,7 +214,7 @@ public class LargestFirstMemoryManagerTest {
     mgr.init(config);
     MemoryManagementActions result;
     // one tablet is really big and the other is for a nonexistent table
-    KeyExtent extent = new KeyExtent(new Text("2"), new Text("j"), null);
+    KeyExtent extent = new KeyExtent("2", new Text("j"), null);
     result = mgr.getMemoryManagementActions(tablets(t(extent, ZERO, ONE_GIG, 0), t(k("j"), ZERO, ONE_GIG, 0)));
     assertEquals(1, result.tabletsToMinorCompact.size());
     assertEquals(extent, result.tabletsToMinorCompact.get(0));
@@ -256,7 +256,7 @@ public class LargestFirstMemoryManagerTest {
   }
 
   private static KeyExtent k(String endRow) {
-    return new KeyExtent(new Text("1"), new Text(endRow), null);
+    return new KeyExtent("1", new Text(endRow), null);
   }
 
   private static class TestTabletState implements TabletState {

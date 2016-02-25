@@ -126,11 +126,11 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     bw.addMutation(m);
 
     m = OrderSection.createMutation(file1, stat1.getCreatedTime());
-    OrderSection.add(m, new Text(target.getSourceTableId()), ProtobufUtil.toValue(stat1));
+    OrderSection.add(m, target.getSourceTableId(), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
 
     m = OrderSection.createMutation(file2, stat2.getCreatedTime());
-    OrderSection.add(m, new Text(target.getSourceTableId()), ProtobufUtil.toValue(stat2));
+    OrderSection.add(m, target.getSourceTableId(), ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
     bw.close();
@@ -188,11 +188,11 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     bw.addMutation(m);
 
     m = OrderSection.createMutation(file1, stat1.getCreatedTime());
-    OrderSection.add(m, new Text(target1.getSourceTableId()), ProtobufUtil.toValue(stat1));
+    OrderSection.add(m, target1.getSourceTableId(), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
 
     m = OrderSection.createMutation(file2, stat2.getCreatedTime());
-    OrderSection.add(m, new Text(target2.getSourceTableId()), ProtobufUtil.toValue(stat2));
+    OrderSection.add(m, target2.getSourceTableId(), ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
     bw.close();
@@ -257,11 +257,11 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     bw.addMutation(m);
 
     m = OrderSection.createMutation(file1, stat1.getCreatedTime());
-    OrderSection.add(m, new Text(target1.getSourceTableId()), ProtobufUtil.toValue(stat1));
+    OrderSection.add(m, target1.getSourceTableId(), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
 
     m = OrderSection.createMutation(file2, stat2.getCreatedTime());
-    OrderSection.add(m, new Text(target2.getSourceTableId()), ProtobufUtil.toValue(stat2));
+    OrderSection.add(m, target2.getSourceTableId(), ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
     bw.close();
@@ -325,11 +325,11 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     bw.addMutation(m);
 
     m = OrderSection.createMutation(file1, stat1.getCreatedTime());
-    OrderSection.add(m, new Text(target.getSourceTableId()), ProtobufUtil.toValue(stat1));
+    OrderSection.add(m, target.getSourceTableId(), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
 
     m = OrderSection.createMutation(file2, stat2.getCreatedTime());
-    OrderSection.add(m, new Text(target.getSourceTableId()), ProtobufUtil.toValue(stat2));
+    OrderSection.add(m, target.getSourceTableId(), ProtobufUtil.toValue(stat2));
     bw.addMutation(m);
 
     bw.close();

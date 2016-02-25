@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Math.min;
 
 import java.io.IOException;
@@ -91,7 +92,6 @@ import org.apache.thrift.TException;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 class TabletGroupWatcher extends Daemon {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
@@ -111,7 +111,7 @@ class TabletGroupWatcher extends Daemon {
     this.dependentWatcher = dependentWatcher;
   }
 
-  Map<Text,TableCounts> getStats() {
+  Map<String,TableCounts> getStats() {
     return stats.getLast();
   }
 
@@ -120,7 +120,7 @@ class TabletGroupWatcher extends Daemon {
     return masterState;
   }
 
-  TableCounts getStats(Text tableId) {
+  TableCounts getStats(String tableId) {
     return stats.getLast(tableId);
   }
 
@@ -142,8 +142,8 @@ class TabletGroupWatcher extends Daemon {
       int unloaded = 0;
       ClosableIterator<TabletLocationState> iter = null;
       try {
-        Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
-        Map<Text,MergeStats> currentMerges = new HashMap<Text,MergeStats>();
+        Map<String,MergeStats> mergeStatsCache = new HashMap<String,MergeStats>();
+        Map<String,MergeStats> currentMerges = new HashMap<String,MergeStats>();
         for (MergeInfo merge : master.merges()) {
           if (merge.getExtent() != null) {
             currentMerges.put(merge.getExtent().getTableId(), new MergeStats(merge));
@@ -184,7 +184,7 @@ class TabletGroupWatcher extends Daemon {
           }
           Master.log.debug(store.name() + " location State: " + tls);
           // ignore entries for tables that do not exist in zookeeper
-          if (TableManager.getInstance().getTableState(tls.extent.getTableId().toString()) == null)
+          if (TableManager.getInstance().getTableState(tls.extent.getTableId()) == null)
             continue;
 
           if (Master.log.isTraceEnabled())
@@ -200,7 +200,7 @@ class TabletGroupWatcher extends Daemon {
             unloaded = 0;
             eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
           }
-          Text tableId = tls.extent.getTableId();
+          String tableId = tls.extent.getTableId();
           MergeStats mergeStats = mergeStatsCache.get(tableId);
           if (mergeStats == null) {
             mergeStats = currentMerges.get(tableId);
@@ -278,7 +278,7 @@ class TabletGroupWatcher extends Daemon {
             switch (state) {
               case UNASSIGNED:
                 TServerInstance dest = this.master.migrations.get(tls.extent);
-                TableState tableState = TableManager.getInstance().getTableState(tls.extent.getTableId().toString());
+                TableState tableState = TableManager.getInstance().getTableState(tls.extent.getTableId());
                 if (dest != null && tableState == TableState.OFFLINE) {
                   this.master.migrations.remove(tls.extent);
                 }
@@ -478,7 +478,7 @@ class TabletGroupWatcher extends Daemon {
     }
   }
 
-  private void updateMergeState(Map<Text,MergeStats> mergeStatsCache) {
+  private void updateMergeState(Map<String,MergeStats> mergeStatsCache) {
     for (MergeStats stats : mergeStatsCache.values()) {
       try {
         MergeState update = stats.nextMergeState(this.master.getConnector(), this.master);
@@ -587,7 +587,7 @@ class TabletGroupWatcher extends Daemon {
       } else {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to " + extent.getPrevEndRow());
-        String tdir = master.getFileSystem().choose(Optional.of(extent.getTableId().toString()), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR
+        String tdir = master.getFileSystem().choose(Optional.of(extent.getTableId()), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR
             + Path.SEPARATOR + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
         MetadataTableUtil.addTablet(new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir, master, timeType, this.master.masterLock);
       }
@@ -639,7 +639,7 @@ class TabletGroupWatcher extends Daemon {
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, value.toString());
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          bw.addMutation(MetadataTableUtil.createDeleteMutation(range.getTableId().toString(), entry.getValue().toString()));
+          bw.addMutation(MetadataTableUtil.createDeleteMutation(range.getTableId(), entry.getValue().toString()));
         }
       }
 
@@ -739,7 +739,7 @@ class TabletGroupWatcher extends Daemon {
       }
       Entry<Key,Value> entry = iterator.next();
       KeyExtent highTablet = new KeyExtent(entry.getKey().getRow(), KeyExtent.decodePrevEndRow(entry.getValue()));
-      if (highTablet.getTableId() != range.getTableId()) {
+      if (!highTablet.getTableId().equals(range.getTableId())) {
         throw new AccumuloException("No last tablet for merge " + range + " " + highTablet);
       }
       return highTablet;

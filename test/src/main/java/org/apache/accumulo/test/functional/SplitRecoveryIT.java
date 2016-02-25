@@ -77,7 +77,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private KeyExtent nke(String table, String endRow, String prevEndRow) {
-    return new KeyExtent(new Text(table), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
+    return new KeyExtent(table, endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
   }
 
   private void run() throws Exception {
@@ -138,7 +138,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
 
-      String tdir = ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId().toString() + "/dir_" + i;
+      String tdir = ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId() + "/dir_" + i;
       MetadataTableUtil.addTablet(extent, tdir, context, TabletTime.LOGICAL_TIME_ID, zl);
       SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<FileRef,DataFileValue>();
       mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"), new DataFileValue(1000017 + i, 10000 + i));

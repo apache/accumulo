@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class TabletServerBatchReader extends ScannerOptions implements BatchScanner {
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReader.class);
 
-  private String table;
+  private String tableId;
   private int numThreads;
   private ExecutorService queryThreadPool;
 
@@ -54,13 +54,13 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
   private final int batchReaderInstance = getNextBatchReaderInstance();
 
-  public TabletServerBatchReader(ClientContext context, String table, Authorizations authorizations, int numQueryThreads) {
+  public TabletServerBatchReader(ClientContext context, String tableId, Authorizations authorizations, int numQueryThreads) {
     checkArgument(context != null, "context is null");
-    checkArgument(table != null, "table is null");
+    checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");
     this.context = context;
     this.authorizations = authorizations;
-    this.table = table;
+    this.tableId = tableId;
     this.numThreads = numQueryThreads;
 
     queryThreadPool = new SimpleThreadPool(numQueryThreads, "batch scanner " + batchReaderInstance + "-");
@@ -112,6 +112,6 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalStateException("batch reader closed");
     }
 
-    return new TabletServerBatchReaderIterator(context, table, authorizations, ranges, numThreads, queryThreadPool, this, timeOut);
+    return new TabletServerBatchReaderIterator(context, tableId, authorizations, ranges, numThreads, queryThreadPool, this, timeOut);
   }
 }

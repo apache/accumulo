@@ -26,7 +26,7 @@ import org.apache.accumulo.monitor.util.celltypes.CellType;
 import org.apache.accumulo.monitor.util.celltypes.StringType;
 
 public class Table {
-  private String table;
+  private String tableName;
   private String caption;
   private String captionclass;
   private String subcaption;
@@ -39,7 +39,7 @@ public class Table {
   }
 
   public Table(String tableName, String caption, String captionClass) {
-    this.table = tableName;
+    this.tableName = tableName;
     this.caption = caption;
     this.captionclass = captionClass;
     this.subcaption = null;
@@ -109,8 +109,8 @@ public class Table {
       if (row.size() != columns.size())
         throw new RuntimeException("Each row must have the same number of columns");
 
-    boolean sortAscending = !"false".equals(BasicServlet.getCookieValue(req, "tableSort." + BasicServlet.encode(page) + "." + BasicServlet.encode(table) + "."
-        + "sortAsc"));
+    boolean sortAscending = !"false".equals(BasicServlet.getCookieValue(req, "tableSort." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName)
+        + "." + "sortAsc"));
 
     int sortCol = -1; // set to first sortable column by default
     int numLegends = 0;
@@ -124,7 +124,7 @@ public class Table {
 
     // only get cookie if there is a possibility that it is sortable
     if (sortCol >= 0) {
-      String sortColStr = BasicServlet.getCookieValue(req, "tableSort." + BasicServlet.encode(page) + "." + BasicServlet.encode(table) + "." + "sortCol");
+      String sortColStr = BasicServlet.getCookieValue(req, "tableSort." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "." + "sortCol");
       if (sortColStr != null) {
         try {
           int col = Integer.parseInt(sortColStr);
@@ -139,13 +139,13 @@ public class Table {
 
     boolean showLegend = false;
     if (numLegends > 0) {
-      String showStr = BasicServlet.getCookieValue(req, "tableLegend." + BasicServlet.encode(page) + "." + BasicServlet.encode(table) + "." + "show");
+      String showStr = BasicServlet.getCookieValue(req, "tableLegend." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "." + "show");
       showLegend = showStr != null && Boolean.parseBoolean(showStr);
     }
 
     sb.append("<div>\n");
-    sb.append("<a name='").append(table).append("'>&nbsp;</a>\n");
-    sb.append("<table id='").append(table).append("' class='sortable'>\n");
+    sb.append("<a name='").append(tableName).append("'>&nbsp;</a>\n");
+    sb.append("<table id='").append(tableName).append("' class='sortable'>\n");
     sb.append("<caption");
     if (captionclass != null && !captionclass.isEmpty())
       sb.append(" class='").append(captionclass).append("'");
@@ -157,7 +157,7 @@ public class Table {
 
     String redir = BasicServlet.currentPage(req);
     if (numLegends > 0) {
-      String legendUrl = String.format("/op?action=toggleLegend&redir=%s&page=%s&table=%s&show=%s", redir, page, table, !showLegend);
+      String legendUrl = String.format("/op?action=toggleLegend&redir=%s&page=%s&table=%s&show=%s", redir, page, tableName, !showLegend);
       sb.append("<a href='").append(legendUrl).append("'>").append(showLegend ? "Hide" : "Show").append("&nbsp;Legend</a>\n");
       if (showLegend)
         sb.append("<div class='left show'><dl>\n");
@@ -166,7 +166,7 @@ public class Table {
       TableColumn<?> col = columns.get(i);
       String title = col.getTitle();
       if (rows.size() > 1 && col.getCellType().isSortable()) {
-        String url = String.format("/op?action=sortTable&redir=%s&page=%s&table=%s&%s=%s", redir, page, table, sortCol == i ? "asc" : "col",
+        String url = String.format("/op?action=sortTable&redir=%s&page=%s&table=%s&%s=%s", redir, page, tableName, sortCol == i ? "asc" : "col",
             sortCol == i ? !sortAscending : i);
         String img = "";
         if (sortCol == i)

@@ -86,7 +86,7 @@ public class TraceServer implements Watcher {
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
   final private Connector connector;
-  final String table;
+  final String tableName;
   final private static int BATCH_WRITER_MAX_LATENCY = 5;
   final private static long SCHEDULE_PERIOD = 1000;
   final private static long SCHEDULE_DELAY = 1000;
@@ -182,7 +182,7 @@ public class TraceServer implements Watcher {
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + serverConfiguration.getInstance().getInstanceID());
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
-    table = conf.get(Property.TRACE_TABLE);
+    tableName = conf.get(Property.TRACE_TABLE);
     Connector connector = null;
     while (true) {
       try {
@@ -214,13 +214,13 @@ public class TraceServer implements Watcher {
         }
 
         connector = serverConfiguration.getInstance().getConnector(principal, at);
-        if (!connector.tableOperations().exists(table)) {
-          connector.tableOperations().create(table);
+        if (!connector.tableOperations().exists(tableName)) {
+          connector.tableOperations().create(tableName);
           IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());
           AgeOffFilter.setTTL(setting, 7 * 24 * 60 * 60 * 1000l);
-          connector.tableOperations().attachIterator(table, setting);
+          connector.tableOperations().attachIterator(tableName, setting);
         }
-        connector.tableOperations().setProperty(table, Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
+        connector.tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
         break;
       } catch (RuntimeException ex) {
         log.info("Waiting to checking/create the trace table.", ex);
@@ -240,7 +240,7 @@ public class TraceServer implements Watcher {
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
     registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(), conf.get(Property.TRACE_ZK_PATH));
-    writer = new AtomicReference<BatchWriter>(this.connector.createBatchWriter(table,
+    writer = new AtomicReference<BatchWriter>(this.connector.createBatchWriter(tableName,
         new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
   }
 
@@ -261,7 +261,7 @@ public class TraceServer implements Watcher {
         writer.flush();
       } else {
         // We don't have a writer. If the table exists, try to make a new writer.
-        if (connector.tableOperations().exists(table)) {
+        if (connector.tableOperations().exists(tableName)) {
           resetWriter();
         }
       }
@@ -280,7 +280,7 @@ public class TraceServer implements Watcher {
   private void resetWriter() {
     BatchWriter writer = null;
     try {
-      writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS));
+      writer = connector.createBatchWriter(tableName, new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS));
     } catch (Exception ex) {
       log.warn("Unable to create a batch writer, will retry. Set log level to DEBUG to see stacktrace. cause: " + ex);
       log.debug("batch writer creation failed with exception.", ex);

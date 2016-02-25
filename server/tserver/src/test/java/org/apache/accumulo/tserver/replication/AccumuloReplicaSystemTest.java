@@ -77,7 +77,7 @@ public class AccumuloReplicaSystemTest {
      * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(new Text("1"), null, null);
+    key.tablet = new KeyExtent("1", null, null);
     key.tid = 1;
 
     key.write(dos);
@@ -92,7 +92,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(new Text("2"), null, null);
+    key.tablet = new KeyExtent("2", null, null);
     key.tid = 2;
     value.mutations = Collections.emptyList();
 
@@ -123,7 +123,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(new Text("1"), null, null);
+    key.tablet = new KeyExtent("1", null, null);
     key.tid = 3;
     value.mutations = Collections.emptyList();
 
@@ -183,7 +183,7 @@ public class AccumuloReplicaSystemTest {
      * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(new Text("1"), null, null);
+    key.tablet = new KeyExtent("1", null, null);
     key.tid = 1;
 
     key.write(dos);
@@ -198,7 +198,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(new Text("2"), null, null);
+    key.tablet = new KeyExtent("2", null, null);
     key.tid = 2;
     value.mutations = Collections.emptyList();
 
@@ -229,7 +229,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(new Text("1"), null, null);
+    key.tablet = new KeyExtent("1", null, null);
     key.tid = 3;
     value.mutations = Collections.emptyList();
 
@@ -380,7 +380,7 @@ public class AccumuloReplicaSystemTest {
      * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(new Text("1"), null, null);
+    key.tablet = new KeyExtent("1", null, null);
     key.tid = 1;
 
     key.write(dos);

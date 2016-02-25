@@ -166,7 +166,7 @@ public class TServersServlet extends BasicServlet {
       ActionStatsUpdator.update(total.majors, info.majors);
 
       KeyExtent extent = new KeyExtent(info.extent);
-      String tableId = extent.getTableId().toString();
+      String tableId = extent.getTableId();
       MessageDigest digester = MessageDigest.getInstance("MD5");
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());

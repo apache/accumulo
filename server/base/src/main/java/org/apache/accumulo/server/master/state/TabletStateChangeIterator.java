@@ -42,7 +42,6 @@ import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +60,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
 
   private Set<TServerInstance> current;
   private Set<String> onlineTables;
-  private Map<Text,MergeInfo> merges;
+  private Map<String,MergeInfo> merges;
   private boolean debug = false;
   private Set<KeyExtent> migrations;
   private MasterState masterState = MasterState.NORMAL;
@@ -133,11 +132,11 @@ public class TabletStateChangeIterator extends SkippingIterator {
     return result;
   }
 
-  private Map<Text,MergeInfo> parseMerges(String merges) {
+  private Map<String,MergeInfo> parseMerges(String merges) {
     if (merges == null)
       return null;
     try {
-      Map<Text,MergeInfo> result = new HashMap<Text,MergeInfo>();
+      Map<String,MergeInfo> result = new HashMap<String,MergeInfo>();
       DataInputBuffer buffer = new DataInputBuffer();
       byte[] data = Base64.decodeBase64(merges.getBytes(UTF_8));
       buffer.reset(data, data.length);
@@ -182,7 +181,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       }
 
       // is the table supposed to be online or offline?
-      boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId().toString());
+      boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId());
 
       if (debug) {
         log.debug(tls.extent + " is " + tls.getState(current) + " and should be " + (shouldBeOnline ? "on" : "off") + "line");

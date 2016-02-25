@@ -225,7 +225,7 @@ public class TeraSortIngest extends Configured implements Tool {
    * The Mapper class that given a row number, will generate the appropriate output line.
    */
   public static class SortGenMapper extends Mapper<LongWritable,NullWritable,Text,Mutation> {
-    private Text table = null;
+    private Text tableName = null;
     private int minkeylength = 0;
     private int maxkeylength = 0;
     private int minvaluelength = 0;
@@ -329,7 +329,7 @@ public class TeraSortIngest extends Configured implements Tool {
           new Value(value.toString().getBytes())); // data
 
       context.setStatus("About to add to accumulo");
-      context.write(table, m);
+      context.write(tableName, m);
       context.setStatus("Added to accumulo " + key.toString());
     }
 
@@ -339,7 +339,7 @@ public class TeraSortIngest extends Configured implements Tool {
       maxkeylength = job.getConfiguration().getInt("cloudgen.maxkeylength", 0);
       minvaluelength = job.getConfiguration().getInt("cloudgen.minvaluelength", 0);
       maxvaluelength = job.getConfiguration().getInt("cloudgen.maxvaluelength", 0);
-      table = new Text(job.getConfiguration().get("cloudgen.tablename"));
+      tableName = new Text(job.getConfiguration().get("cloudgen.tablename"));
     }
   }
 

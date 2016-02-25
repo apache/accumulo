@@ -42,11 +42,11 @@ public class TableConfiguration extends ObservableConfiguration {
   private final NamespaceConfiguration parent;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
-  private final String table;
+  private final String tableId;
 
-  public TableConfiguration(Instance instance, String table, NamespaceConfiguration parent) {
+  public TableConfiguration(Instance instance, String tableId, NamespaceConfiguration parent) {
     this.instance = instance;
-    this.table = table;
+    this.tableId = tableId;
     this.parent = parent;
   }
 
@@ -57,7 +57,7 @@ public class TableConfiguration extends ObservableConfiguration {
   private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
     if (propCacheAccessor == null) {
       synchronized (propCaches) {
-        PropCacheKey key = new PropCacheKey(instance.getInstanceID(), table);
+        PropCacheKey key = new PropCacheKey(instance.getInstanceID(), tableId);
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
           propCache = zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
@@ -71,7 +71,7 @@ public class TableConfiguration extends ObservableConfiguration {
 
   @Override
   public void addObserver(ConfigurationObserver co) {
-    if (table == null) {
+    if (tableId == null) {
       String err = "Attempt to add observer for non-table configuration";
       log.error(err);
       throw new RuntimeException(err);
@@ -82,7 +82,7 @@ public class TableConfiguration extends ObservableConfiguration {
 
   @Override
   public void removeObserver(ConfigurationObserver co) {
-    if (table == null) {
+    if (tableId == null) {
       String err = "Attempt to remove observer for non-table configuration";
       log.error(err);
       throw new RuntimeException(err);
@@ -91,7 +91,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   private String getPath() {
-    return ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF;
+    return ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
   }
 
   @Override
@@ -105,7 +105,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   public String getTableId() {
-    return table;
+    return tableId;
   }
 
   /**

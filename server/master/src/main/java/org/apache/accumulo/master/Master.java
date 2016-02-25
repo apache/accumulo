@@ -149,7 +149,6 @@ import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
@@ -174,8 +173,6 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   final static Logger log = LoggerFactory.getLogger(Master.class);
 
   final static int ONE_SECOND = 1000;
-  final private static Text METADATA_TABLE_ID = new Text(MetadataTable.ID);
-  final private static Text ROOT_TABLE_ID = new Text(RootTable.ID);
   final static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
   final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   final static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
@@ -509,7 +506,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
   }
 
-  private int assignedOrHosted(Text tableId) {
+  private int assignedOrHosted(String tableId) {
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       TableCounts count = watcher.getStats(tableId);
@@ -529,7 +526,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   }
 
   private int nonMetaDataTabletsAssignedOrHosted() {
-    return totalAssignedOrHosted() - assignedOrHosted(new Text(MetadataTable.ID)) - assignedOrHosted(new Text(RootTable.ID));
+    return totalAssignedOrHosted() - assignedOrHosted(MetadataTable.ID) - assignedOrHosted(RootTable.ID);
   }
 
   private int notHosted() {
@@ -550,10 +547,10 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         // Count offline tablets for online tables
         for (TabletGroupWatcher watcher : watchers) {
           TableManager manager = TableManager.getInstance();
-          for (Entry<Text,TableCounts> entry : watcher.getStats().entrySet()) {
-            Text tableId = entry.getKey();
+          for (Entry<String,TableCounts> entry : watcher.getStats().entrySet()) {
+            String tableId = entry.getKey();
             TableCounts counts = entry.getValue();
-            TableState tableState = manager.getTableState(tableId.toString());
+            TableState tableState = manager.getTableState(tableId);
             if (tableState != null && tableState.equals(TableState.ONLINE)) {
               result += counts.unassigned() + counts.assignedToDeadServers() + counts.assigned();
             }
@@ -563,13 +560,13 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       case SAFE_MODE:
         // Count offline tablets for the metadata table
         for (TabletGroupWatcher watcher : watchers) {
-          result += watcher.getStats(METADATA_TABLE_ID).unassigned();
+          result += watcher.getStats(MetadataTable.ID).unassigned();
         }
         break;
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         for (TabletGroupWatcher watcher : watchers) {
-          result += watcher.getStats(METADATA_TABLE_ID).unassigned();
+          result += watcher.getStats(MetadataTable.ID).unassigned();
         }
         break;
       default:
@@ -635,10 +632,10 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     return tserverSet.getConnection(server);
   }
 
-  public MergeInfo getMergeInfo(Text tableId) {
+  public MergeInfo getMergeInfo(String tableId) {
     synchronized (mergeLock) {
       try {
-        String path = ZooUtil.getRoot(getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
+        String path = ZooUtil.getRoot(getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId + "/merge";
         if (!ZooReaderWriter.getInstance().exists(path))
           return new MergeInfo();
         byte[] data = ZooReaderWriter.getInstance().getData(path, new Stat());
@@ -659,7 +656,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   public void setMergeState(MergeInfo info, MergeState state) throws IOException, KeeperException, InterruptedException {
     synchronized (mergeLock) {
-      String path = ZooUtil.getRoot(getInstance().getInstanceID()) + Constants.ZTABLES + "/" + info.getExtent().getTableId().toString() + "/merge";
+      String path = ZooUtil.getRoot(getInstance().getInstanceID()) + Constants.ZTABLES + "/" + info.getExtent().getTableId() + "/merge";
       info.setState(state);
       if (state.equals(MergeState.NONE)) {
         ZooReaderWriter.getInstance().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -678,9 +675,9 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     nextEvent.event("Merge state of %s set to %s", info.getExtent(), state);
   }
 
-  public void clearMergeState(Text tableId) throws IOException, KeeperException, InterruptedException {
+  public void clearMergeState(String tableId) throws IOException, KeeperException, InterruptedException {
     synchronized (mergeLock) {
-      String path = ZooUtil.getRoot(getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
+      String path = ZooUtil.getRoot(getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId + "/merge";
       ZooReaderWriter.getInstance().recursiveDelete(path, NodeMissingPolicy.SKIP);
       mergeLock.notifyAll();
     }
@@ -721,7 +718,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       Iterator<KeyExtent> iterator = migrations.keySet().iterator();
       while (iterator.hasNext()) {
         KeyExtent extent = iterator.next();
-        if (extent.getTableId().toString().equals(tableId)) {
+        if (extent.getTableId().equals(tableId)) {
           iterator.remove();
         }
       }
@@ -756,7 +753,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   }
 
   TabletGoalState getTableGoalState(KeyExtent extent) {
-    TableState tableState = TableManager.getInstance().getTableState(extent.getTableId().toString());
+    TableState tableState = TableManager.getInstance().getTableState(extent.getTableId());
     if (tableState == null)
       return TabletGoalState.DELETED;
     switch (tableState) {
@@ -925,19 +922,19 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
                 }
                   break;
                 case UNLOAD_METADATA_TABLETS: {
-                  int count = assignedOrHosted(METADATA_TABLE_ID);
+                  int count = assignedOrHosted(MetadataTable.ID);
                   log.debug(String.format("There are %d metadata tablets assigned or hosted", count));
                   if (count == 0 && goodStats())
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                 }
                   break;
                 case UNLOAD_ROOT_TABLET: {
-                  int count = assignedOrHosted(METADATA_TABLE_ID);
+                  int count = assignedOrHosted(MetadataTable.ID);
                   if (count > 0 && goodStats()) {
                     log.debug(String.format("%d metadata tablets online", count));
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                   }
-                  int root_count = assignedOrHosted(ROOT_TABLE_ID);
+                  int root_count = assignedOrHosted(RootTable.ID);
                   if (root_count > 0 && goodStats())
                     log.debug("The root tablet is still assigned or hosted");
                   if (count + root_count == 0 && goodStats()) {
@@ -1501,7 +1498,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<MergeInfo>();
     for (String tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
-      result.add(getMergeInfo(new Text(tableId)));
+      result.add(getMergeInfo(tableId));
     }
     return result;
   }

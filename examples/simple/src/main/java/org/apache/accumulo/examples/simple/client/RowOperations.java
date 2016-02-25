@@ -48,7 +48,7 @@ public class RowOperations {
   private static final Logger log = LoggerFactory.getLogger(RowOperations.class);
 
   private static Connector connector;
-  private static String table = "example";
+  private static String tableName = "example";
   private static BatchWriter bw;
 
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
@@ -63,7 +63,7 @@ public class RowOperations {
     connector = opts.getConnector();
 
     // lets create an example table
-    connector.tableOperations().create(table);
+    connector.tableOperations().create(tableName);
 
     // lets create 3 rows of information
     Text row1 = new Text("row1");
@@ -98,7 +98,7 @@ public class RowOperations {
     mut3.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes(UTF_8)));
 
     // Now we'll make a Batch Writer
-    bw = connector.createBatchWriter(table, bwOpts.getBatchWriterConfig());
+    bw = connector.createBatchWriter(tableName, bwOpts.getBatchWriterConfig());
 
     // And add the mutations
     bw.addMutation(mut1);
@@ -160,7 +160,7 @@ public class RowOperations {
     bw.close();
 
     // and lets clean up our mess
-    connector.tableOperations().delete(table);
+    connector.tableOperations().delete(tableName);
 
     // fin~
 
@@ -204,7 +204,7 @@ public class RowOperations {
    */
   private static Scanner getRow(ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // Create a scanner
-    Scanner scanner = connector.createScanner(table, Authorizations.EMPTY);
+    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
     scanner.setBatchSize(scanOpts.scanBatchSize);
     // Say start key is the one with key of row
     // and end key is the one that immediately follows the row

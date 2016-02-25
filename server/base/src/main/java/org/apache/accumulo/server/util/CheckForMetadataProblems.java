@@ -112,7 +112,7 @@ public class CheckForMetadataProblems {
 
       count++;
 
-      String tableName = (new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId().toString();
+      String tableName = (new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId();
 
       TreeSet<KeyExtent> tablets = tables.get(tableName);
       if (tablets == null) {

@@ -39,7 +39,7 @@ public class AdminCommandsTest {
   public void testCheckTabletsCommand() {
     Admin.CheckTabletsCommand cmd = new Admin.CheckTabletsCommand();
     assertFalse(cmd.fixFiles);
-    assertNull(cmd.table);
+    assertNull(cmd.tableName);
   }
 
   @Test

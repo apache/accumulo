@@ -482,7 +482,7 @@ public class CollectTabletStats {
 
     List<IterInfo> emptyIterinfo = Collections.emptyList();
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
-    TableConfiguration tconf = aconf.getTableConfiguration(ke.getTableId().toString());
+    TableConfiguration tconf = aconf.getTableConfiguration(ke.getTableId());
     reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<Column>(), emptyIterinfo, emptySsio, useTableIterators, tconf);
 
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);

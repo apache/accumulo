@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.URI;
@@ -106,7 +107,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import com.google.protobuf.TextFormat;
 
 /**
@@ -179,8 +179,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
         StatusSection.getFile(entry.getKey(), buff);
         String file = buff.toString();
-        StatusSection.getTableId(entry.getKey(), buff);
-        String tableId = buff.toString();
+        String tableId = StatusSection.getTableId(entry.getKey());
 
         logs.put(file, tableId);
       }

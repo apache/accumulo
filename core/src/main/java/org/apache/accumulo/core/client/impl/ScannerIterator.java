@@ -40,7 +40,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +48,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private static final Logger log = LoggerFactory.getLogger(ScannerIterator.class);
 
   // scanner options
-  private Text tableId;
   private int timeOut;
 
   // scanner state
@@ -106,9 +104,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   }
 
-  ScannerIterator(ClientContext context, Text table, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options,
+  ScannerIterator(ClientContext context, String tableId, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options,
       boolean isolated, long readaheadThreshold) {
-    this.tableId = new Text(table);
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;
 

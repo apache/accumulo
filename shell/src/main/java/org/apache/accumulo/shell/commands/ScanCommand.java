@@ -58,6 +58,7 @@ public class ScanCommand extends Command {
 
   protected Option timestampOpt;
   private Option optStartRowExclusive;
+  private Option optStartRowInclusive;
   private Option optEndRowExclusive;
   private Option timeoutOption;
   private Option profileOpt;
@@ -327,7 +328,9 @@ public class ScanCommand extends Command {
 
     o.addOption(scanOptAuths);
     o.addOption(scanOptRow);
-    o.addOption(OptUtil.startRowOpt());
+    optStartRowInclusive = new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
+    optStartRowInclusive.setArgName("begin-row");
+    o.addOption(optStartRowInclusive);
     o.addOption(OptUtil.endRowOpt());
     o.addOption(optStartRowExclusive);
     o.addOption(optEndRowExclusive);

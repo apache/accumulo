@@ -44,18 +44,18 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 public class ProblemReport {
-  private String tableName;
+  private String tableId;
   private ProblemType problemType;
   private String resource;
   private String exception;
   private String server;
   private long creationTime;
 
-  public ProblemReport(String table, ProblemType problemType, String resource, String server, Throwable e, long creationTime) {
-    requireNonNull(table, "table is null");
+  public ProblemReport(String tableId, ProblemType problemType, String resource, String server, Throwable e, long creationTime) {
+    requireNonNull(tableId, "tableId is null");
     requireNonNull(problemType, "problemType is null");
     requireNonNull(resource, "resource is null");
-    this.tableName = table;
+    this.tableId = tableId;
 
     this.problemType = problemType;
     this.resource = resource;
@@ -76,19 +76,19 @@ public class ProblemReport {
     this.creationTime = creationTime;
   }
 
-  public ProblemReport(String table, ProblemType problemType, String resource, String server, Throwable e) {
-    this(table, problemType, resource, server, e, System.currentTimeMillis());
+  public ProblemReport(String tableId, ProblemType problemType, String resource, String server, Throwable e) {
+    this(tableId, problemType, resource, server, e, System.currentTimeMillis());
   }
 
-  public ProblemReport(String table, ProblemType problemType, String resource, Throwable e) {
-    this(table, problemType, resource, null, e);
+  public ProblemReport(String tableId, ProblemType problemType, String resource, Throwable e) {
+    this(tableId, problemType, resource, null, e);
   }
 
   private ProblemReport(String table, ProblemType problemType, String resource, byte enc[]) throws IOException {
     requireNonNull(table, "table is null");
     requireNonNull(problemType, "problemType is null");
     requireNonNull(resource, "resource is null");
-    this.tableName = table;
+    this.tableId = table;
     this.problemType = problemType;
     this.resource = resource;
 
@@ -137,13 +137,13 @@ public class ProblemReport {
   }
 
   void removeFromMetadataTable(AccumuloServerContext context) throws Exception {
-    Mutation m = new Mutation(new Text("~err_" + tableName));
+    Mutation m = new Mutation(new Text("~err_" + tableId));
     m.putDelete(new Text(problemType.name()), new Text(resource));
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
 
   void saveToMetadataTable(AccumuloServerContext context) throws Exception {
-    Mutation m = new Mutation(new Text("~err_" + tableName));
+    Mutation m = new Mutation(new Text("~err_" + tableId));
     m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
@@ -188,27 +188,27 @@ public class ProblemReport {
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     DataInputStream dis = new DataInputStream(bais);
 
-    String tableName = dis.readUTF();
+    String tableId = dis.readUTF();
     String problemType = dis.readUTF();
     String resource = dis.readUTF();
 
     String zpath = ZooUtil.getRoot(instance) + Constants.ZPROBLEMS + "/" + node;
     byte[] enc = zoorw.getData(zpath, null);
 
-    return new ProblemReport(tableName, ProblemType.valueOf(problemType), resource, enc);
+    return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, enc);
 
   }
 
   public static ProblemReport decodeMetadataEntry(Entry<Key,Value> entry) throws IOException {
-    String tableName = entry.getKey().getRow().toString().substring("~err_".length());
+    String tableId = entry.getKey().getRow().toString().substring("~err_".length());
     String problemType = entry.getKey().getColumnFamily().toString();
     String resource = entry.getKey().getColumnQualifier().toString();
 
-    return new ProblemReport(tableName, ProblemType.valueOf(problemType), resource, entry.getValue().get());
+    return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, entry.getValue().get());
   }
 
   public String getTableName() {
-    return tableName;
+    return tableId;
   }
 
   public ProblemType getProblemType() {
@@ -233,14 +233,14 @@ public class ProblemReport {
 
   @Override
   public int hashCode() {
-    return tableName.hashCode() + problemType.hashCode() + resource.hashCode();
+    return tableId.hashCode() + problemType.hashCode() + resource.hashCode();
   }
 
   @Override
   public boolean equals(Object o) {
     if (o instanceof ProblemReport) {
       ProblemReport opr = (ProblemReport) o;
-      return tableName.equals(opr.tableName) && problemType.equals(opr.problemType) && resource.equals(opr.resource);
+      return tableId.equals(opr.tableId) && problemType.equals(opr.problemType) && resource.equals(opr.resource);
     }
     return false;
   }

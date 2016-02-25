@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +51,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   // The fraction of memory that needs to be used before we begin flushing.
   private double compactionThreshold;
   private long maxObserved;
-  private final HashMap<Text,Long> mincIdleThresholds = new HashMap<Text,Long>();
+  private final HashMap<String,Long> mincIdleThresholds = new HashMap<String,Long>();
   private ServerConfiguration config = null;
 
   private static class TabletInfo {
@@ -140,9 +139,9 @@ public class LargestFirstMemoryManager implements MemoryManager {
   }
 
   protected long getMinCIdleThreshold(KeyExtent extent) {
-    Text tableId = extent.getTableId();
+    String tableId = extent.getTableId();
     if (!mincIdleThresholds.containsKey(tableId))
-      mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId.toString()).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
+      mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
     return mincIdleThresholds.get(tableId);
   }
 
@@ -173,7 +172,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     // find the largest and most idle tablets
     for (TabletState ts : tablets) {
       // Make sure that the table still exists
-      if (!tableExists(instance, ts.getExtent().getTableId().toString())) {
+      if (!tableExists(instance, ts.getExtent().getTableId())) {
         log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
         continue;
       }

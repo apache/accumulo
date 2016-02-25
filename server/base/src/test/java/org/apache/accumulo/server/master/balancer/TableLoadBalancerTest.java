@@ -82,8 +82,8 @@ public class TableLoadBalancerTest {
     // generate some fake tablets
     for (int i = 0; i < tableInfo.tableMap.get(tableId).onlineTablets; i++) {
       TabletStats stats = new TabletStats();
-      stats.extent = new KeyExtent(new Text(tableId), new Text(tserver.host() + String.format("%03d", i + 1)), new Text(tserver.host()
-          + String.format("%03d", i))).toThrift();
+      stats.extent = new KeyExtent(tableId, new Text(tserver.host() + String.format("%03d", i + 1)), new Text(tserver.host() + String.format("%03d", i)))
+          .toThrift();
       result.add(stats);
     }
     return result;
@@ -178,7 +178,7 @@ public class TableLoadBalancerTest {
     for (TabletMigration migration : migrationsOut) {
       if (migration.oldServer.equals(svr))
         count++;
-      String key = migration.tablet.getTableId().toString();
+      String key = migration.tablet.getTableId();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }
     Assert.assertEquals(15, count);

@@ -51,7 +51,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
 
@@ -199,7 +198,7 @@ public class RemoveEntriesForMissingFiles {
       return checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
     } else {
       String tableId = Tables.getTableId(context.getInstance(), tableName);
-      Range range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+      Range range = new KeyExtent(tableId, null, null).toMetadataRange();
       return checkTable(context, MetadataTable.NAME, range, fix);
     }
   }

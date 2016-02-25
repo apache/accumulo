@@ -221,7 +221,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       else
         startRow = new Text();
 
-      nextRange = new Range(new KeyExtent(new Text(tableId), startRow, null).getMetadataEntry(), true, null, false);
+      nextRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
     } else {
 
       if (currentExtent.getEndRow() == null) {
@@ -256,7 +256,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     KeyExtent extent = eloc.getFirst();
 
-    if (!extent.getTableId().toString().equals(tableId)) {
+    if (!extent.getTableId().equals(tableId)) {
       throw new AccumuloException(" did not find tablets for table " + tableId + " " + extent);
     }
 

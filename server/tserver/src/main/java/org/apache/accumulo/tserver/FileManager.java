@@ -322,7 +322,7 @@ public class FileManager {
         readersReserved.put(reader, file);
       } catch (Exception e) {
 
-        ProblemReports.getInstance(context).report(new ProblemReport(tablet.getTableId().toString(), ProblemType.FILE_READ, file, e));
+        ProblemReports.getInstance(context).report(new ProblemReport(tablet.getTableId(), ProblemType.FILE_READ, file, e));
 
         if (continueOnFailure) {
           // release the permit for the file that failed to open
@@ -526,9 +526,9 @@ public class FileManager {
           FileDataSource fds = new FileDataSource(filename, source);
           dataSources.add(fds);
           SourceSwitchingIterator ssi = new SourceSwitchingIterator(fds);
-          iter = new ProblemReportingIterator(context, tablet.getTableId().toString(), filename, continueOnFailure, ssi);
+          iter = new ProblemReportingIterator(context, tablet.getTableId(), filename, continueOnFailure, ssi);
         } else {
-          iter = new ProblemReportingIterator(context, tablet.getTableId().toString(), filename, continueOnFailure, source);
+          iter = new ProblemReportingIterator(context, tablet.getTableId(), filename, continueOnFailure, source);
         }
         DataFileValue value = files.get(new FileRef(filename));
         if (value.isTimeSet()) {

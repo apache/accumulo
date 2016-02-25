@@ -136,7 +136,7 @@ public class ThriftScanner {
   public static class ScanState {
 
     boolean isolated;
-    Text tableId;
+    String tableId;
     Text startRow;
     boolean skipStartRow;
     long readaheadThreshold;
@@ -163,7 +163,7 @@ public class ThriftScanner {
 
     SamplerConfiguration samplerConfig;
 
-    public ScanState(ClientContext context, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
+    public ScanState(ClientContext context, String tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long readaheadThreshold,
         SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext) {
       this.context = context;
@@ -245,10 +245,10 @@ public class ThriftScanner {
             loc = TabletLocator.getLocator(context, scanState.tableId).locateTablet(context, scanState.startRow, scanState.skipStartRow, false);
 
             if (loc == null) {
-              if (!Tables.exists(instance, scanState.tableId.toString()))
-                throw new TableDeletedException(scanState.tableId.toString());
-              else if (Tables.getTableState(instance, scanState.tableId.toString()) == TableState.OFFLINE)
-                throw new TableOfflineException(instance, scanState.tableId.toString());
+              if (!Tables.exists(instance, scanState.tableId))
+                throw new TableDeletedException(scanState.tableId);
+              else if (Tables.getTableState(instance, scanState.tableId) == TableState.OFFLINE)
+                throw new TableOfflineException(instance, scanState.tableId);
 
               error = "Failed to locate tablet for table : " + scanState.tableId + " row : " + scanState.startRow;
               if (!error.equals(lastError))
@@ -296,15 +296,14 @@ public class ThriftScanner {
           results = scan(loc, scanState, context);
         } catch (AccumuloSecurityException e) {
           Tables.clearCache(instance);
-          if (!Tables.exists(instance, scanState.tableId.toString()))
-            throw new TableDeletedException(scanState.tableId.toString());
-          e.setTableInfo(Tables.getPrintableTableInfoFromId(instance, scanState.tableId.toString()));
+          if (!Tables.exists(instance, scanState.tableId))
+            throw new TableDeletedException(scanState.tableId);
+          e.setTableInfo(Tables.getPrintableTableInfoFromId(instance, scanState.tableId));
           throw e;
         } catch (TApplicationException tae) {
           throw new AccumuloServerException(loc.tablet_location, tae);
         } catch (TSampleNotPresentException tsnpe) {
-          String message = "Table " + Tables.getPrintableTableInfoFromId(instance, scanState.tableId.toString())
-              + " does not have sampling configured or built";
+          String message = "Table " + Tables.getPrintableTableInfoFromId(instance, scanState.tableId) + " does not have sampling configured or built";
           throw new SampleNotPresentException(message, tsnpe);
         } catch (NotServingTabletException e) {
           error = "Scan failed, not serving tablet " + loc;
@@ -442,7 +441,7 @@ public class ThriftScanner {
           client.closeScan(tinfo, is.scanID);
 
       } else {
-        // log.debug("Calling continue scan : "+scanState.range+"  loc = "+loc);
+        // log.debug("Calling continue scan : "+scanState.range+" loc = "+loc);
         String msg = "Continuing scan tserver=" + loc.tablet_location + " scanid=" + scanState.scanID;
         Thread.currentThread().setName(msg);
 

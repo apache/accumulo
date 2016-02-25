@@ -35,7 +35,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.commons.configuration.ConfigurationException;
-import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class MasterAssignmentIT extends AccumuloClusterHarness {
@@ -92,7 +91,7 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
   private TabletLocationState getTabletLocationState(Connector c, String tableId) throws FileNotFoundException, ConfigurationException {
     Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
     ClientContext context = new ClientContext(c.getInstance(), creds, getCluster().getClientConfig());
-    MetaDataTableScanner s = new MetaDataTableScanner(context, new Range(KeyExtent.getMetadataEntry(new Text(tableId), null)));
+    MetaDataTableScanner s = new MetaDataTableScanner(context, new Range(KeyExtent.getMetadataEntry(tableId, null)));
     TabletLocationState tlState = s.next();
     s.close();
     return tlState;

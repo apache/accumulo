@@ -177,7 +177,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   @Override
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return getTableConfiguration(extent.getTableId().toString());
+    return getTableConfiguration(extent.getTableId());
   }
 
   public NamespaceConfiguration getNamespaceConfigurationForTable(String tableId) {

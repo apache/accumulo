@@ -598,8 +598,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (ss != null) {
         long t2 = System.currentTimeMillis();
 
-        log.debug(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ", TServerUtils.clientAddress.get(), ss.extent.getTableId()
-            .toString(), ss.entriesReturned, (t2 - ss.startTime) / 1000.0, ss.nbTimes.toString()));
+        log.debug(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ", TServerUtils.clientAddress.get(), ss.extent.getTableId(),
+            ss.entriesReturned, (t2 - ss.startTime) / 1000.0, ss.nbTimes.toString()));
         if (scanMetrics.isEnabled()) {
           scanMetrics.add(TabletServerScanMetrics.SCAN, t2 - ss.startTime);
           scanMetrics.add(TabletServerScanMetrics.RESULT_SIZE, ss.entriesReturned);
@@ -754,7 +754,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         // if user has no permission to write to this table, add it to
         // the failures list
         boolean sameTable = us.currentTablet != null && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
-        String tableId = keyExtent.getTableId().toString();
+        String tableId = keyExtent.getTableId();
         if (sameTable || security.canWrite(us.getCredentials(), tableId, Tables.getNamespaceId(getInstance(), tableId))) {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
@@ -1301,7 +1301,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         }
       }
 
-      Text tid = new Text(cs.tableId);
+      String tid = cs.tableId;
       long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
 
       try {
@@ -1395,7 +1395,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         onlineTabletsCopy = new TreeMap<KeyExtent,Tablet>(onlineTablets);
       }
       List<TabletStats> result = new ArrayList<TabletStats>();
-      Text text = new Text(tableId);
+      String text = tableId;
       KeyExtent start = new KeyExtent(text, new Text(), null);
       for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.tailMap(start).entrySet()) {
         KeyExtent ke = entry.getKey();
@@ -1570,7 +1570,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       ArrayList<Tablet> tabletsToFlush = new ArrayList<Tablet>();
 
-      KeyExtent ke = new KeyExtent(new Text(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
+      KeyExtent ke = new KeyExtent(tableId, ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
       synchronized (onlineTablets) {
         for (Tablet tablet : onlineTablets.values())
@@ -1688,7 +1688,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         throw new RuntimeException(e);
       }
 
-      KeyExtent ke = new KeyExtent(new Text(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
+      KeyExtent ke = new KeyExtent(tableId, ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
       ArrayList<Tablet> tabletsToCompact = new ArrayList<Tablet>();
       synchronized (onlineTablets) {
@@ -2160,8 +2160,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           log.warn("{}", e.getMessage());
         }
 
-        String table = extent.getTableId().toString();
-        ProblemReports.getInstance(TabletServer.this).report(new ProblemReport(table, TABLET_LOAD, extent.getUUID().toString(), getClientAddressString(), e));
+        String tableId = extent.getTableId();
+        ProblemReports.getInstance(TabletServer.this).report(new ProblemReport(tableId, TABLET_LOAD, extent.getUUID().toString(), getClientAddressString(), e));
       } finally {
         releaseRecoveryMemory(extent);
       }
@@ -2759,7 +2759,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           extents = new ArrayList<KeyExtent>(onlineTablets.keySet());
         }
 
-        Set<Text> tables = new HashSet<Text>();
+        Set<String> tables = new HashSet<String>();
 
         for (KeyExtent keyExtent : extents) {
           tables.add(keyExtent.getTableId());
@@ -2767,7 +2767,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
         HashSet<String> contexts = new HashSet<String>();
 
-        for (Text tableid : tables) {
+        for (String tableid : tables) {
           String context = getTableConfiguration(new KeyExtent(tableid, null, null)).get(Property.TABLE_CLASSPATH);
           if (!context.equals("")) {
             contexts.add(context);
@@ -2825,7 +2825,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     Map<String,TableInfo> tables = new HashMap<String,TableInfo>();
 
     for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.entrySet()) {
-      String tableId = entry.getKey().getTableId().toString();
+      String tableId = entry.getKey().getTableId();
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
@@ -2878,7 +2878,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
 
     for (KeyExtent extent : offlineTabletsCopy) {
-      String tableId = extent.getTableId().toString();
+      String tableId = extent.getTableId();
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
@@ -2984,7 +2984,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return confFactory.getTableConfiguration(extent.getTableId().toString());
+    return confFactory.getTableConfiguration(extent.getTableId());
   }
 
   public DfsLogger.ServerResources getServerConfig() {
@@ -3035,6 +3035,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   // avoid unnecessary redundant markings to meta
   final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
   final Object levelLocks[] = new Object[TabletLevel.values().length];
+
   {
     for (int i = 0; i < levelLocks.length; i++) {
       levelLocks[i] = new Object();
