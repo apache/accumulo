@@ -545,6 +545,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       modCount++;
 
+      // Maybe increment count here
       _mutate(mutation, mutationCount);
     } finally {
       wlock.unlock();
