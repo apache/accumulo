@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -222,7 +223,12 @@ public class TabletServerBatchWriter {
     if (mutations.getMemoryUsed() == 0)
       return;
     lastProcessingStartTime = System.currentTimeMillis();
-    writer.queueMutations(mutations);
+    try {
+      writer.queueMutations(mutations);
+    } catch (RejectedExecutionException e) {
+      log.warn("Mutations rejected from binning thread, retrying...");
+      failedMutations.add(mutations);
+    }
     mutations = new MutationSet();
   }
 
@@ -630,7 +636,7 @@ public class TabletServerBatchWriter {
 
     private static final int MUTATION_BATCH_SIZE = 1 << 17;
     private final ExecutorService sendThreadPool;
-    private final ExecutorService queueThreadPool = new SimpleThreadPool(1, "QueueMutations");
+    private final ExecutorService queueThreadPool = new SimpleThreadPool(1, "QueueMutationsForBinning");
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
     private final Map<String,TabletLocator> locators;
