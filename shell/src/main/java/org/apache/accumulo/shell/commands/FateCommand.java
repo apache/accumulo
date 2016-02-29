@@ -79,11 +79,9 @@ public class FateCommand extends Command {
   }
 
   // the purpose of this class is to be serialized as JSon for display
-  private static class ByteArrayContainer {
-    @SuppressWarnings("unused")
-    String asUtf8;
-    @SuppressWarnings("unused")
-    String asBase64;
+  public static class ByteArrayContainer {
+    public String asUtf8;
+    public String asBase64;
 
     ByteArrayContainer(byte[] ba) {
       asUtf8 = new String(ba, StandardCharsets.UTF_8);
@@ -100,10 +98,8 @@ public class FateCommand extends Command {
   }
 
   // the purpose of this class is to be serialized as JSon for display
-  private static class FateStack {
-    @SuppressWarnings("unused")
+  public static class FateStack {
     String txid;
-    @SuppressWarnings("unused")
     List<ReadOnlyRepo<FateCommand>> stack;
 
     FateStack(Long txid, List<ReadOnlyRepo<FateCommand>> stack) {
@@ -212,9 +208,7 @@ public class FateCommand extends Command {
 
       for (Long txid : txids) {
         List<ReadOnlyRepo<FateCommand>> repoStack = zs.getStack(txid);
-        if (repoStack != null) {
-          txStacks.add(new FateStack(txid, repoStack));
-        }
+        txStacks.add(new FateStack(txid, repoStack));
       }
 
       System.out.println(gson.toJson(txStacks));

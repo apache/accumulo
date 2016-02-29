@@ -459,7 +459,6 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public List<ReadOnlyRepo<T>> getStack(long tid) {
     String txpath = getTXPath(tid);
@@ -469,7 +468,7 @@ public class ZooStore<T> implements TStore<T> {
       try {
         ops = zk.getChildren(txpath);
       } catch (KeeperException.NoNodeException e) {
-        return null;
+        return Collections.emptyList();
       } catch (KeeperException | InterruptedException e1) {
         throw new RuntimeException(e1);
       }
@@ -484,7 +483,9 @@ public class ZooStore<T> implements TStore<T> {
           byte[] ser;
           try {
             ser = zk.getData(txpath + "/" + child, null);
-            dops.add((ReadOnlyRepo<T>) deserialize(ser));
+            @SuppressWarnings("unchecked")
+            ReadOnlyRepo<T> repo = (ReadOnlyRepo<T>) deserialize(ser);
+            dops.add(repo);
           } catch (KeeperException.NoNodeException e) {
             // children changed so start over
             continue outer;
