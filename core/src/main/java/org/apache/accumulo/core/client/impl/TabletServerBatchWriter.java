@@ -716,14 +716,13 @@ public class TabletServerBatchWriter {
       if (null == mutationsToSend)
         return;
       binningThreadPool.execute(new Runnable() {
-        final MutationSet m = mutationsToSend;
 
         @Override
         public void run() {
-          if (null != m) {
+          if (null != mutationsToSend) {
             try {
-              log.trace("{} - binning {} mutations", Thread.currentThread().getName(), m.size());
-              addMutations(m);
+              log.trace("{} - binning {} mutations", Thread.currentThread().getName(), mutationsToSend.size());
+              addMutations(mutationsToSend);
             } catch (Exception e) {
               updateUnknownErrors("Error processing mutation set", e);
             }
