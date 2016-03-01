@@ -32,7 +32,8 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -367,7 +368,7 @@ public class TabletServerBatchWriter {
       checkForFailures();
     } finally {
       // make a best effort to release these resources
-      writer.executor.shutdownNow();
+      writer.binningThreadPool.shutdownNow();
       writer.sendThreadPool.shutdownNow();
       jtimer.cancel();
       span.stop();
@@ -411,10 +412,10 @@ public class TabletServerBatchWriter {
       log.trace(String.format("Total bin time       : %,10.2f secs %6.2f%s", totalBinTime.get() / 1000.0,
           100.0 * totalBinTime.get() / (finishTime - startTime), "%"));
       log.trace(String.format("Average bin rate     : %,10.2f mutations/sec", totalBinned.get() / (totalBinTime.get() / 1000.0)));
-      log.trace(String.format("tservers per batch   : %,8.2f avg  %,6d min %,6d max", tabletServersBatchSum.get() / (double) numBatches.get(),
-          minTabletServersBatch, maxTabletServersBatch));
-      log.trace(String.format("tablets per batch    : %,8.2f avg  %,6d min %,6d max", tabletBatchSum.get() / (double) numBatches.get(), minTabletBatch,
-          maxTabletBatch));
+      log.trace(String.format("tservers per batch   : %,8.2f avg  %,6d min %,6d max", (float) (tabletServersBatchSum.get() / numBatches.get()),
+          minTabletServersBatch.get(), maxTabletServersBatch.get()));
+      log.trace(String.format("tablets per batch    : %,8.2f avg  %,6d min %,6d max", (float) (tabletBatchSum.get() / numBatches.get()), minTabletBatch.get(),
+          maxTabletBatch.get()));
       log.trace("");
       log.trace("SYSTEM STATISTICS");
       log.trace(String.format("JVM GC Time          : %,10.2f secs", ((finalGCTimes - initialGCTimes) / 1000.0)));
@@ -638,8 +639,7 @@ public class TabletServerBatchWriter {
 
     private static final int MUTATION_BATCH_SIZE = 1 << 17;
     private final ExecutorService sendThreadPool;
-    private final LinkedTransferQueue<Runnable> queue = new LinkedTransferQueue<>();
-    private final SimpleThreadPool executor = new SimpleThreadPool(1, "BinMutations", queue);
+    private final SimpleThreadPool binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
     private final Map<String,TabletLocator> locators;
@@ -649,6 +649,8 @@ public class TabletServerBatchWriter {
       queued = new HashSet<String>();
       sendThreadPool = new SimpleThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<String,TabletLocator>();
+      binningThreadPool = new SimpleThreadPool(1, "BinMutations", new SynchronousQueue<Runnable>());
+      binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     private TabletLocator getLocator(String tableId) {
@@ -713,13 +715,14 @@ public class TabletServerBatchWriter {
     void queueMutations(final MutationSet mutationsToSend) throws InterruptedException {
       if (null == mutationsToSend)
         return;
-      boolean transferred = queue.tryTransfer(new Runnable() {
+      binningThreadPool.execute(new Runnable() {
         final MutationSet m = mutationsToSend;
 
         @Override
         public void run() {
           if (null != m) {
             try {
+              log.trace("{} - binning {} mutations", Thread.currentThread().getName(), m.size());
               addMutations(m);
             } catch (Exception e) {
               updateUnknownErrors("Error processing mutation set", e);
@@ -727,13 +730,6 @@ public class TabletServerBatchWriter {
           }
         }
       });
-      if (!transferred) {
-        try {
-          addMutations(mutationsToSend);
-        } catch (Exception e) {
-          updateUnknownErrors("Error processing mutation set", e);
-        }
-      }
     }
 
     private void addMutations(MutationSet mutationsToSend) {
