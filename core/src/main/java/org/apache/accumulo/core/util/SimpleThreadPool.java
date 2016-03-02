@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,11 @@ public class SimpleThreadPool extends ThreadPoolExecutor {
 
   public SimpleThreadPool(int max, final String name) {
     super(max, max, 4l, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name));
+    allowCoreThreadTimeOut(true);
+  }
+
+  public SimpleThreadPool(int max, final String name, BlockingQueue<Runnable> queue) {
+    super(max, max, 4l, TimeUnit.SECONDS, queue, new NamingThreadFactory(name));
     allowCoreThreadTimeOut(true);
   }
 

@@ -32,7 +32,10 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -135,13 +138,13 @@ public class TabletServerBatchWriter {
   private long initialCompileTimes;
   private double initialSystemLoad;
 
-  private int tabletServersBatchSum = 0;
-  private int tabletBatchSum = 0;
-  private int numBatches = 0;
-  private int maxTabletBatch = Integer.MIN_VALUE;
-  private int minTabletBatch = Integer.MAX_VALUE;
-  private int minTabletServersBatch = Integer.MAX_VALUE;
-  private int maxTabletServersBatch = Integer.MIN_VALUE;
+  private AtomicInteger tabletServersBatchSum = new AtomicInteger(0);
+  private AtomicInteger tabletBatchSum = new AtomicInteger(0);
+  private AtomicInteger numBatches = new AtomicInteger(0);
+  private AtomicInteger maxTabletBatch = new AtomicInteger(Integer.MIN_VALUE);
+  private AtomicInteger minTabletBatch = new AtomicInteger(Integer.MAX_VALUE);
+  private AtomicInteger minTabletServersBatch = new AtomicInteger(Integer.MAX_VALUE);
+  private AtomicInteger maxTabletServersBatch = new AtomicInteger(Integer.MIN_VALUE);
 
   // error handling
   private final Violations violations = new Violations();
@@ -222,7 +225,12 @@ public class TabletServerBatchWriter {
     if (mutations.getMemoryUsed() == 0)
       return;
     lastProcessingStartTime = System.currentTimeMillis();
-    writer.addMutations(mutations);
+    try {
+      writer.queueMutations(mutations);
+    } catch (InterruptedException e) {
+      log.warn("Mutations rejected from binning thread, retrying...");
+      failedMutations.add(mutations);
+    }
     mutations = new MutationSet();
   }
 
@@ -360,6 +368,7 @@ public class TabletServerBatchWriter {
       checkForFailures();
     } finally {
       // make a best effort to release these resources
+      writer.binningThreadPool.shutdownNow();
       writer.sendThreadPool.shutdownNow();
       jtimer.cancel();
       span.stop();
@@ -367,26 +376,26 @@ public class TabletServerBatchWriter {
   }
 
   private void logStats() {
-    long finishTime = System.currentTimeMillis();
-
-    long finalGCTimes = 0;
-    List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
-    for (GarbageCollectorMXBean garbageCollectorMXBean : gcmBeans) {
-      finalGCTimes += garbageCollectorMXBean.getCollectionTime();
-    }
-
-    CompilationMXBean compMxBean = ManagementFactory.getCompilationMXBean();
-    long finalCompileTimes = 0;
-    if (compMxBean.isCompilationTimeMonitoringSupported()) {
-      finalCompileTimes = compMxBean.getTotalCompilationTime();
-    }
-
-    double averageRate = totalSent.get() / (totalSendTime.get() / 1000.0);
-    double overallRate = totalAdded / ((finishTime - startTime) / 1000.0);
-
-    double finalSystemLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
-
     if (log.isTraceEnabled()) {
+      long finishTime = System.currentTimeMillis();
+
+      long finalGCTimes = 0;
+      List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
+      for (GarbageCollectorMXBean garbageCollectorMXBean : gcmBeans) {
+        finalGCTimes += garbageCollectorMXBean.getCollectionTime();
+      }
+
+      CompilationMXBean compMxBean = ManagementFactory.getCompilationMXBean();
+      long finalCompileTimes = 0;
+      if (compMxBean.isCompilationTimeMonitoringSupported()) {
+        finalCompileTimes = compMxBean.getTotalCompilationTime();
+      }
+
+      double averageRate = totalSent.get() / (totalSendTime.get() / 1000.0);
+      double overallRate = totalAdded / ((finishTime - startTime) / 1000.0);
+
+      double finalSystemLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
+
       log.trace("");
       log.trace("TABLET SERVER BATCH WRITER STATISTICS");
       log.trace(String.format("Added                : %,10d mutations", totalAdded));
@@ -403,9 +412,10 @@ public class TabletServerBatchWriter {
       log.trace(String.format("Total bin time       : %,10.2f secs %6.2f%s", totalBinTime.get() / 1000.0,
           100.0 * totalBinTime.get() / (finishTime - startTime), "%"));
       log.trace(String.format("Average bin rate     : %,10.2f mutations/sec", totalBinned.get() / (totalBinTime.get() / 1000.0)));
-      log.trace(String.format("tservers per batch   : %,8.2f avg  %,6d min %,6d max", tabletServersBatchSum / (double) numBatches, minTabletServersBatch,
-          maxTabletServersBatch));
-      log.trace(String.format("tablets per batch    : %,8.2f avg  %,6d min %,6d max", tabletBatchSum / (double) numBatches, minTabletBatch, maxTabletBatch));
+      log.trace(String.format("tservers per batch   : %,8.2f avg  %,6d min %,6d max", (float) (tabletServersBatchSum.get() / numBatches.get()),
+          minTabletServersBatch.get(), maxTabletServersBatch.get()));
+      log.trace(String.format("tablets per batch    : %,8.2f avg  %,6d min %,6d max", (float) (tabletBatchSum.get() / numBatches.get()), minTabletBatch.get(),
+          maxTabletBatch.get()));
       log.trace("");
       log.trace("SYSTEM STATISTICS");
       log.trace(String.format("JVM GC Time          : %,10.2f secs", ((finalGCTimes - initialGCTimes) / 1000.0)));
@@ -422,16 +432,32 @@ public class TabletServerBatchWriter {
   }
 
   public void updateBinningStats(int count, long time, Map<String,TabletServerMutations<Mutation>> binnedMutations) {
-    totalBinTime.addAndGet(time);
-    totalBinned.addAndGet(count);
-    updateBatchStats(binnedMutations);
+    if (log.isTraceEnabled()) {
+      totalBinTime.addAndGet(time);
+      totalBinned.addAndGet(count);
+      updateBatchStats(binnedMutations);
+    }
   }
 
-  private synchronized void updateBatchStats(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
-    tabletServersBatchSum += binnedMutations.size();
+  private static void computeMin(AtomicInteger stat, int update) {
+    int old = stat.get();
+    while (!stat.compareAndSet(old, Math.min(old, update))) {
+      old = stat.get();
+    }
+  }
 
-    minTabletServersBatch = Math.min(minTabletServersBatch, binnedMutations.size());
-    maxTabletServersBatch = Math.max(maxTabletServersBatch, binnedMutations.size());
+  private static void computeMax(AtomicInteger stat, int update) {
+    int old = stat.get();
+    while (!stat.compareAndSet(old, Math.max(old, update))) {
+      old = stat.get();
+    }
+  }
+
+  private void updateBatchStats(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
+    tabletServersBatchSum.addAndGet(binnedMutations.size());
+
+    computeMin(minTabletServersBatch, binnedMutations.size());
+    computeMax(maxTabletServersBatch, binnedMutations.size());
 
     int numTablets = 0;
 
@@ -440,12 +466,12 @@ public class TabletServerBatchWriter {
       numTablets += tsm.getMutations().size();
     }
 
-    tabletBatchSum += numTablets;
+    tabletBatchSum.addAndGet(numTablets);
 
-    minTabletBatch = Math.min(minTabletBatch, numTablets);
-    maxTabletBatch = Math.max(maxTabletBatch, numTablets);
+    computeMin(minTabletBatch, numTablets);
+    computeMax(maxTabletBatch, numTablets);
 
-    numBatches++;
+    numBatches.incrementAndGet();
   }
 
   private interface WaitCondition {
@@ -629,6 +655,7 @@ public class TabletServerBatchWriter {
 
     private static final int MUTATION_BATCH_SIZE = 1 << 17;
     private final ExecutorService sendThreadPool;
+    private final SimpleThreadPool binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
     private final Map<String,TabletLocator> locators;
@@ -638,9 +665,11 @@ public class TabletServerBatchWriter {
       queued = new HashSet<String>();
       sendThreadPool = new SimpleThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<String,TabletLocator>();
+      binningThreadPool = new SimpleThreadPool(1, "BinMutations", new SynchronousQueue<Runnable>());
+      binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
-    private TabletLocator getLocator(String tableId) {
+    private synchronized TabletLocator getLocator(String tableId) {
       TabletLocator ret = locators.get(tableId);
       if (ret == null) {
         ret = TabletLocator.getLocator(context, tableId);
@@ -699,7 +728,26 @@ public class TabletServerBatchWriter {
 
     }
 
-    void addMutations(MutationSet mutationsToSend) {
+    void queueMutations(final MutationSet mutationsToSend) throws InterruptedException {
+      if (null == mutationsToSend)
+        return;
+      binningThreadPool.execute(new Runnable() {
+
+        @Override
+        public void run() {
+          if (null != mutationsToSend) {
+            try {
+              log.trace("{} - binning {} mutations", Thread.currentThread().getName(), mutationsToSend.size());
+              addMutations(mutationsToSend);
+            } catch (Exception e) {
+              updateUnknownErrors("Error processing mutation set", e);
+            }
+          }
+        }
+      });
+    }
+
+    private void addMutations(MutationSet mutationsToSend) {
       Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<String,TabletServerMutations<Mutation>>();
       Span span = Trace.start("binMutations");
       try {
