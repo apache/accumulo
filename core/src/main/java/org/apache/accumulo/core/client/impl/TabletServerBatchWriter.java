@@ -439,15 +439,25 @@ public class TabletServerBatchWriter {
     }
   }
 
+  private static void computeMin(AtomicInteger stat, int update) {
+    int old = stat.get();
+    while (!stat.compareAndSet(old, Math.min(old, update))) {
+      old = stat.get();
+    }
+  }
+
+  private static void computeMax(AtomicInteger stat, int update) {
+    int old = stat.get();
+    while (!stat.compareAndSet(old, Math.max(old, update))) {
+      old = stat.get();
+    }
+  }
+
   private void updateBatchStats(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
     tabletServersBatchSum.addAndGet(binnedMutations.size());
 
-    synchronized (minTabletServersBatch) {
-      minTabletServersBatch.set(Math.min(minTabletServersBatch.get(), binnedMutations.size()));
-    }
-    synchronized (maxTabletServersBatch) {
-      maxTabletServersBatch.set(Math.max(maxTabletServersBatch.get(), binnedMutations.size()));
-    }
+    computeMin(minTabletServersBatch, binnedMutations.size());
+    computeMax(maxTabletServersBatch, binnedMutations.size());
 
     int numTablets = 0;
 
@@ -458,12 +468,8 @@ public class TabletServerBatchWriter {
 
     tabletBatchSum.addAndGet(numTablets);
 
-    synchronized (minTabletBatch) {
-      minTabletBatch.set(Math.min(minTabletBatch.get(), numTablets));
-    }
-    synchronized (maxTabletBatch) {
-      maxTabletBatch.set(Math.max(maxTabletBatch.get(), numTablets));
-    }
+    computeMin(minTabletBatch, numTablets);
+    computeMax(maxTabletBatch, numTablets);
 
     numBatches.incrementAndGet();
   }
