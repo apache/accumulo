@@ -376,26 +376,26 @@ public class TabletServerBatchWriter {
   }
 
   private void logStats() {
-    long finishTime = System.currentTimeMillis();
-
-    long finalGCTimes = 0;
-    List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
-    for (GarbageCollectorMXBean garbageCollectorMXBean : gcmBeans) {
-      finalGCTimes += garbageCollectorMXBean.getCollectionTime();
-    }
-
-    CompilationMXBean compMxBean = ManagementFactory.getCompilationMXBean();
-    long finalCompileTimes = 0;
-    if (compMxBean.isCompilationTimeMonitoringSupported()) {
-      finalCompileTimes = compMxBean.getTotalCompilationTime();
-    }
-
-    double averageRate = totalSent.get() / (totalSendTime.get() / 1000.0);
-    double overallRate = totalAdded / ((finishTime - startTime) / 1000.0);
-
-    double finalSystemLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
-
     if (log.isTraceEnabled()) {
+      long finishTime = System.currentTimeMillis();
+
+      long finalGCTimes = 0;
+      List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
+      for (GarbageCollectorMXBean garbageCollectorMXBean : gcmBeans) {
+        finalGCTimes += garbageCollectorMXBean.getCollectionTime();
+      }
+
+      CompilationMXBean compMxBean = ManagementFactory.getCompilationMXBean();
+      long finalCompileTimes = 0;
+      if (compMxBean.isCompilationTimeMonitoringSupported()) {
+        finalCompileTimes = compMxBean.getTotalCompilationTime();
+      }
+
+      double averageRate = totalSent.get() / (totalSendTime.get() / 1000.0);
+      double overallRate = totalAdded / ((finishTime - startTime) / 1000.0);
+
+      double finalSystemLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
+
       log.trace("");
       log.trace("TABLET SERVER BATCH WRITER STATISTICS");
       log.trace(String.format("Added                : %,10d mutations", totalAdded));
@@ -432,16 +432,22 @@ public class TabletServerBatchWriter {
   }
 
   public void updateBinningStats(int count, long time, Map<String,TabletServerMutations<Mutation>> binnedMutations) {
-    totalBinTime.addAndGet(time);
-    totalBinned.addAndGet(count);
-    updateBatchStats(binnedMutations);
+    if (log.isTraceEnabled()) {
+      totalBinTime.addAndGet(time);
+      totalBinned.addAndGet(count);
+      updateBatchStats(binnedMutations);
+    }
   }
 
   private void updateBatchStats(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
     tabletServersBatchSum.addAndGet(binnedMutations.size());
 
-    minTabletServersBatch.set(Math.min(minTabletServersBatch.get(), binnedMutations.size()));
-    maxTabletServersBatch.set(Math.max(maxTabletServersBatch.get(), binnedMutations.size()));
+    synchronized (minTabletServersBatch) {
+      minTabletServersBatch.set(Math.min(minTabletServersBatch.get(), binnedMutations.size()));
+    }
+    synchronized (maxTabletServersBatch) {
+      maxTabletServersBatch.set(Math.max(maxTabletServersBatch.get(), binnedMutations.size()));
+    }
 
     int numTablets = 0;
 
@@ -452,8 +458,12 @@ public class TabletServerBatchWriter {
 
     tabletBatchSum.addAndGet(numTablets);
 
-    minTabletBatch.set(Math.min(minTabletBatch.get(), numTablets));
-    maxTabletBatch.set(Math.max(maxTabletBatch.get(), numTablets));
+    synchronized (minTabletBatch) {
+      minTabletBatch.set(Math.min(minTabletBatch.get(), numTablets));
+    }
+    synchronized (maxTabletBatch) {
+      maxTabletBatch.set(Math.max(maxTabletBatch.get(), numTablets));
+    }
 
     numBatches.incrementAndGet();
   }
@@ -653,7 +663,7 @@ public class TabletServerBatchWriter {
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
-    private TabletLocator getLocator(String tableId) {
+    private synchronized TabletLocator getLocator(String tableId) {
       TabletLocator ret = locators.get(tableId);
       if (ret == null) {
         ret = TabletLocator.getLocator(context, tableId);
