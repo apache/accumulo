@@ -17,10 +17,14 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -29,9 +33,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -43,6 +50,13 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.zookeeper.KeeperException;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
 /**
  * Manage FATE transactions
  *
@@ -52,6 +66,47 @@ public class FateCommand extends Command {
   private static final String SCHEME = "digest";
 
   private static final String USER = "accumulo";
+
+  // this class serializes references to interfaces with the concrete class name
+  private static class InterfaceSerializer<T> implements JsonSerializer<T> {
+    @Override
+    public JsonElement serialize(T link, Type type, JsonSerializationContext context) {
+      JsonElement je = context.serialize(link, link.getClass());
+      JsonObject jo = new JsonObject();
+      jo.add(link.getClass().getName(), je);
+      return jo;
+    }
+  }
+
+  // the purpose of this class is to be serialized as JSon for display
+  public static class ByteArrayContainer {
+    public String asUtf8;
+    public String asBase64;
+
+    ByteArrayContainer(byte[] ba) {
+      asUtf8 = new String(ba, StandardCharsets.UTF_8);
+      asBase64 = Base64.encodeBase64URLSafeString(ba);
+    }
+  }
+
+  // serialize byte arrays in human and machine readable ways
+  private static class ByteArraySerializer implements JsonSerializer<byte[]> {
+    @Override
+    public JsonElement serialize(byte[] link, Type type, JsonSerializationContext context) {
+      return context.serialize(new ByteArrayContainer(link));
+    }
+  }
+
+  // the purpose of this class is to be serialized as JSon for display
+  public static class FateStack {
+    String txid;
+    List<ReadOnlyRepo<FateCommand>> stack;
+
+    FateStack(Long txid, List<ReadOnlyRepo<FateCommand>> stack) {
+      this.txid = String.format("%016x", txid);
+      this.stack = stack;
+    }
+  }
 
   private Option secretOption;
   private Option statusOption;
@@ -133,6 +188,30 @@ public class FateCommand extends Command {
       Formatter fmt = new Formatter(buf);
       admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, fmt, filterTxid, filterStatus);
       shellState.printLines(Collections.singletonList(buf.toString()).iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
+    } else if ("dump".equals(cmd)) {
+      List<Long> txids;
+
+      if (args.length == 1) {
+        txids = zs.list();
+      } else {
+        txids = new ArrayList<>();
+        for (int i = 1; i < args.length; i++) {
+          txids.add(Long.parseLong(args[i], 16));
+        }
+      }
+
+      Gson gson = new GsonBuilder().registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+          .registerTypeAdapter(Repo.class, new InterfaceSerializer<>()).registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
+          .create();
+
+      List<FateStack> txStacks = new ArrayList<>();
+
+      for (Long txid : txids) {
+        List<ReadOnlyRepo<FateCommand>> repoStack = zs.getStack(txid);
+        txStacks.add(new FateStack(txid, repoStack));
+      }
+
+      System.out.println(gson.toJson(txStacks));
     } else {
       throw new ParseException("Invalid command option");
     }
@@ -157,7 +236,7 @@ public class FateCommand extends Command {
 
   @Override
   public String usage() {
-    return getName() + " fail <txid>... | delete <txid>... | print [<txid>...]";
+    return getName() + " fail <txid>... | delete <txid>... | print [<txid>...] | dump [<txid>...]";
   }
 
   @Override

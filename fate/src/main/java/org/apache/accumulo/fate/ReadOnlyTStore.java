@@ -87,6 +87,11 @@ public interface ReadOnlyTStore<T> {
   ReadOnlyRepo<T> top(long tid);
 
   /**
+   * Get all operations on a transactions stack. Element 0 contains the most recent operation pushed or the top.
+   */
+  List<ReadOnlyRepo<T>> getStack(long tid);
+
+  /**
    * Get the state of a given transaction.
    *
    * Caller must have already reserved tid.

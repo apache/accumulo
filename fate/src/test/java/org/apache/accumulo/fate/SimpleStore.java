@@ -123,4 +123,9 @@ public class SimpleStore<T> implements TStore<T> {
     return new ArrayList<Long>(statuses.keySet());
   }
 
+  @Override
+  public List<ReadOnlyRepo<T>> getStack(long tid) {
+    throw new NotImplementedException();
+  }
+
 }

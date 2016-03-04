@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.fate;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -456,6 +456,46 @@ public class ZooStore<T> implements TStore<T> {
       return l;
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public List<ReadOnlyRepo<T>> getStack(long tid) {
+    String txpath = getTXPath(tid);
+
+    outer: while (true) {
+      List<String> ops;
+      try {
+        ops = zk.getChildren(txpath);
+      } catch (KeeperException.NoNodeException e) {
+        return Collections.emptyList();
+      } catch (KeeperException | InterruptedException e1) {
+        throw new RuntimeException(e1);
+      }
+
+      ops = new ArrayList<String>(ops);
+      Collections.sort(ops, Collections.reverseOrder());
+
+      ArrayList<ReadOnlyRepo<T>> dops = new ArrayList<>();
+
+      for (String child : ops) {
+        if (child.startsWith("repo_")) {
+          byte[] ser;
+          try {
+            ser = zk.getData(txpath + "/" + child, null);
+            @SuppressWarnings("unchecked")
+            ReadOnlyRepo<T> repo = (ReadOnlyRepo<T>) deserialize(ser);
+            dops.add(repo);
+          } catch (KeeperException.NoNodeException e) {
+            // children changed so start over
+            continue outer;
+          } catch (KeeperException | InterruptedException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }
+
+      return dops;
     }
   }
 }
