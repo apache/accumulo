@@ -2966,13 +2966,26 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
   }
 
+  private Durability getMincEventDurability(KeyExtent extent) {
+    TableConfiguration conf;
+    if (extent.isMeta() || extent.isRootTablet()) {
+      conf = confFactory.getTableConfiguration(RootTable.ID);
+    } else {
+      conf = confFactory.getTableConfiguration(MetadataTable.ID);
+    }
+    Durability durability = DurabilityImpl.fromString(conf.get(Property.TABLE_DURABILITY));
+    return durability;
+  }
+
   public void minorCompactionFinished(CommitSession tablet, String newDatafile, int walogSeq) throws IOException {
+    Durability durability = getMincEventDurability(tablet.getExtent());
     totalMinorCompactions.incrementAndGet();
-    logger.minorCompactionFinished(tablet, newDatafile, walogSeq);
+    logger.minorCompactionFinished(tablet, newDatafile, walogSeq, durability);
   }
 
   public void minorCompactionStarted(CommitSession tablet, int lastUpdateSequence, String newMapfileLocation) throws IOException {
-    logger.minorCompactionStarted(tablet, lastUpdateSequence, newMapfileLocation);
+    Durability durability = getMincEventDurability(tablet.getExtent());
+    logger.minorCompactionStarted(tablet, lastUpdateSequence, newMapfileLocation, durability);
   }
 
   public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<LogEntry> logEntries, Set<String> tabletFiles,
