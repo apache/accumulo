@@ -2968,7 +2968,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private Durability getMincEventDurability(KeyExtent extent) {
     TableConfiguration conf;
-    if (extent.isMeta() || extent.isRootTablet()) {
+    if (extent.isMeta()) {
       conf = confFactory.getTableConfiguration(RootTable.ID);
     } else {
       conf = confFactory.getTableConfiguration(MetadataTable.ID);
