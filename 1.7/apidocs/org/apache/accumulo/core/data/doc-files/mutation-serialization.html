@@ -1,0 +1,196 @@
+<html>
+<head>
+    <title>Serialization Formats for Mutation</title>
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+</head>
+<body>
+    <p>
+        The <code>Mutation</code> class supports two serialization formats.
+        While it only currently serializes to the newer version 2 format, it
+        can read both version 1 and version 2 serialized forms.
+    </p>
+
+    <h2>Version 1 Format</h2>
+    <p>
+        Mutation data serialized in the version 1 format has the following
+        layout.
+    </p>
+    <table>
+        <tr>
+            <th>data location</th>
+            <th>description</th>
+        </tr>
+        <tr>
+            <td>bytes 0 through 3</td>
+            <td>4-byte integer for length of row ID</td>
+        </tr>
+        <tr>
+            <td>next <i>n</i> bytes</td>
+            <td>row ID</td>
+        </tr>
+        <tr>
+            <td>next integer</td>
+            <td>data length</td>
+        </tr>
+        <tr>
+            <td>next <i>n</i> bytes</td>
+            <td>data (see below)</td>
+        </tr>
+        <tr>
+            <td>next integer</td>
+            <td>number of entries</td>
+        </tr>
+        <tr>
+            <td>next boolean</td>
+            <td>values present flag</td>
+        </tr>
+        <tr>
+            <td>next integer</td>
+            <td>number of values (only if values present flag is set)</td>
+        </tr>
+        <tr>
+            <td>next <i>n</i> sets of integers and byte arrays</td>
+            <td><i>n</i> value lengths and value data bytes (only if values
+                present flag is set)</td>
+        </tr>
+    </table>
+    <p>
+        The "data" block noted above has the following layout for each entry.
+    </p>
+    <table>
+        <tr>
+            <td>first integer and byte array</td>
+            <td>column family length and bytes</td>
+        </tr>
+        <tr>
+            <td>next integer and byte array</td>
+            <td>column qualifier length and bytes</td>
+        </tr>
+        <tr>
+            <td>next integer and byte array</td>
+            <td>column visibility length and bytes</td>
+        </tr>
+        <tr>
+            <td>next boolean</td>
+            <td>has timestamp flag</td>
+        </tr>
+        <tr>
+            <td>next long</td>
+            <td>timestamp</td>
+        </tr>
+        <tr>
+            <td>next boolean</td>
+            <td>deleted flag</td>
+        </tr>
+        <tr>
+            <td>next integer</td>
+            <td>value length; if negative, value bytes are the same as those
+                for already-read value (-length - 1)</td>
+        </tr>
+        <tr>
+            <td>next <i>n</i> bytes</td>
+            <td>value bytes (only if value length is non-negative)</td>
+        </tr>
+    </table>
+
+    <h2>Version 2 Format</h2>
+    <p>
+        Mutation data serialized in the version 2 format has the following
+        layout. This format uses variable length encoding for integers and
+        longs.
+    </p>
+    <table>
+        <tr>
+            <th>data location</th>
+            <th>description</th>
+        </tr>
+        <tr>
+            <td>byte 0</td>
+            <td>control byte: top bit = 1 for version 2; bottom bit =
+                values present flag</td>
+        </tr>
+        <tr>
+            <td>next integer
+            <td>length of row ID</td>
+        </tr>
+        <tr>
+            <td>next <i>n</i> bytes</td>
+            <td>row ID</td>
+        </tr>
+        <tr>
+            <td>next integer</td>
+            <td>data length</td>
+        </tr>
+        <tr>
+            <td>next <i>n</i> bytes</td>
+            <td>data (see below)</td>
+        </tr>
+        <tr>
+            <td>next integer</td>
+            <td>number of entries</td>
+        </tr>
+        <tr>
+            <td>next integer</td>
+            <td>number of values (only if values present flag is set)</td>
+        </tr>
+        <tr>
+            <td>next <i>n</i> sets of integers and byte arrays</td>
+            <td><i>n</i> value lengths and value data bytes (only if values
+                present flag is set)</td>
+        </tr>
+    </table>
+    <p>
+        The "data" block noted above has the following layout for each entry.
+    </p>
+    <table>
+        <tr>
+            <td>first long and byte array</td>
+            <td>column family length and bytes</td>
+        </tr>
+        <tr>
+            <td>next long and byte array</td>
+            <td>column qualifier length and bytes</td>
+        </tr>
+        <tr>
+            <td>next long and byte array</td>
+            <td>column visibility length and bytes</td>
+        </tr>
+        <tr>
+            <td>next boolean</td>
+            <td>has timestamp flag</td>
+        </tr>
+        <tr>
+            <td>next long</td>
+            <td>timestamp (only present if timestamp flag is set)</td>
+        </tr>
+        <tr>
+            <td>next boolean</td>
+            <td>deleted flag</td>
+        </tr>
+        <tr>
+            <td>next long</td>
+            <td>value length; if negative, value bytes are the same as those
+                for already-read value (-length - 1)</td>
+        </tr>
+        <tr>
+            <td>next <i>n</i> bytes</td>
+            <td>value bytes (only if value length is non-negative)</td>
+        </tr>
+    </table>
+</body>
+</html>

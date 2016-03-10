@@ -1,0 +1,8 @@
+org.apache.accumulo.core.client
+org.apache.accumulo.core.client.admin
+org.apache.accumulo.core.client.mapreduce
+org.apache.accumulo.core.client.mapreduce.lib.partition
+org.apache.accumulo.core.client.mock
+org.apache.accumulo.core.data
+org.apache.accumulo.core.security
+org.apache.accumulo.minicluster
