@@ -18,3 +18,11 @@ github_username:  apache/accumulo
 
 # Build settings
 markdown: kramdown
+
+defaults:
+  -
+    scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "skeleton"
