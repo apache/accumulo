@@ -149,56 +149,76 @@ This section describes the various actions which are undertaken within the proje
 For Code Change actions, a committer may choose to employ assumed or stated Lazy Approval under the [CTR][ctr] policy. Assumed Lazy Approval has no minimum length of time before the change can be made.
 
 <table class="table">
-<tr><th>Action</th>
+  <tr>
+    <th>Action</th>
     <th>Description</th>
     <th>Approval</th>
     <th>Binding Votes</th>
     <th>Min. Length (days)</th>
-<tr><td>Code Change</td>
+  </tr>
+  <tr>
+    <td>Code Change</td>
     <td>A change made to a codebase of the project. This includes source code, documentation, website content, etc.</td>
     <td>Lazy approval, moving to consensus approval upon veto</td>
     <td>Active committers</td>
     <td>1</td>
-<tr><td>Release Plan</td>
+  </tr>
+  <tr>
+    <td>Release Plan</td>
     <td>Defines the timetable and actions for an upcoming release. The plan also nominates a Release Manager.</td>
     <td>Lazy approval, moving to majority approval upon veto</td>
     <td>Active committers</td>
     <td>3</td>
-<tr><td>Release Plan Cancellation</td>
+  </tr>
+  <tr>
+    <td>Release Plan Cancellation</td>
     <td>Cancels an active release plan, due to a need to re-plan (e.g., discovery of a major issue).</td>
     <td>Majority approval</td>
     <td>Active committers</td>
     <td>3</td>
-<tr><td>Product Release</td>
+  </tr>
+  <tr>
+    <td>Product Release</td>
     <td>Accepts or rejects a release candidate as an official release of the project.</td>
     <td>Majority approval</td>
     <td>Active PMC members</td>
     <td>3</td>
-<tr><td>Adoption of New Codebase</td>
+  </tr>
+  <tr>
+    <td>Adoption of New Codebase</td>
     <td>When the codebase for an existing, released product is to be replaced with an alternative codebase. If such a vote fails to gain approval, the existing code base will continue. This also covers the creation of new sub-projects within the project.</td>
     <td>Consensus approval</td>
     <td>Active PMC members</td>
     <td>7</td>
-<tr><td>New Committer</td>
+  </tr>
+  <tr>
+    <td>New Committer</td>
     <td>When a new committer is proposed for the project.</td>
     <td>Consensus approval</td>
     <td>Active PMC members</td>
     <td>3</td>
-<tr><td>New PMC Member</td>
+  </tr>
+  <tr>
+    <td>New PMC Member</td>
     <td>When a committer is proposed for the PMC.</td>
     <td>Consensus approval</td>
     <td>Active PMC members</td>
     <td>3</td>
-<tr><td>New PMC Chair</td>
+  </tr>
+  <tr>
+    <td>New PMC Chair</td>
     <td>When a new PMC chair is chosen to succeed an outgoing chair.</td>
     <td>Consensus approval</td>
     <td>Active PMC members</td>
     <td>3</td>
-<tr><td>Modifying Bylaws</td>
+  </tr>
+  <tr>
+    <td>Modifying Bylaws</td>
     <td>Modifying this document.</td>
     <td>Consensus approval</td>
     <td>Active PMC members</td>
     <td>7</td>
+  </tr>
 </table>
 
 No other voting actions are defined; all other actions should presume Lazy Approval (defaulting to Consensus Approval upon veto). If an action is voted on multiple times, or if a different approval type is desired, these bylaws should be amended to include the action.
