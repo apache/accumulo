@@ -1,0 +1,59 @@
+<?xml version="1.0" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="58px" height="58px" viewBox="0 0 58 58">
+  <defs>
+    <style type="text/css"><![CDATA[
+      path.frame {
+        stroke: rgb(192, 192, 192);
+        stroke-width: 2;
+        stroke-linecap: round;
+        fill: none;
+      }
+      path.a, path.c, path.u, path.m, path.l, path.o {
+        stroke: #000000;
+        stroke-width: 6;
+        stroke-linecap: round;
+        fill: none;
+      }
+      text {
+        font: 4px sans-serif;
+        stroke: rgb(96, 96, 96);
+        fill: rgb(96, 96, 96);
+      }
+    ]]></style>
+  </defs>
+
+  <g transform="scale(1.0)">
+  <path d="M 0 4 a 4,4 0 0,0 4,-4" class="frame" />
+  <path d="M 0 12 a 4,4 0 0,1 4,4 v 26 a 4,4 0 0,1 -4,4" class="frame" />
+  <path d="M 0 54 a 4,4 0 0,1 4,4" class="frame" />
+
+  <path d="M 12 0 a 4,4 0 0,0 4,4 h 26 a 4,4 0 0,0 4,-4" class="frame" />
+
+  <path d="M 12 58 a 4,4 0 0,1 4,-4 h 26 a 4,4 0 0,1 4,4" class="frame" />
+
+  <!--<path d="M 58 4 a 4,4 0 0,1 -4,-4" class="frame" />-->
+  <path d="M 58 12 a 4,4 0 0,0 -4, 4 v  26 a 4,4 0 0,0  4, 4" class="frame" />
+  <path d="M 58 54 a 4,4 0 0,0 -4, 4" class="frame" />
+
+  <path d="M 12 20 a 8,8 0 0,1 8,-8 h 18 a 8,8 0 0,1 8,8 v 18 a 8,8 0 0,1 -8,8 h -18 a 8,8 0 0,1 -8,-8 v -1 a 8,8 0 0,1 8,-8 h 26" class="a" />
+
+  <text x="52" y="4">TM</text>
+  </g>
+</svg>
