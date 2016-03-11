@@ -8,8 +8,8 @@ nav: nav_screenshots
 The following is a screenshot of the Apache Accumulo&trade; monitor overview web page.  Accumulo was running on an eleven node cluster.  The continuous ingest test suite was running to generate load.  Ten continuous ingest clients were running.
 </div>
 <div class="col-xs-9">
-<a class="thumbnail" href="/images/overview2.png">
-<img src="/images/overview2.png" alt="monitor overview"/>
+<a class="thumbnail" href="{{ site.baseurl }}/images/overview2.png">
+<img src="{{ site.baseurl }}/images/overview2.png" alt="monitor overview"/>
 </a>
 </div>
 </div>
@@ -19,8 +19,8 @@ The following is a screenshot of the Apache Accumulo&trade; monitor overview web
 The following screenshot shows the monitor master page.  This page gives information about individual tables within accumulo.  Continuous ingest is running against the table ci.
 </div>
 <div class="col-xs-9">
-<a class="thumbnail" href="/images/master2.png">
-<img src="/images/master2.png" alt="monitor master"/>
+<a class="thumbnail" href="{{ site.baseurl }}/images/master2.png">
+<img src="{{ site.baseurl }}/images/master2.png" alt="monitor master"/>
 </a>
 </div>
 </div>

@@ -9,7 +9,7 @@ nav: nav_index
 <p>
 The Apache Accumulo&trade; sorted, distributed key/value store is a robust, scalable, high performance data storage and retrieval system.  
 </p>
-<a class="btn btn-success btn-lg" href="/downloads/" role="button"><span class="glyphicon glyphicon-download"></span> Download</a>
+<a class="btn btn-success btn-lg" href="downloads/" role="button"><span class="glyphicon glyphicon-download"></span> Download</a>
 </div>
 
 Apache Accumulo is based on Google's [BigTable][1] design and is built on

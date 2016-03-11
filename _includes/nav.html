@@ -1,127 +1,110 @@
 <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
-<div class="container-fluid">
-  <div class="navbar-header">
-    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-items">
-      <span class="sr-only">Toggle navigation</span>
-      <span class="icon-bar"></span>
-      <span class="icon-bar"></span>
-      <span class="icon-bar"></span>
-    </button>
-    <a class="navbar-brand" href="/index.html">Accumulo</a>
-  </div>
-  <div class="collapse navbar-collapse" id="navbar-items">
-  <ul class="nav navbar-nav">
-    <li class="dropdown">
-      <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-        Project <span class="caret"></span>
-      </a>
-<ul class="dropdown-menu">
-<li id="nav_index"><a href="/index.html">Home</a></li>
-<li id="nav_downloads"><a href="/downloads">Downloads</a></li>
-<li id="nav_features"><a href="/notable_features.html">Features</a></li>
-<li><a href="http://www.apache.org/licenses/LICENSE-2.0"><i class="fa fa-external-link"></i> License</a></li>
-</ul>
-</li>
-
-    <li class="dropdown">
-      <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-        Community <span class="caret"></span>
-      </a>
-<ul class="dropdown-menu">
-<li id="nav_getinvolved"><a href="/get_involved.html">Get Involved</a></li>
-<li id="nav_mailinglists"><a href="/mailing_list.html">Mailing Lists</a></li>
-<li id="nav_people"><a href="/people.html">People</a></li>
-<li id="nav_blog"><a href="https://blogs.apache.org/accumulo/">Blog</a></li>
-<li class="divider"></li>
-<li class="dropdown-header">Governance</li>
-<li id="nav_bylaws"><a href="/bylaws.html">Bylaws</a></li>
-<li id="nav_consensusbuilding"><a href="/governance/consensusBuilding.html">Consensus Building</a></li>
-<li id="nav_lazyconsensus"><a href="/governance/lazyConsensus.html">Lazy Consensus</a></li>
-<li id="nav_releasing"><a href="/governance/releasing.html">Releasing</a></li>
-<li id="nav_voting"><a href="/governance/voting.html">Voting</a></li>
-</ul>
-</li>
-
-    <li class="dropdown">
-      <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-        Development <span class="caret"></span>
-      </a>
-<ul class="dropdown-menu">
-<li id="nav_source"><a href="/source.html">Source &amp; Guide</a></li>
-<li id="nav_git"><a href="/git.html">Git Workflow</a></li>
-<li id="nav_versioning"><a href="/versioning.html">Versioning</a></li>
-<li id="nav_contrib"><a href="/contrib.html">Contrib Projects</a></li>
-<li id="nav_rb"><a href="/rb.html">Review Board</a></li>
-<li id="nav_releasing"><a href="/releasing.html">Making Releases</a></li>
-<li id="nav_verify_release"><a href="/verifying_releases.html">Verifying Releases</a></li>
-<li><a href="https://issues.apache.org/jira/browse/accumulo"><i class="fa fa-external-link"></i> Issues</a></li>
-<li><a href="https://builds.apache.org/view/A-D/view/Accumulo/"><i class="fa fa-external-link"></i> Builds</a></li>
-</ul>
-</li>
-
-    <li class="dropdown">
-      <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-        Documentation <span class="caret"></span>
-      </a>
-<ul class="dropdown-menu">
-<li class="dropdown-header">Manual</li>
-<li><a href="/1.6/accumulo_user_manual.html">1.6</a></li>
-<li><a href="/1.7/accumulo_user_manual.html">1.7</a></li>
-<li class="divider"></li>
-<li class="dropdown-header">Javadoc</li>
-<li><a href="/1.6/apidocs">1.6</a></li>
-<li><a href="/1.7/apidocs">1.7</a></li>
-<li class="divider"></li>
-<li class="dropdown-header">Examples</li>
-<li id="nav_examples_1_6"><a href="/1.6/examples">1.6</a></li>
-<li id="nav_examples_1_7"><a href="/1.7/examples">1.7</a></li>
-<li class="divider"></li>
-<li id="old_documentation"><a href="/old_documentation.html">Docs for Older Verisons</a></li>
-<li id="nav_screenshots"><a href="/screenshots.html">Screenshots</a></li>
-<li id="nav_papers"><a href="/papers.html">Papers &amp; Other Links</a></li>
-<li id="nav_glossary"><a href="/glossary.html">Glossary</a></li>
-</ul>
-</li>
-	<li class="dropdown">
-	  <a class="dropdown-toggle" data-toggle="dropdown" href="#">Release Notes <span class="caret"></span></a>
-      <ul class="dropdown-menu">
-		  <li><a href="/release_notes/1.7.1.html">1.7.1</a></li>
-		  <li><a href="/release_notes/1.6.5.html">1.6.5</a></li>
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-items">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="{{ site.baseurl }}/index.html">Accumulo</a>
+    </div>
+    <div class="collapse navbar-collapse" id="navbar-items">
+      <ul class="nav navbar-nav">
+        <li class="dropdown">
+        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Project<span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          <li id="nav_index"><a href="{{ site.baseurl }}/">Home</a></li>
+          <li id="nav_downloads"><a href="{{ site.baseurl }}/downloads/">Downloads</a></li>
+          <li id="nav_features"><a href="{{ site.baseurl }}/notable_features.html">Features</a></li>
+          <li><a href="http://www.apache.org/licenses/LICENSE-2.0"><i class="fa fa-external-link"></i> License</a></li>
+        </ul>
+        </li>
+        <li class="dropdown">
+        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Community<span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          <li id="nav_getinvolved"><a href="{{ site.baseurl }}/get_involved.html">Get Involved</a></li>
+          <li id="nav_mailinglists"><a href="{{ site.baseurl }}/mailing_list.html">Mailing Lists</a></li>
+          <li id="nav_people"><a href="{{ site.baseurl }}/people.html">People</a></li>
+          <li id="nav_blog"><a href="https://blogs.apache.org/accumulo/">Blog</a></li>
           <li class="divider"></li>
-		  <li><a href="/release_notes/">Archives</a></li>
-		</ul>
-    </li>
-
-	<li class="dropdown">
-      <a class="dropdown-toggle" data-toggle="dropdown" href="#">Other <span class="caret" /></a>
-	  <ul class="dropdown-menu">
-		<li><a href="/papers.html">Papers &amp; Presentations</a></li>
-		<li><a href="/projects.html">Community Projects</a></li>
-	  </ul>
-	</li>
-
-    <li class="dropdown">
-      <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-        ASF Links <span class="caret"></span>
-      </a>
-<ul class="dropdown-menu">
-<li><a href="http://www.apache.org"><i class="fa fa-external-link"></i> Apache Software Foundation</a></li>
-<li><a href="http://www.apache.org/foundation/sponsorship.html"><i class="fa fa-external-link"></i> Sponsorship</a></li>
-<li><a href="http://www.apache.org/security/"><i class="fa fa-external-link"></i> Security</a></li>
-<li><a href="http://www.apache.org/foundation/thanks.html"><i class="fa fa-external-link"></i> Thanks</a></li>
-<li><a href="http://www.apache.org/foundation/policies/conduct.html"><i class="fa fa-external-link"></i> Code of Conduct</a></li>
-</ul>
-</li>
-</ul>
-
-<form method="GET" action="http://search-hadoop.com/" class="navbar-form navbar-right" role="search">
-  <div class="form-group">
-    <input type="text" name="q" class="form-control" placeholder="Search"/>
-    <input type="hidden" name="fc_project" value="Accumulo"/>
-  </div>
-  <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search"></span></button>
-</form>
-  </div>
-
-</div>
-</nav>
+          <li class="dropdown-header">Governance</li>
+          <li id="nav_bylaws"><a href="{{ site.baseurl }}/bylaws.html">Bylaws</a></li>
+          <li id="nav_consensusbuilding"><a href="{{ site.baseurl }}/governance/consensusBuilding.html">Consensus Building</a></li>
+          <li id="nav_lazyconsensus"><a href="{{ site.baseurl }}/governance/lazyConsensus.html">Lazy Consensus</a></li>
+          <li id="nav_releasing"><a href="{{ site.baseurl }}/governance/releasing.html">Releasing</a></li>
+          <li id="nav_voting"><a href="{{ site.baseurl }}/governance/voting.html">Voting</a></li>
+        </ul>
+        </li>
+        <li class="dropdown">
+        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Development<span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          <li id="nav_source"><a href="{{ site.baseurl }}/source.html">Source &amp; Guide</a></li>
+          <li id="nav_git"><a href="{{ site.baseurl }}/git.html">Git Workflow</a></li>
+          <li id="nav_versioning"><a href="{{  site.baseurl  }}/versioning.html">Versioning</a></li>
+          <li id="nav_contrib"><a href="{{  site.baseurl }}/contrib.html">Contrib Projects</a></li>
+          <li id="nav_rb"><a href="{{ site.baseurl }}/rb.html">Review Board</a></li>
+          <li id="nav_releasing"><a href="{{ site.baseurl }}/releasing.html">Making Releases</a></li>
+          <li id="nav_verify_release"><a href="{{ site.baseurl }}/verifying_releases.html">Verifying Releases</a></li>
+          <li><a href="https://issues.apache.org/jira/browse/accumulo"><i class="fa fa-external-link"></i> Issues</a></li>
+          <li><a href="https://builds.apache.org/view/A-D/view/Accumulo/"><i class="fa fa-external-link"></i> Builds</a></li>
+        </ul>
+        </li>
+        <li class="dropdown">
+        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Documentation<span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          <li class="dropdown-header">Manual</li>
+          <li><a href="{{ site.baseurl }}/1.6/accumulo_user_manual.html">1.6</a></li>
+          <li><a href="{{ site.baseurl }}/1.7/accumulo_user_manual.html">1.7</a></li>
+          <li class="divider"></li>
+          <li class="dropdown-header">Javadoc</li>
+          <li><a href="{{ site.baseurl }}/1.6/apidocs">1.6</a></li>
+          <li><a href="{{ site.baseurl }}/1.7/apidocs">1.7</a></li>
+          <li class="divider"></li>
+          <li class="dropdown-header">Examples</li>
+          <li id="nav_examples_1_6"><a href="{{ site.baseurl }}/1.6/examples">1.6</a></li>
+          <li id="nav_examples_1_7"><a href="{{ site.baseurl }}/1.7/examples">1.7</a></li>
+          <li class="divider"></li>
+          <li id="old_documentation"><a href="{{ site.baseurl }}/old_documentation.html">Docs for Older Verisons</a></li>
+          <li id="nav_screenshots"><a href="{{ site.baseurl }}/screenshots.html">Screenshots</a></li>
+          <li id="nav_papers"><a href="{{ site.baseurl }}/papers.html">Papers &amp; Other Links</a></li>
+          <li id="nav_glossary"><a href="{{ site.baseurl }}/glossary.html">Glossary</a></li>
+        </ul>
+        </li>
+        <li class="dropdown">
+        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Release Notes<span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          <li><a href="{{ site.baseurl }}/release_notes/1.7.1.html">1.7.1</a></li>
+          <li><a href="{{ site.baseurl }}/release_notes/1.6.5.html">1.6.5</a></li>
+          <li class="divider"></li>
+          <li><a href="{{ site.baseurl }}/release_notes/">Archives</a></li>
+        </ul>
+        </li>
+        <li class="dropdown">
+        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Other<span class="caret" /></a>
+          <ul class="dropdown-menu">
+            <li><a href="{{ site.baseurl }}/papers.html">Papers &amp; Presentations</a></li>
+            <li><a href="{{ site.baseurl }}/projects.html">Community Projects</a></li>
+          </ul>
+          </li>
+          <li class="dropdown">
+          <a class="dropdown-toggle" data-toggle="dropdown" href="#">ASF Links<span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><a href="http://www.apache.org"><i class="fa fa-external-link"></i> Apache Software Foundation</a></li>
+            <li><a href="http://www.apache.org/foundation/sponsorship.html"><i class="fa fa-external-link"></i> Sponsorship</a></li>
+            <li><a href="http://www.apache.org/security/"><i class="fa fa-external-link"></i> Security</a></li>
+            <li><a href="http://www.apache.org/foundation/thanks.html"><i class="fa fa-external-link"></i> Thanks</a></li>
+            <li><a href="http://www.apache.org/foundation/policies/conduct.html"><i class="fa fa-external-link"></i> Code of Conduct</a></li>
+          </ul>
+          </li>
+        </ul>
+        <form method="GET" action="http://search-hadoop.com/" class="navbar-form navbar-right" role="search">
+          <div class="form-group">
+            <input type="text" name="q" class="form-control" placeholder="Search"/>
+            <input type="hidden" name="fc_project" value="Accumulo"/>
+          </div>
+          <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search"></span></button>
+        </form>
+      </div>
+    </div>
+  </nav>

@@ -114,7 +114,7 @@ For convenience, [MD5][MD5SUM_17] and [SHA1][SHA1SUM_17] hashes are also availab
 * <a href="https://github.com/apache/accumulo/blob/rel/1.7.1/README.md" class="download_external" id="/1.7/README">README</a>
 * [HTML User Manual][MANUAL_HTML_17]
 * [Examples][EXAMPLES_17]
-* <a href="/1.7/apidocs" class="download_external" id="/1.7/apidocs">Javadoc</a>
+* <a href="{{ site.baseurl }}/1.7/apidocs" class="download_external" id="/1.7/apidocs">Javadoc</a>
 
 ### 1.6.5
 
@@ -140,7 +140,7 @@ For convenience, [MD5][MD5SUM_16] and [SHA1][SHA1SUM_16] hashes are also availab
 * <a href="http://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-docs/1.6.5/accumulo-docs-1.6.5-user-manual.pdf" class="download_external" id="/1.6/accumulo_user_manual.pdf">PDF manual</a>
 * [html manual][MANUAL_HTML_16]
 * [examples][EXAMPLES_16]
-* <a href="/1.6/apidocs" class="download_external" id="/1.6/apidocs">Javadoc</a>
+* <a href="{{ site.baseurl }}/1.6/apidocs" class="download_external" id="/1.6/apidocs">Javadoc</a>
 
 ## Older releases
 
