@@ -88,6 +88,6 @@ The notation used in voting is:
 [See here for more mail templates][3]
 
 
-[1]: {{ site.baseurl }}/governance/consensusBuilding.html
+[1]: consensusBuilding.html
 [2]: http://apache.org/foundation/voting.html
 [3]: http://community.apache.org/newcommitter.html
