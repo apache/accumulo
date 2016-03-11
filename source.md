@@ -20,11 +20,11 @@ nav: nav_source
 Apache Accumulo&trade; source code is maintained using [Git][git] version control 
 ([browse][cgit]|[checkout][anongit]).  It builds with [Apache Maven][maven].
 
-Instructions for configuring git are [here](https://git-wip-us.apache.org/).
+Instructions for configuring git are [here][git-instr].
 
 ### Contrib Projects
 
-Accumulo has a number of [contrib projects](contrib.html) that maintain their own code repositories and release schedules.
+Accumulo has a number of [contrib projects][contrib] that maintain their own code repositories and release schedules.
 
 ### Website
 
@@ -137,7 +137,7 @@ Changes to non-private members of those classes are subject to additional scruti
 <table class="table">
 <tr><th>License Header</th><td>Always add the current ASF license header as described in <a href="http://www.apache.org/legal/src-headers.html">ASF Source Header</a>.</td></tr>
 <tr><th>Trailing Whitespaces</th><td>Remove all trailing whitespaces. Eclipse users can use Source&rarr;Cleanup option to accomplish this.</td></tr>
-<tr><th>Indentation</th><td>Use 2 space indents and never use tabs!
+<tr><th>Indentation</th><td>Use 2 space indents and never use tabs!</td></tr>
 <tr><th>Line Wrapping</th><td>Use 160-column line width for Java code and Javadoc.</td></tr>
 <tr><th>Control Structure New Lines</th><td>Use a new line with single statement if/else blocks.</td></tr>
 <tr><th>Author Tags</th><td>Do not use Author Tags. The code is developed and owned by the community.</td></tr>
@@ -157,7 +157,7 @@ Accumulo has [guidelines for using Review Board][rb] to support code reviews.
 
 #### IntelliJ
 
- * Formatter [plugin](https://code.google.com/p/eclipse-code-formatter-intellij-plugin/) that uses eclipse code style xml.
+ * Formatter [plugin][intellij-formatter] that uses eclipse code style xml.
 
 ### Release Guide
 
@@ -185,6 +185,7 @@ Accumulo's release guide can be found [here][release].
 [rb]: rb.html
 [pom]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=pom.xml;hb=HEAD
 [lifecycle]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
-
-
-  [1]: http://creadur.apache.org/rat/apache-rat-plugin/
+[1]: http://creadur.apache.org/rat/apache-rat-plugin/
+[git-instr]: https://git-wip-us.apache.org
+[intellij-formatter]: https://code.google.com/p/eclipse-code-formatter-intellij-plugin
+[contrib]: contrib.html
