@@ -124,7 +124,7 @@ All participants in the Accumulo project are encouraged to vote. For technical d
 
 See the [voting page][voting] for more details on the mechanics of voting.
 
-<a name="CTR"></a>
+<a id="CTR"></a>
 ## Commit Then Review (CTR)
 
 Voting can also be applied to changes to the Accumulo codebase. Under the Commit Then Review policy, committers can make changes to the codebase without seeking approval beforehand, and the changes are assumed to be approved unless an objection is raised. Only if an objection is raised must a vote take place on the code change.
