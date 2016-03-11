@@ -9,9 +9,9 @@ This is version 3 of the bylaws. Community work actively continues on the bylaws
 
 This document defines the bylaws under which the Apache Accumulo project operates. It defines the roles and responsibilities of the project, who may vote, how voting works, how conflicts are resolved, etc.
 
-Accumulo is a project of the [Apache Software Foundation](http://www.apache.org/foundation/). The foundation holds the copyright on Apache code including the code in the Accumulo codebase. The [foundation FAQ](http://www.apache.org/foundation/faq.html) explains the operation and background of the foundation.
+Accumulo is a project of the [Apache Software Foundation][foundation]. The foundation holds the copyright on Apache code including the code in the Accumulo codebase. The [foundation FAQ][foundation-faq] explains the operation and background of the foundation.
 
-Accumulo is typical of Apache projects in that it operates under a set of principles, known collectively as the Apache Way. If you are new to Apache development, please refer to the [Incubator project](http://incubator.apache.org/) for more information on how Apache projects operate. Terms used at the ASF are defined in the [ASF glossary](http://www.apache.org/foundation/glossary.html).
+Accumulo is typical of Apache projects in that it operates under a set of principles, known collectively as the Apache Way. If you are new to Apache development, please refer to the [Incubator project][incubator] for more information on how Apache projects operate. Terms used at the ASF are defined in the [ASF glossary][glossary].
 
 # Roles and Responsibilities
 
@@ -35,13 +35,13 @@ A committer is considered emeritus, meaning inactive, by their own declaration o
 
 An emeritus committer’s commit access may be disabled as part of routine security. Access shall not be removed without notifying the committer, and access shall be maintained if the committer wishes to leave it active. A committer’s commit access shall be reactivated upon the committer’s request to the PMC.
 
-All Apache committers are required to have a signed [Contributor License Agreement](http://www.apache.org/licenses/icla.txt) (CLA) on file with the Apache Software Foundation. Under the terms of the CLA that all committers must sign, a committer's primary responsibility is to ensure that all code committed to Apache Accumulo is licensed appropriately and meets those criteria set forth in the CLA (including both original works and patches committed on behalf of other contributors). There is a [Committer FAQ](http://www.apache.org/dev/committers.html) which provides more details on the requirements for committers. 
+All Apache committers are required to have a signed [Contributor License Agreement][icla] (CLA) on file with the Apache Software Foundation. Under the terms of the CLA that all committers must sign, a committer's primary responsibility is to ensure that all code committed to Apache Accumulo is licensed appropriately and meets those criteria set forth in the CLA (including both original works and patches committed on behalf of other contributors). There is a [Committer FAQ][committer-faq] which provides more details on the requirements for committers. 
 
 It is the custom of the Accumulo project to also invite each committer to become a member of the Accumulo PMC.
 
 ## Project Management Committee
 
-The role of the PMC, from a Foundation perspective, is [oversight](http://apache.org/foundation/how-it-works.html#pmc). The main
+The role of the PMC, from a Foundation perspective, is [oversight][pmc-howto]. The main
 role of the PMC is not code and not coding, but to ensure that all legal
 issues are addressed, that procedure is followed, and that each and every
 release is the product of the community as a whole. That is key to our
@@ -63,8 +63,8 @@ The responsibilities of the PMC include:
 * Nominating new PMC members and committers.
 * Maintaining these bylaws and other guidelines of the project.
 
-In particular, PMC members must understand both our project's criteria and ASF criteria for voting on a [release](http://www.apache.org/dev/release.html#management).
-See the [PMC Guide](http://www.apache.org/dev/pmc.html) for more information on PMC responsibilities.
+In particular, PMC members must understand both our project's criteria and ASF criteria for voting on a [release][release-management].
+See the [PMC Guide][pmc-guide] for more information on PMC responsibilities.
 
 Membership of the PMC is by invitation only and must be approved by a consensus approval of active PMC members. Upon acceptance of the invitation to become a PMC member, it is the accepting member’s responsibility to update their status on the Accumulo web page accordingly.
 
@@ -76,7 +76,7 @@ When the current chair of the PMC resigns, the PMC votes to recommend a new chai
 
 ## Release Manager
 
-The [ASF release process](https://www.apache.org/dev/release-publishing.html) defines the [release manager](https://www.apache.org/dev/release-publishing.html#release_manager) as an individual responsible for shepherding a new project release. Any committer may serve as a release manager. The release manager for a release is chosen as part of the release plan.
+The [ASF release process][release-pub] defines the [release manager][release-manager] as an individual responsible for shepherding a new project release. Any committer may serve as a release manager. The release manager for a release is chosen as part of the release plan.
 
 At a minimum, a release manager is responsible for packaging a release candidate for a vote and signing and publishing an approved release candidate. An Accumulo release manager is also expected to:
 
@@ -87,7 +87,7 @@ At a minimum, a release manager is responsible for packaging a release candidate
 * determine if a re-plan may be needed and, if so, call a vote
 * call votes on release candidates
 
-[Release guidelines](http://accumulo.apache.org/governance/releasing.html) and [details on the mechanics of creating an Accumulo release](http://accumulo.apache.org/releasing.html) are available on the Accumulo project site.
+[Release guidelines][release-guidelines] and [details on the mechanics of creating an Accumulo release][release-mechanics] are available on the Accumulo project site.
 
 # Decision Making
 
@@ -112,7 +112,7 @@ Decisions regarding the project are made by votes on the primary project develop
 
 All participants in the Accumulo project are encouraged to vote. For technical decisions, only the votes of active committers are binding. Non-binding votes are still useful for those with binding votes to understand the perception of an action across the wider Accumulo community. For PMC decisions, only the votes of active PMC members are binding.
 
-See the [voting page](http://accumulo.apache.org/governance/voting.html) for more details on the mechanics of voting.
+See the [voting page][voting] for more details on the mechanics of voting.
 
 <a name="CTR"></a>
 ## Commit Then Review (CTR)
@@ -146,7 +146,7 @@ If you disagree with a valid veto, you must lobby the person casting the veto to
 
 This section describes the various actions which are undertaken within the project, the corresponding approval required for that action and those who have binding votes over the action. It also specifies the minimum length of time that a vote must remain open, measured in days. In general, votes should not be called at times when it is known that interested members of the project will be unavailable.
 
-For Code Change actions, a committer may choose to employ assumed or stated Lazy Approval under the [CTR](#CTR) policy. Assumed Lazy Approval has no minimum length of time before the change can be made.
+For Code Change actions, a committer may choose to employ assumed or stated Lazy Approval under the [CTR][ctr] policy. Assumed Lazy Approval has no minimum length of time before the change can be made.
 
 <table class="table">
 <tr><th>Action</th>
@@ -205,7 +205,7 @@ No other voting actions are defined; all other actions should presume Lazy Appro
 
 For the purposes of the "Adoption of New Codebase" action, the Accumulo codebase is defined as the Accumulo site content, primary project code, and all contributed code ("contribs") as they exist in their respective repositories. Adoption of a new codebase generally refers to the creation of a new contrib repository, but could cover, for example, a rework of the project site, or merging a contrib project into the primary codebase.
 
-Voting actions for the removal of a committer or PMC member are intentionally not defined. According to ASF rules, [committer status never expires](http://www.apache.org/dev/committers.html#committer-set-term) and [PMC members can only be removed with approval from the ASF Board](http://www.apache.org/dev/pmc.html#pmc-removal).
+Voting actions for the removal of a committer or PMC member are intentionally not defined. According to ASF rules, [committer status never expires][committer-terms] and [PMC members can only be removed with approval from the ASF Board][pmc-removal].
 
 # Release Plans
 
@@ -223,3 +223,20 @@ After feature freeze, new features should not be accepted for the release. After
 
 All dates in a plan are estimates, as unforeseen issues may require delays. The release manager may adjust dates as needed. In serious circumstances, the release manager may opt to call a re-plan vote.
 
+[foundation]: http://www.apache.org/foundation/
+[foundation-faq]: http://www.apache.org/foundation/faq.html
+[incubator]: http://incubator.apache.org
+[glossary]: http://www.apache.org/foundation/glossary.html
+[icla]: http://www.apache.org/licenses/icla.txt
+[committer-faq]: http://www.apache.org/dev/committers.html
+[pmc-howto]: http://apache.org/foundation/how-it-works.html#pmc
+[release-management]: http://www.apache.org/dev/release.html#management
+[pmc-guide]: http://www.apache.org/dev/pmc.html
+[release-pub]: https://www.apache.org/dev/release-publishing.html
+[release-manager]: https://www.apache.org/dev/release-publishing.html#release_manager
+[release-guidelines]: governance/releasing.html
+[release-mechanics]: releasing.html
+[voting]: governance/voting.html
+[ctr]: #CTR
+[committer-terms]: http://www.apache.org/dev/committers.html#committer-set-term
+[pmc-removal]: http://www.apache.org/dev/pmc.html#pmc-removal
