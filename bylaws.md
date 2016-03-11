@@ -98,16 +98,26 @@ Within the Accumulo project, different types of decisions require different form
 Decisions regarding the project are made by votes on the primary project development mailing list: dev@accumulo.apache.org. Where necessary, PMC voting may take place on the private Accumulo PMC mailing list: private@accumulo.apache.org. Votes are clearly indicated by a subject line starting with [VOTE]. A vote message may only pertain to a single item’s approval; multiple items should be separated into multiple messages. Voting is carried out by replying to the vote mail. A vote may take on one of four forms, defined below.
 
 <table class="table">
-<tr><th>Vote</th>
+  <tr>
+    <th>Vote</th>
     <th>Meaning</th>
-<tr><td>+1</td>
+  </tr>
+  <tr>
+    <td>+1</td>
     <td>'Yes,' 'Agree,' or 'The action should be performed.' In general, this vote also indicates a willingness on the behalf of the voter to 'make it happen'.</td>
-<tr><td>+0</td>
+  </tr>
+  <tr>
+    <td>+0</td>
     <td>This vote indicates a willingness for the action under consideration to go ahead. The voter, however, will not be able to help.</td>
-<tr><td>-0</td>
+  </tr>
+  <tr>
+    <td>-0</td>
     <td>This vote indicates that the voter does not, in general, agree with the proposed action but is not concerned enough to prevent the action going ahead.</td>
-<tr><td>-1</td>
+  </tr>
+  <tr>
+    <td>-1</td>
     <td>'No', 'Disagree', or 'The action should not be performed.' On issues where consensus is required, this vote counts as a veto. All vetoes must contain an explanation of why the veto is appropriate. Vetoes with no explanation are void. It may also be appropriate for a -1 vote to include an alternative course of action.</td>
+  </tr>
 </table>
 
 All participants in the Accumulo project are encouraged to vote. For technical decisions, only the votes of active committers are binding. Non-binding votes are still useful for those with binding votes to understand the perception of an action across the wider Accumulo community. For PMC decisions, only the votes of active PMC members are binding.
@@ -126,14 +136,22 @@ For some code changes, committers may wish to get feedback from the community be
 These are the types of approvals that can be sought. Different actions require different types of approvals.
 
 <table class="table">
-<tr><th>Approval Type</th>
+  <tr>
+    <th>Approval Type</th>
     <th>Definition</th>
-<tr><td>Consensus Approval</td>
+  </tr>
+  <tr>
+    <td>Consensus Approval</td>
     <td>A consensus approval vote passes with 3 binding +1 votes and no binding vetoes.</td>
-<tr><td>Majority Approval</td>
+  </tr>
+  <tr>
+    <td>Majority Approval</td>
     <td>A majority approval vote passes with 3 binding +1 votes and more binding +1 votes than -1 votes.</td>
-<tr><td>Lazy Approval (or Lazy Consensus)</td>
+  </tr>
+  <tr>
+    <td>Lazy Approval (or Lazy Consensus)</td>
     <td>An action with lazy approval is implicitly allowed unless a -1 vote is received, at which time, depending on the type of action, either majority approval or consensus approval must be obtained.  Lazy Approval can be either <em>stated</em> or <em>assumed</em>, as detailed on the <a href="governance/lazyConsensus.html">lazy consensus page</a>.</td>
+  </tr>
 </table>
 
 ## Vetoes
