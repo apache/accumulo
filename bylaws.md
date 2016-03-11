@@ -133,7 +133,7 @@ These are the types of approvals that can be sought. Different actions require d
 <tr><td>Majority Approval</td>
     <td>A majority approval vote passes with 3 binding +1 votes and more binding +1 votes than -1 votes.</td>
 <tr><td>Lazy Approval (or Lazy Consensus)</td>
-    <td>An action with lazy approval is implicitly allowed unless a -1 vote is received, at which time, depending on the type of action, either majority approval or consensus approval must be obtained.  Lazy Approval can be either <em>stated</em> or <em>assumed</em>, as detailed on the <a href="lazyConsensus.html">lazy consensus page</a>.</td>
+    <td>An action with lazy approval is implicitly allowed unless a -1 vote is received, at which time, depending on the type of action, either majority approval or consensus approval must be obtained.  Lazy Approval can be either <em>stated</em> or <em>assumed</em>, as detailed on the <a href="governance/lazyConsensus.html">lazy consensus page</a>.</td>
 </table>
 
 ## Vetoes
