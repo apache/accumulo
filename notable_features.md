@@ -441,6 +441,6 @@ Added an operation to efficiently delete a range of rows from a table. Tablets
 that fall completely within a range are simply dropped. Tablets overlapping the
 beginning and end of the range are split, compacted, and then merged.  
 
-[4]: /1.5/accumulo_user_manual.html#_writing_accumulo_clients
-[6]: /1.5/accumulo_user_manual.html#_bulk_ingest
-[7]: /1.6/accumulo_user_manual.html#_conditionalwriter
+[4]: {{ site.baseurl }}/1.5/accumulo_user_manual.html#_writing_accumulo_clients
+[6]: {{ site.baseurl }}/1.5/accumulo_user_manual.html#_bulk_ingest
+[7]: {{ site.baseurl }}/1.6/accumulo_user_manual.html#_conditionalwriter

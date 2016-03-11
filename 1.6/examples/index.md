@@ -80,4 +80,4 @@ features of Apache Accumulo.
                        Also shows user permissions.
 
 
-[1]: /1.6/accumulo_user_manual.html#_user_administration
+[1]: {{ site.baseurl }}/1.6/accumulo_user_manual.html#_user_administration

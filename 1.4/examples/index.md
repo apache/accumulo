@@ -21,7 +21,7 @@ Commands intended to be run in bash are prefixed by '$'.  These are always assum
 
 Commands intended to be run in the Accumulo shell are prefixed by '>'.
 
-[1]: /1.4/user_manual/Accumulo_Shell.html#User_Administration
+[1]: {{ site.baseurl }}/1.4/user_manual/Accumulo_Shell.html#User_Administration
 [batch](batch.html)
 
 [bloom](bloom.html)

@@ -50,4 +50,4 @@ or not.
 Once there is a clear consensus members of the community can proceed with 
 the work under the [lazy consensus][1] model.
 
-  [1]: /governance/lazyConsensus.html
+[1]: {{ site.baseurl }}/governance/lazyConsensus.html

@@ -19,7 +19,7 @@ Commands intended to be run in bash are prefixed by '$'.  These are always assum
 
 Commands intended to be run in the Accumulo shell are prefixed by '>'.
 
-[1]: /user_manual_1.3-incubating/Accumulo_Shell.html#User_Administration
+[1]: {{ site.baseurl }}/user_manual_1.3-incubating/Accumulo_Shell.html#User_Administration
 [aggregation](examples/aggregation.html)
 
 [batch](examples/batch.html)
