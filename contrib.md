@@ -23,7 +23,7 @@ up an Accumulo process in memory.
 
 The Apache Accumulo Instamo Archetype uses [Git][gitbook] version control
 ([browse][instamo-browse]|[checkout][instamo-checkout]). It builds with [Apache
-Maven][maven-proj]. See the section [Contributing to Contrib][] for
+Maven][maven-proj]. See the section [Contributing to Contrib][contrib2] for
 instructions on submitting issues and patches.
 
 ### Wikisearch Application
@@ -38,7 +38,7 @@ also read [an overview and some performance numbers][wikisearch].
 
 The Apache Accumulo Wikisearch Example uses [Git][gitbook] version control
 ([browse][wikisearch-browse]|[checkout][wikisearch-checkout]). It builds with
-[Apache Maven][maven-proj]. See the section [Contributing to Contrib][] for
+[Apache Maven][maven-proj]. See the section [Contributing to Contrib][contrib2] for
 instructions on submitting issues and patches.
 
 ### Hama Integration
@@ -49,7 +49,7 @@ in Accumulo.
 
 The Apache Accumulo BSP implementation uses [Git][gitbook] version control
 ([browse][bsp-browse]|[checkout][bsp-checkout]).  It builds with [Apache
-Maven][maven-proj]. See the section [Contributing to Contrib][] for
+Maven][maven-proj]. See the section [Contributing to Contrib][contrib2] for
 instructions on submitting issues and patches.
 
 ## Contributing to Contrib
@@ -88,3 +88,4 @@ codebase][examples-simple] and the related published documentation for versions
 [examples-simple]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=tree;f=examples/simple;
 [16EXAMPLES]: 1.6/examples/
 [17EXAMPLES]: 1.7/examples/
+[contrib2]: #contributing-to-contrib
