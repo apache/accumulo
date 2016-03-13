@@ -1,0 +1,63 @@
+#! /usr/bin/env bash
+
+build_jekyll_site() {
+  # $1 is the expected source branch
+  local source_br; source_br=$1
+  # $2 is the name of the target branch
+  local tgt_br; tgt_br=$2
+  # $3 jekyll config file to build
+  local config; config=$3
+
+  local cur_branch; cur_branch=$(git rev-parse --symbolic-full-name HEAD) || return 1
+
+  # skip execution on other branches
+  [[ $cur_branch == "refs/heads/$source_br" ]] || return 0
+
+  # create message
+  local message; message="Jekyll build from $source_br:$(git rev-parse --verify 'HEAD^{commit}' | cut -c1-7)"$'\n'$'\n'"$(git cat-file commit HEAD | sed '1,/^$/d')"
+
+  # import git utils: needed for die, require_clean_work_tree
+  . "$(git --exec-path)/git-sh-setup" || return 1
+
+  # ensure target branch exists
+  local target_branch; target_branch=$(git rev-parse --symbolic-full-name "$tgt_br" 2>/dev/null) || die "fatal: $tgt_br is not a branch"
+  case "$target_branch" in
+    refs/heads/*)
+      true
+      ;;
+    *)
+      die "fatal: $tgt_br is not a branch"
+      ;;
+  esac
+
+  # don't build what's not checked in
+  require_clean_work_tree
+
+  # check that jekyll config file exists
+  [[ -f $config ]] || die "fatal: $config is not a file or does not exist"
+
+  # build using jekyll 3
+  local regex
+  regex='^jekyll 3[.](0[.][3-9][0-9]*|0[.][1-2][0-9]+|[1-9][0-9]*[.][0-9]+)'
+  local jekyll
+  jekyll=$(jekyll -v 2>/dev/null)
+  [[ $jekyll =~ $regex ]] || die "fatal: requires jekyll >= 3.0.3 to build"
+
+  # prep the working location
+  local workdir; workdir=$(mktemp -d --tmpdir jekyll-XXXXXXXXXX) || die "fatal: unable to allocate a temporary directory"
+  trap "rm -rf '""$workdir""'" 0 1 2 3 15
+
+  # actually generate the site
+  jekyll build --config "$config" --destination "$workdir/_site" || die "fatal: jekyll build failure"
+
+  # prepare and commit to the target branch
+  export GIT_INDEX_FILE="$workdir/index"
+  git --work-tree="$workdir/_site" add . || die "fatal: error adding $workdir/_site"
+  local tree; tree=$(git write-tree) || die "fatal: error writing tree"
+  local commit; commit=$(git commit-tree "$tree" -p "$target_branch" -m "$message") || die "fatal: error writing commit"
+  git update-ref -m "$message" "$target_branch" "$commit" || die "fatal: error updating ref"
+
+  return 0
+}
+
+build_jekyll_site 'gh-pages' 'accumulo.apache.org' '_config-asf.yml'
