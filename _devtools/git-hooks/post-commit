@@ -60,4 +60,4 @@ build_jekyll_site() {
   return 0
 }
 
-build_jekyll_site 'gh-pages' 'accumulo.apache.org' '_config-asf.yml'
+build_jekyll_site 'gh-pages' 'asf-site' '_config-asf.yml'
