@@ -237,6 +237,20 @@ public class DfsLogger {
     }
   }
 
+  private static class NoWaitLoggerOperation extends LoggerOperation {
+
+    public NoWaitLoggerOperation() {
+      super(null);
+    }
+
+    @Override
+    public void await() throws IOException {
+      return;
+    }
+  }
+
+  static final LoggerOperation NO_WAIT_LOGGER_OP = new NoWaitLoggerOperation();
+
   @Override
   public boolean equals(Object obj) {
     // filename is unique
@@ -545,7 +559,7 @@ public class DfsLogger {
     }
 
     if (durability == Durability.LOG)
-      return null;
+      return NO_WAIT_LOGGER_OP;
 
     synchronized (closeLock) {
       // use a different lock for close check so that adding to work queue does not need
@@ -587,21 +601,21 @@ public class DfsLogger {
     return result;
   }
 
-  public LoggerOperation minorCompactionFinished(int seq, int tid, String fqfn) throws IOException {
+  public LoggerOperation minorCompactionFinished(int seq, int tid, String fqfn, Durability durability) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_FINISH;
     key.seq = seq;
     key.tid = tid;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), Durability.SYNC);
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), durability);
   }
 
-  public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn) throws IOException {
+  public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn, Durability durability) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_START;
     key.seq = seq;
     key.tid = tid;
     key.filename = fqfn;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), Durability.SYNC);
+    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), durability);
   }
 
   public String getLogger() {

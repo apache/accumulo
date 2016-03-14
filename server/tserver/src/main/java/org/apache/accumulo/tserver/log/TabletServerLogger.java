@@ -318,9 +318,7 @@ public class TabletServerLogger {
             throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
           ArrayList<LoggerOperation> queuedOperations = new ArrayList<LoggerOperation>(copy.size());
           for (DfsLogger wal : copy) {
-            LoggerOperation lop = writer.write(wal, seq);
-            if (lop != null)
-              queuedOperations.add(lop);
+            queuedOperations.add(writer.write(wal, seq));
           }
 
           for (LoggerOperation lop : queuedOperations) {
@@ -387,7 +385,7 @@ public class TabletServerLogger {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
         logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(), commitSession.getExtent());
-        return null;
+        return DfsLogger.NO_WAIT_LOGGER_OP;
       }
     });
   }
@@ -443,29 +441,31 @@ public class TabletServerLogger {
     return seq;
   }
 
-  public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq) throws IOException {
+  public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq, final Durability durability)
+      throws IOException {
 
     long t1 = System.currentTimeMillis();
 
     int seq = write(commitSession, true, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName).await();
-        return null;
+        logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName, durability).await();
+        return DfsLogger.NO_WAIT_LOGGER_OP;
       }
     });
 
     long t2 = System.currentTimeMillis();
 
-    log.debug(" wrote MinC finish  " + seq + ": writeTime:" + (t2 - t1) + "ms ");
+    log.debug(" wrote MinC finish  {}: writeTime:{}ms  durability:{}", seq, (t2 - t1), durability);
   }
 
-  public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName) throws IOException {
+  public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName, final Durability durability)
+      throws IOException {
     write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName).await();
-        return null;
+        logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName, durability).await();
+        return DfsLogger.NO_WAIT_LOGGER_OP;
       }
     });
     return seq;
