@@ -28,9 +28,34 @@ Accumulo has a number of [contrib projects][contrib] that maintain their own cod
 
 ### Website
 
-Accumulo's web site is maintained with [Apache Subversion][subversion] [here][sitesvn] using Apache's [Content Management System][cms].
-Committers may edit the site by following [these instructions][cmsusage].  Non-committers should follow
-[this FAQ entry][cmsanon].
+Accumulo's web site is developed using [Jekyll][jekyll]. Development is
+performed by editing the contents of the [gh-pages][gh-pages] branch, either
+directly by a committer, with a pull request to [GitHub][github], or a patch
+submitted to [JIRA][jiraloc]. The rendered site can be previewed locally or on
+[GitHub][site-mirror], and the rendered site (in the `_site` directory) will be
+merged into the `asf-site` branch to update our [official/canonical
+site][site-canon] after being built with the `_config-asf.yml` configuration.
+
+To get help with jekyll:
+
+    jekyll help
+
+To test the site locally (usually on http://localhost:4000):
+
+    jekyll serve --config _config-asf.yml --safe
+
+To build for updating the `asf-site` branch:
+
+    jekyll build --config _config-asf.yml --safe
+
+For preview convenience and consistent builds and testing, build using a
+version which looks the same locally and on GitHub.
+
+A [post-commit hook][hook] is available for you to automatically create a
+commit in the `asf-site` branch locally each time you commit to the `gh-pages`
+branch. You can also run this command manually:
+
+    ./_devtools/git-hooks/post-commit
 
 ## Developer's Guide
 
@@ -163,29 +188,33 @@ Accumulo has [guidelines for using Review Board][rb] to support code reviews.
 
 Accumulo's release guide can be found [here][release].
 
-[subversion]: http://subversion.apache.org/
-[sitesvn]: https://svn.apache.org/repos/asf/accumulo/site/
+[16build]: https://builds.apache.org/job/Accumulo-1.6/
+[17build]: https://builds.apache.org/job/Accumulo-1.7/
+[1]: http://creadur.apache.org/rat/apache-rat-plugin/
+[anongit]: git://git.apache.org/accumulo.git
+[cgit]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=summary
+[cms]: http://www.apache.org/dev/cms.html
+[cmsanon]: http://www.apache.org/dev/cmsref.html#non-committer
+[cmsusage]: http://www.apache.org/dev/cms.html#usage
+[contrib]: contrib.html
+[devlist]: mailto:dev@accumulo.apache.org
+[gh-pages]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=tree;h=gh-pages
+[git-instr]: https://git-wip-us.apache.org
+[git]: http://git-scm.com/
+[github]: https://github.com/apache/accumulo
+[hook]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=_devtools/git-hooks/post-commit;hb=gh-pages
+[intellij-formatter]: https://code.google.com/p/eclipse-code-formatter-intellij-plugin
+[jekyll]: https://jekyllrb.com/
+[jenkins]: http://jenkins-ci.org/
+[jira]: http://www.atlassian.com/software/jira/overview
+[jiraloc]: https://issues.apache.org/jira/browse/ACCUMULO
+[lifecycle]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
+[masterbuild]: https://builds.apache.org/job/Accumulo-Master/
 [maven]: http://maven.apache.org/
+[pom]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=pom.xml;hb=HEAD
+[rb]: rb.html
+[release]: governance/releasing.html
+[site-canon]: https://accumulo.apache.org
+[site-mirror]: http://apache.github.io/accumulo
 [srcheaders]: http://www.apache.org/legal/src-headers.html
 [styles]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=tree;f=contrib;hb=HEAD
-[jenkins]: http://jenkins-ci.org/
-[masterbuild]: https://builds.apache.org/job/Accumulo-Master/
-[17build]: https://builds.apache.org/job/Accumulo-1.7/
-[16build]: https://builds.apache.org/job/Accumulo-1.6/
-[jiraloc]: https://issues.apache.org/jira/browse/accumulo
-[jira]: http://www.atlassian.com/software/jira/overview
-[devlist]: mailto:dev@accumulo.apache.org
-[release]: governance/releasing.html
-[cms]: http://www.apache.org/dev/cms.html
-[cmsusage]: http://www.apache.org/dev/cms.html#usage
-[cmsanon]: http://www.apache.org/dev/cmsref.html#non-committer
-[git]: http://git-scm.com/
-[cgit]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=summary
-[anongit]: git://git.apache.org/accumulo.git
-[rb]: rb.html
-[pom]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=pom.xml;hb=HEAD
-[lifecycle]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
-[1]: http://creadur.apache.org/rat/apache-rat-plugin/
-[git-instr]: https://git-wip-us.apache.org
-[intellij-formatter]: https://code.google.com/p/eclipse-code-formatter-intellij-plugin
-[contrib]: contrib.html

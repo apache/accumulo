@@ -117,13 +117,13 @@ to avoid known [vulnerabilities][7]), follow these steps:
 1. Unpack the source release tarball and change to its root directory, or checkout the SCM tag for the release
 2. Build the javadocs with `mvn clean package javadoc:aggregate -DskipTests -Paggregate-javadocs`
 3. Take note that the javadocs you will need to copy are the entire contents of `./target/site/apidocs/`
-4. Checkout the [Accumulo CMS repository][9]
-5. Remove any existing apidocs from the appropriate version folder in the CMS repository (e.g. content/1.6/apidocs for a 1.6.x release)
-6. Copy the entire contents of the new apidocs directory (identified in step 3) to the CMS repository (e.g. to content/1.6/apidocs)
-7. Commit the changes
-8. Wait for the staging build to complete
-9. Verify the javadocs have been published to the staging site (e.g. https://accumulo.staging.apache.org/1.6/apidocs)
-10. Continue updating the staging site, as needed, and publish when done
+4. Checkout the `gh-pages` branch (you may need to move the contents of `./target/site/apidocs` outside your git workspace to switch branches)
+5. Remove any existing apidocs from the appropriate version folder (e.g. 1.6/apidocs for a 1.6.x release)
+6. Copy the entire contents of the new apidocs directory (identified in step 3) to the destination (e.g. to 1.6/apidocs)
+7. Continue updating the site content, as needed
+8. Commit the changes
+9. Update the site using jekyll with `./_devtools/git-hooks/post-commit` (if you don't have the commit hook already configured)
+10. Don't forget to push both the `gh-pages` and `asf-site` branches
 11. Verify that javadocs have been updated on the production site (e.g. https://accumulo.apache.org/1.6/apidocs)
 
 ## References
@@ -144,5 +144,4 @@ Some good references that explain a few things:
 [6]: http://accumulo.apache.org/governance/releasing.html
 [7]: http://www.kb.cert.org/vuls/id/225657
 [8]: http://www.apache.org/dev/cmsref#extpaths
-[9]: https://svn.apache.org/repos/asf/accumulo/site/trunk
 [addrelease]: https://reporter.apache.org/addrelease.html?accumulo
