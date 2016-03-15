@@ -37,6 +37,14 @@
 <title>{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</title>
 
 <script>
+$(function() {
+  var host = window.location.host;
+  if (typeof host !== 'undefined' && host !== 'accumulo.apache.org') {
+    $('#non-canonical').show();
+  }
+});
+</script>
+<script>
 (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
@@ -75,6 +83,9 @@ if (ga.hasOwnProperty('loaded') && ga.loaded === true) {
     </div>
     <div class="col-md-8 col-md-offset-1">
 
+      <div id="non-canonical" style="display: none; background-color: #F0E68C; padding-left: 1em;">
+        Visit the official site at: <a href="https://accumulo.apache.org">https://accumulo.apache.org</a>
+      </div>
       <div id="content">
         {% unless page.skiph1fortitle == '' %}
         <h1 class="title">{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</h1>
