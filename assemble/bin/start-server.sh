@@ -17,20 +17,19 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
    bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
    SOURCE="$(readlink "$SOURCE")"
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-script=$( basename "$SOURCE" )
 # Stop: Resolve Script Directory
 
 . "$bin"/config.sh
 
 HOST="$1"
 host "$1" >/dev/null 2>/dev/null
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
    LOGHOST="$1"
 else
    LOGHOST=$(host "$1" | head -1 | cut -d' ' -f1)
@@ -38,51 +37,51 @@ fi
 ADDRESS="$1"
 SERVICE="$2"
 LONGNAME="$3"
-if [ -z "$LONGNAME" ]; then
+if [[ -z "$LONGNAME" ]]; then
    LONGNAME="$2"
 fi
-SLAVES=$( wc -l < ${ACCUMULO_CONF_DIR}/slaves )
+SLAVES=$( wc -l < "${ACCUMULO_CONF_DIR}/slaves" )
 
 IFCONFIG=/sbin/ifconfig
-if [ ! -x $IFCONFIG ]; then
+if [[ ! -x $IFCONFIG ]]; then
    IFCONFIG='/bin/netstat -ie'
 fi
 
-ip=$($IFCONFIG 2>/dev/null| grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
-if [ $? != 0 ]
+ip=$($IFCONFIG 2>/dev/null| grep 'inet[^6]' | awk '{print $2}' | sed 's/addr://' | grep -v '0[.]0[.]0[.]0' | grep -v '127[.]0[.]0[.]1' | head -n 1)
+if [[ $? != 0 ]]
 then
    ip=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
 fi
 
 # When the hostname provided is the alias/shortname, try to use the FQDN to make
 # sure we send the right address to the Accumulo process.
-if [ "$HOST" = "`hostname -s`" ]; then
-    HOST="`hostname -f`"
+if [[ "$HOST" == "$(hostname -s)" ]]; then
+    HOST="$(hostname -f)"
     ADDRESS="$HOST"
 fi
 
 # ACCUMULO-1985 Allow monitor to bind on all interfaces
-if [ ${SERVICE} == "monitor" -a ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]; then
+if [[ ${SERVICE} == "monitor" && ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]]; then
     ADDRESS="0.0.0.0"
 fi
 
-if [ "$HOST" = "localhost" -o "$HOST" = "`hostname -f`" -o "$HOST" = "$ip" ]; then
-   PID=$(ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1)
+if [[ "$HOST" == "localhost" || "$HOST" == "$(hostname -f)" || "$HOST" == "$ip" ]]; then
+   PID=$(ps -ef | egrep "${ACCUMULO_HOME}"/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk '{print $2}' | head -1)
 else
-   PID=$($SSH $HOST ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1)
+   PID=$($SSH "$HOST" ps -ef | egrep "${ACCUMULO_HOME}"/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk '{print $2}' | head -1)
 fi
 
-if [ -z "$PID" ]; then
+if [[ -z "$PID" ]]; then
    echo "Starting $LONGNAME on $HOST"
-   if [ "$HOST" = "localhost" -o "$HOST" = "`hostname -f`" -o "$HOST" = "$ip" ]; then
-      nohup ${NUMA_CMD} ${bin}/accumulo ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
+   if [[ "$HOST" == "localhost" || "$HOST" == "$(hostname -f)" || "$HOST" == "$ip" ]]; then
+      nohup "${NUMA_CMD}" "${bin}/accumulo" "${SERVICE}" --address "${ADDRESS}" >"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out" 2>"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err" &
       MAX_FILES_OPEN=$(ulimit -n)
    else
-      $SSH $HOST "bash -c 'exec nohup ${NUMA_CMD} ${bin}/accumulo ${SERVICE} --address ${ADDRESS} >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
-      MAX_FILES_OPEN=$($SSH $HOST "/usr/bin/env bash -c 'ulimit -n'") 
+      $SSH "$HOST" "bash -c 'exec nohup \"${NUMA_CMD}\" \"${bin}/accumulo\" \"${SERVICE}\" --address \"${ADDRESS}\" >\"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out\" 2>\"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err\"' &"
+      MAX_FILES_OPEN=$($SSH "$HOST" "/usr/bin/env bash -c 'ulimit -n'")
    fi
 
-   if [ -n "$MAX_FILES_OPEN" ] && [ -n "$SLAVES" ] ; then
+   if [[ -n "$MAX_FILES_OPEN" ]] && [[ -n "$SLAVES" ]] ; then
       MAX_FILES_RECOMMENDED=${MAX_FILES_RECOMMENDED:-32768}
       if (( SLAVES > 10 )) && (( MAX_FILES_OPEN < MAX_FILES_RECOMMENDED ))
       then

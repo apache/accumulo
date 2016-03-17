@@ -23,7 +23,6 @@ while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a sym
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
-script=$( basename "$SOURCE" )
 # Stop: Resolve Script Directory
 
 
@@ -56,7 +55,8 @@ native_dir=$(find "${TMP_DIR}" -maxdepth 1 -mindepth 1 -type d)
 cd "${native_dir}" || exit 1
 
 # Make the native library
-export USERFLAGS="$@"
+# can't export arrays, flatten and parse in the Makefile
+export USERFLAGS="$*"
 make
 
 # Make sure it didn't fail

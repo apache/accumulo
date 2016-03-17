@@ -21,7 +21,7 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
    bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
    SOURCE="$(readlink "$SOURCE")"
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
@@ -32,47 +32,47 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 . "$bin"/config.sh
 
 IFCONFIG=/sbin/ifconfig
-if [ ! -x $IFCONFIG ]; then
+if [[ ! -x $IFCONFIG ]]; then
    IFCONFIG='/bin/netstat -ie'
 fi
-ip=$($IFCONFIG 2>/dev/null| grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
-if [ $? != 0 ]; then
+ip=$($IFCONFIG 2>/dev/null| grep 'inet[^6]' | awk '{print $2}' | sed 's/addr://' | grep -v '0[.]0[.]0[.]0' | grep -v '127[.]0[.]0[.]1' | head -n 1)
+if [[ $? != 0 ]]; then
    ip=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
 fi
 
 HOSTS="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $ip"
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/slaves; then
-      ${bin}/start-server.sh $host tserver "tablet server"
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/slaves"; then
+      "${bin}/start-server.sh" "$host" tserver "tablet server"
       break
    fi
 done
 
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/masters; then
-      ${bin}/accumulo org.apache.accumulo.master.state.SetGoalState NORMAL
-      ${bin}/start-server.sh $host master
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/masters"; then
+      "${bin}/accumulo" org.apache.accumulo.master.state.SetGoalState NORMAL
+      "${bin}/start-server.sh" "$host" master
       break
    fi
 done
 
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/gc; then
-      ${bin}/start-server.sh $host gc "garbage collector"
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/gc"; then
+      "${bin}/start-server.sh" "$host" gc "garbage collector"
       break
    fi
 done
 
 for host in $HOSTS; do
-   if [ ${host} = "${MONITOR}" ]; then
-      ${bin}/start-server.sh $MONITOR monitor 
+   if [[ ${host} == "${MONITOR}" ]]; then
+      "${bin}/start-server.sh" "$MONITOR" monitor
       break
    fi
 done
 
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/tracers; then
-      ${bin}/start-server.sh $host tracer 
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/tracers"; then
+      "${bin}/start-server.sh" "$host" tracer
       break
    fi
 done

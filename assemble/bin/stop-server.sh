@@ -17,7 +17,7 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
    bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
    SOURCE="$(readlink "$SOURCE")"
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
@@ -30,27 +30,27 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 HOST=$1
 
 IFCONFIG=/sbin/ifconfig
-if [ ! -x $IFCONFIG ]
+if [[ ! -x $IFCONFIG ]]
 then
    IFCONFIG='/bin/netstat -ie'
 fi
-ip=$($IFCONFIG 2>/dev/null| grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
-if [ $? != 0 ]
+ip=$($IFCONFIG 2>/dev/null| grep 'inet[^6]' | awk '{print $2}' | sed 's/addr://' | grep -v '0[.]0[.]0[.]0' | grep -v '127[.]0[.]0[.]1' | head -n 1)
+if [[ $? != 0 ]]
 then
    ip=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
 fi
 
 # only stop if there's not one already running
-if [ "$HOST" = "localhost" -o "$HOST" = "`hostname -s`" -o "$HOST" = "`hostname -f`" -o "$HOST" = "$ip" ]; then
-   PID=$(ps -ef | grep "$ACCUMULO_HOME" | egrep ${2} | grep "Main ${3}" | grep -v grep | grep -v ssh | grep -v stop-server.sh | awk {'print $2'} | head -1)
-   if [ ! -z $PID ]; then
+if [[ "$HOST" == "localhost" || "$HOST" == "$(hostname -s)" || "$HOST" == "$(hostname -f)" || "$HOST" == "$ip" ]]; then
+   PID=$(ps -ef | grep "$ACCUMULO_HOME" | egrep "${2}" | grep "Main ${3}" | grep -v grep | grep -v ssh | grep -v stop-server.sh | awk '{print $2}' | head -1)
+   if [[ ! -z $PID ]]; then
       echo "Stopping ${3} on $1";
-      kill -s ${4} ${PID} 2>/dev/null
+      kill -s "${4}" "${PID}" 2>/dev/null
    fi;
 else
-   PID=$(ssh -q -o 'ConnectTimeout 8' $1 "ps -ef | grep \"$ACCUMULO_HOME\" |  egrep '${2}' | grep 'Main ${3}' | grep -v grep | grep -v ssh | grep -v stop-server.sh" | awk {'print $2'} | head -1)
-   if [ ! -z $PID ]; then
+   PID=$(ssh -q -o 'ConnectTimeout 8' "$1" "ps -ef | grep \"""$ACCUMULO_HOME""\" |  egrep '${2}' | grep 'Main ${3}' | grep -v grep | grep -v ssh | grep -v stop-server.sh" | awk '{print $2}' | head -1)
+   if [[ ! -z $PID ]]; then
       echo "Stopping ${3} on $1";
-      ssh -q -o 'ConnectTimeout 8' $1 "kill -s ${4} ${PID} 2>/dev/null"
+      ssh -q -o 'ConnectTimeout 8' "$1" "kill -s ""${4}"" ""${PID}"" 2>/dev/null"
    fi;
 fi

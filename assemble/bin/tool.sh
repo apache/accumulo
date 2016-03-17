@@ -17,7 +17,7 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
    bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
    SOURCE="$(readlink "$SOURCE")"
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
@@ -27,21 +27,21 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 . "$bin"/config.sh
 
-if [ -z "$HADOOP_PREFIX" ] ; then
+if [[ -z "$HADOOP_PREFIX" ]] ; then
    echo "HADOOP_PREFIX is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
    exit 1
 fi
-if [ -z "$ZOOKEEPER_HOME" ] ; then
+if [[ -z "$ZOOKEEPER_HOME" ]] ; then
    echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
    exit 1
 fi
 
-ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar '
-if [ `eval $ZOOKEEPER_CMD | wc -l` != "1" ] ; then
+ZOOKEEPER_CMD='ls -1 '"$ZOOKEEPER_HOME"'/zookeeper-[0-9]*[^csn].jar '
+if [[ $(eval "$ZOOKEEPER_CMD" | wc -l) != "1" ]] ; then
    echo "Not exactly one zookeeper jar in $ZOOKEEPER_HOME"
    exit 1
 fi
-ZOOKEEPER_LIB=$(eval $ZOOKEEPER_CMD)
+ZOOKEEPER_LIB=$(eval "$ZOOKEEPER_CMD")
 
 LIB="$ACCUMULO_HOME/lib"
 CORE_LIB="$LIB/accumulo-core.jar"
@@ -54,16 +54,16 @@ GUAVA_LIB="$LIB/guava.jar"
 
 USERJARS=" "
 for arg in "$@"; do
-    if [ "$arg" != "-libjars" -a -z "$TOOLJAR" ]; then
+    if [[ "$arg" != "-libjars" && -z "$TOOLJAR" ]]; then
       TOOLJAR="$arg"
       shift
-   elif [ "$arg" != "-libjars" -a -z "$CLASSNAME" ]; then
+   elif [[ "$arg" != "-libjars" && -z "$CLASSNAME" ]]; then
       CLASSNAME="$arg"
       shift
-   elif [ -z "$USERJARS" ]; then
+   elif [[ -z "$USERJARS" ]]; then
       USERJARS=$(echo "$arg" | tr "," " ")
       shift
-   elif [ "$arg" = "-libjars" ]; then
+   elif [[ "$arg" == "-libjars" ]]; then
       USERJARS=""
       shift
    else
@@ -80,7 +80,7 @@ for jar in $USERJARS; do
 done
 export HADOOP_CLASSPATH="$H_JARS:$HADOOP_CLASSPATH"
 
-if [ -z "$CLASSNAME" -o -z "$TOOLJAR" ]; then
+if [[ -z "$CLASSNAME" || -z "$TOOLJAR" ]]; then
    echo "Usage: tool.sh path/to/myTool.jar my.tool.class.Name [-libjars my1.jar,my2.jar]" 1>&2
    exit 1
 fi
@@ -89,4 +89,4 @@ fi
 #echo CLASSNAME=$CLASSNAME
 #echo HADOOP_CLASSPATH=$HADOOP_CLASSPATH
 #echo exec "$HADOOP_PREFIX/bin/hadoop" jar "$TOOLJAR" $CLASSNAME -libjars \"$LIB_JARS\" $ARGS
-exec "$HADOOP_PREFIX/bin/hadoop" jar "$TOOLJAR" $CLASSNAME -libjars \"$LIB_JARS\" "$@"
+exec "$HADOOP_PREFIX/bin/hadoop" jar "$TOOLJAR" "$CLASSNAME" -libjars \""$LIB_JARS"\" "$@"

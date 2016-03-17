@@ -41,7 +41,7 @@ fail() {
 }
 
 # Test to see if we have thrift installed
-VERSION=$(thrift -version 2>/dev/null | grep -F "${REQUIRED_THRIFT_VERSION}" |  wc -l | sed -e 's/^ *//' -e 's/ *$//')
+VERSION=$(thrift -version 2>/dev/null | grep -c -F "${REQUIRED_THRIFT_VERSION}" |  sed -e 's/^ *//' -e 's/ *$//')
 if [[ "${VERSION}" != '1' ]] ; then
   # Nope: bail
   echo "****************************************************"
@@ -52,23 +52,23 @@ if [[ "${VERSION}" != '1' ]] ; then
 fi
 
 # Include thrift sources from additional modules
-THRIFT_ARGS=''
+THRIFT_ARGS=()
 for i in "${INCLUDED_MODULES[@]}"; do
-  if [ ${i} != '-' ]; then
-    test -d ${i} || fail missing required included module ${i}
-    THRIFT_ARGS="${THRIFT_ARGS} -I ${i}/src/main/thrift"
+  if [[ ${i} != '-' ]]; then
+    test -d "${i}" || fail missing required included module "${i}"
+    THRIFT_ARGS=("${THRIFT_ARGS[@]}" '-I' "${i}/src/main/thrift")
   fi
 done
 
 # Ensure output directories are created
-THRIFT_ARGS="${THRIFT_ARGS} -o $BUILD_DIR"
+THRIFT_ARGS=("${THRIFT_ARGS[@]}" '-o' "$BUILD_DIR")
 mkdir -p $BUILD_DIR
 rm -rf $BUILD_DIR/gen-java
 for f in src/main/thrift/*.thrift; do
-  thrift ${THRIFT_ARGS} --gen java "$f" || fail unable to generate java thrift classes
-  thrift ${THRIFT_ARGS} --gen py "$f" || fail unable to generate python thrift classes
-  thrift ${THRIFT_ARGS} --gen rb "$f" || fail unable to generate ruby thrift classes
-  thrift ${THRIFT_ARGS} --gen cpp "$f" || fail unable to generate cpp thrift classes
+  thrift "${THRIFT_ARGS[@]}" --gen java "$f" || fail unable to generate java thrift classes
+  thrift "${THRIFT_ARGS[@]}" --gen py "$f" || fail unable to generate python thrift classes
+  thrift "${THRIFT_ARGS[@]}" --gen rb "$f" || fail unable to generate ruby thrift classes
+  thrift "${THRIFT_ARGS[@]}" --gen cpp "$f" || fail unable to generate cpp thrift classes
 done
 
 # For all generated thrift code, suppress all warnings and add the LICENSE header
@@ -113,7 +113,7 @@ for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
   esac
 
   for file in "${FILE_SUFFIX[@]}"; do
-    for f in $(find $BUILD_DIR/gen-$lang -name "*$file"); do
+    for f in $(find "$BUILD_DIR/gen-$lang" -name "*$file"); do
       cat - "$f" > "${f}-with-license" <<EOF
 ${PREFIX}${LINE_NOTATION} Licensed to the Apache Software Foundation (ASF) under one or more
 ${LINE_NOTATION} contributor license agreements.  See the NOTICE file distributed with
@@ -164,8 +164,8 @@ for d in "${PACKAGES_TO_GENERATE[@]}"; do
     esac
     mkdir -p "$DDIR"
     for file in "${FILE_SUFFIX[@]}"; do
-      for f in $(find $SDIR -name *$file); do
-        DEST="$DDIR/$(basename $f)"
+      for f in $(find "$SDIR" -name "*$file"); do
+        DEST="$DDIR/$(basename "$f")"
         if ! cmp -s "${f}-with-license" "${DEST}" ; then
           echo cp -f "${f}-with-license" "${DEST}"
           cp -f "${f}-with-license" "${DEST}" || fail unable to copy files to java workspace
