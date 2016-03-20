@@ -525,14 +525,13 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     if (updates.size() == 1) {
       ColumnUpdate update = updates.get(0);
       singleUpdate(nmPointer, mutation.getRow(), update.getColumnFamily(), update.getColumnQualifier(), update.getColumnVisibility(), update.getTimestamp(),
-          update.isDeleted(), update.getValue(), mutationCount);
+          update.isDeleted(), update.getValue(), mutationCount++);
     } else if (updates.size() > 1) {
       long uid = startUpdate(nmPointer, mutation.getRow());
       for (ColumnUpdate update : updates) {
         update(nmPointer, uid, update.getColumnFamily(), update.getColumnQualifier(), update.getColumnVisibility(), update.getTimestamp(), update.isDeleted(),
-            update.getValue(), mutationCount);
+            update.getValue(), mutationCount++);
       }
-
     }
   }
 
@@ -545,7 +544,6 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       modCount++;
 
-      // Maybe increment count here
       _mutate(mutation, mutationCount);
     } finally {
       wlock.unlock();
