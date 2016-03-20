@@ -44,7 +44,6 @@ import org.apache.hadoop.io.Text;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -232,10 +231,13 @@ public class InMemoryMapIT {
    * <li>The size of the map generated from the first InMemoryMap equals the size of the map generated from the second</li>
    * <li>Each key value pair in each mutated map has a unique id (kvCount)</li>
    * </ul>
-   * 
+   *
    * @param mutations
-   * @param defaultMap
-   * @param nativeMapWrapper
+   *          List of mutations
+   * @param imm1
+   *          InMemoryMap to compare
+   * @param imm2
+   *          InMemoryMap to compare
    */
   private void assertMutatesEquivalent(List<Mutation> mutations, InMemoryMap imm1, InMemoryMap imm2) {
     int mutationKVPairs = countKVPairs(mutations);

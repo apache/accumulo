@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -519,7 +520,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
   }
 
-  private void _mutate(Mutation mutation, int mutationCount) {
+  private int _mutate(Mutation mutation, int mutationCount) {
 
     List<ColumnUpdate> updates = mutation.getUpdates();
     if (updates.size() == 1) {
@@ -533,21 +534,11 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
             update.getValue(), mutationCount++);
       }
     }
+    return mutationCount;
   }
 
   public void mutate(Mutation mutation, int mutationCount) {
-    wlock.lock();
-    try {
-      if (nmPointer == 0) {
-        throw new IllegalStateException("Native Map Deleted");
-      }
-
-      modCount++;
-
-      _mutate(mutation, mutationCount);
-    } finally {
-      wlock.unlock();
-    }
+    mutate(Collections.singletonList(mutation), mutationCount);
   }
 
   public void mutate(List<Mutation> mutations, int mutationCount) {
@@ -566,8 +557,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         int count = 0;
         while (iter.hasNext() && count < 10) {
           Mutation mutation = iter.next();
-          _mutate(mutation, mutationCount);
-          mutationCount++;
+          mutationCount = _mutate(mutation, mutationCount);
           count += mutation.size();
         }
       } finally {
