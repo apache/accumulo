@@ -41,6 +41,8 @@ import org.apache.accumulo.core.file.blockfile.impl.SeekableByteArrayInputStream
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.hadoop.io.WritableComparable;
 
+import com.google.common.base.Preconditions;
+
 public class MultiLevelIndex {
 
   public static class IndexEntry implements WritableComparable<IndexEntry> {
@@ -142,6 +144,8 @@ public class MultiLevelIndex {
     protected int indexSize;
 
     SerializedIndexBase(int[] offsets, byte[] data) {
+      Preconditions.checkNotNull(offsets, "offsets argument was null");
+      Preconditions.checkNotNull(data, "data argument was null");
       this.offsets = offsets;
       this.data = data;
       sbais = new SeekableByteArrayInputStream(data);
@@ -149,6 +153,7 @@ public class MultiLevelIndex {
     }
 
     SerializedIndexBase(byte[] data, int offsetsOffset, int numOffsets, int indexOffset, int indexSize) {
+      Preconditions.checkNotNull(data, "data argument was null");
       sbais = new SeekableByteArrayInputStream(data, indexOffset + indexSize);
       dis = new DataInputStream(sbais);
       this.offsetsOffset = offsetsOffset;
@@ -157,6 +162,10 @@ public class MultiLevelIndex {
       this.indexSize = indexSize;
     }
 
+    /**
+     * Before this method is called, {@code this.dis} is seeked to the offset of a serialized index entry. This method should deserialize the index entry by
+     * reading from {@code this.dis} and return it.
+     */
     protected abstract T newValue() throws IOException;
 
     @Override

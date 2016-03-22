@@ -20,6 +20,8 @@ package org.apache.accumulo.core.file.blockfile.impl;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.google.common.base.Preconditions;
+
 /**
  * This class is like byte array input stream with two differences. It supports seeking and avoids synchronization.
  */
@@ -105,12 +107,14 @@ public class SeekableByteArrayInputStream extends InputStream {
   public void close() throws IOException {}
 
   public SeekableByteArrayInputStream(byte[] buf) {
+    Preconditions.checkNotNull(buf, "bug argument was null");
     this.buffer = buf;
     this.cur = 0;
     this.max = buf.length;
   }
 
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
+    Preconditions.checkNotNull(buf, "bug argument was null");
     this.buffer = buf;
     this.cur = 0;
     this.max = maxOffset;
@@ -126,7 +130,7 @@ public class SeekableByteArrayInputStream extends InputStream {
     return this.cur;
   }
 
-  public byte[] getBuffer() {
+  byte[] getBuffer() {
     return buffer;
   }
 }

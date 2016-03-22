@@ -532,6 +532,9 @@ public class CachableBlockFile {
       throw new UnsupportedOperationException();
     }
 
+    /**
+     * The byte array returned by this method is only for read optimizations, it should not be modified.
+     */
     @Override
     public byte[] getBuffer() {
       throw new UnsupportedOperationException();
