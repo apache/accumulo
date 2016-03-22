@@ -87,7 +87,7 @@ if (ga.hasOwnProperty('loaded') && ga.loaded === true) {
         Visit the official site at: <a href="https://accumulo.apache.org">https://accumulo.apache.org</a>
       </div>
       <div id="content">
-        {% unless page.skiph1fortitle == '' %}
+        {% unless page.skiph1fortitle %}
         <h1 class="title">{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</h1>
         {% endunless %}
         {{ content }}
