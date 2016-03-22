@@ -44,7 +44,7 @@ build_jekyll_site() {
   [[ $jekyll =~ $regex ]] || die "fatal: requires jekyll >= 3.0.3 to build"
 
   # prep the working location
-  local workdir; workdir=$(mktemp -d --tmpdir jekyll-XXXXXXXXXX) || die "fatal: unable to allocate a temporary directory"
+  local workdir; workdir=$(mktemp -d /tmp/jekyll-XXXXXXXXXX) || die "fatal: unable to allocate a temporary directory"
   trap "rm -rf '""$workdir""'" 0 1 2 3 15
 
   # actually generate the site
