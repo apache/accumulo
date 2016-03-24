@@ -51,10 +51,9 @@ if [ -z "$ZOOKEEPER_VERSION" ]; then
    echo "Please check ZOOKEEPER_HOME, either globally or in accumulo-env.sh."
    exit 1
 fi
-ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION##$ZOOKEEPER_HOME/zookeeper-}
-ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION%%.jar}
+ZOOKEEPER_VERSION=$(basename "${ZOOKEEPER_VERSION##*-}" .jar)
 
-if [ "$ZOOKEEPER_VERSION" '<' "3.4.0" ]; then
+if [[ "$ZOOKEEPER_VERSION" < "3.4.0" ]]; then
    echo "WARN : Using Zookeeper $ZOOKEEPER_VERSION.  Use version 3.4.0 or greater. Older versions may not work reliably.";
 fi
 
