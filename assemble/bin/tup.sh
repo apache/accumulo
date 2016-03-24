@@ -17,7 +17,7 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
    bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
    SOURCE="$(readlink "$SOURCE")"
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
@@ -27,20 +27,18 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 . "$bin"/config.sh
 
-SLAVES=$ACCUMULO_CONF_DIR/slaves
-
 echo -n "Starting tablet servers ..."
 
 count=1
-for server in `egrep -v '(^#|^\s*$)' "${SLAVES}"`; do
+while IFS=$' \t\n' read -r server; do
    echo -n "."
-   ${bin}/start-server.sh $server tserver "tablet server" &
+   "${bin}/start-server.sh" "$server" tserver "tablet server" &
    let count++
-   if [ $(( ${count} % 72 )) -eq 0 ] ;
+   if [[ $(( count % 72 )) -eq 0 ]];
    then
       echo
       wait
    fi
-done
+done < <(egrep -v '^(\s*#.*|\s*)$' "$ACCUMULO_CONF_DIR/slaves")
 
 echo " done"

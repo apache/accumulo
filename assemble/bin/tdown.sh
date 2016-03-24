@@ -17,7 +17,7 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
    bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
    SOURCE="$(readlink "$SOURCE")"
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
@@ -27,14 +27,13 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 . "$bin"/config.sh
 
-HADOOP_CMD=$HADOOP_PREFIX/bin/hadoop
-SLAVES=$ACCUMULO_CONF_DIR/slaves
+SLAVES="$ACCUMULO_CONF_DIR/slaves"
 SLAVE_HOSTS=$(egrep -v '(^#|^\s*$)' "${SLAVES}")
 
 echo "Stopping unresponsive tablet servers (if any)..."
 for server in ${SLAVE_HOSTS}; do
    # only start if there's not one already running
-   $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/lib/accumulo-start.jar" tserver TERM & 
+   "$ACCUMULO_HOME/bin/stop-server.sh" "$server" "$ACCUMULO_HOME/lib/accumulo-start.jar" tserver TERM &
 done
 
 sleep 10
@@ -42,8 +41,8 @@ sleep 10
 echo "Stopping unresponsive tablet servers hard (if any)..."
 for server in ${SLAVE_HOSTS}; do
    # only start if there's not one already running
-   $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/lib/accumulo-start.jar" tserver KILL & 
+   "$ACCUMULO_HOME/bin/stop-server.sh" "$server" "$ACCUMULO_HOME/lib/accumulo-start.jar" tserver KILL &
 done
 
 echo "Cleaning tablet server entries from zookeeper"
-$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.util.ZooZap -tservers
+"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.server.util.ZooZap -tservers

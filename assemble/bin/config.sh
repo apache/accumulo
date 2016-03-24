@@ -43,38 +43,37 @@
 # ACCUMULO_JAAS_CONF  Location of jaas.conf file. Needed by JAAS for things like Kerberos based logins
 # ACCUMULO_KRB5_CONF  Location of krb5.conf file. Needed by Kerberos subsystems to find login servers
 
-if [ -z "${ACCUMULO_HOME}" ] ; then
+if [[ -z "${ACCUMULO_HOME}" ]] ; then
   # Start: Resolve Script Directory
   SOURCE="${BASH_SOURCE[0]}"
-  while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
      bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
      SOURCE="$(readlink "$SOURCE")"
      [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
   done
   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-  script=$( basename "$SOURCE" )
   # Stop: Resolve Script Directory
 
-  ACCUMULO_HOME=$( cd -P ${bin}/.. && pwd )
+  ACCUMULO_HOME=$( cd -P "${bin}/.." && pwd )
   export ACCUMULO_HOME
 fi
 
-if [ ! -d "${ACCUMULO_HOME}" ]; then
+if [[ ! -d "${ACCUMULO_HOME}" ]]; then
   echo "ACCUMULO_HOME=${ACCUMULO_HOME} is not a valid directory. Please make sure it exists"
   exit 1
 fi
 
 ACCUMULO_CONF_DIR="${ACCUMULO_CONF_DIR:-$ACCUMULO_HOME/conf}"
 export ACCUMULO_CONF_DIR
-if [ -z "$ACCUMULO_CONF_DIR" -o ! -d "$ACCUMULO_CONF_DIR" ]
+if [[ -z "$ACCUMULO_CONF_DIR" || ! -d "$ACCUMULO_CONF_DIR" ]]
 then
   echo "ACCUMULO_CONF_DIR=$ACCUMULO_CONF_DIR is not a valid directory.  Please make sure it exists"
   exit 1
 fi
 
-if [ -f $ACCUMULO_CONF_DIR/accumulo-env.sh ] ; then
-   . $ACCUMULO_CONF_DIR/accumulo-env.sh
-elif [ -z "$ACCUMULO_TEST" ] ; then
+if [[ -f $ACCUMULO_CONF_DIR/accumulo-env.sh ]]; then
+   . "$ACCUMULO_CONF_DIR/accumulo-env.sh"
+elif [[ -z "$ACCUMULO_TEST" ]]; then
    #
    # Attempt to bootstrap configuration and continue
    #
@@ -87,28 +86,28 @@ elif [ -z "$ACCUMULO_TEST" ] ; then
    exit 1
 fi
 
-if [ -z ${ACCUMULO_LOG_DIR} ]; then
+if [[ -z ${ACCUMULO_LOG_DIR} ]]; then
    ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
 fi
 
-if [ -z "${ACCUMULO_VERIFY_ONLY}" ] ; then
-  mkdir -p $ACCUMULO_LOG_DIR 2>/dev/null
+if [[ -z "${ACCUMULO_VERIFY_ONLY}" ]] ; then
+  mkdir -p "$ACCUMULO_LOG_DIR" 2>/dev/null
 fi
 
 export ACCUMULO_LOG_DIR
 
-if [ -z "$HADOOP_PREFIX" ]
+if [[ -z "$HADOOP_PREFIX" ]]
 then
-   HADOOP_PREFIX="`which hadoop`"
-   if [ -z "$HADOOP_PREFIX" ]
+   HADOOP_PREFIX="$(which hadoop)"
+   if [[ -z "$HADOOP_PREFIX" ]]
    then
       echo "You must set HADOOP_PREFIX"
       exit 1
    fi
-   HADOOP_PREFIX=`dirname $HADOOP_PREFIX`
-   HADOOP_PREFIX=`dirname $HADOOP_PREFIX`
+   HADOOP_PREFIX=$(dirname "$HADOOP_PREFIX")
+   HADOOP_PREFIX=$(dirname "$HADOOP_PREFIX")
 fi
-if [ ! -d "$HADOOP_PREFIX" ]
+if [[ ! -d "$HADOOP_PREFIX" ]]
 then
    echo "HADOOP_PREFIX, which has a value of $HADOOP_PREFIX, is not a directory."
    exit 1
@@ -120,18 +119,18 @@ if [[ -f "$ACCUMULO_CONF_DIR/masters" ]]; then
   MASTER1=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters" | head -1)
 fi
 
-if [ -z "${MONITOR}" ] ; then
+if [[ -z "${MONITOR}" ]] ; then
   MONITOR=$MASTER1
-  if [ -f "$ACCUMULO_CONF_DIR/monitor" ]; then
+  if [[ -f "$ACCUMULO_CONF_DIR/monitor" ]]; then
       MONITOR=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/monitor" | head -1)
   fi
-  if [ -z "${MONITOR}" ] ; then
+  if [[ -z "${MONITOR}" ]] ; then
     echo "Could not infer a Monitor role. You need to either define the MONITOR env variable, define \"${ACCUMULO_CONF_DIR}/monitor\", or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
     exit 1
   fi
 fi
-if [ ! -f "$ACCUMULO_CONF_DIR/tracers" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
-  if [ -z "${MASTER1}" ] ; then
+if [[ ! -f "$ACCUMULO_CONF_DIR/tracers" && -z "${ACCUMULO_VERIFY_ONLY}" ]]; then
+  if [[ -z "${MASTER1}" ]]; then
     echo "Could not find a master node to use as a default for the tracer role. Either set up \"${ACCUMULO_CONF_DIR}/tracers\" or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
     exit 1
   else
@@ -140,8 +139,8 @@ if [ ! -f "$ACCUMULO_CONF_DIR/tracers" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
 
 fi
 
-if [ ! -f "$ACCUMULO_CONF_DIR/gc" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
-  if [ -z "${MASTER1}" ] ; then
+if [[ ! -f "$ACCUMULO_CONF_DIR/gc" && -z "${ACCUMULO_VERIFY_ONLY}" ]]; then
+  if [[ -z "${MASTER1}" ]] ; then
     echo "Could not infer a GC role. You need to either set up \"${ACCUMULO_CONF_DIR}/gc\" or make sure \"${ACCUMULO_CONF_DIR}/masters\" is non-empty."
     exit 1
   else
@@ -149,7 +148,7 @@ if [ ! -f "$ACCUMULO_CONF_DIR/gc" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
   fi
 fi
 
-NUMA=`which numactl 2>/dev/null`
+NUMA=$(which numactl 2>/dev/null)
 NUMACTL_EXISTS="$?"
 NUMACTL_ARGS="--interleave=all"
 if [[ ${NUMACTL_EXISTS} -eq 0 ]] ; then
@@ -158,7 +157,7 @@ else
   export NUMA_CMD=""
 fi
 
-SSH='ssh -qnf -o ConnectTimeout=2'
+export SSH='ssh -qnf -o ConnectTimeout=2'
 
 export HADOOP_HOME=$HADOOP_PREFIX
 export HADOOP_HOME_WARN_SUPPRESS=true
@@ -170,15 +169,15 @@ export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-1}
 export ACCUMULO_MONITOR_BIND_ALL=${ACCUMULO_MONITOR_BIND_ALL:-"false"}
 
 # Check for jaas.conf configuration
-if [ -z ${ACCUMULO_JAAS_CONF} ]; then
-  if [ -f ${ACCUMULO_CONF_DIR}/jaas.conf ]; then
+if [[ -z ${ACCUMULO_JAAS_CONF} ]]; then
+  if [[ -f ${ACCUMULO_CONF_DIR}/jaas.conf ]]; then
     export ACCUMULO_JAAS_CONF=${ACCUMULO_CONF_DIR}/jaas.conf
   fi
 fi
 
 # Check for krb5.conf configuration
-if [ -z ${ACCUMULO_KRB5_CONF} ]; then
-  if [ -f ${ACCUMULO_CONF_DIR}/krb5.conf ]; then
+if [[ -z ${ACCUMULO_KRB5_CONF} ]]; then
+  if [[ -f ${ACCUMULO_CONF_DIR}/krb5.conf ]]; then
     export ACCUMULO_KRB5_CONF=${ACCUMULO_CONF_DIR}/krb5.conf
   fi
 fi

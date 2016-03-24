@@ -22,7 +22,7 @@
 #   the physical memory is the same
 #   the mounts are the same on each machine
 #   a set of writable locations (typically different disks) are in fact writable
-# 
+#
 # In order to check for writable partitions, you must configure the WRITABLE variable below.
 #
 

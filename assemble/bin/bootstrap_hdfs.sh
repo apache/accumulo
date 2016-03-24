@@ -17,7 +17,7 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
    bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
    SOURCE="$(readlink "$SOURCE")"
    [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
@@ -32,7 +32,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 #
 SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_CONF_DIR/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; s|[^/]+$||; print $ARGV[1]')
 
-if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]
+if [[ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]]
 then
    echo "Your accumulo-site.xml file is not set up for the HDFS Classloader. Please add the following to your accumulo-site.xml file:"
    echo ""
@@ -48,7 +48,7 @@ fi
 # Create the system context directy in HDFS if it does not exist
 #
 "$HADOOP_PREFIX/bin/hadoop" fs -ls "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
    "$HADOOP_PREFIX/bin/hadoop" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 fi
 
@@ -61,7 +61,7 @@ NUM_SLAVES=$(egrep -v '(^#|^\s*$)' "$SLAVES" | wc -l)
 #let each datanode service around 50 clients
 let "REP=$NUM_SLAVES/50"
 
-if [ $REP -lt 3 ]; then
+if [[ $REP -lt 3 ]]; then
    REP=3
 fi
 
@@ -78,7 +78,7 @@ fi
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
-for f in `cat $ACCUMULO_CONF_DIR/slaves`
-do
-  rsync -ra --delete $ACCUMULO_HOME `dirname $ACCUMULO_HOME`
-done
+
+while IFS=$' \t\n' read -r host; do
+  rsync -ra --delete "$ACCUMULO_HOME" "$host:$(readlink "$(dirname "$ACCUMULO_HOME")")"
+done < <(egrep -v '^(\s*#.*|\s*)$' "$ACCUMULO_CONF_DIR/slaves")
