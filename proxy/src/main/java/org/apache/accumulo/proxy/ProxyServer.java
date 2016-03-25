@@ -1642,7 +1642,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.NamespaceExistsException, TException {
     try {
       getConnector(login).namespaceOperations().create(namespaceName);
-    } catch (NamespaceNotFoundException e) {
+    } catch (NamespaceExistsException e) {
       throw new org.apache.accumulo.proxy.thrift.NamespaceExistsException(e.toString());
     } catch (Exception e) {
       handleException(e);
@@ -1656,7 +1656,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       getConnector(login).namespaceOperations().delete(namespaceName);
     } catch (NamespaceNotFoundException e) {
-      throw new org.apache.accumulo.proxy.thrift.NamespaceExistsException(e.toString());
+      throw new org.apache.accumulo.proxy.thrift.NamespaceNotFoundException(e.toString());
     } catch (NamespaceNotEmptyException e) {
       throw new org.apache.accumulo.proxy.thrift.NamespaceNotEmptyException(e.toString());
     } catch (Exception e) {

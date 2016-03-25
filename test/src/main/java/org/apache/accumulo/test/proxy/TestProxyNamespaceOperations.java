@@ -115,7 +115,7 @@ public class TestProxyNamespaceOperations {
     assertNull(tpc.proxy().getNamespaceProperties(userpass, testnamespace).get("test.property1"));
   }
 
-  @Ignore("namespaceIdMap() is returning unexpected results; Python client works as expected. Investigating")
+  @Ignore("MockInstance doesn't return expected results for this function.")
   @Test
   public void namespaceIds() throws TException {
     assertTrue(tpc.proxy().namespaceIdMap(userpass).containsKey("accumulo"));
