@@ -25,7 +25,6 @@ import org.apache.hadoop.io.Text;
 
 public class DeleteRowsCommand extends Command {
   private Option forceOpt;
-  private Option startRowOptExclusive;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {

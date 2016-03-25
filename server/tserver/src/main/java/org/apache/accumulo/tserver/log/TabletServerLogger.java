@@ -399,9 +399,7 @@ public class TabletServerLogger {
           if (seq < 0)
             throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
           LoggerOperation lop = writer.write(copy, seq);
-          if (lop != null) {
-            lop.await();
-          }
+          lop.await();
 
           // double-check: did the log set change?
           success = (currentLogId == logId.get());
@@ -463,7 +461,7 @@ public class TabletServerLogger {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
         logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(), commitSession.getExtent());
-        return null;
+        return DfsLogger.NO_WAIT_LOGGER_OP;
       }
     });
   }
@@ -519,27 +517,29 @@ public class TabletServerLogger {
     return seq;
   }
 
-  public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq) throws IOException {
+  public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq, final Durability durability)
+      throws IOException {
 
     long t1 = System.currentTimeMillis();
 
     int seq = write(commitSession, true, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        return logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName);
+        return logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName, durability);
       }
     });
 
     long t2 = System.currentTimeMillis();
 
-    log.debug(" wrote MinC finish  " + seq + ": writeTime:" + (t2 - t1) + "ms ");
+    log.debug(" wrote MinC finish  {}: writeTime:{}ms  durability:{}", seq, (t2 - t1), durability);
   }
 
-  public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName) throws IOException {
+  public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName, final Durability durability)
+      throws IOException {
     write(commitSession, false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        return logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName);
+        return logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName, durability);
       }
     });
     return seq;
