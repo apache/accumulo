@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -246,10 +245,9 @@ public class InMemoryMapIT {
     List<MemKey> memKeys2 = getArrayOfMemKeys(imm2);
 
     assertEquals("Not all key value pairs included: " + dumpInMemoryMap(imm1, memKeys1), mutationKVPairs, memKeys1.size());
-    assertEquals("Not all key value pairs included: " + dumpInMemoryMap(imm2, memKeys2), mutationKVPairs, memKeys2.size());
     assertEquals("InMemoryMaps differ in size: " + dumpInMemoryMap(imm1, memKeys1) + "\n" + dumpInMemoryMap(imm2, memKeys2), memKeys1.size(), memKeys2.size());
-    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm1, memKeys1), mutationKVPairs, getUniqKVCount(memKeys1).size());
-    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm2, memKeys2), mutationKVPairs, getUniqKVCount(memKeys2).size());
+    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm1, memKeys1), mutationKVPairs, getUniqKVCount(memKeys1));
+    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm2, memKeys2), mutationKVPairs, getUniqKVCount(memKeys2));
 
   }
 
@@ -272,7 +270,8 @@ public class InMemoryMapIT {
         skvi.next();
       }
     } catch (IOException ex) {
-      java.util.logging.Logger.getLogger(InMemoryMapIT.class.getName()).log(Level.SEVERE, null, ex);
+      log.error("Error getting memkeys", ex);
+      throw new RuntimeException(ex);
     }
 
     return memKeys;
@@ -293,12 +292,12 @@ public class InMemoryMapIT {
     return sb.toString();
   }
 
-  private List getUniqKVCount(List<MemKey> memKeys) {
+  private int getUniqKVCount(List<MemKey> memKeys) {
     List<Integer> kvCounts = new ArrayList<Integer>();
     for (MemKey m : memKeys) {
       kvCounts.add(m.getKVCount());
     }
-    return ImmutableSet.copyOf(kvCounts).asList();
+    return ImmutableSet.copyOf(kvCounts).size();
   }
 
   private Map<String,Set<ByteSequence>> getLocalityGroups() {
