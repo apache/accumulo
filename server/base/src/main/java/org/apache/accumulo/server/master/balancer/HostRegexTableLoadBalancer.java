@@ -44,16 +44,20 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This balancer will create pools of tablet servers by grouping tablet servers that match a regex into the same pool and calling the balancer set on the table
- * to balance within the set of matching tablet servers. </br> Regex properties for this balancer are specified as:</br>
- * <b>table.custom.balancer.host.regex.&lt;tablename&gt;=&lt;regex&gt;</b></br> Periodically (default 5m) this balancer will check to see if a tablet server is
- * hosting tablets that it should not be according to the regex configuration. If this occurs then the offending tablets will be reassigned. This would cover
- * the case where the configuration is changed and the master is restarted while the tablet servers are up. To change the out of bounds check time period, set
- * the following property:</br> <b>table.custom.balancer.host.regex.oob.period=5m</b></br> Periodically (default 5m) this balancer will regroup the set of
- * current tablet servers into pools based on regexes applied to the tserver host names. This would cover the case of tservers dying or coming online. To change
- * the host pool check time period, set the following property: </br> <b>table.custom.balancer.host.regex.pool.check=5m</b></br> Regex matching can be based on
- * either the host name (default) or host ip address. To set this balancer to match the regular expressions to the tablet server IP address, then set the
- * following property:</br> <b>table.custom.balancer.host.regex.is.ip=true</b>
- * 
+ * to balance within the set of matching tablet servers. <br>
+ * Regex properties for this balancer are specified as:<br>
+ * <b>table.custom.balancer.host.regex.&lt;tablename&gt;=&lt;regex&gt;</b><br>
+ * Periodically (default 5m) this balancer will check to see if a tablet server is hosting tablets that it should not be according to the regex configuration.
+ * If this occurs then the offending tablets will be reassigned. This would cover the case where the configuration is changed and the master is restarted while
+ * the tablet servers are up. To change the out of bounds check time period, set the following property:<br>
+ * <b>table.custom.balancer.host.regex.oob.period=5m</b><br>
+ * Periodically (default 5m) this balancer will regroup the set of current tablet servers into pools based on regexes applied to the tserver host names. This
+ * would cover the case of tservers dying or coming online. To change the host pool check time period, set the following property: <br>
+ * <b>table.custom.balancer.host.regex.pool.check=5m</b><br>
+ * Regex matching can be based on either the host name (default) or host ip address. To set this balancer to match the regular expressions to the tablet server
+ * IP address, then set the following property:<br>
+ * <b>table.custom.balancer.host.regex.is.ip=true</b>
+ *
  */
 public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
@@ -78,8 +82,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   /**
    * Group the set of current tservers by pool name. Tservers that don't match a regex are put into a default ppol.
-   * 
+   *
    * @param current
+   *          map of current tservers
    * @return current servers grouped by pool name, if not a match it is put into a default pool.
    */
   protected synchronized Map<String,SortedMap<TServerInstance,TabletServerStatus>> splitCurrentByRegex(SortedMap<TServerInstance,TabletServerStatus> current) {
@@ -122,8 +127,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   /**
    * Matches host against the regexes and returns the matching pool name
-   * 
+   *
    * @param host
+   *          tablet server host
    * @return name of pool. will return default pool if host matches more than one regex
    */
   protected String getPoolNameForHost(String host) {
@@ -155,9 +161,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   /**
    * Matches table name against pool names, returns matching pool name or DEFAULT_POOL.
-   * 
+   *
    * @param tableName
-   * @return
+   *          name of table
+   * @return tablet server pool name (table name or DEFAULT_POOL)
    */
   protected String getPoolNameForTable(String tableName) {
     if (null == tableName) {
@@ -168,8 +175,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   /**
    * Parse configuration and extract properties
-   * 
+   *
    * @param conf
+   *          server configuration
    */
   protected void parseConfiguration(ServerConfiguration conf) {
     tableIdToTableName = new HashMap<>();
