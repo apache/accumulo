@@ -254,6 +254,7 @@ public enum Property {
           + "must be made, which is slower. However opening too many files at once can cause problems."),
   TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.MEMORY,
       "The maximum size for each write-ahead log. See comment for property tserver.memory.maps.max"),
+  TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION, "The maximum age for each write-ahead log."),
 
   TSERV_WALOG_TOLERATED_CREATION_FAILURES("tserver.walog.tolerated.creation.failures", "50", PropertyType.COUNT,
       "The maximum number of failures tolerated when creating a new WAL file within the period specified by tserver.walog.failures.period."

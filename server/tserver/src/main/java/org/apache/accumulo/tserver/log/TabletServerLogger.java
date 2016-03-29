@@ -74,6 +74,7 @@ public class TabletServerLogger {
 
   private final AtomicLong logSizeEstimate = new AtomicLong();
   private final long maxSize;
+  private final long maxAge;
 
   private final TabletServer tserver;
 
@@ -101,6 +102,8 @@ public class TabletServerLogger {
 
   private final RetryFactory retryFactory;
   private Retry retry = null;
+
+  private long createTime = 0;
 
   static private abstract class TestCallWithWriteLock {
     abstract boolean test();
@@ -145,13 +148,14 @@ public class TabletServerLogger {
     }
   }
 
-  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, RetryFactory retryFactory) {
+  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, RetryFactory retryFactory, long maxAge) {
     this.tserver = tserver;
     this.maxSize = maxSize;
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
     this.retryFactory = retryFactory;
     this.retry = null;
+    this.maxAge = maxAge;
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
@@ -224,6 +228,7 @@ public class TabletServerLogger {
           retry = null;
         }
 
+        this.createTime = System.currentTimeMillis();
         return;
       } else {
         throw new RuntimeException("Error: unexpected type seen: " + next);
@@ -434,12 +439,12 @@ public class TabletServerLogger {
         });
       }
     }
-    // if the log gets too big, reset it .. grab the write lock first
+    // if the log gets too big or too old, reset it .. grab the write lock first
     logSizeEstimate.addAndGet(4 * 3); // event, tid, seq overhead
     testLockAndRun(logIdLock, new TestCallWithWriteLock() {
       @Override
       boolean test() {
-        return logSizeEstimate.get() > maxSize;
+        return (logSizeEstimate.get() > maxSize) || ((System.currentTimeMillis() - createTime) > maxAge);
       }
 
       @Override
