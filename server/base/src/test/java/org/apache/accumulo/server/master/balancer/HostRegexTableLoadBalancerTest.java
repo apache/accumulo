@@ -165,7 +165,7 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
 
         @Override
         public String get(Property property) {
-          return tableProperties.get(property);
+          return tableProperties.get(property.name());
         }
 
         @Override
@@ -357,7 +357,7 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
 
           @Override
           public String get(Property property) {
-            return tableProperties.get(property);
+            return tableProperties.get(property.name());
           }
 
           @Override
@@ -419,7 +419,7 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
 
           @Override
           public String get(Property property) {
-            return tableProperties.get(property);
+            return tableProperties.get(property.name());
           }
 
           @Override
