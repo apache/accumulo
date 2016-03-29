@@ -189,13 +189,13 @@ public class ContextManager {
     }
   }
 
-  public void removeUnusedContexts(Set<String> inUse) {
+  public void removeUnusedContexts(Set<String> configuredContexts) {
 
     Map<String,Context> unused;
 
     synchronized (this) {
       unused = new HashMap<String,Context>(contexts);
-      unused.keySet().removeAll(inUse);
+      unused.keySet().removeAll(configuredContexts);
       contexts.keySet().removeAll(unused.keySet());
     }
 

@@ -2753,29 +2753,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     Runnable contextCleaner = new Runnable() {
       @Override
       public void run() {
-        ArrayList<KeyExtent> extents;
-
-        synchronized (onlineTablets) {
-          extents = new ArrayList<KeyExtent>(onlineTablets.keySet());
-        }
-
-        Set<String> tables = new HashSet<String>();
-
-        for (KeyExtent keyExtent : extents) {
-          tables.add(keyExtent.getTableId());
-        }
-
-        HashSet<String> contexts = new HashSet<String>();
-
-        for (String tableid : tables) {
-          String context = getTableConfiguration(new KeyExtent(tableid, null, null)).get(Property.TABLE_CLASSPATH);
-          if (!context.equals("")) {
-            contexts.add(context);
-          }
-        }
-
+        Set<String> configuredContexts = getServerConfigurationFactory().getConfiguration().getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY)
+            .keySet();
         try {
-          AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(contexts);
+          AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
         } catch (IOException e) {
           log.warn("{}", e.getMessage(), e);
         }
