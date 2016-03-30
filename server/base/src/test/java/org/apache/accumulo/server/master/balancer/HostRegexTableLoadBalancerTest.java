@@ -307,7 +307,7 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
   public void testBalanceWithMigrations() {
     List<TabletMigration> migrations = new ArrayList<>();
     init((ServerConfiguration) factory);
-    long wait = this.balance(createCurrent(2), Collections.singleton(new KeyExtent()), migrations);
+    long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(2)), Collections.singleton(new KeyExtent()), migrations);
     Assert.assertEquals(5000, wait);
     Assert.assertEquals(0, migrations.size());
   }
@@ -482,7 +482,7 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
         unassigned.put(ke, null);
       }
     }
-    this.getAssignments(allTabletServers, unassigned, assignments);
+    this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers), Collections.unmodifiableMap(unassigned), assignments);
     Assert.assertEquals(15, assignments.size());
     // Ensure unique tservers
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
@@ -504,16 +504,16 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
   }
 
   @Test
-  public void testAllAassigned() {
+  public void testAllAssigned() {
     init((ServerConfiguration) factory);
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
-    this.getAssignments(allTabletServers, unassigned, assignments);
+    this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers), Collections.unmodifiableMap(unassigned), assignments);
     Assert.assertEquals(0, assignments.size());
   }
 
   @Test
-  public void testPartiallyAassigned() {
+  public void testPartiallyAssigned() {
     init((ServerConfiguration) factory);
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
@@ -526,7 +526,7 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
         i++;
       }
     }
-    this.getAssignments(allTabletServers, unassigned, assignments);
+    this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers), Collections.unmodifiableMap(unassigned), assignments);
     Assert.assertEquals(unassigned.size(), assignments.size());
     // Ensure unique tservers
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
@@ -559,7 +559,7 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
         unassigned.put(ke, null);
       }
     }
-    this.getAssignments(allTabletServers, unassigned, assignments);
+    this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers), Collections.unmodifiableMap(unassigned), assignments);
     Assert.assertEquals(15, assignments.size());
     // Ensure unique tservers
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
