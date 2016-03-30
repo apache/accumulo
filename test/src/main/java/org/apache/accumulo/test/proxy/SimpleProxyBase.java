@@ -946,6 +946,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     } catch (TableNotFoundException ex) {}
     try {
       client.createConditionalWriter(creds, doesNotExist, new ConditionalWriterOptions());
+      fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
   }
 
@@ -954,50 +955,61 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     final String doesNotExist = "doesNotExists";
     try {
       client.deleteNamespace(creds, doesNotExist);
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.renameNamespace(creds, doesNotExist, "abcdefg");
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.setNamespaceProperty(creds, doesNotExist, "table.compaction.major.ratio", "4");
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.removeNamespaceProperty(creds, doesNotExist, "table.compaction.major.ratio");
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.getNamespaceProperties(creds, doesNotExist);
-    } catch (NamespaceNotFoundException ex) {}
-    try {
-      client.namespaceIdMap(creds);
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.<String,String> emptyMap());
       client.attachNamespaceIterator(creds, doesNotExist, setting, EnumSet.allOf(IteratorScope.class));
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.removeNamespaceIterator(creds, doesNotExist, "DebugTheThings", EnumSet.allOf(IteratorScope.class));
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.getNamespaceIteratorSetting(creds, doesNotExist, "DebugTheThings", IteratorScope.SCAN);
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.listNamespaceIterators(creds, doesNotExist);
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.<String,String> emptyMap());
       client.checkNamespaceIteratorConflicts(creds, doesNotExist, setting, EnumSet.allOf(IteratorScope.class));
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.addNamespaceConstraint(creds, doesNotExist, MaxMutationSize.class.getName());
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.removeNamespaceConstraint(creds, doesNotExist, 1);
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.listNamespaceConstraints(creds, doesNotExist);
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
       client.testNamespaceClassLoad(creds, doesNotExist, DebugIterator.class.getName(), SortedKeyValueIterator.class.getName());
+      fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
   }
 
@@ -1021,11 +1033,14 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
   @Test
   public void testNamespaceExists() throws Exception {
+    client.createNamespace(creds, "foobar");
     try {
       client.createNamespace(creds, namespaceName);
+      fail("exception not thrown");
     } catch (NamespaceExistsException ex) {}
     try {
-      client.renameNamespace(creds, namespaceName, namespaceName);
+      client.renameNamespace(creds, "foobar", namespaceName);
+      fail("exception not thrown");
     } catch (NamespaceExistsException ex) {}
   }
 
