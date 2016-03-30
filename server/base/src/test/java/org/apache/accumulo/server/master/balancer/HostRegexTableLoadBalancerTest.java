@@ -344,7 +344,7 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
   }
 
   @Test
-  public void testSplitCurrentByRegexUsingHostnameMatchesTooMany() {
+  public void testSplitCurrentByRegexUsingOverlappingPools() {
     init((ServerConfiguration) new TestServerConfigurationFactory(instance) {
       @Override
       public TableConfiguration getTableConfiguration(String tableId) {
@@ -375,25 +375,35 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
     Assert.assertEquals(2, groups.size());
     Assert.assertTrue(groups.containsKey(FOO.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> fooHosts = groups.get(FOO.getTableName());
-    Assert.assertEquals(5, fooHosts.size());
+    Assert.assertEquals(15, fooHosts.size());
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
+    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
     Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.11:9997", 1)));
     Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.12:9997", 1)));
     Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.13:9997", 1)));
     Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.14:9997", 1)));
     Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.15:9997", 1)));
-    Assert.assertTrue(groups.containsKey(DEFAULT_POOL));
-    SortedMap<TServerInstance,TabletServerStatus> defHosts = groups.get(DEFAULT_POOL);
-    Assert.assertEquals(10, defHosts.size());
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
+    Assert.assertTrue(groups.containsKey(BAR.getTableName()));
+    SortedMap<TServerInstance,TabletServerStatus> barHosts = groups.get(BAR.getTableName());
+    Assert.assertEquals(10, barHosts.size());
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
+    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
   }
 
   @Test

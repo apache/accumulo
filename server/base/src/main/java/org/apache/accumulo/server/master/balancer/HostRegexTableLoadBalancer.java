@@ -91,32 +91,12 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     if ((System.currentTimeMillis() - lastPoolRecheck) > poolRecheckMillis) {
       Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<String,SortedMap<TServerInstance,TabletServerStatus>>();
       for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-        String tableName = getPoolNameForHost(e.getKey().host());
-        if (!newPools.containsKey(tableName)) {
-          newPools.put(tableName, new TreeMap<TServerInstance,TabletServerStatus>());
-        }
-        newPools.get(tableName).put(e.getKey(), e.getValue());
-      }
-      // Ensure that no host is in more than one pool
-      // TODO: I'm not sure that I need to check for disjoint as the call to getPoolNameForHost checks for more than one match
-      boolean error = false;
-      for (SortedMap<TServerInstance,TabletServerStatus> s1 : newPools.values()) {
-        for (SortedMap<TServerInstance,TabletServerStatus> s2 : newPools.values()) {
-          if (s1 == s2) {
-            continue;
+        List<String> poolNames = getPoolNamesForHost(e.getKey().host());
+        for (String pool : poolNames) {
+          if (!newPools.containsKey(pool)) {
+            newPools.put(pool, new TreeMap<TServerInstance,TabletServerStatus>(current.comparator()));
           }
-          if (!Collections.disjoint(s1.keySet(), s2.keySet())) {
-            LOG.error("Pools are not disjoint: {}, there is a problem with your regular expressions. Putting all servers in default pool", newPools);
-            error = true;
-          }
-        }
-      }
-      if (error) {
-        // Put all servers into the default pool
-        newPools.clear();
-        newPools.put(DEFAULT_POOL, new TreeMap<TServerInstance,TabletServerStatus>());
-        for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-          newPools.get(DEFAULT_POOL).put(e.getKey(), e.getValue());
+          newPools.get(pool).put(e.getKey(), e.getValue());
         }
       }
       pools = newPools;
@@ -126,33 +106,32 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   }
 
   /**
-   * Matches host against the regexes and returns the matching pool name
+   * Matches host against the regexes and returns the matching pool names
    *
    * @param host
    *          tablet server host
-   * @return name of pool. will return default pool if host matches more than one regex
+   * @return pool names, will return default pool if host matches more no regex
    */
-  protected String getPoolNameForHost(String host) {
+  protected List<String> getPoolNamesForHost(String host) {
     String test = host;
-    String table = DEFAULT_POOL;
     if (!isIpBasedRegex) {
       try {
         test = getNameFromIp(host);
       } catch (UnknownHostException e1) {
         LOG.error("Unable to determine host name for IP: " + host + ", setting to default pool", e1);
-        return table;
+        return Collections.singletonList(DEFAULT_POOL);
       }
     }
+    List<String> pools = new ArrayList<>();
     for (Entry<String,Pattern> e : poolNameToRegexPattern.entrySet()) {
       if (e.getValue().matcher(test).matches()) {
-        if (!table.equals(DEFAULT_POOL)) {
-          LOG.warn("host {} matches more than one regex, assigning to default pool", host);
-          return DEFAULT_POOL;
-        }
-        table = e.getKey();
+        pools.add(e.getKey());
       }
     }
-    return table;
+    if (pools.size() == 0) {
+      pools.add(DEFAULT_POOL);
+    }
+    return pools;
   }
 
   protected String getNameFromIp(String hostIp) throws UnknownHostException {
@@ -240,20 +219,21 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     if ((System.currentTimeMillis() - this.lastOOBCheck) > this.oobCheckMillis) {
       // Check to see if a tablet is assigned outside the bounds of the pool. If so, migrate it.
       for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-        String assignedPool = getPoolNameForHost(e.getKey().host());
-        for (String pool : poolNameToRegexPattern.keySet()) {
-          if (assignedPool.equals(pool) || pool.equals(DEFAULT_POOL)) {
-            continue;
-          }
-          String tid = getTableOperations().tableIdMap().get(pool);
-          try {
-            List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), tid);
-            for (TabletStats ts : outOfBoundsTablets) {
-              LOG.info("Tablet {} is currently outside the bounds of the regex, reassigning", ts.toString());
-              unassigned.put(new KeyExtent(ts.getExtent()), e.getKey());
+        for (String assignedPool : getPoolNamesForHost(e.getKey().host())) {
+          for (String pool : poolNameToRegexPattern.keySet()) {
+            if (assignedPool.equals(pool) || pool.equals(DEFAULT_POOL)) {
+              continue;
             }
-          } catch (TException e1) {
-            LOG.error("Error in OOB check getting tablets for table {} from server {}", tid, e.getKey().host(), e);
+            String tid = getTableOperations().tableIdMap().get(pool);
+            try {
+              List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), tid);
+              for (TabletStats ts : outOfBoundsTablets) {
+                LOG.info("Tablet {} is currently outside the bounds of the regex, reassigning", ts.toString());
+                unassigned.put(new KeyExtent(ts.getExtent()), e.getKey());
+              }
+            } catch (TException e1) {
+              LOG.error("Error in OOB check getting tablets for table {} from server {}", tid, e.getKey().host(), e);
+            }
           }
         }
       }
