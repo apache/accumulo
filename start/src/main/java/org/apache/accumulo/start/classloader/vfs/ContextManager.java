@@ -189,13 +189,16 @@ public class ContextManager {
     }
   }
 
-  public void removeUnusedContexts(Set<String> inUse) {
+  public void removeUnusedContexts(Set<String> configuredContexts) {
 
     Map<String,Context> unused;
 
+    // ContextManager knows of some set of contexts. This method will be called with
+    // the set of currently configured contexts. We will close the contexts that are
+    // no longer in the configuration.
     synchronized (this) {
       unused = new HashMap<String,Context>(contexts);
-      unused.keySet().removeAll(inUse);
+      unused.keySet().removeAll(configuredContexts);
       contexts.keySet().removeAll(unused.keySet());
     }
 
