@@ -3567,11 +3567,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     security = AuditedSecurityOperation.getInstance();
     clientAddress = HostAndPort.fromParts(hostname, 0);
     long walogMaxSize = getSystemConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE);
+    long walogMaxAge = getSystemConfiguration().getTimeInMillis(Property.TSERV_WALOG_MAX_AGE);
     long minBlockSize = CachedConfiguration.getInstance().getLong("dfs.namenode.fs-limits.min-block-size", 0);
     if (minBlockSize != 0 && minBlockSize > walogMaxSize)
       throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize " + walogMaxSize + " but hdfs minimum block size is "
           + minBlockSize + ". Either increase the " + Property.TSERV_WALOG_MAX_SIZE + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
-    logger = new TabletServerLogger(this, walogMaxSize);
+    logger = new TabletServerLogger(this, walogMaxSize, walogMaxAge);
 
     try {
       AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {

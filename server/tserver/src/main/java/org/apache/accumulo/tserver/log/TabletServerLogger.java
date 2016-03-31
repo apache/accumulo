@@ -56,6 +56,7 @@ public class TabletServerLogger {
 
   private final AtomicLong logSizeEstimate = new AtomicLong();
   private final long maxSize;
+  private final long maxAge;
 
   private final TabletServer tserver;
 
@@ -75,6 +76,8 @@ public class TabletServerLogger {
   private final ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
 
   private final AtomicInteger seqGen = new AtomicInteger();
+
+  private long createTime = 0;
 
   private static boolean enabled(Tablet tablet) {
     return tablet.getTableConfiguration().getBoolean(Property.TABLE_WALOG_ENABLED);
@@ -127,9 +130,10 @@ public class TabletServerLogger {
     }
   }
 
-  public TabletServerLogger(TabletServer tserver, long maxSize) {
+  public TabletServerLogger(TabletServer tserver, long maxSize, long maxAge) {
     this.tserver = tserver;
     this.maxSize = maxSize;
+    this.maxAge = maxAge;
   }
 
   private int initializeLoggers(final List<DfsLogger> copy) throws IOException {
@@ -185,6 +189,7 @@ public class TabletServerLogger {
       alog.open(tserver.getClientAddressString());
       loggers.add(alog);
       logSetId.incrementAndGet();
+      this.createTime = System.currentTimeMillis();
       return;
     } catch (Exception t) {
       throw new RuntimeException(t);
@@ -312,11 +317,11 @@ public class TabletServerLogger {
         });
       }
     }
-    // if the log gets too big, reset it .. grab the write lock first
+    // if the log gets too big or too old, reset it .. grab the write lock first
     logSizeEstimate.addAndGet(4 * 3); // event, tid, seq overhead
     testLockAndRun(logSetLock, new TestCallWithWriteLock() {
       boolean test() {
-        return logSizeEstimate.get() > maxSize;
+        return (logSizeEstimate.get() > maxSize) || ((System.currentTimeMillis() - createTime) > maxAge);
       }
 
       void withWriteLock() throws IOException {
