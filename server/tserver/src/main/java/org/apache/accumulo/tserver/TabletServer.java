@@ -2753,8 +2753,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     Runnable contextCleaner = new Runnable() {
       @Override
       public void run() {
-        Set<String> configuredContexts = getServerConfigurationFactory().getConfiguration().getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY)
+        Set<String> contextProperties = getServerConfigurationFactory().getConfiguration().getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY)
             .keySet();
+        Set<String> configuredContexts = new HashSet<>();
+        for (String prop : contextProperties) {
+          configuredContexts.add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
+        }
         try {
           AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
         } catch (IOException e) {
