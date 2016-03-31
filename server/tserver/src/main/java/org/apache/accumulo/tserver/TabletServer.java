@@ -3588,29 +3588,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     Runnable contextCleaner = new Runnable() {
       @Override
       public void run() {
-        ArrayList<KeyExtent> extents;
-
-        synchronized (onlineTablets) {
-          extents = new ArrayList<KeyExtent>(onlineTablets.keySet());
-        }
-
-        Set<Text> tables = new HashSet<Text>();
-
-        for (KeyExtent keyExtent : extents) {
-          tables.add(keyExtent.getTableId());
-        }
-
-        HashSet<String> contexts = new HashSet<String>();
-
-        for (Text tableid : tables) {
-          String context = getTableConfiguration(new KeyExtent(tableid, null, null)).get(Property.TABLE_CLASSPATH);
-          if (!context.equals("")) {
-            contexts.add(context);
-          }
+        Set<String> contextProperties = getSystemConfiguration().getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
+        Set<String> configuredContexts = new HashSet<String>();
+        for (String prop : contextProperties) {
+          configuredContexts.add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
         }
 
         try {
-          AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(contexts);
+          AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
         } catch (IOException e) {
           log.warn(e.getMessage(), e);
         }
