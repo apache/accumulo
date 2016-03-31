@@ -67,6 +67,7 @@ public class TabletServerLogger {
 
   private final AtomicLong logSizeEstimate = new AtomicLong();
   private final long maxSize;
+  private final long maxAge;
 
   private final TabletServer tserver;
 
@@ -89,6 +90,8 @@ public class TabletServerLogger {
 
   private final AtomicLong syncCounter;
   private final AtomicLong flushCounter;
+
+  private long createTime = 0;
 
   private final RetryFactory retryFactory;
   private Retry retry = null;
@@ -136,13 +139,14 @@ public class TabletServerLogger {
     }
   }
 
-  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, RetryFactory retryFactory) {
+  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, RetryFactory retryFactory, long maxAge) {
     this.tserver = tserver;
     this.maxSize = maxSize;
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
     this.retryFactory = retryFactory;
     this.retry = null;
+    this.maxAge = maxAge;
   }
 
   private int initializeLoggers(final List<DfsLogger> copy) throws IOException {
@@ -206,6 +210,7 @@ public class TabletServerLogger {
         retry = null;
       }
 
+      this.createTime = System.currentTimeMillis();
       return;
     } catch (Exception t) {
       if (null == retry) {
@@ -358,12 +363,12 @@ public class TabletServerLogger {
         });
       }
     }
-    // if the log gets too big, reset it .. grab the write lock first
+    // if the log gets too big or too old, reset it .. grab the write lock first
     logSizeEstimate.addAndGet(4 * 3); // event, tid, seq overhead
     testLockAndRun(logSetLock, new TestCallWithWriteLock() {
       @Override
       boolean test() {
-        return logSizeEstimate.get() > maxSize;
+        return (logSizeEstimate.get() > maxSize) || ((System.currentTimeMillis() - createTime) > maxAge);
       }
 
       @Override

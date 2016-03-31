@@ -252,7 +252,7 @@ public enum Property {
           + "must be made, which is slower. However opening too many files at once can cause problems."),
   TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.MEMORY,
       "The maximum size for each write-ahead log. See comment for property tserver.memory.maps.max"),
-
+  TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION, "The maximum age for each write-ahead log."),
   TSERV_WALOG_TOLERATED_CREATION_FAILURES("tserver.walog.tolerated.creation.failures", "50", PropertyType.COUNT,
       "The maximum number of failures tolerated when creating a new WAL file within the period specified by tserver.walog.failures.period."
           + " Exceeding this number of failures in the period causes the TabletServer to exit."),
@@ -261,7 +261,6 @@ public enum Property {
   // Never wait longer than 5 mins for a retry
   TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.walog.maximum.wait.duration", "5m", PropertyType.TIMEDURATION,
       "The maximum amount of time to wait after a failure to create a WAL file."),
-
   TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
       "Time a tablet server will sleep between checking which tablets need compaction."),
   TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "10", PropertyType.COUNT,
