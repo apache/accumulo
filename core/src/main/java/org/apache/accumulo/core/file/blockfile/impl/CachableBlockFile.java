@@ -412,24 +412,6 @@ public class CachableBlockFile {
 
   }
 
-  static class SeekableByteArrayInputStream extends ByteArrayInputStream {
-
-    public SeekableByteArrayInputStream(byte[] buf) {
-      super(buf);
-    }
-
-    public void seek(int position) {
-      if (pos < 0 || pos >= buf.length)
-        throw new IllegalArgumentException("pos = " + pos + " buf.lenght = " + buf.length);
-      this.pos = position;
-    }
-
-    public int getPosition() {
-      return this.pos;
-    }
-
-  }
-
   public static class CachedBlockRead extends BlockRead {
     private SeekableByteArrayInputStream seekableInput;
     private final CacheEntry cb;
@@ -457,6 +439,11 @@ public class CachableBlockFile {
     @Override
     public boolean isIndexable() {
       return true;
+    }
+
+    @Override
+    public byte[] getBuffer() {
+      return seekableInput.getBuffer();
     }
 
     @Override
@@ -521,6 +508,14 @@ public class CachableBlockFile {
 
     @Override
     public <T> T getIndex(Class<T> clazz) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * The byte array returned by this method is only for read optimizations, it should not be modified.
+     */
+    @Override
+    public byte[] getBuffer() {
       throw new UnsupportedOperationException();
     }
 
