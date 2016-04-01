@@ -37,8 +37,11 @@ import org.apache.accumulo.core.file.blockfile.ABlockReader;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.BlockFileReader;
 import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
+import org.apache.accumulo.core.file.blockfile.impl.SeekableByteArrayInputStream;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.hadoop.io.WritableComparable;
+
+import com.google.common.base.Preconditions;
 
 public class MultiLevelIndex {
 
@@ -129,85 +132,121 @@ public class MultiLevelIndex {
     }
   }
 
-  // a list that deserializes index entries on demand
-  private static class SerializedIndex extends AbstractList<IndexEntry> implements List<IndexEntry>, RandomAccess {
+  private static abstract class SerializedIndexBase<T> extends AbstractList<T> implements List<T>, RandomAccess {
+    protected int[] offsets;
+    protected byte[] data;
 
-    private int[] offsets;
-    private byte[] data;
-    private boolean newFormat;
+    protected SeekableByteArrayInputStream sbais;
+    protected DataInputStream dis;
+    protected int offsetsOffset;
+    protected int indexOffset;
+    protected int numOffsets;
+    protected int indexSize;
 
-    SerializedIndex(int[] offsets, byte[] data, boolean newFormat) {
+    SerializedIndexBase(int[] offsets, byte[] data) {
+      Preconditions.checkNotNull(offsets, "offsets argument was null");
+      Preconditions.checkNotNull(data, "data argument was null");
       this.offsets = offsets;
       this.data = data;
-      this.newFormat = newFormat;
+      sbais = new SeekableByteArrayInputStream(data);
+      dis = new DataInputStream(sbais);
     }
 
+    SerializedIndexBase(byte[] data, int offsetsOffset, int numOffsets, int indexOffset, int indexSize) {
+      Preconditions.checkNotNull(data, "data argument was null");
+      sbais = new SeekableByteArrayInputStream(data, indexOffset + indexSize);
+      dis = new DataInputStream(sbais);
+      this.offsetsOffset = offsetsOffset;
+      this.indexOffset = indexOffset;
+      this.numOffsets = numOffsets;
+      this.indexSize = indexSize;
+    }
+
+    /**
+     * Before this method is called, {@code this.dis} is seeked to the offset of a serialized index entry. This method should deserialize the index entry by
+     * reading from {@code this.dis} and return it.
+     */
+    protected abstract T newValue() throws IOException;
+
     @Override
-    public IndexEntry get(int index) {
-      int len;
-      if (index == offsets.length - 1)
-        len = data.length - offsets[index];
-      else
-        len = offsets[index + 1] - offsets[index];
-
-      ByteArrayInputStream bais = new ByteArrayInputStream(data, offsets[index], len);
-      DataInputStream dis = new DataInputStream(bais);
-
-      IndexEntry ie = new IndexEntry(newFormat);
+    public T get(int index) {
       try {
-        ie.readFields(dis);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+        int offset;
+        if (offsets == null) {
+          if (index < 0 || index >= numOffsets) {
+            throw new IndexOutOfBoundsException("index:" + index + " numOffsets:" + numOffsets);
+          }
+          sbais.seek(offsetsOffset + index * 4);
+          offset = dis.readInt();
+        } else {
+          offset = offsets[index];
+        }
 
-      return ie;
+        sbais.seek(indexOffset + offset);
+        return newValue();
+      } catch (IOException ioe) {
+        throw new RuntimeException(ioe);
+      }
     }
 
     @Override
     public int size() {
-      return offsets.length;
-    }
-
-    public long sizeInBytes() {
-      return data.length + 4 * offsets.length;
+      if (offsets == null) {
+        return numOffsets;
+      } else {
+        return offsets.length;
+      }
     }
 
   }
 
-  private static class KeyIndex extends AbstractList<Key> implements List<Key>, RandomAccess {
+  // a list that deserializes index entries on demand
+  private static class SerializedIndex extends SerializedIndexBase<IndexEntry> {
 
-    private int[] offsets;
-    private byte[] data;
+    private boolean newFormat;
+
+    SerializedIndex(int[] offsets, byte[] data, boolean newFormat) {
+      super(offsets, data);
+      this.newFormat = newFormat;
+    }
+
+    SerializedIndex(byte[] data, int offsetsOffset, int numOffsets, int indexOffset, int indexSize) {
+      super(data, offsetsOffset, numOffsets, indexOffset, indexSize);
+      this.newFormat = true;
+    }
+
+    public long sizeInBytes() {
+      if (offsets == null) {
+        return indexSize + 4 * numOffsets;
+      } else {
+        return data.length + 4 * offsets.length;
+      }
+    }
+
+    @Override
+    protected IndexEntry newValue() throws IOException {
+      IndexEntry ie = new IndexEntry(newFormat);
+      ie.readFields(dis);
+      return ie;
+    }
+
+  }
+
+  private static class KeyIndex extends SerializedIndexBase<Key> {
 
     KeyIndex(int[] offsets, byte[] data) {
-      this.offsets = offsets;
-      this.data = data;
+      super(offsets, data);
+    }
+
+    KeyIndex(byte[] data, int offsetsOffset, int numOffsets, int indexOffset, int indexSize) {
+      super(data, offsetsOffset, numOffsets, indexOffset, indexSize);
     }
 
     @Override
-    public Key get(int index) {
-      int len;
-      if (index == offsets.length - 1)
-        len = data.length - offsets[index];
-      else
-        len = offsets[index + 1] - offsets[index];
-
-      ByteArrayInputStream bais = new ByteArrayInputStream(data, offsets[index], len);
-      DataInputStream dis = new DataInputStream(bais);
-
+    protected Key newValue() throws IOException {
       Key key = new Key();
-      try {
-        key.readFields(dis);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-
+      key.readFields(dis);
       return key;
-    }
-
-    @Override
-    public int size() {
-      return offsets.length;
     }
   }
 
@@ -219,10 +258,15 @@ public class MultiLevelIndex {
     private ArrayList<Integer> offsets;
     private int level;
     private int offset;
-
-    SerializedIndex index;
-    KeyIndex keyIndex;
     private boolean hasNext;
+
+    private byte data[];
+    private int[] offsetsArray;
+    private int numOffsets;
+    private int offsetsOffset;
+    private int indexSize;
+    private int indexOffset;
+    private boolean newFormat;
 
     public IndexBlock(int level, int totalAdded) {
       // System.out.println("IndexBlock("+level+","+levelCount+","+totalAdded+")");
@@ -270,18 +314,29 @@ public class MultiLevelIndex {
         offset = in.readInt();
         hasNext = in.readBoolean();
 
-        int numOffsets = in.readInt();
-        int[] offsets = new int[numOffsets];
+        ABlockReader abr = (ABlockReader) in;
+        if (abr.isIndexable()) {
+          // this block is cahced, so avoid copy
+          data = abr.getBuffer();
+          // use offset data in serialized form and avoid copy
+          numOffsets = abr.readInt();
+          offsetsOffset = abr.getPosition();
+          abr.skipBytes(numOffsets * 4);
+          indexSize = in.readInt();
+          indexOffset = abr.getPosition();
+          abr.skipBytes(indexSize);
+        } else {
+          numOffsets = in.readInt();
+          offsetsArray = new int[numOffsets];
 
-        for (int i = 0; i < numOffsets; i++)
-          offsets[i] = in.readInt();
+          for (int i = 0; i < numOffsets; i++)
+            offsetsArray[i] = in.readInt();
 
-        int indexSize = in.readInt();
-        byte[] serializedIndex = new byte[indexSize];
-        in.readFully(serializedIndex);
-
-        index = new SerializedIndex(offsets, serializedIndex, true);
-        keyIndex = new KeyIndex(offsets, serializedIndex);
+          indexSize = in.readInt();
+          data = new byte[indexSize];
+          in.readFully(data);
+          newFormat = true;
+        }
       } else if (version == RFile.RINDEX_VER_3) {
         level = 0;
         offset = 0;
@@ -307,9 +362,9 @@ public class MultiLevelIndex {
           oia[i] = oal.get(i);
         }
 
-        byte[] serializedIndex = baos.toByteArray();
-        index = new SerializedIndex(oia, serializedIndex, false);
-        keyIndex = new KeyIndex(oia, serializedIndex);
+        data = baos.toByteArray();
+        offsetsArray = oia;
+        newFormat = false;
       } else if (version == RFile.RINDEX_VER_4) {
         level = 0;
         offset = 0;
@@ -325,8 +380,9 @@ public class MultiLevelIndex {
         byte[] indexData = new byte[size];
         in.readFully(indexData);
 
-        index = new SerializedIndex(offsets, indexData, false);
-        keyIndex = new KeyIndex(offsets, indexData);
+        data = indexData;
+        offsetsArray = offsets;
+        newFormat = false;
       } else {
         throw new RuntimeException("Unexpected version " + version);
       }
@@ -334,11 +390,23 @@ public class MultiLevelIndex {
     }
 
     List<IndexEntry> getIndex() {
-      return index;
+      // create SerializedIndex on demand as each has an internal input stream over byte array... keeping a SerializedIndex ref for the object could lead to
+      // problems with deep copies.
+      if (offsetsArray == null) {
+        return new SerializedIndex(data, offsetsOffset, numOffsets, indexOffset, indexSize);
+      } else {
+        return new SerializedIndex(offsetsArray, data, newFormat);
+      }
     }
 
     public List<Key> getKeyIndex() {
-      return keyIndex;
+      // create KeyIndex on demand as each has an internal input stream over byte array... keeping a KeyIndex ref for the object could lead to problems with
+      // deep copies.
+      if (offsetsArray == null) {
+        return new KeyIndex(data, offsetsOffset, numOffsets, indexOffset, indexSize);
+      } else {
+        return new KeyIndex(offsetsArray, data);
+      }
     }
 
     int getLevel() {
@@ -761,14 +829,15 @@ public class MultiLevelIndex {
       if (count == null)
         count = 0l;
 
-      size += ib.index.sizeInBytes();
+      List<IndexEntry> index = ib.getIndex();
+      size += ((SerializedIndex) index).sizeInBytes();
       count++;
 
       sizesByLevel.put(ib.getLevel(), size);
       countsByLevel.put(ib.getLevel(), count);
 
       if (ib.getLevel() > 0) {
-        for (IndexEntry ie : ib.index) {
+        for (IndexEntry ie : index) {
           IndexBlock cib = getIndexBlock(ie);
           getIndexInfo(cib, sizesByLevel, countsByLevel);
         }

@@ -70,21 +70,25 @@ public class CachableBlockFile {
       _bc = new BCFile.Writer(fsout, compressAlgor, conf, false, accumuloConfiguration);
     }
 
+    @Override
     public ABlockWriter prepareMetaBlock(String name) throws IOException {
       _bw = new BlockWrite(_bc.prepareMetaBlock(name));
       return _bw;
     }
 
+    @Override
     public ABlockWriter prepareMetaBlock(String name, String compressionName) throws IOException {
       _bw = new BlockWrite(_bc.prepareMetaBlock(name, compressionName));
       return _bw;
     }
 
+    @Override
     public ABlockWriter prepareDataBlock() throws IOException {
       _bw = new BlockWrite(_bc.prepareDataBlock());
       return _bw;
     }
 
+    @Override
     public void close() throws IOException {
 
       _bw.close();
@@ -369,6 +373,7 @@ public class CachableBlockFile {
      * NOTE: In the case of multi-read threads: This method can do redundant work where an entry is read from disk and other threads check the cache before it
      * has been inserted.
      */
+    @Override
     public BlockRead getMetaBlock(String blockName) throws IOException {
       String _lookup = this.fileName + "M" + blockName;
       return getBlock(_lookup, _iCache, new MetaBlockLoader(blockName, accumuloConfiguration));
@@ -388,6 +393,7 @@ public class CachableBlockFile {
      * has been inserted.
      */
 
+    @Override
     public BlockRead getDataBlock(int blockIndex) throws IOException {
       String _lookup = this.fileName + "O" + blockIndex;
       return getBlock(_lookup, _dCache, new OffsetBlockLoader(blockIndex));
@@ -400,6 +406,7 @@ public class CachableBlockFile {
       return getBlock(_lookup, _dCache, new RawBlockLoader(offset, compressedSize, rawSize));
     }
 
+    @Override
     public synchronized void close() throws IOException {
       if (closed)
         return;
@@ -412,30 +419,6 @@ public class CachableBlockFile {
       if (fin != null) {
         fin.close();
       }
-    }
-
-  }
-
-  static class SeekableByteArrayInputStream extends ByteArrayInputStream {
-
-    public SeekableByteArrayInputStream(byte[] buf) {
-      super(buf);
-    }
-
-    public SeekableByteArrayInputStream(byte buf[], int offset, int length) {
-      super(buf, offset, length);
-      throw new UnsupportedOperationException("Seek code assumes offset is zero"); // do not need this constructor, documenting that seek will not work
-                                                                                   // unless offset it kept track of
-    }
-
-    public void seek(int position) {
-      if (pos < 0 || pos >= buf.length)
-        throw new IllegalArgumentException("pos = " + pos + " buf.lenght = " + buf.length);
-      this.pos = position;
-    }
-
-    public int getPosition() {
-      return this.pos;
     }
 
   }
@@ -467,6 +450,11 @@ public class CachableBlockFile {
     @Override
     public boolean isIndexable() {
       return true;
+    }
+
+    @Override
+    public byte[] getBuffer() {
+      return seekableInput.getBuffer();
     }
 
     @Override
@@ -510,6 +498,7 @@ public class CachableBlockFile {
     /**
      * Size is the size of the bytearray that was read form the cache
      */
+    @Override
     public long getRawSize() {
       return size;
     }
@@ -540,6 +529,14 @@ public class CachableBlockFile {
 
     @Override
     public <T> T getIndex(Class<T> clazz) {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * The byte array returned by this method is only for read optimizations, it should not be modified.
+     */
+    @Override
+    public byte[] getBuffer() {
       throw new UnsupportedOperationException();
     }
 

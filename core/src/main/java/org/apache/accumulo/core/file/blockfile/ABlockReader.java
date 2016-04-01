@@ -51,4 +51,6 @@ public interface ABlockReader extends DataInput {
   int getPosition();
 
   <T> T getIndex(Class<T> clazz);
+
+  byte[] getBuffer();
 }
