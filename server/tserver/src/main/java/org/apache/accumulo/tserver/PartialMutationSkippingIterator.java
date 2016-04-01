@@ -37,7 +37,7 @@ class PartialMutationSkippingIterator extends SkippingIterator implements Interr
 
   @Override
   protected void consume() throws IOException {
-    while (getSource().hasTop() && ((MemKey) getSource().getTopKey()).kvCount > kvCount)
+    while (getSource().hasTop() && ((MemKey) getSource().getTopKey()).getKVCount() > kvCount)
       getSource().next();
   }
 

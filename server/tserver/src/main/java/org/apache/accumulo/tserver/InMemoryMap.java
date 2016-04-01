@@ -75,8 +75,14 @@ public class InMemoryMap {
 
   private volatile String memDumpFile = null;
   private final String memDumpDir;
+  private final String mapType;
 
   private Map<String,Set<ByteSequence>> lggroups;
+
+  public static final String TYPE_NATIVE_MAP_WRAPPER = "NativeMapWrapper";
+  public static final String TYPE_DEFAULT_MAP = "DefaultMap";
+  public static final String TYPE_LOCALITY_GROUP_MAP = "LocalityGroupMap";
+  public static final String TYPE_LOCALITY_GROUP_MAP_NATIVE = "LocalityGroupMap with native";
 
   public InMemoryMap(boolean useNativeMap, String memDumpDir) {
     this(new HashMap<String,Set<ByteSequence>>(), useNativeMap, memDumpDir);
@@ -86,10 +92,26 @@ public class InMemoryMap {
     this.memDumpDir = memDumpDir;
     this.lggroups = lggroups;
 
-    if (lggroups.size() == 0)
+    if (lggroups.size() == 0) {
       map = newMap(useNativeMap);
-    else
+      mapType = useNativeMap ? TYPE_NATIVE_MAP_WRAPPER : TYPE_DEFAULT_MAP;
+    } else {
       map = new LocalityGroupMap(lggroups, useNativeMap);
+      mapType = useNativeMap ? TYPE_LOCALITY_GROUP_MAP : TYPE_LOCALITY_GROUP_MAP_NATIVE;
+    }
+  }
+
+  /**
+   * Description of the type of SimpleMap that is created.
+   * <p>
+   * If no locality groups are present, the SimpleMap is either TYPE_DEFAULT_MAP or TYPE_NATIVE_MAP_WRAPPER. If there is one more locality groups, then the
+   * InMemoryMap has an array for simple maps that either contain either TYPE_LOCALITY_GROUP_MAP which contains DefaultMaps or TYPE_LOCALITY_GROUP_MAP_NATIVE
+   * which contains NativeMapWrappers.
+   *
+   * @return String that describes the Map type
+   */
+  public String getMapType() {
+    return mapType;
   }
 
   public InMemoryMap(AccumuloConfiguration config) throws LocalityGroupConfigurationError {
@@ -670,7 +692,7 @@ public class InMemoryMap {
     while (iter.hasTop() && activeIters.size() > 0) {
       // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
       // There is no need to change the MemKey to a normal key because the kvCount info gets lost when it is written
-      Value newValue = new MemValue(iter.getTopValue(), ((MemKey) iter.getTopKey()).kvCount);
+      Value newValue = new MemValue(iter.getTopValue(), ((MemKey) iter.getTopKey()).getKVCount());
       out.append(iter.getTopKey(), newValue);
       iter.next();
 

@@ -32,7 +32,7 @@ class MemKeyComparator implements Comparator<Key>, Serializable {
     if (cmp == 0) {
       if (k1 instanceof MemKey)
         if (k2 instanceof MemKey)
-          cmp = ((MemKey) k2).kvCount - ((MemKey) k1).kvCount;
+          cmp = ((MemKey) k2).getKVCount() - ((MemKey) k1).getKVCount();
         else
           cmp = 1;
       else if (k2 instanceof MemKey)

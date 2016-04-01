@@ -16,15 +16,17 @@
  */
 package org.apache.accumulo.tserver;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.accumulo.core.data.Key;
 
-class MemKey extends Key {
+@VisibleForTesting
+public class MemKey extends Key {
 
-  int kvCount;
+  private int kvCount;
 
   public MemKey(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean del, boolean copy, int mc) {
     super(row, cf, cq, cv, ts, del, copy);
@@ -44,6 +46,10 @@ class MemKey extends Key {
   @Override
   public String toString() {
     return super.toString() + " mc=" + kvCount;
+  }
+
+  public int getKVCount() {
+    return this.kvCount;
   }
 
   @Override
