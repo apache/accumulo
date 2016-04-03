@@ -259,6 +259,28 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>check-for-misplaced-ITs</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <executable>bash</executable>
+              <arguments>
+                <argument>-c</argument>
+                <argument>! find src/test/java -name '*IT.java' -exec echo '[ERROR] {} should be in src/main/java' \; | grep 'src/test/java'</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
   <profiles>
     <profile>
