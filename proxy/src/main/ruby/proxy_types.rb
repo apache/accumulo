@@ -56,6 +56,20 @@ module Accumulo
     VALID_VALUES = Set.new([GRANT, CREATE_TABLE, DROP_TABLE, ALTER_TABLE, CREATE_USER, DROP_USER, ALTER_USER, SYSTEM]).freeze
   end
 
+  module NamespacePermission
+    READ = 0
+    WRITE = 1
+    ALTER_NAMESPACE = 2
+    GRANT = 3
+    ALTER_TABLE = 4
+    CREATE_TABLE = 5
+    DROP_TABLE = 6
+    BULK_IMPORT = 7
+    DROP_NAMESPACE = 8
+    VALUE_MAP = {0 => "READ", 1 => "WRITE", 2 => "ALTER_NAMESPACE", 3 => "GRANT", 4 => "ALTER_TABLE", 5 => "CREATE_TABLE", 6 => "DROP_TABLE", 7 => "BULK_IMPORT", 8 => "DROP_NAMESPACE"}
+    VALID_VALUES = Set.new([READ, WRITE, ALTER_NAMESPACE, GRANT, ALTER_TABLE, CREATE_TABLE, DROP_TABLE, BULK_IMPORT, DROP_NAMESPACE]).freeze
+  end
+
   module ScanType
     SINGLE = 0
     BATCH = 1
@@ -753,6 +767,75 @@ module Accumulo
   end
 
   class MutationsRejectedException < ::Thrift::Exception
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    def initialize(message=nil)
+      super()
+      self.msg = message
+    end
+
+    def message; msg end
+
+    MSG = 1
+
+    FIELDS = {
+      MSG => {:type => ::Thrift::Types::STRING, :name => 'msg'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class NamespaceExistsException < ::Thrift::Exception
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    def initialize(message=nil)
+      super()
+      self.msg = message
+    end
+
+    def message; msg end
+
+    MSG = 1
+
+    FIELDS = {
+      MSG => {:type => ::Thrift::Types::STRING, :name => 'msg'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class NamespaceNotFoundException < ::Thrift::Exception
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    def initialize(message=nil)
+      super()
+      self.msg = message
+    end
+
+    def message; msg end
+
+    MSG = 1
+
+    FIELDS = {
+      MSG => {:type => ::Thrift::Types::STRING, :name => 'msg'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class NamespaceNotEmptyException < ::Thrift::Exception
     include ::Thrift::Struct, ::Thrift::Struct_Union
     def initialize(message=nil)
       super()

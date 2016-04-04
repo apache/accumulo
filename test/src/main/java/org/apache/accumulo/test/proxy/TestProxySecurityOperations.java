@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.proxy.Proxy;
+import org.apache.accumulo.proxy.thrift.NamespacePermission;
 import org.apache.accumulo.proxy.thrift.SystemPermission;
 import org.apache.accumulo.proxy.thrift.TablePermission;
 import org.apache.accumulo.proxy.thrift.TimeType;
@@ -52,6 +53,7 @@ public class TestProxySecurityOperations {
   protected static final int port = 10196;
   protected static final String testtable = "testtable";
   protected static final String testuser = "VonJines";
+  protected static final String testnamespace = "testns";
   protected static final ByteBuffer testpw = ByteBuffer.wrap("fiveones".getBytes());
 
   @BeforeClass
@@ -77,12 +79,14 @@ public class TestProxySecurityOperations {
   public void makeTestTableAndUser() throws Exception {
     tpc.proxy().createTable(userpass, testtable, true, TimeType.MILLIS);
     tpc.proxy().createLocalUser(userpass, testuser, testpw);
+    tpc.proxy().createNamespace(userpass, testnamespace);
   }
 
   @After
   public void deleteTestTable() throws Exception {
     tpc.proxy().deleteTable(userpass, testtable);
     tpc.proxy().dropLocalUser(userpass, testuser);
+    tpc.proxy().deleteNamespace(userpass, testnamespace);
   }
 
   @Test
@@ -136,6 +140,15 @@ public class TestProxySecurityOperations {
     for (ByteBuffer auth : actualauths) {
       assertTrue(newauths.contains(auth));
     }
+  }
+
+  @Test
+  public void namespacePermissions() throws TException {
+    tpc.proxy().grantNamespacePermission(userpass, testuser, testnamespace, NamespacePermission.ALTER_NAMESPACE);
+    assertTrue(tpc.proxy().hasNamespacePermission(userpass, testuser, testnamespace, NamespacePermission.ALTER_NAMESPACE));
+
+    tpc.proxy().revokeNamespacePermission(userpass, testuser, testnamespace, NamespacePermission.ALTER_NAMESPACE);
+    assertFalse(tpc.proxy().hasNamespacePermission(userpass, testuser, testnamespace, NamespacePermission.ALTER_NAMESPACE));
   }
 
   private Map<String,String> bb2pp(ByteBuffer cf) {
