@@ -1041,6 +1041,55 @@ module Accumulo
         return
       end
 
+      def grantNamespacePermission(login, user, namespaceName, perm)
+        send_grantNamespacePermission(login, user, namespaceName, perm)
+        recv_grantNamespacePermission()
+      end
+
+      def send_grantNamespacePermission(login, user, namespaceName, perm)
+        send_message('grantNamespacePermission', GrantNamespacePermission_args, :login => login, :user => user, :namespaceName => namespaceName, :perm => perm)
+      end
+
+      def recv_grantNamespacePermission()
+        result = receive_message(GrantNamespacePermission_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        return
+      end
+
+      def hasNamespacePermission(login, user, namespaceName, perm)
+        send_hasNamespacePermission(login, user, namespaceName, perm)
+        return recv_hasNamespacePermission()
+      end
+
+      def send_hasNamespacePermission(login, user, namespaceName, perm)
+        send_message('hasNamespacePermission', HasNamespacePermission_args, :login => login, :user => user, :namespaceName => namespaceName, :perm => perm)
+      end
+
+      def recv_hasNamespacePermission()
+        result = receive_message(HasNamespacePermission_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'hasNamespacePermission failed: unknown result')
+      end
+
+      def revokeNamespacePermission(login, user, namespaceName, perm)
+        send_revokeNamespacePermission(login, user, namespaceName, perm)
+        recv_revokeNamespacePermission()
+      end
+
+      def send_revokeNamespacePermission(login, user, namespaceName, perm)
+        send_message('revokeNamespacePermission', RevokeNamespacePermission_args, :login => login, :user => user, :namespaceName => namespaceName, :perm => perm)
+      end
+
+      def recv_revokeNamespacePermission()
+        result = receive_message(RevokeNamespacePermission_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        return
+      end
+
       def createBatchScanner(login, tableName, options)
         send_createBatchScanner(login, tableName, options)
         return recv_createBatchScanner()
@@ -1315,6 +1364,350 @@ module Accumulo
         result = receive_message(GetFollowing_result)
         return result.success unless result.success.nil?
         raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'getFollowing failed: unknown result')
+      end
+
+      def systemNamespace()
+        send_systemNamespace()
+        return recv_systemNamespace()
+      end
+
+      def send_systemNamespace()
+        send_message('systemNamespace', SystemNamespace_args)
+      end
+
+      def recv_systemNamespace()
+        result = receive_message(SystemNamespace_result)
+        return result.success unless result.success.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'systemNamespace failed: unknown result')
+      end
+
+      def defaultNamespace()
+        send_defaultNamespace()
+        return recv_defaultNamespace()
+      end
+
+      def send_defaultNamespace()
+        send_message('defaultNamespace', DefaultNamespace_args)
+      end
+
+      def recv_defaultNamespace()
+        result = receive_message(DefaultNamespace_result)
+        return result.success unless result.success.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'defaultNamespace failed: unknown result')
+      end
+
+      def listNamespaces(login)
+        send_listNamespaces(login)
+        return recv_listNamespaces()
+      end
+
+      def send_listNamespaces(login)
+        send_message('listNamespaces', ListNamespaces_args, :login => login)
+      end
+
+      def recv_listNamespaces()
+        result = receive_message(ListNamespaces_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'listNamespaces failed: unknown result')
+      end
+
+      def namespaceExists(login, namespaceName)
+        send_namespaceExists(login, namespaceName)
+        return recv_namespaceExists()
+      end
+
+      def send_namespaceExists(login, namespaceName)
+        send_message('namespaceExists', NamespaceExists_args, :login => login, :namespaceName => namespaceName)
+      end
+
+      def recv_namespaceExists()
+        result = receive_message(NamespaceExists_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'namespaceExists failed: unknown result')
+      end
+
+      def createNamespace(login, namespaceName)
+        send_createNamespace(login, namespaceName)
+        recv_createNamespace()
+      end
+
+      def send_createNamespace(login, namespaceName)
+        send_message('createNamespace', CreateNamespace_args, :login => login, :namespaceName => namespaceName)
+      end
+
+      def recv_createNamespace()
+        result = receive_message(CreateNamespace_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        return
+      end
+
+      def deleteNamespace(login, namespaceName)
+        send_deleteNamespace(login, namespaceName)
+        recv_deleteNamespace()
+      end
+
+      def send_deleteNamespace(login, namespaceName)
+        send_message('deleteNamespace', DeleteNamespace_args, :login => login, :namespaceName => namespaceName)
+      end
+
+      def recv_deleteNamespace()
+        result = receive_message(DeleteNamespace_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise result.ouch4 unless result.ouch4.nil?
+        return
+      end
+
+      def renameNamespace(login, oldNamespaceName, newNamespaceName)
+        send_renameNamespace(login, oldNamespaceName, newNamespaceName)
+        recv_renameNamespace()
+      end
+
+      def send_renameNamespace(login, oldNamespaceName, newNamespaceName)
+        send_message('renameNamespace', RenameNamespace_args, :login => login, :oldNamespaceName => oldNamespaceName, :newNamespaceName => newNamespaceName)
+      end
+
+      def recv_renameNamespace()
+        result = receive_message(RenameNamespace_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise result.ouch4 unless result.ouch4.nil?
+        return
+      end
+
+      def setNamespaceProperty(login, namespaceName, property, value)
+        send_setNamespaceProperty(login, namespaceName, property, value)
+        recv_setNamespaceProperty()
+      end
+
+      def send_setNamespaceProperty(login, namespaceName, property, value)
+        send_message('setNamespaceProperty', SetNamespaceProperty_args, :login => login, :namespaceName => namespaceName, :property => property, :value => value)
+      end
+
+      def recv_setNamespaceProperty()
+        result = receive_message(SetNamespaceProperty_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        return
+      end
+
+      def removeNamespaceProperty(login, namespaceName, property)
+        send_removeNamespaceProperty(login, namespaceName, property)
+        recv_removeNamespaceProperty()
+      end
+
+      def send_removeNamespaceProperty(login, namespaceName, property)
+        send_message('removeNamespaceProperty', RemoveNamespaceProperty_args, :login => login, :namespaceName => namespaceName, :property => property)
+      end
+
+      def recv_removeNamespaceProperty()
+        result = receive_message(RemoveNamespaceProperty_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        return
+      end
+
+      def getNamespaceProperties(login, namespaceName)
+        send_getNamespaceProperties(login, namespaceName)
+        return recv_getNamespaceProperties()
+      end
+
+      def send_getNamespaceProperties(login, namespaceName)
+        send_message('getNamespaceProperties', GetNamespaceProperties_args, :login => login, :namespaceName => namespaceName)
+      end
+
+      def recv_getNamespaceProperties()
+        result = receive_message(GetNamespaceProperties_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'getNamespaceProperties failed: unknown result')
+      end
+
+      def namespaceIdMap(login)
+        send_namespaceIdMap(login)
+        return recv_namespaceIdMap()
+      end
+
+      def send_namespaceIdMap(login)
+        send_message('namespaceIdMap', NamespaceIdMap_args, :login => login)
+      end
+
+      def recv_namespaceIdMap()
+        result = receive_message(NamespaceIdMap_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'namespaceIdMap failed: unknown result')
+      end
+
+      def attachNamespaceIterator(login, namespaceName, setting, scopes)
+        send_attachNamespaceIterator(login, namespaceName, setting, scopes)
+        recv_attachNamespaceIterator()
+      end
+
+      def send_attachNamespaceIterator(login, namespaceName, setting, scopes)
+        send_message('attachNamespaceIterator', AttachNamespaceIterator_args, :login => login, :namespaceName => namespaceName, :setting => setting, :scopes => scopes)
+      end
+
+      def recv_attachNamespaceIterator()
+        result = receive_message(AttachNamespaceIterator_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        return
+      end
+
+      def removeNamespaceIterator(login, namespaceName, name, scopes)
+        send_removeNamespaceIterator(login, namespaceName, name, scopes)
+        recv_removeNamespaceIterator()
+      end
+
+      def send_removeNamespaceIterator(login, namespaceName, name, scopes)
+        send_message('removeNamespaceIterator', RemoveNamespaceIterator_args, :login => login, :namespaceName => namespaceName, :name => name, :scopes => scopes)
+      end
+
+      def recv_removeNamespaceIterator()
+        result = receive_message(RemoveNamespaceIterator_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        return
+      end
+
+      def getNamespaceIteratorSetting(login, namespaceName, name, scope)
+        send_getNamespaceIteratorSetting(login, namespaceName, name, scope)
+        return recv_getNamespaceIteratorSetting()
+      end
+
+      def send_getNamespaceIteratorSetting(login, namespaceName, name, scope)
+        send_message('getNamespaceIteratorSetting', GetNamespaceIteratorSetting_args, :login => login, :namespaceName => namespaceName, :name => name, :scope => scope)
+      end
+
+      def recv_getNamespaceIteratorSetting()
+        result = receive_message(GetNamespaceIteratorSetting_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'getNamespaceIteratorSetting failed: unknown result')
+      end
+
+      def listNamespaceIterators(login, namespaceName)
+        send_listNamespaceIterators(login, namespaceName)
+        return recv_listNamespaceIterators()
+      end
+
+      def send_listNamespaceIterators(login, namespaceName)
+        send_message('listNamespaceIterators', ListNamespaceIterators_args, :login => login, :namespaceName => namespaceName)
+      end
+
+      def recv_listNamespaceIterators()
+        result = receive_message(ListNamespaceIterators_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'listNamespaceIterators failed: unknown result')
+      end
+
+      def checkNamespaceIteratorConflicts(login, namespaceName, setting, scopes)
+        send_checkNamespaceIteratorConflicts(login, namespaceName, setting, scopes)
+        recv_checkNamespaceIteratorConflicts()
+      end
+
+      def send_checkNamespaceIteratorConflicts(login, namespaceName, setting, scopes)
+        send_message('checkNamespaceIteratorConflicts', CheckNamespaceIteratorConflicts_args, :login => login, :namespaceName => namespaceName, :setting => setting, :scopes => scopes)
+      end
+
+      def recv_checkNamespaceIteratorConflicts()
+        result = receive_message(CheckNamespaceIteratorConflicts_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        return
+      end
+
+      def addNamespaceConstraint(login, namespaceName, constraintClassName)
+        send_addNamespaceConstraint(login, namespaceName, constraintClassName)
+        return recv_addNamespaceConstraint()
+      end
+
+      def send_addNamespaceConstraint(login, namespaceName, constraintClassName)
+        send_message('addNamespaceConstraint', AddNamespaceConstraint_args, :login => login, :namespaceName => namespaceName, :constraintClassName => constraintClassName)
+      end
+
+      def recv_addNamespaceConstraint()
+        result = receive_message(AddNamespaceConstraint_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'addNamespaceConstraint failed: unknown result')
+      end
+
+      def removeNamespaceConstraint(login, namespaceName, id)
+        send_removeNamespaceConstraint(login, namespaceName, id)
+        recv_removeNamespaceConstraint()
+      end
+
+      def send_removeNamespaceConstraint(login, namespaceName, id)
+        send_message('removeNamespaceConstraint', RemoveNamespaceConstraint_args, :login => login, :namespaceName => namespaceName, :id => id)
+      end
+
+      def recv_removeNamespaceConstraint()
+        result = receive_message(RemoveNamespaceConstraint_result)
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        return
+      end
+
+      def listNamespaceConstraints(login, namespaceName)
+        send_listNamespaceConstraints(login, namespaceName)
+        return recv_listNamespaceConstraints()
+      end
+
+      def send_listNamespaceConstraints(login, namespaceName)
+        send_message('listNamespaceConstraints', ListNamespaceConstraints_args, :login => login, :namespaceName => namespaceName)
+      end
+
+      def recv_listNamespaceConstraints()
+        result = receive_message(ListNamespaceConstraints_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'listNamespaceConstraints failed: unknown result')
+      end
+
+      def testNamespaceClassLoad(login, namespaceName, className, asTypeName)
+        send_testNamespaceClassLoad(login, namespaceName, className, asTypeName)
+        return recv_testNamespaceClassLoad()
+      end
+
+      def send_testNamespaceClassLoad(login, namespaceName, className, asTypeName)
+        send_message('testNamespaceClassLoad', TestNamespaceClassLoad_args, :login => login, :namespaceName => namespaceName, :className => className, :asTypeName => asTypeName)
+      end
+
+      def recv_testNamespaceClassLoad()
+        result = receive_message(TestNamespaceClassLoad_result)
+        return result.success unless result.success.nil?
+        raise result.ouch1 unless result.ouch1.nil?
+        raise result.ouch2 unless result.ouch2.nil?
+        raise result.ouch3 unless result.ouch3.nil?
+        raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'testNamespaceClassLoad failed: unknown result')
       end
 
     end
@@ -2152,6 +2545,45 @@ module Accumulo
         write_result(result, oprot, 'revokeTablePermission', seqid)
       end
 
+      def process_grantNamespacePermission(seqid, iprot, oprot)
+        args = read_args(iprot, GrantNamespacePermission_args)
+        result = GrantNamespacePermission_result.new()
+        begin
+          @handler.grantNamespacePermission(args.login, args.user, args.namespaceName, args.perm)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        end
+        write_result(result, oprot, 'grantNamespacePermission', seqid)
+      end
+
+      def process_hasNamespacePermission(seqid, iprot, oprot)
+        args = read_args(iprot, HasNamespacePermission_args)
+        result = HasNamespacePermission_result.new()
+        begin
+          result.success = @handler.hasNamespacePermission(args.login, args.user, args.namespaceName, args.perm)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        end
+        write_result(result, oprot, 'hasNamespacePermission', seqid)
+      end
+
+      def process_revokeNamespacePermission(seqid, iprot, oprot)
+        args = read_args(iprot, RevokeNamespacePermission_args)
+        result = RevokeNamespacePermission_result.new()
+        begin
+          @handler.revokeNamespacePermission(args.login, args.user, args.namespaceName, args.perm)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        end
+        write_result(result, oprot, 'revokeNamespacePermission', seqid)
+      end
+
       def process_createBatchScanner(seqid, iprot, oprot)
         args = read_args(iprot, CreateBatchScanner_args)
         result = CreateBatchScanner_result.new()
@@ -2362,6 +2794,288 @@ module Accumulo
         result = GetFollowing_result.new()
         result.success = @handler.getFollowing(args.key, args.part)
         write_result(result, oprot, 'getFollowing', seqid)
+      end
+
+      def process_systemNamespace(seqid, iprot, oprot)
+        args = read_args(iprot, SystemNamespace_args)
+        result = SystemNamespace_result.new()
+        result.success = @handler.systemNamespace()
+        write_result(result, oprot, 'systemNamespace', seqid)
+      end
+
+      def process_defaultNamespace(seqid, iprot, oprot)
+        args = read_args(iprot, DefaultNamespace_args)
+        result = DefaultNamespace_result.new()
+        result.success = @handler.defaultNamespace()
+        write_result(result, oprot, 'defaultNamespace', seqid)
+      end
+
+      def process_listNamespaces(seqid, iprot, oprot)
+        args = read_args(iprot, ListNamespaces_args)
+        result = ListNamespaces_result.new()
+        begin
+          result.success = @handler.listNamespaces(args.login)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        end
+        write_result(result, oprot, 'listNamespaces', seqid)
+      end
+
+      def process_namespaceExists(seqid, iprot, oprot)
+        args = read_args(iprot, NamespaceExists_args)
+        result = NamespaceExists_result.new()
+        begin
+          result.success = @handler.namespaceExists(args.login, args.namespaceName)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        end
+        write_result(result, oprot, 'namespaceExists', seqid)
+      end
+
+      def process_createNamespace(seqid, iprot, oprot)
+        args = read_args(iprot, CreateNamespace_args)
+        result = CreateNamespace_result.new()
+        begin
+          @handler.createNamespace(args.login, args.namespaceName)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceExistsException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'createNamespace', seqid)
+      end
+
+      def process_deleteNamespace(seqid, iprot, oprot)
+        args = read_args(iprot, DeleteNamespace_args)
+        result = DeleteNamespace_result.new()
+        begin
+          @handler.deleteNamespace(args.login, args.namespaceName)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        rescue ::Accumulo::NamespaceNotEmptyException => ouch4
+          result.ouch4 = ouch4
+        end
+        write_result(result, oprot, 'deleteNamespace', seqid)
+      end
+
+      def process_renameNamespace(seqid, iprot, oprot)
+        args = read_args(iprot, RenameNamespace_args)
+        result = RenameNamespace_result.new()
+        begin
+          @handler.renameNamespace(args.login, args.oldNamespaceName, args.newNamespaceName)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        rescue ::Accumulo::NamespaceExistsException => ouch4
+          result.ouch4 = ouch4
+        end
+        write_result(result, oprot, 'renameNamespace', seqid)
+      end
+
+      def process_setNamespaceProperty(seqid, iprot, oprot)
+        args = read_args(iprot, SetNamespaceProperty_args)
+        result = SetNamespaceProperty_result.new()
+        begin
+          @handler.setNamespaceProperty(args.login, args.namespaceName, args.property, args.value)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'setNamespaceProperty', seqid)
+      end
+
+      def process_removeNamespaceProperty(seqid, iprot, oprot)
+        args = read_args(iprot, RemoveNamespaceProperty_args)
+        result = RemoveNamespaceProperty_result.new()
+        begin
+          @handler.removeNamespaceProperty(args.login, args.namespaceName, args.property)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'removeNamespaceProperty', seqid)
+      end
+
+      def process_getNamespaceProperties(seqid, iprot, oprot)
+        args = read_args(iprot, GetNamespaceProperties_args)
+        result = GetNamespaceProperties_result.new()
+        begin
+          result.success = @handler.getNamespaceProperties(args.login, args.namespaceName)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'getNamespaceProperties', seqid)
+      end
+
+      def process_namespaceIdMap(seqid, iprot, oprot)
+        args = read_args(iprot, NamespaceIdMap_args)
+        result = NamespaceIdMap_result.new()
+        begin
+          result.success = @handler.namespaceIdMap(args.login)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        end
+        write_result(result, oprot, 'namespaceIdMap', seqid)
+      end
+
+      def process_attachNamespaceIterator(seqid, iprot, oprot)
+        args = read_args(iprot, AttachNamespaceIterator_args)
+        result = AttachNamespaceIterator_result.new()
+        begin
+          @handler.attachNamespaceIterator(args.login, args.namespaceName, args.setting, args.scopes)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'attachNamespaceIterator', seqid)
+      end
+
+      def process_removeNamespaceIterator(seqid, iprot, oprot)
+        args = read_args(iprot, RemoveNamespaceIterator_args)
+        result = RemoveNamespaceIterator_result.new()
+        begin
+          @handler.removeNamespaceIterator(args.login, args.namespaceName, args.name, args.scopes)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'removeNamespaceIterator', seqid)
+      end
+
+      def process_getNamespaceIteratorSetting(seqid, iprot, oprot)
+        args = read_args(iprot, GetNamespaceIteratorSetting_args)
+        result = GetNamespaceIteratorSetting_result.new()
+        begin
+          result.success = @handler.getNamespaceIteratorSetting(args.login, args.namespaceName, args.name, args.scope)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'getNamespaceIteratorSetting', seqid)
+      end
+
+      def process_listNamespaceIterators(seqid, iprot, oprot)
+        args = read_args(iprot, ListNamespaceIterators_args)
+        result = ListNamespaceIterators_result.new()
+        begin
+          result.success = @handler.listNamespaceIterators(args.login, args.namespaceName)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'listNamespaceIterators', seqid)
+      end
+
+      def process_checkNamespaceIteratorConflicts(seqid, iprot, oprot)
+        args = read_args(iprot, CheckNamespaceIteratorConflicts_args)
+        result = CheckNamespaceIteratorConflicts_result.new()
+        begin
+          @handler.checkNamespaceIteratorConflicts(args.login, args.namespaceName, args.setting, args.scopes)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'checkNamespaceIteratorConflicts', seqid)
+      end
+
+      def process_addNamespaceConstraint(seqid, iprot, oprot)
+        args = read_args(iprot, AddNamespaceConstraint_args)
+        result = AddNamespaceConstraint_result.new()
+        begin
+          result.success = @handler.addNamespaceConstraint(args.login, args.namespaceName, args.constraintClassName)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'addNamespaceConstraint', seqid)
+      end
+
+      def process_removeNamespaceConstraint(seqid, iprot, oprot)
+        args = read_args(iprot, RemoveNamespaceConstraint_args)
+        result = RemoveNamespaceConstraint_result.new()
+        begin
+          @handler.removeNamespaceConstraint(args.login, args.namespaceName, args.id)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'removeNamespaceConstraint', seqid)
+      end
+
+      def process_listNamespaceConstraints(seqid, iprot, oprot)
+        args = read_args(iprot, ListNamespaceConstraints_args)
+        result = ListNamespaceConstraints_result.new()
+        begin
+          result.success = @handler.listNamespaceConstraints(args.login, args.namespaceName)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'listNamespaceConstraints', seqid)
+      end
+
+      def process_testNamespaceClassLoad(seqid, iprot, oprot)
+        args = read_args(iprot, TestNamespaceClassLoad_args)
+        result = TestNamespaceClassLoad_result.new()
+        begin
+          result.success = @handler.testNamespaceClassLoad(args.login, args.namespaceName, args.className, args.asTypeName)
+        rescue ::Accumulo::AccumuloException => ouch1
+          result.ouch1 = ouch1
+        rescue ::Accumulo::AccumuloSecurityException => ouch2
+          result.ouch2 = ouch2
+        rescue ::Accumulo::NamespaceNotFoundException => ouch3
+          result.ouch3 = ouch3
+        end
+        write_result(result, oprot, 'testNamespaceClassLoad', seqid)
       end
 
     end
@@ -4784,6 +5498,137 @@ module Accumulo
       ::Thrift::Struct.generate_accessors self
     end
 
+    class GrantNamespacePermission_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      USER = 2
+      NAMESPACENAME = 3
+      PERM = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        USER => {:type => ::Thrift::Types::STRING, :name => 'user'},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        PERM => {:type => ::Thrift::Types::I32, :name => 'perm', :enum_class => ::Accumulo::NamespacePermission}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+        unless @perm.nil? || ::Accumulo::NamespacePermission::VALID_VALUES.include?(@perm)
+          raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field perm!')
+        end
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class GrantNamespacePermission_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class HasNamespacePermission_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      USER = 2
+      NAMESPACENAME = 3
+      PERM = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        USER => {:type => ::Thrift::Types::STRING, :name => 'user'},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        PERM => {:type => ::Thrift::Types::I32, :name => 'perm', :enum_class => ::Accumulo::NamespacePermission}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+        unless @perm.nil? || ::Accumulo::NamespacePermission::VALID_VALUES.include?(@perm)
+          raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field perm!')
+        end
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class HasNamespacePermission_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RevokeNamespacePermission_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      USER = 2
+      NAMESPACENAME = 3
+      PERM = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        USER => {:type => ::Thrift::Types::STRING, :name => 'user'},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        PERM => {:type => ::Thrift::Types::I32, :name => 'perm', :enum_class => ::Accumulo::NamespacePermission}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+        unless @perm.nil? || ::Accumulo::NamespacePermission::VALID_VALUES.include?(@perm)
+          raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field perm!')
+        end
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RevokeNamespacePermission_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
     class CreateBatchScanner_args
       include ::Thrift::Struct, ::Thrift::Struct_Union
       LOGIN = 1
@@ -5416,6 +6261,799 @@ module Accumulo
 
       FIELDS = {
         SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::Accumulo::Key}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class SystemNamespace_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+
+      FIELDS = {
+
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class SystemNamespace_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::STRING, :name => 'success'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class DefaultNamespace_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+
+      FIELDS = {
+
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class DefaultNamespace_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::STRING, :name => 'success'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class ListNamespaces_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class ListNamespaces_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRING}},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class NamespaceExists_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class NamespaceExists_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class CreateNamespace_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class CreateNamespace_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceExistsException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class DeleteNamespace_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class DeleteNamespace_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+      OUCH4 = 4
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException},
+        OUCH4 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch4', :class => ::Accumulo::NamespaceNotEmptyException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RenameNamespace_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      OLDNAMESPACENAME = 2
+      NEWNAMESPACENAME = 3
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        OLDNAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'oldNamespaceName'},
+        NEWNAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'newNamespaceName'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RenameNamespace_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+      OUCH4 = 4
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException},
+        OUCH4 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch4', :class => ::Accumulo::NamespaceExistsException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class SetNamespaceProperty_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+      PROPERTY = 3
+      VALUE = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        PROPERTY => {:type => ::Thrift::Types::STRING, :name => 'property'},
+        VALUE => {:type => ::Thrift::Types::STRING, :name => 'value'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class SetNamespaceProperty_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RemoveNamespaceProperty_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+      PROPERTY = 3
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        PROPERTY => {:type => ::Thrift::Types::STRING, :name => 'property'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RemoveNamespaceProperty_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class GetNamespaceProperties_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class GetNamespaceProperties_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::MAP, :name => 'success', :key => {:type => ::Thrift::Types::STRING}, :value => {:type => ::Thrift::Types::STRING}},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class NamespaceIdMap_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class NamespaceIdMap_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::MAP, :name => 'success', :key => {:type => ::Thrift::Types::STRING}, :value => {:type => ::Thrift::Types::STRING}},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class AttachNamespaceIterator_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+      SETTING = 3
+      SCOPES = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        SETTING => {:type => ::Thrift::Types::STRUCT, :name => 'setting', :class => ::Accumulo::IteratorSetting},
+        SCOPES => {:type => ::Thrift::Types::SET, :name => 'scopes', :element => {:type => ::Thrift::Types::I32, :enum_class => ::Accumulo::IteratorScope}}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class AttachNamespaceIterator_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RemoveNamespaceIterator_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+      NAME = 3
+      SCOPES = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        NAME => {:type => ::Thrift::Types::STRING, :name => 'name'},
+        SCOPES => {:type => ::Thrift::Types::SET, :name => 'scopes', :element => {:type => ::Thrift::Types::I32, :enum_class => ::Accumulo::IteratorScope}}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RemoveNamespaceIterator_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class GetNamespaceIteratorSetting_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+      NAME = 3
+      SCOPE = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        NAME => {:type => ::Thrift::Types::STRING, :name => 'name'},
+        SCOPE => {:type => ::Thrift::Types::I32, :name => 'scope', :enum_class => ::Accumulo::IteratorScope}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+        unless @scope.nil? || ::Accumulo::IteratorScope::VALID_VALUES.include?(@scope)
+          raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field scope!')
+        end
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class GetNamespaceIteratorSetting_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::Accumulo::IteratorSetting},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class ListNamespaceIterators_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class ListNamespaceIterators_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::MAP, :name => 'success', :key => {:type => ::Thrift::Types::STRING}, :value => {:type => ::Thrift::Types::SET, :element => {:type => ::Thrift::Types::I32, :enum_class => ::Accumulo::IteratorScope}}},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class CheckNamespaceIteratorConflicts_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+      SETTING = 3
+      SCOPES = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        SETTING => {:type => ::Thrift::Types::STRUCT, :name => 'setting', :class => ::Accumulo::IteratorSetting},
+        SCOPES => {:type => ::Thrift::Types::SET, :name => 'scopes', :element => {:type => ::Thrift::Types::I32, :enum_class => ::Accumulo::IteratorScope}}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class CheckNamespaceIteratorConflicts_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class AddNamespaceConstraint_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+      CONSTRAINTCLASSNAME = 3
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        CONSTRAINTCLASSNAME => {:type => ::Thrift::Types::STRING, :name => 'constraintClassName'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class AddNamespaceConstraint_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::I32, :name => 'success'},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RemoveNamespaceConstraint_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+      ID = 3
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        ID => {:type => ::Thrift::Types::I32, :name => 'id'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class RemoveNamespaceConstraint_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class ListNamespaceConstraints_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class ListNamespaceConstraints_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::MAP, :name => 'success', :key => {:type => ::Thrift::Types::STRING}, :value => {:type => ::Thrift::Types::I32}},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class TestNamespaceClassLoad_args
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      LOGIN = 1
+      NAMESPACENAME = 2
+      CLASSNAME = 3
+      ASTYPENAME = 4
+
+      FIELDS = {
+        LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
+        NAMESPACENAME => {:type => ::Thrift::Types::STRING, :name => 'namespaceName'},
+        CLASSNAME => {:type => ::Thrift::Types::STRING, :name => 'className'},
+        ASTYPENAME => {:type => ::Thrift::Types::STRING, :name => 'asTypeName'}
+      }
+
+      def struct_fields; FIELDS; end
+
+      def validate
+      end
+
+      ::Thrift::Struct.generate_accessors self
+    end
+
+    class TestNamespaceClassLoad_result
+      include ::Thrift::Struct, ::Thrift::Struct_Union
+      SUCCESS = 0
+      OUCH1 = 1
+      OUCH2 = 2
+      OUCH3 = 3
+
+      FIELDS = {
+        SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+        OUCH1 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch1', :class => ::Accumulo::AccumuloException},
+        OUCH2 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch2', :class => ::Accumulo::AccumuloSecurityException},
+        OUCH3 => {:type => ::Thrift::Types::STRUCT, :name => 'ouch3', :class => ::Accumulo::NamespaceNotFoundException}
       }
 
       def struct_fields; FIELDS; end

@@ -338,6 +338,21 @@ class AccumuloProxyHandler : virtual public AccumuloProxyIf {
     printf("revokeTablePermission\n");
   }
 
+  void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    // Your implementation goes here
+    printf("grantNamespacePermission\n");
+  }
+
+  bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    // Your implementation goes here
+    printf("hasNamespacePermission\n");
+  }
+
+  void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    // Your implementation goes here
+    printf("revokeNamespacePermission\n");
+  }
+
   void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options) {
     // Your implementation goes here
     printf("createBatchScanner\n");
@@ -421,6 +436,106 @@ class AccumuloProxyHandler : virtual public AccumuloProxyIf {
   void getFollowing(Key& _return, const Key& key, const PartialKey::type part) {
     // Your implementation goes here
     printf("getFollowing\n");
+  }
+
+  void systemNamespace(std::string& _return) {
+    // Your implementation goes here
+    printf("systemNamespace\n");
+  }
+
+  void defaultNamespace(std::string& _return) {
+    // Your implementation goes here
+    printf("defaultNamespace\n");
+  }
+
+  void listNamespaces(std::vector<std::string> & _return, const std::string& login) {
+    // Your implementation goes here
+    printf("listNamespaces\n");
+  }
+
+  bool namespaceExists(const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("namespaceExists\n");
+  }
+
+  void createNamespace(const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("createNamespace\n");
+  }
+
+  void deleteNamespace(const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("deleteNamespace\n");
+  }
+
+  void renameNamespace(const std::string& login, const std::string& oldNamespaceName, const std::string& newNamespaceName) {
+    // Your implementation goes here
+    printf("renameNamespace\n");
+  }
+
+  void setNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property, const std::string& value) {
+    // Your implementation goes here
+    printf("setNamespaceProperty\n");
+  }
+
+  void removeNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property) {
+    // Your implementation goes here
+    printf("removeNamespaceProperty\n");
+  }
+
+  void getNamespaceProperties(std::map<std::string, std::string> & _return, const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("getNamespaceProperties\n");
+  }
+
+  void namespaceIdMap(std::map<std::string, std::string> & _return, const std::string& login) {
+    // Your implementation goes here
+    printf("namespaceIdMap\n");
+  }
+
+  void attachNamespaceIterator(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes) {
+    // Your implementation goes here
+    printf("attachNamespaceIterator\n");
+  }
+
+  void removeNamespaceIterator(const std::string& login, const std::string& namespaceName, const std::string& name, const std::set<IteratorScope::type> & scopes) {
+    // Your implementation goes here
+    printf("removeNamespaceIterator\n");
+  }
+
+  void getNamespaceIteratorSetting(IteratorSetting& _return, const std::string& login, const std::string& namespaceName, const std::string& name, const IteratorScope::type scope) {
+    // Your implementation goes here
+    printf("getNamespaceIteratorSetting\n");
+  }
+
+  void listNamespaceIterators(std::map<std::string, std::set<IteratorScope::type> > & _return, const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("listNamespaceIterators\n");
+  }
+
+  void checkNamespaceIteratorConflicts(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes) {
+    // Your implementation goes here
+    printf("checkNamespaceIteratorConflicts\n");
+  }
+
+  int32_t addNamespaceConstraint(const std::string& login, const std::string& namespaceName, const std::string& constraintClassName) {
+    // Your implementation goes here
+    printf("addNamespaceConstraint\n");
+  }
+
+  void removeNamespaceConstraint(const std::string& login, const std::string& namespaceName, const int32_t id) {
+    // Your implementation goes here
+    printf("removeNamespaceConstraint\n");
+  }
+
+  void listNamespaceConstraints(std::map<std::string, int32_t> & _return, const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("listNamespaceConstraints\n");
+  }
+
+  bool testNamespaceClassLoad(const std::string& login, const std::string& namespaceName, const std::string& className, const std::string& asTypeName) {
+    // Your implementation goes here
+    printf("testNamespaceClassLoad\n");
   }
 
 };

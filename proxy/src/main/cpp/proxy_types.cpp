@@ -87,6 +87,30 @@ const char* _kSystemPermissionNames[] = {
 };
 const std::map<int, const char*> _SystemPermission_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(8, _kSystemPermissionValues, _kSystemPermissionNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
+int _kNamespacePermissionValues[] = {
+  NamespacePermission::READ,
+  NamespacePermission::WRITE,
+  NamespacePermission::ALTER_NAMESPACE,
+  NamespacePermission::GRANT,
+  NamespacePermission::ALTER_TABLE,
+  NamespacePermission::CREATE_TABLE,
+  NamespacePermission::DROP_TABLE,
+  NamespacePermission::BULK_IMPORT,
+  NamespacePermission::DROP_NAMESPACE
+};
+const char* _kNamespacePermissionNames[] = {
+  "READ",
+  "WRITE",
+  "ALTER_NAMESPACE",
+  "GRANT",
+  "ALTER_TABLE",
+  "CREATE_TABLE",
+  "DROP_TABLE",
+  "BULK_IMPORT",
+  "DROP_NAMESPACE"
+};
+const std::map<int, const char*> _NamespacePermission_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(9, _kNamespacePermissionValues, _kNamespacePermissionNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+
 int _kScanTypeValues[] = {
   ScanType::SINGLE,
   ScanType::BATCH
@@ -4439,6 +4463,297 @@ const char* MutationsRejectedException::what() const throw() {
     return this->thriftTExceptionMessageHolder_.c_str();
   } catch (const std::exception&) {
     return "TException - service has thrown: MutationsRejectedException";
+  }
+}
+
+
+NamespaceExistsException::~NamespaceExistsException() throw() {
+}
+
+
+void NamespaceExistsException::__set_msg(const std::string& val) {
+  this->msg = val;
+}
+
+uint32_t NamespaceExistsException::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->msg);
+          this->__isset.msg = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t NamespaceExistsException::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("NamespaceExistsException");
+
+  xfer += oprot->writeFieldBegin("msg", ::apache::thrift::protocol::T_STRING, 1);
+  xfer += oprot->writeString(this->msg);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(NamespaceExistsException &a, NamespaceExistsException &b) {
+  using ::std::swap;
+  swap(a.msg, b.msg);
+  swap(a.__isset, b.__isset);
+}
+
+NamespaceExistsException::NamespaceExistsException(const NamespaceExistsException& other189) : TException() {
+  msg = other189.msg;
+  __isset = other189.__isset;
+}
+NamespaceExistsException& NamespaceExistsException::operator=(const NamespaceExistsException& other190) {
+  msg = other190.msg;
+  __isset = other190.__isset;
+  return *this;
+}
+void NamespaceExistsException::printTo(std::ostream& out) const {
+  using ::apache::thrift::to_string;
+  out << "NamespaceExistsException(";
+  out << "msg=" << to_string(msg);
+  out << ")";
+}
+
+const char* NamespaceExistsException::what() const throw() {
+  try {
+    std::stringstream ss;
+    ss << "TException - service has thrown: " << *this;
+    this->thriftTExceptionMessageHolder_ = ss.str();
+    return this->thriftTExceptionMessageHolder_.c_str();
+  } catch (const std::exception&) {
+    return "TException - service has thrown: NamespaceExistsException";
+  }
+}
+
+
+NamespaceNotFoundException::~NamespaceNotFoundException() throw() {
+}
+
+
+void NamespaceNotFoundException::__set_msg(const std::string& val) {
+  this->msg = val;
+}
+
+uint32_t NamespaceNotFoundException::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->msg);
+          this->__isset.msg = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t NamespaceNotFoundException::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("NamespaceNotFoundException");
+
+  xfer += oprot->writeFieldBegin("msg", ::apache::thrift::protocol::T_STRING, 1);
+  xfer += oprot->writeString(this->msg);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(NamespaceNotFoundException &a, NamespaceNotFoundException &b) {
+  using ::std::swap;
+  swap(a.msg, b.msg);
+  swap(a.__isset, b.__isset);
+}
+
+NamespaceNotFoundException::NamespaceNotFoundException(const NamespaceNotFoundException& other191) : TException() {
+  msg = other191.msg;
+  __isset = other191.__isset;
+}
+NamespaceNotFoundException& NamespaceNotFoundException::operator=(const NamespaceNotFoundException& other192) {
+  msg = other192.msg;
+  __isset = other192.__isset;
+  return *this;
+}
+void NamespaceNotFoundException::printTo(std::ostream& out) const {
+  using ::apache::thrift::to_string;
+  out << "NamespaceNotFoundException(";
+  out << "msg=" << to_string(msg);
+  out << ")";
+}
+
+const char* NamespaceNotFoundException::what() const throw() {
+  try {
+    std::stringstream ss;
+    ss << "TException - service has thrown: " << *this;
+    this->thriftTExceptionMessageHolder_ = ss.str();
+    return this->thriftTExceptionMessageHolder_.c_str();
+  } catch (const std::exception&) {
+    return "TException - service has thrown: NamespaceNotFoundException";
+  }
+}
+
+
+NamespaceNotEmptyException::~NamespaceNotEmptyException() throw() {
+}
+
+
+void NamespaceNotEmptyException::__set_msg(const std::string& val) {
+  this->msg = val;
+}
+
+uint32_t NamespaceNotEmptyException::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->msg);
+          this->__isset.msg = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t NamespaceNotEmptyException::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("NamespaceNotEmptyException");
+
+  xfer += oprot->writeFieldBegin("msg", ::apache::thrift::protocol::T_STRING, 1);
+  xfer += oprot->writeString(this->msg);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(NamespaceNotEmptyException &a, NamespaceNotEmptyException &b) {
+  using ::std::swap;
+  swap(a.msg, b.msg);
+  swap(a.__isset, b.__isset);
+}
+
+NamespaceNotEmptyException::NamespaceNotEmptyException(const NamespaceNotEmptyException& other193) : TException() {
+  msg = other193.msg;
+  __isset = other193.__isset;
+}
+NamespaceNotEmptyException& NamespaceNotEmptyException::operator=(const NamespaceNotEmptyException& other194) {
+  msg = other194.msg;
+  __isset = other194.__isset;
+  return *this;
+}
+void NamespaceNotEmptyException::printTo(std::ostream& out) const {
+  using ::apache::thrift::to_string;
+  out << "NamespaceNotEmptyException(";
+  out << "msg=" << to_string(msg);
+  out << ")";
+}
+
+const char* NamespaceNotEmptyException::what() const throw() {
+  try {
+    std::stringstream ss;
+    ss << "TException - service has thrown: " << *this;
+    this->thriftTExceptionMessageHolder_ = ss.str();
+    return this->thriftTExceptionMessageHolder_.c_str();
+  } catch (const std::exception&) {
+    return "TException - service has thrown: NamespaceNotEmptyException";
   }
 }
 

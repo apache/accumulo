@@ -97,6 +97,9 @@ class AccumuloProxyIf {
   virtual void listLocalUsers(std::set<std::string> & _return, const std::string& login) = 0;
   virtual void revokeSystemPermission(const std::string& login, const std::string& user, const SystemPermission::type perm) = 0;
   virtual void revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm) = 0;
+  virtual void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) = 0;
+  virtual bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) = 0;
+  virtual void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) = 0;
   virtual void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options) = 0;
   virtual void createScanner(std::string& _return, const std::string& login, const std::string& tableName, const ScanOptions& options) = 0;
   virtual bool hasNext(const std::string& scanner) = 0;
@@ -114,6 +117,26 @@ class AccumuloProxyIf {
   virtual void closeConditionalWriter(const std::string& conditionalWriter) = 0;
   virtual void getRowRange(Range& _return, const std::string& row) = 0;
   virtual void getFollowing(Key& _return, const Key& key, const PartialKey::type part) = 0;
+  virtual void systemNamespace(std::string& _return) = 0;
+  virtual void defaultNamespace(std::string& _return) = 0;
+  virtual void listNamespaces(std::vector<std::string> & _return, const std::string& login) = 0;
+  virtual bool namespaceExists(const std::string& login, const std::string& namespaceName) = 0;
+  virtual void createNamespace(const std::string& login, const std::string& namespaceName) = 0;
+  virtual void deleteNamespace(const std::string& login, const std::string& namespaceName) = 0;
+  virtual void renameNamespace(const std::string& login, const std::string& oldNamespaceName, const std::string& newNamespaceName) = 0;
+  virtual void setNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property, const std::string& value) = 0;
+  virtual void removeNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property) = 0;
+  virtual void getNamespaceProperties(std::map<std::string, std::string> & _return, const std::string& login, const std::string& namespaceName) = 0;
+  virtual void namespaceIdMap(std::map<std::string, std::string> & _return, const std::string& login) = 0;
+  virtual void attachNamespaceIterator(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes) = 0;
+  virtual void removeNamespaceIterator(const std::string& login, const std::string& namespaceName, const std::string& name, const std::set<IteratorScope::type> & scopes) = 0;
+  virtual void getNamespaceIteratorSetting(IteratorSetting& _return, const std::string& login, const std::string& namespaceName, const std::string& name, const IteratorScope::type scope) = 0;
+  virtual void listNamespaceIterators(std::map<std::string, std::set<IteratorScope::type> > & _return, const std::string& login, const std::string& namespaceName) = 0;
+  virtual void checkNamespaceIteratorConflicts(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes) = 0;
+  virtual int32_t addNamespaceConstraint(const std::string& login, const std::string& namespaceName, const std::string& constraintClassName) = 0;
+  virtual void removeNamespaceConstraint(const std::string& login, const std::string& namespaceName, const int32_t id) = 0;
+  virtual void listNamespaceConstraints(std::map<std::string, int32_t> & _return, const std::string& login, const std::string& namespaceName) = 0;
+  virtual bool testNamespaceClassLoad(const std::string& login, const std::string& namespaceName, const std::string& className, const std::string& asTypeName) = 0;
 };
 
 class AccumuloProxyIfFactory {
@@ -330,6 +353,16 @@ class AccumuloProxyNull : virtual public AccumuloProxyIf {
   void revokeTablePermission(const std::string& /* login */, const std::string& /* user */, const std::string& /* table */, const TablePermission::type /* perm */) {
     return;
   }
+  void grantNamespacePermission(const std::string& /* login */, const std::string& /* user */, const std::string& /* namespaceName */, const NamespacePermission::type /* perm */) {
+    return;
+  }
+  bool hasNamespacePermission(const std::string& /* login */, const std::string& /* user */, const std::string& /* namespaceName */, const NamespacePermission::type /* perm */) {
+    bool _return = false;
+    return _return;
+  }
+  void revokeNamespacePermission(const std::string& /* login */, const std::string& /* user */, const std::string& /* namespaceName */, const NamespacePermission::type /* perm */) {
+    return;
+  }
   void createBatchScanner(std::string& /* _return */, const std::string& /* login */, const std::string& /* tableName */, const BatchScanOptions& /* options */) {
     return;
   }
@@ -382,6 +415,69 @@ class AccumuloProxyNull : virtual public AccumuloProxyIf {
   }
   void getFollowing(Key& /* _return */, const Key& /* key */, const PartialKey::type /* part */) {
     return;
+  }
+  void systemNamespace(std::string& /* _return */) {
+    return;
+  }
+  void defaultNamespace(std::string& /* _return */) {
+    return;
+  }
+  void listNamespaces(std::vector<std::string> & /* _return */, const std::string& /* login */) {
+    return;
+  }
+  bool namespaceExists(const std::string& /* login */, const std::string& /* namespaceName */) {
+    bool _return = false;
+    return _return;
+  }
+  void createNamespace(const std::string& /* login */, const std::string& /* namespaceName */) {
+    return;
+  }
+  void deleteNamespace(const std::string& /* login */, const std::string& /* namespaceName */) {
+    return;
+  }
+  void renameNamespace(const std::string& /* login */, const std::string& /* oldNamespaceName */, const std::string& /* newNamespaceName */) {
+    return;
+  }
+  void setNamespaceProperty(const std::string& /* login */, const std::string& /* namespaceName */, const std::string& /* property */, const std::string& /* value */) {
+    return;
+  }
+  void removeNamespaceProperty(const std::string& /* login */, const std::string& /* namespaceName */, const std::string& /* property */) {
+    return;
+  }
+  void getNamespaceProperties(std::map<std::string, std::string> & /* _return */, const std::string& /* login */, const std::string& /* namespaceName */) {
+    return;
+  }
+  void namespaceIdMap(std::map<std::string, std::string> & /* _return */, const std::string& /* login */) {
+    return;
+  }
+  void attachNamespaceIterator(const std::string& /* login */, const std::string& /* namespaceName */, const IteratorSetting& /* setting */, const std::set<IteratorScope::type> & /* scopes */) {
+    return;
+  }
+  void removeNamespaceIterator(const std::string& /* login */, const std::string& /* namespaceName */, const std::string& /* name */, const std::set<IteratorScope::type> & /* scopes */) {
+    return;
+  }
+  void getNamespaceIteratorSetting(IteratorSetting& /* _return */, const std::string& /* login */, const std::string& /* namespaceName */, const std::string& /* name */, const IteratorScope::type /* scope */) {
+    return;
+  }
+  void listNamespaceIterators(std::map<std::string, std::set<IteratorScope::type> > & /* _return */, const std::string& /* login */, const std::string& /* namespaceName */) {
+    return;
+  }
+  void checkNamespaceIteratorConflicts(const std::string& /* login */, const std::string& /* namespaceName */, const IteratorSetting& /* setting */, const std::set<IteratorScope::type> & /* scopes */) {
+    return;
+  }
+  int32_t addNamespaceConstraint(const std::string& /* login */, const std::string& /* namespaceName */, const std::string& /* constraintClassName */) {
+    int32_t _return = 0;
+    return _return;
+  }
+  void removeNamespaceConstraint(const std::string& /* login */, const std::string& /* namespaceName */, const int32_t /* id */) {
+    return;
+  }
+  void listNamespaceConstraints(std::map<std::string, int32_t> & /* _return */, const std::string& /* login */, const std::string& /* namespaceName */) {
+    return;
+  }
+  bool testNamespaceClassLoad(const std::string& /* login */, const std::string& /* namespaceName */, const std::string& /* className */, const std::string& /* asTypeName */) {
+    bool _return = false;
+    return _return;
   }
 };
 
@@ -8392,6 +8488,413 @@ class AccumuloProxy_revokeTablePermission_presult {
 
 };
 
+typedef struct _AccumuloProxy_grantNamespacePermission_args__isset {
+  _AccumuloProxy_grantNamespacePermission_args__isset() : login(false), user(false), namespaceName(false), perm(false) {}
+  bool login :1;
+  bool user :1;
+  bool namespaceName :1;
+  bool perm :1;
+} _AccumuloProxy_grantNamespacePermission_args__isset;
+
+class AccumuloProxy_grantNamespacePermission_args {
+ public:
+
+  AccumuloProxy_grantNamespacePermission_args(const AccumuloProxy_grantNamespacePermission_args&);
+  AccumuloProxy_grantNamespacePermission_args& operator=(const AccumuloProxy_grantNamespacePermission_args&);
+  AccumuloProxy_grantNamespacePermission_args() : login(), user(), namespaceName(), perm((NamespacePermission::type)0) {
+  }
+
+  virtual ~AccumuloProxy_grantNamespacePermission_args() throw();
+  std::string login;
+  std::string user;
+  std::string namespaceName;
+  NamespacePermission::type perm;
+
+  _AccumuloProxy_grantNamespacePermission_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_user(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_perm(const NamespacePermission::type val);
+
+  bool operator == (const AccumuloProxy_grantNamespacePermission_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(user == rhs.user))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(perm == rhs.perm))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_grantNamespacePermission_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_grantNamespacePermission_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_grantNamespacePermission_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_grantNamespacePermission_pargs() throw();
+  const std::string* login;
+  const std::string* user;
+  const std::string* namespaceName;
+  const NamespacePermission::type* perm;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_grantNamespacePermission_result__isset {
+  _AccumuloProxy_grantNamespacePermission_result__isset() : ouch1(false), ouch2(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_grantNamespacePermission_result__isset;
+
+class AccumuloProxy_grantNamespacePermission_result {
+ public:
+
+  AccumuloProxy_grantNamespacePermission_result(const AccumuloProxy_grantNamespacePermission_result&);
+  AccumuloProxy_grantNamespacePermission_result& operator=(const AccumuloProxy_grantNamespacePermission_result&);
+  AccumuloProxy_grantNamespacePermission_result() {
+  }
+
+  virtual ~AccumuloProxy_grantNamespacePermission_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_grantNamespacePermission_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  bool operator == (const AccumuloProxy_grantNamespacePermission_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_grantNamespacePermission_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_grantNamespacePermission_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_grantNamespacePermission_presult__isset {
+  _AccumuloProxy_grantNamespacePermission_presult__isset() : ouch1(false), ouch2(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_grantNamespacePermission_presult__isset;
+
+class AccumuloProxy_grantNamespacePermission_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_grantNamespacePermission_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_grantNamespacePermission_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_hasNamespacePermission_args__isset {
+  _AccumuloProxy_hasNamespacePermission_args__isset() : login(false), user(false), namespaceName(false), perm(false) {}
+  bool login :1;
+  bool user :1;
+  bool namespaceName :1;
+  bool perm :1;
+} _AccumuloProxy_hasNamespacePermission_args__isset;
+
+class AccumuloProxy_hasNamespacePermission_args {
+ public:
+
+  AccumuloProxy_hasNamespacePermission_args(const AccumuloProxy_hasNamespacePermission_args&);
+  AccumuloProxy_hasNamespacePermission_args& operator=(const AccumuloProxy_hasNamespacePermission_args&);
+  AccumuloProxy_hasNamespacePermission_args() : login(), user(), namespaceName(), perm((NamespacePermission::type)0) {
+  }
+
+  virtual ~AccumuloProxy_hasNamespacePermission_args() throw();
+  std::string login;
+  std::string user;
+  std::string namespaceName;
+  NamespacePermission::type perm;
+
+  _AccumuloProxy_hasNamespacePermission_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_user(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_perm(const NamespacePermission::type val);
+
+  bool operator == (const AccumuloProxy_hasNamespacePermission_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(user == rhs.user))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(perm == rhs.perm))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_hasNamespacePermission_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_hasNamespacePermission_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_hasNamespacePermission_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_hasNamespacePermission_pargs() throw();
+  const std::string* login;
+  const std::string* user;
+  const std::string* namespaceName;
+  const NamespacePermission::type* perm;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_hasNamespacePermission_result__isset {
+  _AccumuloProxy_hasNamespacePermission_result__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_hasNamespacePermission_result__isset;
+
+class AccumuloProxy_hasNamespacePermission_result {
+ public:
+
+  AccumuloProxy_hasNamespacePermission_result(const AccumuloProxy_hasNamespacePermission_result&);
+  AccumuloProxy_hasNamespacePermission_result& operator=(const AccumuloProxy_hasNamespacePermission_result&);
+  AccumuloProxy_hasNamespacePermission_result() : success(0) {
+  }
+
+  virtual ~AccumuloProxy_hasNamespacePermission_result() throw();
+  bool success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_hasNamespacePermission_result__isset __isset;
+
+  void __set_success(const bool val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  bool operator == (const AccumuloProxy_hasNamespacePermission_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_hasNamespacePermission_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_hasNamespacePermission_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_hasNamespacePermission_presult__isset {
+  _AccumuloProxy_hasNamespacePermission_presult__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_hasNamespacePermission_presult__isset;
+
+class AccumuloProxy_hasNamespacePermission_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_hasNamespacePermission_presult() throw();
+  bool* success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_hasNamespacePermission_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_revokeNamespacePermission_args__isset {
+  _AccumuloProxy_revokeNamespacePermission_args__isset() : login(false), user(false), namespaceName(false), perm(false) {}
+  bool login :1;
+  bool user :1;
+  bool namespaceName :1;
+  bool perm :1;
+} _AccumuloProxy_revokeNamespacePermission_args__isset;
+
+class AccumuloProxy_revokeNamespacePermission_args {
+ public:
+
+  AccumuloProxy_revokeNamespacePermission_args(const AccumuloProxy_revokeNamespacePermission_args&);
+  AccumuloProxy_revokeNamespacePermission_args& operator=(const AccumuloProxy_revokeNamespacePermission_args&);
+  AccumuloProxy_revokeNamespacePermission_args() : login(), user(), namespaceName(), perm((NamespacePermission::type)0) {
+  }
+
+  virtual ~AccumuloProxy_revokeNamespacePermission_args() throw();
+  std::string login;
+  std::string user;
+  std::string namespaceName;
+  NamespacePermission::type perm;
+
+  _AccumuloProxy_revokeNamespacePermission_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_user(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_perm(const NamespacePermission::type val);
+
+  bool operator == (const AccumuloProxy_revokeNamespacePermission_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(user == rhs.user))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(perm == rhs.perm))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_revokeNamespacePermission_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_revokeNamespacePermission_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_revokeNamespacePermission_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_revokeNamespacePermission_pargs() throw();
+  const std::string* login;
+  const std::string* user;
+  const std::string* namespaceName;
+  const NamespacePermission::type* perm;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_revokeNamespacePermission_result__isset {
+  _AccumuloProxy_revokeNamespacePermission_result__isset() : ouch1(false), ouch2(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_revokeNamespacePermission_result__isset;
+
+class AccumuloProxy_revokeNamespacePermission_result {
+ public:
+
+  AccumuloProxy_revokeNamespacePermission_result(const AccumuloProxy_revokeNamespacePermission_result&);
+  AccumuloProxy_revokeNamespacePermission_result& operator=(const AccumuloProxy_revokeNamespacePermission_result&);
+  AccumuloProxy_revokeNamespacePermission_result() {
+  }
+
+  virtual ~AccumuloProxy_revokeNamespacePermission_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_revokeNamespacePermission_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  bool operator == (const AccumuloProxy_revokeNamespacePermission_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_revokeNamespacePermission_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_revokeNamespacePermission_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_revokeNamespacePermission_presult__isset {
+  _AccumuloProxy_revokeNamespacePermission_presult__isset() : ouch1(false), ouch2(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_revokeNamespacePermission_presult__isset;
+
+class AccumuloProxy_revokeNamespacePermission_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_revokeNamespacePermission_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_revokeNamespacePermission_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 typedef struct _AccumuloProxy_createBatchScanner_args__isset {
   _AccumuloProxy_createBatchScanner_args__isset() : login(false), tableName(false), options(false) {}
   bool login :1;
@@ -10446,6 +10949,2638 @@ class AccumuloProxy_getFollowing_presult {
 
 };
 
+
+class AccumuloProxy_systemNamespace_args {
+ public:
+
+  AccumuloProxy_systemNamespace_args(const AccumuloProxy_systemNamespace_args&);
+  AccumuloProxy_systemNamespace_args& operator=(const AccumuloProxy_systemNamespace_args&);
+  AccumuloProxy_systemNamespace_args() {
+  }
+
+  virtual ~AccumuloProxy_systemNamespace_args() throw();
+
+  bool operator == (const AccumuloProxy_systemNamespace_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const AccumuloProxy_systemNamespace_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_systemNamespace_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_systemNamespace_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_systemNamespace_pargs() throw();
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_systemNamespace_result__isset {
+  _AccumuloProxy_systemNamespace_result__isset() : success(false) {}
+  bool success :1;
+} _AccumuloProxy_systemNamespace_result__isset;
+
+class AccumuloProxy_systemNamespace_result {
+ public:
+
+  AccumuloProxy_systemNamespace_result(const AccumuloProxy_systemNamespace_result&);
+  AccumuloProxy_systemNamespace_result& operator=(const AccumuloProxy_systemNamespace_result&);
+  AccumuloProxy_systemNamespace_result() : success() {
+  }
+
+  virtual ~AccumuloProxy_systemNamespace_result() throw();
+  std::string success;
+
+  _AccumuloProxy_systemNamespace_result__isset __isset;
+
+  void __set_success(const std::string& val);
+
+  bool operator == (const AccumuloProxy_systemNamespace_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_systemNamespace_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_systemNamespace_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_systemNamespace_presult__isset {
+  _AccumuloProxy_systemNamespace_presult__isset() : success(false) {}
+  bool success :1;
+} _AccumuloProxy_systemNamespace_presult__isset;
+
+class AccumuloProxy_systemNamespace_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_systemNamespace_presult() throw();
+  std::string* success;
+
+  _AccumuloProxy_systemNamespace_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+
+class AccumuloProxy_defaultNamespace_args {
+ public:
+
+  AccumuloProxy_defaultNamespace_args(const AccumuloProxy_defaultNamespace_args&);
+  AccumuloProxy_defaultNamespace_args& operator=(const AccumuloProxy_defaultNamespace_args&);
+  AccumuloProxy_defaultNamespace_args() {
+  }
+
+  virtual ~AccumuloProxy_defaultNamespace_args() throw();
+
+  bool operator == (const AccumuloProxy_defaultNamespace_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const AccumuloProxy_defaultNamespace_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_defaultNamespace_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_defaultNamespace_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_defaultNamespace_pargs() throw();
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_defaultNamespace_result__isset {
+  _AccumuloProxy_defaultNamespace_result__isset() : success(false) {}
+  bool success :1;
+} _AccumuloProxy_defaultNamespace_result__isset;
+
+class AccumuloProxy_defaultNamespace_result {
+ public:
+
+  AccumuloProxy_defaultNamespace_result(const AccumuloProxy_defaultNamespace_result&);
+  AccumuloProxy_defaultNamespace_result& operator=(const AccumuloProxy_defaultNamespace_result&);
+  AccumuloProxy_defaultNamespace_result() : success() {
+  }
+
+  virtual ~AccumuloProxy_defaultNamespace_result() throw();
+  std::string success;
+
+  _AccumuloProxy_defaultNamespace_result__isset __isset;
+
+  void __set_success(const std::string& val);
+
+  bool operator == (const AccumuloProxy_defaultNamespace_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_defaultNamespace_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_defaultNamespace_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_defaultNamespace_presult__isset {
+  _AccumuloProxy_defaultNamespace_presult__isset() : success(false) {}
+  bool success :1;
+} _AccumuloProxy_defaultNamespace_presult__isset;
+
+class AccumuloProxy_defaultNamespace_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_defaultNamespace_presult() throw();
+  std::string* success;
+
+  _AccumuloProxy_defaultNamespace_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_listNamespaces_args__isset {
+  _AccumuloProxy_listNamespaces_args__isset() : login(false) {}
+  bool login :1;
+} _AccumuloProxy_listNamespaces_args__isset;
+
+class AccumuloProxy_listNamespaces_args {
+ public:
+
+  AccumuloProxy_listNamespaces_args(const AccumuloProxy_listNamespaces_args&);
+  AccumuloProxy_listNamespaces_args& operator=(const AccumuloProxy_listNamespaces_args&);
+  AccumuloProxy_listNamespaces_args() : login() {
+  }
+
+  virtual ~AccumuloProxy_listNamespaces_args() throw();
+  std::string login;
+
+  _AccumuloProxy_listNamespaces_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  bool operator == (const AccumuloProxy_listNamespaces_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_listNamespaces_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_listNamespaces_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_listNamespaces_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_listNamespaces_pargs() throw();
+  const std::string* login;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_listNamespaces_result__isset {
+  _AccumuloProxy_listNamespaces_result__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_listNamespaces_result__isset;
+
+class AccumuloProxy_listNamespaces_result {
+ public:
+
+  AccumuloProxy_listNamespaces_result(const AccumuloProxy_listNamespaces_result&);
+  AccumuloProxy_listNamespaces_result& operator=(const AccumuloProxy_listNamespaces_result&);
+  AccumuloProxy_listNamespaces_result() {
+  }
+
+  virtual ~AccumuloProxy_listNamespaces_result() throw();
+  std::vector<std::string>  success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_listNamespaces_result__isset __isset;
+
+  void __set_success(const std::vector<std::string> & val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  bool operator == (const AccumuloProxy_listNamespaces_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_listNamespaces_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_listNamespaces_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_listNamespaces_presult__isset {
+  _AccumuloProxy_listNamespaces_presult__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_listNamespaces_presult__isset;
+
+class AccumuloProxy_listNamespaces_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_listNamespaces_presult() throw();
+  std::vector<std::string> * success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_listNamespaces_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_namespaceExists_args__isset {
+  _AccumuloProxy_namespaceExists_args__isset() : login(false), namespaceName(false) {}
+  bool login :1;
+  bool namespaceName :1;
+} _AccumuloProxy_namespaceExists_args__isset;
+
+class AccumuloProxy_namespaceExists_args {
+ public:
+
+  AccumuloProxy_namespaceExists_args(const AccumuloProxy_namespaceExists_args&);
+  AccumuloProxy_namespaceExists_args& operator=(const AccumuloProxy_namespaceExists_args&);
+  AccumuloProxy_namespaceExists_args() : login(), namespaceName() {
+  }
+
+  virtual ~AccumuloProxy_namespaceExists_args() throw();
+  std::string login;
+  std::string namespaceName;
+
+  _AccumuloProxy_namespaceExists_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  bool operator == (const AccumuloProxy_namespaceExists_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_namespaceExists_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_namespaceExists_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_namespaceExists_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_namespaceExists_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_namespaceExists_result__isset {
+  _AccumuloProxy_namespaceExists_result__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_namespaceExists_result__isset;
+
+class AccumuloProxy_namespaceExists_result {
+ public:
+
+  AccumuloProxy_namespaceExists_result(const AccumuloProxy_namespaceExists_result&);
+  AccumuloProxy_namespaceExists_result& operator=(const AccumuloProxy_namespaceExists_result&);
+  AccumuloProxy_namespaceExists_result() : success(0) {
+  }
+
+  virtual ~AccumuloProxy_namespaceExists_result() throw();
+  bool success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_namespaceExists_result__isset __isset;
+
+  void __set_success(const bool val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  bool operator == (const AccumuloProxy_namespaceExists_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_namespaceExists_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_namespaceExists_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_namespaceExists_presult__isset {
+  _AccumuloProxy_namespaceExists_presult__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_namespaceExists_presult__isset;
+
+class AccumuloProxy_namespaceExists_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_namespaceExists_presult() throw();
+  bool* success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_namespaceExists_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_createNamespace_args__isset {
+  _AccumuloProxy_createNamespace_args__isset() : login(false), namespaceName(false) {}
+  bool login :1;
+  bool namespaceName :1;
+} _AccumuloProxy_createNamespace_args__isset;
+
+class AccumuloProxy_createNamespace_args {
+ public:
+
+  AccumuloProxy_createNamespace_args(const AccumuloProxy_createNamespace_args&);
+  AccumuloProxy_createNamespace_args& operator=(const AccumuloProxy_createNamespace_args&);
+  AccumuloProxy_createNamespace_args() : login(), namespaceName() {
+  }
+
+  virtual ~AccumuloProxy_createNamespace_args() throw();
+  std::string login;
+  std::string namespaceName;
+
+  _AccumuloProxy_createNamespace_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  bool operator == (const AccumuloProxy_createNamespace_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_createNamespace_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_createNamespace_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_createNamespace_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_createNamespace_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_createNamespace_result__isset {
+  _AccumuloProxy_createNamespace_result__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_createNamespace_result__isset;
+
+class AccumuloProxy_createNamespace_result {
+ public:
+
+  AccumuloProxy_createNamespace_result(const AccumuloProxy_createNamespace_result&);
+  AccumuloProxy_createNamespace_result& operator=(const AccumuloProxy_createNamespace_result&);
+  AccumuloProxy_createNamespace_result() {
+  }
+
+  virtual ~AccumuloProxy_createNamespace_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceExistsException ouch3;
+
+  _AccumuloProxy_createNamespace_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceExistsException& val);
+
+  bool operator == (const AccumuloProxy_createNamespace_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_createNamespace_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_createNamespace_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_createNamespace_presult__isset {
+  _AccumuloProxy_createNamespace_presult__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_createNamespace_presult__isset;
+
+class AccumuloProxy_createNamespace_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_createNamespace_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceExistsException ouch3;
+
+  _AccumuloProxy_createNamespace_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_deleteNamespace_args__isset {
+  _AccumuloProxy_deleteNamespace_args__isset() : login(false), namespaceName(false) {}
+  bool login :1;
+  bool namespaceName :1;
+} _AccumuloProxy_deleteNamespace_args__isset;
+
+class AccumuloProxy_deleteNamespace_args {
+ public:
+
+  AccumuloProxy_deleteNamespace_args(const AccumuloProxy_deleteNamespace_args&);
+  AccumuloProxy_deleteNamespace_args& operator=(const AccumuloProxy_deleteNamespace_args&);
+  AccumuloProxy_deleteNamespace_args() : login(), namespaceName() {
+  }
+
+  virtual ~AccumuloProxy_deleteNamespace_args() throw();
+  std::string login;
+  std::string namespaceName;
+
+  _AccumuloProxy_deleteNamespace_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  bool operator == (const AccumuloProxy_deleteNamespace_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_deleteNamespace_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_deleteNamespace_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_deleteNamespace_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_deleteNamespace_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_deleteNamespace_result__isset {
+  _AccumuloProxy_deleteNamespace_result__isset() : ouch1(false), ouch2(false), ouch3(false), ouch4(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+  bool ouch4 :1;
+} _AccumuloProxy_deleteNamespace_result__isset;
+
+class AccumuloProxy_deleteNamespace_result {
+ public:
+
+  AccumuloProxy_deleteNamespace_result(const AccumuloProxy_deleteNamespace_result&);
+  AccumuloProxy_deleteNamespace_result& operator=(const AccumuloProxy_deleteNamespace_result&);
+  AccumuloProxy_deleteNamespace_result() {
+  }
+
+  virtual ~AccumuloProxy_deleteNamespace_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+  NamespaceNotEmptyException ouch4;
+
+  _AccumuloProxy_deleteNamespace_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  void __set_ouch4(const NamespaceNotEmptyException& val);
+
+  bool operator == (const AccumuloProxy_deleteNamespace_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    if (!(ouch4 == rhs.ouch4))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_deleteNamespace_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_deleteNamespace_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_deleteNamespace_presult__isset {
+  _AccumuloProxy_deleteNamespace_presult__isset() : ouch1(false), ouch2(false), ouch3(false), ouch4(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+  bool ouch4 :1;
+} _AccumuloProxy_deleteNamespace_presult__isset;
+
+class AccumuloProxy_deleteNamespace_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_deleteNamespace_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+  NamespaceNotEmptyException ouch4;
+
+  _AccumuloProxy_deleteNamespace_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_renameNamespace_args__isset {
+  _AccumuloProxy_renameNamespace_args__isset() : login(false), oldNamespaceName(false), newNamespaceName(false) {}
+  bool login :1;
+  bool oldNamespaceName :1;
+  bool newNamespaceName :1;
+} _AccumuloProxy_renameNamespace_args__isset;
+
+class AccumuloProxy_renameNamespace_args {
+ public:
+
+  AccumuloProxy_renameNamespace_args(const AccumuloProxy_renameNamespace_args&);
+  AccumuloProxy_renameNamespace_args& operator=(const AccumuloProxy_renameNamespace_args&);
+  AccumuloProxy_renameNamespace_args() : login(), oldNamespaceName(), newNamespaceName() {
+  }
+
+  virtual ~AccumuloProxy_renameNamespace_args() throw();
+  std::string login;
+  std::string oldNamespaceName;
+  std::string newNamespaceName;
+
+  _AccumuloProxy_renameNamespace_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_oldNamespaceName(const std::string& val);
+
+  void __set_newNamespaceName(const std::string& val);
+
+  bool operator == (const AccumuloProxy_renameNamespace_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(oldNamespaceName == rhs.oldNamespaceName))
+      return false;
+    if (!(newNamespaceName == rhs.newNamespaceName))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_renameNamespace_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_renameNamespace_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_renameNamespace_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_renameNamespace_pargs() throw();
+  const std::string* login;
+  const std::string* oldNamespaceName;
+  const std::string* newNamespaceName;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_renameNamespace_result__isset {
+  _AccumuloProxy_renameNamespace_result__isset() : ouch1(false), ouch2(false), ouch3(false), ouch4(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+  bool ouch4 :1;
+} _AccumuloProxy_renameNamespace_result__isset;
+
+class AccumuloProxy_renameNamespace_result {
+ public:
+
+  AccumuloProxy_renameNamespace_result(const AccumuloProxy_renameNamespace_result&);
+  AccumuloProxy_renameNamespace_result& operator=(const AccumuloProxy_renameNamespace_result&);
+  AccumuloProxy_renameNamespace_result() {
+  }
+
+  virtual ~AccumuloProxy_renameNamespace_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+  NamespaceExistsException ouch4;
+
+  _AccumuloProxy_renameNamespace_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  void __set_ouch4(const NamespaceExistsException& val);
+
+  bool operator == (const AccumuloProxy_renameNamespace_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    if (!(ouch4 == rhs.ouch4))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_renameNamespace_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_renameNamespace_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_renameNamespace_presult__isset {
+  _AccumuloProxy_renameNamespace_presult__isset() : ouch1(false), ouch2(false), ouch3(false), ouch4(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+  bool ouch4 :1;
+} _AccumuloProxy_renameNamespace_presult__isset;
+
+class AccumuloProxy_renameNamespace_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_renameNamespace_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+  NamespaceExistsException ouch4;
+
+  _AccumuloProxy_renameNamespace_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_setNamespaceProperty_args__isset {
+  _AccumuloProxy_setNamespaceProperty_args__isset() : login(false), namespaceName(false), property(false), value(false) {}
+  bool login :1;
+  bool namespaceName :1;
+  bool property :1;
+  bool value :1;
+} _AccumuloProxy_setNamespaceProperty_args__isset;
+
+class AccumuloProxy_setNamespaceProperty_args {
+ public:
+
+  AccumuloProxy_setNamespaceProperty_args(const AccumuloProxy_setNamespaceProperty_args&);
+  AccumuloProxy_setNamespaceProperty_args& operator=(const AccumuloProxy_setNamespaceProperty_args&);
+  AccumuloProxy_setNamespaceProperty_args() : login(), namespaceName(), property(), value() {
+  }
+
+  virtual ~AccumuloProxy_setNamespaceProperty_args() throw();
+  std::string login;
+  std::string namespaceName;
+  std::string property;
+  std::string value;
+
+  _AccumuloProxy_setNamespaceProperty_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_property(const std::string& val);
+
+  void __set_value(const std::string& val);
+
+  bool operator == (const AccumuloProxy_setNamespaceProperty_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(property == rhs.property))
+      return false;
+    if (!(value == rhs.value))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_setNamespaceProperty_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_setNamespaceProperty_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_setNamespaceProperty_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_setNamespaceProperty_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+  const std::string* property;
+  const std::string* value;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_setNamespaceProperty_result__isset {
+  _AccumuloProxy_setNamespaceProperty_result__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_setNamespaceProperty_result__isset;
+
+class AccumuloProxy_setNamespaceProperty_result {
+ public:
+
+  AccumuloProxy_setNamespaceProperty_result(const AccumuloProxy_setNamespaceProperty_result&);
+  AccumuloProxy_setNamespaceProperty_result& operator=(const AccumuloProxy_setNamespaceProperty_result&);
+  AccumuloProxy_setNamespaceProperty_result() {
+  }
+
+  virtual ~AccumuloProxy_setNamespaceProperty_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_setNamespaceProperty_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_setNamespaceProperty_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_setNamespaceProperty_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_setNamespaceProperty_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_setNamespaceProperty_presult__isset {
+  _AccumuloProxy_setNamespaceProperty_presult__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_setNamespaceProperty_presult__isset;
+
+class AccumuloProxy_setNamespaceProperty_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_setNamespaceProperty_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_setNamespaceProperty_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_removeNamespaceProperty_args__isset {
+  _AccumuloProxy_removeNamespaceProperty_args__isset() : login(false), namespaceName(false), property(false) {}
+  bool login :1;
+  bool namespaceName :1;
+  bool property :1;
+} _AccumuloProxy_removeNamespaceProperty_args__isset;
+
+class AccumuloProxy_removeNamespaceProperty_args {
+ public:
+
+  AccumuloProxy_removeNamespaceProperty_args(const AccumuloProxy_removeNamespaceProperty_args&);
+  AccumuloProxy_removeNamespaceProperty_args& operator=(const AccumuloProxy_removeNamespaceProperty_args&);
+  AccumuloProxy_removeNamespaceProperty_args() : login(), namespaceName(), property() {
+  }
+
+  virtual ~AccumuloProxy_removeNamespaceProperty_args() throw();
+  std::string login;
+  std::string namespaceName;
+  std::string property;
+
+  _AccumuloProxy_removeNamespaceProperty_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_property(const std::string& val);
+
+  bool operator == (const AccumuloProxy_removeNamespaceProperty_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(property == rhs.property))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_removeNamespaceProperty_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_removeNamespaceProperty_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_removeNamespaceProperty_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_removeNamespaceProperty_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+  const std::string* property;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_removeNamespaceProperty_result__isset {
+  _AccumuloProxy_removeNamespaceProperty_result__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_removeNamespaceProperty_result__isset;
+
+class AccumuloProxy_removeNamespaceProperty_result {
+ public:
+
+  AccumuloProxy_removeNamespaceProperty_result(const AccumuloProxy_removeNamespaceProperty_result&);
+  AccumuloProxy_removeNamespaceProperty_result& operator=(const AccumuloProxy_removeNamespaceProperty_result&);
+  AccumuloProxy_removeNamespaceProperty_result() {
+  }
+
+  virtual ~AccumuloProxy_removeNamespaceProperty_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_removeNamespaceProperty_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_removeNamespaceProperty_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_removeNamespaceProperty_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_removeNamespaceProperty_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_removeNamespaceProperty_presult__isset {
+  _AccumuloProxy_removeNamespaceProperty_presult__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_removeNamespaceProperty_presult__isset;
+
+class AccumuloProxy_removeNamespaceProperty_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_removeNamespaceProperty_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_removeNamespaceProperty_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_getNamespaceProperties_args__isset {
+  _AccumuloProxy_getNamespaceProperties_args__isset() : login(false), namespaceName(false) {}
+  bool login :1;
+  bool namespaceName :1;
+} _AccumuloProxy_getNamespaceProperties_args__isset;
+
+class AccumuloProxy_getNamespaceProperties_args {
+ public:
+
+  AccumuloProxy_getNamespaceProperties_args(const AccumuloProxy_getNamespaceProperties_args&);
+  AccumuloProxy_getNamespaceProperties_args& operator=(const AccumuloProxy_getNamespaceProperties_args&);
+  AccumuloProxy_getNamespaceProperties_args() : login(), namespaceName() {
+  }
+
+  virtual ~AccumuloProxy_getNamespaceProperties_args() throw();
+  std::string login;
+  std::string namespaceName;
+
+  _AccumuloProxy_getNamespaceProperties_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  bool operator == (const AccumuloProxy_getNamespaceProperties_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_getNamespaceProperties_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_getNamespaceProperties_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_getNamespaceProperties_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_getNamespaceProperties_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_getNamespaceProperties_result__isset {
+  _AccumuloProxy_getNamespaceProperties_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_getNamespaceProperties_result__isset;
+
+class AccumuloProxy_getNamespaceProperties_result {
+ public:
+
+  AccumuloProxy_getNamespaceProperties_result(const AccumuloProxy_getNamespaceProperties_result&);
+  AccumuloProxy_getNamespaceProperties_result& operator=(const AccumuloProxy_getNamespaceProperties_result&);
+  AccumuloProxy_getNamespaceProperties_result() {
+  }
+
+  virtual ~AccumuloProxy_getNamespaceProperties_result() throw();
+  std::map<std::string, std::string>  success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_getNamespaceProperties_result__isset __isset;
+
+  void __set_success(const std::map<std::string, std::string> & val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_getNamespaceProperties_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_getNamespaceProperties_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_getNamespaceProperties_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_getNamespaceProperties_presult__isset {
+  _AccumuloProxy_getNamespaceProperties_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_getNamespaceProperties_presult__isset;
+
+class AccumuloProxy_getNamespaceProperties_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_getNamespaceProperties_presult() throw();
+  std::map<std::string, std::string> * success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_getNamespaceProperties_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_namespaceIdMap_args__isset {
+  _AccumuloProxy_namespaceIdMap_args__isset() : login(false) {}
+  bool login :1;
+} _AccumuloProxy_namespaceIdMap_args__isset;
+
+class AccumuloProxy_namespaceIdMap_args {
+ public:
+
+  AccumuloProxy_namespaceIdMap_args(const AccumuloProxy_namespaceIdMap_args&);
+  AccumuloProxy_namespaceIdMap_args& operator=(const AccumuloProxy_namespaceIdMap_args&);
+  AccumuloProxy_namespaceIdMap_args() : login() {
+  }
+
+  virtual ~AccumuloProxy_namespaceIdMap_args() throw();
+  std::string login;
+
+  _AccumuloProxy_namespaceIdMap_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  bool operator == (const AccumuloProxy_namespaceIdMap_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_namespaceIdMap_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_namespaceIdMap_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_namespaceIdMap_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_namespaceIdMap_pargs() throw();
+  const std::string* login;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_namespaceIdMap_result__isset {
+  _AccumuloProxy_namespaceIdMap_result__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_namespaceIdMap_result__isset;
+
+class AccumuloProxy_namespaceIdMap_result {
+ public:
+
+  AccumuloProxy_namespaceIdMap_result(const AccumuloProxy_namespaceIdMap_result&);
+  AccumuloProxy_namespaceIdMap_result& operator=(const AccumuloProxy_namespaceIdMap_result&);
+  AccumuloProxy_namespaceIdMap_result() {
+  }
+
+  virtual ~AccumuloProxy_namespaceIdMap_result() throw();
+  std::map<std::string, std::string>  success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_namespaceIdMap_result__isset __isset;
+
+  void __set_success(const std::map<std::string, std::string> & val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  bool operator == (const AccumuloProxy_namespaceIdMap_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_namespaceIdMap_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_namespaceIdMap_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_namespaceIdMap_presult__isset {
+  _AccumuloProxy_namespaceIdMap_presult__isset() : success(false), ouch1(false), ouch2(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+} _AccumuloProxy_namespaceIdMap_presult__isset;
+
+class AccumuloProxy_namespaceIdMap_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_namespaceIdMap_presult() throw();
+  std::map<std::string, std::string> * success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+
+  _AccumuloProxy_namespaceIdMap_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_attachNamespaceIterator_args__isset {
+  _AccumuloProxy_attachNamespaceIterator_args__isset() : login(false), namespaceName(false), setting(false), scopes(false) {}
+  bool login :1;
+  bool namespaceName :1;
+  bool setting :1;
+  bool scopes :1;
+} _AccumuloProxy_attachNamespaceIterator_args__isset;
+
+class AccumuloProxy_attachNamespaceIterator_args {
+ public:
+
+  AccumuloProxy_attachNamespaceIterator_args(const AccumuloProxy_attachNamespaceIterator_args&);
+  AccumuloProxy_attachNamespaceIterator_args& operator=(const AccumuloProxy_attachNamespaceIterator_args&);
+  AccumuloProxy_attachNamespaceIterator_args() : login(), namespaceName() {
+  }
+
+  virtual ~AccumuloProxy_attachNamespaceIterator_args() throw();
+  std::string login;
+  std::string namespaceName;
+  IteratorSetting setting;
+  std::set<IteratorScope::type>  scopes;
+
+  _AccumuloProxy_attachNamespaceIterator_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_setting(const IteratorSetting& val);
+
+  void __set_scopes(const std::set<IteratorScope::type> & val);
+
+  bool operator == (const AccumuloProxy_attachNamespaceIterator_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(setting == rhs.setting))
+      return false;
+    if (!(scopes == rhs.scopes))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_attachNamespaceIterator_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_attachNamespaceIterator_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_attachNamespaceIterator_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_attachNamespaceIterator_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+  const IteratorSetting* setting;
+  const std::set<IteratorScope::type> * scopes;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_attachNamespaceIterator_result__isset {
+  _AccumuloProxy_attachNamespaceIterator_result__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_attachNamespaceIterator_result__isset;
+
+class AccumuloProxy_attachNamespaceIterator_result {
+ public:
+
+  AccumuloProxy_attachNamespaceIterator_result(const AccumuloProxy_attachNamespaceIterator_result&);
+  AccumuloProxy_attachNamespaceIterator_result& operator=(const AccumuloProxy_attachNamespaceIterator_result&);
+  AccumuloProxy_attachNamespaceIterator_result() {
+  }
+
+  virtual ~AccumuloProxy_attachNamespaceIterator_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_attachNamespaceIterator_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_attachNamespaceIterator_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_attachNamespaceIterator_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_attachNamespaceIterator_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_attachNamespaceIterator_presult__isset {
+  _AccumuloProxy_attachNamespaceIterator_presult__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_attachNamespaceIterator_presult__isset;
+
+class AccumuloProxy_attachNamespaceIterator_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_attachNamespaceIterator_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_attachNamespaceIterator_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_removeNamespaceIterator_args__isset {
+  _AccumuloProxy_removeNamespaceIterator_args__isset() : login(false), namespaceName(false), name(false), scopes(false) {}
+  bool login :1;
+  bool namespaceName :1;
+  bool name :1;
+  bool scopes :1;
+} _AccumuloProxy_removeNamespaceIterator_args__isset;
+
+class AccumuloProxy_removeNamespaceIterator_args {
+ public:
+
+  AccumuloProxy_removeNamespaceIterator_args(const AccumuloProxy_removeNamespaceIterator_args&);
+  AccumuloProxy_removeNamespaceIterator_args& operator=(const AccumuloProxy_removeNamespaceIterator_args&);
+  AccumuloProxy_removeNamespaceIterator_args() : login(), namespaceName(), name() {
+  }
+
+  virtual ~AccumuloProxy_removeNamespaceIterator_args() throw();
+  std::string login;
+  std::string namespaceName;
+  std::string name;
+  std::set<IteratorScope::type>  scopes;
+
+  _AccumuloProxy_removeNamespaceIterator_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_name(const std::string& val);
+
+  void __set_scopes(const std::set<IteratorScope::type> & val);
+
+  bool operator == (const AccumuloProxy_removeNamespaceIterator_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(name == rhs.name))
+      return false;
+    if (!(scopes == rhs.scopes))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_removeNamespaceIterator_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_removeNamespaceIterator_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_removeNamespaceIterator_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_removeNamespaceIterator_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+  const std::string* name;
+  const std::set<IteratorScope::type> * scopes;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_removeNamespaceIterator_result__isset {
+  _AccumuloProxy_removeNamespaceIterator_result__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_removeNamespaceIterator_result__isset;
+
+class AccumuloProxy_removeNamespaceIterator_result {
+ public:
+
+  AccumuloProxy_removeNamespaceIterator_result(const AccumuloProxy_removeNamespaceIterator_result&);
+  AccumuloProxy_removeNamespaceIterator_result& operator=(const AccumuloProxy_removeNamespaceIterator_result&);
+  AccumuloProxy_removeNamespaceIterator_result() {
+  }
+
+  virtual ~AccumuloProxy_removeNamespaceIterator_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_removeNamespaceIterator_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_removeNamespaceIterator_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_removeNamespaceIterator_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_removeNamespaceIterator_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_removeNamespaceIterator_presult__isset {
+  _AccumuloProxy_removeNamespaceIterator_presult__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_removeNamespaceIterator_presult__isset;
+
+class AccumuloProxy_removeNamespaceIterator_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_removeNamespaceIterator_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_removeNamespaceIterator_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_getNamespaceIteratorSetting_args__isset {
+  _AccumuloProxy_getNamespaceIteratorSetting_args__isset() : login(false), namespaceName(false), name(false), scope(false) {}
+  bool login :1;
+  bool namespaceName :1;
+  bool name :1;
+  bool scope :1;
+} _AccumuloProxy_getNamespaceIteratorSetting_args__isset;
+
+class AccumuloProxy_getNamespaceIteratorSetting_args {
+ public:
+
+  AccumuloProxy_getNamespaceIteratorSetting_args(const AccumuloProxy_getNamespaceIteratorSetting_args&);
+  AccumuloProxy_getNamespaceIteratorSetting_args& operator=(const AccumuloProxy_getNamespaceIteratorSetting_args&);
+  AccumuloProxy_getNamespaceIteratorSetting_args() : login(), namespaceName(), name(), scope((IteratorScope::type)0) {
+  }
+
+  virtual ~AccumuloProxy_getNamespaceIteratorSetting_args() throw();
+  std::string login;
+  std::string namespaceName;
+  std::string name;
+  IteratorScope::type scope;
+
+  _AccumuloProxy_getNamespaceIteratorSetting_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_name(const std::string& val);
+
+  void __set_scope(const IteratorScope::type val);
+
+  bool operator == (const AccumuloProxy_getNamespaceIteratorSetting_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(name == rhs.name))
+      return false;
+    if (!(scope == rhs.scope))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_getNamespaceIteratorSetting_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_getNamespaceIteratorSetting_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_getNamespaceIteratorSetting_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_getNamespaceIteratorSetting_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+  const std::string* name;
+  const IteratorScope::type* scope;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_getNamespaceIteratorSetting_result__isset {
+  _AccumuloProxy_getNamespaceIteratorSetting_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_getNamespaceIteratorSetting_result__isset;
+
+class AccumuloProxy_getNamespaceIteratorSetting_result {
+ public:
+
+  AccumuloProxy_getNamespaceIteratorSetting_result(const AccumuloProxy_getNamespaceIteratorSetting_result&);
+  AccumuloProxy_getNamespaceIteratorSetting_result& operator=(const AccumuloProxy_getNamespaceIteratorSetting_result&);
+  AccumuloProxy_getNamespaceIteratorSetting_result() {
+  }
+
+  virtual ~AccumuloProxy_getNamespaceIteratorSetting_result() throw();
+  IteratorSetting success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_getNamespaceIteratorSetting_result__isset __isset;
+
+  void __set_success(const IteratorSetting& val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_getNamespaceIteratorSetting_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_getNamespaceIteratorSetting_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_getNamespaceIteratorSetting_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_getNamespaceIteratorSetting_presult__isset {
+  _AccumuloProxy_getNamespaceIteratorSetting_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_getNamespaceIteratorSetting_presult__isset;
+
+class AccumuloProxy_getNamespaceIteratorSetting_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_getNamespaceIteratorSetting_presult() throw();
+  IteratorSetting* success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_getNamespaceIteratorSetting_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_listNamespaceIterators_args__isset {
+  _AccumuloProxy_listNamespaceIterators_args__isset() : login(false), namespaceName(false) {}
+  bool login :1;
+  bool namespaceName :1;
+} _AccumuloProxy_listNamespaceIterators_args__isset;
+
+class AccumuloProxy_listNamespaceIterators_args {
+ public:
+
+  AccumuloProxy_listNamespaceIterators_args(const AccumuloProxy_listNamespaceIterators_args&);
+  AccumuloProxy_listNamespaceIterators_args& operator=(const AccumuloProxy_listNamespaceIterators_args&);
+  AccumuloProxy_listNamespaceIterators_args() : login(), namespaceName() {
+  }
+
+  virtual ~AccumuloProxy_listNamespaceIterators_args() throw();
+  std::string login;
+  std::string namespaceName;
+
+  _AccumuloProxy_listNamespaceIterators_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  bool operator == (const AccumuloProxy_listNamespaceIterators_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_listNamespaceIterators_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_listNamespaceIterators_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_listNamespaceIterators_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_listNamespaceIterators_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_listNamespaceIterators_result__isset {
+  _AccumuloProxy_listNamespaceIterators_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_listNamespaceIterators_result__isset;
+
+class AccumuloProxy_listNamespaceIterators_result {
+ public:
+
+  AccumuloProxy_listNamespaceIterators_result(const AccumuloProxy_listNamespaceIterators_result&);
+  AccumuloProxy_listNamespaceIterators_result& operator=(const AccumuloProxy_listNamespaceIterators_result&);
+  AccumuloProxy_listNamespaceIterators_result() {
+  }
+
+  virtual ~AccumuloProxy_listNamespaceIterators_result() throw();
+  std::map<std::string, std::set<IteratorScope::type> >  success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_listNamespaceIterators_result__isset __isset;
+
+  void __set_success(const std::map<std::string, std::set<IteratorScope::type> > & val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_listNamespaceIterators_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_listNamespaceIterators_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_listNamespaceIterators_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_listNamespaceIterators_presult__isset {
+  _AccumuloProxy_listNamespaceIterators_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_listNamespaceIterators_presult__isset;
+
+class AccumuloProxy_listNamespaceIterators_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_listNamespaceIterators_presult() throw();
+  std::map<std::string, std::set<IteratorScope::type> > * success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_listNamespaceIterators_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_checkNamespaceIteratorConflicts_args__isset {
+  _AccumuloProxy_checkNamespaceIteratorConflicts_args__isset() : login(false), namespaceName(false), setting(false), scopes(false) {}
+  bool login :1;
+  bool namespaceName :1;
+  bool setting :1;
+  bool scopes :1;
+} _AccumuloProxy_checkNamespaceIteratorConflicts_args__isset;
+
+class AccumuloProxy_checkNamespaceIteratorConflicts_args {
+ public:
+
+  AccumuloProxy_checkNamespaceIteratorConflicts_args(const AccumuloProxy_checkNamespaceIteratorConflicts_args&);
+  AccumuloProxy_checkNamespaceIteratorConflicts_args& operator=(const AccumuloProxy_checkNamespaceIteratorConflicts_args&);
+  AccumuloProxy_checkNamespaceIteratorConflicts_args() : login(), namespaceName() {
+  }
+
+  virtual ~AccumuloProxy_checkNamespaceIteratorConflicts_args() throw();
+  std::string login;
+  std::string namespaceName;
+  IteratorSetting setting;
+  std::set<IteratorScope::type>  scopes;
+
+  _AccumuloProxy_checkNamespaceIteratorConflicts_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_setting(const IteratorSetting& val);
+
+  void __set_scopes(const std::set<IteratorScope::type> & val);
+
+  bool operator == (const AccumuloProxy_checkNamespaceIteratorConflicts_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(setting == rhs.setting))
+      return false;
+    if (!(scopes == rhs.scopes))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_checkNamespaceIteratorConflicts_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_checkNamespaceIteratorConflicts_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_checkNamespaceIteratorConflicts_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_checkNamespaceIteratorConflicts_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+  const IteratorSetting* setting;
+  const std::set<IteratorScope::type> * scopes;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_checkNamespaceIteratorConflicts_result__isset {
+  _AccumuloProxy_checkNamespaceIteratorConflicts_result__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_checkNamespaceIteratorConflicts_result__isset;
+
+class AccumuloProxy_checkNamespaceIteratorConflicts_result {
+ public:
+
+  AccumuloProxy_checkNamespaceIteratorConflicts_result(const AccumuloProxy_checkNamespaceIteratorConflicts_result&);
+  AccumuloProxy_checkNamespaceIteratorConflicts_result& operator=(const AccumuloProxy_checkNamespaceIteratorConflicts_result&);
+  AccumuloProxy_checkNamespaceIteratorConflicts_result() {
+  }
+
+  virtual ~AccumuloProxy_checkNamespaceIteratorConflicts_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_checkNamespaceIteratorConflicts_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_checkNamespaceIteratorConflicts_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_checkNamespaceIteratorConflicts_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_checkNamespaceIteratorConflicts_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_checkNamespaceIteratorConflicts_presult__isset {
+  _AccumuloProxy_checkNamespaceIteratorConflicts_presult__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_checkNamespaceIteratorConflicts_presult__isset;
+
+class AccumuloProxy_checkNamespaceIteratorConflicts_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_checkNamespaceIteratorConflicts_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_checkNamespaceIteratorConflicts_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_addNamespaceConstraint_args__isset {
+  _AccumuloProxy_addNamespaceConstraint_args__isset() : login(false), namespaceName(false), constraintClassName(false) {}
+  bool login :1;
+  bool namespaceName :1;
+  bool constraintClassName :1;
+} _AccumuloProxy_addNamespaceConstraint_args__isset;
+
+class AccumuloProxy_addNamespaceConstraint_args {
+ public:
+
+  AccumuloProxy_addNamespaceConstraint_args(const AccumuloProxy_addNamespaceConstraint_args&);
+  AccumuloProxy_addNamespaceConstraint_args& operator=(const AccumuloProxy_addNamespaceConstraint_args&);
+  AccumuloProxy_addNamespaceConstraint_args() : login(), namespaceName(), constraintClassName() {
+  }
+
+  virtual ~AccumuloProxy_addNamespaceConstraint_args() throw();
+  std::string login;
+  std::string namespaceName;
+  std::string constraintClassName;
+
+  _AccumuloProxy_addNamespaceConstraint_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_constraintClassName(const std::string& val);
+
+  bool operator == (const AccumuloProxy_addNamespaceConstraint_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(constraintClassName == rhs.constraintClassName))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_addNamespaceConstraint_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_addNamespaceConstraint_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_addNamespaceConstraint_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_addNamespaceConstraint_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+  const std::string* constraintClassName;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_addNamespaceConstraint_result__isset {
+  _AccumuloProxy_addNamespaceConstraint_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_addNamespaceConstraint_result__isset;
+
+class AccumuloProxy_addNamespaceConstraint_result {
+ public:
+
+  AccumuloProxy_addNamespaceConstraint_result(const AccumuloProxy_addNamespaceConstraint_result&);
+  AccumuloProxy_addNamespaceConstraint_result& operator=(const AccumuloProxy_addNamespaceConstraint_result&);
+  AccumuloProxy_addNamespaceConstraint_result() : success(0) {
+  }
+
+  virtual ~AccumuloProxy_addNamespaceConstraint_result() throw();
+  int32_t success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_addNamespaceConstraint_result__isset __isset;
+
+  void __set_success(const int32_t val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_addNamespaceConstraint_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_addNamespaceConstraint_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_addNamespaceConstraint_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_addNamespaceConstraint_presult__isset {
+  _AccumuloProxy_addNamespaceConstraint_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_addNamespaceConstraint_presult__isset;
+
+class AccumuloProxy_addNamespaceConstraint_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_addNamespaceConstraint_presult() throw();
+  int32_t* success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_addNamespaceConstraint_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_removeNamespaceConstraint_args__isset {
+  _AccumuloProxy_removeNamespaceConstraint_args__isset() : login(false), namespaceName(false), id(false) {}
+  bool login :1;
+  bool namespaceName :1;
+  bool id :1;
+} _AccumuloProxy_removeNamespaceConstraint_args__isset;
+
+class AccumuloProxy_removeNamespaceConstraint_args {
+ public:
+
+  AccumuloProxy_removeNamespaceConstraint_args(const AccumuloProxy_removeNamespaceConstraint_args&);
+  AccumuloProxy_removeNamespaceConstraint_args& operator=(const AccumuloProxy_removeNamespaceConstraint_args&);
+  AccumuloProxy_removeNamespaceConstraint_args() : login(), namespaceName(), id(0) {
+  }
+
+  virtual ~AccumuloProxy_removeNamespaceConstraint_args() throw();
+  std::string login;
+  std::string namespaceName;
+  int32_t id;
+
+  _AccumuloProxy_removeNamespaceConstraint_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_id(const int32_t val);
+
+  bool operator == (const AccumuloProxy_removeNamespaceConstraint_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(id == rhs.id))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_removeNamespaceConstraint_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_removeNamespaceConstraint_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_removeNamespaceConstraint_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_removeNamespaceConstraint_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+  const int32_t* id;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_removeNamespaceConstraint_result__isset {
+  _AccumuloProxy_removeNamespaceConstraint_result__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_removeNamespaceConstraint_result__isset;
+
+class AccumuloProxy_removeNamespaceConstraint_result {
+ public:
+
+  AccumuloProxy_removeNamespaceConstraint_result(const AccumuloProxy_removeNamespaceConstraint_result&);
+  AccumuloProxy_removeNamespaceConstraint_result& operator=(const AccumuloProxy_removeNamespaceConstraint_result&);
+  AccumuloProxy_removeNamespaceConstraint_result() {
+  }
+
+  virtual ~AccumuloProxy_removeNamespaceConstraint_result() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_removeNamespaceConstraint_result__isset __isset;
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_removeNamespaceConstraint_result & rhs) const
+  {
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_removeNamespaceConstraint_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_removeNamespaceConstraint_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_removeNamespaceConstraint_presult__isset {
+  _AccumuloProxy_removeNamespaceConstraint_presult__isset() : ouch1(false), ouch2(false), ouch3(false) {}
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_removeNamespaceConstraint_presult__isset;
+
+class AccumuloProxy_removeNamespaceConstraint_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_removeNamespaceConstraint_presult() throw();
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_removeNamespaceConstraint_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_listNamespaceConstraints_args__isset {
+  _AccumuloProxy_listNamespaceConstraints_args__isset() : login(false), namespaceName(false) {}
+  bool login :1;
+  bool namespaceName :1;
+} _AccumuloProxy_listNamespaceConstraints_args__isset;
+
+class AccumuloProxy_listNamespaceConstraints_args {
+ public:
+
+  AccumuloProxy_listNamespaceConstraints_args(const AccumuloProxy_listNamespaceConstraints_args&);
+  AccumuloProxy_listNamespaceConstraints_args& operator=(const AccumuloProxy_listNamespaceConstraints_args&);
+  AccumuloProxy_listNamespaceConstraints_args() : login(), namespaceName() {
+  }
+
+  virtual ~AccumuloProxy_listNamespaceConstraints_args() throw();
+  std::string login;
+  std::string namespaceName;
+
+  _AccumuloProxy_listNamespaceConstraints_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  bool operator == (const AccumuloProxy_listNamespaceConstraints_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_listNamespaceConstraints_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_listNamespaceConstraints_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_listNamespaceConstraints_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_listNamespaceConstraints_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_listNamespaceConstraints_result__isset {
+  _AccumuloProxy_listNamespaceConstraints_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_listNamespaceConstraints_result__isset;
+
+class AccumuloProxy_listNamespaceConstraints_result {
+ public:
+
+  AccumuloProxy_listNamespaceConstraints_result(const AccumuloProxy_listNamespaceConstraints_result&);
+  AccumuloProxy_listNamespaceConstraints_result& operator=(const AccumuloProxy_listNamespaceConstraints_result&);
+  AccumuloProxy_listNamespaceConstraints_result() {
+  }
+
+  virtual ~AccumuloProxy_listNamespaceConstraints_result() throw();
+  std::map<std::string, int32_t>  success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_listNamespaceConstraints_result__isset __isset;
+
+  void __set_success(const std::map<std::string, int32_t> & val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_listNamespaceConstraints_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_listNamespaceConstraints_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_listNamespaceConstraints_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_listNamespaceConstraints_presult__isset {
+  _AccumuloProxy_listNamespaceConstraints_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_listNamespaceConstraints_presult__isset;
+
+class AccumuloProxy_listNamespaceConstraints_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_listNamespaceConstraints_presult() throw();
+  std::map<std::string, int32_t> * success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_listNamespaceConstraints_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _AccumuloProxy_testNamespaceClassLoad_args__isset {
+  _AccumuloProxy_testNamespaceClassLoad_args__isset() : login(false), namespaceName(false), className(false), asTypeName(false) {}
+  bool login :1;
+  bool namespaceName :1;
+  bool className :1;
+  bool asTypeName :1;
+} _AccumuloProxy_testNamespaceClassLoad_args__isset;
+
+class AccumuloProxy_testNamespaceClassLoad_args {
+ public:
+
+  AccumuloProxy_testNamespaceClassLoad_args(const AccumuloProxy_testNamespaceClassLoad_args&);
+  AccumuloProxy_testNamespaceClassLoad_args& operator=(const AccumuloProxy_testNamespaceClassLoad_args&);
+  AccumuloProxy_testNamespaceClassLoad_args() : login(), namespaceName(), className(), asTypeName() {
+  }
+
+  virtual ~AccumuloProxy_testNamespaceClassLoad_args() throw();
+  std::string login;
+  std::string namespaceName;
+  std::string className;
+  std::string asTypeName;
+
+  _AccumuloProxy_testNamespaceClassLoad_args__isset __isset;
+
+  void __set_login(const std::string& val);
+
+  void __set_namespaceName(const std::string& val);
+
+  void __set_className(const std::string& val);
+
+  void __set_asTypeName(const std::string& val);
+
+  bool operator == (const AccumuloProxy_testNamespaceClassLoad_args & rhs) const
+  {
+    if (!(login == rhs.login))
+      return false;
+    if (!(namespaceName == rhs.namespaceName))
+      return false;
+    if (!(className == rhs.className))
+      return false;
+    if (!(asTypeName == rhs.asTypeName))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_testNamespaceClassLoad_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_testNamespaceClassLoad_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class AccumuloProxy_testNamespaceClassLoad_pargs {
+ public:
+
+
+  virtual ~AccumuloProxy_testNamespaceClassLoad_pargs() throw();
+  const std::string* login;
+  const std::string* namespaceName;
+  const std::string* className;
+  const std::string* asTypeName;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_testNamespaceClassLoad_result__isset {
+  _AccumuloProxy_testNamespaceClassLoad_result__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_testNamespaceClassLoad_result__isset;
+
+class AccumuloProxy_testNamespaceClassLoad_result {
+ public:
+
+  AccumuloProxy_testNamespaceClassLoad_result(const AccumuloProxy_testNamespaceClassLoad_result&);
+  AccumuloProxy_testNamespaceClassLoad_result& operator=(const AccumuloProxy_testNamespaceClassLoad_result&);
+  AccumuloProxy_testNamespaceClassLoad_result() : success(0) {
+  }
+
+  virtual ~AccumuloProxy_testNamespaceClassLoad_result() throw();
+  bool success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_testNamespaceClassLoad_result__isset __isset;
+
+  void __set_success(const bool val);
+
+  void __set_ouch1(const AccumuloException& val);
+
+  void __set_ouch2(const AccumuloSecurityException& val);
+
+  void __set_ouch3(const NamespaceNotFoundException& val);
+
+  bool operator == (const AccumuloProxy_testNamespaceClassLoad_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    if (!(ouch1 == rhs.ouch1))
+      return false;
+    if (!(ouch2 == rhs.ouch2))
+      return false;
+    if (!(ouch3 == rhs.ouch3))
+      return false;
+    return true;
+  }
+  bool operator != (const AccumuloProxy_testNamespaceClassLoad_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const AccumuloProxy_testNamespaceClassLoad_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _AccumuloProxy_testNamespaceClassLoad_presult__isset {
+  _AccumuloProxy_testNamespaceClassLoad_presult__isset() : success(false), ouch1(false), ouch2(false), ouch3(false) {}
+  bool success :1;
+  bool ouch1 :1;
+  bool ouch2 :1;
+  bool ouch3 :1;
+} _AccumuloProxy_testNamespaceClassLoad_presult__isset;
+
+class AccumuloProxy_testNamespaceClassLoad_presult {
+ public:
+
+
+  virtual ~AccumuloProxy_testNamespaceClassLoad_presult() throw();
+  bool* success;
+  AccumuloException ouch1;
+  AccumuloSecurityException ouch2;
+  NamespaceNotFoundException ouch3;
+
+  _AccumuloProxy_testNamespaceClassLoad_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 class AccumuloProxyClient : virtual public AccumuloProxyIf {
  public:
   AccumuloProxyClient(boost::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
@@ -10651,6 +13786,15 @@ class AccumuloProxyClient : virtual public AccumuloProxyIf {
   void revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm);
   void send_revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm);
   void recv_revokeTablePermission();
+  void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void send_grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void recv_grantNamespacePermission();
+  bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void send_hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  bool recv_hasNamespacePermission();
+  void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void send_revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void recv_revokeNamespacePermission();
   void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options);
   void send_createBatchScanner(const std::string& login, const std::string& tableName, const BatchScanOptions& options);
   void recv_createBatchScanner(std::string& _return);
@@ -10701,6 +13845,66 @@ class AccumuloProxyClient : virtual public AccumuloProxyIf {
   void getFollowing(Key& _return, const Key& key, const PartialKey::type part);
   void send_getFollowing(const Key& key, const PartialKey::type part);
   void recv_getFollowing(Key& _return);
+  void systemNamespace(std::string& _return);
+  void send_systemNamespace();
+  void recv_systemNamespace(std::string& _return);
+  void defaultNamespace(std::string& _return);
+  void send_defaultNamespace();
+  void recv_defaultNamespace(std::string& _return);
+  void listNamespaces(std::vector<std::string> & _return, const std::string& login);
+  void send_listNamespaces(const std::string& login);
+  void recv_listNamespaces(std::vector<std::string> & _return);
+  bool namespaceExists(const std::string& login, const std::string& namespaceName);
+  void send_namespaceExists(const std::string& login, const std::string& namespaceName);
+  bool recv_namespaceExists();
+  void createNamespace(const std::string& login, const std::string& namespaceName);
+  void send_createNamespace(const std::string& login, const std::string& namespaceName);
+  void recv_createNamespace();
+  void deleteNamespace(const std::string& login, const std::string& namespaceName);
+  void send_deleteNamespace(const std::string& login, const std::string& namespaceName);
+  void recv_deleteNamespace();
+  void renameNamespace(const std::string& login, const std::string& oldNamespaceName, const std::string& newNamespaceName);
+  void send_renameNamespace(const std::string& login, const std::string& oldNamespaceName, const std::string& newNamespaceName);
+  void recv_renameNamespace();
+  void setNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property, const std::string& value);
+  void send_setNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property, const std::string& value);
+  void recv_setNamespaceProperty();
+  void removeNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property);
+  void send_removeNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property);
+  void recv_removeNamespaceProperty();
+  void getNamespaceProperties(std::map<std::string, std::string> & _return, const std::string& login, const std::string& namespaceName);
+  void send_getNamespaceProperties(const std::string& login, const std::string& namespaceName);
+  void recv_getNamespaceProperties(std::map<std::string, std::string> & _return);
+  void namespaceIdMap(std::map<std::string, std::string> & _return, const std::string& login);
+  void send_namespaceIdMap(const std::string& login);
+  void recv_namespaceIdMap(std::map<std::string, std::string> & _return);
+  void attachNamespaceIterator(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes);
+  void send_attachNamespaceIterator(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes);
+  void recv_attachNamespaceIterator();
+  void removeNamespaceIterator(const std::string& login, const std::string& namespaceName, const std::string& name, const std::set<IteratorScope::type> & scopes);
+  void send_removeNamespaceIterator(const std::string& login, const std::string& namespaceName, const std::string& name, const std::set<IteratorScope::type> & scopes);
+  void recv_removeNamespaceIterator();
+  void getNamespaceIteratorSetting(IteratorSetting& _return, const std::string& login, const std::string& namespaceName, const std::string& name, const IteratorScope::type scope);
+  void send_getNamespaceIteratorSetting(const std::string& login, const std::string& namespaceName, const std::string& name, const IteratorScope::type scope);
+  void recv_getNamespaceIteratorSetting(IteratorSetting& _return);
+  void listNamespaceIterators(std::map<std::string, std::set<IteratorScope::type> > & _return, const std::string& login, const std::string& namespaceName);
+  void send_listNamespaceIterators(const std::string& login, const std::string& namespaceName);
+  void recv_listNamespaceIterators(std::map<std::string, std::set<IteratorScope::type> > & _return);
+  void checkNamespaceIteratorConflicts(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes);
+  void send_checkNamespaceIteratorConflicts(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes);
+  void recv_checkNamespaceIteratorConflicts();
+  int32_t addNamespaceConstraint(const std::string& login, const std::string& namespaceName, const std::string& constraintClassName);
+  void send_addNamespaceConstraint(const std::string& login, const std::string& namespaceName, const std::string& constraintClassName);
+  int32_t recv_addNamespaceConstraint();
+  void removeNamespaceConstraint(const std::string& login, const std::string& namespaceName, const int32_t id);
+  void send_removeNamespaceConstraint(const std::string& login, const std::string& namespaceName, const int32_t id);
+  void recv_removeNamespaceConstraint();
+  void listNamespaceConstraints(std::map<std::string, int32_t> & _return, const std::string& login, const std::string& namespaceName);
+  void send_listNamespaceConstraints(const std::string& login, const std::string& namespaceName);
+  void recv_listNamespaceConstraints(std::map<std::string, int32_t> & _return);
+  bool testNamespaceClassLoad(const std::string& login, const std::string& namespaceName, const std::string& className, const std::string& asTypeName);
+  void send_testNamespaceClassLoad(const std::string& login, const std::string& namespaceName, const std::string& className, const std::string& asTypeName);
+  bool recv_testNamespaceClassLoad();
  protected:
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -10776,6 +13980,9 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_listLocalUsers(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_revokeSystemPermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_revokeTablePermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_grantNamespacePermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_hasNamespacePermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_revokeNamespacePermission(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_createBatchScanner(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_createScanner(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_hasNext(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -10793,6 +14000,26 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_closeConditionalWriter(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_getRowRange(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_getFollowing(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_systemNamespace(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_defaultNamespace(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_listNamespaces(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_namespaceExists(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_createNamespace(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_deleteNamespace(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_renameNamespace(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_setNamespaceProperty(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_removeNamespaceProperty(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_getNamespaceProperties(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_namespaceIdMap(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_attachNamespaceIterator(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_removeNamespaceIterator(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_getNamespaceIteratorSetting(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_listNamespaceIterators(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_checkNamespaceIteratorConflicts(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_addNamespaceConstraint(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_removeNamespaceConstraint(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_listNamespaceConstraints(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_testNamespaceClassLoad(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   AccumuloProxyProcessor(boost::shared_ptr<AccumuloProxyIf> iface) :
     iface_(iface) {
@@ -10856,6 +14083,9 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["listLocalUsers"] = &AccumuloProxyProcessor::process_listLocalUsers;
     processMap_["revokeSystemPermission"] = &AccumuloProxyProcessor::process_revokeSystemPermission;
     processMap_["revokeTablePermission"] = &AccumuloProxyProcessor::process_revokeTablePermission;
+    processMap_["grantNamespacePermission"] = &AccumuloProxyProcessor::process_grantNamespacePermission;
+    processMap_["hasNamespacePermission"] = &AccumuloProxyProcessor::process_hasNamespacePermission;
+    processMap_["revokeNamespacePermission"] = &AccumuloProxyProcessor::process_revokeNamespacePermission;
     processMap_["createBatchScanner"] = &AccumuloProxyProcessor::process_createBatchScanner;
     processMap_["createScanner"] = &AccumuloProxyProcessor::process_createScanner;
     processMap_["hasNext"] = &AccumuloProxyProcessor::process_hasNext;
@@ -10873,6 +14103,26 @@ class AccumuloProxyProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["closeConditionalWriter"] = &AccumuloProxyProcessor::process_closeConditionalWriter;
     processMap_["getRowRange"] = &AccumuloProxyProcessor::process_getRowRange;
     processMap_["getFollowing"] = &AccumuloProxyProcessor::process_getFollowing;
+    processMap_["systemNamespace"] = &AccumuloProxyProcessor::process_systemNamespace;
+    processMap_["defaultNamespace"] = &AccumuloProxyProcessor::process_defaultNamespace;
+    processMap_["listNamespaces"] = &AccumuloProxyProcessor::process_listNamespaces;
+    processMap_["namespaceExists"] = &AccumuloProxyProcessor::process_namespaceExists;
+    processMap_["createNamespace"] = &AccumuloProxyProcessor::process_createNamespace;
+    processMap_["deleteNamespace"] = &AccumuloProxyProcessor::process_deleteNamespace;
+    processMap_["renameNamespace"] = &AccumuloProxyProcessor::process_renameNamespace;
+    processMap_["setNamespaceProperty"] = &AccumuloProxyProcessor::process_setNamespaceProperty;
+    processMap_["removeNamespaceProperty"] = &AccumuloProxyProcessor::process_removeNamespaceProperty;
+    processMap_["getNamespaceProperties"] = &AccumuloProxyProcessor::process_getNamespaceProperties;
+    processMap_["namespaceIdMap"] = &AccumuloProxyProcessor::process_namespaceIdMap;
+    processMap_["attachNamespaceIterator"] = &AccumuloProxyProcessor::process_attachNamespaceIterator;
+    processMap_["removeNamespaceIterator"] = &AccumuloProxyProcessor::process_removeNamespaceIterator;
+    processMap_["getNamespaceIteratorSetting"] = &AccumuloProxyProcessor::process_getNamespaceIteratorSetting;
+    processMap_["listNamespaceIterators"] = &AccumuloProxyProcessor::process_listNamespaceIterators;
+    processMap_["checkNamespaceIteratorConflicts"] = &AccumuloProxyProcessor::process_checkNamespaceIteratorConflicts;
+    processMap_["addNamespaceConstraint"] = &AccumuloProxyProcessor::process_addNamespaceConstraint;
+    processMap_["removeNamespaceConstraint"] = &AccumuloProxyProcessor::process_removeNamespaceConstraint;
+    processMap_["listNamespaceConstraints"] = &AccumuloProxyProcessor::process_listNamespaceConstraints;
+    processMap_["testNamespaceClassLoad"] = &AccumuloProxyProcessor::process_testNamespaceClassLoad;
   }
 
   virtual ~AccumuloProxyProcessor() {}
@@ -11460,6 +14710,33 @@ class AccumuloProxyMultiface : virtual public AccumuloProxyIf {
     ifaces_[i]->revokeTablePermission(login, user, table, perm);
   }
 
+  void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->grantNamespacePermission(login, user, namespaceName, perm);
+    }
+    ifaces_[i]->grantNamespacePermission(login, user, namespaceName, perm);
+  }
+
+  bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->hasNamespacePermission(login, user, namespaceName, perm);
+    }
+    return ifaces_[i]->hasNamespacePermission(login, user, namespaceName, perm);
+  }
+
+  void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->revokeNamespacePermission(login, user, namespaceName, perm);
+    }
+    ifaces_[i]->revokeNamespacePermission(login, user, namespaceName, perm);
+  }
+
   void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options) {
     size_t sz = ifaces_.size();
     size_t i = 0;
@@ -11620,6 +14897,194 @@ class AccumuloProxyMultiface : virtual public AccumuloProxyIf {
     }
     ifaces_[i]->getFollowing(_return, key, part);
     return;
+  }
+
+  void systemNamespace(std::string& _return) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->systemNamespace(_return);
+    }
+    ifaces_[i]->systemNamespace(_return);
+    return;
+  }
+
+  void defaultNamespace(std::string& _return) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->defaultNamespace(_return);
+    }
+    ifaces_[i]->defaultNamespace(_return);
+    return;
+  }
+
+  void listNamespaces(std::vector<std::string> & _return, const std::string& login) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->listNamespaces(_return, login);
+    }
+    ifaces_[i]->listNamespaces(_return, login);
+    return;
+  }
+
+  bool namespaceExists(const std::string& login, const std::string& namespaceName) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->namespaceExists(login, namespaceName);
+    }
+    return ifaces_[i]->namespaceExists(login, namespaceName);
+  }
+
+  void createNamespace(const std::string& login, const std::string& namespaceName) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->createNamespace(login, namespaceName);
+    }
+    ifaces_[i]->createNamespace(login, namespaceName);
+  }
+
+  void deleteNamespace(const std::string& login, const std::string& namespaceName) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->deleteNamespace(login, namespaceName);
+    }
+    ifaces_[i]->deleteNamespace(login, namespaceName);
+  }
+
+  void renameNamespace(const std::string& login, const std::string& oldNamespaceName, const std::string& newNamespaceName) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->renameNamespace(login, oldNamespaceName, newNamespaceName);
+    }
+    ifaces_[i]->renameNamespace(login, oldNamespaceName, newNamespaceName);
+  }
+
+  void setNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property, const std::string& value) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->setNamespaceProperty(login, namespaceName, property, value);
+    }
+    ifaces_[i]->setNamespaceProperty(login, namespaceName, property, value);
+  }
+
+  void removeNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->removeNamespaceProperty(login, namespaceName, property);
+    }
+    ifaces_[i]->removeNamespaceProperty(login, namespaceName, property);
+  }
+
+  void getNamespaceProperties(std::map<std::string, std::string> & _return, const std::string& login, const std::string& namespaceName) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->getNamespaceProperties(_return, login, namespaceName);
+    }
+    ifaces_[i]->getNamespaceProperties(_return, login, namespaceName);
+    return;
+  }
+
+  void namespaceIdMap(std::map<std::string, std::string> & _return, const std::string& login) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->namespaceIdMap(_return, login);
+    }
+    ifaces_[i]->namespaceIdMap(_return, login);
+    return;
+  }
+
+  void attachNamespaceIterator(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->attachNamespaceIterator(login, namespaceName, setting, scopes);
+    }
+    ifaces_[i]->attachNamespaceIterator(login, namespaceName, setting, scopes);
+  }
+
+  void removeNamespaceIterator(const std::string& login, const std::string& namespaceName, const std::string& name, const std::set<IteratorScope::type> & scopes) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->removeNamespaceIterator(login, namespaceName, name, scopes);
+    }
+    ifaces_[i]->removeNamespaceIterator(login, namespaceName, name, scopes);
+  }
+
+  void getNamespaceIteratorSetting(IteratorSetting& _return, const std::string& login, const std::string& namespaceName, const std::string& name, const IteratorScope::type scope) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->getNamespaceIteratorSetting(_return, login, namespaceName, name, scope);
+    }
+    ifaces_[i]->getNamespaceIteratorSetting(_return, login, namespaceName, name, scope);
+    return;
+  }
+
+  void listNamespaceIterators(std::map<std::string, std::set<IteratorScope::type> > & _return, const std::string& login, const std::string& namespaceName) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->listNamespaceIterators(_return, login, namespaceName);
+    }
+    ifaces_[i]->listNamespaceIterators(_return, login, namespaceName);
+    return;
+  }
+
+  void checkNamespaceIteratorConflicts(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->checkNamespaceIteratorConflicts(login, namespaceName, setting, scopes);
+    }
+    ifaces_[i]->checkNamespaceIteratorConflicts(login, namespaceName, setting, scopes);
+  }
+
+  int32_t addNamespaceConstraint(const std::string& login, const std::string& namespaceName, const std::string& constraintClassName) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->addNamespaceConstraint(login, namespaceName, constraintClassName);
+    }
+    return ifaces_[i]->addNamespaceConstraint(login, namespaceName, constraintClassName);
+  }
+
+  void removeNamespaceConstraint(const std::string& login, const std::string& namespaceName, const int32_t id) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->removeNamespaceConstraint(login, namespaceName, id);
+    }
+    ifaces_[i]->removeNamespaceConstraint(login, namespaceName, id);
+  }
+
+  void listNamespaceConstraints(std::map<std::string, int32_t> & _return, const std::string& login, const std::string& namespaceName) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->listNamespaceConstraints(_return, login, namespaceName);
+    }
+    ifaces_[i]->listNamespaceConstraints(_return, login, namespaceName);
+    return;
+  }
+
+  bool testNamespaceClassLoad(const std::string& login, const std::string& namespaceName, const std::string& className, const std::string& asTypeName) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->testNamespaceClassLoad(login, namespaceName, className, asTypeName);
+    }
+    return ifaces_[i]->testNamespaceClassLoad(login, namespaceName, className, asTypeName);
   }
 
 };
@@ -11832,6 +15297,15 @@ class AccumuloProxyConcurrentClient : virtual public AccumuloProxyIf {
   void revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm);
   int32_t send_revokeTablePermission(const std::string& login, const std::string& user, const std::string& table, const TablePermission::type perm);
   void recv_revokeTablePermission(const int32_t seqid);
+  void grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  int32_t send_grantNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void recv_grantNamespacePermission(const int32_t seqid);
+  bool hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  int32_t send_hasNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  bool recv_hasNamespacePermission(const int32_t seqid);
+  void revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  int32_t send_revokeNamespacePermission(const std::string& login, const std::string& user, const std::string& namespaceName, const NamespacePermission::type perm);
+  void recv_revokeNamespacePermission(const int32_t seqid);
   void createBatchScanner(std::string& _return, const std::string& login, const std::string& tableName, const BatchScanOptions& options);
   int32_t send_createBatchScanner(const std::string& login, const std::string& tableName, const BatchScanOptions& options);
   void recv_createBatchScanner(std::string& _return, const int32_t seqid);
@@ -11882,6 +15356,66 @@ class AccumuloProxyConcurrentClient : virtual public AccumuloProxyIf {
   void getFollowing(Key& _return, const Key& key, const PartialKey::type part);
   int32_t send_getFollowing(const Key& key, const PartialKey::type part);
   void recv_getFollowing(Key& _return, const int32_t seqid);
+  void systemNamespace(std::string& _return);
+  int32_t send_systemNamespace();
+  void recv_systemNamespace(std::string& _return, const int32_t seqid);
+  void defaultNamespace(std::string& _return);
+  int32_t send_defaultNamespace();
+  void recv_defaultNamespace(std::string& _return, const int32_t seqid);
+  void listNamespaces(std::vector<std::string> & _return, const std::string& login);
+  int32_t send_listNamespaces(const std::string& login);
+  void recv_listNamespaces(std::vector<std::string> & _return, const int32_t seqid);
+  bool namespaceExists(const std::string& login, const std::string& namespaceName);
+  int32_t send_namespaceExists(const std::string& login, const std::string& namespaceName);
+  bool recv_namespaceExists(const int32_t seqid);
+  void createNamespace(const std::string& login, const std::string& namespaceName);
+  int32_t send_createNamespace(const std::string& login, const std::string& namespaceName);
+  void recv_createNamespace(const int32_t seqid);
+  void deleteNamespace(const std::string& login, const std::string& namespaceName);
+  int32_t send_deleteNamespace(const std::string& login, const std::string& namespaceName);
+  void recv_deleteNamespace(const int32_t seqid);
+  void renameNamespace(const std::string& login, const std::string& oldNamespaceName, const std::string& newNamespaceName);
+  int32_t send_renameNamespace(const std::string& login, const std::string& oldNamespaceName, const std::string& newNamespaceName);
+  void recv_renameNamespace(const int32_t seqid);
+  void setNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property, const std::string& value);
+  int32_t send_setNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property, const std::string& value);
+  void recv_setNamespaceProperty(const int32_t seqid);
+  void removeNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property);
+  int32_t send_removeNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property);
+  void recv_removeNamespaceProperty(const int32_t seqid);
+  void getNamespaceProperties(std::map<std::string, std::string> & _return, const std::string& login, const std::string& namespaceName);
+  int32_t send_getNamespaceProperties(const std::string& login, const std::string& namespaceName);
+  void recv_getNamespaceProperties(std::map<std::string, std::string> & _return, const int32_t seqid);
+  void namespaceIdMap(std::map<std::string, std::string> & _return, const std::string& login);
+  int32_t send_namespaceIdMap(const std::string& login);
+  void recv_namespaceIdMap(std::map<std::string, std::string> & _return, const int32_t seqid);
+  void attachNamespaceIterator(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes);
+  int32_t send_attachNamespaceIterator(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes);
+  void recv_attachNamespaceIterator(const int32_t seqid);
+  void removeNamespaceIterator(const std::string& login, const std::string& namespaceName, const std::string& name, const std::set<IteratorScope::type> & scopes);
+  int32_t send_removeNamespaceIterator(const std::string& login, const std::string& namespaceName, const std::string& name, const std::set<IteratorScope::type> & scopes);
+  void recv_removeNamespaceIterator(const int32_t seqid);
+  void getNamespaceIteratorSetting(IteratorSetting& _return, const std::string& login, const std::string& namespaceName, const std::string& name, const IteratorScope::type scope);
+  int32_t send_getNamespaceIteratorSetting(const std::string& login, const std::string& namespaceName, const std::string& name, const IteratorScope::type scope);
+  void recv_getNamespaceIteratorSetting(IteratorSetting& _return, const int32_t seqid);
+  void listNamespaceIterators(std::map<std::string, std::set<IteratorScope::type> > & _return, const std::string& login, const std::string& namespaceName);
+  int32_t send_listNamespaceIterators(const std::string& login, const std::string& namespaceName);
+  void recv_listNamespaceIterators(std::map<std::string, std::set<IteratorScope::type> > & _return, const int32_t seqid);
+  void checkNamespaceIteratorConflicts(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes);
+  int32_t send_checkNamespaceIteratorConflicts(const std::string& login, const std::string& namespaceName, const IteratorSetting& setting, const std::set<IteratorScope::type> & scopes);
+  void recv_checkNamespaceIteratorConflicts(const int32_t seqid);
+  int32_t addNamespaceConstraint(const std::string& login, const std::string& namespaceName, const std::string& constraintClassName);
+  int32_t send_addNamespaceConstraint(const std::string& login, const std::string& namespaceName, const std::string& constraintClassName);
+  int32_t recv_addNamespaceConstraint(const int32_t seqid);
+  void removeNamespaceConstraint(const std::string& login, const std::string& namespaceName, const int32_t id);
+  int32_t send_removeNamespaceConstraint(const std::string& login, const std::string& namespaceName, const int32_t id);
+  void recv_removeNamespaceConstraint(const int32_t seqid);
+  void listNamespaceConstraints(std::map<std::string, int32_t> & _return, const std::string& login, const std::string& namespaceName);
+  int32_t send_listNamespaceConstraints(const std::string& login, const std::string& namespaceName);
+  void recv_listNamespaceConstraints(std::map<std::string, int32_t> & _return, const int32_t seqid);
+  bool testNamespaceClassLoad(const std::string& login, const std::string& namespaceName, const std::string& className, const std::string& asTypeName);
+  int32_t send_testNamespaceClassLoad(const std::string& login, const std::string& namespaceName, const std::string& className, const std::string& asTypeName);
+  bool recv_testNamespaceClassLoad(const int32_t seqid);
  protected:
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
