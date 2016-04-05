@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -38,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.base.Joiner;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -845,10 +847,15 @@ public class TabletServerBatchWriter {
         try {
 
           long count = 0;
-          for (List<Mutation> list : mutationBatch.values()) {
-            count += list.size();
+
+          Set<Text> tableIds = new TreeSet<Text>();
+          for (Map.Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {
+            count += entry.getValue().size();
+            tableIds.add(entry.getKey().getTableId());
           }
-          String msg = "sending " + String.format("%,d", count) + " mutations to " + String.format("%,d", mutationBatch.size()) + " tablets at " + location;
+
+          String msg = "sending " + String.format("%,d", count) + " mutations to " + String.format("%,d", mutationBatch.size()) + " tablets at " + location
+              + " tids: [" + Joiner.on(',').join(tableIds) + ']';
           Thread.currentThread().setName(msg);
 
           Span span = Trace.start("sendMutations");
