@@ -69,7 +69,7 @@ public class CreateRandomRFile {
     FileSKVWriter mfw;
     try {
       FileSystem fs = FileSystem.get(conf);
-      mfw = new RFileOperations().openWriter(file, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
+      mfw = new RFileOperations().openWriter(file, fs, conf, null, AccumuloConfiguration.getDefaultConfiguration());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

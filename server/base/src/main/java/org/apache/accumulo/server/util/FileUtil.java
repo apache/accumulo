@@ -132,7 +132,7 @@ public class FileUtil {
 
       outFiles.add(newMapFile);
       FileSystem ns = fs.getVolumeByPath(new Path(newMapFile)).getFileSystem();
-      FileSKVWriter writer = new RFileOperations().openWriter(newMapFile.toString(), ns, ns.getConf(), acuConf);
+      FileSKVWriter writer = new RFileOperations().openWriter(newMapFile.toString(), ns, ns.getConf(), null, acuConf);
       writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(inFiles.size());
 
@@ -404,7 +404,7 @@ public class FileUtil {
           reader = FileOperations.getInstance().openIndex(path.toString(), ns, ns.getConf(), acuConf);
         else
           reader = FileOperations.getInstance().openReader(path.toString(), new Range(prevEndRow, false, null, true), LocalityGroupUtil.EMPTY_CF_SET, false,
-              ns, ns.getConf(), acuConf);
+              ns, ns.getConf(), null, acuConf);
 
         while (reader.hasTop()) {
           Key key = reader.getTopKey();
@@ -428,7 +428,7 @@ public class FileUtil {
         readers.add(FileOperations.getInstance().openIndex(path.toString(), ns, ns.getConf(), acuConf));
       else
         readers.add(FileOperations.getInstance().openReader(path.toString(), new Range(prevEndRow, false, null, true), LocalityGroupUtil.EMPTY_CF_SET, false,
-            ns, ns.getConf(), acuConf));
+            ns, ns.getConf(), null, acuConf));
 
     }
     return numKeys;
@@ -445,7 +445,7 @@ public class FileUtil {
       FileSKVIterator reader = null;
       FileSystem ns = fs.getVolumeByPath(mapfile.path()).getFileSystem();
       try {
-        reader = FileOperations.getInstance().openReader(mapfile.toString(), false, ns, ns.getConf(), acuConf);
+        reader = FileOperations.getInstance().openReader(mapfile.toString(), false, ns, ns.getConf(), null, acuConf);
 
         Key firstKey = reader.getFirstKey();
         if (firstKey != null) {
@@ -479,7 +479,7 @@ public class FileUtil {
     for (FileRef ref : mapFiles) {
       Path path = ref.path();
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-      FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(), acuConf);
+      FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(), null, acuConf);
 
       try {
         if (!reader.hasTop())

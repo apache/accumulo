@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import com.google.common.util.concurrent.RateLimiter;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -69,6 +70,16 @@ public class MinorCompactor extends Compactor {
       public IteratorScope getIteratorScope() {
         return IteratorScope.minc;
       }
+      
+      @Override
+      public RateLimiter getReadLimiter() {
+          return null;
+      }
+
+      @Override
+      public RateLimiter getWriteLimiter() {
+          return null;
+     }
     }, Collections.<IteratorSetting> emptyList(), mincReason.ordinal(), tableConfig);
     this.tabletServer = tabletServer;
   }

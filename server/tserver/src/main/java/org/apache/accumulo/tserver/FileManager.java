@@ -317,7 +317,7 @@ public class FileManager {
         FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
         // log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), false, ns, ns.getConf(),
-            context.getServerConfigurationFactory().getTableConfiguration(tablet), dataCache, indexCache);
+            null, context.getServerConfigurationFactory().getTableConfiguration(tablet), dataCache, indexCache);
         reservedFiles.add(reader);
         readersReserved.put(reader, file);
       } catch (Exception e) {

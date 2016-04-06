@@ -34,7 +34,7 @@ public class PrintInfo {
     FSDataInputStream fsin = fs.open(path);
     BCFile.Reader bcfr = null;
     try {
-      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, SiteConfiguration.getInstance(DefaultConfiguration.getInstance()));
+      bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, null, SiteConfiguration.getInstance(DefaultConfiguration.getInstance()));
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 

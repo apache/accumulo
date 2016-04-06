@@ -256,6 +256,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.RateLimiter;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -326,6 +327,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
 
+  private final RateLimiter majCreadLimiter;
+  private final RateLimiter majCwriteLimiter;  
+  
   public TabletServer(ServerConfigurationFactory confFactory, VolumeManager fs) {
     super(confFactory);
     this.confFactory = confFactory;
@@ -394,6 +398,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     } else {
       authKeyWatcher = null;
     }
+    
+    long majCthroughput=aconf.getMemoryInBytes(Property.TSERV_MAJC_THROUGHPUT);
+    majCreadLimiter=majCthroughput>0?RateLimiter.create(majCthroughput):null;
+    majCwriteLimiter=majCthroughput>0?RateLimiter.create(majCthroughput):null;
+    
   }
 
   private static long jitter(long ms) {
@@ -3088,5 +3097,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public void removeBulkImportState(List<String> files) {
     bulkImportStatus.removeBulkImportStatus(files);
   }
-
+  
+  public RateLimiter getMajorCompactionReadLimiter() {
+      return majCreadLimiter;
+  }
+  
+  public RateLimiter getMajorCompactionWriteLimiter() {
+      return majCwriteLimiter;
+  }
 }

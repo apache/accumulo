@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import com.google.common.util.concurrent.RateLimiter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -81,6 +82,9 @@ public class Compactor implements Callable<CompactionStats> {
     boolean isCompactionEnabled();
 
     IteratorScope getIteratorScope();
+    
+    RateLimiter getReadLimiter();
+    RateLimiter getWriteLimiter();
   }
 
   private final Map<FileRef,DataFileValue> filesToCompact;
@@ -92,7 +96,7 @@ public class Compactor implements Callable<CompactionStats> {
   private final VolumeManager fs;
   protected final KeyExtent extent;
   private final List<IteratorSetting> iterators;
-
+  
   // things to report
   private String currentLocalityGroup = "";
   private final long startTime;
@@ -192,7 +196,7 @@ public class Compactor implements Callable<CompactionStats> {
     try {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getVolumeByPath(outputFilePath).getFileSystem();
-      mfw = fileFactory.openWriter(outputFilePathName, ns, ns.getConf(), acuTableConf);
+      mfw = fileFactory.openWriter(outputFilePathName, ns, ns.getConf(), env.getWriteLimiter(), acuTableConf);
 
       Map<String,Set<ByteSequence>> lGroups;
       try {
@@ -280,7 +284,7 @@ public class Compactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getVolumeByPath(mapFile.path()).getFileSystem();
         FileSKVIterator reader;
 
-        reader = fileFactory.openReader(mapFile.path().toString(), false, fs, fs.getConf(), acuTableConf);
+        reader = fileFactory.openReader(mapFile.path().toString(), false, fs, fs.getConf(), env.getReadLimiter(), acuTableConf);
 
         readers.add(reader);
 
