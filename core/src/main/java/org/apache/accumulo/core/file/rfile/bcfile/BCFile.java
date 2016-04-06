@@ -45,11 +45,14 @@ import org.apache.accumulo.core.security.crypto.CryptoModule;
 import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
 import org.apache.accumulo.core.security.crypto.SecretKeyEncryptionStrategy;
+import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
+import org.apache.accumulo.core.file.streams.PositionedDataOutputStream;
+import org.apache.accumulo.core.file.streams.PositionedOutput;
+import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
@@ -87,7 +90,7 @@ public final class BCFile {
    * BCFile writer, the entry point for creating a new BCFile.
    */
   static public class Writer implements Closeable {
-    private final FSDataOutputStream out;
+    private final PositionedDataOutputStream out;
     private final Configuration conf;
     private final CryptoModule cryptoModule;
     private BCFileCryptoModuleParameters cryptoParams;
@@ -127,7 +130,7 @@ public final class BCFile {
       private final Algorithm compressAlgo;
       private Compressor compressor; // !null only if using native
       // Hadoop compression
-      private final FSDataOutputStream fsOut;
+      private final PositionedDataOutputStream fsOut;
       private final OutputStream cipherOut;
       private final long posStart;
       private final SimpleBufferedOutputStream fsBufferedOutput;
@@ -139,11 +142,11 @@ public final class BCFile {
        * @param cryptoModule
        *          the module to use to obtain cryptographic streams
        */
-      public WBlockState(Algorithm compressionAlgo, FSDataOutputStream fsOut, BytesWritable fsOutputBuffer, Configuration conf, CryptoModule cryptoModule,
-          CryptoModuleParameters cryptoParams) throws IOException {
+      public WBlockState(Algorithm compressionAlgo, PositionedDataOutputStream fsOut, BytesWritable fsOutputBuffer, Configuration conf,
+          CryptoModule cryptoModule, CryptoModuleParameters cryptoParams) throws IOException {
         this.compressAlgo = compressionAlgo;
         this.fsOut = fsOut;
-        this.posStart = fsOut.getPos();
+        this.posStart = fsOut.position();
 
         fsOutputBuffer.setCapacity(getFSOutputBufferSize(conf));
 
@@ -211,7 +214,7 @@ public final class BCFile {
        * @return The current byte offset in underlying file.
        */
       long getCurrentPos() throws IOException {
-        return fsOut.getPos() + fsBufferedOutput.size();
+        return fsOut.position() + fsBufferedOutput.size();
       }
 
       long getStartPos() {
@@ -338,18 +341,18 @@ public final class BCFile {
      *          Name of the compression algorithm, which will be used for all data blocks.
      * @see Compression#getSupportedAlgorithms
      */
-    public Writer(FSDataOutputStream fout, String compressionName, Configuration conf, boolean trackDataBlocks, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
-      if (fout.getPos() != 0) {
+    public <OutputStreamType extends OutputStream & PositionedOutput> Writer(OutputStreamType fout, String compressionName, Configuration conf,
+        boolean trackDataBlocks, AccumuloConfiguration accumuloConfiguration) throws IOException {
+      if (fout.position() != 0) {
         throw new IOException("Output file not at zero offset.");
       }
 
-      this.out = fout;
+      this.out = new PositionedDataOutputStream(fout);
       this.conf = conf;
       dataIndex = new DataIndex(compressionName, trackDataBlocks);
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
-      Magic.write(fout);
+      Magic.write(this.out);
 
       // Set up crypto-related detail, including secret key generation and encryption
 
@@ -388,14 +391,14 @@ public final class BCFile {
             appender.close();
           }
 
-          long offsetIndexMeta = out.getPos();
+          long offsetIndexMeta = out.position();
           metaIndex.write(out);
 
           if (cryptoParams.getAlgorithmName() == null || cryptoParams.getAlgorithmName().equals(Property.CRYPTO_CIPHER_SUITE.getDefaultValue())) {
             out.writeLong(offsetIndexMeta);
             API_VERSION_1.write(out);
           } else {
-            long offsetCryptoParameters = out.getPos();
+            long offsetCryptoParameters = out.position();
             cryptoParams.write(out);
 
             // Meta Index, crypto params offsets and the trailing section are written out directly.
@@ -594,7 +597,7 @@ public final class BCFile {
   static public class Reader implements Closeable {
     private static final String META_NAME = "BCFile.metaindex";
     private static final String CRYPTO_BLOCK_NAME = "BCFile.cryptoparams";
-    private final FSDataInputStream in;
+    private final SeekableDataInputStream in;
     private final Configuration conf;
     final DataIndex dataIndex;
     // Index for meta blocks
@@ -613,8 +616,8 @@ public final class BCFile {
       private final BlockRegion region;
       private final InputStream in;
 
-      public RBlockState(Algorithm compressionAlgo, FSDataInputStream fsin, BlockRegion region, Configuration conf, CryptoModule cryptoModule,
-          Version bcFileVersion, CryptoModuleParameters cryptoParams) throws IOException {
+      public <InputStreamType extends InputStream & Seekable> RBlockState(Algorithm compressionAlgo, InputStreamType fsin, BlockRegion region,
+          Configuration conf, CryptoModule cryptoModule, Version bcFileVersion, CryptoModuleParameters cryptoParams) throws IOException {
         this.compressAlgo = compressionAlgo;
         this.region = region;
         this.decompressor = compressionAlgo.getDecompressor();
@@ -752,15 +755,15 @@ public final class BCFile {
      * @param fileLength
      *          Length of the corresponding file
      */
-    public Reader(FSDataInputStream fin, long fileLength, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
-
-      this.in = fin;
+    public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fin, long fileLength, Configuration conf,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
+      this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
       // Move the cursor to grab the version and the magic first
-      fin.seek(fileLength - Magic.size() - Version.size());
-      version = new Version(fin);
-      Magic.readAndVerify(fin);
+      this.in.seek(fileLength - Magic.size() - Version.size());
+      version = new Version(this.in);
+      Magic.readAndVerify(this.in);
 
       // Do a version check
       if (!version.compatibleWith(BCFile.API_VERSION) && !version.equals(BCFile.API_VERSION_1)) {
@@ -772,26 +775,26 @@ public final class BCFile {
       long offsetCryptoParameters = 0;
 
       if (version.equals(API_VERSION_1)) {
-        fin.seek(fileLength - Magic.size() - Version.size() - (Long.SIZE / Byte.SIZE));
-        offsetIndexMeta = fin.readLong();
+        this.in.seek(fileLength - Magic.size() - Version.size() - (Long.SIZE / Byte.SIZE));
+        offsetIndexMeta = this.in.readLong();
 
       } else {
-        fin.seek(fileLength - Magic.size() - Version.size() - (2 * (Long.SIZE / Byte.SIZE)));
-        offsetIndexMeta = fin.readLong();
-        offsetCryptoParameters = fin.readLong();
+        this.in.seek(fileLength - Magic.size() - Version.size() - (2 * (Long.SIZE / Byte.SIZE)));
+        offsetIndexMeta = this.in.readLong();
+        offsetCryptoParameters = this.in.readLong();
       }
 
       // read meta index
-      fin.seek(offsetIndexMeta);
-      metaIndex = new MetaIndex(fin);
+      this.in.seek(offsetIndexMeta);
+      metaIndex = new MetaIndex(this.in);
 
       // If they exist, read the crypto parameters
       if (!version.equals(BCFile.API_VERSION_1)) {
 
         // read crypto parameters
-        fin.seek(offsetCryptoParameters);
+        this.in.seek(offsetCryptoParameters);
         cryptoParams = new BCFileCryptoModuleParameters();
-        cryptoParams.read(fin);
+        cryptoParams.read(this.in);
 
         this.cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoParams.getAllOptions().get(Property.CRYPTO_MODULE_CLASS.getKey()));
 
@@ -832,9 +835,9 @@ public final class BCFile {
       }
     }
 
-    public Reader(CachableBlockFile.Reader cache, FSDataInputStream fin, long fileLength, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
-      this.in = fin;
+    public <InputStreamType extends InputStream & Seekable> Reader(CachableBlockFile.Reader cache, InputStreamType fin, long fileLength, Configuration conf,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
+      this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
       BlockRead cachedMetaIndex = cache.getCachedMetaBlock(META_NAME);
@@ -845,9 +848,9 @@ public final class BCFile {
         // move the cursor to the beginning of the tail, containing: offset to the
         // meta block index, version and magic
         // Move the cursor to grab the version and the magic first
-        fin.seek(fileLength - Magic.size() - Version.size());
-        version = new Version(fin);
-        Magic.readAndVerify(fin);
+        this.in.seek(fileLength - Magic.size() - Version.size());
+        version = new Version(this.in);
+        Magic.readAndVerify(this.in);
 
         // Do a version check
         if (!version.compatibleWith(BCFile.API_VERSION) && !version.equals(BCFile.API_VERSION_1)) {
@@ -859,26 +862,26 @@ public final class BCFile {
         long offsetCryptoParameters = 0;
 
         if (version.equals(API_VERSION_1)) {
-          fin.seek(fileLength - Magic.size() - Version.size() - (Long.SIZE / Byte.SIZE));
-          offsetIndexMeta = fin.readLong();
+          this.in.seek(fileLength - Magic.size() - Version.size() - (Long.SIZE / Byte.SIZE));
+          offsetIndexMeta = this.in.readLong();
 
         } else {
-          fin.seek(fileLength - Magic.size() - Version.size() - (2 * (Long.SIZE / Byte.SIZE)));
-          offsetIndexMeta = fin.readLong();
-          offsetCryptoParameters = fin.readLong();
+          this.in.seek(fileLength - Magic.size() - Version.size() - (2 * (Long.SIZE / Byte.SIZE)));
+          offsetIndexMeta = this.in.readLong();
+          offsetCryptoParameters = this.in.readLong();
         }
 
         // read meta index
-        fin.seek(offsetIndexMeta);
-        metaIndex = new MetaIndex(fin);
+        this.in.seek(offsetIndexMeta);
+        metaIndex = new MetaIndex(this.in);
 
         // If they exist, read the crypto parameters
         if (!version.equals(BCFile.API_VERSION_1) && cachedCryptoParams == null) {
 
           // read crypto parameters
-          fin.seek(offsetCryptoParameters);
+          this.in.seek(offsetCryptoParameters);
           cryptoParams = new BCFileCryptoModuleParameters();
-          cryptoParams.read(fin);
+          cryptoParams.read(this.in);
 
           if (accumuloConfiguration.getBoolean(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY)) {
             Map<String,String> cryptoConfFromAccumuloConf = accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);

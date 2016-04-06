@@ -205,7 +205,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
       Configuration conf = CachedConfiguration.getInstance();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
-      FileSKVIterator sample = RFileOperations.getInstance().openReader(files[0].toString(), false, FileSystem.get(conf), conf, acuconf)
+      FileSKVIterator sample = RFileOperations.getInstance().openReader(files[0].toString(), false, FileSystem.get(conf), conf, null, acuconf)
           .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
       assertNotNull(sample);
     } else {

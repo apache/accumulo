@@ -345,7 +345,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     // TODO need to close files - ACCUMULO-1303
     for (String file : absFiles) {
       FileSystem fs = VolumeConfiguration.getVolume(file, conf, config).getFileSystem();
-      FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuTableConf, null, null);
+      FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, null, acuTableConf, null, null);
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);
         if (reader == null)

@@ -256,8 +256,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
+
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
@@ -330,7 +333,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     super(confFactory);
     this.confFactory = confFactory;
     this.fs = fs;
-    AccumuloConfiguration aconf = getConfiguration();
+    final AccumuloConfiguration aconf = getConfiguration();
     Instance instance = getInstance();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
@@ -3089,4 +3092,28 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     bulkImportStatus.removeBulkImportStatus(files);
   }
 
+  private static final String MAJC_READ_LIMITER_KEY = "tserv_majc_read";
+  private static final String MAJC_WRITE_LIMITER_KEY = "tserv_majc_write";
+  private final SharedRateLimiterFactory.RateProvider rateProvider = new SharedRateLimiterFactory.RateProvider() {
+    @Override
+    public long getDesiredRate() {
+      return getConfiguration().getMemoryInBytes(Property.TSERV_MAJC_THROUGHPUT);
+    }
+  };
+
+  /**
+   * Get the {@link RateLimiter} for reads during major compactions on this tserver. All writes performed during major compactions are throttled to conform to
+   * this RateLimiter.
+   */
+  public final RateLimiter getMajorCompactionReadLimiter() {
+    return SharedRateLimiterFactory.getInstance().create(MAJC_READ_LIMITER_KEY, rateProvider);
+  }
+
+  /**
+   * Get the RateLimiter for writes during major compations on this tserver. All reads performed during major compactions are throttled to conform to this
+   * RateLimiter.
+   */
+  public final RateLimiter getMajorCompactionWriteLimiter() {
+    return SharedRateLimiterFactory.getInstance().create(MAJC_WRITE_LIMITER_KEY, rateProvider);
+  }
 }

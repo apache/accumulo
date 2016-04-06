@@ -18,7 +18,6 @@ package org.apache.accumulo.tserver.tablet;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -153,6 +152,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import static java.util.Objects.requireNonNull;
 
 /**
  *
@@ -1583,7 +1584,7 @@ public class Tablet implements TabletCommitter {
     for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
       FileRef file = entry.getKey();
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
-      FileSKVIterator openReader = fileFactory.openReader(file.path().toString(), true, ns, ns.getConf(), this.getTableConfiguration());
+      FileSKVIterator openReader = fileFactory.openReader(file.path().toString(), true, ns, ns.getConf(), null, this.getTableConfiguration());
       try {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
@@ -1807,8 +1808,8 @@ public class Tablet implements TabletCommitter {
         AccumuloConfiguration tableConf = createTableConfiguration(tableConfiguration, plan);
 
         Span span = Trace.start("compactFiles");
-        try {
 
+        try {
           CompactionEnv cenv = new CompactionEnv() {
             @Override
             public boolean isCompactionEnabled() {
@@ -1819,6 +1820,17 @@ public class Tablet implements TabletCommitter {
             public IteratorScope getIteratorScope() {
               return IteratorScope.majc;
             }
+
+            @Override
+            public RateLimiter getReadLimiter() {
+              return getTabletServer().getMajorCompactionReadLimiter();
+            }
+
+            @Override
+            public RateLimiter getWriteLimiter() {
+              return getTabletServer().getMajorCompactionWriteLimiter();
+            }
+
           };
 
           HashMap<FileRef,DataFileValue> copy = new HashMap<FileRef,DataFileValue>(getDatafileManager().getDatafileSizes());
