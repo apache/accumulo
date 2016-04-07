@@ -14,5 +14,7 @@
 #  limitations under the License.
 language: java
 jdk:
+  - openjdk7
   - oraclejdk7
-script: mvn package
+  - oraclejdk8
+script: mvn clean verify -DskipITs
