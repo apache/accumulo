@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.file;
 
-import com.google.common.util.concurrent.RateLimiter;
 import java.io.IOException;
 import java.util.Set;
 
@@ -29,6 +28,7 @@ import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.map.MapFileOperations;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
+import org.apache.accumulo.core.util.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

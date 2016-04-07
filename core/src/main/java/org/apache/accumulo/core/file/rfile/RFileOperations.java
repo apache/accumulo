@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import com.google.common.util.concurrent.RateLimiter;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,6 +36,7 @@ import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.sample.Sampler;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.util.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

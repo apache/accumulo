@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
-import com.google.common.util.concurrent.RateLimiter;
 import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import org.apache.accumulo.core.util.RateLimiter;
 import org.apache.hadoop.fs.Seekable;
 
 public class RateLimited {

@@ -153,7 +153,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.util.concurrent.RateLimiter;
+import org.apache.accumulo.core.util.RateLimiter;
+import org.apache.accumulo.server.util.time.CompositeRateLimiter;
+import org.apache.accumulo.server.util.time.RateLimiterFactory;
+
 
 /**
  *
@@ -1808,8 +1811,22 @@ public class Tablet implements TabletCommitter {
         AccumuloConfiguration tableConf = createTableConfiguration(tableConfiguration, plan);
 
         Span span = Trace.start("compactFiles");
-        try {
-
+        
+        // Limit based on both the site configuration and the table configuration.
+        RateLimiterFactory rlFactory=RateLimiterFactory.getInstance(getTabletServer().getConfiguration());
+        Callable<Long> tableThreshold=new Callable<Long>() {
+            @Override
+            public Long call() throws Exception {
+                return tableConfiguration.getMemoryInBytes(Property.TSERV_MAJC_THROUGHPUT);
+            }            
+        };
+        try (RateLimiter tservReadLimiter=getTabletServer().openMajorCompactionReadLimiter();
+             RateLimiter tableRateLimiter=rlFactory.create("table_majc_read:"+getExtent().getTableId(), tableThreshold);
+             RateLimiter tservWriteLimiter=getTabletServer().openMajorCompactionWriteLimiter();
+             RateLimiter tableWriteLimiter=rlFactory.create("table_majc_write:"+getExtent().getTableId(), tableThreshold)) {
+          
+          final RateLimiter readLimiter=new CompositeRateLimiter(tservReadLimiter, tableRateLimiter);
+          final RateLimiter writeLimiter=new CompositeRateLimiter(tservWriteLimiter, tableWriteLimiter);
           CompactionEnv cenv = new CompactionEnv() {
             @Override
             public boolean isCompactionEnabled() {
@@ -1823,12 +1840,12 @@ public class Tablet implements TabletCommitter {
 
             @Override
             public RateLimiter getReadLimiter() {
-              return getTabletServer().getMajorCompactionReadLimiter();
+              return readLimiter;
             }
 
             @Override
             public RateLimiter getWriteLimiter() {
-              return getTabletServer().getMajorCompactionWriteLimiter();
+              return writeLimiter;
             }
 
           };

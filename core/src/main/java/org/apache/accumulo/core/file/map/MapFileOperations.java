@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.file.map;
 
-import com.google.common.util.concurrent.RateLimiter;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,6 +38,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MapFileIterator;
 import org.apache.accumulo.core.iterators.system.SequenceFileIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.util.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
