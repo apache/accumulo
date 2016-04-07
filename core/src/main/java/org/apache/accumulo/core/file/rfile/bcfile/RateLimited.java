@@ -29,7 +29,7 @@ public class RateLimited {
    * last request.
    */
   protected static class BlockedRateLimiter {
-    private static final long PERMIT_REQUEST_BLOCK = 1024 * 1024;
+    private static final long PERMIT_REQUEST_BLOCK = 65536;
 
     private final RateLimiter rateLimiter;
     private long permitsUsed = 0;
@@ -39,8 +39,8 @@ public class RateLimited {
       this.rateLimiter = rateLimiter;
     }
 
-    public synchronized void acquire(long permitsSpent) {
-      permitsUsed += permitsSpent;
+    public synchronized void acquire(long permitsNeeded) {
+      permitsUsed += permitsNeeded;
       // Skip the rate limiter so long as you're not more than PERMIT_REQUST_BLOCK bytes beyond
       // the number of permits you've already acquired from the rate limiter. We'll make up the difference
       // in finish(), at close() time.
