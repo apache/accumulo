@@ -204,11 +204,17 @@ public class InMemoryMapIT {
       defaultMap = new InMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
       nativeMapWrapper = new InMemoryMap(true, tempFolder.newFolder().getAbsolutePath());
       localityGroupMap = new InMemoryMap(getLocalityGroups(), false, tempFolder.newFolder().getAbsolutePath());
-      localityGroupMapWithNative = new InMemoryMap(getLocalityGroups(), false, tempFolder.newFolder().getAbsolutePath());
+      localityGroupMapWithNative = new InMemoryMap(getLocalityGroups(), true, tempFolder.newFolder().getAbsolutePath());
     } catch (IOException e) {
       log.error("Error getting new InMemoryMap ", e);
       fail(e.getMessage());
     }
+
+    // ensure the maps are correct type
+    assertEquals("Not a DefaultMap", InMemoryMap.TYPE_DEFAULT_MAP, defaultMap.getMapType());
+    assertEquals("Not a NativeMapWrapper", InMemoryMap.TYPE_NATIVE_MAP_WRAPPER, nativeMapWrapper.getMapType());
+    assertEquals("Not a LocalityGroupMap", InMemoryMap.TYPE_LOCALITY_GROUP_MAP, localityGroupMap.getMapType());
+    assertEquals("Not a LocalityGroupMap with native", InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE, localityGroupMapWithNative.getMapType());
 
     defaultMap.mutate(mutations);
     nativeMapWrapper.mutate(mutations);
@@ -303,7 +309,7 @@ public class InMemoryMapIT {
   private Map<String,Set<ByteSequence>> getLocalityGroups() {
     Map<String,Set<ByteSequence>> locgro = new HashMap<String,Set<ByteSequence>>();
     locgro.put("a", newCFSet("cf", "cf2"));
-    locgro.put("a", newCFSet("cf3", "cf4"));
+    locgro.put("b", newCFSet("cf3", "cf4"));
     return locgro;
   }
 
