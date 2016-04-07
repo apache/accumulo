@@ -1820,17 +1820,17 @@ public class Tablet implements TabletCommitter {
             public IteratorScope getIteratorScope() {
               return IteratorScope.majc;
             }
-            
+
             @Override
             public RateLimiter getReadLimiter() {
-                return getTabletServer().getMajorCompactionReadLimiter();
+              return getTabletServer().getMajorCompactionReadLimiter();
             }
 
             @Override
             public RateLimiter getWriteLimiter() {
-                return getTabletServer().getMajorCompactionWriteLimiter();
+              return getTabletServer().getMajorCompactionWriteLimiter();
             }
-            
+
           };
 
           HashMap<FileRef,DataFileValue> copy = new HashMap<FileRef,DataFileValue>(getDatafileManager().getDatafileSizes());

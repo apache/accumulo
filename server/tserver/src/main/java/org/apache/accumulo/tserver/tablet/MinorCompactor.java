@@ -70,16 +70,16 @@ public class MinorCompactor extends Compactor {
       public IteratorScope getIteratorScope() {
         return IteratorScope.minc;
       }
-      
+
       @Override
       public RateLimiter getReadLimiter() {
-          return null;
+        return null;
       }
 
       @Override
       public RateLimiter getWriteLimiter() {
-          return null;
-     }
+        return null;
+      }
     }, Collections.<IteratorSetting> emptyList(), mincReason.ordinal(), tableConfig);
     this.tabletServer = tabletServer;
   }

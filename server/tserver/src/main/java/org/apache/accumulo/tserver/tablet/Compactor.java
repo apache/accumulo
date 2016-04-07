@@ -82,8 +82,9 @@ public class Compactor implements Callable<CompactionStats> {
     boolean isCompactionEnabled();
 
     IteratorScope getIteratorScope();
-    
+
     RateLimiter getReadLimiter();
+
     RateLimiter getWriteLimiter();
   }
 
@@ -96,7 +97,7 @@ public class Compactor implements Callable<CompactionStats> {
   private final VolumeManager fs;
   protected final KeyExtent extent;
   private final List<IteratorSetting> iterators;
-  
+
   // things to report
   private String currentLocalityGroup = "";
   private final long startTime;
@@ -235,9 +236,12 @@ public class Compactor implements Callable<CompactionStats> {
         throw ex;
       }
 
-      log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %,6.3f secs | %,12d bytes | %9.3f byte/sec", extent,
+      double readRateLimit = env.getReadLimiter() == null ? Double.MAX_VALUE : env.getReadLimiter().getRate();
+      double writeRateLimit = env.getWriteLimiter() == null ? Double.MAX_VALUE : env.getWriteLimiter().getRate();
+      double rateLimit = Math.min(readRateLimit, writeRateLimit);
+      log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %,6.3f secs | %,12d bytes | %9.3f byte/sec%s", extent,
           majCStats.getEntriesRead(), majCStats.getEntriesWritten(), (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0,
-          mfwTmp.getLength(), mfwTmp.getLength() / ((t2 - t1) / 1000.0)));
+          mfwTmp.getLength(), mfwTmp.getLength() / ((t2 - t1) / 1000.0), rateLimit == Double.MAX_VALUE ? "" : String.format(" (of %9.3f byte/sec)", rateLimit)));
 
       majCStats.setFileSize(mfwTmp.getLength());
       return majCStats;

@@ -29,7 +29,7 @@ public class RateLimited {
    * last request.
    */
   protected static class BlockedRateLimiter {
-    private static final long PERMIT_REQUEST_BLOCK = 65536;
+    private static final long PERMIT_REQUEST_BLOCK = 1024 * 1024;
 
     private final RateLimiter rateLimiter;
     private long permitsUsed = 0;
@@ -39,18 +39,25 @@ public class RateLimited {
       this.rateLimiter = rateLimiter;
     }
 
-    public synchronized void acquire(long permitsRequested) {
-      while (rateLimiter != null && permitsUsed + permitsRequested > permitsAcquired) {
-        long requestCount = Math.max(PERMIT_REQUEST_BLOCK, permitsUsed + permitsRequested - permitsAcquired);
+    public synchronized void acquire(long permitsSpent) {
+      permitsUsed += permitsSpent;
+      // Skip the rate limiter so long as you're not more than PERMIT_REQUST_BLOCK bytes beyond
+      // the number of permits you've already acquired from the rate limiter. We'll make up the difference
+      // in finish(), at close() time.
+      while (rateLimiter != null && permitsUsed - permitsAcquired > PERMIT_REQUEST_BLOCK) {
+        long requestCount = Math.max(PERMIT_REQUEST_BLOCK, permitsUsed - permitsAcquired);
         requestCount = Math.min(requestCount, Integer.MAX_VALUE);
         rateLimiter.acquire((int) requestCount);
         permitsAcquired += requestCount;
       }
-      permitsUsed += permitsRequested;
     }
 
     public synchronized long getPermitsUsed() {
       return permitsUsed;
+    }
+
+    public void finish() {
+      rateLimiter.acquire((int) (permitsUsed - permitsAcquired));
     }
   }
 
@@ -80,7 +87,11 @@ public class RateLimited {
 
     @Override
     public void close() throws IOException {
-      out.close();
+      try {
+        out.close();
+      } finally {
+        writeLimiter.finish();
+      }
     }
   }
 
@@ -133,6 +144,15 @@ public class RateLimited {
         readLimiter.acquire(count);
       }
       return count;
+    }
+
+    @Override
+    public void close() throws IOException {
+      try {
+        super.close();
+      } finally {
+        readLimiter.finish();
+      }
     }
   }
 
