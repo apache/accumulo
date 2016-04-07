@@ -147,7 +147,7 @@ public class InMemoryMap {
     } else {
       allMap = new LocalityGroupMap(lggroups, useNativeMap);
       sampleMap = new LocalityGroupMap(lggroups, useNativeMap);
-      mapType = useNativeMap ? TYPE_LOCALITY_GROUP_MAP : TYPE_LOCALITY_GROUP_MAP_NATIVE;
+      mapType = useNativeMap ? TYPE_LOCALITY_GROUP_MAP_NATIVE : TYPE_LOCALITY_GROUP_MAP;
     }
 
     map = new SampleMap(allMap, sampleMap);
