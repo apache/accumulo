@@ -97,7 +97,7 @@ public class InMemoryMap {
       mapType = useNativeMap ? TYPE_NATIVE_MAP_WRAPPER : TYPE_DEFAULT_MAP;
     } else {
       map = new LocalityGroupMap(lggroups, useNativeMap);
-      mapType = useNativeMap ? TYPE_LOCALITY_GROUP_MAP : TYPE_LOCALITY_GROUP_MAP_NATIVE;
+      mapType = useNativeMap ? TYPE_LOCALITY_GROUP_MAP_NATIVE : TYPE_LOCALITY_GROUP_MAP;
     }
   }
 
