@@ -23,15 +23,14 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.Seekable;
 
 /**
  * BoundedRangeFIleInputStream abstracts a contiguous region of a Hadoop FSDataInputStream as a regular input stream. One can create multiple
  * BoundedRangeFileInputStream on top of the same FSDataInputStream and they would not interfere with each other.
  */
-class BoundedRangeFileInputStream extends InputStream {
-
-  private FSDataInputStream in;
+class BoundedRangeFileInputStream<StreamType extends InputStream & Seekable> extends InputStream {
+  private StreamType in;
   private long pos;
   private long end;
   private long mark;
@@ -49,7 +48,7 @@ class BoundedRangeFileInputStream extends InputStream {
    *
    *          The actual length of the region may be smaller if (off_begin + length) goes beyond the end of FS input stream.
    */
-  public BoundedRangeFileInputStream(FSDataInputStream in, long offset, long length) {
+  public BoundedRangeFileInputStream(StreamType in, long offset, long length) {
     if (offset < 0 || length < 0) {
       throw new IndexOutOfBoundsException("Invalid offset/length: " + offset + "/" + length);
     }
@@ -93,7 +92,7 @@ class BoundedRangeFileInputStream extends InputStream {
     if (n == 0)
       return -1;
     Integer ret = 0;
-    final FSDataInputStream inLocal = in;
+    final StreamType inLocal = in;
     synchronized (inLocal) {
       inLocal.seek(pos);
       try {

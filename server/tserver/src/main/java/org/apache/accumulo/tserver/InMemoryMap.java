@@ -632,7 +632,7 @@ public class InMemoryMap {
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem fs = FileSystem.getLocal(conf);
 
-        reader = new RFileOperations().openReader(memDumpFile, true, fs, conf, SiteConfiguration.getInstance());
+        reader = new RFileOperations().openReader(memDumpFile, true, fs, conf, null, SiteConfiguration.getInstance());
         if (iflag != null)
           reader.setInterruptFlag(iflag);
 
@@ -804,7 +804,7 @@ public class InMemoryMap {
           siteConf = createSampleConfig(siteConf);
         }
 
-        FileSKVWriter out = new RFileOperations().openWriter(tmpFile, fs, newConf, siteConf);
+        FileSKVWriter out = new RFileOperations().openWriter(tmpFile, fs, newConf, null, siteConf);
 
         InterruptibleIterator iter = map.skvIterator(null);
 

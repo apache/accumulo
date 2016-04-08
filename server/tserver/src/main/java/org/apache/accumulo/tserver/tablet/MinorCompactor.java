@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.util.RateLimiter;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -68,6 +69,16 @@ public class MinorCompactor extends Compactor {
       @Override
       public IteratorScope getIteratorScope() {
         return IteratorScope.minc;
+      }
+
+      @Override
+      public RateLimiter getReadLimiter() {
+        return null;
+      }
+
+      @Override
+      public RateLimiter getWriteLimiter() {
+        return null;
       }
     }, Collections.<IteratorSetting> emptyList(), mincReason.ordinal(), tableConfig);
     this.tabletServer = tabletServer;

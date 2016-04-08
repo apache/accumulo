@@ -52,6 +52,7 @@ import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.RateLimiter;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -81,6 +82,10 @@ public class Compactor implements Callable<CompactionStats> {
     boolean isCompactionEnabled();
 
     IteratorScope getIteratorScope();
+
+    RateLimiter getReadLimiter();
+
+    RateLimiter getWriteLimiter();
   }
 
   private final Map<FileRef,DataFileValue> filesToCompact;
@@ -192,7 +197,7 @@ public class Compactor implements Callable<CompactionStats> {
     try {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getVolumeByPath(outputFilePath).getFileSystem();
-      mfw = fileFactory.openWriter(outputFilePathName, ns, ns.getConf(), acuTableConf);
+      mfw = fileFactory.openWriter(outputFilePathName, ns, ns.getConf(), env.getWriteLimiter(), acuTableConf);
 
       Map<String,Set<ByteSequence>> lGroups;
       try {
@@ -231,9 +236,12 @@ public class Compactor implements Callable<CompactionStats> {
         throw ex;
       }
 
-      log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %,6.3f secs | %,12d bytes | %9.3f byte/sec", extent,
+      double readRateLimit = env.getReadLimiter() == null ? Double.MAX_VALUE : env.getReadLimiter().getRate();
+      double writeRateLimit = env.getWriteLimiter() == null ? Double.MAX_VALUE : env.getWriteLimiter().getRate();
+      double rateLimit = Math.min(readRateLimit, writeRateLimit);
+      log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %,6.3f secs | %,12d bytes | %9.3f byte/sec%s", extent,
           majCStats.getEntriesRead(), majCStats.getEntriesWritten(), (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0,
-          mfwTmp.getLength(), mfwTmp.getLength() / ((t2 - t1) / 1000.0)));
+          mfwTmp.getLength(), mfwTmp.getLength() / ((t2 - t1) / 1000.0), rateLimit == Double.MAX_VALUE ? "" : String.format(" (of %9.3f byte/sec)", rateLimit)));
 
       majCStats.setFileSize(mfwTmp.getLength());
       return majCStats;
@@ -280,7 +288,7 @@ public class Compactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getVolumeByPath(mapFile.path()).getFileSystem();
         FileSKVIterator reader;
 
-        reader = fileFactory.openReader(mapFile.path().toString(), false, fs, fs.getConf(), acuTableConf);
+        reader = fileFactory.openReader(mapFile.path().toString(), false, fs, fs.getConf(), env.getReadLimiter(), acuTableConf);
 
         readers.add(reader);
 

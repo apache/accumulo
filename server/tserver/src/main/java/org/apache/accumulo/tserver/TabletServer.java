@@ -256,8 +256,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import java.util.concurrent.Callable;
+import org.apache.accumulo.core.util.RateLimiter;
+import org.apache.accumulo.server.util.time.RateLimiterFactory;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
+  
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
   private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
@@ -330,7 +334,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     super(confFactory);
     this.confFactory = confFactory;
     this.fs = fs;
-    AccumuloConfiguration aconf = getConfiguration();
+    final AccumuloConfiguration aconf = getConfiguration();
     Instance instance = getInstance();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
@@ -394,6 +398,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     } else {
       authKeyWatcher = null;
     }
+    
+    
+    RateLimiterFactory rlf=RateLimiterFactory.getInstance(aconf);
+    rlf.create(MAJC_READ_LIMITER_KEY, rateProvider);
+    rlf.create(MAJC_READ_LIMITER_KEY, rateProvider);
   }
 
   private static long jitter(long ms) {
@@ -3088,5 +3097,21 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public void removeBulkImportState(List<String> files) {
     bulkImportStatus.removeBulkImportStatus(files);
   }
+  
+  private static final Object MAJC_READ_LIMITER_KEY = new Object();
+  private static final Object MAJC_WRITE_LIMITER_KEY = new Object();
+  private final Callable<Long> rateProvider=new Callable<Long>() {
+      @Override
+      public Long call() throws Exception {
+        return getConfiguration().getMemoryInBytes(Property.TSERV_MAJC_THROUGHPUT);
+      }      
+    };
 
+  public RateLimiter openMajorCompactionReadLimiter() {
+    return RateLimiterFactory.getInstance(getConfiguration()).create(MAJC_READ_LIMITER_KEY, rateProvider);
+  }
+  
+  public RateLimiter openMajorCompactionWriteLimiter() {
+    return RateLimiterFactory.getInstance(getConfiguration()).create(MAJC_WRITE_LIMITER_KEY, rateProvider);
+  }
 }

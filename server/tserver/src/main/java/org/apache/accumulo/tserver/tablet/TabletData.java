@@ -149,7 +149,7 @@ public class TabletData {
       dataFiles.put(ref, dfv);
 
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-      FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(), conf);
+      FileSKVIterator reader = FileOperations.getInstance().openReader(path.toString(), true, ns, ns.getConf(), null, conf);
       long maxTime = -1;
       try {
         while (reader.hasTop()) {

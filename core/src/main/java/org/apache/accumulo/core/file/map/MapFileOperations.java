@@ -38,6 +38,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MapFileIterator;
 import org.apache.accumulo.core.iterators.system.SequenceFileIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.util.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -141,7 +142,8 @@ public class MapFileOperations extends FileOperations {
   }
 
   @Override
-  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
+  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, RateLimiter readLimiter,
+      AccumuloConfiguration acuconf) throws IOException {
     FileSKVIterator iter = new RangeIterator(new MapFileIterator(acuconf, fs, file, conf));
 
     if (seekToBeginning)
@@ -151,10 +153,8 @@ public class MapFileOperations extends FileOperations {
   }
 
   @Override
-  public FileSKVWriter openWriter(final String file, final FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-
+  public FileSKVWriter openWriter(String file, FileSystem fs, Configuration conf, RateLimiter writeLimiter, AccumuloConfiguration acuconf) throws IOException {
     throw new UnsupportedOperationException();
-
   }
 
   @Override
@@ -169,7 +169,7 @@ public class MapFileOperations extends FileOperations {
 
   @Override
   public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
-      AccumuloConfiguration tableConf) throws IOException {
+      RateLimiter readLimiter, AccumuloConfiguration tableConf) throws IOException {
     MapFileIterator mfIter = new MapFileIterator(tableConf, fs, file, conf);
 
     FileSKVIterator iter = new RangeIterator(mfIter);
@@ -181,16 +181,16 @@ public class MapFileOperations extends FileOperations {
 
   @Override
   public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
-      AccumuloConfiguration tableConf, BlockCache dataCache, BlockCache indexCache) throws IOException {
+      RateLimiter readLimiter, AccumuloConfiguration tableConf, BlockCache dataCache, BlockCache indexCache) throws IOException {
 
-    return openReader(file, range, columnFamilies, inclusive, fs, conf, tableConf);
+    return openReader(file, range, columnFamilies, inclusive, fs, conf, readLimiter, tableConf);
   }
 
   @Override
-  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf,
-      BlockCache dataCache, BlockCache indexCache) throws IOException {
+  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, RateLimiter readLimiter,
+      AccumuloConfiguration acuconf, BlockCache dataCache, BlockCache indexCache) throws IOException {
 
-    return openReader(file, seekToBeginning, fs, conf, acuconf);
+    return openReader(file, seekToBeginning, fs, conf, readLimiter, acuconf);
   }
 
   @Override

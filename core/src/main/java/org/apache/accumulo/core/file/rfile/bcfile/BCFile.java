@@ -45,6 +45,7 @@ import org.apache.accumulo.core.security.crypto.CryptoModule;
 import org.apache.accumulo.core.security.crypto.CryptoModuleFactory;
 import org.apache.accumulo.core.security.crypto.CryptoModuleParameters;
 import org.apache.accumulo.core.security.crypto.SecretKeyEncryptionStrategy;
+import org.apache.accumulo.core.util.RateLimiter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -87,7 +88,7 @@ public final class BCFile {
    * BCFile writer, the entry point for creating a new BCFile.
    */
   static public class Writer implements Closeable {
-    private final FSDataOutputStream out;
+    private final RateLimited.DataOutputStream out;
     private final Configuration conf;
     private final CryptoModule cryptoModule;
     private BCFileCryptoModuleParameters cryptoParams;
@@ -127,7 +128,7 @@ public final class BCFile {
       private final Algorithm compressAlgo;
       private Compressor compressor; // !null only if using native
       // Hadoop compression
-      private final FSDataOutputStream fsOut;
+      private final RateLimited.DataOutputStream fsOut;
       private final OutputStream cipherOut;
       private final long posStart;
       private final SimpleBufferedOutputStream fsBufferedOutput;
@@ -139,8 +140,8 @@ public final class BCFile {
        * @param cryptoModule
        *          the module to use to obtain cryptographic streams
        */
-      public WBlockState(Algorithm compressionAlgo, FSDataOutputStream fsOut, BytesWritable fsOutputBuffer, Configuration conf, CryptoModule cryptoModule,
-          CryptoModuleParameters cryptoParams) throws IOException {
+      public WBlockState(Algorithm compressionAlgo, RateLimited.DataOutputStream fsOut, BytesWritable fsOutputBuffer, Configuration conf,
+          CryptoModule cryptoModule, CryptoModuleParameters cryptoParams) throws IOException {
         this.compressAlgo = compressionAlgo;
         this.fsOut = fsOut;
         this.posStart = fsOut.getPos();
@@ -340,16 +341,21 @@ public final class BCFile {
      */
     public Writer(FSDataOutputStream fout, String compressionName, Configuration conf, boolean trackDataBlocks, AccumuloConfiguration accumuloConfiguration)
         throws IOException {
+      this(fout, compressionName, null, conf, trackDataBlocks, accumuloConfiguration);
+    }
+
+    public Writer(FSDataOutputStream fout, String compressionName, RateLimiter writeLimiter, Configuration conf, boolean trackDataBlocks,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
       if (fout.getPos() != 0) {
         throw new IOException("Output file not at zero offset.");
       }
 
-      this.out = fout;
+      this.out = new RateLimited.DataOutputStream(fout, writeLimiter);
       this.conf = conf;
       dataIndex = new DataIndex(compressionName, trackDataBlocks);
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
-      Magic.write(fout);
+      Magic.write(this.out);
 
       // Set up crypto-related detail, including secret key generation and encryption
 
@@ -594,7 +600,7 @@ public final class BCFile {
   static public class Reader implements Closeable {
     private static final String META_NAME = "BCFile.metaindex";
     private static final String CRYPTO_BLOCK_NAME = "BCFile.cryptoparams";
-    private final FSDataInputStream in;
+    private final RateLimited.DataInputStream in;
     private final Configuration conf;
     final DataIndex dataIndex;
     // Index for meta blocks
@@ -613,7 +619,7 @@ public final class BCFile {
       private final BlockRegion region;
       private final InputStream in;
 
-      public RBlockState(Algorithm compressionAlgo, FSDataInputStream fsin, BlockRegion region, Configuration conf, CryptoModule cryptoModule,
+      public RBlockState(Algorithm compressionAlgo, RateLimited.DataInputStream fsin, BlockRegion region, Configuration conf, CryptoModule cryptoModule,
           Version bcFileVersion, CryptoModuleParameters cryptoParams) throws IOException {
         this.compressAlgo = compressionAlgo;
         this.region = region;
@@ -747,13 +753,14 @@ public final class BCFile {
     /**
      * Constructor
      *
-     * @param fin
+     * @param finInitial
      *          FS input stream.
      * @param fileLength
      *          Length of the corresponding file
      */
-    public Reader(FSDataInputStream fin, long fileLength, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
-
+    public Reader(FSDataInputStream finInitial, long fileLength, Configuration conf, RateLimiter rateLimiter, AccumuloConfiguration accumuloConfiguration)
+        throws IOException {
+      RateLimited.DataInputStream fin = new RateLimited.DataInputStream(finInitial, rateLimiter);
       this.in = fin;
       this.conf = conf;
 
@@ -832,8 +839,9 @@ public final class BCFile {
       }
     }
 
-    public Reader(CachableBlockFile.Reader cache, FSDataInputStream fin, long fileLength, Configuration conf, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
+    public Reader(CachableBlockFile.Reader cache, FSDataInputStream finInitial, long fileLength, Configuration conf, RateLimiter readLimiter,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
+      RateLimited.DataInputStream fin = new RateLimited.DataInputStream(finInitial, readLimiter);
       this.in = fin;
       this.conf = conf;
 

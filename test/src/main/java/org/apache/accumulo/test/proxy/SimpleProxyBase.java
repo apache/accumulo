@@ -2077,7 +2077,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
     // Write an RFile
     String filename = dir + "/bulk/import/rfile.rf";
-    FileSKVWriter writer = FileOperations.getInstance().openWriter(filename, fs, fs.getConf(), DefaultConfiguration.getInstance());
+    FileSKVWriter writer = FileOperations.getInstance().openWriter(filename, fs, fs.getConf(), null, DefaultConfiguration.getInstance());
     writer.startDefaultLocalityGroup();
     writer.append(new org.apache.accumulo.core.data.Key(new Text("a"), new Text("b"), new Text("c")), new Value("value".getBytes(UTF_8)));
     writer.close();

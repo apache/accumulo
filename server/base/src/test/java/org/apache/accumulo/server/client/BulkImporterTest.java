@@ -113,7 +113,7 @@ public class BulkImporterTest {
     EasyMock.replay(context);
     String file = "target/testFile.rf";
     fs.delete(new Path(file), true);
-    FileSKVWriter writer = FileOperations.getInstance().openWriter(file, fs, fs.getConf(), context.getConfiguration());
+    FileSKVWriter writer = FileOperations.getInstance().openWriter(file, fs, fs.getConf(), null, context.getConfiguration());
     writer.startDefaultLocalityGroup();
     Value empty = new Value(new byte[] {});
     writer.append(new Key("a", "cf", "cq"), empty);
