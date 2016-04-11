@@ -29,32 +29,28 @@ and feature are outlined [here][8].
 
 To install and run an Accumulo binary distribution, follow the [install][2]
 instructions.
-  
+
 Documentation
 -------------
 
-Accumulo provides the following documentation :
+Accumulo has the following documentation which is viewable on the [Accumulo website][1]
+using the links below:
 
- * **User Manual** : In-depth developer and administrator documentation.
- * **Examples** : Code with corresponding readme files that give step by step
-                  instructions for running example code.
+* [User Manual][10] - In-depth developer and administrator documentation.
+* [Examples][11] - Code with corresponding README files that give step by step
+instructions for running the example.
 
-This documentation is available on the [Accumulo site][1].  In the source and
-binary distributions of Accumulo, the documentation is at different locations.
+This documentation can also be found in Accumulo distributions:
 
-In the Accumulo binary distribution, all documentation is in the `docs`
-directory.  The binary distribution does not include example source code, but
-it does include a jar with the compiled examples.   This examples jar makes it
-easy to step through the example readmes, after following the [install][2]
-instructions.
+* **Binary distribution** - The User Manual can be found in the `docs` directory.  The
+Examples Readmes can be found in `docs/examples`. While the source for the Examples is
+not included, the distribution has a jar with the compiled examples. This makes it easy
+to run them after following the [install][2] instructions.
 
-In the Accumulo source, documentations is found at the following locations.
+* **Source distribution** - The [Example Source][14], [Example Readmes][15], and
+[User Manual Source][16] can all be found in the source distribution.
 
- * [Example Source](examples/simple/src/main/java/org/apache/accumulo/examples/simple)
- * [Example Readmes](docs/src/main/resources/examples)
- * [User Manual Source](docs/src/main/asciidoc)
-
-Building 
+Building
 --------
 
 Accumulo uses [Maven][9] to compile, [test][3], and package its source.  The
@@ -77,7 +73,7 @@ API
 The public Accumulo API is composed of :
 
 All public types in the following packages and their subpackages excluding
-those named *impl*, *thrift*, or *crypto*. 
+those named *impl*, *thrift*, or *crypto*.
 
    * org.apache.accumulo.core.client
    * org.apache.accumulo.core.data
@@ -91,7 +87,7 @@ the above packages are *not* considered public API.
 
 The following regex matches imports that are *not* Accumulo public API.  This
 regex can be used with [RegexpSingleline][13] to automatically find suspicious
-imports in a project using Accumulo. 
+imports in a project using Accumulo.
 
 ```
 import\s+org\.apache\.accumulo\.(.*\.(impl|thrift|crypto)\..*|(?!core|minicluster).*|core\.(?!client|data|security).*)
@@ -101,14 +97,19 @@ The Accumulo project maintains binary compatibility across this API within a
 major release, as defined in the Java Language Specification 3rd ed. Starting
 with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][12]
 
-[1]: http://accumulo.apache.org
+[1]: https://accumulo.apache.org
 [2]: INSTALL.md
 [3]: TESTING.md
 [4]: http://research.google.com/archive/bigtable.html
 [5]: http://hadoop.apache.org
 [6]: http://zookeeper.apache.org
 [7]: http://thrift.apache.org/
-[8]: http://accumulo.apache.org/notable_features.html
+[8]: https://accumulo.apache.org/notable_features.html
 [9]: http://maven.apache.org/
+[10]: https://accumulo.apache.org/user-manual/latest/
+[11]: https://accumulo.apache.org/examples/latest/
 [12]: http://semver.org/spec/v2.0.0.html
 [13]: http://checkstyle.sourceforge.net/config_regexp.html
+[14]: examples/simple/src/main/java/org/apache/accumulo/examples/simple
+[15]: docs/src/main/resources/examples
+[16]: docs/src/main/asciidoc
