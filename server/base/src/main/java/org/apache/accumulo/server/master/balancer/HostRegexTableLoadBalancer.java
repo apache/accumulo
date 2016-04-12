@@ -43,15 +43,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This balancer will create pools of tablet servers by grouping tablet servers that match a regex into the same pool and calling the balancer set on the table
- * to balance within the set of matching tablet servers. All tablet servers that do not match a regex are grouped into a default pool.<br>
+ * This balancer creates groups of tablet servers using user-provided regular expressions over the tablet server hostnames. Then it delegates to the table
+ * balancer to balance the tablets within the resulting group of tablet servers. All tablet servers that do not match a regex are grouped into a default group.<br>
  * Regex properties for this balancer are specified as:<br>
  * <b>table.custom.balancer.host.regex.&lt;tablename&gt;=&lt;regex&gt;</b><br>
  * Periodically (default 5m) this balancer will check to see if a tablet server is hosting tablets that it should not be according to the regex configuration.
  * If this occurs then the offending tablets will be reassigned. This would cover the case where the configuration is changed and the master is restarted while
  * the tablet servers are up. To change the out of bounds check time period, set the following property:<br>
  * <b>table.custom.balancer.host.regex.oob.period=5m</b><br>
- * Periodically (default 5m) this balancer will regroup the set of current tablet servers into pools based on regexes applied to the tserver host names. This
+ * Periodically (default 1m) this balancer will regroup the set of current tablet servers into pools based on regexes applied to the tserver host names. This
  * would cover the case of tservers dying or coming online. To change the host pool check time period, set the following property: <br>
  * <b>table.custom.balancer.host.regex.pool.check=5m</b><br>
  * Regex matching can be based on either the host name (default) or host ip address. To set this balancer to match the regular expressions to the tablet server
@@ -66,7 +66,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   public static final String HOST_BALANCER_OOB_CHECK = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.host.regex.oob.period";
   private static final String HOST_BALANCER_OOB_DEFAULT = "5m";
   public static final String HOST_BALANCER_POOL_RECHECK_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.host.regex.pool.check";
-  private static final String HOST_BALANCER_POOL_RECHECK_DEFAULT = "5m";
+  private static final String HOST_BALANCER_POOL_RECHECK_DEFAULT = "1m";
   public static final String HOST_BALANCER_REGEX_USING_IPS = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.host.regex.is.ip";
   protected static final String DEFAULT_POOL = "HostTableLoadBalancer.ALL";
 
@@ -81,7 +81,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<String,SortedMap<TServerInstance,TabletServerStatus>>();
 
   /**
-   * Group the set of current tservers by pool name. Tservers that don't match a regex are put into a default pool.
+   * Group the set of current tservers by pool name. Tservers that don't match a regex are put into a default pool. This could be expensive in the terms of the
+   * amount of time to recompute the groups, so HOST_BALANCER_POOL_RECHECK_KEY should be specified in the terms of minutes, not seconds or less.
    *
    * @param current
    *          map of current tservers
@@ -89,7 +90,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
    */
   protected synchronized Map<String,SortedMap<TServerInstance,TabletServerStatus>> splitCurrentByRegex(SortedMap<TServerInstance,TabletServerStatus> current) {
     if ((System.currentTimeMillis() - lastPoolRecheck) > poolRecheckMillis) {
-      LOG.debug("Performing pool recheck - regrouping tablet servers into pools based on regex");
+      LOG.debug("Performing pool recheck - regrouping tablet servers based on regular expressions");
       Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<String,SortedMap<TServerInstance,TabletServerStatus>>();
       for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
         List<String> poolNames = getPoolNamesForHost(e.getKey().host());
@@ -162,9 +163,13 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
    *          server configuration
    */
   protected void parseConfiguration(ServerConfiguration conf) {
+    TableOperations t = getTableOperations();
+    if (null == t) {
+      throw new RuntimeException("Table Operations cannot be null");
+    }
     tableIdToTableName = new HashMap<>();
     poolNameToRegexPattern = new HashMap<>();
-    for (Entry<String,String> table : getTableOperations().tableIdMap().entrySet()) {
+    for (Entry<String,String> table : t.tableIdMap().entrySet()) {
       tableIdToTableName.put(table.getValue(), table.getKey());
       Map<String,String> customProps = conf.getTableConfiguration(table.getValue()).getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
       if (null != customProps && customProps.size() > 0) {
@@ -243,6 +248,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         currentView = pools.get(DEFAULT_POOL);
         if (null == currentView) {
           LOG.error("No tablet servers exist in the default pool, unable to assign tablets for table {}", tableName);
+          continue;
         }
       }
       LOG.debug("Sending {} tablets to balancer for table {} for assignment within tservers {}", e.getValue().size(), tableName, currentView.keySet());
@@ -271,7 +277,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
                 // If this tserver is assigned to a regex pool, then we can skip checking tablets for this table on this host.
                 continue;
               }
-              String tid = getTableOperations().tableIdMap().get(table);
+              String tid = t.tableIdMap().get(table);
               if (null == tid) {
                 LOG.warn("Unable to check for out of bounds tablets for table {}, it may have been deleted or renamed.", table);
                 continue;
