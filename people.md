@@ -29,6 +29,7 @@ PMC and Committers
 | kturner       | Keith Turner      | [Peterson Technologies][PETERSON]      | [ET][ET] |
 | mdrob         | Mike Drob         | [Cloudera][CLOUDERA]                   | [ET][ET] |
 | medined       | David Medinets    |                                        |          |
+| mjwall        | Michael Wall      |                                        | [ET][ET] |
 | rweeks        | Russ Weeks        | [PHEMI][PHEMI]                         | [PT][PT] |
 | shickey       | Sean Hickey       |                                        | [PT][PT] |
 | ujustgotbilld | William Slacum    | [Miner &amp; Kasch][MINERKASCH]        | [ET][ET] |
@@ -87,7 +88,6 @@ Contributors
 |             | Max Jordan          |                                                                   |                       |
 |             | Michael Allen       | [sqrrl][SQRRL]                                                    | [ET][ET]              |
 |             | Michael Berman      | [sqrrl][SQRRL]                                                    | [ET][ET]              |
-|             | Michael Wall        |                                                                   |                       |
 |             | Miguel Pereira      | [SRA International, Inc][SRA]                                     | [ET][ET]              |
 |             | Mike Fagan          | [Arcus Research][ARCUS]                                           | [MT][MT]              |
 |             | Mike Walch          | [Peterson Technologies][PETERSON]                                 | [ET][ET]              |
