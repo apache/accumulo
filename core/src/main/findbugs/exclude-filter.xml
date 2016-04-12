@@ -37,6 +37,11 @@
     <Bug code="OS" pattern="OS_OPEN_STREAM" />
   </Match>
   <Match>
+    <Class name="org.apache.accumulo.core.file.blockfile.impl.SeekableByteArrayInputStream" />
+    <Field name="buffer" />
+    <Bug code="VO" pattern="VO_VOLATILE_REFERENCE_TO_ARRAY" />
+  </Match>
+  <Match>
     <!-- locking is confusing, but probably correct -->
     <Class name="org.apache.accumulo.core.client.impl.TabletLocatorImpl" />
     <Method name="processInvalidated" params="org.apache.accumulo.core.client.impl.ClientContext,org.apache.accumulo.core.client.impl.TabletLocatorImpl$LockCheckerSession" returns="void" />

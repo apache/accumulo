@@ -76,6 +76,22 @@ struct SystemPermission {
 
 extern const std::map<int, const char*> _SystemPermission_VALUES_TO_NAMES;
 
+struct NamespacePermission {
+  enum type {
+    READ = 0,
+    WRITE = 1,
+    ALTER_NAMESPACE = 2,
+    GRANT = 3,
+    ALTER_TABLE = 4,
+    CREATE_TABLE = 5,
+    DROP_TABLE = 6,
+    BULK_IMPORT = 7,
+    DROP_NAMESPACE = 8
+  };
+};
+
+extern const std::map<int, const char*> _NamespacePermission_VALUES_TO_NAMES;
+
 struct ScanType {
   enum type {
     SINGLE = 0,
@@ -216,6 +232,12 @@ class TableNotFoundException;
 class TableExistsException;
 
 class MutationsRejectedException;
+
+class NamespaceExistsException;
+
+class NamespaceNotFoundException;
+
+class NamespaceNotEmptyException;
 
 typedef struct _Key__isset {
   _Key__isset() : row(false), colFamily(false), colQualifier(false), colVisibility(false), timestamp(true) {}
@@ -1950,6 +1972,150 @@ class MutationsRejectedException : public ::apache::thrift::TException {
 void swap(MutationsRejectedException &a, MutationsRejectedException &b);
 
 inline std::ostream& operator<<(std::ostream& out, const MutationsRejectedException& obj)
+{
+  obj.printTo(out);
+  return out;
+}
+
+typedef struct _NamespaceExistsException__isset {
+  _NamespaceExistsException__isset() : msg(false) {}
+  bool msg :1;
+} _NamespaceExistsException__isset;
+
+class NamespaceExistsException : public ::apache::thrift::TException {
+ public:
+
+  NamespaceExistsException(const NamespaceExistsException&);
+  NamespaceExistsException& operator=(const NamespaceExistsException&);
+  NamespaceExistsException() : msg() {
+  }
+
+  virtual ~NamespaceExistsException() throw();
+  std::string msg;
+
+  _NamespaceExistsException__isset __isset;
+
+  void __set_msg(const std::string& val);
+
+  bool operator == (const NamespaceExistsException & rhs) const
+  {
+    if (!(msg == rhs.msg))
+      return false;
+    return true;
+  }
+  bool operator != (const NamespaceExistsException &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const NamespaceExistsException & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+  mutable std::string thriftTExceptionMessageHolder_;
+  const char* what() const throw();
+};
+
+void swap(NamespaceExistsException &a, NamespaceExistsException &b);
+
+inline std::ostream& operator<<(std::ostream& out, const NamespaceExistsException& obj)
+{
+  obj.printTo(out);
+  return out;
+}
+
+typedef struct _NamespaceNotFoundException__isset {
+  _NamespaceNotFoundException__isset() : msg(false) {}
+  bool msg :1;
+} _NamespaceNotFoundException__isset;
+
+class NamespaceNotFoundException : public ::apache::thrift::TException {
+ public:
+
+  NamespaceNotFoundException(const NamespaceNotFoundException&);
+  NamespaceNotFoundException& operator=(const NamespaceNotFoundException&);
+  NamespaceNotFoundException() : msg() {
+  }
+
+  virtual ~NamespaceNotFoundException() throw();
+  std::string msg;
+
+  _NamespaceNotFoundException__isset __isset;
+
+  void __set_msg(const std::string& val);
+
+  bool operator == (const NamespaceNotFoundException & rhs) const
+  {
+    if (!(msg == rhs.msg))
+      return false;
+    return true;
+  }
+  bool operator != (const NamespaceNotFoundException &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const NamespaceNotFoundException & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+  mutable std::string thriftTExceptionMessageHolder_;
+  const char* what() const throw();
+};
+
+void swap(NamespaceNotFoundException &a, NamespaceNotFoundException &b);
+
+inline std::ostream& operator<<(std::ostream& out, const NamespaceNotFoundException& obj)
+{
+  obj.printTo(out);
+  return out;
+}
+
+typedef struct _NamespaceNotEmptyException__isset {
+  _NamespaceNotEmptyException__isset() : msg(false) {}
+  bool msg :1;
+} _NamespaceNotEmptyException__isset;
+
+class NamespaceNotEmptyException : public ::apache::thrift::TException {
+ public:
+
+  NamespaceNotEmptyException(const NamespaceNotEmptyException&);
+  NamespaceNotEmptyException& operator=(const NamespaceNotEmptyException&);
+  NamespaceNotEmptyException() : msg() {
+  }
+
+  virtual ~NamespaceNotEmptyException() throw();
+  std::string msg;
+
+  _NamespaceNotEmptyException__isset __isset;
+
+  void __set_msg(const std::string& val);
+
+  bool operator == (const NamespaceNotEmptyException & rhs) const
+  {
+    if (!(msg == rhs.msg))
+      return false;
+    return true;
+  }
+  bool operator != (const NamespaceNotEmptyException &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const NamespaceNotEmptyException & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+  mutable std::string thriftTExceptionMessageHolder_;
+  const char* what() const throw();
+};
+
+void swap(NamespaceNotEmptyException &a, NamespaceNotEmptyException &b);
+
+inline std::ostream& operator<<(std::ostream& out, const NamespaceNotEmptyException& obj)
 {
   obj.printTo(out);
   return out;

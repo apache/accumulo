@@ -98,6 +98,9 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('   listLocalUsers(string login)')
   print('  void revokeSystemPermission(string login, string user, SystemPermission perm)')
   print('  void revokeTablePermission(string login, string user, string table, TablePermission perm)')
+  print('  void grantNamespacePermission(string login, string user, string namespaceName, NamespacePermission perm)')
+  print('  bool hasNamespacePermission(string login, string user, string namespaceName, NamespacePermission perm)')
+  print('  void revokeNamespacePermission(string login, string user, string namespaceName, NamespacePermission perm)')
   print('  string createBatchScanner(string login, string tableName, BatchScanOptions options)')
   print('  string createScanner(string login, string tableName, ScanOptions options)')
   print('  bool hasNext(string scanner)')
@@ -115,6 +118,26 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  void closeConditionalWriter(string conditionalWriter)')
   print('  Range getRowRange(string row)')
   print('  Key getFollowing(Key key, PartialKey part)')
+  print('  string systemNamespace()')
+  print('  string defaultNamespace()')
+  print('   listNamespaces(string login)')
+  print('  bool namespaceExists(string login, string namespaceName)')
+  print('  void createNamespace(string login, string namespaceName)')
+  print('  void deleteNamespace(string login, string namespaceName)')
+  print('  void renameNamespace(string login, string oldNamespaceName, string newNamespaceName)')
+  print('  void setNamespaceProperty(string login, string namespaceName, string property, string value)')
+  print('  void removeNamespaceProperty(string login, string namespaceName, string property)')
+  print('   getNamespaceProperties(string login, string namespaceName)')
+  print('   namespaceIdMap(string login)')
+  print('  void attachNamespaceIterator(string login, string namespaceName, IteratorSetting setting,  scopes)')
+  print('  void removeNamespaceIterator(string login, string namespaceName, string name,  scopes)')
+  print('  IteratorSetting getNamespaceIteratorSetting(string login, string namespaceName, string name, IteratorScope scope)')
+  print('   listNamespaceIterators(string login, string namespaceName)')
+  print('  void checkNamespaceIteratorConflicts(string login, string namespaceName, IteratorSetting setting,  scopes)')
+  print('  i32 addNamespaceConstraint(string login, string namespaceName, string constraintClassName)')
+  print('  void removeNamespaceConstraint(string login, string namespaceName, i32 id)')
+  print('   listNamespaceConstraints(string login, string namespaceName)')
+  print('  bool testNamespaceClassLoad(string login, string namespaceName, string className, string asTypeName)')
   print('')
   sys.exit(0)
 
@@ -531,6 +554,24 @@ elif cmd == 'revokeTablePermission':
     sys.exit(1)
   pp.pprint(client.revokeTablePermission(args[0],args[1],args[2],eval(args[3]),))
 
+elif cmd == 'grantNamespacePermission':
+  if len(args) != 4:
+    print('grantNamespacePermission requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.grantNamespacePermission(args[0],args[1],args[2],eval(args[3]),))
+
+elif cmd == 'hasNamespacePermission':
+  if len(args) != 4:
+    print('hasNamespacePermission requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.hasNamespacePermission(args[0],args[1],args[2],eval(args[3]),))
+
+elif cmd == 'revokeNamespacePermission':
+  if len(args) != 4:
+    print('revokeNamespacePermission requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.revokeNamespacePermission(args[0],args[1],args[2],eval(args[3]),))
+
 elif cmd == 'createBatchScanner':
   if len(args) != 3:
     print('createBatchScanner requires 3 args')
@@ -632,6 +673,126 @@ elif cmd == 'getFollowing':
     print('getFollowing requires 2 args')
     sys.exit(1)
   pp.pprint(client.getFollowing(eval(args[0]),eval(args[1]),))
+
+elif cmd == 'systemNamespace':
+  if len(args) != 0:
+    print('systemNamespace requires 0 args')
+    sys.exit(1)
+  pp.pprint(client.systemNamespace())
+
+elif cmd == 'defaultNamespace':
+  if len(args) != 0:
+    print('defaultNamespace requires 0 args')
+    sys.exit(1)
+  pp.pprint(client.defaultNamespace())
+
+elif cmd == 'listNamespaces':
+  if len(args) != 1:
+    print('listNamespaces requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.listNamespaces(args[0],))
+
+elif cmd == 'namespaceExists':
+  if len(args) != 2:
+    print('namespaceExists requires 2 args')
+    sys.exit(1)
+  pp.pprint(client.namespaceExists(args[0],args[1],))
+
+elif cmd == 'createNamespace':
+  if len(args) != 2:
+    print('createNamespace requires 2 args')
+    sys.exit(1)
+  pp.pprint(client.createNamespace(args[0],args[1],))
+
+elif cmd == 'deleteNamespace':
+  if len(args) != 2:
+    print('deleteNamespace requires 2 args')
+    sys.exit(1)
+  pp.pprint(client.deleteNamespace(args[0],args[1],))
+
+elif cmd == 'renameNamespace':
+  if len(args) != 3:
+    print('renameNamespace requires 3 args')
+    sys.exit(1)
+  pp.pprint(client.renameNamespace(args[0],args[1],args[2],))
+
+elif cmd == 'setNamespaceProperty':
+  if len(args) != 4:
+    print('setNamespaceProperty requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.setNamespaceProperty(args[0],args[1],args[2],args[3],))
+
+elif cmd == 'removeNamespaceProperty':
+  if len(args) != 3:
+    print('removeNamespaceProperty requires 3 args')
+    sys.exit(1)
+  pp.pprint(client.removeNamespaceProperty(args[0],args[1],args[2],))
+
+elif cmd == 'getNamespaceProperties':
+  if len(args) != 2:
+    print('getNamespaceProperties requires 2 args')
+    sys.exit(1)
+  pp.pprint(client.getNamespaceProperties(args[0],args[1],))
+
+elif cmd == 'namespaceIdMap':
+  if len(args) != 1:
+    print('namespaceIdMap requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.namespaceIdMap(args[0],))
+
+elif cmd == 'attachNamespaceIterator':
+  if len(args) != 4:
+    print('attachNamespaceIterator requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.attachNamespaceIterator(args[0],args[1],eval(args[2]),eval(args[3]),))
+
+elif cmd == 'removeNamespaceIterator':
+  if len(args) != 4:
+    print('removeNamespaceIterator requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.removeNamespaceIterator(args[0],args[1],args[2],eval(args[3]),))
+
+elif cmd == 'getNamespaceIteratorSetting':
+  if len(args) != 4:
+    print('getNamespaceIteratorSetting requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.getNamespaceIteratorSetting(args[0],args[1],args[2],eval(args[3]),))
+
+elif cmd == 'listNamespaceIterators':
+  if len(args) != 2:
+    print('listNamespaceIterators requires 2 args')
+    sys.exit(1)
+  pp.pprint(client.listNamespaceIterators(args[0],args[1],))
+
+elif cmd == 'checkNamespaceIteratorConflicts':
+  if len(args) != 4:
+    print('checkNamespaceIteratorConflicts requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.checkNamespaceIteratorConflicts(args[0],args[1],eval(args[2]),eval(args[3]),))
+
+elif cmd == 'addNamespaceConstraint':
+  if len(args) != 3:
+    print('addNamespaceConstraint requires 3 args')
+    sys.exit(1)
+  pp.pprint(client.addNamespaceConstraint(args[0],args[1],args[2],))
+
+elif cmd == 'removeNamespaceConstraint':
+  if len(args) != 3:
+    print('removeNamespaceConstraint requires 3 args')
+    sys.exit(1)
+  pp.pprint(client.removeNamespaceConstraint(args[0],args[1],eval(args[2]),))
+
+elif cmd == 'listNamespaceConstraints':
+  if len(args) != 2:
+    print('listNamespaceConstraints requires 2 args')
+    sys.exit(1)
+  pp.pprint(client.listNamespaceConstraints(args[0],args[1],))
+
+elif cmd == 'testNamespaceClassLoad':
+  if len(args) != 4:
+    print('testNamespaceClassLoad requires 4 args')
+    sys.exit(1)
+  pp.pprint(client.testNamespaceClassLoad(args[0],args[1],args[2],args[3],))
 
 else:
   print('Unrecognized method %s' % cmd)

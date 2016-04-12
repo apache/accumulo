@@ -88,6 +88,7 @@ public class InMemoryMap {
 
   private volatile String memDumpFile = null;
   private final String memDumpDir;
+  private final String mapType;
 
   private Map<String,Set<ByteSequence>> lggroups;
 
@@ -103,6 +104,11 @@ public class InMemoryMap {
       throw new RuntimeException(e);
     }
   }
+
+  public static final String TYPE_NATIVE_MAP_WRAPPER = "NativeMapWrapper";
+  public static final String TYPE_DEFAULT_MAP = "DefaultMap";
+  public static final String TYPE_LOCALITY_GROUP_MAP = "LocalityGroupMap";
+  public static final String TYPE_LOCALITY_GROUP_MAP_NATIVE = "LocalityGroupMap with native";
 
   private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef = new AtomicReference<>(null);
 
@@ -137,9 +143,11 @@ public class InMemoryMap {
     if (lggroups.size() == 0) {
       allMap = newMap(useNativeMap);
       sampleMap = newMap(useNativeMap);
+      mapType = useNativeMap ? TYPE_NATIVE_MAP_WRAPPER : TYPE_DEFAULT_MAP;
     } else {
       allMap = new LocalityGroupMap(lggroups, useNativeMap);
       sampleMap = new LocalityGroupMap(lggroups, useNativeMap);
+      mapType = useNativeMap ? TYPE_LOCALITY_GROUP_MAP_NATIVE : TYPE_LOCALITY_GROUP_MAP;
     }
 
     map = new SampleMap(allMap, sampleMap);
@@ -155,6 +163,19 @@ public class InMemoryMap {
     }
 
     return new DefaultMap();
+  }
+
+  /**
+   * Description of the type of SimpleMap that is created.
+   * <p>
+   * If no locality groups are present, the SimpleMap is either TYPE_DEFAULT_MAP or TYPE_NATIVE_MAP_WRAPPER. If there is one more locality groups, then the
+   * InMemoryMap has an array for simple maps that either contain either TYPE_LOCALITY_GROUP_MAP which contains DefaultMaps or TYPE_LOCALITY_GROUP_MAP_NATIVE
+   * which contains NativeMapWrappers.
+   *
+   * @return String that describes the Map type
+   */
+  public String getMapType() {
+    return mapType;
   }
 
   private interface SimpleMap {
@@ -856,7 +877,7 @@ public class InMemoryMap {
     while (iter.hasTop() && activeIters.size() > 0) {
       // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
       // There is no need to change the MemKey to a normal key because the kvCount info gets lost when it is written
-      out.append(iter.getTopKey(), MemValue.encode(iter.getTopValue(), ((MemKey) iter.getTopKey()).kvCount));
+      out.append(iter.getTopKey(), MemValue.encode(iter.getTopValue(), ((MemKey) iter.getTopKey()).getKVCount()));
       iter.next();
     }
   }
