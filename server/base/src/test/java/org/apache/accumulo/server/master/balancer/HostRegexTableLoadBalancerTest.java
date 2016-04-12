@@ -21,9 +21,11 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
@@ -548,30 +550,27 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
   }
 
   @Test
-  public void testOutOfBoundsTablets() {
+  public void testUnassignedWithNoTServers() {
     init((ServerConfiguration) factory);
-    // Wait to trigger the out of bounds check which will call our version of getOnlineTabletsForTable
-    UtilWaitThread.sleep(11000);
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
-    for (List<KeyExtent> extents : tableExtents.values()) {
-      for (KeyExtent ke : extents) {
-        unassigned.put(ke, null);
+    for (KeyExtent ke : tableExtents.get(BAR.getTableName())) {
+      unassigned.put(ke, null);
+    }
+    SortedMap<TServerInstance,TabletServerStatus> current = createCurrent(15);
+    // Remove the BAR tablet servers from current
+    List<TServerInstance> removals = new ArrayList<TServerInstance>();
+    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+      if (e.getKey().host().equals("192.168.0.6") || e.getKey().host().equals("192.168.0.7") || e.getKey().host().equals("192.168.0.8")
+          || e.getKey().host().equals("192.168.0.9") || e.getKey().host().equals("192.168.0.10")) {
+        removals.add(e.getKey());
       }
+    }
+    for (TServerInstance r : removals) {
+      current.remove(r);
     }
     this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers), Collections.unmodifiableMap(unassigned), assignments);
-    Assert.assertEquals(15, assignments.size());
-    // Ensure unique tservers
-    for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
-      for (Entry<KeyExtent,TServerInstance> e2 : assignments.entrySet()) {
-        if (e.getKey().equals(e2.getKey())) {
-          continue;
-        }
-        if (e.getValue().equals(e2.getValue())) {
-          Assert.fail("Assignment failure");
-        }
-      }
-    }
+    Assert.assertEquals(unassigned.size(), assignments.size());
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
@@ -580,9 +579,20 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
     }
   }
 
+  @Test
+  public void testOutOfBoundsTablets() {
+    init((ServerConfiguration) factory);
+    // Wait to trigger the out of bounds check which will call our version of getOnlineTabletsForTable
+    UtilWaitThread.sleep(11000);
+    Set<KeyExtent> migrations = new HashSet<KeyExtent>();
+    List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+    this.balance(createCurrent(15), migrations, migrationsOut);
+    Assert.assertEquals(2, migrationsOut.size());
+  }
+
   @Override
   public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
-    // Report incorrent information so that getAssignments will create n assignment
+    // Report incorrect information so that balance will create an assignment
     List<TabletStats> tablets = new ArrayList<>();
     if (tableId.equals(BAR.getId()) && tserver.host().equals("192.168.0.1")) {
       // Report that we have a bar tablet on this server

@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This balancer will create pools of tablet servers by grouping tablet servers that match a regex into the same pool and calling the balancer set on the table
- * to balance within the set of matching tablet servers. <br>
+ * to balance within the set of matching tablet servers. All tablet servers that do not match a regex are grouped into a default pool.<br>
  * Regex properties for this balancer are specified as:<br>
  * <b>table.custom.balancer.host.regex.&lt;tablename&gt;=&lt;regex&gt;</b><br>
  * Periodically (default 5m) this balancer will check to see if a tablet server is hosting tablets that it should not be according to the regex configuration.
@@ -75,8 +75,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private Map<String,String> tableIdToTableName = null;
   private Map<String,Pattern> poolNameToRegexPattern = null;
-  private long lastOOBCheck = System.currentTimeMillis();
-  private long lastPoolRecheck = 0;
+  private volatile long lastOOBCheck = System.currentTimeMillis();
+  private volatile long lastPoolRecheck = 0;
   private boolean isIpBasedRegex = false;
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<String,SortedMap<TServerInstance,TabletServerStatus>>();
 
@@ -89,6 +89,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
    */
   protected synchronized Map<String,SortedMap<TServerInstance,TabletServerStatus>> splitCurrentByRegex(SortedMap<TServerInstance,TabletServerStatus> current) {
     if ((System.currentTimeMillis() - lastPoolRecheck) > poolRecheckMillis) {
+      LOG.debug("Performing pool recheck - regrouping tablet servers into pools based on regex");
       Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<String,SortedMap<TServerInstance,TabletServerStatus>>();
       for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
         List<String> poolNames = getPoolNamesForHost(e.getKey().host());
@@ -168,9 +169,11 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       Map<String,String> customProps = conf.getTableConfiguration(table.getValue()).getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
       if (null != customProps && customProps.size() > 0) {
         for (Entry<String,String> customProp : customProps.entrySet()) {
-          String tableName = customProp.getKey().substring(HOST_BALANCER_PREFIX.length());
-          String regex = customProp.getValue();
-          poolNameToRegexPattern.put(tableName, Pattern.compile(regex));
+          if (customProp.getKey().startsWith(HOST_BALANCER_PREFIX)) {
+            String tableName = customProp.getKey().substring(HOST_BALANCER_PREFIX.length());
+            String regex = customProp.getValue();
+            poolNameToRegexPattern.put(tableName, Pattern.compile(regex));
+          }
         }
       }
     }
@@ -218,40 +221,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments) {
 
-    Map<KeyExtent,TServerInstance> unassignedClone = new TreeMap<>(unassigned);
-    if ((System.currentTimeMillis() - this.lastOOBCheck) > this.oobCheckMillis) {
-      // Check to see if a tablet is assigned outside the bounds of the pool. If so, migrate it.
-      for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-        for (String assignedPool : getPoolNamesForHost(e.getKey().host())) {
-          for (String table : poolNameToRegexPattern.keySet()) {
-            // pool names are the same as table names, except in the DEFAULT case.
-            if (assignedPool.equals(table) || table.equals(DEFAULT_POOL)) {
-              continue;
-            }
-            String tid = getTableOperations().tableIdMap().get(table);
-            if (null == tid) {
-              LOG.warn("Unable to check for out of bounds tablets for table {}, it may have been deleted or renamed.", table);
-              continue;
-            }
-            try {
-              List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), tid);
-              for (TabletStats ts : outOfBoundsTablets) {
-                LOG.info("Tablet {} is currently outside the bounds of the regex, reassigning", ts.toString());
-                unassignedClone.put(new KeyExtent(ts.getExtent()), e.getKey());
-              }
-            } catch (TException e1) {
-              LOG.error("Error in OOB check getting tablets for table {} from server {}", tid, e.getKey().host(), e);
-            }
-          }
-        }
-      }
-      this.oobCheckMillis = System.currentTimeMillis();
-    }
-
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
-    // separate the unassigned into tables
+    // group the unassigned into tables
     Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<String,Map<KeyExtent,TServerInstance>>();
-    for (Entry<KeyExtent,TServerInstance> e : unassignedClone.entrySet()) {
+    for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId());
       if (tableUnassigned == null) {
         tableUnassigned = new HashMap<KeyExtent,TServerInstance>();
@@ -259,29 +232,20 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
       tableUnassigned.put(e.getKey(), e.getValue());
     }
-    // Validate that the last server in the unassigned map is actually in the pool, if not set to null.
-    Map<String,KeyExtent> overwrites = new TreeMap<>();
-    for (Entry<String,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
-      String poolName = tableIdToTableName.get(e.getKey());
-      for (Entry<KeyExtent,TServerInstance> e2 : e.getValue().entrySet()) {
-        if (null != e2.getValue()) {
-          List<String> hostPools = getPoolNamesForHost(e2.getValue().host());
-          if (!hostPools.contains(poolName)) {
-            overwrites.put(e.getKey(), e2.getKey());
-          }
-        }
-      }
-    }
-    for (Entry<String,KeyExtent> e : overwrites.entrySet()) {
-      groupedUnassigned.get(e.getKey()).remove(e.getValue());
-      groupedUnassigned.get(e.getKey()).put(e.getValue(), null);
-    }
     // Send a view of the current servers to the tables tablet balancer
     for (Entry<String,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> newAssignments = new HashMap<KeyExtent,TServerInstance>();
       String tableName = tableIdToTableName.get(e.getKey());
       String poolName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = pools.get(poolName);
+      if (null == currentView || currentView.size() == 0) {
+        LOG.warn("No tablet servers online for table {}, assigning within default pool", tableName);
+        currentView = pools.get(DEFAULT_POOL);
+        if (null == currentView) {
+          LOG.error("No tablet servers exist in the default pool, unable to assign tablets for table {}", tableName);
+        }
+      }
+      LOG.debug("Sending {} tablets to balancer for table {} for assignment within tservers {}", e.getValue().size(), tableName, currentView.keySet());
       getBalancerForTable(e.getKey()).getAssignments(currentView, e.getValue(), newAssignments);
       assignments.putAll(newAssignments);
     }
@@ -295,16 +259,67 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     if (t == null)
       return minBalanceTime;
 
+    Map<String,SortedMap<TServerInstance,TabletServerStatus>> currentGrouped = splitCurrentByRegex(current);
+    if ((System.currentTimeMillis() - this.lastOOBCheck) > this.oobCheckMillis) {
+      try {
+        // Check to see if a tablet is assigned outside the bounds of the pool. If so, migrate it.
+        for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+          for (String assignedPool : getPoolNamesForHost(e.getKey().host())) {
+            for (String table : poolNameToRegexPattern.keySet()) {
+              // pool names are the same as table names, except in the DEFAULT case.
+              if (assignedPool.equals(table)) {
+                // If this tserver is assigned to a regex pool, then we can skip checking tablets for this table on this host.
+                continue;
+              }
+              String tid = getTableOperations().tableIdMap().get(table);
+              if (null == tid) {
+                LOG.warn("Unable to check for out of bounds tablets for table {}, it may have been deleted or renamed.", table);
+                continue;
+              }
+              try {
+                List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), tid);
+                for (TabletStats ts : outOfBoundsTablets) {
+                  KeyExtent ke = new KeyExtent(ts.getExtent());
+                  if (migrations.contains(ke)) {
+                    LOG.debug("Migration for  out of bounds tablet {} has already been requested", ke);
+                    ;
+                    continue;
+                  }
+                  String poolName = getPoolNameForTable(table);
+                  SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped.get(poolName);
+                  if (null != currentView) {
+                    TServerInstance nextTS = currentView.firstKey();
+                    LOG.info("Tablet {} is currently outside the bounds of the regex, migrating from {} to {}", ke, e.getKey(), nextTS);
+                    migrationsOut.add(new TabletMigration(ke, e.getKey(), nextTS));
+                  } else {
+                    LOG.warn("No tablet servers online for pool {}, unable to migrate out of bounds tablets", poolName);
+                  }
+                }
+              } catch (TException e1) {
+                LOG.error("Error in OOB check getting tablets for table {} from server {}", tid, e.getKey().host(), e);
+              }
+            }
+          }
+        }
+      } finally {
+        this.lastOOBCheck = System.currentTimeMillis();
+      }
+    }
+
     if (migrations != null && migrations.size() > 0) {
-      LOG.warn("Not balancing tables due to outstanding migrations");
+      LOG.warn("Not balancing tables due to {} outstanding migrations", migrations.size());
       return minBalanceTime;
     }
 
-    Map<String,SortedMap<TServerInstance,TabletServerStatus>> currentGrouped = splitCurrentByRegex(current);
     for (String s : t.tableIdMap().values()) {
       String tableName = tableIdToTableName.get(s);
       String regexTableName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped.get(regexTableName);
+      if (null == currentView) {
+        LOG.warn("Skipping balance for table {} as no tablet servers are online, will recheck for online tservers at {} ms intervals", tableName,
+            this.poolRecheckMillis);
+        continue;
+      }
       ArrayList<TabletMigration> newMigrations = new ArrayList<TabletMigration>();
       long tableBalanceTime = getBalancerForTable(s).balance(currentView, migrations, newMigrations);
       if (tableBalanceTime < minBalanceTime) {
