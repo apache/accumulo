@@ -1466,13 +1466,19 @@
       </properties>
     </profile>
     <profile>
-      <id>jdk8</id>
+      <id>latest-findbugs</id>
       <activation>
-        <jdk>[1.8,1.9)</jdk>
+        <jdk>[1.7,)</jdk>
       </activation>
       <properties>
         <findbugs.version>3.0.3</findbugs.version>
       </properties>
+    </profile>
+    <profile>
+      <id>jdk8</id>
+      <activation>
+        <jdk>[1.8,1.9)</jdk>
+      </activation>
       <build>
         <pluginManagement>
           <plugins>
