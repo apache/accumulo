@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,18 +25,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -48,239 +37,16 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Predicate;
 
-public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
-
-  static class TestInstance implements Instance {
-
-    @Override
-    public String getRootTabletLocation() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<String> getMasterLocations() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String getInstanceID() {
-      return "1111";
-    }
-
-    @Override
-    public String getInstanceName() {
-      return "test";
-    }
-
-    @Override
-    public String getZooKeepers() {
-      return "";
-    }
-
-    @Override
-    public int getZooKeepersSessionTimeOut() {
-      return 30;
-    }
-
-    @Override
-    public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public AccumuloConfiguration getConfiguration() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setConfiguration(AccumuloConfiguration conf) {}
-
-    @Override
-    public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-      throw new UnsupportedOperationException();
-    }
-
-  }
-
-  private static class Table {
-    private String tableName;
-    private String id;
-
-    Table(String tableName, String id) {
-      this.tableName = tableName;
-      this.id = id;
-    }
-
-    public String getTableName() {
-      return tableName;
-    }
-
-    public String getId() {
-      return id;
-    }
-  }
-
-  static class TestServerConfigurationFactory extends ServerConfigurationFactory {
-
-    public TestServerConfigurationFactory(Instance instance) {
-      super(instance);
-    }
-
-    @Override
-    public synchronized AccumuloConfiguration getConfiguration() {
-      HashMap<String,String> props = new HashMap<>();
-      props.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK, "10s");
-      props.put(HostRegexTableLoadBalancer.HOST_BALANCER_POOL_RECHECK_KEY, "30s");
-      return new ConfigurationCopy(props);
-    }
-
-    @Override
-    public TableConfiguration getTableConfiguration(String tableId) {
-      return new TableConfiguration(getInstance(), tableId, null) {
-        HashMap<String,String> tableProperties = new HashMap<>();
-        {
-          tableProperties.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r01.*");
-          tableProperties.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
-        }
-
-        @Override
-        public String get(Property property) {
-          return tableProperties.get(property.name());
-        }
-
-        @Override
-        public void getProperties(Map<String,String> props, Predicate<String> filter) {
-          for (Entry<String,String> e : tableProperties.entrySet()) {
-            if (filter.apply(e.getKey())) {
-              props.put(e.getKey(), e.getValue());
-            }
-          }
-        }
-      };
-    }
-  }
-
-  private static final Table FOO = new Table("foo", "1");
-  private static final Table BAR = new Table("bar", "2");
-  private static final Table BAZ = new Table("baz", "3");
-
-  private final TestInstance instance = new TestInstance();
-  private final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(instance);
-  private final Map<String,String> servers = new HashMap<>(15);
-  private final SortedMap<TServerInstance,TabletServerStatus> allTabletServers = new TreeMap<>();
-  private final Map<String,List<KeyExtent>> tableExtents = new HashMap<>(3);
-
-  {
-    servers.put("192.168.0.1", "r01s01");
-    servers.put("192.168.0.2", "r01s02");
-    servers.put("192.168.0.3", "r01s03");
-    servers.put("192.168.0.4", "r01s04");
-    servers.put("192.168.0.5", "r01s05");
-    servers.put("192.168.0.6", "r02s01");
-    servers.put("192.168.0.7", "r02s02");
-    servers.put("192.168.0.8", "r02s03");
-    servers.put("192.168.0.9", "r02s04");
-    servers.put("192.168.0.10", "r02s05");
-    servers.put("192.168.0.11", "r03s01");
-    servers.put("192.168.0.12", "r03s02");
-    servers.put("192.168.0.13", "r03s03");
-    servers.put("192.168.0.14", "r03s04");
-    servers.put("192.168.0.15", "r03s05");
-
-    allTabletServers.put(new TServerInstance("192.168.0.1:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.2:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.3:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.4:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.5:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.6:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.7:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.8:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.9:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.10:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.11:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.12:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.13:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.14:9997", 1), new TabletServerStatus());
-    allTabletServers.put(new TServerInstance("192.168.0.15:9997", 1), new TabletServerStatus());
-
-    tableExtents.put(FOO.getTableName(), new ArrayList<KeyExtent>());
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("1"), new Text("0")));
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("2"), new Text("1")));
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("3"), new Text("2")));
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("4"), new Text("3")));
-    tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("5"), new Text("4")));
-    tableExtents.put(BAR.getTableName(), new ArrayList<KeyExtent>());
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("11"), new Text("10")));
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("12"), new Text("11")));
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("13"), new Text("12")));
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("14"), new Text("13")));
-    tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("15"), new Text("14")));
-    tableExtents.put(BAZ.getTableName(), new ArrayList<KeyExtent>());
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("21"), new Text("20")));
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("22"), new Text("21")));
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("23"), new Text("22")));
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("24"), new Text("23")));
-    tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("25"), new Text("24")));
-  }
-
-  @Override
-  protected String getNameFromIp(String hostIp) throws UnknownHostException {
-    if (servers.containsKey(hostIp)) {
-      return servers.get(hostIp);
-    } else {
-      throw new UnknownHostException();
-    }
-  }
-
-  @Override
-  protected TableOperations getTableOperations() {
-    return new TableOperationsImpl(EasyMock.createMock(ClientContext.class)) {
-      @Override
-      public Map<String,String> tableIdMap() {
-        HashMap<String,String> tables = new HashMap<>();
-        tables.put(FOO.getTableName(), FOO.getId());
-        tables.put(BAR.getTableName(), BAR.getId());
-        tables.put(BAZ.getTableName(), BAZ.getId());
-        return tables;
-      }
-    };
-  }
-
-  @Override
-  protected TabletBalancer getBalancerForTable(String table) {
-    return new DefaultLoadBalancer();
-  }
-
-  private SortedMap<TServerInstance,TabletServerStatus> createCurrent(int numTservers) {
-    String base = "192.168.0.";
-    TreeMap<TServerInstance,TabletServerStatus> current = new TreeMap<>();
-    for (int i = 1; i <= numTservers; i++) {
-      current.put(new TServerInstance(base + i + ":9997", 1), new TabletServerStatus());
-    }
-    return current;
-  }
+public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
 
   @Test
   public void testInit() {
@@ -414,9 +180,9 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
       @Override
       public synchronized AccumuloConfiguration getConfiguration() {
         HashMap<String,String> props = new HashMap<>();
-        props.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK, "30s");
+        props.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "30s");
         props.put(HostRegexTableLoadBalancer.HOST_BALANCER_POOL_RECHECK_KEY, "30s");
-        props.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_USING_IPS, "true");
+        props.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_USING_IPS_KEY, "true");
         return new ConfigurationCopy(props);
       }
 
@@ -612,27 +378,8 @@ public class HostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
       TabletStats ts = new TabletStats();
       ts.setExtent(tke);
       tablets.add(ts);
-
     }
     return tablets;
-  }
-
-  private boolean tabletInBounds(KeyExtent ke, TServerInstance tsi) {
-    String tid = ke.getTableId();
-    String host = tsi.host();
-    if (tid.equals("1")
-        && (host.equals("192.168.0.1") || host.equals("192.168.0.2") || host.equals("192.168.0.3") || host.equals("192.168.0.4") || host.equals("192.168.0.5"))) {
-      return true;
-    } else if (tid.equals("2")
-        && (host.equals("192.168.0.6") || host.equals("192.168.0.7") || host.equals("192.168.0.8") || host.equals("192.168.0.9") || host.equals("192.168.0.10"))) {
-      return true;
-    } else if (tid.equals("3")
-        && (host.equals("192.168.0.11") || host.equals("192.168.0.12") || host.equals("192.168.0.13") || host.equals("192.168.0.14") || host
-            .equals("192.168.0.15"))) {
-      return true;
-    } else {
-      return false;
-    }
   }
 
 }
