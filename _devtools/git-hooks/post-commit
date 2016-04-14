@@ -48,10 +48,11 @@ build_jekyll_site() {
   trap "rm -rf '""$workdir""'" 0 1 2 3 15
 
   # actually generate the site
-  jekyll build --config "$config" --destination "$workdir/_site" --safe || die "fatal: jekyll build failure"
+  bundle exec jekyll build --config "$config" --destination "$workdir/_site" --safe || die "fatal: jekyll build failure"
 
   # prepare and commit to the target branch
   export GIT_INDEX_FILE="$workdir/index"
+  rm -f "$workdir/_site/Gemfile" "$workdir/_site/Gemfile.lock"
   git --work-tree="$workdir/_site" add . || die "fatal: error adding $workdir/_site"
   local tree; tree=$(git write-tree) || die "fatal: error writing tree"
   local commit; commit=$(git commit-tree "$tree" -p "$target_branch" -m "$message") || die "fatal: error writing commit"

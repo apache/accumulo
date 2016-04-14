@@ -15,6 +15,7 @@ baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://accumulo.apache.org" # the base hostname & protocol for your site
 twitter_username: ApacheAccumulo
 github_username:  apache/accumulo
+repository: apache/accumulo
 
 # Build settings
 markdown: kramdown
