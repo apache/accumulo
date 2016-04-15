@@ -13,8 +13,24 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 language: java
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#accumulo"
+    use_notice: true
+    skip_join: true
+# speed up builds; don't use with install
+cache:
+  directories:
+    - $HOME/.m2
+# skip pre-fetch of maven dependencies
+install: true
 jdk:
-  - openjdk7
-  - oraclejdk7
   - oraclejdk8
-script: mvn clean verify -DskipITs
+  - oraclejdk7
+  - openjdk7
+# clear any cache of accumulo artifacts, just in case; use https for central
+before_script:
+  - rm -rf $HOME/.m2/repository/org/apache/accumulo
+  - echo "<settings xmlns='http://maven.apache.org/SETTINGS/1.0.0'><mirrors><mirror><id>secure-central</id><url>https://repo.maven.apache.org/maven2</url><mirrorOf>central</mirrorOf></mirror></mirrors></settings>" > $HOME/settings-custom.xml
+script: mvn --settings $HOME/settings-custom.xml clean verify -DskipITs
