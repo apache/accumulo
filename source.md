@@ -36,6 +36,12 @@ submitted to [JIRA][jiraloc]. The rendered site can be previewed locally or on
 merged into the `asf-site` branch to update our [official/canonical
 site][site-canon] after being built with the `_config-asf.yml` configuration.
 
+To manage any Gem dependencies, it is highly recommended to use [Bundler](https://bundler.io).
+To start using Bundler, install it and then the dependencies for the website:
+
+    gem install bundler
+    bundle install
+
 To get help with jekyll:
 
     jekyll help
@@ -44,9 +50,17 @@ To test the site locally (usually on http://localhost:4000):
 
     jekyll serve --config _config-asf.yml --safe
 
+To do the same with Bundler:
+
+    bundle exec jekyll serve --config _config-asf.yml --safe
+
 To build for updating the `asf-site` branch:
 
     jekyll build --config _config-asf.yml --safe
+
+To do the same with Bundler:
+
+    bundle exec jekyll build --config _config-asf.yml --safe
 
 For preview convenience and consistent builds and testing, build using a
 version which looks the same locally and on GitHub.
@@ -56,6 +70,11 @@ commit in the `asf-site` branch locally each time you commit to the `gh-pages`
 branch. You can also run this command manually:
 
     ./_devtools/git-hooks/post-commit
+
+To automatically run this post-commit hook in your local repository, copy
+the given file into your `.git/hook` directory:
+
+    `cp ./_devtools/git-hooks/post-commit .git/hooks/`
 
 ## Developer's Guide
 
