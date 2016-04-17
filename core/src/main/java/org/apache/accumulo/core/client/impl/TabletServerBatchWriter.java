@@ -733,7 +733,7 @@ public class TabletServerBatchWriter {
     void queueMutations(final MutationSet mutationsToSend) throws InterruptedException {
       if (null == mutationsToSend)
         return;
-      binningThreadPool.execute(new Runnable() {
+      binningThreadPool.execute(Trace.wrap(new Runnable() {
 
         @Override
         public void run() {
@@ -746,7 +746,7 @@ public class TabletServerBatchWriter {
             }
           }
         }
-      });
+      }));
     }
 
     private void addMutations(MutationSet mutationsToSend) {
