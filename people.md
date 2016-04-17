@@ -102,6 +102,7 @@ Contributors
 |             | Ryan Leary          |                                                                   |                       |
 |             | Sapah Shah          |                                                                   |                       |
 |             | Scott Kuehn         |                                                                   |                       |
+|             | Shawn Walker        |                                                                   |                       |
 | stevel      | Steve Loughran      | [Hortonworks][HORTONWORKS]                                        | [GMT][GMT]/[BST][BST] |
 | supun       | Supun Kamburugamuva |                                                                   |                       |
 |             | Takahiko Saito      | [Hortonworks][HORTONWORKS]                                        | [PT][PT]              |
