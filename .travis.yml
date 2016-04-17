@@ -1,2 +1,12 @@
 language: ruby
+branches:
+  only:
+    - gh-pages
+    - /^.*$/
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#accumulo"
+    use_notice: true
+    skip_join: true
 script: ./_devtools/cibuild
