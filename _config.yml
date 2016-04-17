@@ -16,6 +16,7 @@ url: "https://accumulo.apache.org" # the base hostname & protocol for your site
 twitter_username: ApacheAccumulo
 github_username:  apache/accumulo
 repository: apache/accumulo
+exclude: [vendor]
 
 # Build settings
 markdown: kramdown
