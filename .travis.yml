@@ -10,6 +10,5 @@ notifications:
     channels:
       - "chat.freenode.net#accumulo"
     use_notice: true
-    skip_join: true
 cache: bundler
 script: ./_devtools/cibuild
