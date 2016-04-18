@@ -320,6 +320,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
             }
             try {
               List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), tid);
+              if (null == outOfBoundsTablets) {
+                continue;
+              }
               Random random = new Random();
               for (TabletStats ts : outOfBoundsTablets) {
                 KeyExtent ke = new KeyExtent(ts.getExtent());
