@@ -20,7 +20,6 @@ notifications:
     channels:
       - "chat.freenode.net#accumulo"
     use_notice: true
-    skip_join: true
 # speed up builds; don't use with install
 cache:
   directories:
