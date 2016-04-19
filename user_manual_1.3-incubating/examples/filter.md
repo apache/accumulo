@@ -23,7 +23,7 @@ value pair are to be delivered and false if they are to be ignored.
     username@instance filtertest> scan
     username@instance filtertest> insert foo a b c
     username@instance filtertest> scan
-    foo a:b []	c
+    foo a:b []    c
     
 ... wait 30 seconds ...
     

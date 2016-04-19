@@ -14,7 +14,7 @@ Log into the accumulo shell:
 
 Create a table called 'hellotable':
 
-    username@instance> createtable hellotable	
+    username@instance> createtable hellotable
 
 Launch a Java program that inserts data with a BatchWriter:
 
@@ -25,9 +25,9 @@ Alternatively, the same data can be inserted using MapReduce writers:
     $ ./bin/accumulo org.apache.accumulo.examples.simple.helloworld.InsertWithOutputFormat instance zookeepers username password hellotable 
 
 On the accumulo status page at the URL below (where 'master' is replaced with the name or IP of your accumulo master), you should see 50K entries
-	
+
     http://master:50095/
-	
+
 To view the entries, use the shell to scan the table:
 
     username@instance> table hellotable

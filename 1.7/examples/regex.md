@@ -38,4 +38,4 @@ The following will search for any rows in the input table that starts with "dog"
 We can see the output of our little map-reduce job:
 
     $ hadoop fs -text /tmp/output/output/part-m-00000
-    dogrow dogcf:dogcq [] 1357844987994 false	dogvalue
+    dogrow dogcf:dogcq [] 1357844987994 false    dogvalue

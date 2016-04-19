@@ -54,7 +54,7 @@ In this example, the authorizations and visibility are set to the same value, ex
 
 Here is a illustration of what data looks like in the directory table:
 
-    row colf:colq [vis]	value
+    row colf:colq [vis]    value
     000 dir:exec [exampleVis]    true
     000 dir:hidden [exampleVis]    false
     000 dir:lastmod [exampleVis]    1291996886000
@@ -88,7 +88,7 @@ The values of the index table are null. The rows are of the form "f" + filename 
 
 Here is an illustration of what data looks like in the data table:
 
-    row colf:colq [vis]	value
+    row colf:colq [vis]    value
     274af6419a3c4c4a259260ac7017cbf1 refs:e77276a2b56e5c15b540eaae32b12c69\x00filext [exampleVis]    README
     274af6419a3c4c4a259260ac7017cbf1 refs:e77276a2b56e5c15b540eaae32b12c69\x00name [exampleVis]    /local/Accumulo.README
     274af6419a3c4c4a259260ac7017cbf1 ~chunk:\x00\x0FB@\x00\x00\x00\x00 [exampleVis]    *******************************************************************************\x0A1. Building\x0A\x0AIn the normal tarball release of accumulo, [truncated]

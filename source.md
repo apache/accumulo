@@ -142,8 +142,8 @@ Note that this git clean command will delete any files unknown to git in a way t
     # Untracked files:
     #   (use "git add <file>..." to include in what will be committed)
     #
-    #	mapreduce/
-    #	shell/
+    # mapreduce/
+    # shell/
     nothing added to commit but untracked files present (use "git add" to track)
     $> git clean -df
     Removing mapreduce/

@@ -180,13 +180,13 @@ and its 1.5MB.
 
     $ ./bin/accumulo rfile-info /accumulo/tables/o8/default_tablet/F00000dj.rf
     Locality group         : <DEFAULT>
-	Start block          : 0
-	Num   blocks         : 752
-	Index level 0        : 43,598 bytes  1 blocks
-	First key            : row_0000001169 foo:1 [exampleVis] 1326222052539 false
-	Last key             : row_0999999421 foo:1 [exampleVis] 1326222052058 false
-	Num entries          : 999,536
-	Column families      : [foo]
+      Start block          : 0
+      Num   blocks         : 752
+      Index level 0        : 43,598 bytes  1 blocks
+      First key            : row_0000001169 foo:1 [exampleVis] 1326222052539 false
+      Last key             : row_0999999421 foo:1 [exampleVis] 1326222052058 false
+      Num entries          : 999,536
+      Column families      : [foo]
 
     Meta block     : BCFile.index
       Raw size             : 4 bytes
