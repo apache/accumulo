@@ -17,6 +17,7 @@ twitter_username: ApacheAccumulo
 github_username:  apache/accumulo
 repository: apache/accumulo
 exclude: [vendor]
+latest_minor_release: 1.7
 
 # Build settings
 markdown: kramdown
@@ -28,3 +29,6 @@ defaults:
       type: "pages"
     values:
       layout: "skeleton"
+
+whitelist: [jekyll-redirect-from]
+gems: [jekyll-redirect-from]
