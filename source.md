@@ -74,7 +74,7 @@ branch. You can also run this command manually:
 To automatically run this post-commit hook in your local repository, copy
 the given file into your `.git/hook` directory:
 
-    `cp ./_devtools/git-hooks/post-commit .git/hooks/`
+    cp ./_devtools/git-hooks/post-commit .git/hooks/
 
 ## Developer's Guide
 
@@ -116,7 +116,7 @@ To run specific unit tests, you can run:
 
 Or to run the specific integration tests MyIT and YourIT (and skip all unit tests), you can run:
 
-    mvn package -Dtest=NoSuchTestExists -Dit.test=MyIT,YourIT -DfailIfNoTests=false
+    mvn verify -Dtest=NoSuchTestExists -Dit.test=MyIT,YourIT -DfailIfNoTests=false
 
 There are plenty of other options. For example, you can skip findbugs with `mvn verify -Dfindbugs.skip` or checkstyle `-Dcheckstyle.skip`, or control the number of forks to use while executing tests, `-DforkCount=4`, etc. You should check with specific plugins to see which command-line options are available to control their behavior. Note that not all options will result in a stable build, and options may change over time.
 
