@@ -83,7 +83,8 @@ public class BulkPlusOne extends BulkImportTest {
 
     for (int i = 0; i < parts; i++) {
       String fileName = dir + "/" + String.format("part_%d.", i) + RFile.EXTENSION;
-      FileSKVWriter f = FileOperations.getInstance().openWriter(fileName, fs, fs.getConf(), null, defaultConfiguration);
+      FileSKVWriter f = FileOperations.getInstance().newWriterBuilder().forFile(fileName, fs, fs.getConf()).withTableConfiguration(defaultConfiguration)
+          .build();
       f.startDefaultLocalityGroup();
       int start = rows.get(i);
       int end = rows.get(i + 1);

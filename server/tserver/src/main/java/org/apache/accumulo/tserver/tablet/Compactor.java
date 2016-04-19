@@ -197,7 +197,8 @@ public class Compactor implements Callable<CompactionStats> {
     try {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getVolumeByPath(outputFilePath).getFileSystem();
-      mfw = fileFactory.openWriter(outputFilePathName, ns, ns.getConf(), env.getWriteLimiter(), acuTableConf);
+      mfw = fileFactory.newWriterBuilder().forFile(outputFilePathName, ns, ns.getConf()).withTableConfiguration(acuTableConf)
+          .withRateLimiter(env.getWriteLimiter()).build();
 
       Map<String,Set<ByteSequence>> lGroups;
       try {
@@ -285,7 +286,8 @@ public class Compactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getVolumeByPath(mapFile.path()).getFileSystem();
         FileSKVIterator reader;
 
-        reader = fileFactory.openReader(mapFile.path().toString(), false, fs, fs.getConf(), env.getReadLimiter(), acuTableConf);
+        reader = fileFactory.newReaderBuilder().forFile(mapFile.path().toString(), fs, fs.getConf()).withTableConfiguration(acuTableConf)
+            .withRateLimiter(env.getReadLimiter()).build();
 
         readers.add(reader);
 

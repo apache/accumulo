@@ -218,8 +218,8 @@ public class TestIngest {
 
     if (opts.outputFile != null) {
       Configuration conf = CachedConfiguration.getInstance();
-      writer = FileOperations.getInstance()
-          .openWriter(opts.outputFile + "." + RFile.EXTENSION, fs, conf, null, AccumuloConfiguration.getDefaultConfiguration());
+      writer = FileOperations.getInstance().newWriterBuilder().forFile(opts.outputFile + "." + RFile.EXTENSION, fs, conf)
+          .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
       writer.startDefaultLocalityGroup();
     } else {
       bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());

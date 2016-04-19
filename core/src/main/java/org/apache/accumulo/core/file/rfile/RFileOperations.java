@@ -19,7 +19,6 @@ package org.apache.accumulo.core.file.rfile;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -29,14 +28,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
-import org.apache.accumulo.core.file.rfile.RFile.Reader;
-import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.sample.Sampler;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -46,73 +41,45 @@ public class RFileOperations extends FileOperations {
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
-  @Override
-  public long getFileSize(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    return fs.getFileStatus(new Path(file)).getLen();
-  }
-
-  @Override
-  public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    return openIndex(file, fs, conf, acuconf, null, null);
-  }
-
-  private static RFile.Reader getReader(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf, BlockCache dataCache,
-      BlockCache indexCache) throws IOException {
-    Path path = new Path(file);
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache, acuconf);
+  private static RFile.Reader getReader(FileReaderOperation<?> options) throws IOException {
+    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(), new Path(options.getFilename()), options.getConfiguration(),
+        options.getDataCache(), options.getIndexCache(), options.getRateLimiter(), options.getTableConfiguration());
     return new RFile.Reader(_cbr);
   }
 
   @Override
-  public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf, BlockCache dataCache, BlockCache indexCache)
-      throws IOException {
-    return getReader(file, fs, conf, acuconf, indexCache, indexCache).getIndex();
+  protected long getFileSize(GetFileSizeOperation options) throws IOException {
+    return options.getFileSystem().getFileStatus(new Path(options.getFilename())).getLen();
   }
 
   @Override
-  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, RateLimiter readLimiter,
-      AccumuloConfiguration acuconf) throws IOException {
-    return openReader(file, seekToBeginning, fs, conf, readLimiter, acuconf, null, null);
+  protected FileSKVIterator openIndex(OpenIndexOperation options) throws IOException {
+    return getReader(options).getIndex();
   }
 
   @Override
-  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, RateLimiter readLimiter,
-      AccumuloConfiguration acuconf, BlockCache dataCache, BlockCache indexCache) throws IOException {
-    Path path = new Path(file);
+  protected FileSKVIterator openReader(OpenReaderOperation options) throws IOException {
+    RFile.Reader reader = getReader(options);
 
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, dataCache, indexCache, readLimiter, acuconf);
-    Reader iter = new RFile.Reader(_cbr);
-
-    if (seekToBeginning) {
-      iter.seek(new Range((Key) null, null), EMPTY_CF_SET, false);
+    if (options.isSeekToBeginning()) {
+      reader.seek(new Range((Key) null, null), EMPTY_CF_SET, false);
     }
 
-    return iter;
+    return reader;
   }
 
   @Override
-  public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
-      RateLimiter readLimiter, AccumuloConfiguration tableConf) throws IOException {
-    FileSKVIterator iter = openReader(file, false, fs, conf, readLimiter, tableConf, null, null);
-    iter.seek(range, columnFamilies, inclusive);
-    return iter;
+  protected FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException {
+    RFile.Reader reader = getReader(options);
+    reader.seek(options.getRange(), options.getColumnFamilies(), options.isRangeInclusive());
+    return reader;
   }
 
   @Override
-  public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
-      RateLimiter readLimiter, AccumuloConfiguration tableConf, BlockCache dataCache, BlockCache indexCache) throws IOException {
-    FileSKVIterator iter = openReader(file, false, fs, conf, readLimiter, tableConf, dataCache, indexCache);
-    iter.seek(range, columnFamilies, inclusive);
-    return iter;
-  }
+  protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
+    Configuration conf = options.getConfiguration();
+    AccumuloConfiguration acuconf = options.getTableConfiguration();
 
-  @Override
-  public FileSKVWriter openWriter(String file, FileSystem fs, Configuration conf, RateLimiter writeLimiter, AccumuloConfiguration acuconf) throws IOException {
-    return openWriter(file, fs, conf, writeLimiter, acuconf, acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-  }
-
-  FileSKVWriter openWriter(String file, FileSystem fs, Configuration conf, RateLimiter writeLimiter, AccumuloConfiguration acuconf, String compression)
-      throws IOException {
     int hrep = conf.getInt("dfs.replication", -1);
     int trep = acuconf.getCount(Property.TABLE_FILE_REPLICATION);
     int rep = hrep;
@@ -136,9 +103,16 @@ public class RFileOperations extends FileOperations {
       sampler = SamplerFactory.newSampler(samplerConfig, acuconf);
     }
 
+    String compression = options.getCompression();
+    compression = compression == null ? options.getTableConfiguration().get(Property.TABLE_FILE_COMPRESSION_TYPE) : compression;
+
+    String file = options.getFilename();
+    FileSystem fs = options.getFileSystem();
+
     CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(new RateLimitedOutputStream(fs.create(new Path(file), false, bufferSize, (short) rep, block),
-        writeLimiter), compression, conf, acuconf);
-    Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
+        options.getRateLimiter()), compression, conf, acuconf);
+
+    RFile.Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
     return writer;
   }
 }

@@ -465,7 +465,8 @@ public class Initialize implements KeywordExecutable {
       createEntriesForTablet(sorted, tablet);
     }
     FileSystem fs = volmanager.getVolumeByPath(new Path(fileName)).getFileSystem();
-    FileSKVWriter tabletWriter = FileOperations.getInstance().openWriter(fileName, fs, fs.getConf(), null, AccumuloConfiguration.getDefaultConfiguration());
+    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder().forFile(fileName, fs, fs.getConf())
+        .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
     tabletWriter.startDefaultLocalityGroup();
 
     for (Entry<Key,Value> entry : sorted.entrySet()) {
