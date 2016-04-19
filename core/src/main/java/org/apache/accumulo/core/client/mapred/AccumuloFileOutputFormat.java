@@ -186,7 +186,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
         }
 
         if (out == null) {
-          out = FileOperations.getInstance().openWriter(file.toString(), file.getFileSystem(conf), conf, null, acuConf);
+          out = FileOperations.getInstance().openWriter().ofFile(file.toString(), file.getFileSystem(conf), conf).withTableConfiguration(acuConf).execute();
           out.startDefaultLocalityGroup();
         }
         out.append(key, value);

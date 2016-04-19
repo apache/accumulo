@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -67,6 +66,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
@@ -289,8 +289,8 @@ class MockTableOperations extends TableOperationsHelper {
      */
     for (FileStatus importStatus : fs.listStatus(importPath)) {
       try {
-        FileSKVIterator importIterator = FileOperations.getInstance().openReader(importStatus.getPath().toString(), true, fs, fs.getConf(), null,
-            AccumuloConfiguration.getDefaultConfiguration());
+        FileSKVIterator importIterator = FileOperations.getInstance().openReader().ofFile(importStatus.getPath().toString(), fs, fs.getConf())
+            .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).seekToBeginning().execute();
         while (importIterator.hasTop()) {
           Key key = importIterator.getTopKey();
           Value value = importIterator.getTopValue();

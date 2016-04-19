@@ -642,7 +642,8 @@ public class BulkImporter {
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
     FileSystem fs = vm.getVolumeByPath(file).getFileSystem();
-    FileSKVIterator reader = FileOperations.getInstance().openReader(filename, true, fs, fs.getConf(), null, context.getConfiguration());
+    FileSKVIterator reader = FileOperations.getInstance().openReader().ofFile(filename, fs, fs.getConf()).withTableConfiguration(context.getConfiguration())
+        .seekToBeginning().execute();
     try {
       Text row = startRow;
       if (row == null)

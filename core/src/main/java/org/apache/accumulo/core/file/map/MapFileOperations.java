@@ -21,10 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -32,15 +30,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MapFileIterator;
 import org.apache.accumulo.core.iterators.system.SequenceFileIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
 
@@ -142,61 +136,37 @@ public class MapFileOperations extends FileOperations {
   }
 
   @Override
-  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, RateLimiter readLimiter,
-      AccumuloConfiguration acuconf) throws IOException {
-    FileSKVIterator iter = new RangeIterator(new MapFileIterator(acuconf, fs, file, conf));
-
-    if (seekToBeginning)
+  protected FileSKVIterator openReader(OpenReaderOperation options) throws IOException {
+    FileSKVIterator iter = new RangeIterator(new MapFileIterator(options.getTableConfiguration(), options.getFileSystem(), options.getFilename(),
+        options.getConfiguration()));
+    if (options.isSeekToBeginning()) {
       iter.seek(new Range(new Key(), null), new ArrayList<ByteSequence>(), false);
-
+    }
     return iter;
   }
 
   @Override
-  public FileSKVWriter openWriter(String file, FileSystem fs, Configuration conf, RateLimiter writeLimiter, AccumuloConfiguration acuconf) throws IOException {
+  protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    return new SequenceFileIterator(MapFileUtil.openIndex(conf, fs, new Path(file)), false);
+  protected FileSKVIterator openIndex(OpenIndexOperation options) throws IOException {
+    return new SequenceFileIterator(MapFileUtil.openIndex(options.getConfiguration(), options.getFileSystem(), new Path(options.getFilename())), false);
   }
 
   @Override
-  public long getFileSize(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    return fs.getFileStatus(new Path(file + "/" + MapFile.DATA_FILE_NAME)).getLen();
+  protected long getFileSize(GetFileSizeOperation options) throws IOException {
+    return options.getFileSystem().getFileStatus(new Path(options.getFilename() + "/" + MapFile.DATA_FILE_NAME)).getLen();
   }
 
   @Override
-  public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
-      RateLimiter readLimiter, AccumuloConfiguration tableConf) throws IOException {
-    MapFileIterator mfIter = new MapFileIterator(tableConf, fs, file, conf);
+  protected FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException {
+    MapFileIterator mfIter = new MapFileIterator(options.getTableConfiguration(), options.getFileSystem(), options.getFilename(), options.getConfiguration());
 
     FileSKVIterator iter = new RangeIterator(mfIter);
-
-    iter.seek(range, columnFamilies, inclusive);
+    iter.seek(options.getRange(), options.getColumnFamilies(), options.isRangeInclusive());
 
     return iter;
-  }
-
-  @Override
-  public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
-      RateLimiter readLimiter, AccumuloConfiguration tableConf, BlockCache dataCache, BlockCache indexCache) throws IOException {
-
-    return openReader(file, range, columnFamilies, inclusive, fs, conf, readLimiter, tableConf);
-  }
-
-  @Override
-  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, RateLimiter readLimiter,
-      AccumuloConfiguration acuconf, BlockCache dataCache, BlockCache indexCache) throws IOException {
-
-    return openReader(file, seekToBeginning, fs, conf, readLimiter, acuconf);
-  }
-
-  @Override
-  public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf, BlockCache dCache, BlockCache iCache)
-      throws IOException {
-
-    return openIndex(file, fs, conf, acuconf);
   }
 }

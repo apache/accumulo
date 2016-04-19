@@ -51,7 +51,7 @@ public class FileOperationsTest {
       Configuration conf = new Configuration();
       FileSystem fs = FileSystem.getLocal(conf);
       AccumuloConfiguration acuconf = AccumuloConfiguration.getDefaultConfiguration();
-      writer = fileOperations.openWriter(filename, fs, conf, null, acuconf);
+      writer = fileOperations.openWriter().ofFile(filename, fs, conf).withTableConfiguration(acuconf).execute();
       writer.close();
     } catch (Exception ex) {
       caughtException = true;

@@ -447,7 +447,8 @@ public class CollectTabletStats {
 
     for (FileRef file : files) {
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
-      FileSKVIterator reader = FileOperations.getInstance().openReader(file.path().toString(), false, ns, ns.getConf(), null, aconf);
+      FileSKVIterator reader = FileOperations.getInstance().openReader().ofFile(file.path().toString(), ns, ns.getConf()).withTableConfiguration(aconf)
+          .execute();
       Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
       reader.seek(range, columnSet, columnSet.size() == 0 ? false : true);
       while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
@@ -477,7 +478,8 @@ public class CollectTabletStats {
 
     for (FileRef file : files) {
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
-      readers.add(FileOperations.getInstance().openReader(file.path().toString(), false, ns, ns.getConf(), null, aconf.getConfiguration()));
+      readers.add(FileOperations.getInstance().openReader().ofFile(file.path().toString(), ns, ns.getConf()).withTableConfiguration(aconf.getConfiguration())
+          .execute());
     }
 
     List<IterInfo> emptyIterinfo = Collections.emptyList();

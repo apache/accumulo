@@ -17,25 +17,19 @@
 package org.apache.accumulo.core.file;
 
 import java.io.IOException;
-import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.map.MapFileOperations;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 class DispatchingFileFactory extends FileOperations {
 
-  private FileOperations findFileFactory(String file) {
+  private FileOperations findFileFactory(FileAccessOperation<?> options) {
+    String file = options.getFilename();
 
     Path p = new Path(file);
     String name = p.getName();
@@ -60,78 +54,54 @@ class DispatchingFileFactory extends FileOperations {
     }
   }
 
-  @Override
-  public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    return findFileFactory(file).openIndex(file, fs, conf, acuconf, null, null);
-  }
-
-  @Override
-  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, RateLimiter readLimiter,
-      AccumuloConfiguration acuconf) throws IOException {
-    FileSKVIterator iter = findFileFactory(file).openReader(file, seekToBeginning, fs, conf, readLimiter, acuconf, null, null);
-    if (acuconf.getBoolean(Property.TABLE_BLOOM_ENABLED)) {
-      return new BloomFilterLayer.Reader(iter, acuconf);
-    }
-    return iter;
-  }
-
-  @Override
-  public FileSKVWriter openWriter(String file, FileSystem fs, Configuration conf, RateLimiter writeLimiter, AccumuloConfiguration acuconf) throws IOException {
-    FileSKVWriter writer = findFileFactory(file).openWriter(file, fs, conf, writeLimiter, acuconf);
-    if (acuconf.getBoolean(Property.TABLE_BLOOM_ENABLED)) {
-      return new BloomFilterLayer.Writer(writer, acuconf);
-    }
-    return writer;
-  }
-
-  @Override
-  public long getFileSize(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    return findFileFactory(file).getFileSize(file, fs, conf, acuconf);
-  }
-
-  @Override
-  public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
-      RateLimiter readLimiter, AccumuloConfiguration tableConf) throws IOException {
-    return findFileFactory(file).openReader(file, range, columnFamilies, inclusive, fs, conf, readLimiter, tableConf, null, null);
-  }
-
-  @Override
-  public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
-      RateLimiter readLimiter, AccumuloConfiguration tableConf, BlockCache dataCache, BlockCache indexCache) throws IOException {
-
-    if (!tableConf.getBoolean(Property.TABLE_INDEXCACHE_ENABLED))
+  /** If the table configuration disallows caching, rewrite the options object to not pass the caches. */
+  private static <T extends FileReaderOperation<T>> T filterCaches(T input) {
+    BlockCache indexCache = input.getIndexCache();
+    BlockCache dataCache = input.getDataCache();
+    if (!input.getTableConfiguration().getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) {
       indexCache = null;
-    if (!tableConf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED))
-      dataCache = null;
-
-    return findFileFactory(file).openReader(file, range, columnFamilies, inclusive, fs, conf, readLimiter, tableConf, dataCache, indexCache);
-  }
-
-  @Override
-  public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, RateLimiter readLimiter,
-      AccumuloConfiguration acuconf, BlockCache dataCache, BlockCache indexCache) throws IOException {
-
-    if (!acuconf.getBoolean(Property.TABLE_INDEXCACHE_ENABLED))
-      indexCache = null;
-    if (!acuconf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED))
-      dataCache = null;
-
-    FileSKVIterator iter = findFileFactory(file).openReader(file, seekToBeginning, fs, conf, readLimiter, acuconf, dataCache, indexCache);
-    if (acuconf.getBoolean(Property.TABLE_BLOOM_ENABLED)) {
-      return new BloomFilterLayer.Reader(iter, acuconf);
     }
-    return iter;
+    if (!input.getTableConfiguration().getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
+      dataCache = null;
+    }
+    return input.withBlockCache(dataCache, indexCache);
   }
 
   @Override
-  public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf, BlockCache dCache, BlockCache iCache)
-      throws IOException {
+  protected long getFileSize(GetFileSizeOperation options) throws IOException {
+    return findFileFactory(options).getFileSize(options);
+  }
 
-    if (!acuconf.getBoolean(Property.TABLE_INDEXCACHE_ENABLED))
-      iCache = null;
-    if (!acuconf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED))
-      dCache = null;
+  @Override
+  protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
+    FileSKVWriter writer = findFileFactory(options).openWriter(options);
+    if (options.getTableConfiguration().getBoolean(Property.TABLE_BLOOM_ENABLED)) {
+      return new BloomFilterLayer.Writer(writer, options.getTableConfiguration());
+    } else {
+      return writer;
+    }
+  }
 
-    return findFileFactory(file).openIndex(file, fs, conf, acuconf, dCache, iCache);
+  @Override
+  protected FileSKVIterator openIndex(OpenIndexOperation options) throws IOException {
+    options = filterCaches(options);
+    return findFileFactory(options).openIndex(options);
+  }
+
+  @Override
+  protected FileSKVIterator openReader(OpenReaderOperation options) throws IOException {
+    options = filterCaches(options);
+    FileSKVIterator iter = findFileFactory(options).openReader(options);
+    if (options.getTableConfiguration().getBoolean(Property.TABLE_BLOOM_ENABLED)) {
+      return new BloomFilterLayer.Reader(iter, options.getTableConfiguration());
+    } else {
+      return iter;
+    }
+  }
+
+  @Override
+  protected FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException {
+    options = filterCaches(options);
+    return findFileFactory(options).openScanReader(options);
   }
 }

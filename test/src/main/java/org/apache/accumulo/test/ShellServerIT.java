@@ -1338,9 +1338,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(errorsDir.mkdir());
     fs.mkdirs(new Path(errorsDir.toString()));
     AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
-    FileSKVWriter evenWriter = FileOperations.getInstance().openWriter(even, fs, conf, null, aconf);
+    FileSKVWriter evenWriter = FileOperations.getInstance().openWriter().ofFile(even, fs, conf).withTableConfiguration(aconf).execute();
     evenWriter.startDefaultLocalityGroup();
-    FileSKVWriter oddWriter = FileOperations.getInstance().openWriter(odd, fs, conf, null, aconf);
+    FileSKVWriter oddWriter = FileOperations.getInstance().openWriter().ofFile(odd, fs, conf).withTableConfiguration(aconf).execute();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");

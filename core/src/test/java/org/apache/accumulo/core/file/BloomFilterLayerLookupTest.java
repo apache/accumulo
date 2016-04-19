@@ -80,7 +80,7 @@ public class BloomFilterLayerLookupTest {
     // get output file name
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = new File(tempDir.getRoot(), testName + "." + suffix).getAbsolutePath();
-    FileSKVWriter bmfw = FileOperations.getInstance().openWriter(fname, fs, conf, null, acuconf);
+    FileSKVWriter bmfw = FileOperations.getInstance().openWriter().ofFile(fname, fs, conf).withTableConfiguration(acuconf).execute();
 
     // write data to file
     long t1 = System.currentTimeMillis();
@@ -96,7 +96,7 @@ public class BloomFilterLayerLookupTest {
     bmfw.close();
 
     t1 = System.currentTimeMillis();
-    FileSKVIterator bmfr = FileOperations.getInstance().openReader(fname, false, fs, conf, null, acuconf);
+    FileSKVIterator bmfr = FileOperations.getInstance().openReader().ofFile(fname, fs, conf).withTableConfiguration(acuconf).execute();
     t2 = System.currentTimeMillis();
     LOG.debug("Opened " + fname + " in " + (t2 - t1));
 

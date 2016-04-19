@@ -77,8 +77,8 @@ public class CreateEmpty {
     for (String arg : opts.files) {
       Path path = new Path(arg);
       log.info("Writing to file '" + path + "'");
-      FileSKVWriter writer = (new RFileOperations()).openWriter(arg, path.getFileSystem(conf), conf, null, DefaultConfiguration.getDefaultConfiguration(),
-          opts.codec);
+      FileSKVWriter writer = (new RFileOperations()).openWriter().ofFile(arg, path.getFileSystem(conf), conf)
+          .withTableConfiguration(DefaultConfiguration.getDefaultConfiguration()).withCompression(opts.codec).execute();
       writer.close();
     }
   }
