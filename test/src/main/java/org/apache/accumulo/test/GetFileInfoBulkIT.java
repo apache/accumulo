@@ -123,7 +123,7 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
           fs.mkdirs(bulkFailures);
           fs.mkdirs(files);
           for (int i = 0; i < 100; i++) {
-            FileSKVWriter writer = FileOperations.getInstance().openWriter(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf(),
+            FileSKVWriter writer = FileOperations.getInstance().openWriter(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf(), null,
                 AccumuloConfiguration.getDefaultConfiguration());
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {

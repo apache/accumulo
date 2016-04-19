@@ -21,6 +21,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.ref.SoftReference;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -33,11 +34,14 @@ import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Writer.BlockAppender;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.core.file.streams.PositionedOutput;
+import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
+import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.Seekable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,20 +59,22 @@ public class CachableBlockFile {
   public static class Writer implements BlockFileWriter {
     private BCFile.Writer _bc;
     private BlockWrite _bw;
-    private final FSDataOutputStream fsout;
+    private final PositionedOutput fsout;
     private long length = 0;
 
-    public Writer(FileSystem fs, Path fName, String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
-      this.fsout = fs.create(fName);
-      init(fsout, compressAlgor, conf, accumuloConfiguration);
+    public Writer(FileSystem fs, Path fName, String compressAlgor, RateLimiter writeLimiter, Configuration conf, AccumuloConfiguration accumuloConfiguration)
+        throws IOException {
+      this(new RateLimitedOutputStream(fs.create(fName), writeLimiter), compressAlgor, conf, accumuloConfiguration);
     }
 
-    public Writer(FSDataOutputStream fsout, String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
+    public <OutputStreamType extends OutputStream & PositionedOutput> Writer(OutputStreamType fsout, String compressAlgor, Configuration conf,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
       this.fsout = fsout;
       init(fsout, compressAlgor, conf, accumuloConfiguration);
     }
 
-    private void init(FSDataOutputStream fsout, String compressAlgor, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
+    private <OutputStreamT extends OutputStream & PositionedOutput> void init(OutputStreamT fsout, String compressAlgor, Configuration conf,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
       _bc = new BCFile.Writer(fsout, compressAlgor, conf, false, accumuloConfiguration);
     }
 
@@ -90,8 +96,8 @@ public class CachableBlockFile {
       _bw.close();
       _bc.close();
 
-      length = this.fsout.getPos();
-      this.fsout.close();
+      length = this.fsout.position();
+      ((OutputStream) this.fsout).close();
     }
 
     @Override
@@ -139,11 +145,12 @@ public class CachableBlockFile {
    *
    */
   public static class Reader implements BlockFileReader {
+    private final RateLimiter readLimiter;
     private BCFile.Reader _bc;
     private String fileName = "not_available";
     private BlockCache _dCache = null;
     private BlockCache _iCache = null;
-    private FSDataInputStream fin = null;
+    private InputStream fin = null;
     private FileSystem fs;
     private Configuration conf;
     private boolean closed = false;
@@ -221,6 +228,11 @@ public class CachableBlockFile {
 
     public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data, BlockCache index, AccumuloConfiguration accumuloConfiguration)
         throws IOException {
+      this(fs, dataFile, conf, data, index, null, accumuloConfiguration);
+    }
+
+    public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data, BlockCache index, RateLimiter readLimiter,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
 
       /*
        * Grab path create input stream grab len create file
@@ -232,21 +244,25 @@ public class CachableBlockFile {
       this.fs = fs;
       this.conf = conf;
       this.accumuloConfiguration = accumuloConfiguration;
+      this.readLimiter = readLimiter;
     }
 
-    public Reader(FSDataInputStream fsin, long len, Configuration conf, BlockCache data, BlockCache index, AccumuloConfiguration accumuloConfiguration)
-        throws IOException {
+    public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len, Configuration conf, BlockCache data, BlockCache index,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
       this._dCache = data;
       this._iCache = index;
+      this.readLimiter = null;
       init(fsin, len, conf, accumuloConfiguration);
     }
 
-    public Reader(FSDataInputStream fsin, long len, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
-      // this.fin = fsin;
+    public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len, Configuration conf,
+        AccumuloConfiguration accumuloConfiguration) throws IOException {
+      this.readLimiter = null;
       init(fsin, len, conf, accumuloConfiguration);
     }
 
-    private void init(FSDataInputStream fsin, long len, Configuration conf, AccumuloConfiguration accumuloConfiguration) throws IOException {
+    private <InputStreamT extends InputStream & Seekable> void init(InputStreamT fsin, long len, Configuration conf, AccumuloConfiguration accumuloConfiguration)
+        throws IOException {
       this._bc = new BCFile.Reader(this, fsin, len, conf, accumuloConfiguration);
     }
 
@@ -257,8 +273,9 @@ public class CachableBlockFile {
       if (_bc == null) {
         // lazily open file if needed
         Path path = new Path(fileName);
-        fin = fs.open(path);
-        init(fin, fs.getFileStatus(path).getLen(), conf, accumuloConfiguration);
+        RateLimitedInputStream fsIn = new RateLimitedInputStream(fs.open(path), this.readLimiter);
+        fin = fsIn;
+        init(fsIn, fs.getFileStatus(path).getLen(), conf, accumuloConfiguration);
       }
 
       return _bc;

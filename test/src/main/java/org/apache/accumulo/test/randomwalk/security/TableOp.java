@@ -203,7 +203,7 @@ public class TableOp extends Test {
         Path dir = new Path("/tmp", "bulk_" + UUID.randomUUID().toString());
         Path fail = new Path(dir.toString() + "_fail");
         FileSystem fs = WalkingSecurity.get(state, env).getFs();
-        FileSKVWriter f = FileOperations.getInstance().openWriter(dir + "/securityBulk." + RFile.EXTENSION, fs, fs.getConf(),
+        FileSKVWriter f = FileOperations.getInstance().openWriter(dir + "/securityBulk." + RFile.EXTENSION, fs, fs.getConf(), null,
             AccumuloConfiguration.getDefaultConfiguration());
         f.startDefaultLocalityGroup();
         fs.mkdirs(fail);
