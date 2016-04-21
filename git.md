@@ -182,7 +182,7 @@ for large features, release candidates or whatever else is deemed useful.
 
 It is always the responsibility of committers to determine that a patch is
 intended and able to be contributed.  From the
-[new committer's guide](http://www.apache.org/dev/new-committers-guide.html#cla):
+[new committer's guide](http://www.apache.org/dev/new-committers-guide#cla):
 "Please take care to ensure that patches are original works which have been
 clearly contributed to the ASF in public. In the case of any doubt (or when a
 contribution with a more complex history is presented) please consult your
@@ -350,8 +350,8 @@ By convention, the branch containing the changes `z'` should be named
 `x.y` (where the changes for `z'` are commits since `x.y.z`. The steps to take are as follows:
 
 1. Prepare the release candidate. [Release
-   Guide](/governance/releasing.html), [Maven
-   Instructions](/releasing.html)
+   Guide]({{ site.baseurl }}/governance/releasing), [Maven
+   Instructions]({{ site.baseurl }}/releasing)
 2. Create a branch for the release candidate from the `x.y` branch,
    named something like `x.y.z'-RCN`.
 3. Test and Vote
@@ -418,7 +418,7 @@ applied for the [Apache hosted](http://git.apache.org) mirror'ing.
 It should be noted in the INFRA request that commit messages should be sent to
 [commits@accumulo.apache.org](mailto:commits@accumulo.apache.org). The subject
 can be decided on using the [provided
-variables](https://git-wip-us.apache.org/docs/switching-to-git.html#contents).
+variables](https://git-wip-us.apache.org/docs/switching-to-git#contents).
 
 # Examples
 

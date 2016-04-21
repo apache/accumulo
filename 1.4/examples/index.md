@@ -21,30 +21,30 @@ Commands intended to be run in bash are prefixed by '$'.  These are always assum
 
 Commands intended to be run in the Accumulo shell are prefixed by '>'.
 
-[1]: {{ site.baseurl }}/1.4/user_manual/Accumulo_Shell.html#User_Administration
-[batch](batch.html)
+[1]: {{ site.baseurl }}/1.4/user_manual/Accumulo_Shell#User_Administration
+[batch](batch)
 
-[bloom](bloom.html)
+[bloom](bloom)
 
-[bulkIngest](bulkIngest.html)
+[bulkIngest](bulkIngest)
 
-[combiner](combiner.html)
+[combiner](combiner)
 
-[constraints](constraints.html)
+[constraints](constraints)
 
-[dirlist](dirlist.html)
+[dirlist](dirlist)
 
-[filedata](filedata.html)
+[filedata](filedata)
 
-[filter](filter.html)
+[filter](filter)
 
-[helloworld](helloworld.html)
+[helloworld](helloworld)
 
-[isolation](isolation.html)
+[isolation](isolation)
 
-[mapred](mapred.html)
+[mapred](mapred)
 
-[shard](shard.html)
+[shard](shard)
 
-[visibility](visibility.html)
+[visibility](visibility)
 

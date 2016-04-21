@@ -179,7 +179,7 @@ Changes to non-private members of those classes are subject to additional scruti
 ### Coding Practices
 
 <table class="table">
-<tr><th>License Header</th><td>Always add the current ASF license header as described in <a href="http://www.apache.org/legal/src-headers.html">ASF Source Header</a>.</td></tr>
+<tr><th>License Header</th><td>Always add the current ASF license header as described in <a href="http://www.apache.org/legal/src-headers">ASF Source Header</a>.</td></tr>
 <tr><th>Trailing Whitespaces</th><td>Remove all trailing whitespaces. Eclipse users can use Source&rarr;Cleanup option to accomplish this.</td></tr>
 <tr><th>Indentation</th><td>Use 2 space indents and never use tabs!</td></tr>
 <tr><th>Line Wrapping</th><td>Use 160-column line width for Java code and Javadoc.</td></tr>
@@ -212,10 +212,10 @@ Accumulo's release guide can be found [here][release].
 [1]: http://creadur.apache.org/rat/apache-rat-plugin/
 [anongit]: git://git.apache.org/accumulo.git
 [cgit]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=summary
-[cms]: http://www.apache.org/dev/cms.html
-[cmsanon]: http://www.apache.org/dev/cmsref.html#non-committer
-[cmsusage]: http://www.apache.org/dev/cms.html#usage
-[contrib]: contrib.html
+[cms]: http://www.apache.org/dev/cms
+[cmsanon]: http://www.apache.org/dev/cmsref#non-committer
+[cmsusage]: http://www.apache.org/dev/cms#usage
+[contrib]: contrib
 [devlist]: mailto:dev@accumulo.apache.org
 [gh-pages]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=tree;h=gh-pages
 [git-instr]: https://git-wip-us.apache.org
@@ -227,13 +227,13 @@ Accumulo's release guide can be found [here][release].
 [jenkins]: http://jenkins-ci.org/
 [jira]: http://www.atlassian.com/software/jira/overview
 [jiraloc]: https://issues.apache.org/jira/browse/ACCUMULO
-[lifecycle]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
+[lifecycle]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle
 [masterbuild]: https://builds.apache.org/job/Accumulo-Master/
 [maven]: http://maven.apache.org/
 [pom]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=pom.xml;hb=HEAD
-[rb]: rb.html
-[release]: governance/releasing.html
+[rb]: rb
+[release]: governance/releasing
 [site-canon]: https://accumulo.apache.org
 [site-mirror]: http://apache.github.io/accumulo
-[srcheaders]: http://www.apache.org/legal/src-headers.html
+[srcheaders]: http://www.apache.org/legal/src-headers
 [styles]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=tree;f=contrib;hb=HEAD

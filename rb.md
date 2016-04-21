@@ -106,7 +106,7 @@ They should be in the form of a patch containing a single commit,
 
 [rbinstance]: https://reviews.apache.org/
 [rb]: http://www.reviewboard.org/
-[bylaws]: http://accumulo.apache.org/bylaws.html
-[ctr]: http://www.apache.org/foundation/glossary.html#CommitThenReview
-[actions]: http://accumulo.apache.org/bylaws.html#actions
-[contributor]: http://accumulo.apache.org/git.html#contributors
+[bylaws]: http://accumulo.apache.org/bylaws
+[ctr]: http://www.apache.org/foundation/glossary#CommitThenReview
+[actions]: http://accumulo.apache.org/bylaws#actions
+[contributor]: http://accumulo.apache.org/git#contributors

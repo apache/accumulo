@@ -195,7 +195,7 @@ instance more closely.
 Using the Mini Accumulo Cluster in unit and integration tests is a great way for
 developers to test their applications against Accumulo in an environment that is
 much closer to physical deployments than Mock Accumulo provided. Accumulo 1.6.0 also
-introduced a [maven-accumulo-plugin](/release_notes/1.6.0.html#maven-plugin) which
+introduced a [maven-accumulo-plugin]({{ site.baseurl }}/release_notes/1.6.0#maven-plugin) which
 can be used to start a Mini Accumulo Cluster instance as a part of the Maven
 lifecycle that your application tests can use.
 
@@ -271,8 +271,8 @@ available to other languages like Python, Ruby, C++, etc.
 In version 1.6.0, Accumulo introduced [ConditionalMutations][7]
 which allow users to perform efficient, atomic read-modify-write operations on rows. Conditions can
 be defined using on equality checks of the values in a column or the absence of a column. For more
-information on using this feature, users can reference the Javadoc for [ConditionalMutation](/1.6/apidocs/org/apache/accumulo/core/data/ConditionalMutation.html) and
-[ConditionalWriter](/1.6/apidocs/org/apache/accumulo/core/client/ConditionalWriter.html)
+information on using this feature, users can reference the Javadoc for [ConditionalMutation]({{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/data/ConditionalMutation) and
+[ConditionalWriter]({{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/client/ConditionalWriter)
 
 ### Lexicoders
 
@@ -441,6 +441,6 @@ Added an operation to efficiently delete a range of rows from a table. Tablets
 that fall completely within a range are simply dropped. Tablets overlapping the
 beginning and end of the range are split, compacted, and then merged.  
 
-[4]: {{ site.baseurl }}/1.5/accumulo_user_manual.html#_writing_accumulo_clients
-[6]: {{ site.baseurl }}/1.5/accumulo_user_manual.html#_bulk_ingest
-[7]: {{ site.baseurl }}/1.6/accumulo_user_manual.html#_conditionalwriter
+[4]: {{ site.baseurl }}/1.5/accumulo_user_manual#_writing_accumulo_clients
+[6]: {{ site.baseurl }}/1.5/accumulo_user_manual#_bulk_ingest
+[7]: {{ site.baseurl }}/1.6/accumulo_user_manual#_conditionalwriter

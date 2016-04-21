@@ -137,11 +137,11 @@ Some good references that explain a few things:
 
 
 [1]: https://www.apache.org/dev/release-signing
-[2]: https://repository.apache.org/index.html
+[2]: https://repository.apache.org/
 [3]: http://mail-archives.apache.org/mod_mbox/accumulo-dev/201305.mbox/raw/%3CCAL5zq9bH8y0FyjXmmfXhWPj8axosn9dZ7%2Bu-R1DK4Y-WM1YoWg%40mail.gmail.com%3E/
-[4]: https://www.apache.org/dev/publishing-maven-artifacts.html
-[5]: http://www.apache.org/dev/release-publishing.html
-[6]: http://accumulo.apache.org/governance/releasing.html
+[4]: https://www.apache.org/dev/publishing-maven-artifacts
+[5]: http://www.apache.org/dev/release-publishing
+[6]: http://accumulo.apache.org/governance/releasing
 [7]: http://www.kb.cert.org/vuls/id/225657
 [8]: http://www.apache.org/dev/cmsref#extpaths
-[addrelease]: https://reporter.apache.org/addrelease.html?accumulo
+[addrelease]: https://reporter.apache.org/addrelease?accumulo

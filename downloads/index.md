@@ -147,12 +147,12 @@ For convenience, [MD5][MD5SUM_16] and [SHA1][SHA1SUM_16] hashes are also availab
 Older releases can be found in the [archives][ARCHIVES].
 
 
-[VERIFY_PROCEDURES]: https://www.apache.org/info/verification.html "Verify"
+[VERIFY_PROCEDURES]: https://www.apache.org/info/verification "Verify"
 [GPG_KEYS]: https://www.apache.org/dist/accumulo/KEYS "KEYS"
 [ARCHIVES]: https://archive.apache.org/dist/accumulo/
 
-[MANUAL_HTML_16]: {{ site.baseurl }}/1.6/accumulo_user_manual.html "1.6 user manual"
-[MANUAL_HTML_17]: {{ site.baseurl }}/1.7/accumulo_user_manual.html "1.7 user manual"
+[MANUAL_HTML_16]: {{ site.baseurl }}/1.6/accumulo_user_manual "1.6 user manual"
+[MANUAL_HTML_17]: {{ site.baseurl }}/1.7/accumulo_user_manual "1.7 user manual"
 
 [EXAMPLES_16]: {{ site.baseurl }}/1.6/examples "1.6 examples"
 [EXAMPLES_17]: {{ site.baseurl }}/1.7/examples "1.7 examples"
@@ -160,8 +160,8 @@ Older releases can be found in the [archives][ARCHIVES].
 [CHANGES_16]: https://issues.apache.org/jira/browse/ACCUMULO/fixforversion/12333674 "1.6.5 CHANGES"
 [CHANGES_17]: https://issues.apache.org/jira/browse/ACCUMULO/fixforversion/12329940 "1.7.1 CHANGES"
 
-[REL_NOTES_16]: {{ site.baseurl }}/release_notes/1.6.5.html "1.6.5 Release Notes"
-[REL_NOTES_17]: {{ site.baseurl }}/release_notes/1.7.1.html "1.7.1 Release Notes"
+[REL_NOTES_16]: {{ site.baseurl }}/release_notes/1.6.5 "1.6.5 Release Notes"
+[REL_NOTES_17]: {{ site.baseurl }}/release_notes/1.7.1 "1.7.1 Release Notes"
 
 [MD5SUM_16]: https://www.apache.org/dist/accumulo/1.6.5/MD5SUM "1.6.5 MD5 file hashes"
 [MD5SUM_17]: https://www.apache.org/dist/accumulo/1.7.1/MD5SUM "1.7.1 MD5 file hashes"

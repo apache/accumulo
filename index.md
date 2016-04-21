@@ -17,7 +17,7 @@ top of Apache [Hadoop][2], [Zookeeper][3], and [Thrift][4].  Apache Accumulo fea
 improvements on the BigTable design in the form of cell-based access control and a server-side
 programming mechanism that can modify key/value pairs at various points in the
 data management process.  Other notable improvements and feature are outlined
-[here](notable_features.html).
+[here](notable_features).
 
 Google published the design of BigTable in 2006.  Several other open source
 projects have implemented aspects of this design including [HBase][5], [Hypertable][6],

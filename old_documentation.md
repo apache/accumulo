@@ -26,7 +26,7 @@ This page contains pointers to the documentation for major versions of Accumulo 
 * [html manual][MANUAL_HTML_13]
 * [examples][EXAMPLES_13]
 
-[MANUAL_HTML_15]: {{ site.baseurl }}/1.5/accumulo_user_manual.html "1.5 user manual"
+[MANUAL_HTML_15]: {{ site.baseurl }}/1.5/accumulo_user_manual "1.5 user manual"
 [EXAMPLES_15]: {{ site.baseurl }}/1.5/examples "1.5 examples"
 [MANUAL_HTML_14]: {{ site.baseurl }}/1.4/user_manual "1.4 user manual"
 [EXAMPLES_14]: {{ site.baseurl }}/1.4/examples "1.4 examples"

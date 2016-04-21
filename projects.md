@@ -16,7 +16,7 @@ them visibility to a larger audience. To have you project listed here, send a re
 
 #### Wikisearch 
 
-The [Wikisearch project](/example/wikisearch.html) is a rough example of generalized secondary indexing, both ingest
+The [Wikisearch project]({{ site.baseurl }}/example/wikisearch) is a rough example of generalized secondary indexing, both ingest
 and search, built on top of Apache Accumulo. This write contains more information on the project as well as some
 general performance numbers of the project.
 
@@ -32,7 +32,7 @@ is an application of Accumulo continuous ingest (CI) test on Gora which verifies
 #### ProxyInstance
 
 ProxyInstance is a Java Instance implementation of the Accumulo Instance interface that communicates with
-an Accumulo cluster via an Accumulo Thrift proxy server. [Documentation](http://jhuapl.github.io/accumulo-proxy-instance/proxy_instance_user_manual.html) and
+an Accumulo cluster via an Accumulo Thrift proxy server. [Documentation](http://jhuapl.github.io/accumulo-proxy-instance/proxy_instance_user_manual) and
 [code](https://github.com/JHUAPL/accumulo-proxy-instance) are available.
 
 #### Graphulo

@@ -85,8 +85,8 @@ contained in artifact being verified for releases, the contents of the contained
 to this artifact's NOTICE file. For example, Accumulo bundles the Apache Thrift libthrift JAR file which also have its
 own NOTICE file. The contents of the Apache Thrift NOTICE file should be included within Accumulo's NOTICE file.
 
-[1]: {{ site.baseurl }}/governance/releasing.html#testing
-[2]: http://www.apache.org/dev/apply-license.html
-[3]: http://www.apache.org/legal/src-headers.html
-[4]: http://apache.org/legal/resolved.html
+[1]: {{ site.baseurl }}/governance/releasing#testing
+[2]: http://www.apache.org/dev/apply-license
+[3]: http://www.apache.org/legal/src-headers
+[4]: http://apache.org/legal/resolved
 [5]: http://www.apache.org/legal/

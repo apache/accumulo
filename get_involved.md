@@ -85,12 +85,12 @@ to approve a release.
 
 
   [1]: http://s.apache.org/newbie_accumulo_tickets
-  [2]: {{ site.baseurl }}/mailing_list.html
+  [2]: {{ site.baseurl }}/mailing_list
   [3]: http://www.meetup.com/find/?keywords=accumulo
-  [4]: {{ site.baseurl }}/source.html
+  [4]: {{ site.baseurl }}/source
   [5]: https://www.ohloh.net/p/accumulo
   [6]: http://www.betaversion.org/~stefano/papers/ac2006.2.pdf
-  [7]: {{ site.baseurl }}/governance/lazyConsensus.html
-  [8]: {{ site.baseurl }}/governance/consensusBuilding.html
-  [9]: {{ site.baseurl }}/governance/lazyConsensus.html
-  [10]: {{ site.baseurl }}/governance/voting.html
+  [7]: {{ site.baseurl }}/governance/lazyConsensus
+  [8]: {{ site.baseurl }}/governance/consensusBuilding
+  [9]: {{ site.baseurl }}/governance/lazyConsensus
+  [10]: {{ site.baseurl }}/governance/voting

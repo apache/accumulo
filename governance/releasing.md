@@ -48,5 +48,5 @@ The following tests require a Hadoop cluster running a minimum of HDFS, MapReduc
   - Upon successful vote, the new releases can be retagged to remove the RC status and released on the Accumulo webpage.
   - If at any time the tag needs to be remade due to any sort of error, it should be incremented to the next release candidate number.
 
-[1]: {{ site.baseurl }}/versioning.html
+[1]: {{ site.baseurl }}/versioning
 [nexus]: https://repository.apache.org/

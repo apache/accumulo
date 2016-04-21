@@ -43,15 +43,15 @@ Each release notes document aim to provide content broken down into the followin
 * [Apache Accumulo 1.5.2][REL_152]
 * [Apache Accumulo 1.5.1][REL_151]
 
-[REL_151]: 1.5.1.html
-[REL_152]: 1.5.2.html
-[REL_153]: 1.5.3.html
-[REL_154]: 1.5.4.html
-[REL_160]: 1.6.0.html
-[REL_161]: 1.6.1.html
-[REL_162]: 1.6.2.html
-[REL_163]: 1.6.3.html
-[REL_164]: 1.6.4.html
-[REL_165]: 1.6.5.html
-[REL_170]: 1.7.0.html
-[REL_171]: 1.7.1.html
+[REL_151]: 1.5.1
+[REL_152]: 1.5.2
+[REL_153]: 1.5.3
+[REL_154]: 1.5.4
+[REL_160]: 1.6.0
+[REL_161]: 1.6.1
+[REL_162]: 1.6.2
+[REL_163]: 1.6.3
+[REL_164]: 1.6.4
+[REL_165]: 1.6.5
+[REL_170]: 1.7.0
+[REL_171]: 1.7.1

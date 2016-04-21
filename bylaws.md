@@ -150,7 +150,7 @@ These are the types of approvals that can be sought. Different actions require d
   </tr>
   <tr>
     <td>Lazy Approval (or Lazy Consensus)</td>
-    <td>An action with lazy approval is implicitly allowed unless a -1 vote is received, at which time, depending on the type of action, either majority approval or consensus approval must be obtained.  Lazy Approval can be either <em>stated</em> or <em>assumed</em>, as detailed on the <a href="governance/lazyConsensus.html">lazy consensus page</a>.</td>
+    <td>An action with lazy approval is implicitly allowed unless a -1 vote is received, at which time, depending on the type of action, either majority approval or consensus approval must be obtained.  Lazy Approval can be either <em>stated</em> or <em>assumed</em>, as detailed on the <a href="governance/lazyConsensus">lazy consensus page</a>.</td>
   </tr>
 </table>
 
@@ -262,19 +262,19 @@ After feature freeze, new features should not be accepted for the release. After
 All dates in a plan are estimates, as unforeseen issues may require delays. The release manager may adjust dates as needed. In serious circumstances, the release manager may opt to call a re-plan vote.
 
 [foundation]: http://www.apache.org/foundation/
-[foundation-faq]: http://www.apache.org/foundation/faq.html
+[foundation-faq]: http://www.apache.org/foundation/faq
 [incubator]: http://incubator.apache.org
-[glossary]: http://www.apache.org/foundation/glossary.html
+[glossary]: http://www.apache.org/foundation/glossary
 [icla]: http://www.apache.org/licenses/icla.txt
-[committer-faq]: http://www.apache.org/dev/committers.html
-[pmc-howto]: http://apache.org/foundation/how-it-works.html#pmc
-[release-management]: http://www.apache.org/dev/release.html#management
-[pmc-guide]: http://www.apache.org/dev/pmc.html
-[release-pub]: https://www.apache.org/dev/release-publishing.html
-[release-manager]: https://www.apache.org/dev/release-publishing.html#release_manager
-[release-guidelines]: governance/releasing.html
-[release-mechanics]: releasing.html
-[voting]: governance/voting.html
+[committer-faq]: http://www.apache.org/dev/committers
+[pmc-howto]: http://apache.org/foundation/how-it-works#pmc
+[release-management]: http://www.apache.org/dev/release#management
+[pmc-guide]: http://www.apache.org/dev/pmc
+[release-pub]: https://www.apache.org/dev/release-publishing
+[release-manager]: https://www.apache.org/dev/release-publishing#release_manager
+[release-guidelines]: governance/releasing
+[release-mechanics]: releasing
+[voting]: governance/voting
 [ctr]: #CTR
-[committer-terms]: http://www.apache.org/dev/committers.html#committer-set-term
-[pmc-removal]: http://www.apache.org/dev/pmc.html#pmc-removal
+[committer-terms]: http://www.apache.org/dev/committers#committer-set-term
+[pmc-removal]: http://www.apache.org/dev/pmc#pmc-removal

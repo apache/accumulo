@@ -65,6 +65,6 @@ preceding identifiers are equal. Example: 1.0.0-alpha < 1.0.0-alpha.1 < 1.0.0-al
 1.0.0-beta.11 < 1.0.0-rc.1 < 1.0.0.
 
 
-[1]: http://semver.org/spec/v2.0.0.html
+[1]: http://semver.org/spec/v2.0.0
 [2]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob;f=README;hb=refs/heads/master
 [3]: http://creativecommons.org/licenses/by/3.0/

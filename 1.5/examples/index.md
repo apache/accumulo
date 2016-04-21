@@ -25,58 +25,58 @@ Commands intended to be run in the Accumulo shell are prefixed by '>'.
 Each README in the examples directory highlights the use of particular 
 features of Apache Accumulo.
 
-   [batch](batch.html):       Using the batch writer and batch scanner.
+   [batch](batch):       Using the batch writer and batch scanner.
 
-   [bloom](bloom.html):       Creating a bloom filter enabled table to increase query 
+   [bloom](bloom):       Creating a bloom filter enabled table to increase query 
                        performance.
 
-   [bulkIngest](bulkIngest.html):  Ingesting bulk data using map/reduce jobs on Hadoop.
+   [bulkIngest](bulkIngest):  Ingesting bulk data using map/reduce jobs on Hadoop.
 
-   [classpath](classpath.html):   Using per-table classpaths.
+   [classpath](classpath):   Using per-table classpaths.
 
-   [client](client.html):      Using table operations, reading and writing data in Java.
+   [client](client):      Using table operations, reading and writing data in Java.
 
-   [combiner](combiner.html):    Using example StatsCombiner to find min, max, sum, and 
+   [combiner](combiner):    Using example StatsCombiner to find min, max, sum, and 
                        count.
 
-   [constraints](constraints.html): Using constraints with tables.
+   [constraints](constraints): Using constraints with tables.
 
-   [dirlist](dirlist.html):     Storing filesystem information.
+   [dirlist](dirlist):     Storing filesystem information.
 
-   [export](export.html):      Exporting and importing tables.
+   [export](export):      Exporting and importing tables.
 
-   [filedata](filedata.html):    Storing file data.
+   [filedata](filedata):    Storing file data.
 
-   [filter](filter.html):      Using the AgeOffFilter to remove records more than 30 
+   [filter](filter):      Using the AgeOffFilter to remove records more than 30 
                        seconds old.
 
-   [helloworld](helloworld.html):  Inserting records both inside map/reduce jobs and 
+   [helloworld](helloworld):  Inserting records both inside map/reduce jobs and 
                        outside. And reading records between two rows.
 
-   [isolation](isolation.html):   Using the isolated scanner to ensure partial changes 
+   [isolation](isolation):   Using the isolated scanner to ensure partial changes 
                        are not seen.
 
-   [mapred](mapred.html):      Using MapReduce to read from and write to Accumulo 
+   [mapred](mapred):      Using MapReduce to read from and write to Accumulo 
                        tables.
 
-   [maxmutation](maxmutation.html): Limiting mutation size to avoid running out of memory.
+   [maxmutation](maxmutation): Limiting mutation size to avoid running out of memory.
 
-   [regex](regex.html):       Using MapReduce and Accumulo to find data using regular
+   [regex](regex):       Using MapReduce and Accumulo to find data using regular
                        expressions.
 
-   [rowhash](rowhash.html):     Using MapReduce to read a table and write to a new 
+   [rowhash](rowhash):     Using MapReduce to read a table and write to a new 
                        column in the same table.
 
-   [shard](shard.html):       Using the intersecting iterator with a term index 
+   [shard](shard):       Using the intersecting iterator with a term index 
                        partitioned by document.
 
-   [tabletofile](tabletofile.html): Using MapReduce to read a table and write one of its
+   [tabletofile](tabletofile): Using MapReduce to read a table and write one of its
                        columns to a file in HDFS.
 
-   [terasort](terasort.html):    Generating random data and sorting it using Accumulo.  
+   [terasort](terasort):    Generating random data and sorting it using Accumulo.  
 
-   [visibility](visibility.html):  Using visibilities (or combinations of authorizations). 
+   [visibility](visibility):  Using visibilities (or combinations of authorizations). 
                        Also shows user permissions.
 
 
-[1]: {{ site.baseurl }}/1.5/accumulo_user_manual.html#_user_administration
+[1]: {{ site.baseurl }}/1.5/accumulo_user_manual#_user_administration
