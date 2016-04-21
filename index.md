@@ -28,6 +28,6 @@ and [Cassandra][7].  Accumulo began its development in 2008 and joined the [Apac
 [3]: http://zookeeper.apache.org                 "Zookeeper"
 [4]: http://thrift.apache.org                    "Thrift"
 [5]: http://hbase.apache.org                     "HBase"
-[6]: http://hypertable.org                       "Hypertable"
+[6]: http://hypertable.com                       "Hypertable"
 [7]: http://cassandra.apache.org                 "Cassandra"
 [8]: http://www.apache.org/                      "Apache Software Foundation"
