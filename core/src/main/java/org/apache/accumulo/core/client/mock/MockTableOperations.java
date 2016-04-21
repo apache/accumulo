@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;

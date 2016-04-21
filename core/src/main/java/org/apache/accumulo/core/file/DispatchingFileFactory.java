@@ -20,7 +20,6 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.map.MapFileOperations;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
@@ -55,16 +54,14 @@ class DispatchingFileFactory extends FileOperations {
   }
 
   /** If the table configuration disallows caching, rewrite the options object to not pass the caches. */
-  private static <T extends FileReaderOperation<T>> T filterCaches(T input) {
-    BlockCache indexCache = input.getIndexCache();
-    BlockCache dataCache = input.getDataCache();
+  private static <T extends FileReaderOperation<T>> T selectivelyDisableCaches(T input) {
     if (!input.getTableConfiguration().getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) {
-      indexCache = null;
+      input = input.withIndexCache(null);
     }
     if (!input.getTableConfiguration().getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
-      dataCache = null;
+      input = input.withDataCache(null);
     }
-    return input.withBlockCache(dataCache, indexCache);
+    return input;
   }
 
   @Override
@@ -84,13 +81,13 @@ class DispatchingFileFactory extends FileOperations {
 
   @Override
   protected FileSKVIterator openIndex(OpenIndexOperation options) throws IOException {
-    options = filterCaches(options);
+    options = selectivelyDisableCaches(options);
     return findFileFactory(options).openIndex(options);
   }
 
   @Override
   protected FileSKVIterator openReader(OpenReaderOperation options) throws IOException {
-    options = filterCaches(options);
+    options = selectivelyDisableCaches(options);
     FileSKVIterator iter = findFileFactory(options).openReader(options);
     if (options.getTableConfiguration().getBoolean(Property.TABLE_BLOOM_ENABLED)) {
       return new BloomFilterLayer.Reader(iter, options.getTableConfiguration());
@@ -101,7 +98,7 @@ class DispatchingFileFactory extends FileOperations {
 
   @Override
   protected FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException {
-    options = filterCaches(options);
+    options = selectivelyDisableCaches(options);
     return findFileFactory(options).openScanReader(options);
   }
 }
