@@ -49,4 +49,4 @@ The following tests require a Hadoop cluster running a minimum of HDFS, MapReduc
   - If at any time the tag needs to be remade due to any sort of error, it should be incremented to the next release candidate number.
 
 [1]: {{ site.baseurl }}/versioning
-[nexus]: https://repository.apache.org/
+[nexus]: https://repository.apache.org

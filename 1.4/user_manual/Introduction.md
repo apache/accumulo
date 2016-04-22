@@ -17,7 +17,7 @@ Accumulo features automatic load-balancing and partitioning, data compression an
 
 * * *
 
-   [2]: Accumulo_Design.html
-   [4]: accumulo_user_manual.html
-   [6]: Contents.html
+[2]: Accumulo_Design.html
+[4]: accumulo_user_manual.html
+[6]: Contents.html
 

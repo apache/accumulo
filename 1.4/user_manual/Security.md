@@ -111,14 +111,14 @@ Typically, the query services layer sits between Accumulo and user workstations.
 
 ** Next:** [Administration][2] ** Up:** [Apache Accumulo User Manual Version 1.4][4] ** Previous:** [Analytics][6]   ** [Contents][8]**
 
-   [2]: Administration.html
-   [4]: accumulo_user_manual.html
-   [6]: Analytics.html
-   [8]: Contents.html
-   [9]: Security.html#Security_Label_Expressions
-   [10]: Security.html#Security_Label_Expression_Syntax
-   [11]: Security.html#Authorization
-   [12]: Security.html#User_Authorizations
-   [13]: Security.html#Secure_Authorizations_Handling
-   [14]: Security.html#Query_Services_Layer
+[2]: Administration.html
+[4]: accumulo_user_manual.html
+[6]: Analytics.html
+[8]: Contents.html
+[9]: Security.html#Security_Label_Expressions
+[10]: Security.html#Security_Label_Expression_Syntax
+[11]: Security.html#Authorization
+[12]: Security.html#User_Authorizations
+[13]: Security.html#Secure_Authorizations_Handling
+[14]: Security.html#Query_Services_Layer
 

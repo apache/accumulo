@@ -89,5 +89,5 @@ The notation used in voting is:
 
 
 [1]: consensusBuilding
-[2]: http://apache.org/foundation/voting
-[3]: http://community.apache.org/newcommitter
+[2]: https://www.apache.org/foundation/voting
+[3]: https://community.apache.org/newcommitter

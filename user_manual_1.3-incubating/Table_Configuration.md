@@ -317,14 +317,14 @@ The block cache can have a significant effect on alleviating hot spots, as well 
 
 ** Next:** [Table Design][2] ** Up:** [Apache Accumulo User Manual Version 1.3][4] ** Previous:** [Writing Accumulo Clients][6]   ** [Contents][8]**
 
-   [2]: Table_Design.html
-   [4]: accumulo_user_manual.html
-   [6]: Writing_Accumulo_Clients.html
-   [8]: Contents.html
-   [9]: Table_Configuration.html#Locality_Groups
-   [10]: Table_Configuration.html#Constraints
-   [11]: Table_Configuration.html#Bloom_Filters
-   [12]: Table_Configuration.html#Iterators
-   [13]: Table_Configuration.html#Aggregating_Iterators
-   [14]: Table_Configuration.html#Block_Cache
+[2]: Table_Design.html
+[4]: accumulo_user_manual.html
+[6]: Writing_Accumulo_Clients.html
+[8]: Contents.html
+[9]: Table_Configuration.html#Locality_Groups
+[10]: Table_Configuration.html#Constraints
+[11]: Table_Configuration.html#Bloom_Filters
+[12]: Table_Configuration.html#Iterators
+[13]: Table_Configuration.html#Aggregating_Iterators
+[14]: Table_Configuration.html#Block_Cache
 

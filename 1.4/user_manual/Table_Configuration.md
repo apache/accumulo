@@ -458,20 +458,20 @@ The du command in the shell shows how much space a table is using in HDFS. This 
 
 ** Next:** [Table Design][2] ** Up:** [Apache Accumulo User Manual Version 1.4][4] ** Previous:** [Development Clients][6]   ** [Contents][8]**
 
-   [2]: Table_Design.html
-   [4]: accumulo_user_manual.html
-   [6]: Development_Clients.html
-   [8]: Contents.html
-   [9]: Table_Configuration.html#Locality_Groups
-   [10]: Table_Configuration.html#Constraints
-   [11]: Table_Configuration.html#Bloom_Filters
-   [12]: Table_Configuration.html#Iterators
-   [13]: Table_Configuration.html#Block_Cache
-   [14]: Table_Configuration.html#Compaction
-   [15]: Table_Configuration.html#Pre-splitting_tables
-   [16]: Table_Configuration.html#Merging_tablets
-   [17]: Table_Configuration.html#Delete_Range
-   [18]: Table_Configuration.html#Cloning_Tables
-   [19]: img2.png
-   [20]: img3.png
+[2]: Table_Design.html
+[4]: accumulo_user_manual.html
+[6]: Development_Clients.html
+[8]: Contents.html
+[9]: Table_Configuration.html#Locality_Groups
+[10]: Table_Configuration.html#Constraints
+[11]: Table_Configuration.html#Bloom_Filters
+[12]: Table_Configuration.html#Iterators
+[13]: Table_Configuration.html#Block_Cache
+[14]: Table_Configuration.html#Compaction
+[15]: Table_Configuration.html#Pre-splitting_tables
+[16]: Table_Configuration.html#Merging_tablets
+[17]: Table_Configuration.html#Delete_Range
+[18]: Table_Configuration.html#Cloning_Tables
+[19]: img2.png
+[20]: img3.png
 

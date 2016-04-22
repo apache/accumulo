@@ -140,10 +140,10 @@ Using Accumulo this way enables efficient and fast lookups and updates of small 
 
 ** Next:** [Security][2] ** Up:** [Apache Accumulo User Manual Version 1.4][4] ** Previous:** [High-Speed Ingest][6]   ** [Contents][8]**
 
-   [2]: Security.html
-   [4]: accumulo_user_manual.html
-   [6]: High_Speed_Ingest.html
-   [8]: Contents.html
-   [9]: Analytics.html#MapReduce
-   [10]: Analytics.html#Combiners
-   [11]: Analytics.html#Statistical_Modeling
+[2]: Security.html
+[4]: accumulo_user_manual.html
+[6]: High_Speed_Ingest.html
+[8]: Contents.html
+[9]: Analytics.html#MapReduce
+[10]: Analytics.html#Combiners
+[11]: Analytics.html#Statistical_Modeling

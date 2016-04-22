@@ -86,7 +86,7 @@ to this artifact's NOTICE file. For example, Accumulo bundles the Apache Thrift 
 own NOTICE file. The contents of the Apache Thrift NOTICE file should be included within Accumulo's NOTICE file.
 
 [1]: {{ site.baseurl }}/governance/releasing#testing
-[2]: http://www.apache.org/dev/apply-license
-[3]: http://www.apache.org/legal/src-headers
-[4]: http://apache.org/legal/resolved
-[5]: http://www.apache.org/legal/
+[2]: https://www.apache.org/dev/apply-license
+[3]: https://www.apache.org/legal/src-headers
+[4]: https://www.apache.org/legal/resolved
+[5]: https://www.apache.org/legal

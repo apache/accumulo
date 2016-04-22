@@ -34,16 +34,16 @@ Version 1.3
 
 * * *
 
-   [2]: Contents.html
-   [6]: Introduction.html
-   [7]: Accumulo_Design.html
-   [8]: Accumulo_Shell.html
-   [9]: Writing_Accumulo_Clients.html
-   [10]: Table_Configuration.html
-   [11]: Table_Design.html
-   [12]: High_Speed_Ingest.html
-   [13]: Analytics.html
-   [14]: Security.html
-   [15]: Administration.html
-   [16]: Shell_Commands.html
+[2]: Contents.html
+[6]: Introduction.html
+[7]: Accumulo_Design.html
+[8]: Accumulo_Shell.html
+[9]: Writing_Accumulo_Clients.html
+[10]: Table_Configuration.html
+[11]: Table_Design.html
+[12]: High_Speed_Ingest.html
+[13]: Analytics.html
+[14]: Security.html
+[15]: Administration.html
+[16]: Shell_Commands.html
 

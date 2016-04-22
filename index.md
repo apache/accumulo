@@ -23,11 +23,11 @@ Google published the design of BigTable in 2006.  Several other open source
 projects have implemented aspects of this design including [HBase][5], [Hypertable][6],
 and [Cassandra][7].  Accumulo began its development in 2008 and joined the [Apache community][8] in 2011.
 
-[1]: http://research.google.com/archive/bigtable.html "BigTable"
-[2]: http://hadoop.apache.org/                   "Hadoop"
-[3]: http://zookeeper.apache.org                 "Zookeeper"
-[4]: http://thrift.apache.org                    "Thrift"
-[5]: http://hbase.apache.org                     "HBase"
+[1]: https://research.google.com/archive/bigtable.html "BigTable"
+[2]: https://hadoop.apache.org                   "Hadoop"
+[3]: https://zookeeper.apache.org                 "Zookeeper"
+[4]: https://thrift.apache.org                    "Thrift"
+[5]: https://hbase.apache.org                     "HBase"
 [6]: http://hypertable.com                       "Hypertable"
-[7]: http://cassandra.apache.org                 "Cassandra"
-[8]: http://www.apache.org/                      "Apache Software Foundation"
+[7]: https://cassandra.apache.org                 "Cassandra"
+[8]: https://www.apache.org                      "Apache Software Foundation"

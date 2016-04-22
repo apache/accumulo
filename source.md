@@ -8,8 +8,8 @@ nav: nav_source
 <div class="panel-heading">Quick Links</div>
 <div class="list-group">
 <a href="https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=summary" class="list-group-item"><i class="fa fa-external-link"></i> Accumulo source</a>
-<a href="https://builds.apache.org/job/Accumulo-Master/" class="list-group-item"><i class="fa fa-external-link"></i> Master build on Jenkins</a>
-<a href="https://issues.apache.org/jira/browse/accumulo" class="list-group-item"><i class="fa fa-external-link"></i> Accumulo JIRA</a>
+<a href="https://builds.apache.org/job/Accumulo-Master" class="list-group-item"><i class="fa fa-external-link"></i> Master build on Jenkins</a>
+<a href="https://issues.apache.org/jira/browse/ACCUMULO" class="list-group-item"><i class="fa fa-external-link"></i> Accumulo JIRA</a>
 </div>
 </div>
 
@@ -96,7 +96,7 @@ To check out the code:
 
 #### Running a Build
 
-Accumulo uses  [Apache Maven][maven] to handle source building, testing, and packaging. To build Accumulo you will need to use Maven version 3.0.4 or later.
+Accumulo uses  [Apache Maven][maven] to handle source building, testing, and packaging. To build Accumulo you will need to use Maven version 3.0.5 or later.
 
 You should familiarize yourself with the [Maven Build Lifecycle][lifecycle], as well as the various plugins we use in our [POM][pom], in order to understand how Maven works and how to use the various build options while building Accumulo.
 
@@ -207,9 +207,9 @@ Accumulo has [guidelines for using Review Board][rb] to support code reviews.
 
 Accumulo's release guide can be found [here][release].
 
-[16build]: https://builds.apache.org/job/Accumulo-1.6/
-[17build]: https://builds.apache.org/job/Accumulo-1.7/
-[1]: http://creadur.apache.org/rat/apache-rat-plugin/
+[16build]: https://builds.apache.org/job/Accumulo-1.6
+[17build]: https://builds.apache.org/job/Accumulo-1.7
+[1]: https://creadur.apache.org/rat/apache-rat-plugin
 [anongit]: git://git.apache.org/accumulo.git
 [cgit]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=summary
 [cms]: http://www.apache.org/dev/cms
@@ -219,17 +219,17 @@ Accumulo's release guide can be found [here][release].
 [devlist]: mailto:dev@accumulo.apache.org
 [gh-pages]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=tree;h=gh-pages
 [git-instr]: https://git-wip-us.apache.org
-[git]: http://git-scm.com/
+[git]: https://git-scm.com
 [github]: https://github.com/apache/accumulo
 [hook]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=_devtools/git-hooks/post-commit;hb=gh-pages
 [intellij-formatter]: https://code.google.com/p/eclipse-code-formatter-intellij-plugin
-[jekyll]: https://jekyllrb.com/
-[jenkins]: http://jenkins-ci.org/
+[jekyll]: https://jekyllrb.com
+[jenkins]: https://jenkins.io
 [jira]: http://www.atlassian.com/software/jira/overview
 [jiraloc]: https://issues.apache.org/jira/browse/ACCUMULO
 [lifecycle]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle
-[masterbuild]: https://builds.apache.org/job/Accumulo-Master/
-[maven]: http://maven.apache.org/
+[masterbuild]: https://builds.apache.org/job/Accumulo-Master
+[maven]: https://maven.apache.org
 [pom]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=pom.xml;hb=HEAD
 [rb]: rb
 [release]: governance/releasing

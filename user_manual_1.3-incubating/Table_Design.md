@@ -181,17 +181,17 @@ Of course, fast servers will return their results to the client which can displa
 
 ** Next:** [High-Speed Ingest][2] ** Up:** [Apache Accumulo User Manual Version 1.3][4] ** Previous:** [Table Configuration][6]   ** [Contents][8]**
 
-   [2]: High_Speed_Ingest.html
-   [4]: accumulo_user_manual.html
-   [6]: Table_Configuration.html
-   [8]: Contents.html
-   [9]: Table_Design.html#Basic_Table
-   [10]: Table_Design.html#RowID_Design
-   [11]: Table_Design.html#Indexing
-   [12]: Table_Design.html#Entity-Attribute_and_Graph_Tables
-   [13]: Table_Design.html#Document-Partitioned_Indexing
-   [14]: img2.png
-   [15]: img3.png
-   [16]: img4.png
-   [17]: img5.png
+[2]: High_Speed_Ingest.html
+[4]: accumulo_user_manual.html
+[6]: Table_Configuration.html
+[8]: Contents.html
+[9]: Table_Design.html#Basic_Table
+[10]: Table_Design.html#RowID_Design
+[11]: Table_Design.html#Indexing
+[12]: Table_Design.html#Entity-Attribute_and_Graph_Tables
+[13]: Table_Design.html#Document-Partitioned_Indexing
+[14]: img2.png
+[15]: img3.png
+[16]: img4.png
+[17]: img5.png
 

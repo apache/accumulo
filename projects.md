@@ -26,13 +26,13 @@ A [simple example](https://github.com/joshelser/node-accumulo) using Node.js to 
 
 #### Goraci
 
-[Apache Gora](http://gora.apache.org) is a data-model library for big-data applications. [Goraci](https://github.com/keith-turner/goraci)
+[Apache Gora](https://gora.apache.org) is a data-model library for big-data applications. [Goraci](https://github.com/keith-turner/goraci)
 is an application of Accumulo continuous ingest (CI) test on Gora which verifies that data is not lost.
 
 #### ProxyInstance
 
 ProxyInstance is a Java Instance implementation of the Accumulo Instance interface that communicates with
-an Accumulo cluster via an Accumulo Thrift proxy server. [Documentation](http://jhuapl.github.io/accumulo-proxy-instance/proxy_instance_user_manual) and
+an Accumulo cluster via an Accumulo Thrift proxy server. [Documentation](https://jhuapl.github.io/accumulo-proxy-instance/proxy_instance_user_manual) and
 [code](https://github.com/JHUAPL/accumulo-proxy-instance) are available.
 
 #### Graphulo

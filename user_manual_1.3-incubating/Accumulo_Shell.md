@@ -126,11 +126,11 @@ The Shell can be used to add, remove, and grant privileges to users.
 
 ** Next:** [Writing Accumulo Clients][2] ** Up:** [Apache Accumulo User Manual Version 1.3][4] ** Previous:** [Accumulo Design][6]   ** [Contents][8]**
 
-   [2]: Writing_Accumulo_Clients.html
-   [4]: accumulo_user_manual.html
-   [6]: Accumulo_Design.html
-   [8]: Contents.html
-   [9]: Accumulo_Shell.html#Basic_Administration
-   [10]: Accumulo_Shell.html#Table_Maintenance
-   [11]: Accumulo_Shell.html#User_Administration
+[2]: Writing_Accumulo_Clients.html
+[4]: accumulo_user_manual.html
+[6]: Accumulo_Design.html
+[8]: Contents.html
+[9]: Accumulo_Shell.html#Basic_Administration
+[10]: Accumulo_Shell.html#Table_Maintenance
+[11]: Accumulo_Shell.html#User_Administration
 

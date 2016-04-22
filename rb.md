@@ -104,9 +104,9 @@ changes yourself, attach the final version of them to the relevant JIRA issue.
 They should be in the form of a patch containing a single commit,
 [per the final steps of the contribution process][contributor].
 
-[rbinstance]: https://reviews.apache.org/
-[rb]: http://www.reviewboard.org/
-[bylaws]: http://accumulo.apache.org/bylaws
-[ctr]: http://www.apache.org/foundation/glossary#CommitThenReview
-[actions]: http://accumulo.apache.org/bylaws#actions
-[contributor]: http://accumulo.apache.org/git#contributors
+[rbinstance]: https://reviews.apache.org
+[rb]: https://www.reviewboard.org
+[bylaws]: {{ site.baseurl }}/bylaws
+[ctr]: https://www.apache.org/foundation/glossary#CommitThenReview
+[actions]: {{ site.baseurl }}/bylaws#actions
+[contributor]: {{ site.baseurl }}/git#contributors

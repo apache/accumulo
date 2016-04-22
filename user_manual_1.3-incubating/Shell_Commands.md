@@ -528,7 +528,7 @@ title: "User Manual: Shell Commands"
 
 ** Up:** [Apache Accumulo User Manual Version 1.3][3] ** Previous:** [Administration][5]   ** [Contents][7]**
 
-   [3]: accumulo_user_manual.html
-   [5]: Administration.html
-   [7]: Contents.html
+[3]: accumulo_user_manual.html
+[5]: Administration.html
+[7]: Contents.html
 

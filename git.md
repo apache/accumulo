@@ -3,7 +3,7 @@ title: Git
 nav: nav_git
 ---
 
-[Git](http://git-scm.com) is an open source, distributed version control system
+[Git](https://git-scm.com) is an open source, distributed version control system
 which has become very popular in large, complicated software projects due to
 its efficient handling of multiple, simultaneously and independently developed
 branches of source code.\
@@ -127,7 +127,7 @@ Jira issue ACCUMULO-12345 that affects 1.5.0 release.
     `ACCUMULO-2428 throw exception when rename fails after compaction`
 
     Consider following the git log message format described in
-    [Zach Holman's talk](http://zachholman.com/talk/more-git-and-github-secrets/)
+    [Zach Holman's talk](https://zachholman.com/talk/more-git-and-github-secrets/)
     (specifically slides 78-98, beginning at 15:20 into the video). Essentially,
     leave a short descriptive message in the first line, skip a line, and write
     more detailed stuff there, if you need to. For example:
@@ -182,7 +182,7 @@ for large features, release candidates or whatever else is deemed useful.
 
 It is always the responsibility of committers to determine that a patch is
 intended and able to be contributed.  From the
-[new committer's guide](http://www.apache.org/dev/new-committers-guide#cla):
+[new committer's guide](https://www.apache.org/dev/new-committers-guide#cla):
 "Please take care to ensure that patches are original works which have been
 clearly contributed to the ASF in public. In the case of any doubt (or when a
 contribution with a more complex history is presented) please consult your
@@ -190,7 +190,7 @@ project PMC before committing it."
 
 Extra diligence may be necessary when code is contributed via a pull request.
 Committers should verify that the contributor intended to submit the code as a 
-Contribution under the [Apache License](http://www.apache.org/licenses/LICENSE-2.0.txt).
+Contribution under the [Apache License](https://www.apache.org/licenses/LICENSE-2.0.txt).
 When pulling the code, committers should also verify that the commits pulled match the 
 list of commits sent to the Accumulo dev list in the pull request.
 
@@ -247,7 +247,7 @@ from, the steps are even easier:
 If the branch doesn't fast-forward merge, you likely want to inform the
 contributor to update their branch to avoid the conflict resolution and merge
 commit. See the [Git
-manual](http://git-scm.com/book/en/Git-Branching-Basic-Branching-and-Merging)
+manual](https://git-scm.com/book/en/Git-Branching-Basic-Branching-and-Merging)
 for more information on merging. When merging a pull-request, it's best to **not**
 include a signoff on the commit(s) as it changes the final commit ID in the
 Accumulo repository. This also has the negative of not automatically closing
@@ -411,7 +411,7 @@ It should be noted in the INFRA requst that each repository will also need to
 be configured to properly mirror to the [ASF Github](https://github.com/apache)
 account to provide the same functionality with current have via the git+svn
 mirror. This should be noted in the INFRA request. Same change needs to be
-applied for the [Apache hosted](http://git.apache.org) mirror'ing.
+applied for the [Apache hosted](https://git.apache.org) mirror'ing.
 
 ## Mailing lists
 
@@ -449,5 +449,5 @@ For the sake of clarity, some examples of common situations are included below.
 6. Update the project version in `master` to 1.7.0-SNAPSHOT
 
 
- [1]: https://cwiki.apache.org/confluence/display/KAFKA/Patch+submission+and+review#Patchsubmissionandreview-Simplecontributorworkflow
+[1]: https://cwiki.apache.org/confluence/display/KAFKA/Patch+submission+and+review#Patchsubmissionandreview-Simplecontributorworkflow
 

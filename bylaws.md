@@ -261,20 +261,20 @@ After feature freeze, new features should not be accepted for the release. After
 
 All dates in a plan are estimates, as unforeseen issues may require delays. The release manager may adjust dates as needed. In serious circumstances, the release manager may opt to call a re-plan vote.
 
-[foundation]: http://www.apache.org/foundation/
-[foundation-faq]: http://www.apache.org/foundation/faq
-[incubator]: http://incubator.apache.org
-[glossary]: http://www.apache.org/foundation/glossary
-[icla]: http://www.apache.org/licenses/icla.txt
-[committer-faq]: http://www.apache.org/dev/committers
-[pmc-howto]: http://apache.org/foundation/how-it-works#pmc
-[release-management]: http://www.apache.org/dev/release#management
-[pmc-guide]: http://www.apache.org/dev/pmc
+[foundation]: https://www.apache.org/foundation
+[foundation-faq]: https://www.apache.org/foundation/faq
+[incubator]: https://incubator.apache.org
+[glossary]: https://www.apache.org/foundation/glossary
+[icla]: https://www.apache.org/licenses/icla.txt
+[committer-faq]: https://www.apache.org/dev/committers
+[pmc-howto]: https://www.apache.org/foundation/how-it-works.html#pmc
+[release-management]: https://www.apache.org/dev/release#management
+[pmc-guide]: https://www.apache.org/dev/pmc
 [release-pub]: https://www.apache.org/dev/release-publishing
 [release-manager]: https://www.apache.org/dev/release-publishing#release_manager
 [release-guidelines]: governance/releasing
 [release-mechanics]: releasing
 [voting]: governance/voting
 [ctr]: #CTR
-[committer-terms]: http://www.apache.org/dev/committers#committer-set-term
-[pmc-removal]: http://www.apache.org/dev/pmc#pmc-removal
+[committer-terms]: https://www.apache.org/dev/committers#committer-set-term
+[pmc-removal]: https://www.apache.org/dev/pmc#pmc-removal

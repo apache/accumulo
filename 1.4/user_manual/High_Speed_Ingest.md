@@ -81,13 +81,13 @@ accumulo/docs/examples/README.mapred
 
 ** Next:** [Analytics][2] ** Up:** [Apache Accumulo User Manual Version 1.4][4] ** Previous:** [Table Design][6]   ** [Contents][8]**
 
-   [2]: Analytics.html
-   [4]: accumulo_user_manual.html
-   [6]: Table_Design.html
-   [8]: Contents.html
-   [9]: High_Speed_Ingest.html#Pre-Splitting_New_Tables
-   [10]: High_Speed_Ingest.html#Multiple_Ingester_Clients
-   [11]: High_Speed_Ingest.html#Bulk_Ingest
-   [12]: High_Speed_Ingest.html#Logical_Time_for_Bulk_Ingest
-   [13]: High_Speed_Ingest.html#MapReduce_Ingest
+[2]: Analytics.html
+[4]: accumulo_user_manual.html
+[6]: Table_Design.html
+[8]: Contents.html
+[9]: High_Speed_Ingest.html#Pre-Splitting_New_Tables
+[10]: High_Speed_Ingest.html#Multiple_Ingester_Clients
+[11]: High_Speed_Ingest.html#Bulk_Ingest
+[12]: High_Speed_Ingest.html#Logical_Time_for_Bulk_Ingest
+[13]: High_Speed_Ingest.html#MapReduce_Ingest
 

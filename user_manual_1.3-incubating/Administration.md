@@ -152,18 +152,18 @@ Note that because Accumulo uses timestamps to order mutations, any mutations tha
 
 ** Next:** [Shell Commands][2] ** Up:** [Apache Accumulo User Manual Version 1.3][4] ** Previous:** [Security][6]   ** [Contents][8]**
 
-   [2]: Shell_Commands.html
-   [4]: accumulo_user_manual.html
-   [6]: Security.html
-   [8]: Contents.html
-   [9]: Administration.html#Hardware
-   [10]: Administration.html#Network
-   [11]: Administration.html#Installation
-   [12]: Administration.html#Dependencies
-   [13]: Administration.html#Configuration
-   [14]: Administration.html#Initialization
-   [15]: Administration.html#Running
-   [16]: Administration.html#Monitoring
-   [17]: Administration.html#Logging
-   [18]: Administration.html#Recovery
+[2]: Shell_Commands.html
+[4]: accumulo_user_manual.html
+[6]: Security.html
+[8]: Contents.html
+[9]: Administration.html#Hardware
+[10]: Administration.html#Network
+[11]: Administration.html#Installation
+[12]: Administration.html#Dependencies
+[13]: Administration.html#Configuration
+[14]: Administration.html#Initialization
+[15]: Administration.html#Running
+[16]: Administration.html#Monitoring
+[17]: Administration.html#Logging
+[18]: Administration.html#Recovery
 

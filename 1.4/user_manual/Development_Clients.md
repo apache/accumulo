@@ -96,10 +96,10 @@ Upon completion of our development code, we will want to shutdown our MiniAccumu
 
 ** Next:** [Table Configuration][2] ** Up:** [Apache Accumulo User Manual Version 1.4][4] ** Previous:** [Writing Accumulo Clients][6]   ** [Contents][8]**
 
-   [2]: Table_Configuration.html
-   [4]: accumulo_user_manual.html
-   [6]: Writing_Accumulo_Clients.html
-   [8]: Contents.html
-   [9]: Development_Clients.html#Mock_Accumulo
-   [10]: Development_Clients.html#Mini_Accumulo_Cluster
+[2]: Table_Configuration.html
+[4]: accumulo_user_manual.html
+[6]: Writing_Accumulo_Clients.html
+[8]: Contents.html
+[9]: Development_Clients.html#Mock_Accumulo
+[10]: Development_Clients.html#Mini_Accumulo_Cluster
 

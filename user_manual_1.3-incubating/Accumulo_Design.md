@@ -87,18 +87,18 @@ http://master-address:50095/monitor.
 
 ** Next:** [Accumulo Shell][2] ** Up:** [Apache Accumulo User Manual Version 1.3][4] ** Previous:** [Introduction][6]   ** [Contents][8]**
 
-   [2]: Accumulo_Shell.html
-   [4]: accumulo_user_manual.html
-   [6]: Introduction.html
-   [8]: Contents.html
-   [9]: Accumulo_Design.html#Data_Model
-   [10]: Accumulo_Design.html#Architecture
-   [11]: Accumulo_Design.html#Components
-   [12]: Accumulo_Design.html#Data_Management
-   [13]: Accumulo_Design.html#Tablet_Service
-   [14]: Accumulo_Design.html#Compactions
-   [15]: Accumulo_Design.html#Fault-Tolerance
-   [16]: img1.png
-   [17]: ./data_distribution.png
-   [18]: ./failure_handling.png
+[2]: Accumulo_Shell.html
+[4]: accumulo_user_manual.html
+[6]: Introduction.html
+[8]: Contents.html
+[9]: Accumulo_Design.html#Data_Model
+[10]: Accumulo_Design.html#Architecture
+[11]: Accumulo_Design.html#Components
+[12]: Accumulo_Design.html#Data_Management
+[13]: Accumulo_Design.html#Tablet_Service
+[14]: Accumulo_Design.html#Compactions
+[15]: Accumulo_Design.html#Fault-Tolerance
+[16]: img1.png
+[17]: ./data_distribution.png
+[18]: ./failure_handling.png
 

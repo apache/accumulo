@@ -83,14 +83,13 @@ Occasionally a "feel" for consensus is not enough. Sometimes we need to
 have a measurable consensus. For example, when [voting][10] in new committers or 
 to approve a release. 
 
-
-  [1]: http://s.apache.org/newbie_accumulo_tickets
-  [2]: {{ site.baseurl }}/mailing_list
-  [3]: http://www.meetup.com/find/?keywords=accumulo
-  [4]: {{ site.baseurl }}/source
-  [5]: https://www.ohloh.net/p/accumulo
-  [6]: http://www.betaversion.org/~stefano/papers/ac2006.2.pdf
-  [7]: {{ site.baseurl }}/governance/lazyConsensus
-  [8]: {{ site.baseurl }}/governance/consensusBuilding
-  [9]: {{ site.baseurl }}/governance/lazyConsensus
-  [10]: {{ site.baseurl }}/governance/voting
+[1]: https://s.apache.org/newbie_accumulo_tickets
+[2]: {{ site.baseurl }}/mailing_list
+[3]: https://www.meetup.com/find/?keywords=accumulo
+[4]: {{ site.baseurl }}/source
+[5]: https://www.ohloh.net/p/accumulo
+[6]: http://www.betaversion.org/~stefano/papers/ac2006.2.pdf
+[7]: {{ site.baseurl }}/governance/lazyConsensus
+[8]: {{ site.baseurl }}/governance/consensusBuilding
+[9]: {{ site.baseurl }}/governance/lazyConsensus
+[10]: {{ site.baseurl }}/governance/voting

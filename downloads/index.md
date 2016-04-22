@@ -15,7 +15,7 @@ var gaCallback = function(event) {
     var newWin = true;}
 
   // $(this) != this
-  var url = "http://accumulo.apache.org" + $(this).attr("id")
+  var url = window.location.protocol + "//accumulo.apache.org" + $(this).attr("id")
   if (newWin) {
     ga('send', 'event', 'outbound', 'click', url, {'nonInteraction': 1});
     return true;
@@ -137,7 +137,7 @@ For convenience, [MD5][MD5SUM_16] and [SHA1][SHA1SUM_16] hashes are also availab
 
 #### 1.6 Documentation
 * <a href="https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=README;hb=rel/1.6.5" class="download_external" id="/1.6/README">README</a>
-* <a href="http://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-docs/1.6.5/accumulo-docs-1.6.5-user-manual.pdf" class="download_external" id="/1.6/accumulo_user_manual.pdf">PDF manual</a>
+* <a href="https://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-docs/1.6.5/accumulo-docs-1.6.5-user-manual.pdf" class="download_external" id="/1.6/accumulo_user_manual.pdf">PDF manual</a>
 * [html manual][MANUAL_HTML_16]
 * [examples][EXAMPLES_16]
 * <a href="{{ site.baseurl }}/1.6/apidocs" class="download_external" id="/1.6/apidocs">Javadoc</a>
@@ -149,7 +149,7 @@ Older releases can be found in the [archives][ARCHIVES].
 
 [VERIFY_PROCEDURES]: https://www.apache.org/info/verification "Verify"
 [GPG_KEYS]: https://www.apache.org/dist/accumulo/KEYS "KEYS"
-[ARCHIVES]: https://archive.apache.org/dist/accumulo/
+[ARCHIVES]: https://archive.apache.org/dist/accumulo
 
 [MANUAL_HTML_16]: {{ site.baseurl }}/1.6/accumulo_user_manual "1.6 user manual"
 [MANUAL_HTML_17]: {{ site.baseurl }}/1.7/accumulo_user_manual "1.7 user manual"

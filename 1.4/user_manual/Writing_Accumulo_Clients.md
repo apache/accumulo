@@ -247,13 +247,13 @@ Scan for the data and batch the return of the results on the server:
 
 ** Next:** [Development Clients][2] ** Up:** [Apache Accumulo User Manual Version 1.4][4] ** Previous:** [Accumulo Shell][6]   ** [Contents][8]**
 
-   [2]: Development_Clients.html
-   [4]: accumulo_user_manual.html
-   [6]: Accumulo_Shell.html
-   [8]: Contents.html
-   [9]: Writing_Accumulo_Clients.html#Running_Client_Code
-   [10]: Writing_Accumulo_Clients.html#Connecting
-   [11]: Writing_Accumulo_Clients.html#Writing_Data
-   [12]: Writing_Accumulo_Clients.html#Reading_Data
-   [13]: Writing_Accumulo_Clients.html#Proxy
+[2]: Development_Clients.html
+[4]: accumulo_user_manual.html
+[6]: Accumulo_Shell.html
+[8]: Contents.html
+[9]: Writing_Accumulo_Clients.html#Running_Client_Code
+[10]: Writing_Accumulo_Clients.html#Connecting
+[11]: Writing_Accumulo_Clients.html#Writing_Data
+[12]: Writing_Accumulo_Clients.html#Reading_Data
+[13]: Writing_Accumulo_Clients.html#Proxy
 
