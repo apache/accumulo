@@ -54,12 +54,17 @@ ul.nav li.dropdown:hover > ul.dropdown-menu {
 #content img {
     vertical-align: middle;
 }
-#footer {
+footer {
     border-top: 1px solid #CCCCCC;
     color: #666666;
     font-size: 0.8em;
     padding: 8px 8px;
     text-align: center;
+}
+footer > p {
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
 }
 #asf-logo {
     float: left;
@@ -84,12 +89,6 @@ ul.nav li.dropdown:hover > ul.dropdown-menu {
 }
 
 #accumulo-summit-logo img {
-    margin-left: auto;
-    margin-right: auto;
-}
-
-div.copyright {
-    width: 60%;
     margin-left: auto;
     margin-right: auto;
 }
