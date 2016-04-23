@@ -674,8 +674,7 @@ public class TabletServerBatchWriter {
     private synchronized TabletLocator getLocator(String tableId) {
       TabletLocator ret = locators.get(tableId);
       if (ret == null) {
-        ret = TabletLocator.getLocator(context, tableId);
-        ret = new TimeoutTabletLocator(ret, timeout);
+        ret = new TimeoutTabletLocator(timeout, context, tableId);
         locators.put(tableId, ret);
       }
 
@@ -899,7 +898,7 @@ public class TabletServerBatchWriter {
             tables.add(ke.getTableId());
 
           for (String table : tables)
-            TabletLocator.getLocator(context, table).invalidateCache(context.getInstance(), location);
+            getLocator(table).invalidateCache(context.getInstance(), location);
 
           failedMutations.add(location, tsm);
         } finally {
@@ -936,7 +935,7 @@ public class TabletServerBatchWriter {
               client.update(tinfo, context.rpcCreds(), entry.getKey().toThrift(), entry.getValue().get(0).toThrift(), DurabilityImpl.toThrift(durability));
             } catch (NotServingTabletException e) {
               allFailures.addAll(entry.getKey().getTableId(), entry.getValue());
-              TabletLocator.getLocator(context, entry.getKey().getTableId()).invalidateCache(entry.getKey());
+              getLocator(entry.getKey().getTableId()).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
               updatedConstraintViolations(Translator.translate(e.violationSummaries, Translators.TCVST));
             }
@@ -977,7 +976,7 @@ public class TabletServerBatchWriter {
 
               String tableId = failedExtent.getTableId();
 
-              TabletLocator.getLocator(context, tableId).invalidateCache(failedExtent);
+              getLocator(tableId).invalidateCache(failedExtent);
 
               ArrayList<Mutation> mutations = (ArrayList<Mutation>) tabMuts.get(failedExtent);
               allFailures.addAll(tableId, mutations.subList(numCommitted, mutations.size()));

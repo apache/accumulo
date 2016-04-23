@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.util;
 
-import com.google.common.base.Preconditions;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
@@ -32,6 +31,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Partially based from {@link org.apache.commons.lang3.SerializationUtils}.
@@ -63,9 +63,7 @@ public class SerializationUtil {
     }
     try {
       return cm.newInstance();
-    } catch (InstantiationException e) {
-      throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | IllegalAccessException e) {
       throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
     }
   }
@@ -100,8 +98,8 @@ public class SerializationUtil {
   }
 
   public static void serializeWritable(Writable obj, OutputStream outputStream) {
-    Preconditions.checkNotNull(obj);
-    Preconditions.checkNotNull(outputStream);
+    Objects.requireNonNull(obj);
+    Objects.requireNonNull(outputStream);
     DataOutputStream out = null;
     try {
       out = new DataOutputStream(outputStream);
@@ -119,8 +117,8 @@ public class SerializationUtil {
   }
 
   public static void deserializeWritable(Writable writable, InputStream inputStream) {
-    Preconditions.checkNotNull(writable);
-    Preconditions.checkNotNull(inputStream);
+    Objects.requireNonNull(writable);
+    Objects.requireNonNull(inputStream);
     DataInputStream in = null;
     try {
       in = new DataInputStream(inputStream);
@@ -138,7 +136,7 @@ public class SerializationUtil {
   }
 
   public static void deserializeWritable(Writable writable, byte[] objectData) {
-    Preconditions.checkNotNull(objectData);
+    Objects.requireNonNull(objectData);
     deserializeWritable(writable, new ByteArrayInputStream(objectData));
   }
 
@@ -167,7 +165,7 @@ public class SerializationUtil {
    *           if {@code outputStream} is {@code null}
    */
   public static void serialize(Serializable obj, OutputStream outputStream) {
-    Preconditions.checkNotNull(outputStream);
+    Objects.requireNonNull(outputStream);
     ObjectOutputStream out = null;
     try {
       out = new ObjectOutputStream(outputStream);
@@ -223,14 +221,12 @@ public class SerializationUtil {
    *           if {@code inputStream} is {@code null}
    */
   public static Object deserialize(InputStream inputStream) {
-    Preconditions.checkNotNull(inputStream);
+    Objects.requireNonNull(inputStream);
     ObjectInputStream in = null;
     try {
       in = new ObjectInputStream(inputStream);
       return in.readObject();
-    } catch (ClassNotFoundException ex) {
-      throw new RuntimeException(ex);
-    } catch (IOException ex) {
+    } catch (ClassNotFoundException | IOException ex) {
       throw new RuntimeException(ex);
     } finally {
       if (in != null)
@@ -254,7 +250,7 @@ public class SerializationUtil {
    *           if {@code objectData} is {@code null}
    */
   public static Object deserialize(byte[] objectData) {
-    Preconditions.checkNotNull(objectData);
+    Objects.requireNonNull(objectData);
     return deserialize(new ByteArrayInputStream(objectData));
   }
 
