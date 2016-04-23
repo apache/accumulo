@@ -284,6 +284,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
     Map<String,TabletServerMutations<QCMutation>> binnedMutations = new HashMap<String,TabletLocator.TabletServerMutations<QCMutation>>();
 
     try {
+      if (!locator.isValid())
+        locator = TabletLocator.getLocator(instance, new Text(tableId));
       locator.binMutations(credentials, mutations, binnedMutations, failures);
 
       if (failures.size() == mutations.size())

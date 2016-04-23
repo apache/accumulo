@@ -661,7 +661,7 @@ public class TabletServerBatchWriter {
 
     private synchronized TabletLocator getLocator(String tableId) {
       TabletLocator ret = locators.get(tableId);
-      if (ret == null) {
+      if (ret == null || !ret.isValid()) {
         ret = TabletLocator.getLocator(instance, new Text(tableId));
         ret = new TimeoutTabletLocator(ret, timeout);
         locators.put(tableId, ret);

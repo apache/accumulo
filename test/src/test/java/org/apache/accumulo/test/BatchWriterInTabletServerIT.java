@@ -57,10 +57,12 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterIT {
   }
 
   /**
-   * ACCUMULO-4229
+   * Fixed by ACCUMULO-4229.
    * <p>
-   * This test should fail because the client shares a LocatorCache with the tablet server. Adding a split after the Locator cache falls out of sync causes the
-   * BatchWriter to continuously attempt to write to an old, closed tablet. It will only do so for 15 seconds because we set a timeout on the BatchWriter.
+   * This tests a situation that a client which shares a LocatorCache with the tablet server may fall into.
+   * Before the problem was fixed, adding a split after the Locator cache falls out of sync caused the
+   * BatchWriter to continuously attempt to write to an old, closed tablet.
+   * It would do so for 15 seconds until a timeout on the BatchWriter.
    */
   @Test
   public void testClearLocatorAndSplitWrite() throws Exception {

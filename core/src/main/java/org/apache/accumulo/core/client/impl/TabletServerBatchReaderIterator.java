@@ -244,6 +244,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
 
+    if (!locator.isValid())
+      locator = new TimeoutTabletLocator(TabletLocator.getLocator(instance, new Text(table)), timeout);
     binRanges(locator, ranges, binnedRanges);
 
     doLookups(binnedRanges, receiver, columns);
@@ -329,6 +331,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // since the first call to binRanges clipped the ranges to within a tablet, we should not get only
     // bin to the set of failed tablets
+    if (!locator.isValid())
+      locator = new TimeoutTabletLocator(TabletLocator.getLocator(instance, new Text(table)), timeout);
     binRanges(locator, allRanges, binnedRanges);
 
     doLookups(binnedRanges, receiver, columns);
