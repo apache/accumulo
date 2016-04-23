@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -26,7 +24,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -38,12 +35,14 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.test.util.SerializationUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -60,6 +59,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class BatchWriterIterator extends WrappingIterator {
   private static final Logger log = LoggerFactory.getLogger(BatchWriterIterator.class);
+
+  private Map<String,String> originalOptions; // remembered for deepCopy
 
   private int sleepAfterFirstWrite = 0;
   private int numEntriesToWritePerEntry = 10;
@@ -128,6 +129,8 @@ public class BatchWriterIterator extends WrappingIterator {
   }
 
   private void parseOptions(Map<String,String> options) {
+    this.originalOptions = new HashMap<>(options);
+
     if (options.containsKey(OPT_numEntriesToWritePerEntry))
       numEntriesToWritePerEntry = Integer.parseInt(options.get(OPT_numEntriesToWritePerEntry));
     if (options.containsKey(OPT_sleepAfterFirstWrite))
@@ -157,10 +160,7 @@ public class BatchWriterIterator extends WrappingIterator {
     Instance instance = new ZooKeeperInstance(cc);
     try {
       connector = instance.getConnector(username, auth);
-    } catch (AccumuloException e) {
-      log.error("failed to connect to Accumulo instance " + instanceName, e);
-      throw new RuntimeException(e);
-    } catch (AccumuloSecurityException e) {
+    } catch (Exception e) {
       log.error("failed to connect to Accumulo instance " + instanceName, e);
       throw new RuntimeException(e);
     }
@@ -210,20 +210,9 @@ public class BatchWriterIterator extends WrappingIterator {
       }
 
       batchWriter.flush();
-    } catch (MutationsRejectedException e) {
-      log.error("", e);
-      failure = e.getClass().getSimpleName() + ": " + e.getMessage();
-    } catch (TimedOutException e) {
-      log.error("", e);
-      failure = e.getClass().getSimpleName() + ": " + e.getMessage();
-    } catch (AccumuloSecurityException e) {
-      log.error("", e);
-      failure = e.getClass().getSimpleName() + ": " + e.getMessage();
-    } catch (TableNotFoundException e) {
-      log.error("", e);
-      failure = e.getClass().getSimpleName() + ": " + e.getMessage();
-    } catch (AccumuloException e) {
-      log.error("", e);
+    } catch (Exception e) {
+      // in particular: watching for TimedOutException
+      log.error("Problem while BatchWriting to target table " + tableName, e);
       failure = e.getClass().getSimpleName() + ": " + e.getMessage();
     }
     topValue = failure == null ? SUCCESS_VALUE : new Value(failure.getBytes());
@@ -232,7 +221,11 @@ public class BatchWriterIterator extends WrappingIterator {
   @Override
   protected void finalize() throws Throwable {
     super.finalize();
-    batchWriter.close();
+    try {
+      batchWriter.close();
+    } catch (MutationsRejectedException e) {
+      log.error("Failed to close BatchWriter; some mutations may not be applied", e);
+    }
   }
 
   @Override
@@ -252,5 +245,17 @@ public class BatchWriterIterator extends WrappingIterator {
   @Override
   public Value getTopValue() {
     return topValue;
+  }
+
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    BatchWriterIterator newInstance;
+    try {
+      newInstance = this.getClass().newInstance();
+      newInstance.init(getSource().deepCopy(env), originalOptions, env);
+      return newInstance;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 }
