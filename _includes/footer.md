@@ -5,8 +5,9 @@
 
 Copyright &copy; 2011-{{ site.time | date: '%Y' }} The Apache Software
 Foundation, Licensed under the [Apache License, Version 2.0][AL2]. Apache
-Accumulo, Accumulo, Apache, the Apache feather logo, and the Apache Accumulo
-project logo are trademarks of the [Apache Software Foundation][ASF].
+Accumulo, Accumulo, Apache Hadoop, Apache HBase, Apache Cassandra,
+Apache Thrift, Apache, the Apache feather logo, and the Apache Accumulo project
+logo are trademarks of the [Apache Software Foundation][ASF].
 
 Site created with [Bootstrap][BOOTSTRAP] including icons from
 [GLYPHICONS][GLYPHICONS] and [Font Awesome][FONTAWE].
