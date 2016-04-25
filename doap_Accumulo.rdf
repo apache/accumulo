@@ -27,7 +27,7 @@
     <name>Apache Accumulo</name>
     <homepage rdf:resource="https://accumulo.apache.org" />
     <asfext:pmc rdf:resource="https://accumulo.apache.org" />
-    <description>The Apache Accumulo sorted, distributed key/value store is based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
+    <description>The Apache Accumulo sorted, distributed key/value store is based on Google's BigTable design. It is built on top of Apache Hadoop, Apache Zookeeper, and Apache Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
     <bug-database rdf:resource="https://issues.apache.org/jira/browse/ACCUMULO" />
     <mailing-list rdf:resource="https://accumulo.apache.org/mailing_list" />
     <download-page rdf:resource="https://accumulo.apache.org/downloads" />

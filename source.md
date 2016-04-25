@@ -80,7 +80,7 @@ the given file into your `.git/hook` directory:
 
 ### Building
 
-#### Installing Thrift
+#### Installing Apache Thrift
 
 If you activate the 'thrift' Maven profile, the build of some modules will attempt to run the Apache Thrift command line to regenerate
 stubs. If you activate this profile and don't have Apache Thrift installed and in your path, you will see a warning and

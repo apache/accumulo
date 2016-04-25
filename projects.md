@@ -32,7 +32,7 @@ is an application of Accumulo continuous ingest (CI) test on Gora which verifies
 #### ProxyInstance
 
 ProxyInstance is a Java Instance implementation of the Accumulo Instance interface that communicates with
-an Accumulo cluster via an Accumulo Thrift proxy server. [Documentation](https://jhuapl.github.io/accumulo-proxy-instance/proxy_instance_user_manual) and
+an Accumulo cluster via Accumulo's Apache Thrift proxy server. [Documentation](https://jhuapl.github.io/accumulo-proxy-instance/proxy_instance_user_manual) and
 [code](https://github.com/JHUAPL/accumulo-proxy-instance) are available.
 
 #### Graphulo

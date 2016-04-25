@@ -258,7 +258,7 @@ could be different from the Accumulo nodes.
 
 Accumulo can be a source and/or sink for map reduce jobs.
 
-### Thrift Proxy
+### Apache Thrift Proxy
 
 The Accumulo client code contains a lot of complexity.  For example, the 
 client code locates tablets, retries in the case of failures, and supports 
