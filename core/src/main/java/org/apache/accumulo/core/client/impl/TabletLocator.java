@@ -41,9 +41,9 @@ import org.apache.hadoop.io.Text;
 public abstract class TabletLocator {
 
   /**
-   * Flipped false on call to {@link #clearLocators}. Checked by TabletServerBatchWriter.
+   * Flipped false on call to {@link #clearLocators}. Checked by client classes that locally cache Locators.
    */
-  private boolean isValid = true;
+  private volatile boolean isValid = true;
 
   boolean isValid() {
     return isValid;

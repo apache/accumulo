@@ -96,7 +96,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private Map<String,TimeoutTracker> timeoutTrackers;
   private Set<String> timedoutServers;
-  private long timeout;
+  private final long timeout;
 
   private TabletLocator locator;
 
@@ -143,7 +143,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<List<Entry<Key,Value>>>(numThreads);
 
-    this.locator = new TimeoutTabletLocator(TabletLocator.getLocator(instance, new Text(table)), timeout);
+    this.locator = new TimeoutTabletLocator(timeout, instance, new Text(table));
 
     timeoutTrackers = Collections.synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
     timedoutServers = Collections.synchronizedSet(new HashSet<String>());
@@ -244,8 +244,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
 
-    if (!locator.isValid())
-      locator = new TimeoutTabletLocator(TabletLocator.getLocator(instance, new Text(table)), timeout);
     binRanges(locator, ranges, binnedRanges);
 
     doLookups(binnedRanges, receiver, columns);
@@ -331,8 +329,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // since the first call to binRanges clipped the ranges to within a tablet, we should not get only
     // bin to the set of failed tablets
-    if (!locator.isValid())
-      locator = new TimeoutTabletLocator(TabletLocator.getLocator(instance, new Text(table)), timeout);
     binRanges(locator, allRanges, binnedRanges);
 
     doLookups(binnedRanges, receiver, columns);

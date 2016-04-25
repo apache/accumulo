@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -26,7 +24,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -157,10 +154,7 @@ public class BatchWriterIterator extends WrappingIterator {
     Instance instance = new ZooKeeperInstance(cc);
     try {
       connector = instance.getConnector(username, auth);
-    } catch (AccumuloException e) {
-      log.error("failed to connect to Accumulo instance " + instanceName, e);
-      throw new RuntimeException(e);
-    } catch (AccumuloSecurityException e) {
+    } catch (Exception e) {
       log.error("failed to connect to Accumulo instance " + instanceName, e);
       throw new RuntimeException(e);
     }
@@ -210,20 +204,9 @@ public class BatchWriterIterator extends WrappingIterator {
       }
 
       batchWriter.flush();
-    } catch (MutationsRejectedException e) {
-      log.error("", e);
-      failure = e.getClass().getSimpleName() + ": " + e.getMessage();
-    } catch (TimedOutException e) {
-      log.error("", e);
-      failure = e.getClass().getSimpleName() + ": " + e.getMessage();
-    } catch (AccumuloSecurityException e) {
-      log.error("", e);
-      failure = e.getClass().getSimpleName() + ": " + e.getMessage();
-    } catch (TableNotFoundException e) {
-      log.error("", e);
-      failure = e.getClass().getSimpleName() + ": " + e.getMessage();
-    } catch (AccumuloException e) {
-      log.error("", e);
+    } catch (Exception e) {
+      // in particular: watching for TimedOutException
+      log.error("Problem while BatchWriting to target table " + tableName, e);
       failure = e.getClass().getSimpleName() + ": " + e.getMessage();
     }
     topValue = failure == null ? SUCCESS_VALUE : new Value(failure.getBytes());
@@ -232,7 +215,11 @@ public class BatchWriterIterator extends WrappingIterator {
   @Override
   protected void finalize() throws Throwable {
     super.finalize();
-    batchWriter.close();
+    try {
+      batchWriter.close();
+    } catch (MutationsRejectedException e) {
+      log.error("Failed to close BatchWriter; some mutations may not be applied", e);
+    }
   }
 
   @Override
