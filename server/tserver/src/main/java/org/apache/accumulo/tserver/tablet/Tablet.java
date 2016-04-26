@@ -1584,8 +1584,8 @@ public class Tablet implements TabletCommitter {
     for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
       FileRef file = entry.getKey();
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
-      FileSKVIterator openReader = fileFactory.openReader().ofFile(file.path().toString(), ns, ns.getConf())
-          .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().execute();
+      FileSKVIterator openReader = fileFactory.newReaderBuilder().forFile(file.path().toString(), ns, ns.getConf())
+          .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build();
       try {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();

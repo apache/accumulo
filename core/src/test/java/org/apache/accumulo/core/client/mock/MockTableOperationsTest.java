@@ -225,8 +225,8 @@ public class MockTableOperationsTest {
     fs.delete(tempFile, true);
     fs.mkdirs(failures);
     fs.mkdirs(tempFile.getParent());
-    FileSKVWriter writer = FileOperations.getInstance().openWriter().ofFile(tempFile.toString(), fs, defaultConf)
-        .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).execute();
+    FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder().forFile(tempFile.toString(), fs, defaultConf)
+        .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
     writer.startDefaultLocalityGroup();
     List<Pair<Key,Value>> keyVals = new ArrayList<Pair<Key,Value>>();
     for (int i = 0; i < 5; i++) {

@@ -132,7 +132,7 @@ public class FileUtil {
 
       outFiles.add(newMapFile);
       FileSystem ns = fs.getVolumeByPath(new Path(newMapFile)).getFileSystem();
-      FileSKVWriter writer = new RFileOperations().openWriter().ofFile(newMapFile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).execute();
+      FileSKVWriter writer = new RFileOperations().newWriterBuilder().forFile(newMapFile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).build();
       writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(inFiles.size());
 
@@ -140,7 +140,7 @@ public class FileUtil {
       try {
         for (String s : inFiles) {
           ns = fs.getVolumeByPath(new Path(s)).getFileSystem();
-          reader = FileOperations.getInstance().openIndex().ofFile(s, ns, ns.getConf()).withTableConfiguration(acuConf).execute();
+          reader = FileOperations.getInstance().newIndexReaderBuilder().forFile(s, ns, ns.getConf()).withTableConfiguration(acuConf).build();
           iters.add(reader);
         }
 
@@ -401,10 +401,10 @@ public class FileUtil {
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
       try {
         if (useIndex)
-          reader = FileOperations.getInstance().openIndex().ofFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).execute();
+          reader = FileOperations.getInstance().newIndexReaderBuilder().forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).build();
         else
-          reader = FileOperations.getInstance().openScanReader().ofFile(path.toString(), ns, ns.getConf())
-              .overRange(new Range(prevEndRow, false, null, true), LocalityGroupUtil.EMPTY_CF_SET, false).withTableConfiguration(acuConf).execute();
+          reader = FileOperations.getInstance().newScanReaderBuilder().forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf)
+              .overRange(new Range(prevEndRow, false, null, true), LocalityGroupUtil.EMPTY_CF_SET, false).build();
 
         while (reader.hasTop()) {
           Key key = reader.getTopKey();
@@ -425,10 +425,10 @@ public class FileUtil {
       }
 
       if (useIndex)
-        readers.add(FileOperations.getInstance().openIndex().ofFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).execute());
+        readers.add(FileOperations.getInstance().newIndexReaderBuilder().forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).build());
       else
-        readers.add(FileOperations.getInstance().openScanReader().ofFile(path.toString(), ns, ns.getConf())
-            .overRange(new Range(prevEndRow, false, null, true), LocalityGroupUtil.EMPTY_CF_SET, false).withTableConfiguration(acuConf).execute());
+        readers.add(FileOperations.getInstance().newScanReaderBuilder().forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf)
+            .overRange(new Range(prevEndRow, false, null, true), LocalityGroupUtil.EMPTY_CF_SET, false).build());
 
     }
     return numKeys;
@@ -445,7 +445,7 @@ public class FileUtil {
       FileSKVIterator reader = null;
       FileSystem ns = fs.getVolumeByPath(mapfile.path()).getFileSystem();
       try {
-        reader = FileOperations.getInstance().openReader().ofFile(mapfile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).execute();
+        reader = FileOperations.getInstance().newReaderBuilder().forFile(mapfile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).build();
 
         Key firstKey = reader.getFirstKey();
         if (firstKey != null) {
@@ -479,8 +479,8 @@ public class FileUtil {
     for (FileRef ref : mapFiles) {
       Path path = ref.path();
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-      FileSKVIterator reader = FileOperations.getInstance().openReader().ofFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf)
-          .seekToBeginning().execute();
+      FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder().forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf)
+          .seekToBeginning().build();
 
       try {
         if (!reader.hasTop())
@@ -523,7 +523,8 @@ public class FileUtil {
 
     Text row = new Text();
     FileSystem ns = fs.getVolumeByPath(mapFile).getFileSystem();
-    FileSKVIterator index = FileOperations.getInstance().openIndex().ofFile(mapFile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).execute();
+    FileSKVIterator index = FileOperations.getInstance().newIndexReaderBuilder().forFile(mapFile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf)
+        .build();
 
     try {
       while (index.hasTop()) {

@@ -72,11 +72,11 @@ public abstract class FileOperations {
    * Syntax:
    *
    * <pre>
-   * long size = fileOperations.getFileSize().ofFile(filename, fileSystem, fsConfiguration).withTableConfiguration(tableConf).execute();
+   * long size = fileOperations.getFileSize().forFile(filename, fileSystem, fsConfiguration).withTableConfiguration(tableConf).execute();
    * </pre>
    */
   @SuppressWarnings("unchecked")
-  public NeedsFile<NeedsTableConfiguration<GetFileSizeOperationBuilder>> getFileSize() {
+  public NeedsFile<GetFileSizeOperationBuilder> getFileSize() {
     return (NeedsFile) new GetFileSizeOperation();
   }
 
@@ -85,16 +85,16 @@ public abstract class FileOperations {
    * Syntax:
    *
    * <pre>
-   * FileSKVWriter writer = fileOperations.openWriter()
-   *     .ofFile(...)
+   * FileSKVWriter writer = fileOperations.newWriterBuilder()
+   *     .forFile(...)
    *     .withTableConfiguration(...)
    *     .withRateLimiter(...) // optional
    *     .withCompression(...) // optional
-   *     .execute();
+   *     .build();
    * </pre>
    */
   @SuppressWarnings("unchecked")
-  public NeedsFile<NeedsTableConfiguration<OpenWriterOperationBuilder>> openWriter() {
+  public NeedsFile<OpenWriterOperationBuilder> newWriterBuilder() {
     return (NeedsFile) new OpenWriterOperation();
   }
 
@@ -103,16 +103,16 @@ public abstract class FileOperations {
    * Syntax:
    *
    * <pre>
-   * FileSKVIterator iterator = fileOperations.openIndex()
-   *     .ofFile(...)
+   * FileSKVIterator iterator = fileOperations.newIndexReaderBuilder()
+   *     .forFile(...)
    *     .withTableConfiguration(...)
    *     .withRateLimiter(...) // optional
    *     .withBlockCache(...) // optional
-   *     .execute();
+   *     .build();
    * </pre>
    */
   @SuppressWarnings("unchecked")
-  public NeedsFile<NeedsTableConfiguration<OpenIndexOperationBuilder>> openIndex() {
+  public NeedsFile<OpenIndexOperationBuilder> newIndexReaderBuilder() {
     return (NeedsFile) new OpenIndexOperation();
   }
 
@@ -123,17 +123,17 @@ public abstract class FileOperations {
    * Syntax:
    *
    * <pre>
-   * FileSKVIterator scanner = fileOperations.openScanReader()
-   *     .ofFile(...)
-   *     .overRange(...)
+   * FileSKVIterator scanner = fileOperations.newScanReaderBuilder()
+   *     .forFile(...)
    *     .withTableConfiguration(...)
+   *     .overRange(...)
    *     .withRateLimiter(...) // optional
    *     .withBlockCache(...) // optional
-   *     .execute();
+   *     .build();
    * </pre>
    */
   @SuppressWarnings("unchecked")
-  public NeedsFile<NeedsRange<NeedsTableConfiguration<OpenScanReaderOperationBuilder>>> openScanReader() {
+  public NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>> newScanReaderBuilder() {
     return (NeedsFile) new OpenScanReaderOperation();
   }
 
@@ -143,17 +143,17 @@ public abstract class FileOperations {
    * Syntax:
    *
    * <pre>
-   * FileSKVIterator scanner = fileOperations.openReader()
-   *     .ofFile(...)
+   * FileSKVIterator scanner = fileOperations.newReaderBuilder()
+   *     .forFile(...)
    *     .withTableConfiguration(...)
    *     .withRateLimiter(...) // optional
    *     .withBlockCache(...) // optional
    *     .seekToBeginning(...) // optional
-   *     .execute();
+   *     .build();
    * </pre>
    */
   @SuppressWarnings("unchecked")
-  public NeedsFile<NeedsTableConfiguration<OpenReaderOperationBuilder>> openReader() {
+  public NeedsFile<OpenReaderOperationBuilder> newReaderBuilder() {
     return (NeedsFile) new OpenReaderOperation();
   }
 
@@ -185,7 +185,7 @@ public abstract class FileOperations {
 
     /** Specify the file this operation should apply to. */
     @SuppressWarnings("unchecked")
-    public SubclassType ofFile(String filename, FileSystem fs, Configuration fsConf) {
+    public SubclassType forFile(String filename, FileSystem fs, Configuration fsConf) {
       this.filename = filename;
       this.fs = fs;
       this.fsConf = fsConf;
@@ -194,7 +194,7 @@ public abstract class FileOperations {
 
     /** Specify the file this operation should apply to. */
     @SuppressWarnings("unchecked")
-    public SubclassType ofFile(String filename) {
+    public SubclassType forFile(String filename) {
       this.filename = filename;
       return (SubclassType) this;
     }
@@ -294,7 +294,7 @@ public abstract class FileOperations {
       return compression;
     }
 
-    public FileSKVWriter execute() throws IOException {
+    public FileSKVWriter build() throws IOException {
       validate();
       return openWriter(this);
     }
@@ -306,7 +306,7 @@ public abstract class FileOperations {
     public OpenWriterOperationBuilder withCompression(String compression);
 
     /** Construct the writer. */
-    public FileSKVWriter execute() throws IOException;
+    public FileSKVWriter build() throws IOException;
   }
 
   /**
@@ -363,7 +363,7 @@ public abstract class FileOperations {
    * Operation object for opening an index.
    */
   protected class OpenIndexOperation extends FileReaderOperation<OpenIndexOperation> implements OpenIndexOperationBuilder {
-    public FileSKVIterator execute() throws IOException {
+    public FileSKVIterator build() throws IOException {
       validate();
       return openIndex(this);
     }
@@ -372,7 +372,7 @@ public abstract class FileOperations {
   /** Builder interface parallel to {@link OpenIndexOperation}. */
   public static interface OpenIndexOperationBuilder extends FileReaderOperationBuilder<OpenIndexOperationBuilder> {
     /** Construct the reader. */
-    public FileSKVIterator execute() throws IOException;
+    public FileSKVIterator build() throws IOException;
   }
 
   /** Operation object for opening a scan reader. */
@@ -411,7 +411,7 @@ public abstract class FileOperations {
     }
 
     /** Execute the operation, constructing a scan iterator. */
-    public FileSKVIterator execute() throws IOException {
+    public FileSKVIterator build() throws IOException {
       validate();
       return openScanReader(this);
     }
@@ -421,7 +421,7 @@ public abstract class FileOperations {
   public static interface OpenScanReaderOperationBuilder extends FileReaderOperationBuilder<OpenScanReaderOperationBuilder>,
       NeedsRange<OpenScanReaderOperationBuilder> {
     /** Execute the operation, constructing a scan iterator. */
-    public FileSKVIterator execute() throws IOException;
+    public FileSKVIterator build() throws IOException;
   }
 
   /** Operation object for opening a full reader. */
@@ -446,7 +446,7 @@ public abstract class FileOperations {
     }
 
     /** Execute the operation, constructing the specified file reader. */
-    public FileSKVIterator execute() throws IOException {
+    public FileSKVIterator build() throws IOException {
       validate();
       return openReader(this);
     }
@@ -463,18 +463,18 @@ public abstract class FileOperations {
     public OpenReaderOperationBuilder seekToBeginning(boolean seekToBeginning);
 
     /** Execute the operation, constructing the specified file reader. */
-    public FileSKVIterator execute() throws IOException;
+    public FileSKVIterator build() throws IOException;
   }
 
   /**
-   * Type wrapper to ensure that {@code ofFile(...)} is called before other methods.
+   * Type wrapper to ensure that {@code forFile(...)} is called before other methods.
    */
   public static interface NeedsFile<ReturnType> {
     /** Specify the file this operation should apply to. */
-    public ReturnType ofFile(String filename, FileSystem fs, Configuration fsConf);
+    public NeedsTableConfiguration<ReturnType> forFile(String filename, FileSystem fs, Configuration fsConf);
 
     /** Specify the file this operation should apply to. */
-    public NeedsFileSystem<ReturnType> ofFile(String filename);
+    public NeedsFileSystem<ReturnType> forFile(String filename);
   }
 
   /**
@@ -482,7 +482,7 @@ public abstract class FileOperations {
    */
   public static interface NeedsFileSystem<ReturnType> {
     /** Specify the {@link FileSystem} that this operation operates on, along with an alternate configuration. */
-    public ReturnType inFileSystem(FileSystem fs, Configuration fsConf);
+    public NeedsTableConfiguration<ReturnType> inFileSystem(FileSystem fs, Configuration fsConf);
   }
 
   /**

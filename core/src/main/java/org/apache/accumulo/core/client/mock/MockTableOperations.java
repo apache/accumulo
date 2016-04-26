@@ -288,8 +288,8 @@ class MockTableOperations extends TableOperationsHelper {
      */
     for (FileStatus importStatus : fs.listStatus(importPath)) {
       try {
-        FileSKVIterator importIterator = FileOperations.getInstance().openReader().ofFile(importStatus.getPath().toString(), fs, fs.getConf())
-            .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).seekToBeginning().execute();
+        FileSKVIterator importIterator = FileOperations.getInstance().newReaderBuilder().forFile(importStatus.getPath().toString(), fs, fs.getConf())
+            .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).seekToBeginning().build();
         while (importIterator.hasTop()) {
           Key key = importIterator.getTopKey();
           Value value = importIterator.getTopValue();

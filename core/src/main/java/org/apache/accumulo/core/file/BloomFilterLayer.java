@@ -458,7 +458,7 @@ public class BloomFilterLayer {
 
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = "/tmp/test." + suffix;
-    FileSKVWriter bmfw = FileOperations.getInstance().openWriter().ofFile(fname, fs, conf).withTableConfiguration(acuconf).execute();
+    FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder().forFile(fname, fs, conf).withTableConfiguration(acuconf).build();
 
     long t1 = System.currentTimeMillis();
 
@@ -477,7 +477,7 @@ public class BloomFilterLayer {
     bmfw.close();
 
     t1 = System.currentTimeMillis();
-    FileSKVIterator bmfr = FileOperations.getInstance().openReader().ofFile(fname, fs, conf).withTableConfiguration(acuconf).execute();
+    FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder().forFile(fname, fs, conf).withTableConfiguration(acuconf).build();
     t2 = System.currentTimeMillis();
     out.println("Opened " + fname + " in " + (t2 - t1));
 
