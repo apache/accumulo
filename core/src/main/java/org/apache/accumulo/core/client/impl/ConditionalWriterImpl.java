@@ -380,12 +380,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads(), new NamingThreadFactory(this.getClass().getSimpleName()));
     final Text tableIdText = new Text(tableId);
-    this.locator = new SyncingTabletLocator(new SyncingTabletLocator.GetLocatorFunction() {
-      @Override
-      public TabletLocator getLocator() {
-        return TabletLocator.getLocator(instance, tableIdText);
-      }
-    });
+    this.locator = new SyncingTabletLocator(instance, tableIdText);
     this.serverQueues = new HashMap<String,ServerQueue>();
     this.tableId = tableId;
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);

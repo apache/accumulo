@@ -53,12 +53,7 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
   }
 
   public TimeoutTabletLocator(long timeout, final Instance instance, final Text table) {
-    super(new GetLocatorFunction() {
-      @Override
-      public TabletLocator getLocator() {
-        return TabletLocator.getLocator(instance, table);
-      }
-    });
+    super(instance, table);
     this.timeout = timeout;
   }
 

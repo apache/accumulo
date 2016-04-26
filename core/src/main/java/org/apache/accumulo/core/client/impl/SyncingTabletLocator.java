@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -54,6 +55,15 @@ public class SyncingTabletLocator extends TabletLocator {
   public SyncingTabletLocator(GetLocatorFunction getLocatorFunction) {
     this.getLocatorFunction = getLocatorFunction;
     this.locator = getLocatorFunction.getLocator();
+  }
+
+  public SyncingTabletLocator(final Instance instance, final Text tableId) {
+    this(new GetLocatorFunction() {
+      @Override
+      public TabletLocator getLocator() {
+        return TabletLocator.getLocator(instance, tableId);
+      }
+    });
   }
 
   private void syncLocator() {
