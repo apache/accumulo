@@ -29,7 +29,7 @@ PMC and Committers
 | kturner       | Keith Turner      | [Peterson Technologies][PETERSON]      | [ET][ET] |
 | mdrob         | Mike Drob         | [Cloudera][CLOUDERA]                   | [ET][ET] |
 | medined       | David Medinets    |                                        |          |
-| mjwall        | Michael Wall      |                                        | [ET][ET] |
+| mjwall        | Michael Wall      | [Objective Solutions, Inc.][OBJECTIVE] | [ET][ET] |
 | rweeks        | Russ Weeks        | [PHEMI][PHEMI]                         | [PT][PT] |
 | shickey       | Sean Hickey       |                                        | [PT][PT] |
 | ujustgotbilld | William Slacum    | [Miner &amp; Kasch][MINERKASCH]        | [ET][ET] |
@@ -63,6 +63,7 @@ Contributors
 |             | Gary Singh          | [Sabre Engineering][SABRE]                                        | [ET][ET]              |
 |             | Hayden Marchant     |                                                                   |                       |
 |             | Hung Pham           | [Cloudera][CLOUDERA]                                              | [ET][ET]              |
+|             | Ivan Bella          | [Objective Solutions, Inc.][OBJECTIVE]                            | [ET][ET]              |
 |             | Jacob Meisler       | [Booz Allen Hamilton][BOOZ]                                       | [ET][ET]              |
 |             | James Fiori         | [Flywheel Data][FLYWHEEL]                                         | [ET][ET]              |
 | jaredwinick | Jared Winick        | [Koverse][KOVERSE]                                                | [MT][MT]              |

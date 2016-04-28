@@ -27,4 +27,4 @@ HTML.
 This can be done easily by invoking the post-commit hook (either by hand, or automatically via configuring
 Git to invoke the post-commit hook).
 
-`./.devsupport/git-hooks/post-commit`
+`./_devtools/git-hooks/post-commit`
