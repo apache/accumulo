@@ -32,7 +32,7 @@
     <mailing-list rdf:resource="https://accumulo.apache.org/mailing_list" />
     <download-page rdf:resource="https://accumulo.apache.org/downloads" />
     <programming-language>Java</programming-language>
-    <category rdf:resource="https://projects.apache.org/category/database" />
+    <category rdf:resource="http://projects.apache.org/category/database" />
     <release>
       <Version>
         <name>Apache Accumulo</name>
