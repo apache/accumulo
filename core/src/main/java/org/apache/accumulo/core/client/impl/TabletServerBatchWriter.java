@@ -115,7 +115,7 @@ public class TabletServerBatchWriter {
   private MutationWriter writer;
   private FailedMutations failedMutations;
 
-  private Instance instance;
+  private final Instance instance;
   private Credentials credentials;
 
   private Violations violations;
@@ -662,8 +662,7 @@ public class TabletServerBatchWriter {
     private synchronized TabletLocator getLocator(String tableId) {
       TabletLocator ret = locators.get(tableId);
       if (ret == null) {
-        ret = TabletLocator.getLocator(instance, new Text(tableId));
-        ret = new TimeoutTabletLocator(ret, timeout);
+        ret = new TimeoutTabletLocator(timeout, instance, new Text(tableId));
         locators.put(tableId, ret);
       }
 
@@ -887,7 +886,7 @@ public class TabletServerBatchWriter {
             tables.add(ke.getTableId().toString());
 
           for (String table : tables)
-            TabletLocator.getLocator(instance, new Text(table)).invalidateCache(location);
+            getLocator(table).invalidateCache(location);
 
           failedMutations.add(location, tsm);
         } finally {
@@ -926,7 +925,7 @@ public class TabletServerBatchWriter {
               client.update(tinfo, credentials.toThrift(instance), entry.getKey().toThrift(), entry.getValue().get(0).toThrift());
             } catch (NotServingTabletException e) {
               allFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
-              TabletLocator.getLocator(instance, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
+              getLocator(entry.getKey().getTableId().toString()).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
               updatedConstraintViolations(Translator.translate(e.violationSummaries, Translators.TCVST));
             }
@@ -967,7 +966,7 @@ public class TabletServerBatchWriter {
 
               String table = failedExtent.getTableId().toString();
 
-              TabletLocator.getLocator(instance, new Text(table)).invalidateCache(failedExtent);
+              getLocator(table).invalidateCache(failedExtent);
 
               ArrayList<Mutation> mutations = (ArrayList<Mutation>) tabMuts.get(failedExtent);
               allFailures.addAll(table, mutations.subList(numCommitted, mutations.size()));

@@ -40,6 +40,15 @@ import org.apache.hadoop.io.Text;
 
 public abstract class TabletLocator {
 
+  /**
+   * Flipped false on call to {@link #clearLocators}. Checked by client classes that locally cache Locators.
+   */
+  private volatile boolean isValid = true;
+
+  boolean isValid() {
+    return isValid;
+  }
+
   public abstract TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException;
 
@@ -93,6 +102,9 @@ public abstract class TabletLocator {
   private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<LocatorKey,TabletLocator>();
 
   public static synchronized void clearLocators() {
+    for (TabletLocator locator : locators.values()) {
+      locator.isValid = false;
+    }
     locators.clear();
   }
 

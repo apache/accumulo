@@ -96,7 +96,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private Map<String,TimeoutTracker> timeoutTrackers;
   private Set<String> timedoutServers;
-  private long timeout;
+  private final long timeout;
 
   private TabletLocator locator;
 
@@ -143,7 +143,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<List<Entry<Key,Value>>>(numThreads);
 
-    this.locator = new TimeoutTabletLocator(TabletLocator.getLocator(instance, new Text(table)), timeout);
+    this.locator = new TimeoutTabletLocator(timeout, instance, new Text(table));
 
     timeoutTrackers = Collections.synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
     timedoutServers = Collections.synchronizedSet(new HashSet<String>());

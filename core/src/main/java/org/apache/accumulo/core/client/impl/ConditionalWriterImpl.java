@@ -107,10 +107,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private VisibilityEvaluator ve;
   @SuppressWarnings("unchecked")
   private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap(1000));
-  private Instance instance;
+  private final Instance instance;
   private Credentials credentials;
   private TabletLocator locator;
-  private String tableId;
+  private final String tableId;
   private long timeout;
 
   private static class ServerQueue {
@@ -373,13 +373,14 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  ConditionalWriterImpl(Instance instance, Credentials credentials, String tableId, ConditionalWriterConfig config) {
+  ConditionalWriterImpl(final Instance instance, Credentials credentials, final String tableId, ConditionalWriterConfig config) {
     this.instance = instance;
     this.credentials = credentials;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads(), new NamingThreadFactory(this.getClass().getSimpleName()));
-    this.locator = TabletLocator.getLocator(instance, new Text(tableId));
+    final Text tableIdText = new Text(tableId);
+    this.locator = new SyncingTabletLocator(instance, tableIdText);
     this.serverQueues = new HashMap<String,ServerQueue>();
     this.tableId = tableId;
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
