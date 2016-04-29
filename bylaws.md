@@ -97,34 +97,18 @@ Within the Accumulo project, different types of decisions require different form
 
 Decisions regarding the project are made by votes on the primary project development mailing list: dev@accumulo.apache.org. Where necessary, PMC voting may take place on the private Accumulo PMC mailing list: private@accumulo.apache.org. Votes are clearly indicated by a subject line starting with [VOTE]. A vote message may only pertain to a single item’s approval; multiple items should be separated into multiple messages. Voting is carried out by replying to the vote mail. A vote may take on one of four forms, defined below.
 
-<table class="table">
-  <tr>
-    <th>Vote</th>
-    <th>Meaning</th>
-  </tr>
-  <tr>
-    <td>+1</td>
-    <td>'Yes,' 'Agree,' or 'The action should be performed.' In general, this vote also indicates a willingness on the behalf of the voter to 'make it happen'.</td>
-  </tr>
-  <tr>
-    <td>+0</td>
-    <td>This vote indicates a willingness for the action under consideration to go ahead. The voter, however, will not be able to help.</td>
-  </tr>
-  <tr>
-    <td>-0</td>
-    <td>This vote indicates that the voter does not, in general, agree with the proposed action but is not concerned enough to prevent the action going ahead.</td>
-  </tr>
-  <tr>
-    <td>-1</td>
-    <td>'No', 'Disagree', or 'The action should not be performed.' On issues where consensus is required, this vote counts as a veto. All vetoes must contain an explanation of why the veto is appropriate. Vetoes with no explanation are void. It may also be appropriate for a -1 vote to include an alternative course of action.</td>
-  </tr>
-</table>
+{: .table }
+| Vote | Meaning |
+|------|---------|
+| +1   | *Yes*, *Agree*, or *The action should be performed*. In general, this vote also indicates a willingness on the behalf of the voter to *make it happen*. |
+| +0   | This vote indicates a willingness for the action under consideration to go ahead. The voter, however, will not be able to help.                         |
+| -0   | This vote indicates that the voter does not, in general, agree with the proposed action but is not concerned enough to prevent the action going ahead.  |
+| -1   | *No*, *Disagree*, or *The action should not be performed*. On issues where consensus is required, this vote counts as a veto. All vetoes must contain an explanation of why the veto is appropriate. Vetoes with no explanation are void. It may also be appropriate for a -1 vote to include an alternative course of action. |
 
 All participants in the Accumulo project are encouraged to vote. For technical decisions, only the votes of active committers are binding. Non-binding votes are still useful for those with binding votes to understand the perception of an action across the wider Accumulo community. For PMC decisions, only the votes of active PMC members are binding.
 
 See the [voting page][voting] for more details on the mechanics of voting.
 
-<a id="CTR"></a>
 ## Commit Then Review (CTR)
 
 Voting can also be applied to changes to the Accumulo codebase. Under the Commit Then Review policy, committers can make changes to the codebase without seeking approval beforehand, and the changes are assumed to be approved unless an objection is raised. Only if an objection is raised must a vote take place on the code change.
@@ -135,24 +119,12 @@ For some code changes, committers may wish to get feedback from the community be
 
 These are the types of approvals that can be sought. Different actions require different types of approvals.
 
-<table class="table">
-  <tr>
-    <th>Approval Type</th>
-    <th>Definition</th>
-  </tr>
-  <tr>
-    <td>Consensus Approval</td>
-    <td>A consensus approval vote passes with 3 binding +1 votes and no binding vetoes.</td>
-  </tr>
-  <tr>
-    <td>Majority Approval</td>
-    <td>A majority approval vote passes with 3 binding +1 votes and more binding +1 votes than -1 votes.</td>
-  </tr>
-  <tr>
-    <td>Lazy Approval (or Lazy Consensus)</td>
-    <td>An action with lazy approval is implicitly allowed unless a -1 vote is received, at which time, depending on the type of action, either majority approval or consensus approval must be obtained.  Lazy Approval can be either <em>stated</em> or <em>assumed</em>, as detailed on the <a href="governance/lazyConsensus">lazy consensus page</a>.</td>
-  </tr>
-</table>
+{: .table }
+| Approval&nbsp;Type                | Definition                                                                                       |
+|-----------------------------------|--------------------------------------------------------------------------------------------------|
+| Consensus Approval                | A consensus approval vote passes with 3 binding +1 votes and no binding vetoes.                  |
+| Majority Approval                 | A majority approval vote passes with 3 binding +1 votes and more binding +1 votes than -1 votes. |
+| Lazy Approval (or Lazy Consensus) | An action with lazy approval is implicitly allowed unless a -1 vote is received, at which time, depending on the type of action, either majority approval or consensus approval must be obtained.  Lazy Approval can be either *stated* or *assumed*, as detailed on the [lazy consensus page][lazy]. |
 
 ## Vetoes
 
@@ -166,78 +138,18 @@ This section describes the various actions which are undertaken within the proje
 
 For Code Change actions, a committer may choose to employ assumed or stated Lazy Approval under the [CTR][ctr] policy. Assumed Lazy Approval has no minimum length of time before the change can be made.
 
-<table class="table">
-  <tr>
-    <th>Action</th>
-    <th>Description</th>
-    <th>Approval</th>
-    <th>Binding Votes</th>
-    <th>Min. Length (days)</th>
-  </tr>
-  <tr>
-    <td>Code Change</td>
-    <td>A change made to a codebase of the project. This includes source code, documentation, website content, etc.</td>
-    <td>Lazy approval, moving to consensus approval upon veto</td>
-    <td>Active committers</td>
-    <td>1</td>
-  </tr>
-  <tr>
-    <td>Release Plan</td>
-    <td>Defines the timetable and actions for an upcoming release. The plan also nominates a Release Manager.</td>
-    <td>Lazy approval, moving to majority approval upon veto</td>
-    <td>Active committers</td>
-    <td>3</td>
-  </tr>
-  <tr>
-    <td>Release Plan Cancellation</td>
-    <td>Cancels an active release plan, due to a need to re-plan (e.g., discovery of a major issue).</td>
-    <td>Majority approval</td>
-    <td>Active committers</td>
-    <td>3</td>
-  </tr>
-  <tr>
-    <td>Product Release</td>
-    <td>Accepts or rejects a release candidate as an official release of the project.</td>
-    <td>Majority approval</td>
-    <td>Active PMC members</td>
-    <td>3</td>
-  </tr>
-  <tr>
-    <td>Adoption of New Codebase</td>
-    <td>When the codebase for an existing, released product is to be replaced with an alternative codebase. If such a vote fails to gain approval, the existing code base will continue. This also covers the creation of new sub-projects within the project.</td>
-    <td>Consensus approval</td>
-    <td>Active PMC members</td>
-    <td>7</td>
-  </tr>
-  <tr>
-    <td>New Committer</td>
-    <td>When a new committer is proposed for the project.</td>
-    <td>Consensus approval</td>
-    <td>Active PMC members</td>
-    <td>3</td>
-  </tr>
-  <tr>
-    <td>New PMC Member</td>
-    <td>When a committer is proposed for the PMC.</td>
-    <td>Consensus approval</td>
-    <td>Active PMC members</td>
-    <td>3</td>
-  </tr>
-  <tr>
-    <td>New PMC Chair</td>
-    <td>When a new PMC chair is chosen to succeed an outgoing chair.</td>
-    <td>Consensus approval</td>
-    <td>Active PMC members</td>
-    <td>3</td>
-  </tr>
-  <tr>
-    <td>Modifying Bylaws</td>
-    <td>Modifying this document.</td>
-    <td>Consensus approval</td>
-    <td>Active PMC members</td>
-    <td>7</td>
-  </tr>
-</table>
+{: .table }
+| Action                    | Description                                                                                                 | Approval                                              | Binding Votes      | Min. Length (days) |
+|---------------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------|--------------------|--------------------|
+| Code Change               | A change made to a codebase of the project. This includes source code, documentation, website content, etc. | Lazy approval, moving to consensus approval upon veto | Active committers  | 1                  |
+| Release Plan              | Defines the timetable and actions for an upcoming release. The plan also nominates a Release Manager.       | Lazy approval, moving to majority approval upon veto  | Active committers  | 3                  |
+| Release Plan Cancellation | Cancels an active release plan, due to a need to re-plan (e.g., discovery of a major issue).                | Majority approval                                     | Active committers  | 3                  |
+| Product Release           | Accepts or rejects a release candidate as an official release of the project.                               | Majority approval                                     | Active PMC members | 3                  |
+| Adoption of New Codebase  | When the codebase for an existing, released product is to be replaced with an alternative codebase. If such a vote fails to gain approval, the existing code base will continue. This also covers the creation of new sub-projects within the project. | Consensus approval | Active PMC members | 7 |
+| New Committer             | When a new committer is proposed for the project.                                                           | Consensus approval                                    | Active PMC members | 3                  |
+| New PMC Member            | When a committer is proposed for the PMC.                                                                   | Consensus approval                                    | Active PMC members | 3                  |
+| New PMC Chair             | When a new PMC chair is chosen to succeed an outgoing chair.                                                | Consensus approval                                    | Active PMC members | 3                  |
+| Modifying Bylaws          | Modifying this document.                                                                                    | Consensus approval                                    | Active PMC members | 7                  |
 
 No other voting actions are defined; all other actions should presume Lazy Approval (defaulting to Consensus Approval upon veto). If an action is voted on multiple times, or if a different approval type is desired, these bylaws should be amended to include the action.
 
@@ -275,6 +187,7 @@ All dates in a plan are estimates, as unforeseen issues may require delays. The 
 [release-guidelines]: governance/releasing
 [release-mechanics]: releasing
 [voting]: governance/voting
-[ctr]: #CTR
+[ctr]: #commit-then-review-ctr
 [committer-terms]: https://www.apache.org/dev/committers#committer-set-term
 [pmc-removal]: https://www.apache.org/dev/pmc#pmc-removal
+[lazy]: governance/lazyConsensus

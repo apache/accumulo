@@ -74,11 +74,11 @@ footer > p {
     border-collapse:collapse;
 }
 
-#release_notes_testing, #release_notes_testing tbody tr, #release_notes_testing tbody tr th, #release_notes_testing tbody tr td {
+#release_notes_testing, #release_notes_testing tr, #release_notes_testing th, #release_notes_testing td {
     border: 2px solid black;
 }
 
-#release_notes_testing tbody tr th, #release_notes_testing tbody tr td {
+#release_notes_testing th, #release_notes_testing td {
     padding: 5px;
 }
 

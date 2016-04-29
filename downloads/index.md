@@ -79,7 +79,7 @@ var mirrorsCallback = function(json) {
 };
 
 // get mirrors when page is ready
-var mirrorURL = "/mirrors.cgi"; // http[s]://accumulo.apache.org/mirrors.cgi
+var mirrorURL = "http://accumulo.apache.org/mirrors.cgi"; // http[s]://accumulo.apache.org/mirrors.cgi
 $(function() { $.getJSON(mirrorURL + "?as_json", mirrorsCallback); });
 
 </script>
@@ -91,30 +91,21 @@ Be sure to verify your downloads by these [procedures][VERIFY_PROCEDURES] using 
 
 ## Current Releases
 
-### 1.7.1 <span class="label label-primary">latest</span>
+### 1.7.1 **latest**{: .label .label-primary }
 
 The most recent Apache Accumulo&trade; release is version 1.7.1. See the [release notes][REL_NOTES_17] and [CHANGES][CHANGES_17].
 
 For convenience, [MD5][MD5SUM_17] and [SHA1][SHA1SUM_17] hashes are also available.
 
-<table class="table">
-<tr>
-<th>Generic Binaries</th>
-<td><a href="https://www.apache.org/dyn/closer.lua/accumulo/1.7.1/accumulo-1.7.1-bin.tar.gz" link-suffix="/accumulo/1.7.1/accumulo-1.7.1-bin.tar.gz" class="download_external" id="/downloads/accumulo-1.7.1-bin.tar.gz">accumulo-1.7.1-bin.tar.gz</a></td>
-<td><a href="https://www.apache.org/dist/accumulo/1.7.1/accumulo-1.7.1-bin.tar.gz.asc">ASC</a></td>
-</tr>
-<tr>
-<th>Source</th>
-<td><a href="https://www.apache.org/dyn/closer.lua/accumulo/1.7.1/accumulo-1.7.1-src.tar.gz" link-suffix="/accumulo/1.7.1/accumulo-1.7.1-src.tar.gz" class="download_external" id="/downloads/accumulo-1.7.1-src.tar.gz">accumulo-1.7.1-src.tar.gz</a></td>
-<td><a href="https://www.apache.org/dist/accumulo/1.7.1/accumulo-1.7.1-src.tar.gz.asc">ASC</a></td>
-</tr>
-</table>
+{: .table }
+| **Generic Binaries** | [accumulo-1.7.1-bin.tar.gz][BIN_17] | [ASC][ASC_BIN_17] |
+| **Source**           | [accumulo-1.7.1-src.tar.gz][SRC_17] | [ASC][ASC_SRC_17] |
 
 #### 1.7 Documentation
-* <a href="https://github.com/apache/accumulo/blob/rel/1.7.1/README.md" class="download_external" id="/1.7/README">README</a>
+* [README][README_17]
 * [HTML User Manual][MANUAL_HTML_17]
 * [Examples][EXAMPLES_17]
-* <a href="{{ site.baseurl }}/1.7/apidocs" class="download_external" id="/1.7/apidocs">Javadoc</a>
+* [Javadoc][JAVADOC_17]
 
 ### 1.6.5
 
@@ -122,25 +113,16 @@ The most recent 1.6.x release of Apache Accumulo&trade; is version 1.6.5. See th
 
 For convenience, [MD5][MD5SUM_16] and [SHA1][SHA1SUM_16] hashes are also available.
 
-<table class="table">
-<tr>
-<th>Generic Binaries</th>
-<td><a href="https://www.apache.org/dyn/closer.lua/accumulo/1.6.5/accumulo-1.6.5-bin.tar.gz" link-suffix="/accumulo/1.6.5/accumulo-1.6.5-bin.tar.gz" class="download_external" id="/downloads/accumulo-1.6.5-bin.tar.gz">accumulo-1.6.5-bin.tar.gz</a></td>
-<td><a href="https://www.apache.org/dist/accumulo/1.6.5/accumulo-1.6.5-bin.tar.gz.asc">ASC</a></td>
-</tr>
-<tr>
-<th>Source</th>
-<td><a href="https://www.apache.org/dyn/closer.lua/accumulo/1.6.5/accumulo-1.6.5-src.tar.gz" link-suffix="/accumulo/1.6.5/accumulo-1.6.5-src.tar.gz" class="download_external" id="/downloads/accumulo-1.6.5-src.tar.gz">accumulo-1.6.5-src.tar.gz</a></td>
-<td><a href="https://www.apache.org/dist/accumulo/1.6.5/accumulo-1.6.5-src.tar.gz.asc">ASC</a></td>
-</tr>
-</table>
+{: .table }
+| **Generic Binaries** | [accumulo-1.6.5-bin.tar.gz][BIN_16] | [ASC][ASC_BIN_16] |
+| **Source**           | [accumulo-1.6.5-src.tar.gz][SRC_16] | [ASC][ASC_SRC_16] |
 
 #### 1.6 Documentation
-* <a href="https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=README;hb=rel/1.6.5" class="download_external" id="/1.6/README">README</a>
-* <a href="https://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-docs/1.6.5/accumulo-docs-1.6.5-user-manual.pdf" class="download_external" id="/1.6/accumulo_user_manual.pdf">PDF manual</a>
+* [README][README_16]
+* [PDF manual][MANUAL_PDF_16]
 * [html manual][MANUAL_HTML_16]
 * [examples][EXAMPLES_16]
-* <a href="{{ site.baseurl }}/1.6/apidocs" class="download_external" id="/1.6/apidocs">Javadoc</a>
+* [Javadoc][JAVADOC_16]
 
 ## Older releases
 
@@ -151,6 +133,34 @@ Older releases can be found in the [archives][ARCHIVES].
 [GPG_KEYS]: https://www.apache.org/dist/accumulo/KEYS "KEYS"
 [ARCHIVES]: https://archive.apache.org/dist/accumulo
 
+[ASC_BIN_16]: https://www.apache.org/dist/accumulo/1.7.1/accumulo-1.7.1-bin.tar.gz.asc
+[ASC_SRC_16]: https://www.apache.org/dist/accumulo/1.7.1/accumulo-1.7.1-src.tar.gz.asc
+
+[ASC_BIN_17]: https://www.apache.org/dist/accumulo/1.7.1/accumulo-1.7.1-bin.tar.gz.asc
+[ASC_SRC_17]: https://www.apache.org/dist/accumulo/1.7.1/accumulo-1.7.1-src.tar.gz.asc
+
+[BIN_16]: https://www.apache.org/dyn/closer.lua/accumulo/1.6.5/accumulo-1.6.5-bin.tar.gz
+{: .download_external link-suffix="/accumulo/1.6.5/accumulo-1.6.5-bin.tar.gz" id="/downloads/accumulo-1.6.5-bin.tar.gz" }
+[SRC_16]: https://www.apache.org/dyn/closer.lua/accumulo/1.6.5/accumulo-1.6.5-src.tar.gz
+{: .download_external link-suffix="/accumulo/1.6.5/accumulo-1.6.5-src.tar.gz" id="/downloads/accumulo-1.6.5-src.tar.gz" }
+
+[BIN_17]: https://www.apache.org/dyn/closer.lua/accumulo/1.7.1/accumulo-1.7.1-bin.tar.gz
+{: .download_external link-suffix="/accumulo/1.7.1/accumulo-1.7.1-bin.tar.gz" id="/downloads/accumulo-1.7.1-bin.tar.gz" }
+[SRC_17]: https://www.apache.org/dyn/closer.lua/accumulo/1.7.1/accumulo-1.7.1-src.tar.gz
+{: .download_external link-suffix="/accumulo/1.7.1/accumulo-1.7.1-src.tar.gz" id="/downloads/accumulo-1.7.1-src.tar.gz" }
+
+[README_16]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=README;hb=rel/1.6.5
+{: .download_external id="/1.6/README" }
+[README_17]: https://github.com/apache/accumulo/blob/rel/1.7.1/README.md
+{: .download_external id="/1.7/README" }
+
+[JAVADOC_16]: {{ site.baseurl }}/1.6/apidocs
+{: .download_external id="/1.6/apidocs" }
+[JAVADOC_17]: {{ site.baseurl }}/1.7/apidocs
+{: .download_external id="/1.7/apidocs" }
+
+[MANUAL_PDF_16]: https://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-docs/1.6.5/accumulo-docs-1.6.5-user-manual.pdf
+{: .download_external id="/1.6/accumulo_user_manual.pdf" }
 [MANUAL_HTML_16]: {{ site.baseurl }}/1.6/accumulo_user_manual "1.6 user manual"
 [MANUAL_HTML_17]: {{ site.baseurl }}/1.7/accumulo_user_manual "1.7 user manual"
 

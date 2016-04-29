@@ -3,21 +3,12 @@ title: Notable Features
 nav: nav_features
 ---
 
-## Categories
+{::options toc_levels="2" /}
 
-* [Table Design and Configuration](#design)
-* [Integrity/Availability](#integrity)
-* [Performance](#performance)
-* [Testing](#testing)
-* [Client API](#client)
-* [Extensible Behaviors](#behaviors)
-* [General Administration](#admin)
-* [Internal Data Management](#internal_dm)
-* [On-demand Data Management](#ondemand_dm)
+* Will be replaced with the ToC, excluding the "Contents" header
+{:toc}
 
-***
-
-## Table Design and Configuration <a id="design"></a>
+## Table Design and Configuration
 
 ### Iterators
 
@@ -31,7 +22,7 @@ An additional portion of the Key that sorts after the column qualifier and
 before the timestamp. It is called column visibility and enables expressive
 cell-level access control. Authorizations are passed with each query to control
 what data is returned to the user. The column visibilities are boolean AND and
-OR combinations of arbitrary strings (such as "(A&B)|C") and authorizations
+OR combinations of arbitrary strings (such as "(A&amp;B)|C") and authorizations
 are sets of strings (such as {C,D}).
 
 ### Constraints
@@ -66,14 +57,14 @@ over multiple disjoint HDFS instances.  This allows Accumulo to scale beyond the
 of a single namenode.  When used in conjunction with HDFS federation, multiple namenodes
 can share a pool of datanodes.
 
-## Integrity/Availability <a id="integrity"></a>
+## Integrity/Availability
 
 ### Master fail over
 
 Multiple masters can be configured.  Zookeeper locks are used to determine
 which master is active.  The remaining masters simply wait for the current
 master to lose its lock.  Current master state is held in the metadata table
-and Zookeeper (see [FATE](#fate)).
+and Zookeeper (see [FATE][FATE]).
 
 ### Logical time
 
@@ -124,7 +115,7 @@ Stores its metadata in an Accumulo table and Zookeeper.
 
 Scans will not see data inserted into a row after the scan of that row begins.
 
-## Performance <a id="performance"></a>
+## Performance
 
 ### Relative encoding
 
@@ -176,7 +167,7 @@ is generated.  As a block is read more, larger indexes are generated making
 future seeks faster. This strategy allows Accumulo to dynamically respond to
 read patterns without precomputing block indexes when RFiles are written.
 
-## Testing <a id="testing"></a>
+## Testing
 
 ### Mock
 
@@ -195,7 +186,7 @@ instance more closely.
 Using the Mini Accumulo Cluster in unit and integration tests is a great way for
 developers to test their applications against Accumulo in an environment that is
 much closer to physical deployments than Mock Accumulo provided. Accumulo 1.6.0 also
-introduced a [maven-accumulo-plugin]({{ site.baseurl }}/release_notes/1.6.0#maven-plugin) which
+introduced a [maven-accumulo-plugin][M-A-P] which
 can be used to start a Mini Accumulo Cluster instance as a part of the Maven
 lifecycle that your application tests can use.
 
@@ -231,7 +222,7 @@ Other tests have no concept of data correctness and have the simple goal of
 crashing Accumulo. Many obscure bugs have been uncovered by this testing
 framework and subsequently corrected.
 
-## Client API <a id="client"></a>
+## Client API
 
 ### [Batch Scanner][4]
 
@@ -271,8 +262,8 @@ available to other languages like Python, Ruby, C++, etc.
 In version 1.6.0, Accumulo introduced [ConditionalMutations][7]
 which allow users to perform efficient, atomic read-modify-write operations on rows. Conditions can
 be defined using on equality checks of the values in a column or the absence of a column. For more
-information on using this feature, users can reference the Javadoc for [ConditionalMutation]({{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/data/ConditionalMutation) and
-[ConditionalWriter]({{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/client/ConditionalWriter)
+information on using this feature, users can reference the Javadoc for [ConditionalMutation][CMUT] and
+[ConditionalWriter][CWRI].
 
 ### Lexicoders
 
@@ -283,7 +274,7 @@ Lexicoders which have numerous implementations that support for efficient transl
 Java primitives to byte arrays and vice versa. These classes can greatly reduce the burden in
 re-implementing common programming mistakes in encoding.
 
-## Extensible Behaviors <a id="behaviors"></a>
+## Extensible Behaviors
 
 ### Pluggable balancer
 
@@ -318,7 +309,7 @@ it is very unlikely that more data will be written to it, and thus paying the pe
 to re-write a large file can be avoided. Implementations of this compaction strategy
 can be used to optimize the data that compactions will write.
 
-## General Administration <a id="admin"></a>
+## General Administration
 
 ### Monitor page
 
@@ -349,7 +340,7 @@ effect until server processes are restarted.
 Tables can be renamed easily because Accumulo uses internal table IDs and
 stores mappings between names and IDs in Zookeeper.
 
-## Internal Data Management <a id="internal_dm"></a>
+## Internal Data Management
 
 ### Locality groups
 
@@ -395,7 +386,7 @@ level of security that Accumulo provides. It is still a work in progress because
 the intermediate files created by Accumulo when recovering from a TabletServer
 failure are not encrypted.
 
-## On-demand Data Management <a id="ondemand_dm"></a>
+## On-demand Data Management
 
 ### Compactions
 
@@ -441,6 +432,10 @@ Added an operation to efficiently delete a range of rows from a table. Tablets
 that fall completely within a range are simply dropped. Tablets overlapping the
 beginning and end of the range are split, compacted, and then merged.  
 
+[FATE]: #fate
+[M-A-P]: {{ site.baseurl }}/release_notes/1.6.0#maven-plugin
+[CMUT]: {{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/data/ConditionalMutation
+[CWRI]: {{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/client/ConditionalWriter
 [4]: {{ site.baseurl }}/1.5/accumulo_user_manual#_writing_accumulo_clients
 [6]: {{ site.baseurl }}/1.5/accumulo_user_manual#_bulk_ingest
 [7]: {{ site.baseurl }}/1.6/accumulo_user_manual#_conditionalwriter
