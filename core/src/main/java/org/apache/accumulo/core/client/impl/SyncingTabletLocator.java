@@ -39,12 +39,6 @@ import org.apache.log4j.Logger;
 public class SyncingTabletLocator extends TabletLocator {
   private static final Logger log = Logger.getLogger(SyncingTabletLocator.class);
 
-  /*
-   * Implementation: the invalidateCache calls do not need to call syncLocator because it is okay if an outdated locator is invalidated. In this case, on the
-   * next call to a meaningful function like binRanges, the new locator will replace the current one and be used instead. The new locator is fresh; it has no
-   * cache at all when created.
-   */
-
   private volatile TabletLocator locator;
   private final Callable<TabletLocator> getLocatorFunction;
 
@@ -67,58 +61,57 @@ public class SyncingTabletLocator extends TabletLocator {
     });
   }
 
-  private void syncLocator() {
-    if (!locator.isValid())
+  private TabletLocator syncLocator() {
+    TabletLocator loc = this.locator;
+    if (!loc.isValid())
       synchronized (this) {
-        if (!locator.isValid())
+        if (locator == loc)
           try {
-            locator = getLocatorFunction.call();
+            loc = locator = getLocatorFunction.call();
           } catch (Exception e) {
             log.error("Problem obtaining TabletLocator", e);
             throw new RuntimeException(e);
           }
       }
+    return loc;
   }
 
   @Override
   public TabletLocation locateTablet(Credentials credentials, Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    syncLocator();
-    return locator.locateTablet(credentials, row, skipRow, retry);
+    return syncLocator().locateTablet(credentials, row, skipRow, retry);
   }
 
   @Override
   public <T extends Mutation> void binMutations(Credentials credentials, List<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
       List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    syncLocator();
-    locator.binMutations(credentials, mutations, binnedMutations, failures);
+    syncLocator().binMutations(credentials, mutations, binnedMutations, failures);
   }
 
   @Override
   public List<Range> binRanges(Credentials credentials, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    syncLocator();
-    return locator.binRanges(credentials, ranges, binnedRanges);
+    return syncLocator().binRanges(credentials, ranges, binnedRanges);
   }
 
   @Override
   public void invalidateCache(KeyExtent failedExtent) {
-    locator.invalidateCache(failedExtent);
+    syncLocator().invalidateCache(failedExtent);
   }
 
   @Override
   public void invalidateCache(Collection<KeyExtent> keySet) {
-    locator.invalidateCache(keySet);
+    syncLocator().invalidateCache(keySet);
   }
 
   @Override
   public void invalidateCache() {
-    locator.invalidateCache();
+    syncLocator().invalidateCache();
   }
 
   @Override
   public void invalidateCache(String server) {
-    locator.invalidateCache(server);
+    syncLocator().invalidateCache(server);
   }
 
 }
