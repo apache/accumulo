@@ -178,14 +178,13 @@ Changes to non-private members of those classes are subject to additional scruti
 
 ### Coding Practices
 
-<table class="table">
-<tr><th>License Header</th><td>Always add the current ASF license header as described in <a href="http://www.apache.org/legal/src-headers">ASF Source Header</a>.</td></tr>
-<tr><th>Trailing Whitespaces</th><td>Remove all trailing whitespaces. Eclipse users can use Source&rarr;Cleanup option to accomplish this.</td></tr>
-<tr><th>Indentation</th><td>Use 2 space indents and never use tabs!</td></tr>
-<tr><th>Line Wrapping</th><td>Use 160-column line width for Java code and Javadoc.</td></tr>
-<tr><th>Control Structure New Lines</th><td>Use a new line with single statement if/else blocks.</td></tr>
-<tr><th>Author Tags</th><td>Do not use Author Tags. The code is developed and owned by the community.</td></tr>
-</table>
+{: .table}
+| **License Header**              | Always add the current ASF license header as described in [ASF Source Header][srcheaders].            |
+| **Trailing Whitespaces**        | Remove all trailing whitespaces. Eclipse users can use Source&rarr;Cleanup option to accomplish this. |
+| **Indentation**                 | Use 2 space indents and never use tabs!                                                               |
+| **Line Wrapping**               | Use 160-column line width for Java code and Javadoc.                                                  |
+| **Control Structure New Lines** | Use a new line with single statement if/else blocks.                                                  |
+| **Author Tags**                 | Do not use Author Tags. The code is developed and owned by the community.                             |
 
 ### Code Review
 
@@ -212,9 +211,6 @@ Accumulo's release guide can be found [here][release].
 [1]: https://creadur.apache.org/rat/apache-rat-plugin
 [anongit]: git://git.apache.org/accumulo.git
 [cgit]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=summary
-[cms]: http://www.apache.org/dev/cms
-[cmsanon]: http://www.apache.org/dev/cmsref#non-committer
-[cmsusage]: http://www.apache.org/dev/cms#usage
 [contrib]: contrib
 [devlist]: mailto:dev@accumulo.apache.org
 [gh-pages]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=tree;h=gh-pages
@@ -225,7 +221,7 @@ Accumulo's release guide can be found [here][release].
 [intellij-formatter]: https://code.google.com/p/eclipse-code-formatter-intellij-plugin
 [jekyll]: https://jekyllrb.com
 [jenkins]: https://jenkins.io
-[jira]: http://www.atlassian.com/software/jira/overview
+[jira]: https://www.atlassian.com/software/jira
 [jiraloc]: https://issues.apache.org/jira/browse/ACCUMULO
 [lifecycle]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle
 [masterbuild]: https://builds.apache.org/job/Accumulo-Master
@@ -235,5 +231,5 @@ Accumulo's release guide can be found [here][release].
 [release]: governance/releasing
 [site-canon]: https://accumulo.apache.org
 [site-mirror]: http://apache.github.io/accumulo
-[srcheaders]: http://www.apache.org/legal/src-headers
+[srcheaders]: https://www.apache.org/legal/src-headers
 [styles]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=tree;f=contrib;hb=HEAD
