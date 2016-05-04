@@ -115,9 +115,9 @@ h6:hover .header-link {
   opacity: 1;
 }
 
-/* insert invisible blank space above elements with an id attribute, so that if
- * they are linked to, the actual content will appear below the nav menu */
-*[id]:before {
+/* insert invisible space above header elements with an id attribute, so that
+ * if they are linked to, the actual content will appear below the nav menu */
+h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before, h6[id]::before {
   display: block;
   content: " ";
   margin-top: -55px;
