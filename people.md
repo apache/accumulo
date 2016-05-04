@@ -1,11 +1,10 @@
 ---
-title: Contributors
+title: People
 skiph1fortitle: true
 nav: nav_people
 ---
 
-PMC and Committers
-------------------
+## PMC and Committers
 
 {: .table .table-striped}
 | username      | name              | organization                           | timezone |
@@ -36,8 +35,7 @@ PMC and Committers
 | vikrams       | Vikram Srivastava | [Cloudera][CLOUDERA]                   | [PT][PT] |
 | vines         | John Vines        | [sqrrl][SQRRL]                         | [ET][ET] |
 
-Contributors
-------------
+## Contributors
 
 {: .table .table-striped}
 | username    | name                | organization                                                      | timezone              |

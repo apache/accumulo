@@ -1,10 +1,7 @@
 ---
-title: Review Board Guidelines
-skiph1fortitle: true
+title: Using Review Board
 nav: nav_rb
 ---
-
-# Using Review Board
 
 The Apache Software Foundation provides an [instance][rbinstance] of
 [Review Board][rb] (RB) for projects to use in code reviews. Here is how RB can

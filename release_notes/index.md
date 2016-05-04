@@ -1,10 +1,7 @@
 ---
-title: Apache Accumulo Release Notes
-skiph1fortitle: true
-nav: nav_index
+title: Release Notes
+nav: nav_rn
 ---
-
-# Release Notes
 
 Apache Accumulo generates release notes for the benefit of users which summarize the important and notable changes that
 are contained in that release. Users can leverage these release notes to make make decisions about the benefits (or
