@@ -13,8 +13,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 language: java
-addons:
-  hostname: travis-accumulo-host
 notifications:
   irc:
     channels:
@@ -28,11 +26,8 @@ cache:
 install: true
 jdk:
   - oraclejdk8
-  - oraclejdk7
-  - openjdk7
 # clear any cache of accumulo artifacts, just in case; use https for central
 before_script:
-  - sed -e "s/^\\(127\\.0\\.0\\.1.*\\)/\\1 $(hostname)/" /etc/hosts | sudo tee /etc/hosts
   - rm -rf $HOME/.m2/repository/org/apache/accumulo
   - echo "<settings xmlns='http://maven.apache.org/SETTINGS/1.0.0'><mirrors><mirror><id>secure-central</id><url>https://repo.maven.apache.org/maven2</url><mirrorOf>central</mirrorOf></mirror></mirrors></settings>" > $HOME/settings-custom.xml
 script: mvn --settings $HOME/settings-custom.xml clean verify -DskipITs
