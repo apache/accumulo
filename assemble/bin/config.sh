@@ -42,6 +42,10 @@
 # Values set by script if certain files exist
 # ACCUMULO_JAAS_CONF  Location of jaas.conf file. Needed by JAAS for things like Kerberos based logins
 # ACCUMULO_KRB5_CONF  Location of krb5.conf file. Needed by Kerberos subsystems to find login servers
+#
+# NUMA related environment variables
+# ACCUMULO_ENABLE_NUMACTL   (Default: true) Use numactl if present on the system
+# ACCUMULO_NUMACTL_OPTIONS  (Default: --interleave=all) options to the numactl command
 
 if [ -z "${ACCUMULO_HOME}" ] ; then
   # Start: Resolve Script Directory
@@ -149,11 +153,12 @@ if [ ! -f "$ACCUMULO_CONF_DIR/gc" -a -z "${ACCUMULO_VERIFY_ONLY}" ]; then
   fi
 fi
 
+ACCUMULO_ENABLE_NUMACTL=${ACCUMULO_ENABLE_NUMACTL:-"true"}
+ACCUMULO_NUMACTL_OPTIONS=${ACCUMULO_NUMACTL_OPTIONS:-"--interleave=all"}
 NUMA=`which numactl 2>/dev/null`
 NUMACTL_EXISTS="$?"
-NUMACTL_ARGS="--interleave=all"
-if [[ ${NUMACTL_EXISTS} -eq 0 ]] ; then
-  export NUMA_CMD="${NUMA} ${NUMACTL_ARGS}"
+if [[ ( ${NUMACTL_EXISTS} -eq 0 ) && ( ${ACCUMULO_ENABLE_NUMACTL} == "true" ) ]] ; then
+  export NUMA_CMD="${NUMA} ${ACCUMULO_NUMACTL_OPTIONS}"
 else
   export NUMA_CMD=""
 fi
