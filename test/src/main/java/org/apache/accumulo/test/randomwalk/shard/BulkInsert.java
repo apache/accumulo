@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.test.randomwalk.shard;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
@@ -34,7 +36,6 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.test.randomwalk.Environment;
@@ -47,8 +48,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.ToolRunner;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class BulkInsert extends Test {
 
@@ -174,7 +173,7 @@ public class BulkInsert extends Test {
 
     Collection<Text> splits = conn.tableOperations().listSplits(tableName, maxSplits);
     for (Text split : splits)
-      out.println(Base64.encodeBase64String(TextUtil.getBytes(split)));
+      out.println(new String(Base64.getEncoder().encode(TextUtil.getBytes(split)), UTF_8));
 
     out.close();
 

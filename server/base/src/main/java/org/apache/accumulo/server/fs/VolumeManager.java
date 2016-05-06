@@ -18,6 +18,7 @@ package org.apache.accumulo.server.fs;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Optional;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.volume.Volume;
@@ -27,8 +28,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-
-import com.google.common.base.Optional;
 
 /**
  * A wrapper around multiple hadoop FileSystem objects, which are assumed to be different volumes. This also concentrates a bunch of meta-operations like

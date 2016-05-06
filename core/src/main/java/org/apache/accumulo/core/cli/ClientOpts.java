@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -56,7 +57,6 @@ import org.apache.log4j.Logger;
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
-import com.google.common.base.Predicate;
 
 public class ClientOpts extends Help {
 
@@ -344,10 +344,10 @@ public class ClientOpts extends Help {
         @Override
         public void getProperties(Map<String,String> props, Predicate<String> filter) {
           for (Entry<String,String> prop : DefaultConfiguration.getInstance())
-            if (filter.apply(prop.getKey()))
+            if (filter.test(prop.getKey()))
               props.put(prop.getKey(), prop.getValue());
           for (Entry<String,String> prop : xml)
-            if (filter.apply(prop.getKey()))
+            if (filter.test(prop.getKey()))
               props.put(prop.getKey(), prop.getValue());
         }
 

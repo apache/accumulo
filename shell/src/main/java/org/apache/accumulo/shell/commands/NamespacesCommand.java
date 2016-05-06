@@ -19,7 +19,6 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -31,7 +30,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 
 public class NamespacesCommand extends Command {
@@ -43,18 +41,15 @@ public class NamespacesCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     Map<String,String> namespaces = new TreeMap<>(shellState.getConnector().namespaceOperations().namespaceIdMap());
 
-    Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(), new Function<Entry<String,String>,String>() {
-      @Override
-      public String apply(Map.Entry<String,String> entry) {
-        String name = entry.getKey();
-        if (Namespaces.DEFAULT_NAMESPACE.equals(name))
-          name = DEFAULT_NAMESPACE_DISPLAY_NAME;
-        String id = entry.getValue();
-        if (cl.hasOption(namespaceIdOption.getOpt()))
-          return String.format(TablesCommand.NAME_AND_ID_FORMAT, name, id);
-        else
-          return name;
-      }
+    Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(), entry -> {
+      String name = entry.getKey();
+      if (Namespaces.DEFAULT_NAMESPACE.equals(name))
+        name = DEFAULT_NAMESPACE_DISPLAY_NAME;
+      String id = entry.getValue();
+      if (cl.hasOption(namespaceIdOption.getOpt()))
+        return String.format(TablesCommand.NAME_AND_ID_FORMAT, name, id);
+      else
+        return name;
     });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));

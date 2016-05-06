@@ -19,9 +19,9 @@ package org.apache.accumulo.shell.commands;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Random;
 
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;
@@ -42,9 +42,10 @@ public class HiddenCommand extends Command {
       shellState.getReader().beep();
       shellState.getReader().println();
       shellState.getReader().println(
-          new String(Base64.decodeBase64(("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8gIF88LgogICAgLyB8ICd8ICcgXAog"
-              + "ICAvICB8Xy58Xy4gIFwKICAvIC98ICAgICAgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAgIC8gIF9fICBcCiAgICAvICAv"
-              + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK").getBytes(UTF_8)), UTF_8));
+          new String(Base64.getDecoder().decode(
+              ("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8gIF88LgogICAgLyB8ICd8ICcgXAog"
+                  + "ICAvICB8Xy58Xy4gIFwKICAvIC98ICAgICAgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAgIC8gIF9fICBcCiAgICAvICAv"
+                  + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK").getBytes(UTF_8)), UTF_8));
     } else {
       throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
     }

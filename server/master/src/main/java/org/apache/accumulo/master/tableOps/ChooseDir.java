@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.util.Optional;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.fs.Path;
-
-import com.google.common.base.Optional;
 
 class ChooseDir extends MasterRepo {
   private static final long serialVersionUID = 1L;

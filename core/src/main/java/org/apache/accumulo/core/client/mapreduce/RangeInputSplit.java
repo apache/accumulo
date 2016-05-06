@@ -23,6 +23,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -44,7 +45,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -185,7 +185,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
         case INLINE:
           String tokenClass = in.readUTF();
           byte[] base64TokenBytes = in.readUTF().getBytes(UTF_8);
-          byte[] tokenBytes = Base64.decodeBase64(base64TokenBytes);
+          byte[] tokenBytes = Base64.getDecoder().decode(base64TokenBytes);
 
           this.token = AuthenticationTokenSerializer.deserialize(tokenClass, tokenBytes);
           break;
@@ -280,7 +280,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
         throw new IOException("Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
       } else if (null != token) {
         out.writeUTF(token.getClass().getName());
-        out.writeUTF(Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
+        out.writeUTF(new String(Base64.getEncoder().encode(AuthenticationTokenSerializer.serialize(token)), UTF_8));
       } else {
         out.writeUTF(tokenFile);
       }

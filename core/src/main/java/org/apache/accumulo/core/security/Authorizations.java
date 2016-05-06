@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -32,7 +33,6 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
 /**
@@ -153,7 +153,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       authsString = authsString.substring(HEADER.length());
       if (authsString.length() > 0) {
         for (String encAuth : authsString.split(",")) {
-          byte[] auth = Base64.decodeBase64(encAuth.getBytes(UTF_8));
+          byte[] auth = Base64.getDecoder().decode(encAuth.getBytes(UTF_8));
           auths.add(new ArrayByteSequence(auth));
         }
         checkAuths();
@@ -340,7 +340,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     for (byte[] auth : authsList) {
       sb.append(sep);
       sep = ",";
-      sb.append(Base64.encodeBase64String(auth));
+      sb.append(new String(Base64.getEncoder().encode(auth), UTF_8));
     }
 
     return sb.toString();

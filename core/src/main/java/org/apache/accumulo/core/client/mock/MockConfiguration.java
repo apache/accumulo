@@ -18,11 +18,10 @@ package org.apache.accumulo.core.client.mock;
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-
-import com.google.common.base.Predicate;
 
 /**
  * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
@@ -44,27 +43,10 @@ class MockConfiguration extends AccumuloConfiguration {
     return map.get(property.getKey());
   }
 
-  /**
-   * Don't use this method. It has been deprecated. Its parameters are not public API and subject to change.
-   *
-   * @deprecated since 1.7.0; use {@link #getProperties(Map, Predicate)} instead.
-   */
-  @Deprecated
-  public void getProperties(Map<String,String> props, final PropertyFilter filter) {
-    // convert PropertyFilter to Predicate
-    getProperties(props, new Predicate<String>() {
-
-      @Override
-      public boolean apply(String input) {
-        return filter.accept(input);
-      }
-    });
-  }
-
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     for (Entry<String,String> entry : map.entrySet()) {
-      if (filter.apply(entry.getKey())) {
+      if (filter.test(entry.getKey())) {
         props.put(entry.getKey(), entry.getValue());
       }
     }

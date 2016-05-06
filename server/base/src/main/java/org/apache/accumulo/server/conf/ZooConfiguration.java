@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -30,8 +31,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
 
 public class ZooConfiguration extends AccumuloConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ZooConfiguration.class);
@@ -112,7 +111,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
     List<String> children = propCache.getChildren(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
     if (children != null) {
       for (String child : children) {
-        if (child != null && filter.apply(child)) {
+        if (child != null && filter.test(child)) {
           String value = getRaw(child);
           if (value != null)
             props.put(child, value);

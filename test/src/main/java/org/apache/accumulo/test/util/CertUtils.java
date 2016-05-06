@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -70,7 +71,6 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import com.google.common.base.Predicate;
 
 public class CertUtils {
   private static final Logger log = LoggerFactory.getLogger(CertUtils.class);
@@ -154,7 +154,7 @@ public class CertUtils {
           @Override
           public void getProperties(Map<String,String> props, Predicate<String> filter) {
             for (Entry<String,String> entry : this)
-              if (filter.apply(entry.getKey()))
+              if (filter.test(entry.getKey()))
                 props.put(entry.getKey(), entry.getValue());
           }
         };

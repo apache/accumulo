@@ -17,11 +17,11 @@
 
 package org.apache.accumulo.core.data.impl;
 
+import java.util.function.Function;
+
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Function;
 
 public class TabletIdImpl implements TabletId {
 

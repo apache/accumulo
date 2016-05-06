@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.RowIterator;
@@ -49,7 +50,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.commons.lang.mutable.MutableInt;
 
-import com.google.common.base.Function;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
@@ -778,7 +778,8 @@ public abstract class GroupBalancer extends TabletBalancer {
 
         RowIterator rowIter = new RowIterator(scanner);
 
-        return Iterators.transform(rowIter, new LocationFunction());
+        Function<Iterator<Entry<Key,Value>>,Pair<KeyExtent,Location>> f = new LocationFunction();
+        return Iterators.transform(rowIter, x -> f.apply(x));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
