@@ -16,6 +16,14 @@
  */
 package org.apache.accumulo.test;
 
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -40,19 +48,11 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-
 /**
  * Iterator that opens a BatchWriter and writes to another table.
  * <p>
  * For each entry passed to this iterator, this writes a certain number of entries with the same key to another table and passes the entry downstream of this
- * iterator with its value replaced by either "{@value SUCCESS_STRING}" or a description of what failed. Success counts as all entries writing to the result
+ * iterator with its value replaced by either "{@value #SUCCESS_STRING}" or a description of what failed. Success counts as all entries writing to the result
  * table within a timeout period. Failure counts as one of the entries taking longer than the timeout period.
  * <p>
  * Configure this iterator by calling the static {@link #iteratorSetting} method.

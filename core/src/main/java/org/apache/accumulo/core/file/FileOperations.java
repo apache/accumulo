@@ -75,9 +75,8 @@ public abstract class FileOperations {
    * long size = fileOperations.getFileSize().forFile(filename, fileSystem, fsConfiguration).withTableConfiguration(tableConf).execute();
    * </pre>
    */
-  @SuppressWarnings("unchecked")
   public NeedsFile<GetFileSizeOperationBuilder> getFileSize() {
-    return (NeedsFile) new GetFileSizeOperation();
+    return (NeedsFile<GetFileSizeOperationBuilder>) new GetFileSizeOperation();
   }
 
   /**
@@ -93,9 +92,8 @@ public abstract class FileOperations {
    *     .build();
    * </pre>
    */
-  @SuppressWarnings("unchecked")
   public NeedsFile<OpenWriterOperationBuilder> newWriterBuilder() {
-    return (NeedsFile) new OpenWriterOperation();
+    return (NeedsFile<OpenWriterOperationBuilder>) new OpenWriterOperation();
   }
 
   /**
@@ -111,9 +109,8 @@ public abstract class FileOperations {
    *     .build();
    * </pre>
    */
-  @SuppressWarnings("unchecked")
   public NeedsFile<OpenIndexOperationBuilder> newIndexReaderBuilder() {
-    return (NeedsFile) new OpenIndexOperation();
+    return (NeedsFile<OpenIndexOperationBuilder>) new OpenIndexOperation();
   }
 
   /**
@@ -134,7 +131,7 @@ public abstract class FileOperations {
    */
   @SuppressWarnings("unchecked")
   public NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>> newScanReaderBuilder() {
-    return (NeedsFile) new OpenScanReaderOperation();
+    return (NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>>) (NeedsFile<?>) new OpenScanReaderOperation();
   }
 
   /**
@@ -152,9 +149,8 @@ public abstract class FileOperations {
    *     .build();
    * </pre>
    */
-  @SuppressWarnings("unchecked")
   public NeedsFile<OpenReaderOperationBuilder> newReaderBuilder() {
-    return (NeedsFile) new OpenReaderOperation();
+    return (NeedsFile<OpenReaderOperationBuilder>) new OpenReaderOperation();
   }
 
   //
