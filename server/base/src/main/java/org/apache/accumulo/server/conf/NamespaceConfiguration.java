@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.conf;
 
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -32,8 +33,6 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
 
 public class NamespaceConfiguration extends ObservableConfiguration {
   private static final Logger log = LoggerFactory.getLogger(NamespaceConfiguration.class);
@@ -110,10 +109,10 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     }
 
     @Override
-    public boolean apply(String key) {
+    public boolean test(String key) {
       if (isIteratorOrConstraint(key))
         return false;
-      return userFilter.apply(key);
+      return userFilter.test(key);
     }
 
   }

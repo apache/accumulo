@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Base64;
 
 import jline.console.ConsoleReader;
 
@@ -108,7 +109,7 @@ public class CreateToken implements KeywordExecutable {
         props.put(tp.getKey(), input);
         token.init(props);
       }
-      String tokenBase64 = Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token));
+      String tokenBase64 = new String(Base64.getEncoder().encode(AuthenticationTokenSerializer.serialize(token)), UTF_8);
 
       String tokenFile = opts.tokenFile;
       if (tokenFile == null) {

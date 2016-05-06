@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -40,8 +41,6 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
 
 /**
  * This class represents any essential configuration and credentials needed to initiate RPC operations throughout the code. It is intended to represent a shared
@@ -219,7 +218,7 @@ public class ClientContext {
         Iterator<?> keyIter = config.getKeys();
         while (keyIter.hasNext()) {
           String key = keyIter.next().toString();
-          if (filter.apply(key))
+          if (filter.test(key))
             props.put(key, config.getString(key));
         }
 
@@ -227,7 +226,7 @@ public class ClientContext {
         // Automatically reconstruct the server property when converting a client config.
         if (props.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
           final String serverPrimary = props.remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
-          if (filter.apply(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
+          if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(), serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());
           }
@@ -242,7 +241,7 @@ public class ClientContext {
                 continue;
               }
 
-              if (filter.apply(key)) {
+              if (filter.test(key)) {
                 char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
                 if (null != value) {
                   props.put(key, new String(value));

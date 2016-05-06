@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -49,12 +50,9 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
-
 /**
  * Utility methods for managing absolute URIs contained in Accumulo metadata.
  */
-
 public class VolumeUtil {
 
   private static final Logger log = LoggerFactory.getLogger(VolumeUtil.class);

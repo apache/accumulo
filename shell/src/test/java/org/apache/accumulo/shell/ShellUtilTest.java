@@ -22,9 +22,9 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 
-import org.apache.accumulo.core.util.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.Rule;
@@ -40,6 +40,7 @@ public class ShellUtilTest {
 
   // String with 3 lines, with one empty line
   private static final String FILEDATA = "line1\n\nline2";
+  private static final String B64_FILEDATA = "bGluZTE=\n\nbGluZTI=";
 
   @Test
   public void testWithoutDecode() throws IOException {
@@ -52,9 +53,11 @@ public class ShellUtilTest {
   @Test
   public void testWithDecode() throws IOException {
     File testFile = new File(folder.getRoot(), "testFileWithDecode.txt");
-    FileUtils.writeStringToFile(testFile, FILEDATA);
+    FileUtils.writeStringToFile(testFile, B64_FILEDATA);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
-    assertEquals(ImmutableList.of(new Text(Base64.decodeBase64("line1".getBytes(UTF_8))), new Text(Base64.decodeBase64("line2".getBytes(UTF_8)))), output);
+    assertEquals(
+        ImmutableList.of(new Text(Base64.getDecoder().decode("bGluZTE=".getBytes(UTF_8))), new Text(Base64.getDecoder().decode("bGluZTI=".getBytes(UTF_8)))),
+        output);
   }
 
   @Test(expected = FileNotFoundException.class)

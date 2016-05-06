@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -44,9 +45,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 
 public class NamespaceConfigurationTest {
   private static final String NSID = "namespace";
@@ -117,7 +115,7 @@ public class NamespaceConfigurationTest {
 
   @Test
   public void testGetProperties() {
-    Predicate<String> all = Predicates.alwaysTrue();
+    Predicate<String> all = x -> true;
     Map<String,String> props = new java.util.HashMap<String,String>();
     parent.getProperties(props, all);
     replay(parent);

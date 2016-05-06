@@ -19,8 +19,7 @@ package org.apache.accumulo.core.util.format;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
-
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 
 /**
  * DateFormatSupplier is a {@code ThreadLocal<DateFormat>} that will set the correct TimeZone when the object is retrieved by {@link #get()}.

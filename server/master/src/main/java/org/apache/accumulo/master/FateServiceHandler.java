@@ -158,7 +158,7 @@ class FateServiceHandler implements FateService.Iface {
         String newTableName = validateTableNameArgument(arguments.get(1), tableOp, new Validator<String>() {
 
           @Override
-          public boolean apply(String argument) {
+          public boolean test(String argument) {
             // verify they are in the same namespace
             String oldNamespace = Tables.qualify(oldTableName).getFirst();
             return oldNamespace.equals(Tables.qualify(argument).getFirst());

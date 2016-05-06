@@ -27,6 +27,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -38,7 +39,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 
 public class GroupBalancerTest {
@@ -80,14 +80,7 @@ public class GroupBalancerTest {
 
         @Override
         protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
-          return Iterables.transform(tabletLocs.entrySet(), new Function<Map.Entry<KeyExtent,TServerInstance>,Pair<KeyExtent,Location>>() {
-
-            @Override
-            public Pair<KeyExtent,Location> apply(final Entry<KeyExtent,TServerInstance> input) {
-              return new Pair<KeyExtent,Location>(input.getKey(), new Location(input.getValue()));
-            }
-          });
-
+          return Iterables.transform(tabletLocs.entrySet(), input -> new Pair<KeyExtent,Location>(input.getKey(), new Location(input.getValue())));
         }
 
         @Override

@@ -19,13 +19,12 @@ package org.apache.accumulo.core.conf;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
 
 /**
  * An {@link AccumuloConfiguration} which loads properties from an XML file, usually accumulo-site.xml. This implementation supports defaulting undefined
@@ -121,7 +120,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     parent.getProperties(props, filter);
 
     for (Entry<String,String> entry : getXmlConfig())
-      if (filter.apply(entry.getKey()))
+      if (filter.test(entry.getKey()))
         props.put(entry.getKey(), entry.getValue());
 
     // CredentialProvider should take precedence over site
@@ -133,7 +132,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
             continue;
           }
 
-          if (filter.apply(key)) {
+          if (filter.test(key)) {
             char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
             if (null != value) {
               props.put(key, new String(value));

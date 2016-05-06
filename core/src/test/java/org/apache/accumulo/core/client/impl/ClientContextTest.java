@@ -29,9 +29,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-
 public class ClientContextTest {
 
   private static boolean isCredentialProviderAvailable = false;
@@ -100,8 +97,7 @@ public class ClientContextTest {
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Map<String,String> props = new HashMap<String,String>();
-    Predicate<String> all = Predicates.alwaysTrue();
-    accClientConf.getProperties(props, all);
+    accClientConf.getProperties(props, x -> true);
 
     // Only sensitive properties are added
     Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(), props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));

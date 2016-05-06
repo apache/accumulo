@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -113,7 +114,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 
 import jline.console.ConsoleReader;
 
@@ -320,8 +320,8 @@ public class Initialize implements KeywordExecutable {
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
     String[] configuredVolumes = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
-    final String rootTabletDir = new Path(fs.choose(Optional.<String> absent(), configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR
-        + Path.SEPARATOR + RootTable.ID + RootTable.ROOT_TABLET_LOCATION).toString();
+    final String rootTabletDir = new Path(fs.choose(Optional.<String> empty(), configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
+        + RootTable.ID + RootTable.ROOT_TABLET_LOCATION).toString();
 
     try {
       initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDir);
@@ -419,11 +419,11 @@ public class Initialize implements KeywordExecutable {
     // initialize initial system tables config in zookeeper
     initSystemTablesConfig();
 
-    String tableMetadataTabletDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+    String tableMetadataTabletDir = fs.choose(Optional.<String> empty(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
         + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
-    String replicationTableDefaultTabletDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+    String replicationTableDefaultTabletDir = fs.choose(Optional.<String> empty(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
         + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
-    String defaultMetadataTabletDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+    String defaultMetadataTabletDir = fs.choose(Optional.<String> empty(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
         + MetadataTable.ID + Constants.DEFAULT_TABLET_LOCATION;
 
     // create table and default tablets directories

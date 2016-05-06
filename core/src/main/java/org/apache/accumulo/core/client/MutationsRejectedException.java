@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,15 +23,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.impl.TabletIdImpl;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 
 /**
  * Communicate the failed mutations of a BatchWriter back to the client.
@@ -153,7 +151,7 @@ public class MutationsRejectedException extends AccumuloException {
    */
   @Deprecated
   public List<org.apache.accumulo.core.data.KeyExtent> getAuthorizationFailures() {
-    return new ArrayList<org.apache.accumulo.core.data.KeyExtent>(Collections2.transform(af.keySet(), TabletIdImpl.TID_2_KE_OLD));
+    return af.keySet().stream().map(TabletIdImpl.TID_2_KE_OLD).collect(Collectors.toList());
   }
 
   /**

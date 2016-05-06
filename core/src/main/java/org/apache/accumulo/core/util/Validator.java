@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.util;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
 
 /**
- * A class that validates arguments of a particular type. Implementations must implement {@link #apply(Object)} and should override
+ * A class that validates arguments of a particular type. Implementations must implement {@link #test(Object)} and should override
  * {@link #invalidMessage(Object)}.
  */
 public abstract class Validator<T> implements Predicate<T> {
@@ -34,7 +34,7 @@ public abstract class Validator<T> implements Predicate<T> {
    *           if validation fails
    */
   public final T validate(final T argument) {
-    if (!apply(argument))
+    if (!test(argument))
       throw new IllegalArgumentException(invalidMessage(argument));
     return argument;
   }
@@ -65,13 +65,13 @@ public abstract class Validator<T> implements Predicate<T> {
     return new Validator<T>() {
 
       @Override
-      public boolean apply(T argument) {
-        return mine.apply(argument) && other.apply(argument);
+      public boolean test(T argument) {
+        return mine.test(argument) && other.test(argument);
       }
 
       @Override
       public String invalidMessage(T argument) {
-        return (mine.apply(argument) ? other : mine).invalidMessage(argument);
+        return (mine.test(argument) ? other : mine).invalidMessage(argument);
       }
 
     };
@@ -92,8 +92,8 @@ public abstract class Validator<T> implements Predicate<T> {
     return new Validator<T>() {
 
       @Override
-      public boolean apply(T argument) {
-        return mine.apply(argument) || other.apply(argument);
+      public boolean test(T argument) {
+        return mine.test(argument) || other.test(argument);
       }
 
       @Override
@@ -114,8 +114,8 @@ public abstract class Validator<T> implements Predicate<T> {
     return new Validator<T>() {
 
       @Override
-      public boolean apply(T argument) {
-        return !mine.apply(argument);
+      public boolean test(T argument) {
+        return !mine.test(argument);
       }
 
       @Override

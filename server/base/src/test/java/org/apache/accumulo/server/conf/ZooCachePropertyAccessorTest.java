@@ -27,14 +27,13 @@ import static org.junit.Assert.assertSame;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.base.Predicate;
 
 public class ZooCachePropertyAccessorTest {
   private static final String PATH = "/root/path/to/props";
@@ -120,8 +119,8 @@ public class ZooCachePropertyAccessorTest {
     expect(zc.get(PATH + "/" + child1)).andReturn(VALUE_BYTES);
     expect(zc.get(PATH + "/" + child2)).andReturn(null);
     replay(zc);
-    expect(filter.apply(child1)).andReturn(true);
-    expect(filter.apply(child2)).andReturn(true);
+    expect(filter.test(child1)).andReturn(true);
+    expect(filter.test(child2)).andReturn(true);
     replay(filter);
 
     a.getProperties(props, PATH, filter, parent, null);
@@ -158,7 +157,7 @@ public class ZooCachePropertyAccessorTest {
     children.add(child1);
     expect(zc.getChildren(PATH)).andReturn(children);
     replay(zc);
-    expect(filter.apply(child1)).andReturn(false);
+    expect(filter.test(child1)).andReturn(false);
     replay(filter);
 
     a.getProperties(props, PATH, filter, parent, null);

@@ -19,23 +19,19 @@ package org.apache.accumulo.core.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.fs.Path;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Collections2;
-
 /**
  * Types of {@link Property} values. Each type has a short name, a description, and a regex which valid values match. All of these fields are optional.
  */
 public enum PropertyType {
-  PREFIX(null, Predicates.<String> alwaysFalse(), null),
+  PREFIX(null, x -> false, null),
 
   TIMEDURATION("duration", boundedUnits(0, Long.MAX_VALUE, true, "", "ms", "s", "m", "h", "d"),
       "A non-negative integer optionally followed by a unit of time (whitespace disallowed), as in 30s.\n"
@@ -56,7 +52,7 @@ public enum PropertyType {
           + "Examples of valid host lists are 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
-  PORT("port", Predicates.or(new Bounds(1024, 65535), in(true, "0")),
+  PORT("port", new Bounds(1024, 65535).or(in(true, "0")),
       "An positive integer in the range 1024-65535, not already in use or specified elsewhere in the configuration"),
 
   COUNT("count", new Bounds(0, Integer.MAX_VALUE), "A non-negative integer in the range of 0-" + Integer.MAX_VALUE),
@@ -66,16 +62,12 @@ public enum PropertyType {
           + "Examples of valid fractions/percentages are '10', '1000%', '0.05', '5%', '0.2%', '0.0005'.\n"
           + "Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'"),
 
-  PATH("path", Predicates.<String> alwaysTrue(),
+  PATH("path", x -> true,
       "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property. The "
           + "following environment variables will be substituted: " + Constants.PATH_PROPERTY_ENV_VARS),
 
-  ABSOLUTEPATH("absolute path", new Predicate<String>() {
-    @Override
-    public boolean apply(final String input) {
-      return input == null || input.trim().isEmpty() || new Path(input.trim()).isAbsolute();
-    }
-  }, "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified."),
+  ABSOLUTEPATH("absolute path", x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
+      "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified."),
 
   CLASSNAME("java class", new Matches("[\\w$.]*"), "A fully qualified java class name representing a class on the classpath.\n"
       + "An example is 'java.lang.String', rather than 'String'"),
@@ -85,12 +77,12 @@ public enum PropertyType {
 
   DURABILITY("durability", in(true, null, "none", "log", "flush", "sync"), "One of 'none', 'log', 'flush' or 'sync'."),
 
-  STRING("string", Predicates.<String> alwaysTrue(),
+  STRING("string", x -> true,
       "An arbitrary string of characters whose format is unspecified and interpreted based on the context of the property to which it applies."),
 
   BOOLEAN("boolean", in(false, null, "true", "false"), "Has a value of either 'true' or 'false' (case-insensitive)"),
 
-  URI("uri", Predicates.<String> alwaysTrue(), "A valid URI");
+  URI("uri", x -> true, "A valid URI");
 
   private String shortname, format;
   private Predicate<String> predicate;
@@ -121,38 +113,25 @@ public enum PropertyType {
    * @return true if value is valid or null, or if this type has no regex
    */
   public boolean isValidFormat(String value) {
-    return predicate.apply(value);
+    return predicate.test(value);
   }
 
-  private static Predicate<String> in(final boolean caseSensitive, final String... strings) {
-    List<String> allowedSet = Arrays.asList(strings);
+  private static Predicate<String> in(final boolean caseSensitive, final String... allowedSet) {
     if (caseSensitive) {
-      return Predicates.in(allowedSet);
+      return x -> Arrays.stream(allowedSet).anyMatch(y -> (x == null && y == null) || (x != null && x.equals(y)));
     } else {
-      Function<String,String> toLower = new Function<String,String>() {
-        @Override
-        public String apply(final String input) {
-          return input == null ? null : input.toLowerCase();
-        }
-      };
-      return Predicates.compose(Predicates.in(Collections2.transform(allowedSet, toLower)), toLower);
+      Function<String,String> toLower = x -> x == null ? null : x.toLowerCase();
+      return x -> Arrays.stream(allowedSet).map(toLower).anyMatch(y -> (x == null && y == null) || (x != null && toLower.apply(x).equals(y)));
     }
   }
 
   private static Predicate<String> boundedUnits(final long lowerBound, final long upperBound, final boolean caseSensitive, final String... suffixes) {
-    return Predicates.or(Predicates.isNull(),
-        Predicates.and(new HasSuffix(caseSensitive, suffixes), Predicates.compose(new Bounds(lowerBound, upperBound), new StripUnits())));
+    Predicate<String> suffixCheck = new HasSuffix(caseSensitive, suffixes);
+    return x -> x == null || (suffixCheck.test(x) && new Bounds(lowerBound, upperBound).test(stripUnits.apply(x)));
   }
 
-  private static class StripUnits implements Function<String,String> {
-    private static Pattern SUFFIX_REGEX = Pattern.compile("[^\\d]*$");
-
-    @Override
-    public String apply(final String input) {
-      requireNonNull(input);
-      return SUFFIX_REGEX.matcher(input.trim()).replaceAll("");
-    }
-  }
+  private static final Pattern SUFFIX_REGEX = Pattern.compile("[^\\d]*$");
+  private static final Function<String,String> stripUnits = x -> x == null ? null : SUFFIX_REGEX.matcher(x.trim()).replaceAll("");
 
   private static class HasSuffix implements Predicate<String> {
 
@@ -163,14 +142,14 @@ public enum PropertyType {
     }
 
     @Override
-    public boolean apply(final String input) {
+    public boolean test(final String input) {
       requireNonNull(input);
-      Matcher m = StripUnits.SUFFIX_REGEX.matcher(input);
+      Matcher m = SUFFIX_REGEX.matcher(input);
       if (m.find()) {
         if (m.groupCount() != 0) {
           throw new AssertionError(m.groupCount());
         }
-        return p.apply(m.group());
+        return p.test(m.group());
       } else {
         return true;
       }
@@ -179,7 +158,7 @@ public enum PropertyType {
 
   private static class FractionPredicate implements Predicate<String> {
     @Override
-    public boolean apply(final String input) {
+    public boolean test(final String input) {
       if (input == null) {
         return true;
       }
@@ -214,7 +193,7 @@ public enum PropertyType {
     }
 
     @Override
-    public boolean apply(final String input) {
+    public boolean test(final String input) {
       if (input == null) {
         return true;
       }
@@ -253,7 +232,7 @@ public enum PropertyType {
     }
 
     @Override
-    public boolean apply(final String input) {
+    public boolean test(final String input) {
       // TODO when the input is null, it just means that the property wasn't set
       // we can add checks for not null for required properties with Predicates.and(Predicates.notNull(), ...),
       // or we can stop assuming that null is always okay for a Matches predicate, and do that explicitly with Predicates.or(Predicates.isNull(), ...)

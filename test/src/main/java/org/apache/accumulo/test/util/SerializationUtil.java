@@ -16,10 +16,7 @@
  */
 package org.apache.accumulo.test.util;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.hadoop.io.Writable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,7 +28,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.util.Base64;
 import java.util.Objects;
+
+import org.apache.hadoop.io.Writable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Partially based from {@link org.apache.commons.lang3.SerializationUtils}.
@@ -70,21 +72,21 @@ public class SerializationUtil {
 
   public static String serializeWritableBase64(Writable writable) {
     byte[] b = serializeWritable(writable);
-    return org.apache.accumulo.core.util.Base64.encodeBase64String(b);
+    return new String(Base64.getEncoder().encode(b), UTF_8);
   }
 
   public static void deserializeWritableBase64(Writable writable, String str) {
-    byte[] b = Base64.decodeBase64(str);
+    byte[] b = Base64.getDecoder().decode(str.getBytes(UTF_8));
     deserializeWritable(writable, b);
   }
 
   public static String serializeBase64(Serializable obj) {
     byte[] b = serialize(obj);
-    return org.apache.accumulo.core.util.Base64.encodeBase64String(b);
+    return new String(Base64.getEncoder().encode(b), UTF_8);
   }
 
   public static Object deserializeBase64(String str) {
-    byte[] b = Base64.decodeBase64(str);
+    byte[] b = Base64.getDecoder().decode(str.getBytes(UTF_8));
     return deserialize(b);
   }
 

@@ -32,7 +32,7 @@ public class ValidatorTest {
     }
 
     @Override
-    public boolean apply(String argument) {
+    public boolean test(String argument) {
       return s.equals(argument);
     }
   }
@@ -45,7 +45,7 @@ public class ValidatorTest {
     }
 
     @Override
-    public boolean apply(String argument) {
+    public boolean test(String argument) {
       return (argument != null && argument.matches(ps));
     }
   }
@@ -77,24 +77,24 @@ public class ValidatorTest {
   @Test
   public void testAnd() {
     Validator<String> vand = v3.and(v);
-    assertTrue(vand.apply("correct"));
-    assertFalse(vand.apply("righto"));
-    assertFalse(vand.apply("coriander"));
+    assertTrue(vand.test("correct"));
+    assertFalse(vand.test("righto"));
+    assertFalse(vand.test("coriander"));
   }
 
   @Test
   public void testOr() {
     Validator<String> vor = v.or(v2);
-    assertTrue(vor.apply("correct"));
-    assertTrue(vor.apply("righto"));
-    assertFalse(vor.apply("coriander"));
+    assertTrue(vor.test("correct"));
+    assertTrue(vor.test("righto"));
+    assertFalse(vor.test("coriander"));
   }
 
   @Test
   public void testNot() {
     Validator<String> vnot = v3.not();
-    assertFalse(vnot.apply("correct"));
-    assertFalse(vnot.apply("coriander"));
-    assertTrue(vnot.apply("righto"));
+    assertFalse(vnot.test("correct"));
+    assertFalse(vnot.test("coriander"));
+    assertTrue(vnot.test("righto"));
   }
 }

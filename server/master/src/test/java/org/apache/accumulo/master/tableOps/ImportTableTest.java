@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.util.Optional;
+
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.base.Optional;
 
 /**
  *

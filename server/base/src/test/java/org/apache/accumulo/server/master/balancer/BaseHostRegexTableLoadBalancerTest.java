@@ -22,9 +22,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.Map.Entry;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -44,8 +45,6 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-
-import com.google.common.base.Predicate;
 
 public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
 
@@ -159,7 +158,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         @Override
         public void getProperties(Map<String,String> props, Predicate<String> filter) {
           for (Entry<String,String> e : DEFAULT_TABLE_PROPERTIES.entrySet()) {
-            if (filter.apply(e.getKey())) {
+            if (filter.test(e.getKey())) {
               props.put(e.getKey(), e.getValue());
             }
           }

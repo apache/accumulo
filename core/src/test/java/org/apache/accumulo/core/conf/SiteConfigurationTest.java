@@ -20,15 +20,13 @@ import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.hadoop.conf.Configuration;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 
 public class SiteConfigurationTest {
   private static boolean isCredentialProviderAvailable;
@@ -67,7 +65,7 @@ public class SiteConfigurationTest {
     EasyMock.replay(siteCfg);
 
     Map<String,String> props = new HashMap<String,String>();
-    Predicate<String> all = Predicates.alwaysTrue();
+    Predicate<String> all = x -> true;
     siteCfg.getProperties(props, all);
 
     Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));

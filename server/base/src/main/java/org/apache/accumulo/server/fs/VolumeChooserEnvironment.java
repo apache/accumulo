@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.fs;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class VolumeChooserEnvironment {
 

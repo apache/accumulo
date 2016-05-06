@@ -18,6 +18,7 @@
 package org.apache.accumulo.server.master.balancer;
 
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,8 +26,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Function;
 
 /**
  * A {@link GroupBalancer} that groups tablets using a configurable regex. To use this balancer configure the following settings for your table then configure

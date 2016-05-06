@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -43,8 +44,6 @@ import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.base.Predicate;
 
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
 
@@ -131,7 +130,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
           @Override
           public void getProperties(Map<String,String> props, Predicate<String> filter) {
             for (Entry<String,String> e : tableProperties.entrySet()) {
-              if (filter.apply(e.getKey())) {
+              if (filter.test(e.getKey())) {
                 props.put(e.getKey(), e.getValue());
               }
             }
@@ -203,7 +202,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
           @Override
           public void getProperties(Map<String,String> props, Predicate<String> filter) {
             for (Entry<String,String> e : tableProperties.entrySet()) {
-              if (filter.apply(e.getKey())) {
+              if (filter.test(e.getKey())) {
                 props.put(e.getKey(), e.getValue());
               }
             }

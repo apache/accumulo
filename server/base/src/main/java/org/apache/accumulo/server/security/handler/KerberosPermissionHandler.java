@@ -18,6 +18,8 @@ package org.apache.accumulo.server.security.handler;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Base64;
+
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -26,7 +28,6 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.Base64;
 
 /**
  * Kerberos principals might contains identifiers that are not valid ZNodes ('/'). Base64-encodes the principals before interacting with ZooKeeper.
@@ -51,71 +52,71 @@ public class KerberosPermissionHandler implements PermissionHandler {
 
   @Override
   public void initializeSecurity(TCredentials credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException {
-    zkPermissionHandler.initializeSecurity(credentials, Base64.encodeBase64String(rootuser.getBytes(UTF_8)));
+    zkPermissionHandler.initializeSecurity(credentials, new String(Base64.getEncoder().encode(rootuser.getBytes(UTF_8)), UTF_8));
   }
 
   @Override
   public boolean hasSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
-    return zkPermissionHandler.hasSystemPermission(Base64.encodeBase64String(user.getBytes(UTF_8)), permission);
+    return zkPermissionHandler.hasSystemPermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), permission);
   }
 
   @Override
   public boolean hasCachedSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
-    return zkPermissionHandler.hasCachedSystemPermission(Base64.encodeBase64String(user.getBytes(UTF_8)), permission);
+    return zkPermissionHandler.hasCachedSystemPermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), permission);
   }
 
   @Override
   public boolean hasTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
-    return zkPermissionHandler.hasTablePermission(Base64.encodeBase64String(user.getBytes(UTF_8)), table, permission);
+    return zkPermissionHandler.hasTablePermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), table, permission);
   }
 
   @Override
   public boolean hasCachedTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
-    return zkPermissionHandler.hasCachedTablePermission(Base64.encodeBase64String(user.getBytes(UTF_8)), table, permission);
+    return zkPermissionHandler.hasCachedTablePermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), table, permission);
   }
 
   @Override
   public boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
-    return zkPermissionHandler.hasNamespacePermission(Base64.encodeBase64String(user.getBytes(UTF_8)), namespace, permission);
+    return zkPermissionHandler.hasNamespacePermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), namespace, permission);
   }
 
   @Override
   public boolean hasCachedNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
-    return zkPermissionHandler.hasCachedNamespacePermission(Base64.encodeBase64String(user.getBytes(UTF_8)), namespace, permission);
+    return zkPermissionHandler.hasCachedNamespacePermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), namespace, permission);
   }
 
   @Override
   public void grantSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
-    zkPermissionHandler.grantSystemPermission(Base64.encodeBase64String(user.getBytes(UTF_8)), permission);
+    zkPermissionHandler.grantSystemPermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), permission);
   }
 
   @Override
   public void revokeSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
-    zkPermissionHandler.revokeSystemPermission(Base64.encodeBase64String(user.getBytes(UTF_8)), permission);
+    zkPermissionHandler.revokeSystemPermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), permission);
   }
 
   @Override
   public void grantTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
-    zkPermissionHandler.grantTablePermission(Base64.encodeBase64String(user.getBytes(UTF_8)), table, permission);
+    zkPermissionHandler.grantTablePermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), table, permission);
   }
 
   @Override
   public void revokeTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
-    zkPermissionHandler.revokeTablePermission(Base64.encodeBase64String(user.getBytes(UTF_8)), table, permission);
+    zkPermissionHandler.revokeTablePermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), table, permission);
   }
 
   @Override
   public void grantNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
-    zkPermissionHandler.grantNamespacePermission(Base64.encodeBase64String(user.getBytes(UTF_8)), namespace, permission);
+    zkPermissionHandler.grantNamespacePermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), namespace, permission);
   }
 
   @Override
   public void revokeNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
-    zkPermissionHandler.revokeNamespacePermission(Base64.encodeBase64String(user.getBytes(UTF_8)), namespace, permission);
+    zkPermissionHandler.revokeNamespacePermission(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), namespace, permission);
   }
 
   @Override
@@ -130,7 +131,7 @@ public class KerberosPermissionHandler implements PermissionHandler {
 
   @Override
   public void initUser(String user) throws AccumuloSecurityException {
-    zkPermissionHandler.initUser(Base64.encodeBase64String(user.getBytes(UTF_8)));
+    zkPermissionHandler.initUser(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8));
   }
 
   @Override
@@ -140,7 +141,7 @@ public class KerberosPermissionHandler implements PermissionHandler {
 
   @Override
   public void cleanUser(String user) throws AccumuloSecurityException {
-    zkPermissionHandler.cleanUser(Base64.encodeBase64String(user.getBytes(UTF_8)));
+    zkPermissionHandler.cleanUser(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8));
   }
 
 }

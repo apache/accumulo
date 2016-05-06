@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.examples.simple.mapreduce.bulk;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Base64;
 import java.util.Collection;
 
 import org.apache.accumulo.core.cli.MapReduceClientOnRequiredTable;
@@ -27,7 +30,6 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.mapreduce.lib.partition.RangePartitioner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -133,7 +135,7 @@ public class BulkIngestExample extends Configured implements Tool {
 
       Collection<Text> splits = connector.tableOperations().listSplits(opts.getTableName(), 100);
       for (Text split : splits)
-        out.println(Base64.encodeBase64String(TextUtil.getBytes(split)));
+        out.println(new String(Base64.getEncoder().encode(TextUtil.getBytes(split)), UTF_8));
 
       job.setNumReduceTasks(splits.size() + 1);
       out.close();

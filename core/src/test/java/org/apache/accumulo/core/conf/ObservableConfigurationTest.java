@@ -24,11 +24,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.base.Predicate;
 
 public class ObservableConfigurationTest {
   private static class TestObservableConfig extends ObservableConfiguration {

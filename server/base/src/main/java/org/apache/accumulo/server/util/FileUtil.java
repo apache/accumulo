@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
@@ -57,8 +58,6 @@ import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
-
 public class FileUtil {
 
   public static class FileInfo {
@@ -82,7 +81,7 @@ public class FileUtil {
   private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
   private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs) throws IOException {
-    String accumuloDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris());
+    String accumuloDir = fs.choose(Optional.<String> empty(), ServerConstants.getBaseUris());
 
     Path result = null;
     while (result == null) {

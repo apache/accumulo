@@ -20,14 +20,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
 
 /**
  * A helper object for accessing properties in a {@link ZooCache}.
@@ -143,7 +142,7 @@ public class ZooCachePropertyAccessor {
     List<String> children = propCache.getChildren(path);
     if (children != null) {
       for (String child : children) {
-        if (child != null && filter.apply(child)) {
+        if (child != null && filter.test(child)) {
           String value = get(path + "/" + child);
           if (value != null) {
             props.put(child, value);

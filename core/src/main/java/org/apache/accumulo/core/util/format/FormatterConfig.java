@@ -23,8 +23,7 @@ import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 
 /**
  * Holds configuration settings for a {@link Formatter}

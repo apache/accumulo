@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.minicluster.impl;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedReader;
@@ -109,9 +110,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * This class provides the backing implementation for {@link MiniAccumuloCluster}, and may contain features for internal testing which have not yet been
@@ -429,12 +428,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     File clientConfFile = config.getClientConfFile();
     // Write only the properties that correspond to ClientConfiguration properties
-    writeConfigProperties(clientConfFile, Maps.filterEntries(config.getSiteConfig(), new Predicate<Entry<String,String>>() {
-      @Override
-      public boolean apply(Entry<String,String> v) {
-        return ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null;
-      }
-    }));
+    writeConfigProperties(clientConfFile,
+        Maps.filterEntries(config.getSiteConfig(), v -> ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null));
 
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());

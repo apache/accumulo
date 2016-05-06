@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -33,30 +34,10 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-
 /**
  * A configuration object.
  */
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
-
-  /**
-   * A filter for properties, based on key.
-   *
-   * @deprecated since 1.7.0; use {@link Predicate} instead.
-   */
-  @Deprecated
-  public interface PropertyFilter {
-    /**
-     * Determines whether to accept a property based on its key.
-     *
-     * @param key
-     *          property key
-     * @return true to accept property (pass filter)
-     */
-    boolean accept(String key);
-  }
 
   /**
    * A filter that accepts properties whose keys are an exact match.
@@ -76,7 +57,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     @Override
-    public boolean apply(String key) {
+    public boolean test(String key) {
       return Objects.equals(match, key);
     }
   }
@@ -99,7 +80,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     @Override
-    public boolean apply(String key) {
+    public boolean test(String key) {
       return key.startsWith(prefix);
     }
   }
@@ -149,7 +130,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   @Override
   public Iterator<Entry<String,String>> iterator() {
-    Predicate<String> all = Predicates.alwaysTrue();
+    Predicate<String> all = x -> true;
     TreeMap<String,String> entries = new TreeMap<String,String>();
     getProperties(entries, all);
     return entries.entrySet().iterator();

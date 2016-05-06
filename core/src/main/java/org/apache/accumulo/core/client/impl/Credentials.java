@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.impl;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
+import java.util.Base64;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -27,7 +28,6 @@ import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.Base64;
 
 /**
  * A wrapper for internal use. This class carries the instance, principal, and authentication token for use in the public API, in a non-serialized form. This is
@@ -109,9 +109,9 @@ public class Credentials {
    * @return serialized form of these credentials
    */
   public final String serialize() {
-    return (getPrincipal() == null ? "-" : Base64.encodeBase64String(getPrincipal().getBytes(UTF_8))) + ":"
-        + (getToken() == null ? "-" : Base64.encodeBase64String(getToken().getClass().getName().getBytes(UTF_8))) + ":"
-        + (getToken() == null ? "-" : Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(getToken())));
+    return (getPrincipal() == null ? "-" : new String(Base64.getEncoder().encode(getPrincipal().getBytes(UTF_8)), UTF_8)) + ":"
+        + (getToken() == null ? "-" : new String(Base64.getEncoder().encode(getToken().getClass().getName().getBytes(UTF_8)), UTF_8)) + ":"
+        + (getToken() == null ? "-" : new String(Base64.getEncoder().encode(AuthenticationTokenSerializer.serialize(getToken())), UTF_8));
   }
 
   /**
@@ -123,11 +123,11 @@ public class Credentials {
    */
   public static final Credentials deserialize(String serializedForm) {
     String[] split = serializedForm.split(":", 3);
-    String principal = split[0].equals("-") ? null : new String(Base64.decodeBase64(split[0]), UTF_8);
-    String tokenType = split[1].equals("-") ? null : new String(Base64.decodeBase64(split[1]), UTF_8);
+    String principal = split[0].equals("-") ? null : new String(Base64.getDecoder().decode(split[0].getBytes(UTF_8)), UTF_8);
+    String tokenType = split[1].equals("-") ? null : new String(Base64.getDecoder().decode(split[1].getBytes(UTF_8)), UTF_8);
     AuthenticationToken token = null;
     if (!split[2].equals("-")) {
-      byte[] tokenBytes = Base64.decodeBase64(split[2]);
+      byte[] tokenBytes = Base64.getDecoder().decode(split[2].getBytes(UTF_8));
       token = AuthenticationTokenSerializer.deserialize(tokenType, tokenBytes);
     }
     return new Credentials(principal, token);
