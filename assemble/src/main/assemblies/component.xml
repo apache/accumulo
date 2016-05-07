@@ -31,6 +31,7 @@
         version listing for packaged artifacts -->
         <include>${groupId}:${artifactId}-*</include>
         <include>com.beust:jcommander</include>
+        <include>com.github.ben-manes.caffeine:caffeine</include>
         <include>com.google.code.gson:gson</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>

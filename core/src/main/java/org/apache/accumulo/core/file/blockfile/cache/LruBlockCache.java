@@ -578,7 +578,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
     float maxMB = ((float) maxSize) / ((float) (1024 * 1024));
     log.debug("Cache Stats: Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB ({}), Counts: Blocks={}, Access={}, Hit={}, Miss={}, Evictions={}, Evicted={},"
         + "Ratios: Hit Ratio={}%, Miss Ratio={}%, Evicted/Run={}, Duplicate Reads={}", sizeMB, totalSize, freeMB, freeSize, maxMB, maxSize, size(),
-        stats.getRequestCount(), stats.getHitCount(), stats.getMissCount(), stats.getEvictionCount(), stats.getEvictedCount(), stats.getHitRatio() * 100,
+        stats.requestCount(), stats.hitCount(), stats.getMissCount(), stats.getEvictionCount(), stats.getEvictedCount(), stats.getHitRatio() * 100,
         stats.getMissRatio() * 100, stats.evictedPerEviction(), stats.getDuplicateReads());
   }
 
@@ -592,7 +592,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
     return this.stats;
   }
 
-  public static class CacheStats {
+  public static class CacheStats implements BlockCache.Stats {
     private final AtomicLong accessCount = new AtomicLong(0);
     private final AtomicLong hitCount = new AtomicLong(0);
     private final AtomicLong missCount = new AtomicLong(0);
@@ -622,7 +622,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
       evictedCount.incrementAndGet();
     }
 
-    public long getRequestCount() {
+    @Override
+    public long requestCount() {
       return accessCount.get();
     }
 
@@ -630,7 +631,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
       return missCount.get();
     }
 
-    public long getHitCount() {
+    @Override
+    public long hitCount() {
       return hitCount.get();
     }
 
@@ -647,11 +649,11 @@ public class LruBlockCache implements BlockCache, HeapSize {
     }
 
     public double getHitRatio() {
-      return ((float) getHitCount() / (float) getRequestCount());
+      return ((float) hitCount() / (float) requestCount());
     }
 
     public double getMissRatio() {
-      return ((float) getMissCount() / (float) getRequestCount());
+      return ((float) getMissCount() / (float) requestCount());
     }
 
     public double evictedPerEviction() {

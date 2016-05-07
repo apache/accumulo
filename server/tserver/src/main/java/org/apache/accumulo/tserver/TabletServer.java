@@ -2893,10 +2893,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     result.name = getClientAddressString();
     result.holdTime = resourceManager.holdTime();
     result.lookups = seekCount.get();
-    result.indexCacheHits = resourceManager.getIndexCache().getStats().getHitCount();
-    result.indexCacheRequest = resourceManager.getIndexCache().getStats().getRequestCount();
-    result.dataCacheHits = resourceManager.getDataCache().getStats().getHitCount();
-    result.dataCacheRequest = resourceManager.getDataCache().getStats().getRequestCount();
+    result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();
+    result.indexCacheRequest = resourceManager.getIndexCache().getStats().requestCount();
+    result.dataCacheHits = resourceManager.getDataCache().getStats().hitCount();
+    result.dataCacheRequest = resourceManager.getDataCache().getStats().requestCount();
     result.logSorts = logSorter.getLogSorts();
     result.flushs = flushCounter.get();
     result.syncs = syncCounter.get();

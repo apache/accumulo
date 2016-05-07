@@ -38,7 +38,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.TinyLfuBlockCache;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -96,8 +98,8 @@ public class TabletServerResourceManager {
 
   private final MemoryManagementFramework memMgmt;
 
-  private final LruBlockCache _dCache;
-  private final LruBlockCache _iCache;
+  private final BlockCache _dCache;
+  private final BlockCache _iCache;
   private final TabletServer tserver;
   private final ServerConfigurationFactory conf;
 
@@ -163,8 +165,16 @@ public class TabletServerResourceManager {
     long iCacheSize = acuConf.getMemoryInBytes(Property.TSERV_INDEXCACHE_SIZE);
     long totalQueueSize = acuConf.getMemoryInBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
-    _iCache = new LruBlockCache(iCacheSize, blockSize);
-    _dCache = new LruBlockCache(dCacheSize, blockSize);
+    String policy = acuConf.get(Property.TSERV_CACHE_POLICY);
+    if (policy.equalsIgnoreCase("LRU")) {
+      _iCache = new LruBlockCache(iCacheSize, blockSize);
+      _dCache = new LruBlockCache(dCacheSize, blockSize);
+    } else if (policy.equalsIgnoreCase("TinyLFU")) {
+      _iCache = new TinyLfuBlockCache(iCacheSize, blockSize);
+      _dCache = new TinyLfuBlockCache(dCacheSize, blockSize);
+    } else {
+      throw new IllegalArgumentException("Unknown Block cache policy " + policy);
+    }
 
     Runtime runtime = Runtime.getRuntime();
     if (usingNativeMap) {
@@ -742,11 +752,11 @@ public class TabletServerResourceManager {
     }
   }
 
-  public LruBlockCache getIndexCache() {
+  public BlockCache getIndexCache() {
     return _iCache;
   }
 
-  public LruBlockCache getDataCache() {
+  public BlockCache getDataCache() {
     return _dCache;
   }
 

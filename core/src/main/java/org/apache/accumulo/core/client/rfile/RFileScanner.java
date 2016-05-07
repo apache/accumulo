@@ -112,6 +112,21 @@ class RFileScanner extends ScannerOptions implements Scanner {
     public long getMaxSize() {
       return Integer.MAX_VALUE;
     }
+
+    @Override
+    public Stats getStats() {
+      return new BlockCache.Stats() {
+        @Override
+        public long hitCount() {
+          return 0L;
+        }
+
+        @Override
+        public long requestCount() {
+          return 0L;
+        }
+      };
+    }
   }
 
   RFileScanner(Opts opts) {

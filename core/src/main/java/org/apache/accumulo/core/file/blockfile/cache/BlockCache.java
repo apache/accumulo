@@ -58,4 +58,29 @@ public interface BlockCache {
    * @return max size in bytes
    */
   long getMaxSize();
+
+  /**
+   * Get the statistics of this cache.
+   *
+   * @return statistics
+   */
+  Stats getStats();
+
+  /** Cache statistics. */
+  interface Stats {
+
+    /**
+     * Returns the number of lookups that have returned a cached value.
+     *
+     * @return the number of lookups that have returned a cached value
+     */
+    long hitCount();
+
+    /**
+     * Returns the number of times the lookup methods have returned either a cached or uncached value.
+     *
+     * @return the number of lookups
+     */
+    long requestCount();
+  }
 }
