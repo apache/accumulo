@@ -93,7 +93,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
             Scanner in = new Scanner(new BufferedReader(new InputStreamReader(new FileInputStream(path.toString()), UTF_8)));
             try {
               while (in.hasNextLine())
-                cutPoints.add(new Text(Base64.getDecoder().decode(in.nextLine().getBytes(UTF_8))));
+                cutPoints.add(new Text(Base64.getDecoder().decode(in.nextLine())));
             } finally {
               in.close();
             }

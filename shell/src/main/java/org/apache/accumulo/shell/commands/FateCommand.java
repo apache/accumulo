@@ -86,7 +86,7 @@ public class FateCommand extends Command {
 
     ByteArrayContainer(byte[] ba) {
       asUtf8 = new String(ba, UTF_8);
-      asBase64 = new String(Base64.getUrlEncoder().encode(ba), UTF_8);
+      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
     }
   }
 

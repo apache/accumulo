@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -105,8 +103,7 @@ public class GetSplitsCommand extends Command {
       return null;
     }
     final int length = text.getLength();
-    return encode ? new String(Base64.getEncoder().encode(TextUtil.getBytes(text)), UTF_8) : DefaultFormatter.appendText(new StringBuilder(), text, length)
-        .toString();
+    return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text)) : DefaultFormatter.appendText(new StringBuilder(), text, length).toString();
   }
 
   private static String obscuredTabletName(final KeyExtent extent) {
@@ -119,7 +116,7 @@ public class GetSplitsCommand extends Command {
     if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
       digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
     }
-    return new String(Base64.getEncoder().encode(digester.digest()), UTF_8);
+    return Base64.getEncoder().encodeToString(digester.digest());
   }
 
   @Override

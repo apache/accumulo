@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.examples.simple.mapreduce.bulk;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -135,7 +133,7 @@ public class BulkIngestExample extends Configured implements Tool {
 
       Collection<Text> splits = connector.tableOperations().listSplits(opts.getTableName(), 100);
       for (Text split : splits)
-        out.println(new String(Base64.getEncoder().encode(TextUtil.getBytes(split)), UTF_8));
+        out.println(Base64.getEncoder().encodeToString(TextUtil.getBytes(split)));
 
       job.setNumReduceTasks(splits.size() + 1);
       out.close();

@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import java.util.Base64;
+
 import javax.security.auth.callback.CallbackHandler;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.security.token.SecretManager;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.TokenIdentifier;
@@ -36,7 +37,7 @@ public abstract class SaslDigestCallbackHandler implements CallbackHandler {
    * @see #decodeIdentifier(String)
    */
   public String encodeIdentifier(byte[] identifier) {
-    return new String(Base64.encodeBase64(identifier));
+    return Base64.getEncoder().encodeToString(identifier);
   }
 
   /**
@@ -47,7 +48,7 @@ public abstract class SaslDigestCallbackHandler implements CallbackHandler {
    * @see #getPassword(SecretManager, TokenIdentifier)
    */
   public char[] encodePassword(byte[] password) {
-    return new String(Base64.encodeBase64(password)).toCharArray();
+    return Base64.getEncoder().encodeToString(password).toCharArray();
   }
 
   /**
@@ -71,7 +72,7 @@ public abstract class SaslDigestCallbackHandler implements CallbackHandler {
    * @see #encodeIdentifier(byte[])
    */
   public byte[] decodeIdentifier(String identifier) {
-    return Base64.decodeBase64(identifier.getBytes());
+    return Base64.getDecoder().decode(identifier);
   }
 
 }

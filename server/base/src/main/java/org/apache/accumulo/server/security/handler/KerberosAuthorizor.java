@@ -50,32 +50,32 @@ public class KerberosAuthorizor implements Authorizor {
 
   @Override
   public void initializeSecurity(TCredentials credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException {
-    zkAuthorizor.initializeSecurity(credentials, new String(Base64.getEncoder().encode(rootuser.getBytes(UTF_8)), UTF_8));
+    zkAuthorizor.initializeSecurity(credentials, Base64.getEncoder().encodeToString(rootuser.getBytes(UTF_8)));
   }
 
   @Override
   public void changeAuthorizations(String user, Authorizations authorizations) throws AccumuloSecurityException {
-    zkAuthorizor.changeAuthorizations(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), authorizations);
+    zkAuthorizor.changeAuthorizations(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), authorizations);
   }
 
   @Override
   public Authorizations getCachedUserAuthorizations(String user) throws AccumuloSecurityException {
-    return zkAuthorizor.getCachedUserAuthorizations(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8));
+    return zkAuthorizor.getCachedUserAuthorizations(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)));
   }
 
   @Override
   public boolean isValidAuthorizations(String user, List<ByteBuffer> list) throws AccumuloSecurityException {
-    return zkAuthorizor.isValidAuthorizations(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8), list);
+    return zkAuthorizor.isValidAuthorizations(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), list);
   }
 
   @Override
   public void initUser(String user) throws AccumuloSecurityException {
-    zkAuthorizor.initUser(new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8));
+    zkAuthorizor.initUser(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)));
   }
 
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
-    user = new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8);
+    user = Base64.getEncoder().encodeToString(user.getBytes(UTF_8));
     zkAuthorizor.dropUser(user);
   }
 

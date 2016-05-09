@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
@@ -156,7 +155,7 @@ public class ConfiguratorBase {
           + delToken.getServiceName().toString());
     } else {
       conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN), TokenSource.INLINE.prefix() + token.getClass().getName() + ":"
-          + new String(Base64.getEncoder().encode(AuthenticationTokenSerializer.serialize(token)), UTF_8));
+          + Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token)));
     }
   }
 
@@ -244,7 +243,7 @@ public class ConfiguratorBase {
     if (token.startsWith(TokenSource.INLINE.prefix())) {
       String[] args = token.substring(TokenSource.INLINE.prefix().length()).split(":", 2);
       if (args.length == 2)
-        return AuthenticationTokenSerializer.deserialize(args[0], Base64.getDecoder().decode(args[1].getBytes(UTF_8)));
+        return AuthenticationTokenSerializer.deserialize(args[0], Base64.getDecoder().decode(args[1]));
     } else if (token.startsWith(TokenSource.FILE.prefix())) {
       String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
       return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);

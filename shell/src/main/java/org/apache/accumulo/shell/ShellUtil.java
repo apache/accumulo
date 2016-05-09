@@ -49,7 +49,7 @@ public class ShellUtil {
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {
-          result.add(decode ? new Text(Base64.getDecoder().decode(line.getBytes(UTF_8))) : new Text(line));
+          result.add(decode ? new Text(Base64.getDecoder().decode(line)) : new Text(line));
         }
       }
     } finally {

@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -92,7 +90,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     try {
       Set<KeyExtent> result = new HashSet<>();
       DataInputBuffer buffer = new DataInputBuffer();
-      byte[] data = Base64.getDecoder().decode(migrations.getBytes(UTF_8));
+      byte[] data = Base64.getDecoder().decode(migrations);
       buffer.reset(data, data.length);
       while (buffer.available() > 0) {
         KeyExtent extent = new KeyExtent();
@@ -138,7 +136,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     try {
       Map<String,MergeInfo> result = new HashMap<>();
       DataInputBuffer buffer = new DataInputBuffer();
-      byte[] data = Base64.getDecoder().decode(merges.getBytes(UTF_8));
+      byte[] data = Base64.getDecoder().decode(merges);
       buffer.reset(data, data.length);
       while (buffer.available() > 0) {
         MergeInfo mergeInfo = new MergeInfo();
@@ -239,7 +237,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = new String(Base64.getEncoder().encode(Arrays.copyOf(buffer.getData(), buffer.getLength())), UTF_8);
+    String encoded = Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MERGES_OPTION, encoded);
   }
 
@@ -252,7 +250,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = new String(Base64.getEncoder().encode(Arrays.copyOf(buffer.getData(), buffer.getLength())), UTF_8);
+    String encoded = Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MIGRATIONS_OPTION, encoded);
   }
 

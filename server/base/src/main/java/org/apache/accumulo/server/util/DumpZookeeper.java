@@ -109,7 +109,7 @@ public class DumpZookeeper {
     for (int i = 0; i < data.length; i++) {
       // does this look like simple ascii?
       if (data[i] < ' ' || data[i] > '~')
-        return new Encoded("base64", new String(Base64.getEncoder().encode(data), UTF_8));
+        return new Encoded("base64", Base64.getEncoder().encodeToString(data));
     }
     return new Encoded(UTF_8.name(), new String(data, UTF_8));
   }

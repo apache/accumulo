@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -40,7 +39,7 @@ public class TraceRepoDeserializationTest {
 
   @Test(expected = InvalidClassException.class)
   public void test() throws Exception {
-    byte bytes[] = Base64.getDecoder().decode(oldValue.getBytes(UTF_8));
+    byte bytes[] = Base64.getDecoder().decode(oldValue);
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     ObjectInputStream ois = new ObjectInputStream(bais);
     ois.readObject();

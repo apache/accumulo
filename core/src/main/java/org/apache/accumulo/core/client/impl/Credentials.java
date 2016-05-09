@@ -109,9 +109,9 @@ public class Credentials {
    * @return serialized form of these credentials
    */
   public final String serialize() {
-    return (getPrincipal() == null ? "-" : new String(Base64.getEncoder().encode(getPrincipal().getBytes(UTF_8)), UTF_8)) + ":"
-        + (getToken() == null ? "-" : new String(Base64.getEncoder().encode(getToken().getClass().getName().getBytes(UTF_8)), UTF_8)) + ":"
-        + (getToken() == null ? "-" : new String(Base64.getEncoder().encode(AuthenticationTokenSerializer.serialize(getToken())), UTF_8));
+    return (getPrincipal() == null ? "-" : Base64.getEncoder().encodeToString(getPrincipal().getBytes(UTF_8))) + ":"
+        + (getToken() == null ? "-" : Base64.getEncoder().encodeToString(getToken().getClass().getName().getBytes(UTF_8))) + ":"
+        + (getToken() == null ? "-" : Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(getToken())));
   }
 
   /**
@@ -123,11 +123,11 @@ public class Credentials {
    */
   public static final Credentials deserialize(String serializedForm) {
     String[] split = serializedForm.split(":", 3);
-    String principal = split[0].equals("-") ? null : new String(Base64.getDecoder().decode(split[0].getBytes(UTF_8)), UTF_8);
-    String tokenType = split[1].equals("-") ? null : new String(Base64.getDecoder().decode(split[1].getBytes(UTF_8)), UTF_8);
+    String principal = split[0].equals("-") ? null : new String(Base64.getDecoder().decode(split[0]), UTF_8);
+    String tokenType = split[1].equals("-") ? null : new String(Base64.getDecoder().decode(split[1]), UTF_8);
     AuthenticationToken token = null;
     if (!split[2].equals("-")) {
-      byte[] tokenBytes = Base64.getDecoder().decode(split[2].getBytes(UTF_8));
+      byte[] tokenBytes = Base64.getDecoder().decode(split[2]);
       token = AuthenticationTokenSerializer.deserialize(tokenType, tokenBytes);
     }
     return new Credentials(principal, token);

@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.monitor.servlets;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.lang.management.ManagementFactory;
 import java.security.MessageDigest;
 import java.text.DateFormat;
@@ -173,7 +171,7 @@ public class TServersServlet extends BasicServlet {
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
       }
-      String obscuredExtent = new String(Base64.getEncoder().encode(digester.digest()), UTF_8);
+      String obscuredExtent = Base64.getEncoder().encodeToString(digester.digest());
       String displayExtent = String.format("<code>[%s]</code>", obscuredExtent);
 
       TableRow row = perTabletResults.prepareRow();
