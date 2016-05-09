@@ -821,3 +821,8 @@ maximum file limit, so it began merging memory updates with files to keep the fi
 slows down ingest performance, so knowing there are many files like this tells you that the system
 is struggling to keep up with ingest vs the compaction strategy which reduces the number of files.
 
+### HDFS Decommissioning Issues
+
+*Q*: My Hadoop DataNode is hung for hours trying to decommission.
+
+*A*: Write Ahead Logs stay open until they hit the size threshold, which could be many hours or days in some cases. These open files will prevent a DN from finishing its decommissioning process (HDFS-3599) in some versions of Hadoop 2. If you stop the DN, then the WALog file will not be closed and you could lose data. To work around this issue, we now close WALogs on a time period specified by the property +tserver.walog.max.age+ with a default period of 24 hours.
