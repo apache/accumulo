@@ -184,8 +184,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
       switch (this.tokenSource) {
         case INLINE:
           String tokenClass = in.readUTF();
-          byte[] base64TokenBytes = in.readUTF().getBytes(UTF_8);
-          byte[] tokenBytes = Base64.getDecoder().decode(base64TokenBytes);
+          byte[] tokenBytes = Base64.getDecoder().decode(in.readUTF());
 
           this.token = AuthenticationTokenSerializer.deserialize(tokenClass, tokenBytes);
           break;
@@ -280,7 +279,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
         throw new IOException("Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
       } else if (null != token) {
         out.writeUTF(token.getClass().getName());
-        out.writeUTF(new String(Base64.getEncoder().encode(AuthenticationTokenSerializer.serialize(token)), UTF_8));
+        out.writeUTF(Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token)));
       } else {
         out.writeUTF(tokenFile);
       }

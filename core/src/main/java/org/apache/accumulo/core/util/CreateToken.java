@@ -24,8 +24,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Base64;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.cli.Help;
@@ -38,6 +36,8 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
+
+import jline.console.ConsoleReader;
 
 @AutoService(KeywordExecutable.class)
 public class CreateToken implements KeywordExecutable {
@@ -109,7 +109,7 @@ public class CreateToken implements KeywordExecutable {
         props.put(tp.getKey(), input);
         token.init(props);
       }
-      String tokenBase64 = new String(Base64.getEncoder().encode(AuthenticationTokenSerializer.serialize(token)), UTF_8);
+      String tokenBase64 = Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token));
 
       String tokenFile = opts.tokenFile;
       if (tokenFile == null) {

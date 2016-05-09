@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.mapred;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -57,7 +56,7 @@ public class AccumuloInputFormatTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
     String iterators = job.get("AccumuloInputFormat.ScanOpts.Iterators");
-    assertEquals(new String(Base64.getEncoder().encode(baos.toByteArray()), UTF_8), iterators);
+    assertEquals(Base64.getEncoder().encodeToString(baos.toByteArray()), iterators);
   }
 
   @Test

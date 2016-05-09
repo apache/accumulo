@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -66,7 +65,7 @@ public class ConfiguratorBaseTest {
     assertEquals(new PasswordToken("testPassword"), token);
     assertEquals(
         "inline:" + PasswordToken.class.getName() + ":"
-            + new String(Base64.getEncoder().encode(AuthenticationTokenSerializer.serialize(new PasswordToken("testPassword"))), UTF_8),
+            + Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(new PasswordToken("testPassword"))),
         conf.get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
   }
 

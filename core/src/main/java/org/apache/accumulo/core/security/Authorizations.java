@@ -153,7 +153,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       authsString = authsString.substring(HEADER.length());
       if (authsString.length() > 0) {
         for (String encAuth : authsString.split(",")) {
-          byte[] auth = Base64.getDecoder().decode(encAuth.getBytes(UTF_8));
+          byte[] auth = Base64.getDecoder().decode(encAuth);
           auths.add(new ArrayByteSequence(auth));
         }
         checkAuths();
@@ -340,7 +340,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     for (byte[] auth : authsList) {
       sb.append(sep);
       sep = ",";
-      sb.append(new String(Base64.getEncoder().encode(auth), UTF_8));
+      sb.append(Base64.getEncoder().encodeToString(auth));
     }
 
     return sb.toString();

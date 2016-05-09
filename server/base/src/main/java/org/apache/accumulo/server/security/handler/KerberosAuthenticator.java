@@ -106,7 +106,7 @@ public class KerberosAuthenticator implements Authenticator {
         zoo.putPersistentData(zkUserPath, principalData, NodeExistsPolicy.FAIL);
 
         // Create the root user in ZK using base64 encoded name (since the name is included in the znode)
-        createUserNodeInZk(new String(Base64.getEncoder().encode(principalData), UTF_8));
+        createUserNodeInZk(Base64.getEncoder().encodeToString(principalData));
       }
     } catch (KeeperException | InterruptedException e) {
       log.error("Failed to initialize security", e);
@@ -144,7 +144,7 @@ public class KerberosAuthenticator implements Authenticator {
     Set<String> base64Users = zkAuthenticator.listUsers();
     Set<String> readableUsers = new HashSet<>();
     for (String base64User : base64Users) {
-      readableUsers.add(new String(Base64.getDecoder().decode(base64User.getBytes(UTF_8)), UTF_8));
+      readableUsers.add(new String(Base64.getDecoder().decode(base64User), UTF_8));
     }
     return readableUsers;
   }
@@ -156,7 +156,7 @@ public class KerberosAuthenticator implements Authenticator {
     }
 
     try {
-      createUserNodeInZk(new String(Base64.getEncoder().encode(principal.getBytes(UTF_8)), UTF_8));
+      createUserNodeInZk(Base64.getEncoder().encodeToString(principal.getBytes(UTF_8)));
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_EXISTS, e);
@@ -171,7 +171,7 @@ public class KerberosAuthenticator implements Authenticator {
 
   @Override
   public synchronized void dropUser(String user) throws AccumuloSecurityException {
-    final String encodedUser = new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8);
+    final String encodedUser = Base64.getEncoder().encodeToString(user.getBytes(UTF_8));
     try {
       zkAuthenticator.dropUser(encodedUser);
     } catch (AccumuloSecurityException e) {
@@ -186,7 +186,7 @@ public class KerberosAuthenticator implements Authenticator {
 
   @Override
   public synchronized boolean userExists(String user) throws AccumuloSecurityException {
-    user = new String(Base64.getEncoder().encode(user.getBytes(UTF_8)), UTF_8);
+    user = Base64.getEncoder().encodeToString(user.getBytes(UTF_8));
     return zkAuthenticator.userExists(user);
   }
 

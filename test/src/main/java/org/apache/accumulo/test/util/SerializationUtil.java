@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -72,21 +70,21 @@ public class SerializationUtil {
 
   public static String serializeWritableBase64(Writable writable) {
     byte[] b = serializeWritable(writable);
-    return new String(Base64.getEncoder().encode(b), UTF_8);
+    return Base64.getEncoder().encodeToString(b);
   }
 
   public static void deserializeWritableBase64(Writable writable, String str) {
-    byte[] b = Base64.getDecoder().decode(str.getBytes(UTF_8));
+    byte[] b = Base64.getDecoder().decode(str);
     deserializeWritable(writable, b);
   }
 
   public static String serializeBase64(Serializable obj) {
     byte[] b = serialize(obj);
-    return new String(Base64.getEncoder().encode(b), UTF_8);
+    return Base64.getEncoder().encodeToString(b);
   }
 
   public static Object deserializeBase64(String str) {
-    byte[] b = Base64.getDecoder().decode(str.getBytes(UTF_8));
+    byte[] b = Base64.getDecoder().decode(str);
     return deserialize(b);
   }
 
