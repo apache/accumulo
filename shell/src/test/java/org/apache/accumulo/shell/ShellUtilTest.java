@@ -40,6 +40,7 @@ public class ShellUtilTest {
 
   // String with 3 lines, with one empty line
   private static final String FILEDATA = "line1\n\nline2";
+  private static final String B64_FILEDATA = Base64.encodeBase64String("line1".getBytes(UTF_8)) + "\n\n" + Base64.encodeBase64String("line2".getBytes(UTF_8));
 
   @Test
   public void testWithoutDecode() throws IOException {
@@ -52,9 +53,9 @@ public class ShellUtilTest {
   @Test
   public void testWithDecode() throws IOException {
     File testFile = new File(folder.getRoot(), "testFileWithDecode.txt");
-    FileUtils.writeStringToFile(testFile, FILEDATA);
+    FileUtils.writeStringToFile(testFile, B64_FILEDATA);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
-    assertEquals(ImmutableList.of(new Text(Base64.decodeBase64("line1".getBytes(UTF_8))), new Text(Base64.decodeBase64("line2".getBytes(UTF_8)))), output);
+    assertEquals(ImmutableList.of(new Text("line1"), new Text("line2")), output);
   }
 
   @Test(expected = FileNotFoundException.class)
