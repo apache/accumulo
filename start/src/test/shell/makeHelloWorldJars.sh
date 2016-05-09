@@ -15,11 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-for x in A B C
-do
-    sed "s/testX/test$x/" < src/test/java/test/TestTemplate > src/test/java/test/TestObject.java
-    mkdir -p target/$x
-    javac -cp src/test/java src/test/java/test/TestObject.java -d target/$x
-    jar -cf src/test/resources/ClassLoaderTest$x/Test.jar -C target/$x test/TestObject.class
-    rm -f src/test/java/test/TestObject.java
-done
+mkdir -p target/HelloWorld/test
+sed "s/%%/Hello World\!/" < src/test/java/test/HelloWorldTemplate > target/HelloWorld/test/HelloWorld.java
+javac target/HelloWorld/test/HelloWorld.java -d target/HelloWorld
+jar -cf src/test/resources/HelloWorld.jar -C target/HelloWorld test/HelloWorld.class
+
+mkdir -p target/HalloWelt/test
+sed "s/%%/Hallo Welt/" < src/test/java/test/HelloWorldTemplate > target/HalloWelt/test/HelloWorld.java
+javac target/HalloWelt/test/HelloWorld.java -d target/HalloWelt
+jar -cf src/test/resources/HelloWorld2.jar -C target/HalloWelt test/HelloWorld.class
