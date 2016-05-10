@@ -17,9 +17,8 @@
 
 for x in A B C
 do
-    sed "s/testX/test$x/" < src/test/java/test/TestTemplate > src/test/java/test/TestObject.java
-    mkdir -p target/$x
-    javac -cp src/test/java src/test/java/test/TestObject.java -d target/$x
-    jar -cf src/test/resources/ClassLoaderTest$x/Test.jar -C target/$x test/TestObject.class
-    rm -f src/test/java/test/TestObject.java
+    mkdir -p target/generated-sources/$x/test target/test-classes/ClassLoaderTest$x
+    sed "s/testX/test$x/" < src/test/java/test/TestTemplate > target/generated-sources/$x/test/TestObject.java
+    $JAVA_HOME/bin/javac -cp target/test-classes target/generated-sources/$x/test/TestObject.java -d target/generated-sources/$x
+    $JAVA_HOME/bin/jar -cf target/test-classes/ClassLoaderTest$x/Test.jar -C target/generated-sources/$x test/TestObject.class
 done

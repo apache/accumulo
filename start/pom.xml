@@ -104,40 +104,33 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>Build Test jars</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>process-test-classes</phase>
+            <configuration>
+              <executable>${project.basedir}/src/test/shell/makeTestJars.sh</executable>
+            </configuration>
+          </execution>
+          <execution>
+            <id>Build HelloWorld jars</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>process-test-classes</phase>
+            <configuration>
+              <executable>${project.basedir}/src/test/shell/makeHelloWorldJars.sh</executable>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
-  <profiles>
-    <profile>
-      <id>buildJars</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>Build Test jars</id>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <phase>generate-sources</phase>
-                <configuration>
-                  <executable>${project.basedir}/src/test/shell/makeTestJars.sh</executable>
-                </configuration>
-              </execution>
-              <execution>
-                <id>Build HelloWorld jars</id>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <phase>generate-sources</phase>
-                <configuration>
-                  <executable>${project.basedir}/src/test/shell/makeHelloWorldJars.sh</executable>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>

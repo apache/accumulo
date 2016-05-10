@@ -15,12 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-mkdir -p target/HelloWorld/test
-sed "s/%%/Hello World\!/" < src/test/java/test/HelloWorldTemplate > target/HelloWorld/test/HelloWorld.java
-javac target/HelloWorld/test/HelloWorld.java -d target/HelloWorld
-jar -cf src/test/resources/HelloWorld.jar -C target/HelloWorld test/HelloWorld.class
+mkdir -p target/generated-sources/HelloWorld/test
+sed "s/%%/Hello World\!/" < src/test/java/test/HelloWorldTemplate > target/generated-sources/HelloWorld/test/HelloWorld.java
+$JAVA_HOME/bin/javac target/generated-sources/HelloWorld/test/HelloWorld.java -d target/generated-sources/HelloWorld
+$JAVA_HOME/bin/jar -cf target/test-classes/HelloWorld.jar -C target/generated-sources/HelloWorld test/HelloWorld.class
 
-mkdir -p target/HalloWelt/test
-sed "s/%%/Hallo Welt/" < src/test/java/test/HelloWorldTemplate > target/HalloWelt/test/HelloWorld.java
-javac target/HalloWelt/test/HelloWorld.java -d target/HalloWelt
-jar -cf src/test/resources/HelloWorld2.jar -C target/HalloWelt test/HelloWorld.class
+mkdir -p target/generated-sources/HalloWelt/test
+sed "s/%%/Hallo Welt/" < src/test/java/test/HelloWorldTemplate > target/generated-sources/HalloWelt/test/HelloWorld.java
+$JAVA_HOME/bin/javac target/generated-sources/HalloWelt/test/HelloWorld.java -d target/generated-sources/HalloWelt
+$JAVA_HOME/bin/jar -cf target/test-classes/HelloWorld2.jar -C target/generated-sources/HalloWelt test/HelloWorld.class
