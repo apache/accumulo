@@ -48,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>
  * An implementation of instance that looks in zookeeper to find information needed to connect to an instance of accumulo.
  *
  * <p>

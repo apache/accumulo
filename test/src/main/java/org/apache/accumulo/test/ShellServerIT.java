@@ -1202,14 +1202,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   /**
-   * <p>
    * Simple <code>Formatter</code> that will convert each character in the Value from decimal to hexadecimal. Will automatically skip over characters in the
    * value which do not fall within the [0-9,a-f] range.
-   * </p>
    *
    * <p>
    * Example: <code>'0'</code> will be displayed as <code>'0x30'</code>
-   * </p>
    */
   public static class HexFormatter implements Formatter {
     private Iterator<Entry<Key,Value>> iter = null;
