@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
  *
  * <p>
  * For serializing and de-serializing objects.
- * </p>
  */
 public class SerializationUtil {
   private static final Logger log = LoggerFactory.getLogger(SerializationUtil.class);
@@ -144,18 +143,12 @@ public class SerializationUtil {
   // -----------------------------------------------------------------------
 
   /**
-   * <p>
    * Serializes an {@code Object} to the specified stream.
-   * </p>
-   * <p/>
    * <p>
    * The stream will be closed once the object is written. This avoids the need for a finally clause, and maybe also exception handling, in the application
    * code.
-   * </p>
-   * <p/>
    * <p>
    * The stream passed in is not buffered internally within this method. This is the responsibility of your application if desired.
-   * </p>
    *
    * @param obj
    *          the object to serialize to bytes, may be null
@@ -183,9 +176,7 @@ public class SerializationUtil {
   }
 
   /**
-   * <p>
    * Serializes an {@code Object} to a byte array for storage/serialization.
-   * </p>
    *
    * @param obj
    *          the object to serialize to bytes
@@ -201,18 +192,12 @@ public class SerializationUtil {
   // -----------------------------------------------------------------------
 
   /**
-   * <p>
    * Deserializes an {@code Object} from the specified stream.
-   * </p>
-   * <p/>
    * <p>
    * The stream will be closed once the object is written. This avoids the need for a finally clause, and maybe also exception handling, in the application
    * code.
-   * </p>
-   * <p/>
    * <p>
    * The stream passed in is not buffered internally within this method. This is the responsibility of your application if desired.
-   * </p>
    *
    * @param inputStream
    *          the serialized object input stream, must not be null
@@ -239,9 +224,7 @@ public class SerializationUtil {
   }
 
   /**
-   * <p>
    * Deserializes a single {@code Object} from an array of bytes.
-   * </p>
    *
    * @param objectData
    *          the serialized object, must not be null

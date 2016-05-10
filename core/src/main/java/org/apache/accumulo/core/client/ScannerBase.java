@@ -66,7 +66,6 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   void updateScanIteratorOption(String iteratorName, String key, String value);
 
   /**
-   * <p>
    * Adds a column family to the list of columns that will be fetched by this scanner. By default when no columns have been added the scanner fetches all
    * columns. To fetch multiple column families call this function multiple times.
    *
@@ -83,7 +82,6 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   void fetchColumnFamily(Text col);
 
   /**
-   * <p>
    * Adds a column to the list of columns that will be fetched by this scanner. The column is identified by family and qualifier. By default when no columns
    * have been added the scanner fetches all columns.
    *

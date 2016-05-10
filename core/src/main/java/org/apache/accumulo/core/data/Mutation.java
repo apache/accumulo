@@ -38,7 +38,6 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
- * <p>
  * Mutation represents an action that manipulates a row in a table. A mutation holds a list of column/value pairs that represent an atomic set of modifications
  * to make to a row.
  *
@@ -53,13 +52,11 @@ import org.apache.hadoop.io.WritableUtils;
  * <p>
  * All of the put methods append data to the mutation; they do not overwrite anything that was previously put. The mutation holds a list of all columns/values
  * that were put into it.
- * </p>
  *
  * <p>
  * The putDelete() methods do not remove something that was previously added to the mutation; rather, they indicate that Accumulo should insert a delete marker
  * for that row column. A delete marker effectively hides entries for that row column with a timestamp earlier than the marker's. (The hidden data is eventually
  * removed during Accumulo garbage collection.)
- * </p>
  */
 public class Mutation implements Writable {
 

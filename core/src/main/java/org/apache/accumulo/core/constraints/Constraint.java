@@ -24,24 +24,19 @@ import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
- * <p>
  * Constraint objects are used to determine if mutations will be applied to a table.
- * </p>
  *
  * <p>
  * This interface expects implementers to return violation codes. The reason codes are returned instead of arbitrary strings to encourage conciseness.
  * Conciseness is needed because violations are aggregated. If a user sends a batch of 10,000 mutations to Accumulo, only aggregated counts about which
  * violations occurred are returned. If the constraint implementer were allowed to return arbitrary violation strings like the following:
- * </p>
  *
  * <p>
  * Value "abc" is not a number<br>
  * Value "vbg" is not a number
- * </p>
  *
  * <p>
  * This would not aggregate very well, because the same violation is represented with two different strings.
- * </p>
  */
 public interface Constraint {
 

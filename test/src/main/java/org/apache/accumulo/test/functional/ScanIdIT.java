@@ -185,7 +185,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
   /**
    * Runs scanner in separate thread to allow multiple scanners to execute in parallel.
-   * <p/>
+   * <p>
    * The thread run method is terminated when the testInProgress flag is set to false.
    */
   private static class ScannerThread implements Runnable {
@@ -325,7 +325,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
   /**
    * Generate some sample data using random row id to distribute across splits.
-   * <p/>
+   * <p>
    * The primary goal is to determine that each scanner is assigned a unique scan id. This test does check that the count value for fam1 increases if a scanner
    * reads multiple value, but this is secondary consideration for this test, that is included for completeness.
    *

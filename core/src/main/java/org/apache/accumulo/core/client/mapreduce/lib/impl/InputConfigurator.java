@@ -499,7 +499,6 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * <p>
    * Enable reading offline tables. By default, this feature is disabled and only online tables are scanned. This will make the map reduce job directly read the
    * table's files. If the table is not offline, then the job will fail. If the table comes online during the map reduce job, it is likely that the job will
    * fail.
