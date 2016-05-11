@@ -18,6 +18,9 @@ limitations under the License.
 Apache Accumulo
 ===============
 
+[![Apache License][li]][ll] [![Maven Central][mi]][ml] [![Javadoc][ji]][jl]
+[![Build Status][ti]][tl]
+
 The [Apache Accumulo™][1] sorted, distributed key/value store is a robust,
 scalable, high performance data storage and retrieval system.  Apache Accumulo
 is based on Google's [BigTable][4] design and is built on top of Apache
@@ -113,3 +116,11 @@ with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][12]
 [14]: examples/simple/src/main/java/org/apache/accumulo/examples/simple
 [15]: docs/src/main/resources/examples
 [16]: docs/src/main/asciidoc
+[li]: https://img.shields.io/badge/license-ASL-blue.svg
+[ll]: https://www.apache.org/licenses/LICENSE-2.0
+[mi]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg
+[ml]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/
+[ji]: https://javadoc-emblem.rhcloud.com/doc/org.apache.accumulo/accumulo-core/badge.svg
+[jl]: https://www.javadoc.io/doc/org.apache.accumulo/accumulo-core
+[ti]: https://travis-ci.org/apache/accumulo.svg?branch=master
+[tl]: https://travis-ci.org/apache/accumulo
