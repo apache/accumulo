@@ -116,7 +116,7 @@ with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][12]
 [15]: docs/src/main/resources/examples
 [16]: docs/src/main/asciidoc
 [li]: http://img.shields.io/badge/license-ASL-blue.svg
-[ll]: https://github.com/apache/accumulo/blob/master/LICENSE
+[ll]: https://www.apache.org/licenses/LICENSE-2.0
 [mi]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg
 [ml]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/
 [ji]: https://javadoc-emblem.rhcloud.com/doc/org.apache.accumulo/accumulo-core/badge.svg
