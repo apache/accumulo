@@ -459,7 +459,7 @@ public class RFileMetricsTest {
   public void multiBlockMultiCFNonDefaultAndDefaultLocGroup() throws IOException {
     // test an rfile with multiple column families and multiple blocks in a non-default locality group and the default locality group
 
-    trf.openWriter(false, 20);// Each entry is a block
+    trf.openWriter(false, 10);// Each entry is a block
     Set<ByteSequence> lg1 = new HashSet<>();
     lg1.add(new ArrayByteSequence("cf1"));
     lg1.add(new ArrayByteSequence("cf3"));
