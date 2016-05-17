@@ -147,4 +147,9 @@ public class PropertyTest {
       }
     }
   }
+
+  @Test
+  public void testGCDeadServerWaitSecond() {
+    assertEquals("1h", Property.GC_WAL_DEAD_SERVER_WAIT.getDefaultValue());
+  }
 }

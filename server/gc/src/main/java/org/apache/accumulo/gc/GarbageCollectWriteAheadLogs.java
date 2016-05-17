@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.gc;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,12 +56,16 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.net.HostAndPort;
+import java.util.concurrent.TimeUnit;
+import org.apache.accumulo.core.conf.Property;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
 
   private final Instance instance;
   private final VolumeManager fs;
+  private final Map<HostAndPort,Long> firstSeenDead = new HashMap<HostAndPort,Long>();
+  private AccumuloConfiguration config;
 
   private boolean useTrash;
 
@@ -170,76 +175,117 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
-  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String,Path> sortedWALogs, final GCStatus status) {
-    AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(instance);
+  private AccumuloConfiguration getConfig() {
+    return ServerConfiguration.getSystemConfiguration(instance);
+  }
+
+  @VisibleForTesting
+  int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String,Path> sortedWALogs, final GCStatus status) {
+    // TODO: remove nameToFileMap from method signature, not used here I don't think
+    AccumuloConfiguration conf = getConfig();
     for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
       if (entry.getKey().isEmpty()) {
-        // old-style log entry, just remove it
-        for (Path path : entry.getValue()) {
-          log.debug("Removing old-style WAL " + path);
-          try {
-            if (!useTrash || !fs.moveToTrash(path))
-              fs.deleteRecursively(path);
-            status.currentLog.deleted++;
-          } catch (FileNotFoundException ex) {
-            // ignored
-          } catch (IOException ex) {
-            log.error("Unable to delete wal " + path + ": " + ex);
-          }
-        }
+        removeOldStyleWAL(entry, status);
       } else {
-        HostAndPort address = AddressUtil.parseAddress(entry.getKey(), false);
-        if (!holdsLock(address)) {
-          for (Path path : entry.getValue()) {
-            log.debug("Removing WAL for offline server " + path);
-            try {
-              if (!useTrash || !fs.moveToTrash(path))
-                fs.deleteRecursively(path);
-              status.currentLog.deleted++;
-            } catch (FileNotFoundException ex) {
-              // ignored
-            } catch (IOException ex) {
-              log.error("Unable to delete wal " + path + ": " + ex);
-            }
-          }
-          continue;
-        } else {
-          Client tserver = null;
-          try {
-            tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
-            tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance), paths2strings(entry.getValue()));
-            log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
-            status.currentLog.deleted += entry.getValue().size();
-          } catch (TException e) {
-            log.warn("Error talking to " + address + ": " + e);
-          } finally {
-            if (tserver != null)
-              ThriftUtil.returnClient(tserver);
-          }
-        }
+        removeWALFile(entry, conf, status);
       }
     }
-
     for (Path swalog : sortedWALogs.values()) {
-      log.debug("Removing sorted WAL " + swalog);
+      removeSortedWAL(swalog);
+    }
+    return 0;
+  }
+
+  @VisibleForTesting
+  void removeSortedWAL(Path swalog) {
+    log.debug("Removing sorted WAL " + swalog);
+    try {
+      if (!useTrash || !fs.moveToTrash(swalog)) {
+        fs.deleteRecursively(swalog);
+      }
+    } catch (FileNotFoundException ex) {
+      // ignored
+    } catch (IOException ioe) {
       try {
-        if (!useTrash || !fs.moveToTrash(swalog)) {
-          fs.deleteRecursively(swalog);
+        if (fs.exists(swalog)) {
+          log.error("Unable to delete sorted walog " + swalog + ": " + ioe);
         }
+      } catch (IOException ex) {
+        log.error("Unable to check for the existence of " + swalog, ex);
+      }
+    }
+  }
+
+  @VisibleForTesting
+  void removeWALFile(Entry<String,ArrayList<Path>> entry, AccumuloConfiguration conf, final GCStatus status) throws NumberFormatException {
+    HostAndPort address = AddressUtil.parseAddress(entry.getKey(), false);
+    if (!holdsLock(address)) {
+      removeWALfromDownTserver(address, conf, entry, status);
+    } else {
+      askTserverToRemoveWAL(address, conf, entry, status);
+    }
+  }
+
+  @VisibleForTesting
+  void askTserverToRemoveWAL(HostAndPort address, AccumuloConfiguration conf, Entry<String,ArrayList<Path>> entry, final GCStatus status) {
+    firstSeenDead.remove(address);
+    Client tserver = null;
+    try {
+      tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
+      tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance), paths2strings(entry.getValue()));
+      log.debug("asking tserver to delete " + entry.getValue() + " from " + entry.getKey());
+      status.currentLog.deleted += entry.getValue().size();
+    } catch (TException e) {
+      log.warn("Error talking to " + address + ": " + e);
+    } finally {
+      if (tserver != null)
+        ThriftUtil.returnClient(tserver);
+    }
+  }
+
+  @VisibleForTesting
+  long getGCWALDeadServerWaitTime(AccumuloConfiguration conf) {
+    return conf.getTimeInMillis(Property.GC_WAL_DEAD_SERVER_WAIT);
+  }
+
+  @VisibleForTesting
+  void removeWALfromDownTserver(HostAndPort address, AccumuloConfiguration conf, Entry<String,ArrayList<Path>> entry, final GCStatus status) {
+    // tserver is down, only delete once configured time has passed
+    if (timeToDelete(address, getGCWALDeadServerWaitTime(conf))) {
+      for (Path path : entry.getValue()) {
+        log.debug("Removing WAL for offline server " + address + " at " + path);
+        try {
+          if (!useTrash || !fs.moveToTrash(path)) {
+            fs.deleteRecursively(path);
+          }
+          status.currentLog.deleted++;
+        } catch (FileNotFoundException ex) {
+          // ignored
+        } catch (IOException ex) {
+          log.error("Unable to delete wal " + path + ": " + ex);
+        }
+      }
+      firstSeenDead.remove(address);
+    } else {
+      log.debug("Not removing " + entry.getValue().size() + " WAL(s) for offline server since it has not be long enough: " + address);
+    }
+  }
+
+  @VisibleForTesting
+  void removeOldStyleWAL(Entry<String,ArrayList<Path>> entry, final GCStatus status) {
+    // old-style log entry, just remove it
+    for (Path path : entry.getValue()) {
+      log.debug("Removing old-style WAL " + path);
+      try {
+        if (!useTrash || !fs.moveToTrash(path))
+          fs.deleteRecursively(path);
+        status.currentLog.deleted++;
       } catch (FileNotFoundException ex) {
         // ignored
-      } catch (IOException ioe) {
-        try {
-          if (fs.exists(swalog)) {
-            log.error("Unable to delete sorted walog " + swalog + ": " + ioe);
-          }
-        } catch (IOException ex) {
-          log.error("Unable to check for the existence of " + swalog, ex);
-        }
+      } catch (IOException ex) {
+        log.error("Unable to delete wal " + path + ": " + ex);
       }
     }
-
-    return 0;
   }
 
   /**
@@ -281,7 +327,8 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
-  private int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+  @VisibleForTesting
+  int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
@@ -307,19 +354,22 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
 
-  private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
+  @VisibleForTesting
+  int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
     return scanServers(ServerConstants.getWalDirs(), fileToServerMap, nameToFileMap);
   }
 
   // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   /**
-   * Scans write-ahead log directories for logs. The maps passed in are
-   * populated with scan information.
+   * Scans write-ahead log directories for logs. The maps passed in are populated with scan information.
    *
-   * @param walDirs write-ahead log directories
-   * @param fileToServerMap map of file paths to servers
-   * @param nameToFileMap map of file names to paths
+   * @param walDirs
+   *          write-ahead log directories
+   * @param fileToServerMap
+   *          map of file paths to servers
+   * @param nameToFileMap
+   *          map of file names to paths
    * @return number of servers located (including those with no logs present)
    */
   int scanServers(String[] walDirs, Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
@@ -360,7 +410,8 @@ public class GarbageCollectWriteAheadLogs {
     return servers.size();
   }
 
-  private Map<String,Path> getSortedWALogs() throws IOException {
+  @VisibleForTesting
+  Map<String,Path> getSortedWALogs() throws IOException {
     return getSortedWALogs(ServerConstants.getRecoveryDirs());
   }
 
@@ -408,6 +459,26 @@ public class GarbageCollectWriteAheadLogs {
     } catch (IllegalArgumentException ex) {
       return false;
     }
+  }
+
+  @VisibleForTesting
+  protected boolean timeToDelete(HostAndPort address, long wait) {
+    // check whether the tserver has been dead long enough
+    Long firstSeen = firstSeenDead.get(address);
+    if (firstSeen != null) {
+      long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - firstSeen);
+      log.trace("Elapsed seconds since " + address + " first seen dead: " + elapsedTime);
+      return elapsedTime > wait;
+    } else {
+      log.trace("Adding server to firstSeenDead map " + address);
+      firstSeenDead.put(address, System.nanoTime());
+      return false;
+    }
+  }
+
+  @VisibleForTesting
+  void clearFirstSeenDead() {
+    firstSeenDead.clear();
   }
 
 }
