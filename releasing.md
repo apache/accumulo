@@ -10,13 +10,12 @@ This is a guide for the creation of a release of Apache Accumulo.
 There are number of things that are required before attempting to build a release.
 
 1. Use gpg-agent, and be sure to increase the gpg-agent cache timeout (via .gnupg/gpg-agent.conf) to ensure that the agent doesn't require re-authentication mid-build, as it will cause things to fail. For example, you can add `default-cache-ttl 6000` to increase the timeout from the default of 10 minutes to over an hour. If you do not have a GPG key, reference the very thorough [ASF release signing documentation][1].
-2. Make sure the system you're using is able to create RPMs and DEBs.
-3. Ensure that you're using the correct major release of Java (check javadoc too).
-4. Ensure that you're building Apache Accumulo with a username that has the same name as your Apache ID (this is due to
+2. Ensure that you're using the correct major release of Java (check javadoc too).
+3. Ensure that you're building Apache Accumulo with a username that has the same name as your Apache ID (this is due to
    the maven-release-plugin and staging the release candidate).
-5. Update the CHANGES file so that it's in sync with Jira (manual process).
-6. Ensure that you have a texlive distribution installed so you are able to build the documentation.
-7. Have a clean workspace before starting.
+4. Update the CHANGES file so that it's in sync with Jira (manual process).
+5. Ensure that you have a texlive distribution installed so you are able to build the documentation.
+6. Have a clean workspace before starting.
 
 Given all of this, it's recommended that you only attempt making a release from a GNU/Linux machine.
 
