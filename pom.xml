@@ -769,6 +769,9 @@
           <artifactId>maven-enforcer-plugin</artifactId>
           <configuration>
             <rules>
+              <requireJavaVersion>
+                <version>[${maven.compiler.target},)</version>
+              </requireJavaVersion>
               <requireMavenVersion>
                 <version>[${maven.min-version},)</version>
               </requireMavenVersion>
