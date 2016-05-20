@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.URI;
 
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
-import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileProvider;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.cache.DefaultFilesCache;
@@ -29,6 +28,7 @@ import org.apache.commons.vfs2.cache.SoftRefFilesCache;
 import org.apache.commons.vfs2.impl.DefaultFileReplicator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
+import org.apache.commons.vfs2.provider.hdfs.HdfsFileProvider;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
