@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileObject;
+import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileProvider;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileObject;
@@ -38,8 +40,6 @@ import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.commons.vfs2.provider.FileReplicator;
-import org.apache.commons.vfs2.provider.hdfs.HdfsFileObject;
-import org.apache.commons.vfs2.provider.hdfs.HdfsFileProvider;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
