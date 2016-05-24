@@ -123,14 +123,25 @@ public class KeyShortenerTest {
   }
 
   @Test
+  public void testSamePrefixAnd00() {
+    Key prev = new Key("r3boot4", "f89222", "q90232e");
+    Assert.assertEquals(prev, KeyShortener.shorten(prev, nk(a00("r3boot4"), "f89222", "q90232e", 8)));
+    prev = new Key("r3boot4", "f892", "q90232e");
+    Assert.assertEquals(prev, KeyShortener.shorten(prev, nk("r3boot4", a00("f892"), "q90232e", 8)));
+    prev = new Key("r3boot4", "f89222", "q902");
+    Assert.assertEquals(prev, KeyShortener.shorten(prev, nk("r3boot4", "f89222", a00("q902"), 8)));
+  }
+
+  @Test
   public void testSanityCheck1() {
     // prev and shortened equal
-    Assert.assertNull(KeyShortener.sanityCheck(new Key("r001", "f002", "q006"), new Key("r002", "f002", "q006"), new Key("r001", "f002", "q006")));
+    Key prev = new Key("r001", "f002", "q006");
+    Assert.assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r002", "f002", "q006"), new Key("r001", "f002", "q006")));
     // prev > shortened equal
-    Assert.assertNull(KeyShortener.sanityCheck(new Key("r002", "f002", "q006"), new Key("r003", "f002", "q006"), new Key("r001", "f002", "q006")));
+    Assert.assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r003", "f002", "q006"), new Key("r001", "f002", "q006")));
     // current and shortened equal
-    Assert.assertNull(KeyShortener.sanityCheck(new Key("r001", "f002", "q006"), new Key("r003", "f002", "q006"), new Key("r003", "f002", "q006")));
+    Assert.assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r003", "f002", "q006"), new Key("r003", "f002", "q006")));
     // shortened > current
-    Assert.assertNull(KeyShortener.sanityCheck(new Key("r001", "f002", "q006"), new Key("r003", "f002", "q006"), new Key("r004", "f002", "q006")));
+    Assert.assertEquals(prev, KeyShortener.sanityCheck(prev, new Key("r003", "f002", "q006"), new Key("r004", "f002", "q006")));
   }
 }

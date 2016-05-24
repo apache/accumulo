@@ -20,6 +20,7 @@ package org.apache.accumulo.core.file.rfile;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -33,6 +34,12 @@ import com.google.common.primitives.Bytes;
 public class KeyShortener {
 
   private static final byte[] EMPTY = new byte[0];
+  private static final byte[] B00 = new byte[] {(byte) 0x00};
+  private static final byte[] BFF = new byte[] {(byte) 0xff};
+
+  private static final Logger log = LoggerFactory.getLogger(KeyShortener.class);
+
+  private KeyShortener() {}
 
   private static int findNonFF(ByteSequence bs, int start) {
     for (int i = start; i < bs.length(); i++) {
@@ -44,9 +51,9 @@ public class KeyShortener {
     return bs.length();
   }
 
-  private static byte[] B00 = new byte[] {(byte) 0x00};
-  private static byte[] BFF = new byte[] {(byte) 0xff};
-
+  /**
+   * @return S such that prev < S < current or null if no such sequence
+   */
   public static ByteSequence shorten(ByteSequence prev, ByteSequence current) {
 
     int minLen = Math.min(prev.length(), current.length());
@@ -82,23 +89,27 @@ public class KeyShortener {
     return successor;
   }
 
+  /**
+   * This entire class supports an optional optimization. This code does a sanity check to ensure the optimization code did what was intended, doing a noop if
+   * there is a bug.
+   */
   @VisibleForTesting
   static Key sanityCheck(Key prev, Key current, Key shortened) {
     if (prev.compareTo(shortened) >= 0) {
-      LoggerFactory.getLogger(KeyShortener.class).warn("Bug in key shortening code, please open an issue " + prev + " >= " + shortened);
-      return null;
+      log.warn("Bug in key shortening code, please open an issue " + prev + " >= " + shortened);
+      return prev;
     }
 
     if (current.compareTo(shortened) <= 0) {
-      LoggerFactory.getLogger(KeyShortener.class).warn("Bug in key shortening code, please open an issue " + current + " <= " + shortened);
-      return null;
+      log.warn("Bug in key shortening code, please open an issue " + current + " <= " + shortened);
+      return prev;
     }
 
     return shortened;
   }
 
   /**
-   * Find a key K where prev < K < current AND K is shorter
+   * Find a key K where prev < K < current AND K is shorter. If can not find a K that meets criteria, then returns prev.
    */
   public static Key shorten(Key prev, Key current) {
     Preconditions.checkArgument(prev.compareTo(current) <= 0, "Expected key less than or equal. " + prev + " > " + current);
@@ -106,23 +117,23 @@ public class KeyShortener {
     if (prev.getRowData().compareTo(current.getRowData()) < 0) {
       ByteSequence shortenedRow = shorten(prev.getRowData(), current.getRowData());
       if (shortenedRow == null) {
-        return null;
+        return prev;
       }
       return sanityCheck(prev, current, new Key(shortenedRow.toArray(), EMPTY, EMPTY, EMPTY, 0));
     } else if (prev.getColumnFamilyData().compareTo(current.getColumnFamilyData()) < 0) {
       ByteSequence shortenedFam = shorten(prev.getColumnFamilyData(), current.getColumnFamilyData());
       if (shortenedFam == null) {
-        return null;
+        return prev;
       }
       return sanityCheck(prev, current, new Key(prev.getRowData().toArray(), shortenedFam.toArray(), EMPTY, EMPTY, 0));
     } else if (prev.getColumnQualifierData().compareTo(current.getColumnQualifierData()) < 0) {
       ByteSequence shortenedQual = shorten(prev.getColumnQualifierData(), current.getColumnQualifierData());
       if (shortenedQual == null) {
-        return null;
+        return prev;
       }
       return sanityCheck(prev, current, new Key(prev.getRowData().toArray(), prev.getColumnFamilyData().toArray(), shortenedQual.toArray(), EMPTY, 0));
     } else {
-      return null;
+      return prev;
     }
   }
 }

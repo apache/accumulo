@@ -92,7 +92,7 @@ public class RFile {
                                      // sample allows a user of RFile to determine if the sample is useful.
                                      //
                                      // Selected smaller keys for index by doing two things. First internal stats were used to look for keys that were below
-                                     // average in size for the index. Also keys that were statically large were excluded from the index. Second shorter keys
+                                     // average in size for the index. Also keys that were statistically large were excluded from the index. Second shorter keys
                                      // (that may not exist in data) were generated for the index.
   static final int RINDEX_VER_7 = 7; // Added support for prefix encoding and encryption. Before this change only exact matches within a key field were deduped
                                      // for consecutive keys. After this change, if consecutive key fields have the same prefix then the prefix is only stored
@@ -435,13 +435,8 @@ public class RFile {
           avergageKeySize = keyLenStats.getMean();
         }
 
-        Key closeKey = prevKey;
-
         // Possibly produce a shorter key that does not exist in data. Even if a key can be shortened, it may not be below average.
-        Key sk = KeyShortener.shorten(closeKey, key);
-        if (sk != null) {
-          closeKey = sk;
-        }
+        Key closeKey = KeyShortener.shorten(prevKey, key);
 
         if ((closeKey.getSize() <= avergageKeySize || blockWriter.getRawSize() > maxBlockSize) && !isGiantKey(closeKey)) {
           closeBlock(closeKey, false);
