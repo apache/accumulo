@@ -27,9 +27,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Bytes;
 
-/**
+/*
  * Code to shorten keys that will be placed into RFile indexes. This code attempts to find a key thats between two keys that shorter.
- *
  */
 public class KeyShortener {
 
@@ -51,8 +50,8 @@ public class KeyShortener {
     return bs.length();
   }
 
-  /**
-   * @return S such that prev < S < current or null if no such sequence
+  /*
+   * return S such that prev < S < current or null if no such sequence
    */
   public static ByteSequence shorten(ByteSequence prev, ByteSequence current) {
 
@@ -89,7 +88,7 @@ public class KeyShortener {
     return successor;
   }
 
-  /**
+  /*
    * This entire class supports an optional optimization. This code does a sanity check to ensure the optimization code did what was intended, doing a noop if
    * there is a bug.
    */
@@ -108,7 +107,7 @@ public class KeyShortener {
     return shortened;
   }
 
-  /**
+  /*
    * Find a key K where prev < K < current AND K is shorter. If can not find a K that meets criteria, then returns prev.
    */
   public static Key shorten(Key prev, Key current) {
