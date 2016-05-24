@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -385,6 +386,8 @@ public class RFileTest {
             String cvS = "" + (char) cv;
             for (int ts = 4; ts > 0; ts--) {
               Key k = nk(rowS, cfS, cqS, cvS, ts);
+              // check below ensures when all key sizes are same more than one index block is created
+              Assert.assertEquals(27, k.getSize());
               k.setDeleted(true);
               Value v = nv("" + val);
               trf.writer.append(k, v);
@@ -392,6 +395,7 @@ public class RFileTest {
               expectedValues.add(v);
 
               k = nk(rowS, cfS, cqS, cvS, ts);
+              Assert.assertEquals(27, k.getSize());
               v = nv("" + val);
               trf.writer.append(k, v);
               expectedKeys.add(k);
@@ -499,6 +503,15 @@ public class RFileTest {
         trf.iter.next();
       }
     }
+
+    // count the number of index entries
+    FileSKVIterator iiter = trf.reader.getIndex();
+    int count = 0;
+    while (iiter.hasTop()) {
+      count++;
+      iiter.next();
+    }
+    Assert.assertEquals(20, count);
 
     trf.closeReader();
   }
@@ -2088,6 +2101,56 @@ public class RFileTest {
     testSample();
     testSampleLG();
     conf = null;
+  }
+
+  @Test
+  public void testBigKeys() throws IOException {
+    // this test ensures that big keys do not end up index
+    ArrayList<Key> keys = new ArrayList<>();
+
+    for (int i = 0; i < 1000; i++) {
+      String row = String.format("r%06d", i);
+      keys.add(new Key(row, "cf1", "cq1", 42));
+    }
+
+    // add a few keys with long rows
+    for (int i = 0; i < 1000; i += 100) {
+      String row = String.format("r%06d", i);
+      char ca[] = new char[1000];
+      Arrays.fill(ca, 'b');
+      row = row + new String(ca);
+      keys.add(new Key(row, "cf1", "cq1", 42));
+    }
+
+    Collections.sort(keys);
+
+    TestRFile trf = new TestRFile(conf);
+
+    trf.openWriter();
+
+    for (Key k : keys) {
+      trf.writer.append(k, new Value((k.hashCode() + "").getBytes()));
+    }
+
+    trf.writer.close();
+
+    trf.openReader();
+
+    FileSKVIterator iiter = trf.reader.getIndex();
+    while (iiter.hasTop()) {
+      Key k = iiter.getTopKey();
+      Assert.assertTrue(k + " " + k.getSize() + " >= 20", k.getSize() < 20);
+      iiter.next();
+    }
+
+    Collections.shuffle(keys);
+
+    for (Key key : keys) {
+      trf.reader.seek(new Range(key, null), EMPTY_COL_FAMS, false);
+      Assert.assertTrue(trf.reader.hasTop());
+      Assert.assertEquals(key, trf.reader.getTopKey());
+      Assert.assertEquals(new Value((key.hashCode() + "").getBytes()), trf.reader.getTopValue());
+    }
   }
 
   @Test
