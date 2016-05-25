@@ -69,7 +69,7 @@
     </fileSet>
     <fileSet>
       <directory>../examples/simple</directory>
-      <outputDirectory>/examples/simple</outputDirectory>
+      <outputDirectory>examples/simple</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
@@ -78,7 +78,7 @@
     </fileSet>
     <fileSet>
       <directory>./</directory>
-      <outputDirectory>/lib/ext</outputDirectory>
+      <outputDirectory>lib/ext</outputDirectory>
       <directoryMode>0755</directoryMode>
       <excludes>
         <exclude>*/**</exclude>
@@ -86,7 +86,7 @@
     </fileSet>
     <fileSet>
       <directory>./</directory>
-      <outputDirectory>/logs</outputDirectory>
+      <outputDirectory>logs</outputDirectory>
       <directoryMode>0700</directoryMode>
       <excludes>
         <exclude>*/**</exclude>
@@ -94,7 +94,7 @@
     </fileSet>
     <fileSet>
       <directory>../docs/src/main/resources</directory>
-      <outputDirectory>/docs</outputDirectory>
+      <outputDirectory>docs</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
@@ -105,7 +105,7 @@
     </fileSet>
     <fileSet>
       <directory>../docs/target</directory>
-      <outputDirectory>/docs</outputDirectory>
+      <outputDirectory>docs</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
@@ -131,7 +131,7 @@
     <fileSet>
       <!-- preserve old behavior of extra copy in conf -->
       <directory>conf/templates</directory>
-      <outputDirectory>/conf</outputDirectory>
+      <outputDirectory>conf</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
@@ -140,7 +140,7 @@
     </fileSet>
     <fileSet>
       <directory>target/example-configs</directory>
-      <outputDirectory>/conf/examples</outputDirectory>
+      <outputDirectory>conf/examples</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0755</fileMode>
       <includes>
@@ -149,7 +149,7 @@
     </fileSet>
     <fileSet>
       <directory>target/example-configs</directory>
-      <outputDirectory>/conf/examples</outputDirectory>
+      <outputDirectory>conf/examples</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <excludes>

@@ -20,26 +20,32 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>14</version>
+    <version>18</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
   <version>1.6.6-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Accumulo Project</name>
-  <description>Apache Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
-  <!-- this URL is where the site derived via the maven-site-plugin ends up, not the generic site -->
-  <url>http://accumulo.apache.org/maven-site/</url>
+  <description>Apache Accumulo is a sorted, distributed key/value store based
+    on Google's BigTable design. It is built on top of Apache Hadoop,
+    Zookeeper, and Thrift. It features a few novel improvements on the BigTable
+    design in the form of cell-level access labels and a server-side
+    programming mechanism that can modify key/value pairs at various points in
+    the data management process.</description>
+  <!-- this URL is where the site derived via the maven-site-plugin ends up,
+       not the generic site; currently not used -->
+  <url>https://accumulo.apache.org</url>
   <!-- this is the year of inception at ASF -->
   <inceptionYear>2011</inceptionYear>
   <organization>
     <name>The Apache Software Foundation</name>
-    <url>http://www.apache.org/</url>
+    <url>https://www.apache.org</url>
   </organization>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
     </license>
   </licenses>
   <mailingLists>
@@ -48,26 +54,26 @@
       <subscribe>user-subscribe@accumulo.apache.org</subscribe>
       <unsubscribe>user-unsubscribe@accumulo.apache.org</unsubscribe>
       <post>user@accumulo.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/accumulo-user</archive>
+      <archive>https://lists.apache.org/list.html?user@accumulo.apache.org</archive>
     </mailingList>
     <mailingList>
       <name>Dev</name>
       <subscribe>dev-subscribe@accumulo.apache.org</subscribe>
       <unsubscribe>dev-unsubscribe@accumulo.apache.org</unsubscribe>
       <post>dev@accumulo.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/accumulo-dev</archive>
+      <archive>https://lists.apache.org/list.html?dev@accumulo.apache.org</archive>
     </mailingList>
     <mailingList>
       <name>Commits</name>
       <subscribe>commits-subscribe@accumulo.apache.org</subscribe>
       <unsubscribe>commits-unsubscribe@accumulo.apache.org</unsubscribe>
-      <archive>http://mail-archives.apache.org/mod_mbox/accumulo-commits</archive>
+      <archive>https://lists.apache.org/list.html?commits@accumulo.apache.org</archive>
     </mailingList>
     <mailingList>
       <name>Notifications</name>
       <subscribe>notifications-subscribe@accumulo.apache.org</subscribe>
       <unsubscribe>notifications-unsubscribe@accumulo.apache.org</unsubscribe>
-      <archive>http://mail-archives.apache.org/mod_mbox/accumulo-notifications</archive>
+      <archive>https://lists.apache.org/list.html?notifications@accumulo.apache.org</archive>
     </mailingList>
   </mailingLists>
   <prerequisites>
@@ -107,17 +113,10 @@
     <system>Apache Jenkins</system>
     <url>https://builds.apache.org/view/A-D/view/Accumulo/</url>
   </ciManagement>
-  <distributionManagement>
-    <site>
-      <id>accumulo.mvn.website</id>
-      <name>Accumulo Maven Site</name>
-      <!-- this is not likely to be what we really want, but it's good enough for a test -->
-      <url>scm:svn:https://svn.apache.org/repos/asf/accumulo/site/trunk/maven-site</url>
-    </site>
-  </distributionManagement>
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
+    <assembly.tarLongFileMode>gnu</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -128,21 +127,21 @@
     <findbugs.version>2.5.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
-    <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
+    <!-- overwritten in hadoop profiles -->
     <hadoop.version>2.2.0</hadoop.version>
     <httpclient.version>3.1</httpclient.version>
-    <java.ver>1.6</java.ver>
     <jetty.version>8.1.15.v20140411</jetty.version>
-    <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
+    <maven.compiler.source>1.6</maven.compiler.source>
+    <maven.compiler.target>1.6</maven.compiler.target>
     <maven.min-version>3.0.5</maven.min-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>1.5</powermock.version>
+    <powermock.version>1.6.4</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
-    <sealJars>false</sealJars>
-    <!-- overwritten in profiles hadoop-1 or hadoop-2 -->
+    <!-- overwritten in hadoop profiles -->
     <slf4j.version>1.7.5</slf4j.version>
+    <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <!-- Thrift version -->
     <thrift.version>0.9.1</thrift.version>
     <!-- ZooKeeper 3.4.x works also, but we're not using new features yet; this ensures 3.3.x compatibility. -->
@@ -160,6 +159,7 @@
         <artifactId>gson</artifactId>
         <version>2.2.2</version>
       </dependency>
+      <!-- Hadoop-2.4.0 MiniDFSCluster uses classes dropped in Guava 15 -->
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
@@ -504,12 +504,18 @@
   <build>
     <pluginManagement>
       <plugins>
+        <!-- check for version updates with 'mvn versions:display-plugin-updates' -->
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>versions-maven-plugin</artifactId>
+          <version>2.2</version>
+        </plugin>
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
           <version>1.4.0</version>
           <configuration>
-            <javaVersion>${java.ver}</javaVersion>
+            <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
         </plugin>
         <plugin>
@@ -547,7 +553,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>0.7.1</version>
+          <version>0.7.2</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -559,16 +565,8 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <configuration>
-            <attach>false</attach>
-            <tarLongFileMode>gnu</tarLongFileMode>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-changes-plugin</artifactId>
-          <version>2.9</version>
+          <version>2.12</version>
           <configuration>
             <issueManagementSystems>
               <issueManagementSystem>JIRA</issueManagementSystem>
@@ -580,6 +578,7 @@
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-clean-plugin</artifactId>
           <configuration>
             <filesets>
@@ -594,13 +593,18 @@
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <source>${java.ver}</source>
-            <target>${java.ver}</target>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
             <showWarnings>true</showWarnings>
+            <compilerArgs>
+              <arg>-Xlint:all</arg>
+              <arg>-Xlint:-processing</arg>
+              <arg>-Xmaxwarns</arg>
+              <arg>5</arg>
+            </compilerArgs>
           </configuration>
         </plugin>
         <plugin>
@@ -609,7 +613,7 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <Sealed>${sealJars}</Sealed>
+                <Sealed>true</Sealed>
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
               </manifestEntries>
             </archive>
@@ -619,24 +623,21 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
-            <encoding>${project.reporting.outputEncoding}</encoding>
             <quiet>true</quiet>
-            <javadocVersion>${java.ver}</javadocVersion>
+            <javadocVersion>${maven.compiler.target}</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
           </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
-          <!-- Work around MRELEASE-812 -->
-          <version>2.5</version>
           <configuration>
-            <arguments>-P !autoformat,apache-release,thrift,assemble,docs,sunny -Dtimeout.factor=2 ${extraReleaseArgs}</arguments>
+            <arguments>-P !autoformat,thrift,assemble,docs,sunny -Dtimeout.factor=2 ${extraReleaseArgs}</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>rel/@{project.version}</tagNameFormat>
-            <releaseProfiles>seal-jars,skip-findbugs,skip-plugin-its-with-skipTests</releaseProfiles>
+            <releaseProfiles>apache-release,accumulo-release,skip-plugin-its-with-skipTests</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
@@ -659,12 +660,12 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.8</version>
+          <version>1.9</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>cobertura-maven-plugin</artifactId>
-          <version>2.6</version>
+          <version>2.7</version>
           <configuration>
             <aggregate>true</aggregate>
             <formats>
@@ -681,7 +682,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>1.2.1</version>
+          <version>1.4.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -694,7 +695,7 @@
           <configuration>
             <rules>
               <requireJavaVersion>
-                <version>[${java.ver},)</version>
+                <version>[${maven.compiler.target},)</version>
               </requireJavaVersion>
               <requireMavenVersion>
                 <version>[${maven.min-version},)</version>
@@ -719,9 +720,9 @@
           <artifactId>maven-java-formatter-plugin</artifactId>
           <version>0.4</version>
           <configuration>
-            <compilerCompliance>${java.ver}</compilerCompliance>
-            <compilerSource>${java.ver}</compilerSource>
-            <compilerTargetPlatform>${java.ver}</compilerTargetPlatform>
+            <compilerCompliance>${maven.compiler.source}</compilerCompliance>
+            <compilerSource>${maven.compiler.source}</compilerSource>
+            <compilerTargetPlatform>${maven.compiler.target}</compilerTargetPlatform>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
               <exclude>**/proto/*.java</exclude>
@@ -738,6 +739,7 @@
           </dependencies>
           <executions>
             <execution>
+              <id>format-java-source</id>
               <goals>
                 <goal>format</goal>
               </goals>
@@ -745,14 +747,8 @@
           </executions>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-plugin-plugin</artifactId>
-          <version>3.4</version>
-        </plugin>
-        <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.11</version>
           <configuration>
             <excludes>
               <exclude>nbproject/**</exclude>
@@ -946,35 +942,8 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-scm-publish-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>scm-publish</id>
-            <goals>
-              <goal>publish-scm</goal>
-            </goals>
-            <phase>site-deploy</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <dependencies>
-          <!-- workaround for RAT-158 -->
-          <dependency>
-            <groupId>org.apache.maven.doxia</groupId>
-            <artifactId>doxia-core</artifactId>
-            <version>1.6</version>
-            <exclusions>
-              <exclusion>
-                <groupId>xerces</groupId>
-                <artifactId>xercesImpl</artifactId>
-              </exclusion>
-            </exclusions>
-          </dependency>
-        </dependencies>
         <executions>
           <execution>
             <id>check-licenses</id>
@@ -985,94 +954,7 @@
         </executions>
       </plugin>
     </plugins>
-    <extensions>
-      <extension>
-        <!-- enable ssh deployment of site with maven 3 -->
-        <groupId>org.apache.maven.wagon</groupId>
-        <artifactId>wagon-ssh</artifactId>
-        <version>2.6</version>
-      </extension>
-    </extensions>
   </build>
-  <reporting>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-changes-plugin</artifactId>
-        <version>2.9</version>
-        <reportSets>
-          <reportSet>
-            <reports>
-              <report>jira-report</report>
-            </reports>
-          </reportSet>
-        </reportSets>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.9.1</version>
-        <reportSets>
-          <reportSet>
-            <reports>
-              <report>javadoc</report>
-            </reports>
-          </reportSet>
-        </reportSets>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jxr-plugin</artifactId>
-        <version>2.4</version>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-pmd-plugin</artifactId>
-        <version>3.1</version>
-        <configuration>
-          <excludes>
-            <exclude>**/thrift/*.java</exclude>
-          </excludes>
-          <format>html</format>
-          <includeTests>true</includeTests>
-          <targetJdk>${java.ver}</targetJdk>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>2.7</version>
-        <configuration>
-          <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
-        </configuration>
-        <reportSets>
-          <reportSet>
-            <reports>
-              <report>summary</report>
-              <report>index</report>
-              <report>dependencies</report>
-              <report>issue-tracking</report>
-              <report>scm</report>
-            </reports>
-          </reportSet>
-        </reportSets>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>${findbugs.version}</version>
-        <configuration>
-          <excludeFilterFile>contrib/findbugs-exclude.xml</excludeFilterFile>
-          <findbugsXmlOutput>true</findbugsXmlOutput>
-          <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
-          <xmlOutput>true</xmlOutput>
-          <effort>Max</effort>
-          <threshold>Medium</threshold>
-          <failOnError>false</failOnError>
-        </configuration>
-      </plugin>
-    </plugins>
-  </reporting>
   <profiles>
     <profile>
       <id>m2e</id>
@@ -1096,7 +978,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-plugin-plugin</artifactId>
-                        <versionRange>[3.2,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>helpmojo</goal>
                           <goal>descriptor</goal>
@@ -1110,7 +992,7 @@
                       <pluginExecutionFilter>
                         <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
                         <artifactId>maven-java-formatter-plugin</artifactId>
-                        <versionRange>[0.4,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>format</goal>
                         </goals>
@@ -1123,7 +1005,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.gaul</groupId>
                         <artifactId>modernizer-maven-plugin</artifactId>
-                        <versionRange>[1.4.0,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>modernizer</goal>
                         </goals>
@@ -1136,7 +1018,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-checkstyle-plugin</artifactId>
-                        <versionRange>[2.13,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>check</goal>
                         </goals>
@@ -1149,7 +1031,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
-                        <versionRange>[2.0,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>copy-dependencies</goal>
                         </goals>
@@ -1162,7 +1044,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-remote-resources-plugin</artifactId>
-                        <versionRange>[1.0,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>process</goal>
                         </goals>
@@ -1175,7 +1057,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.apache.rat</groupId>
                         <artifactId>apache-rat-plugin</artifactId>
-                        <versionRange>[0.8,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>check</goal>
                         </goals>
@@ -1188,7 +1070,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>native-maven-plugin</artifactId>
-                        <versionRange>[1.0-alpha-7,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>compile</goal>
                           <goal>initialize</goal>
@@ -1205,7 +1087,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <versionRange>[1.0,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>exec</goal>
                         </goals>
@@ -1218,7 +1100,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-enforcer-plugin</artifactId>
-                        <versionRange>[1.0,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>enforce</goal>
                         </goals>
@@ -1231,7 +1113,7 @@
                       <pluginExecutionFilter>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-invoker-plugin</artifactId>
-                        <versionRange>[1.7,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>install</goal>
                         </goals>
@@ -1244,7 +1126,7 @@
                       <pluginExecutionFilter>
                         <groupId>com.github.ekryd.sortpom</groupId>
                         <artifactId>sortpom-maven-plugin</artifactId>
-                        <versionRange>[2.4.0,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>sort</goal>
                           <goal>verify</goal>
@@ -1258,7 +1140,7 @@
                       <pluginExecutionFilter>
                         <groupId>com.github.koraktor</groupId>
                         <artifactId>mavanagaiata</artifactId>
-                        <versionRange>[0.6.1,)</versionRange>
+                        <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>commit</goal>
                         </goals>
@@ -1276,59 +1158,29 @@
       </build>
     </profile>
     <profile>
-      <id>apache-release</id>
+      <id>accumulo-release</id>
+      <properties>
+        <!-- some properties to make the release build a bit faster -->
+        <checkstyle.skip>true</checkstyle.skip>
+        <findbugs.skip>true</findbugs.skip>
+        <skipITs>true</skipITs>
+        <skipTests>true</skipTests>
+      </properties>
       <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <dependencies>
-              <dependency>
-                <groupId>org.apache.apache.resources</groupId>
-                <artifactId>apache-source-release-assembly-descriptor</artifactId>
-                <version>1.0.4</version>
-              </dependency>
-            </dependencies>
-            <executions>
-              <execution>
-                <id>source-release-assembly</id>
-                <goals>
-                  <goal>single</goal>
-                </goals>
-                <phase>validate</phase>
-                <configuration>
-                  <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
-                  <finalName>accumulo-${project.version}</finalName>
-                  <descriptorRefs>
-                    <descriptorRef>source-release-zip-tar</descriptorRef>
-                  </descriptorRefs>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>rename-source-release-assembly</id>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <phase>validate</phase>
-                <configuration>
-                  <executable>mv</executable>
-                  <workingDirectory>${project.build.directory}</workingDirectory>
-                  <commandlineArgs>-n accumulo-${project.version}-source-release.tar.gz accumulo-${project.version}-src.tar.gz</commandlineArgs>
-                  <successCodes>
-                    <successCode>0</successCode>
-                    <successCode>1</successCode>
-                  </successCodes>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-assembly-plugin</artifactId>
+              <inherited>false</inherited>
+              <configuration>
+                <!-- source assembly gets attached in the assemble module -->
+                <attach>false</attach>
+                <finalName>accumulo-${project.version}</finalName>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
       </build>
     </profile>
     <profile>
@@ -1365,56 +1217,12 @@
       </build>
     </profile>
     <profile>
-      <!-- Seal jars and skip tests when the
-           apache-release profile is activated. -->
-      <id>seal-jars</id>
-      <properties>
-        <sealJars>true</sealJars>
-        <skipITs>true</skipITs>
-        <skipTests>true</skipTests>
-      </properties>
-    </profile>
-    <profile>
-      <!-- Skip findbugs executing when the
-           apache-release profile is activated. -->
-      <id>skip-findbugs</id>
-      <properties>
-        <findbugs.skip>true</findbugs.skip>
-      </properties>
-    </profile>
-    <profile>
       <!-- Minimal testing profile. (a.k.a. SunnyDay) -->
       <id>sunny</id>
       <properties>
         <failIfNoTests>false</failIfNoTests>
         <it.test>ReadWriteIT,SimpleProxyIT,ExamplesIT,ShellServerIT</it.test>
       </properties>
-    </profile>
-    <profile>
-      <!-- Generate cobertura reports with site.
-           Activate with -P cobertura -->
-      <id>cobertura</id>
-      <reporting>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>cobertura-maven-plugin</artifactId>
-            <version>2.6</version>
-            <configuration>
-              <aggregate>true</aggregate>
-              <formats>
-                <format>xml</format>
-                <format>html</format>
-              </formats>
-              <instrumentation>
-                <excludes>
-                  <exclude>**/thrift/*.class</exclude>
-                </excludes>
-              </instrumentation>
-            </configuration>
-          </plugin>
-        </plugins>
-      </reporting>
     </profile>
     <!-- profile for our default Hadoop build
          unfortunately, has to duplicate one of our
@@ -1489,7 +1297,6 @@
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-javadoc-plugin</artifactId>
               <configuration>
-                <encoding>${project.reporting.outputEncoding}</encoding>
                 <quiet>true</quiet>
                 <javadocVersion>1.8</javadocVersion>
                 <additionalJOption>-J-Xmx512m</additionalJOption>

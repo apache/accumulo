@@ -274,18 +274,14 @@ createReleaseCandidate() {
 if [[ $1 == '--create-release-candidate' ]]; then
   shift
   createReleaseCandidate "$@"
-elif [[ $1 == '--seal-jars' ]]; then
-  cacheGPG
-  # build a tag, but with sealed jars
-  runOrFail mvn clean install -P apache-release,seal-jars,thrift,assemble,docs
 elif [[ $1 == '--test' ]]; then
   cacheGPG
   # build a tag, but with tests
-  runOrFail mvn clean install -P apache-release,thrift,assemble,docs
+  runOrFail mvn clean install -P apache-release,thrift,assemble,docs,accumulo-release
 elif [[ $1 == '--create-email' ]]; then
   shift
   createEmail "$@"
 else
-  fail "Missing one of: $(red --create-release-candidate), $(red --test), $(red --seal-jars), $(red --create-email)"
+  fail "Missing one of: $(red --create-release-candidate), $(red --test), $(red --create-email)"
 fi
 

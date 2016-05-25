@@ -79,7 +79,6 @@
             </goals>
             <phase>package</phase>
             <configuration>
-              <attach>true</attach>
               <appendAssemblyId>false</appendAssemblyId>
               <descriptors>
                 <descriptor>src/main/assemblies/native-tarball.xml</descriptor>
