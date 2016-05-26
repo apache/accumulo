@@ -15,32 +15,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-Apache Accumulo
-===============
+[![Apache Accumulo][logo]][accumulo]
+--
+[![Build Status][ti]][tl] [![Maven Central][mi]][ml] [![Javadoc][ji]][jl] [![Apache License][li]][ll] 
 
-[![Apache License][li]][ll] [![Maven Central][mi]][ml] [![Javadoc][ji]][jl]
-[![Build Status][ti]][tl]
+[Apache Accumulo][accumulo] is a sorted, distributed key/value store that
+provides robust, scalable data storage and retrieval.
 
-The [Apache Accumulo™][1] sorted, distributed key/value store is a robust,
-scalable, high performance data storage and retrieval system.  Apache Accumulo
-is based on Google's [BigTable][4] design and is built on top of Apache
-[Hadoop][5], [Zookeeper][6], and [Thrift][7]. Apache Accumulo features a few
-novel improvements on the BigTable design in the form of cell-based access
-control and a server-side programming mechanism that can modify key/value pairs
-at various points in the data management process. Other notable improvements
-and feature are outlined [here][8].
+Apache Accumulo is based on Google's [BigTable] design and is built on top of Apache
+[Hadoop], [Zookeeper], and [Thrift].  It has several novel [features] such as cell-based
+access control and a server-side programming mechanism that can modify key/value pairs
+at various points in the data management process.
 
-To install and run an Accumulo binary distribution, follow the [install][2]
-instructions.
+Installation
+------------
+
+Follow [these instructions][install] to install and run an Accumulo binary distribution.
 
 Documentation
 -------------
 
-Accumulo has the following documentation which is viewable on the [Accumulo website][1]
+Accumulo has the following documentation which is viewable on the [Accumulo website][accumulo]
 using the links below:
 
-* [User Manual][10] - In-depth developer and administrator documentation.
-* [Examples][11] - Code with corresponding README files that give step by step
+* [User Manual][man-web] - In-depth developer and administrator documentation.
+* [Examples][ex-web] - Code with corresponding README files that give step by step
 instructions for running the example.
 
 This documentation can also be found in Accumulo distributions:
@@ -48,15 +47,15 @@ This documentation can also be found in Accumulo distributions:
 * **Binary distribution** - The User Manual can be found in the `docs` directory.  The
 Examples Readmes can be found in `docs/examples`. While the source for the Examples is
 not included, the distribution has a jar with the compiled examples. This makes it easy
-to run them after following the [install][2] instructions.
+to run them after following the [install] instructions.
 
-* **Source distribution** - The [Example Source][14], [Example Readmes][15], and
-[User Manual Source][16] can all be found in the source distribution.
+* **Source distribution** - The [Example Source][ex-src], [Example Readmes][rm-src], and
+[User Manual Source][man-src] are available.
 
 Building
 --------
 
-Accumulo uses [Maven][9] to compile, [test][3], and package its source.  The
+Accumulo uses [Maven] to compile, [test], and package its source.  The
 following command will build the binary tar.gz from source.  Note, these
 instructions will not work for the Accumulo binary distribution as it does not
 include source.
@@ -89,8 +88,8 @@ methods, members classes, interfaces, and enums.  Package-private types in
 the above packages are *not* considered public API.
 
 The following regex matches imports that are *not* Accumulo public API.  This
-regex can be used with [RegexpSingleline][13] to automatically find suspicious
-imports in a project using Accumulo.
+regex can be used with [RegexpSingleline][regex] to automatically find
+suspicious imports in a project using Accumulo.
 
 ```
 import\s+org\.apache\.accumulo\.(.*\.(impl|thrift|crypto)\..*|(?!core|minicluster).*|core\.(?!client|data|security).*)
@@ -98,24 +97,25 @@ import\s+org\.apache\.accumulo\.(.*\.(impl|thrift|crypto)\..*|(?!core|minicluste
 
 The Accumulo project maintains binary compatibility across this API within a
 major release, as defined in the Java Language Specification 3rd ed. Starting
-with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][12]
+with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][semver]
 
-[1]: https://accumulo.apache.org
-[2]: INSTALL.md
-[3]: TESTING.md
-[4]: https://research.google.com/archive/bigtable.html
-[5]: https://hadoop.apache.org
-[6]: https://zookeeper.apache.org
-[7]: https://thrift.apache.org
-[8]: https://accumulo.apache.org/notable_features
-[9]: https://maven.apache.org
-[10]: https://accumulo.apache.org/latest/accumulo_user_manual
-[11]: https://accumulo.apache.org/latest/examples
-[12]: http://semver.org/spec/v2.0.0
-[13]: http://checkstyle.sourceforge.net/config_regexp.html
-[14]: examples/simple/src/main/java/org/apache/accumulo/examples/simple
-[15]: docs/src/main/resources/examples
-[16]: docs/src/main/asciidoc
+[accumulo]: https://accumulo.apache.org
+[logo]: contrib/accumulo-logo.png
+[install]: INSTALL.md
+[test]: TESTING.md
+[BigTable]: https://research.google.com/archive/bigtable.html
+[Hadoop]: https://hadoop.apache.org
+[Zookeeper]: https://zookeeper.apache.org
+[Thrift]: https://thrift.apache.org
+[features]: https://accumulo.apache.org/notable_features
+[Maven]: https://maven.apache.org
+[man-web]: https://accumulo.apache.org/latest/accumulo_user_manual
+[ex-web]: https://accumulo.apache.org/latest/examples
+[semver]: http://semver.org/spec/v2.0.0
+[regex]: http://checkstyle.sourceforge.net/config_regexp.html
+[ex-src]: examples/simple/src/main/java/org/apache/accumulo/examples/simple
+[rm-src]: docs/src/main/resources/examples
+[man-src]: docs/src/main/asciidoc
 [li]: https://img.shields.io/badge/license-ASL-blue.svg
 [ll]: https://www.apache.org/licenses/LICENSE-2.0
 [mi]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg
