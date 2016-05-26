@@ -169,9 +169,10 @@ also locate the native maps shared library by setting LD\_LIBRARY\_PATH
 \subsubsection{Configuration}
 
 As mentioned, Accumulo will use the native libraries if they are found in the expected
-location and if it is not configured to ignore them. Using the native maps over JVM
-Maps nets a noticable improvement in ingest rates; however, certain configuration
-variables are important to modify when increasing the size of the native map.
+location and \texttt{tserver.memory.maps.native.enabled} is set to \texttt{true} (which is the default).
+Using the native maps over JVM Maps nets a noticable improvement in ingest rates; however,
+certain configuration variables are important to modify when increasing the size of the
+native map.
 
 To adjust the size of the native map, increase the value of \texttt{tserver.memory.maps.max}.
 By default, the maximum size of the native map is 1GB. When increasing this value, it is
