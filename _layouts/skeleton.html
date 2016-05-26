@@ -73,43 +73,27 @@
   }
 </script>
 </head>
-<body>
-{% include nav.html %}
+<body style="padding-top: 100px">
 
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-md-2" id="sidebar">
-      <div style="text-align: center">
-        <a href="{{ site.baseurl }}/"><img id="logo" alt="Apache Accumulo &trade;" class="img-responsive" src="{{ site.baseurl }}/images/accumulo-logo.png"/></a>
-        <br />
-        Latest 1.7 release: <strong>1.7.1</strong><br />
-        Latest 1.6 release: <strong>1.6.5</strong><br />
-        <br>
-        <a id="download-button-sidebar" class="btn btn-success btn-block" href="{{ site.baseurl }}/downloads/" role="button">Download</a>
+  {% include nav.html %}
+
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+
+        <div id="non-canonical" style="display: none; background-color: #F0E68C; padding-left: 1em;">
+          Visit the official site at: <a href="https://accumulo.apache.org">https://accumulo.apache.org</a>
+        </div>
+        <div id="content">
+          {% unless page.skiph1fortitle %}
+          <h1 class="title">{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</h1>
+          {% endunless %}
+          {{ content }}
+        </div>
+
+        {% capture footer-include %}{% include footer.md %}{% endcapture %}{{ footer-include | markdownify }}
       </div>
-      <hr>
-      {% capture social-include %}{% include social.md %}{% endcapture %}{{ social-include | markdownify }}
-
-      <hr>
-      <a id="accumulo-summit-logo" href="http://accumulosummit.com/"><img alt="Accumulo Summit" class="img-responsive" src="{{ site.baseurl }}/images/accumulo-summit.png"></a>
     </div>
-    <div class="col-md-8 col-md-offset-1">
-
-      <div id="non-canonical" style="display: none; background-color: #F0E68C; padding-left: 1em;">
-        Visit the official site at: <a href="https://accumulo.apache.org">https://accumulo.apache.org</a>
-      </div>
-      <div id="content">
-        {% unless page.skiph1fortitle %}
-        <h1 class="title">{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</h1>
-        {% endunless %}
-        {{ content }}
-      </div>
-
-      {% capture footer-include %}{% include footer.md %}{% endcapture %}{{ footer-include | markdownify }}
-    </div>
-
   </div>
-</div>
-
 </body>
 </html>

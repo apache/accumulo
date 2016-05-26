@@ -85,7 +85,6 @@ $(function() { $.getJSON(mirrorURL + "?as_json", mirrorsCallback); });
 </script>
 
 <div id="mirror_selection"></div>
-<br />
 
 Be sure to verify your downloads by these [procedures][VERIFY_PROCEDURES] using these [KEYS][GPG_KEYS].
 
