@@ -153,10 +153,10 @@ Older releases can be found in the [archives][ARCHIVES].
 [README_17]: https://github.com/apache/accumulo/blob/rel/1.7.1/README.md
 {: .download_external id="/1.7/README" }
 
-[JAVADOC_16]: {{ site.baseurl }}/1.6/apidocs
-{: .download_external id="/1.6/apidocs" }
-[JAVADOC_17]: {{ site.baseurl }}/1.7/apidocs
-{: .download_external id="/1.7/apidocs" }
+[JAVADOC_16]: {{ site.baseurl }}/1.6/apidocs/
+{: .download_external id="/1.6/apidocs/" }
+[JAVADOC_17]: {{ site.baseurl }}/1.7/apidocs/
+{: .download_external id="/1.7/apidocs/" }
 
 [MANUAL_PDF_16]: https://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-docs/1.6.5/accumulo-docs-1.6.5-user-manual.pdf
 {: .download_external id="/1.6/accumulo_user_manual.pdf" }

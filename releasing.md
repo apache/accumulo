@@ -123,7 +123,7 @@ to avoid known [vulnerabilities][7]), follow these steps:
 8. Commit the changes
 9. Update the site using jekyll with `./_devtools/git-hooks/post-commit` (if you don't have the commit hook already configured)
 10. Don't forget to push both the `gh-pages` and `asf-site` branches
-11. Verify that javadocs have been updated on the production site (e.g. https://accumulo.apache.org/1.6/apidocs)
+11. Verify that javadocs have been updated on the production site (e.g. https://accumulo.apache.org/1.6/apidocs/)
 
 ## References
 
