@@ -243,6 +243,7 @@
           <artifactId>maven-jar-plugin</artifactId>
           <executions>
             <execution>
+              <id>create-iterator-test-jar</id>
               <goals>
                 <goal>test-jar</goal>
               </goals>
@@ -423,6 +424,7 @@
             </configuration>
             <executions>
               <execution>
+                <id>create-shaded-mrit</id>
                 <goals>
                   <goal>shade</goal>
                 </goals>

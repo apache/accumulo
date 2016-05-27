@@ -282,8 +282,6 @@
                 </goals>
                 <phase>package</phase>
                 <configuration>
-                  <attach>true</attach>
-                  <finalName>${project.artifactId}-${project.version}</finalName>
                   <descriptors>
                     <descriptor>src/main/assemblies/binary-release.xml</descriptor>
                   </descriptors>
