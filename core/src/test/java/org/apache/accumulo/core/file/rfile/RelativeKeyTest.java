@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.junit.Before;
@@ -178,7 +179,7 @@ public class RelativeKeyTest {
     Key currKey = null;
     MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
 
-    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
+    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
     assertEquals(1, skippr.skipped);
     assertEquals(new Key(), skippr.prevKey);
     assertEquals(expectedKeys.get(0), skippr.rk.getKey());
@@ -192,7 +193,7 @@ public class RelativeKeyTest {
 
     seekKey = new Key("a", "b", "c", "d", 1);
     seekKey.setDeleted(true);
-    skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
+    skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
     assertEquals(1, skippr.skipped);
     assertEquals(new Key(), skippr.prevKey);
     assertEquals(expectedKeys.get(0), skippr.rk.getKey());
@@ -203,13 +204,23 @@ public class RelativeKeyTest {
   }
 
   @Test(expected = EOFException.class)
+  public void testSeekAfterEverythingWrongCount() throws IOException {
+    Key seekKey = new Key("s", "t", "u", "v", 1);
+    Key prevKey = new Key();
+    Key currKey = null;
+    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
+
+    RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size() + 1);
+  }
+
   public void testSeekAfterEverything() throws IOException {
     Key seekKey = new Key("s", "t", "u", "v", 1);
     Key prevKey = new Key();
     Key currKey = null;
     MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
 
-    RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
+    SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
+    assertEquals(expectedKeys.size(), skippr.skipped);
   }
 
   @Test
@@ -220,7 +231,7 @@ public class RelativeKeyTest {
     Key currKey = null;
     MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
 
-    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey);
+    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
 
     assertEquals(seekIndex + 1, skippr.skipped);
     assertEquals(expectedKeys.get(seekIndex - 1), skippr.prevKey);
@@ -236,14 +247,17 @@ public class RelativeKeyTest {
     int i;
     for (i = seekIndex; expectedKeys.get(i).compareTo(fKey) < 0; i++) {}
 
-    skippr = RelativeKey.fastSkip(in, expectedKeys.get(i), value, prevKey, currKey);
+    int left = expectedKeys.size();
+
+    skippr = RelativeKey.fastSkip(in, expectedKeys.get(i), value, prevKey, currKey, expectedKeys.size());
     assertEquals(i + 1, skippr.skipped);
+    left -= skippr.skipped;
     assertEquals(expectedKeys.get(i - 1), skippr.prevKey);
     assertEquals(expectedKeys.get(i), skippr.rk.getKey());
     assertEquals(expectedValues.get(i).toString(), value.toString());
 
     // try fast skipping to our current location
-    skippr = RelativeKey.fastSkip(in, expectedKeys.get(i), value, expectedKeys.get(i - 1), expectedKeys.get(i));
+    skippr = RelativeKey.fastSkip(in, expectedKeys.get(i), value, expectedKeys.get(i - 1), expectedKeys.get(i), left);
     assertEquals(0, skippr.skipped);
     assertEquals(expectedKeys.get(i - 1), skippr.prevKey);
     assertEquals(expectedKeys.get(i), skippr.rk.getKey());
@@ -253,7 +267,7 @@ public class RelativeKeyTest {
     fKey = expectedKeys.get(i).followingKey(PartialKey.ROW_COLFAM);
     int j;
     for (j = i; expectedKeys.get(j).compareTo(fKey) < 0; j++) {}
-    skippr = RelativeKey.fastSkip(in, fKey, value, expectedKeys.get(i - 1), expectedKeys.get(i));
+    skippr = RelativeKey.fastSkip(in, fKey, value, expectedKeys.get(i - 1), expectedKeys.get(i), left);
     assertEquals(j - i, skippr.skipped);
     assertEquals(expectedKeys.get(j - 1), skippr.prevKey);
     assertEquals(expectedKeys.get(j), skippr.rk.getKey());

@@ -230,11 +230,7 @@ public class RelativeKey implements Writable {
     }
   }
 
-  public static SkippR fastSkip(DataInput in, Key seekKey, MutableByteSequence value, Key prevKey, Key currKey) throws IOException {
-    // this method assumes that fast skip is being called on a compressed block where the last key
-    // in the compressed block is >= seekKey... therefore this method shouldn't go past the end of the
-    // compressed block... if it does, there is probably an error in the caller's logic
-
+  public static SkippR fastSkip(DataInput in, Key seekKey, MutableByteSequence value, Key prevKey, Key currKey, int entriesLeft) throws IOException {
     // this method mostly avoids object allocation and only does compares when the row changes
 
     MutableByteSequence row, cf, cq, cv;
@@ -307,7 +303,7 @@ public class RelativeKey implements Writable {
     int count = 0;
     Key newPrevKey = null;
 
-    while (true) {
+    while (count < entriesLeft) {
 
       pdel = (fieldsSame & DELETED) == DELETED;
 
