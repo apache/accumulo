@@ -40,7 +40,7 @@ tables sample data.
 
     root@instance sampex> config -t sampex -s table.sampler.opt.hasher=murmur3_32
     root@instance sampex> config -t sampex -s table.sampler.opt.modulus=3
-    root@instance sampex> config -t sampex -s table.sampler=org.apache.accumulo.core.sample.RowSampler
+    root@instance sampex> config -t sampex -s table.sampler=org.apache.accumulo.core.client.sample.RowSampler
 
 Below, attempting to scan the sample returns an error.  This is because data
 was inserted before the sample set was configured.
@@ -123,7 +123,7 @@ configuration for sample scan to work.
     	Column families        : [doc]
     
     Sample Configuration     :
-    	Sampler class          : org.apache.accumulo.core.sample.RowSampler
+    	Sampler class          : org.apache.accumulo.core.client.sample.RowSampler
     	Sampler options        : {hasher=murmur3_32, modulus=2}
 
     Sample Locality group    : <DEFAULT>
@@ -159,7 +159,7 @@ shard table based on the column qualifier.
     root@instance shard> config -t shard -s table.sampler.opt.hasher=murmur3_32
     root@instance shard> config -t shard -s table.sampler.opt.modulus=101
     root@instance shard> config -t shard -s table.sampler.opt.qualifier=true
-    root@instance shard> config -t shard -s table.sampler=org.apache.accumulo.core.sample.RowColumnSampler
+    root@instance shard> config -t shard -s table.sampler=org.apache.accumulo.core.client.sample.RowColumnSampler
     root@instance shard> compact -t shard --sf-no-sample -w
     2015-07-23 15:00:09,280 [shell.Shell] INFO : Compacting table ...
     2015-07-23 15:00:10,134 [shell.Shell] INFO : Compaction of table shard completed for given range

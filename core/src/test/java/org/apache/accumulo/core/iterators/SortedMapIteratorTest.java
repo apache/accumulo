@@ -19,11 +19,11 @@ package org.apache.accumulo.core.iterators;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
-import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
+import org.apache.accumulo.core.client.sample.RowSampler;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.sample.RowSampler;
 import org.junit.Test;
 
 public class SortedMapIteratorTest {

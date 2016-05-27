@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.core.sample;
+package org.apache.accumulo.core.client.sample;
 
-import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 
 /**

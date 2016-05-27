@@ -19,8 +19,8 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;

@@ -45,9 +45,10 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
+import org.apache.accumulo.core.client.sample.RowSampler;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -56,7 +57,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.sample.RowSampler;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Assert;
@@ -125,6 +125,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
     String someRow = writeData(bw, SC1, expected);
+    Assert.assertEquals(20, expected.size());
 
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
