@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.core.client.admin;
+package org.apache.accumulo.core.client.sample;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
@@ -35,6 +35,10 @@ public class SamplerConfiguration {
 
   private String className;
   private Map<String,String> options = new HashMap<>();
+
+  public SamplerConfiguration(Class<? extends Sampler> samplerClass) {
+    this(samplerClass.getName());
+  }
 
   public SamplerConfiguration(String samplerClassName) {
     requireNonNull(samplerClassName);

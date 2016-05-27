@@ -15,18 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.core.sample;
+package org.apache.accumulo.core.client.sample;
 
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hasher;
 
 /**
  * This sampler can hash any subset of a Key's fields. The fields that hashed for the sample are determined by the configuration options passed in
@@ -95,14 +93,12 @@ public class RowColumnSampler extends AbstractHashSampler {
     }
   }
 
-  private void putByteSquence(ByteSequence data, Hasher hasher) {
-    hasher.putBytes(data.getBackingArray(), data.offset(), data.length());
+  private void putByteSquence(ByteSequence data, DataOutput hasher) throws IOException {
+    hasher.write(data.getBackingArray(), data.offset(), data.length());
   }
 
   @Override
-  protected HashCode hash(HashFunction hashFunction, Key k) {
-    Hasher hasher = hashFunction.newHasher();
-
+  protected void hash(DataOutput hasher, Key k) throws IOException {
     if (row) {
       putByteSquence(k.getRowData(), hasher);
     }
@@ -118,7 +114,5 @@ public class RowColumnSampler extends AbstractHashSampler {
     if (visibility) {
       putByteSquence(k.getColumnVisibilityData(), hasher);
     }
-
-    return hasher.hash();
   }
 }

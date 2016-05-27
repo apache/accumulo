@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.core.sample;
+package org.apache.accumulo.core.client.sample;
+
+import java.io.DataOutput;
+import java.io.IOException;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
 
 /**
  * Builds a sample based on entire rows. If a row is selected for the sample, then all of its columns will be included.
@@ -42,8 +42,8 @@ import com.google.common.hash.HashFunction;
 public class RowSampler extends AbstractHashSampler {
 
   @Override
-  protected HashCode hash(HashFunction hashFunction, Key k) {
+  protected void hash(DataOutput hasher, Key k) throws IOException {
     ByteSequence row = k.getRowData();
-    return hashFunction.hashBytes(row.getBackingArray(), row.offset(), row.length());
+    hasher.write(row.getBackingArray(), row.offset(), row.length());
   }
 }

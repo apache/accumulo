@@ -15,19 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.core.sample;
+package org.apache.accumulo.core.client.sample;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.admin.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.sample.impl.DataoutputHasher;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
 /**
@@ -98,11 +100,20 @@ public abstract class AbstractHashSampler implements Sampler {
 
   /**
    * Subclass must override this method and hash some portion of the key.
+   *
+   * @param hasher
+   *          Data written to this will be used to compute the hash for the key.
    */
-  protected abstract HashCode hash(HashFunction hashFunction, Key k);
+  protected abstract void hash(DataOutput hasher, Key k) throws IOException;
 
   @Override
   public boolean accept(Key k) {
-    return hash(hashFunction, k).asInt() % modulus == 0;
+    Hasher hasher = hashFunction.newHasher();
+    try {
+      hash(new DataoutputHasher(hasher), k);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return hasher.hash().asInt() % modulus == 0;
   }
 }

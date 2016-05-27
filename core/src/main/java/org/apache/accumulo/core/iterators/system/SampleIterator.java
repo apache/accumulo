@@ -17,13 +17,13 @@
 
 package org.apache.accumulo.core.iterators.system;
 
+import org.apache.accumulo.core.client.sample.RowSampler;
+import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.sample.RowSampler;
-import org.apache.accumulo.core.sample.Sampler;
 
 public class SampleIterator extends Filter {
 
