@@ -449,6 +449,27 @@ public class RFileTest {
   }
 
   @Test
+  public void testAppendScanner() throws Exception {
+    SortedMap<Key,Value> testData = createTestData(10000, 1, 1);
+    String testFile = createRFile(testData);
+
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).build();
+
+    String testFile2 = createTmpTestFile();
+    RFileWriter writer = RFile.newWriter().to(testFile2).build();
+    writer.startDefaultLocalityGroup();
+    writer.append(scanner);
+    writer.close();
+    scanner.close();
+
+    scanner = RFile.newScanner().from(testFile2).withFileSystem(localFs).build();
+    Assert.assertEquals(testData, toMap(scanner));
+    scanner.close();
+  }
+
+  @Test
   public void testCache() throws Exception {
     SortedMap<Key,Value> testData = createTestData(10000, 1, 1);
     String testFile = createRFile(testData);
