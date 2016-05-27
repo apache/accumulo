@@ -70,6 +70,7 @@ import org.apache.accumulo.core.sample.Sampler;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,6 +90,10 @@ public class RFile {
   static final int RINDEX_VER_8 = 8; // Added sample storage. There is a sample locality group for each locality group. Sample are built using a Sampler and
                                      // sampler configuration. The Sampler and its configuration are stored in RFile. Persisting the method of producing the
                                      // sample allows a user of RFile to determine if the sample is useful.
+                                     //
+                                     // Selected smaller keys for index by doing two things. First internal stats were used to look for keys that were below
+                                     // average in size for the index. Also keys that were statistically large were excluded from the index. Second shorter keys
+                                     // (that may not exist in data) were generated for the index.
   static final int RINDEX_VER_7 = 7; // Added support for prefix encoding and encryption. Before this change only exact matches within a key field were deduped
                                      // for consecutive keys. After this change, if consecutive key fields have the same prefix then the prefix is only stored
                                      // once.
@@ -375,7 +380,8 @@ public class RFile {
     private ABlockWriter blockWriter;
 
     // private BlockAppender blockAppender;
-    private long blockSize = 100000;
+    private final long blockSize;
+    private final long maxBlockSize;
     private int entries = 0;
 
     private LocalityGroupMetadata currentLocalityGroup = null;
@@ -386,11 +392,21 @@ public class RFile {
 
     private SampleLocalityGroupWriter sample;
 
-    LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, LocalityGroupMetadata currentLocalityGroup, SampleLocalityGroupWriter sample) {
+    private SummaryStatistics keyLenStats = new SummaryStatistics();
+    private double avergageKeySize = 0;
+
+    LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, long maxBlockSize, LocalityGroupMetadata currentLocalityGroup,
+        SampleLocalityGroupWriter sample) {
       this.fileWriter = fileWriter;
       this.blockSize = blockSize;
+      this.maxBlockSize = maxBlockSize;
       this.currentLocalityGroup = currentLocalityGroup;
       this.sample = sample;
+    }
+
+    private boolean isGiantKey(Key k) {
+      // consider a key thats more than 3 standard deviations from previously seen key sizes as giant
+      return k.getSize() > keyLenStats.getMean() + keyLenStats.getStandardDeviation() * 3;
     }
 
     public void append(Key key, Value value) throws IOException {
@@ -412,8 +428,22 @@ public class RFile {
       if (blockWriter == null) {
         blockWriter = fileWriter.prepareDataBlock();
       } else if (blockWriter.getRawSize() > blockSize) {
-        closeBlock(prevKey, false);
-        blockWriter = fileWriter.prepareDataBlock();
+
+        // Look for a key thats short to put in the index, defining short as average or below.
+        if (avergageKeySize == 0) {
+          // use the same average for the search for a below average key for a block
+          avergageKeySize = keyLenStats.getMean();
+        }
+
+        // Possibly produce a shorter key that does not exist in data. Even if a key can be shortened, it may not be below average.
+        Key closeKey = KeyShortener.shorten(prevKey, key);
+
+        if ((closeKey.getSize() <= avergageKeySize || blockWriter.getRawSize() > maxBlockSize) && !isGiantKey(closeKey)) {
+          closeBlock(closeKey, false);
+          blockWriter = fileWriter.prepareDataBlock();
+          // set average to zero so its recomputed for the next block
+          avergageKeySize = 0;
+        }
       }
 
       RelativeKey rk = new RelativeKey(lastKeyInBlock, key);
@@ -421,6 +451,8 @@ public class RFile {
       rk.write(blockWriter);
       value.write(blockWriter);
       entries++;
+
+      keyLenStats.addValue(key.getSize());
 
       prevKey = new Key(key);
       lastKeyInBlock = prevKey;
@@ -457,12 +489,14 @@ public class RFile {
   public static class Writer implements FileSKVWriter {
 
     public static final int MAX_CF_IN_DLG = 1000;
+    private static final double MAX_BLOCK_MULTIPLIER = 1.1;
 
     private BlockFileWriter fileWriter;
 
     // private BlockAppender blockAppender;
-    private long blockSize = 100000;
-    private int indexBlockSize;
+    private final long blockSize;
+    private final long maxBlockSize;
+    private final int indexBlockSize;
 
     private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
     private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<LocalityGroupMetadata>();
@@ -487,6 +521,7 @@ public class RFile {
 
     public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize, SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {
       this.blockSize = blockSize;
+      this.maxBlockSize = (long) (blockSize * MAX_BLOCK_MULTIPLIER);
       this.indexBlockSize = indexBlockSize;
       this.fileWriter = bfw;
       previousColumnFamilies = new HashSet<ByteSequence>();
@@ -603,9 +638,9 @@ public class RFile {
 
       SampleLocalityGroupWriter sampleWriter = null;
       if (sampler != null) {
-        sampleWriter = new SampleLocalityGroupWriter(new LocalityGroupWriter(fileWriter, blockSize, sampleLocalityGroup, null), sampler);
+        sampleWriter = new SampleLocalityGroupWriter(new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, sampleLocalityGroup, null), sampler);
       }
-      lgWriter = new LocalityGroupWriter(fileWriter, blockSize, currentLocalityGroup, sampleWriter);
+      lgWriter = new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, currentLocalityGroup, sampleWriter);
     }
 
     @Override
@@ -838,7 +873,7 @@ public class RFile {
           reseek = false;
         }
 
-        if (startKey.compareTo(getTopKey()) >= 0 && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
+        if (entriesLeft > 0 && startKey.compareTo(getTopKey()) >= 0 && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
           // start key is within the unconsumed portion of the current block
 
           // this code intentionally does not use the index associated with a cached block
@@ -848,7 +883,7 @@ public class RFile {
           // and speed up others.
 
           MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
-          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey());
+          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
           if (skippr.skipped > 0) {
             entriesLeft -= skippr.skipped;
             val = new Value(valbs.toArray());
@@ -856,6 +891,13 @@ public class RFile {
             rk = skippr.rk;
           }
 
+          reseek = false;
+        }
+
+        if (entriesLeft == 0 && startKey.compareTo(getTopKey()) > 0 && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
+          // In the empty space at the end of a block. This can occur when keys are shortened in the index creating index entries that do not exist in the
+          // block. These shortened index entires fall between the last key in a block and first key in the next block, but may not exist in the data.
+          // Just proceed to the next block.
           reseek = false;
         }
 
@@ -921,7 +963,7 @@ public class RFile {
             }
           }
 
-          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, currKey);
+          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, currKey, entriesLeft);
           prevKey = skippr.prevKey;
           entriesLeft -= skippr.skipped;
           val = new Value(valbs.toArray());

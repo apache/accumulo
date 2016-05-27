@@ -32,6 +32,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -57,10 +58,50 @@ public class PrintInfo implements KeywordExecutable {
     boolean histogram = false;
     @Parameter(names = {"--useSample"}, description = "Use sample data for --dump, --vis, --histogram options")
     boolean useSample = false;
+    @Parameter(names = {"--keyStats"}, description = "print key length statistics for index and all data")
+    boolean keyStats = false;
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<String>();
     @Parameter(names = {"-c", "--config"}, variableArity = true, description = "Comma-separated Hadoop configuration files")
     List<String> configFiles = new ArrayList<>();
+  }
+
+  static class LogHistogram {
+    long countBuckets[] = new long[11];
+    long sizeBuckets[] = new long[countBuckets.length];
+    long totalSize = 0;
+
+    public void add(int size) {
+      int bucket = (int) Math.log10(size);
+      countBuckets[bucket]++;
+      sizeBuckets[bucket] += size;
+      totalSize += size;
+    }
+
+    public void print(String indent) {
+      System.out.println(indent + "Up to size      count      %-age");
+      for (int i = 1; i < countBuckets.length; i++) {
+        System.out.println(String.format("%s%11.0f : %10d %6.2f%%", indent, Math.pow(10, i), countBuckets[i], sizeBuckets[i] * 100. / totalSize));
+      }
+    }
+  }
+
+  static class KeyStats {
+    private SummaryStatistics stats = new SummaryStatistics();
+    private LogHistogram logHistogram = new LogHistogram();
+
+    public void add(Key k) {
+      int size = k.getSize();
+      stats.addValue(size);
+      logHistogram.add(size);
+    }
+
+    public void print(String indent) {
+      logHistogram.print(indent);
+      System.out.println();
+      System.out.printf("%smin:%,11.2f max:%,11.2f avg:%,11.2f stddev:%,11.2f\n", indent, stats.getMin(), stats.getMax(), stats.getMean(),
+          stats.getStandardDeviation());
+    }
   }
 
   public static void main(String[] args) throws Exception {
@@ -90,9 +131,10 @@ public class PrintInfo implements KeywordExecutable {
     FileSystem hadoopFs = FileSystem.get(conf);
     FileSystem localFs = FileSystem.getLocal(conf);
 
-    long countBuckets[] = new long[11];
-    long sizeBuckets[] = new long[countBuckets.length];
-    long totalSize = 0;
+    LogHistogram kvHistogram = new LogHistogram();
+
+    KeyStats dataKeyStats = new KeyStats();
+    KeyStats indexKeyStats = new KeyStats();
 
     for (String arg : opts.files) {
       Path path = new Path(arg);
@@ -119,7 +161,7 @@ public class PrintInfo implements KeywordExecutable {
 
       Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 
-      if (opts.histogram || opts.dump || opts.vis || opts.hash) {
+      if (opts.histogram || opts.dump || opts.vis || opts.hash || opts.keyStats) {
         localityGroupCF = iter.getLocalityGroupCF();
 
         FileSKVIterator dataIter;
@@ -134,6 +176,14 @@ public class PrintInfo implements KeywordExecutable {
           dataIter = iter;
         }
 
+        if (opts.keyStats) {
+          FileSKVIterator indexIter = iter.getIndex();
+          while (indexIter.hasTop()) {
+            indexKeyStats.add(indexIter.getTopKey());
+            indexIter.next();
+          }
+        }
+
         for (Entry<String,ArrayList<ByteSequence>> cf : localityGroupCF.entrySet()) {
 
           dataIter.seek(new Range((Key) null, (Key) null), cf.getValue(), true);
@@ -146,30 +196,36 @@ public class PrintInfo implements KeywordExecutable {
                 return;
             }
             if (opts.histogram) {
-              long size = key.getSize() + value.getSize();
-              int bucket = (int) Math.log10(size);
-              countBuckets[bucket]++;
-              sizeBuckets[bucket] += size;
-              totalSize += size;
+              kvHistogram.add(key.getSize() + value.getSize());
+            }
+            if (opts.keyStats) {
+              dataKeyStats.add(key);
             }
             dataIter.next();
           }
         }
       }
-      System.out.println();
 
       iter.close();
 
-      if (opts.vis || opts.hash)
+      if (opts.vis || opts.hash) {
+        System.out.println();
         vmg.printMetrics(opts.hash, "Visibility", System.out);
-
-      if (opts.histogram) {
-        System.out.println("Up to size      count      %-age");
-        for (int i = 1; i < countBuckets.length; i++) {
-          System.out.println(String.format("%11.0f : %10d %6.2f%%", Math.pow(10, i), countBuckets[i], sizeBuckets[i] * 100. / totalSize));
-        }
       }
 
+      if (opts.histogram) {
+        System.out.println();
+        kvHistogram.print("");
+      }
+
+      if (opts.keyStats) {
+        System.out.println();
+        System.out.println("Statistics for keys in data :");
+        dataKeyStats.print("\t");
+        System.out.println();
+        System.out.println("Statistics for keys in index :");
+        indexKeyStats.print("\t");
+      }
       // If the output stream has closed, there is no reason to keep going.
       if (System.out.checkError())
         return;
