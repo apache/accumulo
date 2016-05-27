@@ -208,47 +208,49 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
   private void ensureTabletHasNoUnexpectedMetadataEntries(AccumuloServerContext context, KeyExtent extent, SortedMap<FileRef,DataFileValue> expectedMapFiles)
       throws Exception {
-    Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
-    scanner.setRange(extent.toMetadataRange());
+    try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+      scanner.setRange(extent.toMetadataRange());
 
-    HashSet<ColumnFQ> expectedColumns = new HashSet<ColumnFQ>();
-    expectedColumns.add(TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN);
-    expectedColumns.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
-    expectedColumns.add(TabletsSection.ServerColumnFamily.TIME_COLUMN);
-    expectedColumns.add(TabletsSection.ServerColumnFamily.LOCK_COLUMN);
+      HashSet<ColumnFQ> expectedColumns = new HashSet<ColumnFQ>();
+      expectedColumns.add(TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN);
+      expectedColumns.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
+      expectedColumns.add(TabletsSection.ServerColumnFamily.TIME_COLUMN);
+      expectedColumns.add(TabletsSection.ServerColumnFamily.LOCK_COLUMN);
 
-    HashSet<Text> expectedColumnFamilies = new HashSet<Text>();
-    expectedColumnFamilies.add(DataFileColumnFamily.NAME);
-    expectedColumnFamilies.add(TabletsSection.FutureLocationColumnFamily.NAME);
-    expectedColumnFamilies.add(TabletsSection.CurrentLocationColumnFamily.NAME);
-    expectedColumnFamilies.add(TabletsSection.LastLocationColumnFamily.NAME);
-    expectedColumnFamilies.add(TabletsSection.BulkFileColumnFamily.NAME);
+      HashSet<Text> expectedColumnFamilies = new HashSet<Text>();
+      expectedColumnFamilies.add(DataFileColumnFamily.NAME);
+      expectedColumnFamilies.add(TabletsSection.FutureLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(TabletsSection.CurrentLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(TabletsSection.LastLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(TabletsSection.BulkFileColumnFamily.NAME);
 
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    while (iter.hasNext()) {
-      Key key = iter.next().getKey();
+      Iterator<Entry<Key,Value>> iter = scanner.iterator();
+      while (iter.hasNext()) {
+        Key key = iter.next().getKey();
 
-      if (!key.getRow().equals(extent.getMetadataEntry())) {
+        if (!key.getRow().equals(extent.getMetadataEntry())) {
+          throw new Exception("Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+        }
+
+        if (expectedColumnFamilies.contains(key.getColumnFamily())) {
+          continue;
+        }
+
+        if (expectedColumns.remove(new ColumnFQ(key))) {
+          continue;
+        }
+
         throw new Exception("Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
       }
 
-      if (expectedColumnFamilies.contains(key.getColumnFamily())) {
-        continue;
+      System.out.println("expectedColumns " + expectedColumns);
+      if (expectedColumns.size() > 1 || (expectedColumns.size() == 1)) {
+        throw new Exception("Not all expected columns seen " + extent + " " + expectedColumns);
       }
 
-      if (expectedColumns.remove(new ColumnFQ(key))) {
-        continue;
-      }
-
-      throw new Exception("Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+      SortedMap<FileRef,DataFileValue> fixedMapFiles = MetadataTableUtil.getDataFileSizes(extent, context);
+      verifySame(expectedMapFiles, fixedMapFiles);
     }
-    System.out.println("expectedColumns " + expectedColumns);
-    if (expectedColumns.size() > 1 || (expectedColumns.size() == 1)) {
-      throw new Exception("Not all expected columns seen " + extent + " " + expectedColumns);
-    }
-
-    SortedMap<FileRef,DataFileValue> fixedMapFiles = MetadataTableUtil.getDataFileSizes(extent, context);
-    verifySame(expectedMapFiles, fixedMapFiles);
   }
 
   private void verifySame(SortedMap<FileRef,DataFileValue> datafileSizes, SortedMap<FileRef,DataFileValue> fixedDatafileSizes) throws Exception {

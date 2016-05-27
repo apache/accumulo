@@ -76,6 +76,8 @@ public class Verify extends Test {
       count++;
     }
 
+    scanner.close();
+
     if (count > 0 && sum != numAccts * 100) {
       throw new Exception("Sum is off " + sum);
     }

@@ -297,6 +297,8 @@ public class MetadataTableUtil {
       sizes.put(new FileRef(fs, entry.getKey()), dfv);
     }
 
+    mdScanner.close();
+
     return sizes;
   }
 
@@ -521,23 +523,24 @@ public class MetadataTableUtil {
 
     } else {
       String systemTableToCheck = extent.isMeta() ? RootTable.ID : MetadataTable.ID;
-      Scanner scanner = new ScannerImpl(context, systemTableToCheck, Authorizations.EMPTY);
-      scanner.fetchColumnFamily(LogColumnFamily.NAME);
-      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      scanner.setRange(extent.toMetadataRange());
+      try (Scanner scanner = new ScannerImpl(context, systemTableToCheck, Authorizations.EMPTY)) {
+        scanner.fetchColumnFamily(LogColumnFamily.NAME);
+        scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+        scanner.setRange(extent.toMetadataRange());
 
-      for (Entry<Key,Value> entry : scanner) {
-        if (!entry.getKey().getRow().equals(extent.getMetadataEntry())) {
-          throw new RuntimeException("Unexpected row " + entry.getKey().getRow() + " expected " + extent.getMetadataEntry());
-        }
+        for (Entry<Key,Value> entry : scanner) {
+          if (!entry.getKey().getRow().equals(extent.getMetadataEntry())) {
+            throw new RuntimeException("Unexpected row " + entry.getKey().getRow() + " expected " + extent.getMetadataEntry());
+          }
 
-        if (entry.getKey().getColumnFamily().equals(LogColumnFamily.NAME)) {
-          result.add(LogEntry.fromKeyValue(entry.getKey(), entry.getValue()));
-        } else if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-          DataFileValue dfv = new DataFileValue(entry.getValue().get());
-          sizes.put(new FileRef(fs, entry.getKey()), dfv);
-        } else {
-          throw new RuntimeException("Unexpected col fam " + entry.getKey().getColumnFamily());
+          if (entry.getKey().getColumnFamily().equals(LogColumnFamily.NAME)) {
+            result.add(LogEntry.fromKeyValue(entry.getKey(), entry.getValue()));
+          } else if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+            DataFileValue dfv = new DataFileValue(entry.getValue().get());
+            sizes.put(new FileRef(fs, entry.getKey()), dfv);
+          } else {
+            throw new RuntimeException("Unexpected col fam " + entry.getKey().getColumnFamily());
+          }
         }
       }
     }
@@ -889,20 +892,20 @@ public class MetadataTableUtil {
   }
 
   public static void removeBulkLoadEntries(Connector conn, String tableId, long tid) throws Exception {
-    Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-    mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
-    mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
-    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    for (Entry<Key,Value> entry : mscanner) {
-      log.debug("Looking at entry " + entry + " with tid " + tid);
-      if (Long.parseLong(entry.getValue().toString()) == tid) {
-        log.debug("deleting entry " + entry);
-        Mutation m = new Mutation(entry.getKey().getRow());
-        m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
-        bw.addMutation(m);
+    try (Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+        BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
+      mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
+      for (Entry<Key,Value> entry : mscanner) {
+        log.debug("Looking at entry " + entry + " with tid " + tid);
+        if (Long.parseLong(entry.getValue().toString()) == tid) {
+          log.debug("deleting entry " + entry);
+          Mutation m = new Mutation(entry.getKey().getRow());
+          m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+          bw.addMutation(m);
+        }
       }
     }
-    bw.close();
   }
 
   public static List<FileRef> getBulkFilesLoaded(Connector conn, KeyExtent extent, long tid) throws IOException {
@@ -917,6 +920,7 @@ public class MetadataTableUtil {
           result.add(new FileRef(fs, entry.getKey()));
         }
       }
+      mscanner.close();
       return result;
     } catch (TableNotFoundException ex) {
       // unlikely
@@ -940,6 +944,7 @@ public class MetadataTableUtil {
       }
       lst.add(new FileRef(fs, entry.getKey()));
     }
+    scanner.close();
     return result;
   }
 
@@ -995,6 +1000,7 @@ public class MetadataTableUtil {
         break;
       }
     }
+    scanner.close();
   }
 
   public static void moveMetaDeleteMarkersFrom14(ClientContext context) {
@@ -1012,6 +1018,7 @@ public class MetadataTableUtil {
         break;
       }
     }
+    scanner.close();
   }
 
   private static void moveDeleteEntry(ClientContext context, KeyExtent oldExtent, Entry<Key,Value> entry, String rowID, String prefix) {

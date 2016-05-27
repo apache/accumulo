@@ -125,6 +125,8 @@ class CopyFailed extends MasterRepo {
       }
     }
 
+    mscanner.close();
+
     // move failed files that were not loaded
     for (String failure : failures.values()) {
       Path orig = new Path(failure);
