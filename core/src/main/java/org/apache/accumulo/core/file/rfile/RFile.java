@@ -64,6 +64,7 @@ import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
 
@@ -281,13 +282,15 @@ public class RFile {
   public static class Writer implements FileSKVWriter {
 
     public static final int MAX_CF_IN_DLG = 1000;
+    private static final double MAX_BLOCK_MULTIPLIER = 1.1;
 
     private BlockFileWriter fileWriter;
     private ABlockWriter blockWriter;
 
     // private BlockAppender blockAppender;
-    private long blockSize = 100000;
-    private int indexBlockSize;
+    private final long blockSize;
+    private final long maxBlockSize;
+    private final int indexBlockSize;
     private int entries = 0;
 
     private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
@@ -303,12 +306,16 @@ public class RFile {
 
     private HashSet<ByteSequence> previousColumnFamilies;
 
+    private SummaryStatistics keyLenStats = new SummaryStatistics();
+    private double avergageKeySize = 0;
+
     public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
       this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     }
 
     public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize) throws IOException {
       this.blockSize = blockSize;
+      this.maxBlockSize = (long) (blockSize * MAX_BLOCK_MULTIPLIER);
       this.indexBlockSize = indexBlockSize;
       this.fileWriter = bfw;
       this.blockWriter = null;
@@ -358,6 +365,11 @@ public class RFile {
       }
     }
 
+    private boolean isGiantKey(Key k) {
+      // consider a key thats more than 3 standard deviations from previously seen key sizes as giant
+      return k.getSize() > keyLenStats.getMean() + keyLenStats.getStandardDeviation() * 3;
+    }
+
     @Override
     public void append(Key key, Value value) throws IOException {
 
@@ -378,8 +390,18 @@ public class RFile {
       if (blockWriter == null) {
         blockWriter = fileWriter.prepareDataBlock();
       } else if (blockWriter.getRawSize() > blockSize) {
-        closeBlock(prevKey, false);
-        blockWriter = fileWriter.prepareDataBlock();
+
+        if (avergageKeySize == 0) {
+          // use the same average for the search for a below average key for a block
+          avergageKeySize = keyLenStats.getMean();
+        }
+
+        if ((prevKey.getSize() <= avergageKeySize || blockWriter.getRawSize() > maxBlockSize) && !isGiantKey(prevKey)) {
+          closeBlock(prevKey, false);
+          blockWriter = fileWriter.prepareDataBlock();
+          // set average to zero so its recomputed for the next block
+          avergageKeySize = 0;
+        }
       }
 
       RelativeKey rk = new RelativeKey(lastKeyInBlock, key);
@@ -387,6 +409,8 @@ public class RFile {
       rk.write(blockWriter);
       value.write(blockWriter);
       entries++;
+
+      keyLenStats.addValue(key.getSize());
 
       prevKey = new Key(key);
       lastKeyInBlock = prevKey;
