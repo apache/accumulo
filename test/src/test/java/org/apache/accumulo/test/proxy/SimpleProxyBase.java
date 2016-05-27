@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.proxy;
+package org.apache.accumulo.test.proxy;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -66,6 +66,8 @@ import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
+import org.apache.accumulo.proxy.Proxy;
+import org.apache.accumulo.proxy.TestProxyClient;
 import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
 import org.apache.accumulo.proxy.thrift.ActiveCompaction;
 import org.apache.accumulo.proxy.thrift.ActiveScan;

@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.proxy;
+package org.apache.accumulo.test.proxy;
 
-import org.apache.thrift.protocol.TJSONProtocol;
+import org.apache.thrift.protocol.TBinaryProtocol;
 import org.junit.BeforeClass;
 
 /**
  *
  */
-public class TJsonProtocolProxyIT extends SimpleProxyBase {
+public class TBinaryProxyIT extends SimpleProxyBase {
 
   @BeforeClass
   public static void setProtocol() throws Exception {
-    SimpleProxyBase.factory = new TJSONProtocol.Factory();
+    SimpleProxyBase.factory = new TBinaryProtocol.Factory();
     setUpProxy();
   }
 

@@ -146,7 +146,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     return mincIdleThresholds.get(tableId);
   }
 
-  boolean tableExists(Instance instance, String tableId) {
+  protected boolean tableExists(Instance instance, String tableId) {
     return Tables.exists(instance, tableId);
   }
 
