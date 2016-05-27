@@ -34,6 +34,7 @@ import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -77,21 +78,8 @@ public class RFileOperations extends FileOperations {
 
   @Override
   protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
-    Configuration conf = options.getConfiguration();
-    AccumuloConfiguration acuconf = options.getTableConfiguration();
 
-    int hrep = conf.getInt("dfs.replication", -1);
-    int trep = acuconf.getCount(Property.TABLE_FILE_REPLICATION);
-    int rep = hrep;
-    if (trep > 0 && trep != hrep) {
-      rep = trep;
-    }
-    long hblock = conf.getLong("dfs.block.size", 1 << 26);
-    long tblock = acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
-    long block = hblock;
-    if (tblock > 0)
-      block = tblock;
-    int bufferSize = conf.getInt("io.file.buffer.size", 4096);
+    AccumuloConfiguration acuconf = options.getTableConfiguration();
 
     long blockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
     long indexBlockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
@@ -106,11 +94,32 @@ public class RFileOperations extends FileOperations {
     String compression = options.getCompression();
     compression = compression == null ? options.getTableConfiguration().get(Property.TABLE_FILE_COMPRESSION_TYPE) : compression;
 
-    String file = options.getFilename();
-    FileSystem fs = options.getFileSystem();
+    FSDataOutputStream outputStream = options.getOutputStream();
 
-    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(new RateLimitedOutputStream(fs.create(new Path(file), false, bufferSize, (short) rep, block),
-        options.getRateLimiter()), compression, conf, acuconf);
+    Configuration conf = options.getConfiguration();
+
+    if (outputStream == null) {
+      int hrep = conf.getInt("dfs.replication", -1);
+      int trep = acuconf.getCount(Property.TABLE_FILE_REPLICATION);
+      int rep = hrep;
+      if (trep > 0 && trep != hrep) {
+        rep = trep;
+      }
+      long hblock = conf.getLong("dfs.block.size", 1 << 26);
+      long tblock = acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
+      long block = hblock;
+      if (tblock > 0)
+        block = tblock;
+      int bufferSize = conf.getInt("io.file.buffer.size", 4096);
+
+      String file = options.getFilename();
+      FileSystem fs = options.getFileSystem();
+
+      outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
+    }
+
+    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(new RateLimitedOutputStream(outputStream, options.getRateLimiter()), compression, conf,
+        acuconf);
 
     RFile.Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
     return writer;

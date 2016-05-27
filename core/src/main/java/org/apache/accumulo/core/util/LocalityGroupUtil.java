@@ -49,6 +49,8 @@ public class LocalityGroupUtil {
   public static final Set<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
   public static Set<ByteSequence> families(Collection<Column> columns) {
+    if (columns.size() == 0)
+      return EMPTY_CF_SET;
     Set<ByteSequence> result = new HashSet<ByteSequence>(columns.size());
     for (Column col : columns) {
       result.add(new ArrayByteSequence(col.getColumnFamily()));
