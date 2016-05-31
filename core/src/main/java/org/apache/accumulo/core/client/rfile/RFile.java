@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -42,9 +43,14 @@ import org.apache.hadoop.io.Text;
  */
 public class RFile {
 
+  /**
+   * This is an intermediate interface in a larger builder pattern. Supports setting the required input sources for reading a RFile.
+   *
+   * @since 1.8.0
+   */
   public static interface InputArguments {
     /**
-     * Specify RFiles to read from. When multiple are specified the {@link Scanner} constructed will present a merged view.
+     * Specify RFiles to read from. When multiple inputs are specified the {@link Scanner} constructed will present a merged view.
      *
      * @param inputs
      *          one or more RFiles to read.
@@ -62,6 +68,11 @@ public class RFile {
     ScannerFSOptions from(String... files);
   }
 
+  /**
+   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a FileSystem to read RFile(s) from.
+   *
+   * @since 1.8.0
+   */
   public static interface ScannerFSOptions extends ScannerOptions {
     /**
      * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be constructed using configuration on the classpath.
@@ -73,6 +84,12 @@ public class RFile {
     ScannerOptions withFileSystem(FileSystem fs);
   }
 
+  /**
+   * This is an intermediate interface in a larger builder pattern. Supports setting optional parameters for reading RFile(s) and building a scanner over
+   * RFile(s).
+   *
+   * @since 1.8.0
+   */
   public static interface ScannerOptions {
 
     /**
@@ -125,48 +142,12 @@ public class RFile {
     public ScannerOptions withIndexCache(long cacheSize);
 
     /**
-     * This option allows limiting the {@link Scanner} from reading data less than or equal to the specified row from the RFiles. If not specified then there is
-     * no lower bound.
+     * This option allows limiting the {@link Scanner} from reading data outside of a given range. A scanner will not see any data outside of this range even if
+     * the RFile(s) have data outside the range.
      *
-     * @param row
-     *          exclusive lower bound
      * @return this
      */
-    public ScannerOptions withLowerBound(byte[] row);
-
-    /**
-     * @see #withLowerBound(byte[])
-     * @param row
-     *          encoded as UTF-8
-     */
-    public ScannerOptions withLowerBound(String row);
-
-    /**
-     * @see #withLowerBound(byte[])
-     */
-    public ScannerOptions withLowerBound(Text row);
-
-    /**
-     * This option allows limiting the {@link Scanner} from reading data greater than the specified row from the RFiles. If not specified then there is no upper
-     * bound.
-     *
-     * @param row
-     *          inclusive upper bound bound
-     * @return this
-     */
-    public ScannerOptions withUpperBound(byte[] row);
-
-    /**
-     * @see #withUpperBound(byte[])
-     * @param row
-     *          encoded as UTF-8
-     */
-    public ScannerOptions withUpperBound(String row);
-
-    /**
-     * @see #withUpperBound(byte[])
-     */
-    public ScannerOptions withUpperBound(Text row);
+    public ScannerOptions withBounds(Range range);
 
     /**
      * Construct the {@link Scanner} with iterators specified in a tables properties. Properties for a table can be obtained by calling
@@ -199,6 +180,11 @@ public class RFile {
     return new RFileScannerBuilder();
   }
 
+  /**
+   * This is an intermediate interface in a larger builder pattern. Supports setting the required output sink to write a RFile to.
+   *
+   * @since 1.8.0
+   */
   public static interface OutputArguments {
     /**
      * @param filename
@@ -215,6 +201,11 @@ public class RFile {
     public WriterOptions to(OutputStream out);
   }
 
+  /**
+   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a FileSystem to write to.
+   *
+   * @since 1.8.0
+   */
   public static interface WriterFSOptions extends WriterOptions {
     /**
      * Optionally provide a FileSystem to open a file to write a RFile. If not specified, the FileSystem will be constructed using configuration on the
@@ -227,6 +218,11 @@ public class RFile {
     WriterOptions withFileSystem(FileSystem fs);
   }
 
+  /**
+   * This is an intermediate interface in a larger builder pattern. Supports setting optional parameters for creating a RFile and building a RFileWriter.
+   *
+   * @since 1.8.0
+   */
   public static interface WriterOptions {
     /**
      * An option to store sample data in the generated RFile.

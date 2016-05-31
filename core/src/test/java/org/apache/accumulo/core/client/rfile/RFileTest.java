@@ -365,16 +365,28 @@ public class RFileTest {
     SortedMap<Key,Value> testData = createTestData(10, 10, 10);
     String testFile = createRFile(testData);
 
-    Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withLowerBound(rowStr(3)).build();
+    // set a lower bound row
+    Range bounds = new Range(rowStr(3), false, null, true);
+    Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds).build();
     Assert.assertEquals(createTestData(4, 6, 0, 10, 10), toMap(scanner));
     scanner.close();
 
-    scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withUpperBound(rowStr(7)).build();
+    // set an upper bound row
+    bounds = new Range(null, false, rowStr(7), true);
+    scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds).build();
     Assert.assertEquals(createTestData(8, 10, 10), toMap(scanner));
     scanner.close();
 
-    scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withLowerBound(rowStr(3)).withUpperBound(rowStr(7)).build();
+    // set row bounds
+    bounds = new Range(rowStr(3), false, rowStr(7), true);
+    scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds).build();
     Assert.assertEquals(createTestData(4, 4, 0, 10, 10), toMap(scanner));
+    scanner.close();
+
+    // set a row family bound
+    bounds = Range.exact(rowStr(3), colStr(5));
+    scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds).build();
+    Assert.assertEquals(createTestData(3, 1, 5, 1, 10), toMap(scanner));
     scanner.close();
   }
 

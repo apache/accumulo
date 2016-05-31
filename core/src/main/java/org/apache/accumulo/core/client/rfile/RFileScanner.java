@@ -63,6 +63,9 @@ import com.google.common.base.Preconditions;
 
 class RFileScanner extends ScannerOptions implements Scanner {
 
+  private static final byte[] EMPTY_BYTES = new byte[0];
+  private static final Range EMPTY_RANGE = new Range();
+
   private Range range;
   private BlockCache dataCache = null;
   private BlockCache indexCache = null;
@@ -78,9 +81,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
     long dataCacheSize;
     long indexCacheSize;
     boolean useSystemIterators = true;
-    Text lowerBound;
-    Text upperBound;
     public HashMap<String,String> tableConfig;
+    Range bounds;
   }
 
   // This cache exist as a hack to avoid leaking decompressors. When the RFile code is not given a
@@ -229,8 +231,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
     super.updateScanIteratorOption(iteratorName, key, value);
   }
 
-  private static final Range EMPTY_RANGE = new Range();
-
   private class IterEnv extends BaseIteratorEnvironment {
     @Override
     public IteratorScope getIteratorScope() {
@@ -276,8 +276,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
       }
 
       SortedKeyValueIterator<Key,Value> iterator;
-      if (opts.lowerBound != null || opts.upperBound != null) {
-        iterator = new MultiIterator(readers, new Range(opts.lowerBound, false, opts.upperBound, true));
+      if (opts.bounds != null) {
+        iterator = new MultiIterator(readers, opts.bounds);
       } else {
         iterator = new MultiIterator(readers, false);
       }
@@ -287,7 +287,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
       if (opts.useSystemIterators) {
         SortedSet<Column> cols = this.getFetchedColumns();
         families = LocalityGroupUtil.families(cols);
-        iterator = IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(), new byte[0]);
+        iterator = IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(), EMPTY_BYTES);
       }
 
       try {

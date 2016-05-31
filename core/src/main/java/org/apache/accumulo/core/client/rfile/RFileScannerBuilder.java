@@ -26,11 +26,11 @@ import java.util.Objects;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.rfile.RFile.ScannerFSOptions;
 import org.apache.accumulo.core.client.rfile.RFile.ScannerOptions;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
@@ -123,48 +123,6 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
   }
 
   @Override
-  public ScannerOptions withLowerBound(byte[] row) {
-    Objects.requireNonNull(row);
-    this.opts.lowerBound = new Text(row);
-    return this;
-  }
-
-  @Override
-  public ScannerOptions withLowerBound(String row) {
-    Objects.requireNonNull(row);
-    this.opts.lowerBound = new Text(row);
-    return this;
-  }
-
-  @Override
-  public ScannerOptions withLowerBound(Text row) {
-    Objects.requireNonNull(row);
-    this.opts.lowerBound = row;
-    return this;
-  }
-
-  @Override
-  public ScannerOptions withUpperBound(byte[] row) {
-    Objects.requireNonNull(row);
-    this.opts.upperBound = new Text(row);
-    return this;
-  }
-
-  @Override
-  public ScannerOptions withUpperBound(String row) {
-    Objects.requireNonNull(row);
-    this.opts.upperBound = new Text(row);
-    return this;
-  }
-
-  @Override
-  public ScannerOptions withUpperBound(Text row) {
-    Objects.requireNonNull(row);
-    this.opts.upperBound = row;
-    return this;
-  }
-
-  @Override
   public ScannerOptions withTableProperties(Iterable<Entry<String,String>> tableConfig) {
     Objects.requireNonNull(tableConfig);
     this.opts.tableConfig = new HashMap<>();
@@ -178,6 +136,13 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
   public ScannerOptions withTableProperties(Map<String,String> tableConfig) {
     Objects.requireNonNull(tableConfig);
     this.opts.tableConfig = new HashMap<>(tableConfig);
+    return this;
+  }
+
+  @Override
+  public ScannerOptions withBounds(Range range) {
+    Objects.requireNonNull(range);
+    this.opts.bounds = range;
     return this;
   }
 }
