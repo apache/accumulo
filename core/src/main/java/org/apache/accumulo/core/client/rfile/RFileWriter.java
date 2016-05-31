@@ -30,6 +30,10 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.commons.collections.map.LRUMap;
+
+import com.google.common.base.Preconditions;
 
 //formatter was adding spaced that checkstyle did not like, so turned off formatter
 //@formatter:off
@@ -89,9 +93,19 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 public class RFileWriter implements AutoCloseable {
 
   private FileSKVWriter writer;
+  private final LRUMap validVisibilities;
+  private boolean startedLG;
+  private boolean startedDefaultLG;
 
-  RFileWriter(FileSKVWriter fileSKVWriter) {
+  RFileWriter(FileSKVWriter fileSKVWriter, int visCacheSize) {
     this.writer = fileSKVWriter;
+    this.validVisibilities = new LRUMap(visCacheSize);
+  }
+
+  private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException {
+    Preconditions.checkState(!startedDefaultLG, "Cannont start a locality group after starting the default locality group");
+    writer.startNewLocalityGroup(name, columnFamilies);
+    startedLG = true;
   }
 
   /**
@@ -101,13 +115,16 @@ public class RFileWriter implements AutoCloseable {
    *          locality group name, used for informational purposes
    * @param families
    *          the column families the locality group can contain
+   *
+   * @throws IllegalStateException
+   *           When default locality group already started.
    */
   public void startNewLocalityGroup(String name, List<byte[]> families) throws IOException {
     HashSet<ByteSequence> fams = new HashSet<ByteSequence>();
     for (byte[] family : families) {
       fams.add(new ArrayByteSequence(family));
     }
-    writer.startNewLocalityGroup(name, fams);
+    _startNewLocalityGroup(name, fams);
   }
 
   /**
@@ -122,13 +139,16 @@ public class RFileWriter implements AutoCloseable {
    *
    * @param families
    *          will be encoded using UTF-8
+   *
+   * @throws IllegalStateException
+   *           When default locality group already started.
    */
   public void startNewLocalityGroup(String name, Set<String> families) throws IOException {
     HashSet<ByteSequence> fams = new HashSet<ByteSequence>();
     for (String family : families) {
       fams.add(new ArrayByteSequence(family));
     }
-    writer.startNewLocalityGroup(name, fams);
+    _startNewLocalityGroup(name, fams);
   }
 
   /**
@@ -136,23 +156,31 @@ public class RFileWriter implements AutoCloseable {
    *
    * @param families
    *          will be encoded using UTF-8
+   *
+   * @throws IllegalStateException
+   *           When default locality group already started.
    */
   public void startNewLocalityGroup(String name, String... families) throws IOException {
     HashSet<ByteSequence> fams = new HashSet<ByteSequence>();
     for (String family : families) {
       fams.add(new ArrayByteSequence(family));
     }
-    writer.startNewLocalityGroup(name, fams);
+    _startNewLocalityGroup(name, fams);
   }
 
   /**
    * A locality group in which the column families do not need to specified. The locality group must be started after all other locality groups. Can not append
    * column families that were in a previous locality group.
    *
+   * @throws IllegalStateException
+   *           When default locality group already started.
    */
 
   public void startDefaultLocalityGroup() throws IOException {
+    Preconditions.checkState(!startedDefaultLG);
     writer.startDefaultLocalityGroup();
+    startedDefaultLG = true;
+    startedLG = true;
   }
 
   /**
@@ -163,8 +191,21 @@ public class RFileWriter implements AutoCloseable {
    *          families specified when calling startNewLocalityGroup(). Must be non-null.
    * @param val
    *          value to append, must be non-null.
+   *
+   * @throws IllegalArgumentException
+   *           This is thrown when data is appended out of order OR when the key contains a invalid visibility OR when a column family is not valid for a
+   *           locality group.
+   * @throws IllegalStateException
+   *           Thrown when no locality group was started.
    */
   public void append(Key key, Value val) throws IOException {
+    Preconditions.checkState(startedLG, "No locality group was started");
+    Boolean wasChecked = (Boolean) validVisibilities.get(key.getColumnVisibilityData());
+    if (wasChecked == null) {
+      byte[] cv = key.getColumnVisibilityData().toArray();
+      new ColumnVisibility(cv);
+      validVisibilities.put(new ArrayByteSequence(Arrays.copyOf(cv, cv.length)), Boolean.TRUE);
+    }
     writer.append(key, val);
   }
 
@@ -174,10 +215,17 @@ public class RFileWriter implements AutoCloseable {
    * @param keyValues
    *          The keys must be in sorted order. The first key returned by the iterable must be greater than or equal to the last key appended. For non-default
    *          locality groups, the keys column family must be one of the column families specified when calling startNewLocalityGroup(). Must be non-null.
+   *
+   * @throws IllegalArgumentException
+   *           This is thrown when data is appended out of order OR when the key contains a invalid visibility OR when a column family is not valid for a
+   *           locality group.
+   * @throws IllegalStateException
+   *           When no locality group was started.
    */
   public void append(Iterable<Entry<Key,Value>> keyValues) throws IOException {
+    Preconditions.checkState(startedLG, "No locality group was started");
     for (Entry<Key,Value> entry : keyValues) {
-      writer.append(entry.getKey(), entry.getValue());
+      append(entry.getKey(), entry.getValue());
     }
   }
 

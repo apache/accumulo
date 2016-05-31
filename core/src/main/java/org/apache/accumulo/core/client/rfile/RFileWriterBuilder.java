@@ -36,6 +36,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
 class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions, RFile.WriterOptions {
@@ -60,6 +61,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   private OutputArgs out;
   private SamplerConfiguration sampler = null;
   private Map<String,String> tableConfig = Collections.emptyMap();
+  private int visCacheSize = 1000;
 
   @Override
   public WriterOptions withSampler(SamplerConfiguration samplerConf) {
@@ -90,10 +92,10 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       } else {
         fsdo = new FSDataOutputStream(out.getOutputStream(), new FileSystem.Statistics("foo"));
       }
-      return new RFileWriter(fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf()).withTableConfiguration(acuconf).build());
+      return new RFileWriter(fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf()).withTableConfiguration(acuconf).build(), visCacheSize);
     } else {
       return new RFileWriter(fileops.newWriterBuilder().forFile(out.path.toString(), out.getFileSystem(), out.getConf()).withTableConfiguration(acuconf)
-          .build());
+          .build(), visCacheSize);
     }
   }
 
@@ -135,5 +137,12 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   public WriterOptions withTableProperties(Map<String,String> tableConfig) {
     Objects.requireNonNull(tableConfig);
     return withTableProperties(tableConfig.entrySet());
+  }
+
+  @Override
+  public WriterOptions withVisibilityCacheSize(int maxSize) {
+    Preconditions.checkArgument(maxSize > 0);
+    this.visCacheSize = maxSize;
+    return this;
   }
 }

@@ -253,6 +253,14 @@ public class RFile {
     public WriterOptions withTableProperties(Map<String,String> props);
 
     /**
+     * @param maxSize
+     *          As keys are added to an RFile the visibility field is validated. Validating the visibility field requires parsing it. In order to make
+     *          validation faster, previously seen visibilities are cached. This option allows setting the maximum size of this cache.
+     * @return this
+     */
+    public WriterOptions withVisibilityCacheSize(int maxSize);
+
+    /**
      * @return a new RfileWriter created with the options previously specified.
      */
     public RFileWriter build() throws IOException;

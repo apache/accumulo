@@ -19,8 +19,10 @@ package org.apache.accumulo.core.client.rfile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -501,6 +503,140 @@ public class RFileTest {
     }
 
     scanner.close();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testOutOfOrder() throws Exception {
+    // test that exception declared in API is thrown
+    Key k1 = new Key("r1", "f1", "q1");
+    Value v1 = new Value("1".getBytes());
+
+    Key k2 = new Key("r2", "f1", "q1");
+    Value v2 = new Value("2".getBytes());
+
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      writer.startDefaultLocalityGroup();
+      writer.append(k2, v2);
+      writer.append(k1, v1);
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testOutOfOrderIterable() throws Exception {
+    // test that exception declared in API is thrown
+    Key k1 = new Key("r1", "f1", "q1");
+    Value v1 = new Value("1".getBytes());
+
+    Key k2 = new Key("r2", "f1", "q1");
+    Value v2 = new Value("2".getBytes());
+
+    ArrayList<Entry<Key,Value>> data = new ArrayList<>();
+    data.add(new AbstractMap.SimpleEntry<>(k2, v2));
+    data.add(new AbstractMap.SimpleEntry<>(k1, v1));
+
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      writer.startDefaultLocalityGroup();
+      writer.append(data);
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBadVis() throws Exception {
+    // this test has two purposes ensure an exception is thrown and ensure the exception document in the javadoc is thrown
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      writer.startDefaultLocalityGroup();
+      Key k1 = new Key("r1", "f1", "q1", "(A&(B");
+      writer.append(k1, new Value("".getBytes()));
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBadVisIterable() throws Exception {
+    // test append(iterable) method
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      writer.startDefaultLocalityGroup();
+      Key k1 = new Key("r1", "f1", "q1", "(A&(B");
+      Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value("".getBytes()));
+      writer.append(Collections.singletonList(entry));
+    }
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testNoLocalityGroupStarted() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      Key k1 = new Key("r1", "f1", "q1");
+      writer.append(k1, new Value("".getBytes()));
+    }
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testNoLocalityGroupStartedIterable() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      Key k1 = new Key("r1", "f1", "q1");
+      Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value("".getBytes()));
+      writer.append(Collections.singletonList(entry));
+    }
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testDoubleStart() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      writer.startDefaultLocalityGroup();
+      writer.startDefaultLocalityGroup();
+    }
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testStartAfter() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      writer.startDefaultLocalityGroup();
+      Key k1 = new Key("r1", "f1", "q1");
+      writer.append(k1, new Value("".getBytes()));
+      writer.startNewLocalityGroup("lg1", "fam1");
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testIllegalColumn() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      writer.startNewLocalityGroup("lg1", "fam1");
+      Key k1 = new Key("r1", "f1", "q1");
+      // should not be able to append the column family f1
+      writer.append(k1, new Value("".getBytes()));
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testWrongGroup() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      writer.startNewLocalityGroup("lg1", "fam1");
+      Key k1 = new Key("r1", "fam1", "q1");
+      writer.append(k1, new Value("".getBytes()));
+      writer.startDefaultLocalityGroup();
+      // should not be able to append the column family fam1 to default locality group
+      Key k2 = new Key("r1", "fam1", "q2");
+      writer.append(k2, new Value("".getBytes()));
+    }
   }
 
   private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
