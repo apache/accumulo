@@ -280,26 +280,25 @@ public class MetadataTableUtil {
   public static SortedMap<FileRef,DataFileValue> getDataFileSizes(KeyExtent extent, ClientContext context) throws IOException {
     TreeMap<FileRef,DataFileValue> sizes = new TreeMap<FileRef,DataFileValue>();
 
-    Scanner mdScanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
-    mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    Text row = extent.getMetadataEntry();
-    VolumeManager fs = VolumeManagerImpl.get();
+    try (Scanner mdScanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+      mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      Text row = extent.getMetadataEntry();
+      VolumeManager fs = VolumeManagerImpl.get();
 
-    Key endKey = new Key(row, DataFileColumnFamily.NAME, new Text(""));
-    endKey = endKey.followingKey(PartialKey.ROW_COLFAM);
+      Key endKey = new Key(row, DataFileColumnFamily.NAME, new Text(""));
+      endKey = endKey.followingKey(PartialKey.ROW_COLFAM);
 
-    mdScanner.setRange(new Range(new Key(row), endKey));
-    for (Entry<Key,Value> entry : mdScanner) {
+      mdScanner.setRange(new Range(new Key(row), endKey));
+      for (Entry<Key,Value> entry : mdScanner) {
 
-      if (!entry.getKey().getRow().equals(row))
-        break;
-      DataFileValue dfv = new DataFileValue(entry.getValue().get());
-      sizes.put(new FileRef(fs, entry.getKey()), dfv);
+        if (!entry.getKey().getRow().equals(row))
+          break;
+        DataFileValue dfv = new DataFileValue(entry.getValue().get());
+        sizes.put(new FileRef(fs, entry.getKey()), dfv);
+      }
+
+      return sizes;
     }
-
-    mdScanner.close();
-
-    return sizes;
   }
 
   public static void rollBackSplit(Text metadataEntry, Text oldPrevEndRow, ClientContext context, ZooLock zooLock) {
@@ -417,60 +416,59 @@ public class MetadataTableUtil {
   }
 
   public static void deleteTable(String tableId, boolean insertDeletes, ClientContext context, ZooLock lock) throws AccumuloException, IOException {
-    Scanner ms = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
-    BatchWriter bw = new BatchWriterImpl(context, MetadataTable.ID, new BatchWriterConfig().setMaxMemory(1000000).setMaxLatency(120000l, TimeUnit.MILLISECONDS)
-        .setMaxWriteThreads(2));
+    try (Scanner ms = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
+        BatchWriter bw = new BatchWriterImpl(context, MetadataTable.ID, new BatchWriterConfig().setMaxMemory(1000000)
+            .setMaxLatency(120000l, TimeUnit.MILLISECONDS).setMaxWriteThreads(2))) {
 
-    // scan metadata for our table and delete everything we find
-    Mutation m = null;
-    ms.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      // scan metadata for our table and delete everything we find
+      Mutation m = null;
+      ms.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
-    // insert deletes before deleting data from metadata... this makes the code fault tolerant
-    if (insertDeletes) {
+      // insert deletes before deleting data from metadata... this makes the code fault tolerant
+      if (insertDeletes) {
 
-      ms.fetchColumnFamily(DataFileColumnFamily.NAME);
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
+        ms.fetchColumnFamily(DataFileColumnFamily.NAME);
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
+
+        for (Entry<Key,Value> cell : ms) {
+          Key key = cell.getKey();
+
+          if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+            FileRef ref = new FileRef(VolumeManagerImpl.get(), key);
+            bw.addMutation(createDeleteMutation(tableId, ref.meta().toString()));
+          }
+
+          if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+            bw.addMutation(createDeleteMutation(tableId, cell.getValue().toString()));
+          }
+        }
+
+        bw.flush();
+
+        ms.clearColumns();
+      }
 
       for (Entry<Key,Value> cell : ms) {
         Key key = cell.getKey();
 
-        if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-          FileRef ref = new FileRef(VolumeManagerImpl.get(), key);
-          bw.addMutation(createDeleteMutation(tableId, ref.meta().toString()));
+        if (m == null) {
+          m = new Mutation(key.getRow());
+          if (lock != null)
+            putLockID(lock, m);
         }
 
-        if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          bw.addMutation(createDeleteMutation(tableId, cell.getValue().toString()));
+        if (key.getRow().compareTo(m.getRow(), 0, m.getRow().length) != 0) {
+          bw.addMutation(m);
+          m = new Mutation(key.getRow());
+          if (lock != null)
+            putLockID(lock, m);
         }
+        m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
       }
 
-      bw.flush();
-
-      ms.clearColumns();
-    }
-
-    for (Entry<Key,Value> cell : ms) {
-      Key key = cell.getKey();
-
-      if (m == null) {
-        m = new Mutation(key.getRow());
-        if (lock != null)
-          putLockID(lock, m);
-      }
-
-      if (key.getRow().compareTo(m.getRow(), 0, m.getRow().length) != 0) {
+      if (m != null)
         bw.addMutation(m);
-        m = new Mutation(key.getRow());
-        if (lock != null)
-          putLockID(lock, m);
-      }
-      m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
     }
-
-    if (m != null)
-      bw.addMutation(m);
-
-    bw.close();
   }
 
   static String getZookeeperLogLocation() {
@@ -831,58 +829,56 @@ public class MetadataTableUtil {
   public static void cloneTable(ClientContext context, String srcTableId, String tableId, VolumeManager volumeManager) throws Exception {
 
     Connector conn = context.getConnector();
-    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    try (BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
 
-    while (true) {
+      while (true) {
 
-      try {
-        initializeClone(MetadataTable.NAME, srcTableId, tableId, conn, bw);
+        try {
+          initializeClone(MetadataTable.NAME, srcTableId, tableId, conn, bw);
 
-        // the following loop looks changes in the file that occurred during the copy.. if files were dereferenced then they could have been GCed
+          // the following loop looks changes in the file that occurred during the copy.. if files were dereferenced then they could have been GCed
 
-        while (true) {
-          int rewrites = checkClone(MetadataTable.NAME, srcTableId, tableId, conn, bw);
+          while (true) {
+            int rewrites = checkClone(MetadataTable.NAME, srcTableId, tableId, conn, bw);
 
-          if (rewrites == 0)
-            break;
+            if (rewrites == 0)
+              break;
+          }
+
+          bw.flush();
+          break;
+
+        } catch (TabletIterator.TabletDeletedException tde) {
+          // tablets were merged in the src table
+          bw.flush();
+
+          // delete what we have cloned and try again
+          deleteTable(tableId, false, context, null);
+
+          log.debug("Tablets merged in table " + srcTableId + " while attempting to clone, trying again");
+
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
+      }
 
-        bw.flush();
-        break;
+      // delete the clone markers and create directory entries
+      Scanner mscanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      mscanner.fetchColumnFamily(ClonedColumnFamily.NAME);
 
-      } catch (TabletIterator.TabletDeletedException tde) {
-        // tablets were merged in the src table
-        bw.flush();
+      int dirCount = 0;
 
-        // delete what we have cloned and try again
-        deleteTable(tableId, false, context, null);
+      for (Entry<Key,Value> entry : mscanner) {
+        Key k = entry.getKey();
+        Mutation m = new Mutation(k.getRow());
+        m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
+        String dir = volumeManager.choose(Optional.of(tableId), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableId
+            + Path.SEPARATOR + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES));
+        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes(UTF_8)));
 
-        log.debug("Tablets merged in table " + srcTableId + " while attempting to clone, trying again");
-
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        bw.addMutation(m);
       }
     }
-
-    // delete the clone markers and create directory entries
-    Scanner mscanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
-    mscanner.fetchColumnFamily(ClonedColumnFamily.NAME);
-
-    int dirCount = 0;
-
-    for (Entry<Key,Value> entry : mscanner) {
-      Key k = entry.getKey();
-      Mutation m = new Mutation(k.getRow());
-      m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
-      String dir = volumeManager.choose(Optional.of(tableId), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableId
-          + Path.SEPARATOR + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES));
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes(UTF_8)));
-
-      bw.addMutation(m);
-    }
-
-    bw.close();
-
   }
 
   public static void chopped(AccumuloServerContext context, KeyExtent extent, ZooLock zooLock) {
@@ -910,9 +906,8 @@ public class MetadataTableUtil {
 
   public static List<FileRef> getBulkFilesLoaded(Connector conn, KeyExtent extent, long tid) throws IOException {
     List<FileRef> result = new ArrayList<FileRef>();
-    try {
+    try (Scanner mscanner = new IsolatedScanner(conn.createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY))) {
       VolumeManager fs = VolumeManagerImpl.get();
-      Scanner mscanner = new IsolatedScanner(conn.createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY));
       mscanner.setRange(extent.toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : mscanner) {
@@ -920,7 +915,7 @@ public class MetadataTableUtil {
           result.add(new FileRef(fs, entry.getKey()));
         }
       }
-      mscanner.close();
+
       return result;
     } catch (TableNotFoundException ex) {
       // unlikely
@@ -933,18 +928,18 @@ public class MetadataTableUtil {
     Map<Long,List<FileRef>> result = new HashMap<>();
 
     VolumeManager fs = VolumeManagerImpl.get();
-    Scanner scanner = new ScannerImpl(context, extent.isMeta() ? RootTable.ID : MetadataTable.ID, Authorizations.EMPTY);
-    scanner.setRange(new Range(metadataRow));
-    scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
-    for (Entry<Key,Value> entry : scanner) {
-      Long tid = Long.parseLong(entry.getValue().toString());
-      List<FileRef> lst = result.get(tid);
-      if (lst == null) {
-        result.put(tid, lst = new ArrayList<>());
+    try (Scanner scanner = new ScannerImpl(context, extent.isMeta() ? RootTable.ID : MetadataTable.ID, Authorizations.EMPTY)) {
+      scanner.setRange(new Range(metadataRow));
+      scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
+      for (Entry<Key,Value> entry : scanner) {
+        Long tid = Long.parseLong(entry.getValue().toString());
+        List<FileRef> lst = result.get(tid);
+        if (lst == null) {
+          result.put(tid, lst = new ArrayList<>());
+        }
+        lst.add(new FileRef(fs, entry.getKey()));
       }
-      lst.add(new FileRef(fs, entry.getKey()));
     }
-    scanner.close();
     return result;
   }
 
@@ -990,17 +985,17 @@ public class MetadataTableUtil {
     Range oldDeletesRange = new Range(oldDeletesPrefix, true, "!!~dem", false);
 
     // move old delete markers to new location, to standardize table schema between all metadata tables
-    Scanner scanner = new ScannerImpl(context, RootTable.ID, Authorizations.EMPTY);
-    scanner.setRange(oldDeletesRange);
-    for (Entry<Key,Value> entry : scanner) {
-      String row = entry.getKey().getRow().toString();
-      if (row.startsWith(oldDeletesPrefix)) {
-        moveDeleteEntry(context, RootTable.OLD_EXTENT, entry, row, oldDeletesPrefix);
-      } else {
-        break;
+    try (Scanner scanner = new ScannerImpl(context, RootTable.ID, Authorizations.EMPTY)) {
+      scanner.setRange(oldDeletesRange);
+      for (Entry<Key,Value> entry : scanner) {
+        String row = entry.getKey().getRow().toString();
+        if (row.startsWith(oldDeletesPrefix)) {
+          moveDeleteEntry(context, RootTable.OLD_EXTENT, entry, row, oldDeletesPrefix);
+        } else {
+          break;
+        }
       }
     }
-    scanner.close();
   }
 
   public static void moveMetaDeleteMarkersFrom14(ClientContext context) {
@@ -1008,17 +1003,17 @@ public class MetadataTableUtil {
     KeyExtent notMetadata = new KeyExtent("anythingNotMetadata", null, null);
 
     // move delete markers from the normal delete keyspace to the root tablet delete keyspace if the files are for the !METADATA table
-    Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
-    scanner.setRange(MetadataSchema.DeletesSection.getRange());
-    for (Entry<Key,Value> entry : scanner) {
-      String row = entry.getKey().getRow().toString();
-      if (row.startsWith(MetadataSchema.DeletesSection.getRowPrefix() + "/" + MetadataTable.ID)) {
-        moveDeleteEntry(context, notMetadata, entry, row, MetadataSchema.DeletesSection.getRowPrefix());
-      } else {
-        break;
+    try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+      scanner.setRange(MetadataSchema.DeletesSection.getRange());
+      for (Entry<Key,Value> entry : scanner) {
+        String row = entry.getKey().getRow().toString();
+        if (row.startsWith(MetadataSchema.DeletesSection.getRowPrefix() + "/" + MetadataTable.ID)) {
+          moveDeleteEntry(context, notMetadata, entry, row, MetadataSchema.DeletesSection.getRowPrefix());
+        } else {
+          break;
+        }
       }
     }
-    scanner.close();
   }
 
   private static void moveDeleteEntry(ClientContext context, KeyExtent oldExtent, Entry<Key,Value> entry, String rowID, String prefix) {

@@ -2595,14 +2595,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN, TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
         TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN});
 
-    ScannerImpl scanner = new ScannerImpl(context, tableToVerify, Authorizations.EMPTY);
-    scanner.setRange(extent.toMetadataRange());
-
     TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
-    for (Entry<Key,Value> entry : scanner)
-      tkv.put(entry.getKey(), entry.getValue());
-
-    scanner.close();
+    try (ScannerImpl scanner = new ScannerImpl(context, tableToVerify, Authorizations.EMPTY)) {
+      scanner.setRange(extent.toMetadataRange());
+      for (Entry<Key,Value> entry : scanner)
+        tkv.put(entry.getKey(), entry.getValue());
+    }
 
     // only populate map after success
     if (tabletsKeyValues == null) {

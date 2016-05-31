@@ -163,22 +163,22 @@ public class MasterMetadataUtil {
 
         List<FileRef> highDatafilesToRemove = new ArrayList<FileRef>();
 
-        Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
-        Key rowKey = new Key(metadataEntry);
-
         SortedMap<FileRef,DataFileValue> origDatafileSizes = new TreeMap<FileRef,DataFileValue>();
         SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<FileRef,DataFileValue>();
         SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<FileRef,DataFileValue>();
-        scanner3.fetchColumnFamily(DataFileColumnFamily.NAME);
-        scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
 
-        for (Entry<Key,Value> entry : scanner3) {
-          if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-            origDatafileSizes.put(new FileRef(fs, entry.getKey()), new DataFileValue(entry.getValue().get()));
+        try (Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+          Key rowKey = new Key(metadataEntry);
+
+          scanner3.fetchColumnFamily(DataFileColumnFamily.NAME);
+          scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
+
+          for (Entry<Key,Value> entry : scanner3) {
+            if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
+              origDatafileSizes.put(new FileRef(fs, entry.getKey()), new DataFileValue(entry.getValue().get()));
+            }
           }
         }
-
-        scanner3.close();
 
         MetadataTableUtil.splitDatafiles(table, metadataPrevEndRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), origDatafileSizes, lowDatafileSizes,
             highDatafileSizes, highDatafilesToRemove);

@@ -160,7 +160,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
   long getTimeout(TimeUnit timeUnit);
 
   /**
-   * Closes any underlying connections on the scanner
+   * Closes any underlying connections on the scanner. This may invalidate any iterators derived from the Scanner, causing them to throw exceptions.
    *
    * @since 1.5.0
    */
