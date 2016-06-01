@@ -17,11 +17,11 @@
 package org.apache.accumulo.core.file.rfile.bcfile;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Set;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.HashSet;
 
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -97,10 +97,10 @@ public class CompressionTest {
 
     ExecutorService service = Executors.newFixedThreadPool(20);
 
-    Collection<Callable<Boolean>> list = Lists.newArrayList();
+    ArrayList<Callable<Boolean>> list = Lists.newArrayList();
 
     // keep track of the system's identity hashcodes.
-    final Set<Integer> testSet = Sets.newHashSet();
+    final HashSet<Integer> testSet = Sets.newHashSet();
 
     for (int i = 0; i < 40; i++) {
       list.add(new Callable<Boolean>() {
