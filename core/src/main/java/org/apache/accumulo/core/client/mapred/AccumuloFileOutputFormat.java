@@ -17,20 +17,16 @@
 package org.apache.accumulo.core.client.mapred;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
+import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -163,11 +159,10 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
     final Path file = new Path(getWorkOutputPath(job), getUniqueName(job, "part") + "." + extension);
-
-    final LRUMap validVisibilities = new LRUMap(ConfiguratorBase.getVisibilityCacheSize(conf));
+    final int visCacheSize = ConfiguratorBase.getVisibilityCacheSize(conf);
 
     return new RecordWriter<Key,Value>() {
-      FileSKVWriter out = null;
+      RFileWriter out = null;
 
       @Override
       public void close(Reporter reporter) throws IOException {
@@ -177,17 +172,9 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
       @Override
       public void write(Key key, Value value) throws IOException {
-
-        Boolean wasChecked = (Boolean) validVisibilities.get(key.getColumnVisibilityData());
-        if (wasChecked == null) {
-          byte[] cv = key.getColumnVisibilityData().toArray();
-          new ColumnVisibility(cv);
-          validVisibilities.put(new ArrayByteSequence(Arrays.copyOf(cv, cv.length)), Boolean.TRUE);
-        }
-
         if (out == null) {
-          out = FileOperations.getInstance().newWriterBuilder().forFile(file.toString(), file.getFileSystem(conf), conf).withTableConfiguration(acuConf)
-              .build();
+          out = RFile.newWriter().to(file.toString()).withFileSystem(file.getFileSystem(conf)).withTableProperties(acuConf)
+              .withVisibilityCacheSize(visCacheSize).build();
           out.startDefaultLocalityGroup();
         }
         out.append(key, value);

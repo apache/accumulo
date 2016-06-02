@@ -88,7 +88,7 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration setProperties(Map<String,String> prop) {
     checkArgument(prop != null, "properties is null");
-    checkDisjoint(prop, samplerConfiguration);
+    SamplerConfigurationImpl.checkDisjoint(prop, samplerConfiguration);
 
     this.properties = new HashMap<String,String>(prop);
     return this;
@@ -114,16 +114,6 @@ public class NewTableConfiguration {
     return Collections.unmodifiableMap(propertyMap);
   }
 
-  private void checkDisjoint(Map<String,String> props, SamplerConfiguration samplerConfiguration) {
-    if (props.isEmpty() || samplerConfiguration == null) {
-      return;
-    }
-
-    Map<String,String> sampleProps = new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
-
-    checkArgument(Collections.disjoint(props.keySet(), sampleProps.keySet()), "Properties and derived sampler properties are not disjoint");
-  }
-
   /**
    * Enable building a sample data set on the new table using the given sampler configuration.
    *
@@ -131,7 +121,7 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration enableSampling(SamplerConfiguration samplerConfiguration) {
     requireNonNull(samplerConfiguration);
-    checkDisjoint(properties, samplerConfiguration);
+    SamplerConfigurationImpl.checkDisjoint(properties, samplerConfiguration);
     this.samplerConfiguration = samplerConfiguration;
     return this;
   }

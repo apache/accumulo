@@ -542,35 +542,35 @@ public class RFileTest {
     try {
       trf.writer.append(nk("r0", "cf1", "cq1", "L1", 55), nv("foo1"));
       assertFalse(true);
-    } catch (IllegalStateException ioe) {
+    } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
       trf.writer.append(nk("r1", "cf0", "cq1", "L1", 55), nv("foo1"));
       assertFalse(true);
-    } catch (IllegalStateException ioe) {
+    } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
       trf.writer.append(nk("r1", "cf1", "cq0", "L1", 55), nv("foo1"));
       assertFalse(true);
-    } catch (IllegalStateException ioe) {
+    } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
       trf.writer.append(nk("r1", "cf1", "cq1", "L0", 55), nv("foo1"));
       assertFalse(true);
-    } catch (IllegalStateException ioe) {
+    } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
       trf.writer.append(nk("r1", "cf1", "cq1", "L1", 56), nv("foo1"));
       assertFalse(true);
-    } catch (IllegalStateException ioe) {
+    } catch (IllegalArgumentException ioe) {
 
     }
   }
