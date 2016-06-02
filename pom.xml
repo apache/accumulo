@@ -116,7 +116,7 @@
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
-    <assembly.tarLongFileMode>gnu</assembly.tarLongFileMode>
+    <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
