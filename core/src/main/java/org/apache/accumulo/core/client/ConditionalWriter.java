@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.ConditionalMutation;
  *
  * @since 1.6.0
  */
-public interface ConditionalWriter {
+public interface ConditionalWriter extends AutoCloseable {
   class Result {
 
     private Status status;
@@ -131,5 +131,6 @@ public interface ConditionalWriter {
   /**
    * release any resources (like threads pools) used by conditional writer
    */
+  @Override
   void close();
 }

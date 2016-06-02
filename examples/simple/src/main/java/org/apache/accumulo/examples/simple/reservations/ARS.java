@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
@@ -40,6 +38,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jline.console.ConsoleReader;
 
 /**
  * Accumulo Reservation System : An example reservation system using Accumulo. Supports atomic reservations of a resource at a date. Wait list are also
@@ -88,9 +88,9 @@ public class ARS {
 
     ReservationResult result = ReservationResult.RESERVED;
 
-    ConditionalWriter cwriter = conn.createConditionalWriter(rTable, new ConditionalWriterConfig());
-
-    try {
+    // it is important to use an isolated scanner so that only whole mutations are seen
+    try (ConditionalWriter cwriter = conn.createConditionalWriter(rTable, new ConditionalWriterConfig());
+        Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY))) {
       while (true) {
         Status status = cwriter.write(update).getStatus();
         switch (status) {
@@ -109,8 +109,6 @@ public class ARS {
         // that attempted to make a reservation by putting them later in the list. A more complex solution could involve having independent sub-queues within
         // the row that approximately maintain arrival order and use exponential back off to fairly merge the sub-queues into the main queue.
 
-        // it is important to use an isolated scanner so that only whole mutations are seen
-        Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY));
         scanner.setRange(new Range(row));
 
         int seq = -1;
@@ -152,10 +150,7 @@ public class ARS {
         else
           result = ReservationResult.WAIT_LISTED;
       }
-    } finally {
-      cwriter.close();
     }
-
   }
 
   public void cancel(String what, String when, String who) throws Exception {
@@ -166,13 +161,10 @@ public class ARS {
     // will cause any concurrent reservations to retry. If this delete were done using a batch writer, then a concurrent reservation could report WAIT_LISTED
     // when it actually got the reservation.
 
-    ConditionalWriter cwriter = conn.createConditionalWriter(rTable, new ConditionalWriterConfig());
-
-    try {
+    // its important to use an isolated scanner so that only whole mutations are seen
+    try (ConditionalWriter cwriter = conn.createConditionalWriter(rTable, new ConditionalWriterConfig());
+        Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY))) {
       while (true) {
-
-        // its important to use an isolated scanner so that only whole mutations are seen
-        Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY));
         scanner.setRange(new Range(row));
 
         int seq = -1;
@@ -217,8 +209,6 @@ public class ARS {
         }
 
       }
-    } finally {
-      cwriter.close();
     }
   }
 
@@ -226,18 +216,19 @@ public class ARS {
     String row = what + ":" + when;
 
     // its important to use an isolated scanner so that only whole mutations are seen
-    Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY));
-    scanner.setRange(new Range(row));
-    scanner.fetchColumnFamily(new Text("res"));
+    try (Scanner scanner = new IsolatedScanner(conn.createScanner(rTable, Authorizations.EMPTY))) {
+      scanner.setRange(new Range(row));
+      scanner.fetchColumnFamily(new Text("res"));
 
-    List<String> reservations = new ArrayList<String>();
+      List<String> reservations = new ArrayList<String>();
 
-    for (Entry<Key,Value> entry : scanner) {
-      String val = entry.getValue().toString();
-      reservations.add(val);
+      for (Entry<Key,Value> entry : scanner) {
+        String val = entry.getValue().toString();
+        reservations.add(val);
+      }
+
+      return reservations;
     }
-
-    return reservations;
   }
 
   public static void main(String[] args) throws Exception {

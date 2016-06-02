@@ -142,6 +142,8 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -256,8 +258,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
 
@@ -2595,12 +2595,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN, TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
         TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN});
 
-    ScannerImpl scanner = new ScannerImpl(context, tableToVerify, Authorizations.EMPTY);
-    scanner.setRange(extent.toMetadataRange());
-
     TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
-    for (Entry<Key,Value> entry : scanner)
-      tkv.put(entry.getKey(), entry.getValue());
+    try (ScannerImpl scanner = new ScannerImpl(context, tableToVerify, Authorizations.EMPTY)) {
+      scanner.setRange(extent.toMetadataRange());
+      for (Entry<Key,Value> entry : scanner)
+        tkv.put(entry.getKey(), entry.getValue());
+    }
 
     // only populate map after success
     if (tabletsKeyValues == null) {

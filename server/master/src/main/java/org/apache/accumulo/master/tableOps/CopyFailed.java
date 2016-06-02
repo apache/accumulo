@@ -111,16 +111,17 @@ class CopyFailed extends MasterRepo {
 
     // determine which failed files were loaded
     Connector conn = master.getConnector();
-    Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-    mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
-    mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
+    try (Scanner mscanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
+      mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
 
-    for (Entry<Key,Value> entry : mscanner) {
-      if (Long.parseLong(entry.getValue().toString()) == tid) {
-        FileRef loadedFile = new FileRef(fs, entry.getKey());
-        String absPath = failures.remove(loadedFile);
-        if (absPath != null) {
-          loadedFailures.put(loadedFile, absPath);
+      for (Entry<Key,Value> entry : mscanner) {
+        if (Long.parseLong(entry.getValue().toString()) == tid) {
+          FileRef loadedFile = new FileRef(fs, entry.getKey());
+          String absPath = failures.remove(loadedFile);
+          if (absPath != null) {
+            loadedFailures.put(loadedFile, absPath);
+          }
         }
       }
     }

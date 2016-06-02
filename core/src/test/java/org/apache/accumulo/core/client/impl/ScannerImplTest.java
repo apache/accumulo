@@ -45,12 +45,14 @@ public class ScannerImplTest {
     s.setReadaheadThreshold(Long.MAX_VALUE);
 
     Assert.assertEquals(Long.MAX_VALUE, s.getReadaheadThreshold());
+    s.close();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testInValidReadaheadValues() {
     Scanner s = new ScannerImpl(context, "foo", Authorizations.EMPTY);
     s.setReadaheadThreshold(-1);
+    s.close();
   }
 
   @Test
@@ -58,8 +60,10 @@ public class ScannerImplTest {
     Authorizations expected = new Authorizations("a,b");
     Scanner s = new ScannerImpl(context, "foo", expected);
     assertEquals(expected, s.getAuthorizations());
+    s.close();
   }
 
+  @SuppressWarnings("resource")
   @Test(expected = IllegalArgumentException.class)
   public void testNullAuthorizationsFails() {
     new ScannerImpl(context, "foo", null);

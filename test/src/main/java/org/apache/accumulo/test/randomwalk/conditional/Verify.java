@@ -53,27 +53,30 @@ public class Verify extends Test {
   private void verifyBank(String table, Connector conn, String row, int numAccts) throws TableNotFoundException, Exception {
     log.debug("Verifying bank " + row);
 
-    // TODO do not use IsolatedScanner, just enable isolation on scanner
-    Scanner scanner = new IsolatedScanner(conn.createScanner(table, Authorizations.EMPTY));
-
-    scanner.setRange(new Range(row));
-    IteratorSetting iterConf = new IteratorSetting(100, "cqsl", ColumnSliceFilter.class);
-    ColumnSliceFilter.setSlice(iterConf, "bal", true, "bal", true);
-    scanner.clearScanIterators();
-    scanner.addScanIterator(iterConf);
-
     int count = 0;
     int sum = 0;
     int min = Integer.MAX_VALUE;
     int max = Integer.MIN_VALUE;
-    for (Entry<Key,Value> entry : scanner) {
-      int bal = Integer.parseInt(entry.getValue().toString());
-      sum += bal;
-      if (bal > max)
-        max = bal;
-      if (bal < min)
-        min = bal;
-      count++;
+
+    // TODO do not use IsolatedScanner, just enable isolation on scanner
+    try (Scanner scanner = new IsolatedScanner(conn.createScanner(table, Authorizations.EMPTY))) {
+
+      scanner.setRange(new Range(row));
+      IteratorSetting iterConf = new IteratorSetting(100, "cqsl", ColumnSliceFilter.class);
+      ColumnSliceFilter.setSlice(iterConf, "bal", true, "bal", true);
+      scanner.clearScanIterators();
+      scanner.addScanIterator(iterConf);
+
+      for (Entry<Key,Value> entry : scanner) {
+        int bal = Integer.parseInt(entry.getValue().toString());
+        sum += bal;
+        if (bal > max)
+          max = bal;
+        if (bal < min)
+          min = bal;
+        count++;
+      }
+
     }
 
     if (count > 0 && sum != numAccts * 100) {

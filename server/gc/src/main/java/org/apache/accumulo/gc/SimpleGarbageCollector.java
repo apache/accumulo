@@ -268,6 +268,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     @Override
     public Iterator<String> getBlipIterator() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      @SuppressWarnings("resource")
       IsolatedScanner scanner = new IsolatedScanner(getConnector().createScanner(tableName, Authorizations.EMPTY));
 
       scanner.setRange(MetadataSchema.BlipSection.getRange());

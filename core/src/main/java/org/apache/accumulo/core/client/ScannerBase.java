@@ -31,7 +31,7 @@ import org.apache.hadoop.io.Text;
  * This class hosts configuration methods that are shared between different types of scanners.
  *
  */
-public interface ScannerBase extends Iterable<Entry<Key,Value>> {
+public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
 
   /**
    * Add a server-side scan iterator.
@@ -160,10 +160,11 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   long getTimeout(TimeUnit timeUnit);
 
   /**
-   * Closes any underlying connections on the scanner
+   * Closes any underlying connections on the scanner. This may invalidate any iterators derived from the Scanner, causing them to throw exceptions.
    *
    * @since 1.5.0
    */
+  @Override
   void close();
 
   /**

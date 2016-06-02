@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Mutation;
  * In the event that an MutationsRejectedException exception is thrown by one of the methods on a BatchWriter instance, the user should close the current
  * instance and create a new instance. This is a known limitation which will be addressed by ACCUMULO-2990 in the future.
  */
-public interface BatchWriter {
+public interface BatchWriter extends AutoCloseable {
 
   /**
    * Queues one mutation to write.
@@ -66,6 +66,7 @@ public interface BatchWriter {
    * @throws MutationsRejectedException
    *           this could be thrown because current or previous mutations failed
    */
+  @Override
   void close() throws MutationsRejectedException;
 
 }

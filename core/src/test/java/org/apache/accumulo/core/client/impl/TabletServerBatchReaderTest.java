@@ -36,10 +36,12 @@ public class TabletServerBatchReaderTest {
   @Test
   public void testGetAuthorizations() {
     Authorizations expected = new Authorizations("a,b");
-    BatchScanner s = new TabletServerBatchReader(context, "foo", expected, 1);
-    assertEquals(expected, s.getAuthorizations());
+    try (BatchScanner s = new TabletServerBatchReader(context, "foo", expected, 1)) {
+      assertEquals(expected, s.getAuthorizations());
+    }
   }
 
+  @SuppressWarnings("resource")
   @Test(expected = IllegalArgumentException.class)
   public void testNullAuthorizationsFails() {
     new TabletServerBatchReader(context, "foo", null, 1);
