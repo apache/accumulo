@@ -405,40 +405,40 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
     verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
     connector.tableOperations().flush(tableName, null, null, true);
-    BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
-    String tableId = connector.tableOperations().tableIdMap().get(tableName);
-    bscanner.setRanges(Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));
-    bscanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    boolean foundFile = false;
-    for (Entry<Key,Value> entry : bscanner) {
-      foundFile = true;
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      PrintStream newOut = new PrintStream(baos);
-      PrintStream oldOut = System.out;
-      try {
-        System.setOut(newOut);
-        List<String> args = new ArrayList<>();
-        args.add(entry.getKey().getColumnQualifier().toString());
-        if (ClusterType.STANDALONE == getClusterType() && cluster.getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
-          args.add("--config");
-          StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
-          String hadoopConfDir = sac.getHadoopConfDir();
-          args.add(new Path(hadoopConfDir, "core-site.xml").toString());
-          args.add(new Path(hadoopConfDir, "hdfs-site.xml").toString());
+    try (BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
+      String tableId = connector.tableOperations().tableIdMap().get(tableName);
+      bscanner.setRanges(Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));
+      bscanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      boolean foundFile = false;
+      for (Entry<Key,Value> entry : bscanner) {
+        foundFile = true;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream newOut = new PrintStream(baos);
+        PrintStream oldOut = System.out;
+        try {
+          System.setOut(newOut);
+          List<String> args = new ArrayList<>();
+          args.add(entry.getKey().getColumnQualifier().toString());
+          if (ClusterType.STANDALONE == getClusterType() && cluster.getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+            args.add("--config");
+            StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
+            String hadoopConfDir = sac.getHadoopConfDir();
+            args.add(new Path(hadoopConfDir, "core-site.xml").toString());
+            args.add(new Path(hadoopConfDir, "hdfs-site.xml").toString());
+          }
+          log.info("Invoking PrintInfo with " + args);
+          PrintInfo.main(args.toArray(new String[args.size()]));
+          newOut.flush();
+          String stdout = baos.toString();
+          assertTrue(stdout.contains("Locality group           : g1"));
+          assertTrue(stdout.contains("families        : [colf]"));
+        } finally {
+          newOut.close();
+          System.setOut(oldOut);
         }
-        log.info("Invoking PrintInfo with " + args);
-        PrintInfo.main(args.toArray(new String[args.size()]));
-        newOut.flush();
-        String stdout = baos.toString();
-        assertTrue(stdout.contains("Locality group           : g1"));
-        assertTrue(stdout.contains("families        : [colf]"));
-      } finally {
-        newOut.close();
-        System.setOut(oldOut);
       }
+      assertTrue(foundFile);
     }
-    bscanner.close();
-    assertTrue(foundFile);
   }
 
   @Test

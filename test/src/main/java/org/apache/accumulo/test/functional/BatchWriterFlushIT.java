@@ -44,8 +44,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -76,30 +76,29 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   private void runLatencyTest(String tableName) throws Exception {
     // should automatically flush after 2 seconds
-    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS));
-    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
+    try (BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS))) {
+      Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
 
-    Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
-    m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
-    bw.addMutation(m);
+      Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
+      m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
+      bw.addMutation(m);
 
-    sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
-    int count = Iterators.size(scanner.iterator());
+      int count = Iterators.size(scanner.iterator());
 
-    if (count != 0) {
-      throw new Exception("Flushed too soon");
+      if (count != 0) {
+        throw new Exception("Flushed too soon");
+      }
+
+      sleepUninterruptibly(1500, TimeUnit.MILLISECONDS);
+
+      count = Iterators.size(scanner.iterator());
+
+      if (count != 1) {
+        throw new Exception("Did not flush");
+      }
     }
-
-    sleepUninterruptibly(1500, TimeUnit.MILLISECONDS);
-
-    count = Iterators.size(scanner.iterator());
-
-    if (count != 1) {
-      throw new Exception("Did not flush");
-    }
-
-    bw.close();
   }
 
   private void runFlushTest(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException,
