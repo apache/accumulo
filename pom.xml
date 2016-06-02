@@ -117,7 +117,7 @@
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
-    <assembly.tarLongFileMode>gnu</assembly.tarLongFileMode>
+    <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -142,6 +142,7 @@
     <powermock.version>1.6.4</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
+    <sealJars>false</sealJars>
     <!-- overwritten in hadoop profiles -->
     <slf4j.version>1.7.5</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
@@ -637,7 +638,7 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <Sealed>true</Sealed>
+                <Sealed>${sealJars}</Sealed>
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
               </manifestEntries>
             </archive>
@@ -1220,6 +1221,7 @@
         <!-- some properties to make the release build a bit faster -->
         <checkstyle.skip>true</checkstyle.skip>
         <findbugs.skip>true</findbugs.skip>
+        <sealJars>true</sealJars>
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
       </properties>
