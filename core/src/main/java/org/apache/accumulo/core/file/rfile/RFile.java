@@ -412,7 +412,7 @@ public class RFile {
     public void append(Key key, Value value) throws IOException {
 
       if (key.compareTo(prevKey) < 0) {
-        throw new IllegalStateException("Keys appended out-of-order.  New key " + key + ", previous key " + prevKey);
+        throw new IllegalArgumentException("Keys appended out-of-order.  New key " + key + ", previous key " + prevKey);
       }
 
       currentLocalityGroup.updateColumnCount(key);

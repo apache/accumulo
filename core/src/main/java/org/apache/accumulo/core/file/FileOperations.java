@@ -31,6 +31,7 @@ import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 
 public abstract class FileOperations {
@@ -76,7 +77,7 @@ public abstract class FileOperations {
    * </pre>
    */
   public NeedsFile<GetFileSizeOperationBuilder> getFileSize() {
-    return (NeedsFile<GetFileSizeOperationBuilder>) new GetFileSizeOperation();
+    return new GetFileSizeOperation();
   }
 
   /**
@@ -92,8 +93,8 @@ public abstract class FileOperations {
    *     .build();
    * </pre>
    */
-  public NeedsFile<OpenWriterOperationBuilder> newWriterBuilder() {
-    return (NeedsFile<OpenWriterOperationBuilder>) new OpenWriterOperation();
+  public NeedsFileOrOuputStream<OpenWriterOperationBuilder> newWriterBuilder() {
+    return new OpenWriterOperation();
   }
 
   /**
@@ -110,7 +111,7 @@ public abstract class FileOperations {
    * </pre>
    */
   public NeedsFile<OpenIndexOperationBuilder> newIndexReaderBuilder() {
-    return (NeedsFile<OpenIndexOperationBuilder>) new OpenIndexOperation();
+    return new OpenIndexOperation();
   }
 
   /**
@@ -150,7 +151,7 @@ public abstract class FileOperations {
    * </pre>
    */
   public NeedsFile<OpenReaderOperationBuilder> newReaderBuilder() {
-    return (NeedsFile<OpenReaderOperationBuilder>) new OpenReaderOperation();
+    return new OpenReaderOperation();
   }
 
   //
@@ -203,12 +204,20 @@ public abstract class FileOperations {
       return (SubclassType) this;
     }
 
+    protected void setFilename(String filename) {
+      this.filename = filename;
+    }
+
     public String getFilename() {
       return filename;
     }
 
     public FileSystem getFileSystem() {
       return fs;
+    }
+
+    protected void setConfiguration(Configuration fsConf) {
+      this.fsConf = fsConf;
     }
 
     public Configuration getConfiguration() {
@@ -239,6 +248,7 @@ public abstract class FileOperations {
    */
   protected class GetFileSizeOperation extends FileAccessOperation<GetFileSizeOperation> implements GetFileSizeOperationBuilder {
     /** Return the size of the file. */
+    @Override
     public long execute() throws IOException {
       validate();
       return getFileSize(this);
@@ -278,9 +288,20 @@ public abstract class FileOperations {
   /**
    * Operation object for constructing a writer.
    */
-  protected class OpenWriterOperation extends FileIOOperation<OpenWriterOperation> implements OpenWriterOperationBuilder {
+  protected class OpenWriterOperation extends FileIOOperation<OpenWriterOperation> implements OpenWriterOperationBuilder,
+      NeedsFileOrOuputStream<OpenWriterOperationBuilder> {
     private String compression;
+    private FSDataOutputStream outputStream;
 
+    @Override
+    public NeedsTableConfiguration<OpenWriterOperationBuilder> forOutputStream(String extenstion, FSDataOutputStream outputStream, Configuration fsConf) {
+      this.outputStream = outputStream;
+      setConfiguration(fsConf);
+      setFilename("foo" + extenstion);
+      return this;
+    }
+
+    @Override
     public OpenWriterOperation withCompression(String compression) {
       this.compression = compression;
       return this;
@@ -290,6 +311,21 @@ public abstract class FileOperations {
       return compression;
     }
 
+    public FSDataOutputStream getOutputStream() {
+      return outputStream;
+    }
+
+    @Override
+    protected void validate() {
+      if (outputStream == null) {
+        super.validate();
+      } else {
+        Objects.requireNonNull(getConfiguration());
+        Objects.requireNonNull(getTableConfiguration());
+      }
+    }
+
+    @Override
     public FileSKVWriter build() throws IOException {
       validate();
       return openWriter(this);
@@ -359,6 +395,7 @@ public abstract class FileOperations {
    * Operation object for opening an index.
    */
   protected class OpenIndexOperation extends FileReaderOperation<OpenIndexOperation> implements OpenIndexOperationBuilder {
+    @Override
     public FileSKVIterator build() throws IOException {
       validate();
       return openIndex(this);
@@ -378,6 +415,7 @@ public abstract class FileOperations {
     private boolean inclusive;
 
     /** Set the range over which the constructed iterator will search. */
+    @Override
     public OpenScanReaderOperation overRange(Range range, Set<ByteSequence> columnFamilies, boolean inclusive) {
       this.range = range;
       this.columnFamilies = columnFamilies;
@@ -407,6 +445,7 @@ public abstract class FileOperations {
     }
 
     /** Execute the operation, constructing a scan iterator. */
+    @Override
     public FileSKVIterator build() throws IOException {
       validate();
       return openScanReader(this);
@@ -427,11 +466,13 @@ public abstract class FileOperations {
     /**
      * Seek the constructed iterator to the beginning of its domain before returning. Equivalent to {@code seekToBeginning(true)}.
      */
+    @Override
     public OpenReaderOperation seekToBeginning() {
       return seekToBeginning(true);
     }
 
     /** If true, seek the constructed iterator to the beginning of its domain before returning. */
+    @Override
     public OpenReaderOperation seekToBeginning(boolean seekToBeginning) {
       this.seekToBeginning = seekToBeginning;
       return this;
@@ -442,6 +483,7 @@ public abstract class FileOperations {
     }
 
     /** Execute the operation, constructing the specified file reader. */
+    @Override
     public FileSKVIterator build() throws IOException {
       validate();
       return openReader(this);
@@ -471,6 +513,11 @@ public abstract class FileOperations {
 
     /** Specify the file this operation should apply to. */
     public NeedsFileSystem<ReturnType> forFile(String filename);
+  }
+
+  public static interface NeedsFileOrOuputStream<ReturnType> extends NeedsFile<ReturnType> {
+    /** Specify the file this operation should apply to. */
+    public NeedsTableConfiguration<ReturnType> forOutputStream(String extenstion, FSDataOutputStream out, Configuration fsConf);
   }
 
   /**

@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.Key;
  *
  * @since 1.8.0
  */
-
 public interface Sampler {
 
   /**

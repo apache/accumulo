@@ -35,12 +35,19 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
+import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
+import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
+import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.SynchronizedIterator;
+import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -383,5 +390,13 @@ public class IteratorUtil {
       throw new RuntimeException(e);
     }
     return toIteratorSettings(ic);
+  }
+
+  public static SortedKeyValueIterator<Key,Value> setupSystemScanIterators(SortedKeyValueIterator<Key,Value> source, Set<Column> cols, Authorizations auths,
+      byte[] defaultVisibility) throws IOException {
+    DeletingIterator delIter = new DeletingIterator(source, false);
+    ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
+    ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, cols);
+    return new VisibilityFilter(colFilter, auths, defaultVisibility);
   }
 }
