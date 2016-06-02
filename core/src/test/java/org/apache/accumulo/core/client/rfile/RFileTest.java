@@ -104,7 +104,6 @@ public class RFileTest {
     String testFile = createTmpTestFile();
 
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(FileSystem.getLocal(new Configuration())).build()) {
-      writer.startDefaultLocalityGroup();
       writer.append(testData.entrySet());
       // TODO ensure compressors are returned
     }
@@ -198,7 +197,6 @@ public class RFileTest {
     RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).withTableProperties(props).build();
 
     SortedMap<Key,Value> testData1 = createTestData(10, 10, 10);
-    writer.startDefaultLocalityGroup();
     writer.append(testData1.entrySet());
     writer.close();
 
@@ -307,7 +305,6 @@ public class RFileTest {
     Value v2 = new Value("c".getBytes());
     Value v3 = new Value("t".getBytes());
 
-    writer.startDefaultLocalityGroup();
     writer.append(k1, v1);
     writer.append(k2, v2);
     writer.append(k3, v3);
@@ -345,7 +342,6 @@ public class RFileTest {
     Value v1 = new Value("p".getBytes());
     Value v2 = new Value("".getBytes());
 
-    writer.startDefaultLocalityGroup();
     writer.append(k2, v2);
     writer.append(k1, v1);
     writer.close();
@@ -409,7 +405,6 @@ public class RFileTest {
     Value v1 = new Value("p".getBytes());
     Value v2 = new Value("q".getBytes());
 
-    writer.startDefaultLocalityGroup();
     writer.append(k2, v2);
     writer.append(k1, v1);
     writer.close();
@@ -435,7 +430,6 @@ public class RFileTest {
     SamplerConfiguration sc = new SamplerConfiguration(RowSampler.class).setOptions(ImmutableMap.of("hasher", "murmur3_32", "modulus", "19"));
 
     RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).withSampler(sc).build();
-    writer.startDefaultLocalityGroup();
     writer.append(testData1.entrySet());
     writer.close();
 
@@ -473,7 +467,6 @@ public class RFileTest {
 
     String testFile2 = createTmpTestFile();
     RFileWriter writer = RFile.newWriter().to(testFile2).build();
-    writer.startDefaultLocalityGroup();
     writer.append(scanner);
     writer.close();
     scanner.close();
@@ -517,7 +510,6 @@ public class RFileTest {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      writer.startDefaultLocalityGroup();
       writer.append(k2, v2);
       writer.append(k1, v1);
     }
@@ -539,7 +531,6 @@ public class RFileTest {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      writer.startDefaultLocalityGroup();
       writer.append(data);
     }
   }
@@ -570,27 +561,6 @@ public class RFileTest {
   }
 
   @Test(expected = IllegalStateException.class)
-  public void testNoLocalityGroupStarted() throws Exception {
-    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
-    String testFile = createTmpTestFile();
-    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      Key k1 = new Key("r1", "f1", "q1");
-      writer.append(k1, new Value("".getBytes()));
-    }
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void testNoLocalityGroupStartedIterable() throws Exception {
-    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
-    String testFile = createTmpTestFile();
-    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      Key k1 = new Key("r1", "f1", "q1");
-      Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value("".getBytes()));
-      writer.append(Collections.singletonList(entry));
-    }
-  }
-
-  @Test(expected = IllegalStateException.class)
   public void testDoubleStart() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
@@ -601,11 +571,20 @@ public class RFileTest {
   }
 
   @Test(expected = IllegalStateException.class)
+  public void testAppendStartDefault() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+    String testFile = createTmpTestFile();
+    try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
+      writer.append(new Key("r1", "f1", "q1"), new Value("1".getBytes()));
+      writer.startDefaultLocalityGroup();
+    }
+  }
+
+  @Test(expected = IllegalStateException.class)
   public void testStartAfter() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      writer.startDefaultLocalityGroup();
       Key k1 = new Key("r1", "f1", "q1");
       writer.append(k1, new Value("".getBytes()));
       writer.startNewLocalityGroup("lg1", "fam1");
