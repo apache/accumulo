@@ -112,6 +112,15 @@ public class GarbageCollectWriteAheadLogs {
     return useTrash;
   }
 
+  /**
+   * Removes all the WAL files that are no longer used.
+   * <p>
+   *
+   * This method is not Threadsafe. SimpleGarbageCollector#run does not invoke collect in a concurrent manner.
+   *
+   * @param status
+   *          GCStatus object
+   */
   public void collect(GCStatus status) {
 
     Span span = Trace.start("scanServers");
@@ -179,6 +188,21 @@ public class GarbageCollectWriteAheadLogs {
     return ServerConfiguration.getSystemConfiguration(instance);
   }
 
+  /**
+   * Top level method for removing WAL files.
+   * <p>
+   * Loops over all the gathered WAL and sortedWAL entries and calls the appropriate methods for removal
+   *
+   * @param nameToFileMap
+   *          Map of filename to Path
+   * @param serverToFileMap
+   *          Map of HostAndPort string to a list of Paths
+   * @param sortedWALogs
+   *          Map of sorted WAL names to Path
+   * @param status
+   *          GCStatus object for tracking what is done
+   * @return 0 always
+   */
   @VisibleForTesting
   int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String,Path> sortedWALogs, final GCStatus status) {
     // TODO: remove nameToFileMap from method signature, not used here I don't think
@@ -196,6 +220,14 @@ public class GarbageCollectWriteAheadLogs {
     return 0;
   }
 
+  /**
+   * Removes sortedWALs.
+   * <p>
+   * Sorted WALs are WALs that are in the recovery directory and have already been used.
+   *
+   * @param swalog
+   *          Path to the WAL
+   */
   @VisibleForTesting
   void removeSortedWAL(Path swalog) {
     log.debug("Removing sorted WAL " + swalog);
@@ -216,8 +248,20 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
+  /**
+   * A wrapper method to check if the tserver using the WAL is still alive
+   * <p>
+   * Delegates to the deletion to #removeWALfromDownTserver if the ZK lock is gone or #askTserverToRemoveWAL if the server is known to still be alive
+   *
+   * @param entry
+   *          WAL information gathered
+   * @param conf
+   *          AccumuloConfiguration object
+   * @param status
+   *          GCStatus object
+   */
   @VisibleForTesting
-  void removeWALFile(Entry<String,ArrayList<Path>> entry, AccumuloConfiguration conf, final GCStatus status) throws NumberFormatException {
+  void removeWALFile(Entry<String,ArrayList<Path>> entry, AccumuloConfiguration conf, final GCStatus status) {
     HostAndPort address = AddressUtil.parseAddress(entry.getKey(), false);
     if (!holdsLock(address)) {
       removeWALfromDownTserver(address, conf, entry, status);
@@ -226,6 +270,21 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
+  /**
+   * Asks a currently running tserver to remove it's WALs.
+   * <p>
+   * A tserver has more information about whether a WAL is still being used for current mutations. It is safer to ask the tserver to remove the file instead of
+   * just relying on information in the metadata table.
+   *
+   * @param address
+   *          HostAndPort of the tserver
+   * @param conf
+   *          AccumuloConfiguration entry
+   * @param entry
+   *          WAL information gathered
+   * @param status
+   *          GCStatus object
+   */
   @VisibleForTesting
   void askTserverToRemoveWAL(HostAndPort address, AccumuloConfiguration conf, Entry<String,ArrayList<Path>> entry, final GCStatus status) {
     firstSeenDead.remove(address);
@@ -243,11 +302,36 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
+  /**
+   * Get the configured wait period a server has to be dead.
+   * <p>
+   * The property is "gc.wal.dead.server.wait" defined in Property.GC_WAL_DEAD_SERVER_WAIT and is duration. Valid values include a unit with no space like
+   * 3600s, 5m or 2h.
+   *
+   * @param conf
+   *          AccumuloConfiguration
+   * @return long that represents the millis to wait
+   */
   @VisibleForTesting
   long getGCWALDeadServerWaitTime(AccumuloConfiguration conf) {
     return conf.getTimeInMillis(Property.GC_WAL_DEAD_SERVER_WAIT);
   }
 
+  /**
+   * Remove walogs associated with a tserver that no longer has a look.
+   * <p>
+   * There is configuration option, see #getGCWALDeadServerWaitTime, that defines how long a server must be "dead" before removing the associated write ahead
+   * log files. The intent to ensure that recovery succeeds for the tablet that were host on that tserver.
+   *
+   * @param address
+   *          HostAndPort of the tserver with no lock
+   * @param conf
+   *          AccumuloConfiguration to get that gc.wal.dead.server.wait info
+   * @param entry
+   *          The WALOG path
+   * @param status
+   *          GCStatus for tracking changes
+   */
   @VisibleForTesting
   void removeWALfromDownTserver(HostAndPort address, AccumuloConfiguration conf, Entry<String,ArrayList<Path>> entry, final GCStatus status) {
     // tserver is down, only delete once configured time has passed
@@ -271,6 +355,17 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
+  /**
+   * Removes old style WAL entries.
+   * <p>
+   * The format for storing WAL info in the metadata table changed at some point, maybe the 1.5 release. Once that is known for sure and we no longer support
+   * upgrading from that version, this code should be removed
+   *
+   * @param entry
+   *          Map of empty server address to List of Paths
+   * @param status
+   *          GCStatus object
+   */
   @VisibleForTesting
   void removeOldStyleWAL(Entry<String,ArrayList<Path>> entry, final GCStatus status) {
     // old-style log entry, just remove it
@@ -461,6 +556,18 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
+  /**
+   * Determine if TServer has been dead long enough to remove associated WALs.
+   * <p>
+   * Uses a map where the key is the address and the value is the time first seen dead. If the address is not in the map, it is added with the current system
+   * nanoTime. When the passed in wait time has elapsed, this method returns true and removes the key and value from the map.
+   *
+   * @param address
+   *          HostAndPort of dead tserver
+   * @param wait
+   *          long value of elapsed time to wait
+   * @return boolean whether enough time elapsed since the server was first seen as dead.
+   */
   @VisibleForTesting
   protected boolean timeToDelete(HostAndPort address, long wait) {
     // check whether the tserver has been dead long enough
@@ -476,6 +583,11 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
+  /**
+   * Method to clear the map used in timeToDelete.
+   * <p>
+   * Useful for testing.
+   */
   @VisibleForTesting
   void clearFirstSeenDead() {
     firstSeenDead.clear();
