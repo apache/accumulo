@@ -25,9 +25,11 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 
@@ -45,6 +47,30 @@ public class Value implements WritableComparable<Object> {
    */
   public Value() {
     this(EMPTY, false);
+  }
+
+  /**
+   * Creates a value using the UTF-8 encoding of the CharSequence
+   *
+   * @param cs
+   *          may not be null
+   *
+   * @since 1.8.0
+   */
+  public Value(CharSequence cs) {
+    this(cs.toString().getBytes(StandardCharsets.UTF_8));
+  }
+
+  /**
+   * Creates a Value using the bytes of the Text. Makes a copy, does not use the byte array from the Text.
+   *
+   * @param text
+   *          may not be null
+   *
+   * @since 1.8.0
+   */
+  public Value(Text text) {
+    this(text.getBytes(), 0, text.getLength());
   }
 
   /**
