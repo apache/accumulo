@@ -35,6 +35,7 @@ import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -214,5 +215,29 @@ public class ValueTest {
     assertArrayEquals(one, a[0]);
     assertArrayEquals(two, a[1]);
     assertArrayEquals(three, a[2]);
+  }
+
+  @Test
+  public void testString() {
+    Value v1 = new Value("abc");
+    Value v2 = new Value("abc".getBytes(UTF_8));
+    assertEquals(v2, v1);
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testNullCharSequence() {
+    new Value((CharSequence) null);
+  }
+
+  @Test
+  public void testText() {
+    Value v1 = new Value(new Text("abc"));
+    Value v2 = new Value("abc".getBytes(UTF_8));
+    assertEquals(v2, v1);
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testNullText() {
+    new Value((Text) null);
   }
 }
