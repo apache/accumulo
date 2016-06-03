@@ -260,7 +260,6 @@ public class GarbageCollectWriteAheadLogs {
    * @param status
    *          GCStatus object
    */
-  @VisibleForTesting
   void removeWALFile(Entry<String,ArrayList<Path>> entry, AccumuloConfiguration conf, final GCStatus status) {
     HostAndPort address = AddressUtil.parseAddress(entry.getKey(), false);
     if (!holdsLock(address)) {
@@ -292,7 +291,7 @@ public class GarbageCollectWriteAheadLogs {
     try {
       tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
       tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance), paths2strings(entry.getValue()));
-      log.debug("asking tserver to delete " + entry.getValue() + " from " + entry.getKey());
+      log.debug("asked tserver to delete " + entry.getValue() + " from " + entry.getKey());
       status.currentLog.deleted += entry.getValue().size();
     } catch (TException e) {
       log.warn("Error talking to " + address + ": " + e);
@@ -565,7 +564,7 @@ public class GarbageCollectWriteAheadLogs {
    * @param address
    *          HostAndPort of dead tserver
    * @param wait
-   *          long value of elapsed time to wait
+   *          long value of elapsed millis to wait
    * @return boolean whether enough time elapsed since the server was first seen as dead.
    */
   @VisibleForTesting
@@ -574,7 +573,7 @@ public class GarbageCollectWriteAheadLogs {
     Long firstSeen = firstSeenDead.get(address);
     if (firstSeen != null) {
       long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - firstSeen);
-      log.trace("Elapsed seconds since " + address + " first seen dead: " + elapsedTime);
+      log.trace("Elapsed milliseconds since " + address + " first seen dead: " + elapsedTime);
       return elapsedTime > wait;
     } else {
       log.trace("Adding server to firstSeenDead map " + address);

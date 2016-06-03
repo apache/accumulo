@@ -58,7 +58,10 @@ import static org.junit.Assert.assertTrue;
 import static java.lang.Thread.sleep;
 
 import java.io.FileOutputStream;
+
 import org.apache.commons.io.FileUtils;
+
+import java.util.concurrent.TimeUnit;
 
 public class GarbageCollectWriteAheadLogsTest {
   private static final long BLOCK_SIZE = 64000000L;
@@ -260,10 +263,10 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void testTimeToDeleteTrue() throws InterruptedException {
-    gcwal.clearFirstSeenDead();
     HostAndPort address = HostAndPort.fromString("tserver1:9998");
     long wait = AccumuloConfiguration.getTimeInMillis("1s");
-    gcwal.timeToDelete(address, wait); // to store first seen dead
+    gcwal.clearFirstSeenDead();
+    assertFalse("First call should be false and should store the first seen time", gcwal.timeToDelete(address, wait));
     sleep(wait * 2);
     assertTrue(gcwal.timeToDelete(address, wait));
   }
@@ -277,12 +280,12 @@ public class GarbageCollectWriteAheadLogsTest {
     do {
       t1 = System.nanoTime();
       gcwal.clearFirstSeenDead();
-      gcwal.timeToDelete(address, wait);
+      assertFalse("First call should be false and should store the first seen time", gcwal.timeToDelete(address, wait));
       ttd = gcwal.timeToDelete(address, wait);
       t2 = System.nanoTime();
-    } while (t2 - t1 > (wait / 2) * 1000000); // as long as it took less than half of the configured wait
+    } while (TimeUnit.NANOSECONDS.toMillis(t2 - t1) > (wait / 2)); // as long as it took less than half of the configured wait
 
-    assertFalse(gcwal.timeToDelete(address, wait));
+    assertFalse(ttd);
   }
 
   @Test
@@ -487,7 +490,7 @@ public class GarbageCollectWriteAheadLogsTest {
     @Override
     int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
       String sep = File.separator;
-      Path p = new Path(System.getProperty("java.io.tmpdir") + sep + GCWAL_DEAD_DIR + sep + GCWAL_DEAD_TSERVER + "+" + GCWAL_DEAD_TSERVER_PORT + sep
+      Path p = new Path(System.getProperty("user.dir") + sep + "target" + sep + GCWAL_DEAD_DIR + sep + GCWAL_DEAD_TSERVER + "+" + GCWAL_DEAD_TSERVER_PORT + sep
           + GCWAL_DEAD_TSERVER_COLLECT_FILE);
       fileToServerMap.put(p, GCWAL_DEAD_TSERVER + ":" + GCWAL_DEAD_TSERVER_PORT);
       nameToFileMap.put(GCWAL_DEAD_TSERVER_COLLECT_FILE, p);
@@ -509,7 +512,7 @@ public class GarbageCollectWriteAheadLogsTest {
   @Test
   public void testCollectWithDeadTserver() throws IOException, InterruptedException {
     Instance i = new MockInstance();
-    File walDir = new File(System.getProperty("java.io.tmpdir") + File.separator + GCWAL_DEAD_DIR);
+    File walDir = new File(System.getProperty("user.dir") + File.separator + "target" + File.separator + GCWAL_DEAD_DIR);
     File walFileDir = new File(walDir + File.separator + GCWAL_DEAD_TSERVER + "+" + GCWAL_DEAD_TSERVER_PORT);
     File walFile = new File(walFileDir + File.separator + GCWAL_DEAD_TSERVER_COLLECT_FILE);
     if (!walFileDir.exists()) {
