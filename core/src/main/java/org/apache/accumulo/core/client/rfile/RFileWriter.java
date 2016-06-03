@@ -50,11 +50,8 @@ import com.google.common.base.Preconditions;
  * <li>The default locality group must be started last.</li>
  * </ul>
  *
- *
  * <p>
  * Below is an example of using RFileWriter
- *
- * <p>
  *
  * <pre>
  * {@code
