@@ -65,8 +65,8 @@ public class DefaultFormatter implements Formatter {
   }
 
   /**
-   * if showTimestamps, will use {@link org.apache.accumulo.core.util.format.FormatterConfig.DefaultDateFormat}. Preferably, use
-   * {@link #formatEntry(Entry, FormatterConfig)}
+   * if showTimestamps, will use {@link FormatterConfig.DefaultDateFormat}.<br>
+   * Preferably, use {@link DefaultFormatter#formatEntry(java.util.Map.Entry, org.apache.accumulo.core.util.format.FormatterConfig)}
    */
   public static String formatEntry(Entry<Key,Value> entry, boolean showTimestamps) {
     DateFormat timestampFormat = null;
