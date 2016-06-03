@@ -120,7 +120,7 @@
     <accumulo.performanceTests>org.apache.accumulo.test.PerformanceTest</accumulo.performanceTests>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
-    <assembly.tarLongFileMode>gnu</assembly.tarLongFileMode>
+    <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
     <!-- Curator version -->

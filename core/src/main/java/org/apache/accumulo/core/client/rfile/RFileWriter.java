@@ -42,20 +42,16 @@ import com.google.common.base.Preconditions;
  * {@link TableOperations#importDirectory(String, String, String, boolean)}
  *
  * <p>
- * A RFileWriter has the following constraints. Violating these contraints will result in runtime exceptions.
+ * A RFileWriter has the following constraints. Violating these constraints will result in runtime exceptions.
  *
  * <ul>
- * <li>Before appending any keys, a locality group must be started by calling one of the startNewLocalityGroup functions or startDefaultLocalityGroup.</li>
  * <li>Keys must be appended in sorted order within a locality group.</li>
  * <li>Locality groups must have a mutually exclusive set of column families.</li>
  * <li>The default locality group must be started last.</li>
  * </ul>
  *
- *
  * <p>
  * Below is an example of using RFileWriter
- *
- * <p>
  *
  * <pre>
  * {@code
@@ -128,14 +124,17 @@ public class RFileWriter implements AutoCloseable {
   }
 
   /**
-   * See have doc for {@link #startNewLocalityGroup(String, List)}
+   * See javadoc for {@link #startNewLocalityGroup(String, List)}
+   *
+   * @throws IllegalStateException
+   *           When default locality group already started.
    */
   public void startNewLocalityGroup(String name, byte[]... families) throws IOException {
     startNewLocalityGroup(name, Arrays.asList(families));
   }
 
   /**
-   * See have doc for {@link #startNewLocalityGroup(String, List)}.
+   * See javadoc for {@link #startNewLocalityGroup(String, List)}.
    *
    * @param families
    *          will be encoded using UTF-8
@@ -152,7 +151,7 @@ public class RFileWriter implements AutoCloseable {
   }
 
   /**
-   * See have doc for {@link #startNewLocalityGroup(String, List)}.
+   * See javadoc for {@link #startNewLocalityGroup(String, List)}.
    *
    * @param families
    *          will be encoded using UTF-8
@@ -170,7 +169,7 @@ public class RFileWriter implements AutoCloseable {
 
   /**
    * A locality group in which the column families do not need to specified. The locality group must be started after all other locality groups. Can not append
-   * column families that were in a previous locality group.
+   * column families that were in a previous locality group. If no locality groups were started, then the first append will start the default locality group.
    *
    * @throws IllegalStateException
    *           When default locality group already started.
@@ -184,7 +183,8 @@ public class RFileWriter implements AutoCloseable {
   }
 
   /**
-   * Append the key and value to the last locality group that was started.
+   * Append the key and value to the last locality group that was started. If no locality group was started, then the default group will automatically be
+   * started.
    *
    * @param key
    *          This key must be greater than or equal to the last key appended. For non-default locality groups, the keys column family must be one of the column
@@ -195,11 +195,11 @@ public class RFileWriter implements AutoCloseable {
    * @throws IllegalArgumentException
    *           This is thrown when data is appended out of order OR when the key contains a invalid visibility OR when a column family is not valid for a
    *           locality group.
-   * @throws IllegalStateException
-   *           Thrown when no locality group was started.
    */
   public void append(Key key, Value val) throws IOException {
-    Preconditions.checkState(startedLG, "No locality group was started");
+    if (!startedLG) {
+      startDefaultLocalityGroup();
+    }
     Boolean wasChecked = (Boolean) validVisibilities.get(key.getColumnVisibilityData());
     if (wasChecked == null) {
       byte[] cv = key.getColumnVisibilityData().toArray();
@@ -214,16 +214,14 @@ public class RFileWriter implements AutoCloseable {
    *
    * @param keyValues
    *          The keys must be in sorted order. The first key returned by the iterable must be greater than or equal to the last key appended. For non-default
-   *          locality groups, the keys column family must be one of the column families specified when calling startNewLocalityGroup(). Must be non-null.
+   *          locality groups, the keys column family must be one of the column families specified when calling startNewLocalityGroup(). Must be non-null. If no
+   *          locality group was started, then the default group will automatically be started.
    *
    * @throws IllegalArgumentException
    *           This is thrown when data is appended out of order OR when the key contains a invalid visibility OR when a column family is not valid for a
    *           locality group.
-   * @throws IllegalStateException
-   *           When no locality group was started.
    */
   public void append(Iterable<Entry<Key,Value>> keyValues) throws IOException {
-    Preconditions.checkState(startedLG, "No locality group was started");
     for (Entry<Key,Value> entry : keyValues) {
       append(entry.getKey(), entry.getValue());
     }
