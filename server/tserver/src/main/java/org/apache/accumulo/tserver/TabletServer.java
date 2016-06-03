@@ -229,6 +229,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.apache.log4j.MDC;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
@@ -3736,6 +3737,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   public static void main(String[] args) throws IOException {
     try {
+      String pid = ManagementFactory.getRuntimeMXBean().getName();
+      int idx = pid.indexOf("@");
+      if (-1 != idx) {
+        pid = pid.substring(0, idx);
+      }
+      MDC.put("pid", pid);
       SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
       ServerOpts opts = new ServerOpts();
       final String app = "tserver";
