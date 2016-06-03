@@ -42,7 +42,7 @@ fi
 if egrep -q localhost\|127.0.0.1 $ACCUMULO_CONF_DIR/slaves; then
    $bin/accumulo admin stop localhost
 else
-   for host in "$(hostname -a 2> /dev/null) $(hostname)"; do
+   for host in "$(hostname -a 2> /dev/null)" "$(hostname)"; do
       if grep -q ${host} $ACCUMULO_CONF_DIR/slaves; then
          ${bin}/accumulo admin stop $host
       fi
@@ -51,10 +51,6 @@ fi
 
 for signal in TERM KILL; do
    for svc in tserver gc master monitor tracer; do
-      PID=$(ps -ef | egrep ${ACCUMULO} | grep "Main $svc" | grep -v grep | grep -v stop-here.sh | awk '{print $2}' | head -1)
-      if [ ! -z $PID ]; then
-         echo "Stopping ${svc} on ${HOSTNAME} with signal ${signal}"
-         kill -s ${signal} ${PID}
-      fi
+      $ACCUMULO_HOME/bin/stop-server.sh $HOSTNAME "$ACCUMULO_HOME/lib/accumulo-start.jar" $svc $signal
    done
 done
