@@ -36,6 +36,7 @@ if [[ $# -ne 2 ]] && [[ $# -ne 3 ]]; then
 fi
 
 . "$bin"/config.sh
+. "$bin"/config-server.sh
 
 HOST="$1"
 SERVICE="$2"

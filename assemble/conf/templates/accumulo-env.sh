@@ -65,3 +65,11 @@ export ACCUMULO_KILL_CMD='kill -9 %p'
 
 # Should the monitor bind to all network interfaces -- default: false
 # export ACCUMULO_MONITOR_BIND_ALL="true"
+
+export NUM_TSERVERS=1
+
+### Example for configuring multiple tservers per host
+### export NUM_TSERVERS=2
+### declare -a TSERVER_NUMA_OPTIONS
+### TSERVER_NUMA_OPTIONS[1]="--cpunodebind 0"
+### TSERVER_NUMA_OPTIONS[2]="--cpunodebind 1"
