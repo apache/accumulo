@@ -78,19 +78,6 @@ if [[ ${SERVICE} == "monitor" && ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]]; then
    ADDRESS="0.0.0.0"
 fi
 
-# Check the pid file to figure out if its already running.
-PID_FILE="${ACCUMULO_PID_DIR}/accumulo-${ACCUMULO_IDENT_STRING}-${SERVICE}.pid"
-if [ -f ${PID_FILE} ]; then
-   PID=`cat ${PID_FILE}`
-   if kill -0 $PID 2>/dev/null; then
-      # Starting an already-started service shouldn't be an error per LSB
-      echo "$HOST : $SERVICE already running (${PID})"
-      exit 0
-   fi
-else
-   echo "Starting $SERVICE on $HOST"
-fi
-
 COMMAND="${bin}/accumulo"
 if [ "${ACCUMULO_WATCHER}" = "true" ]; then
    COMMAND="${bin}/accumulo_watcher.sh ${LOGHOST}"
@@ -103,9 +90,61 @@ ERRFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err"
 rotate_log "$OUTFILE" ${ACCUMULO_NUM_OUT_FILES}
 rotate_log "$ERRFILE" ${ACCUMULO_NUM_OUT_FILES}
 
-# Fork the process, store the pid
-nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"$OUTFILE" 2>"$ERRFILE" < /dev/null &
-echo $! > ${PID_FILE}
+if [[ "$SERVICE" != "tserver" || $NUM_TSERVERS -eq 1 ]]; then
+   # Check the pid file to figure out if its already running.
+   PID_FILE="${ACCUMULO_PID_DIR}/accumulo-${ACCUMULO_IDENT_STRING}-${SERVICE}.pid"
+   if [ -f ${PID_FILE} ]; then
+      PID=`cat ${PID_FILE}`
+      if kill -0 $PID 2>/dev/null; then
+         # Starting an already-started service shouldn't be an error per LSB
+         echo "$HOST : $SERVICE already running (${PID})"
+         exit 0
+      fi
+   fi
+   echo "Starting $SERVICE on $HOST"
+
+   # Fork the process, store the pid
+   nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"$OUTFILE" 2>"$ERRFILE" < /dev/null &
+   echo $! > ${PID_FILE}
+
+else
+
+   S="$SERVICE"
+   for (( t=1; t<=$NUM_TSERVERS; t++)); do
+
+      SERVICE="$S-$t"
+
+      # Check the pid file to figure out if its already running.
+      PID_FILE="${ACCUMULO_PID_DIR}/accumulo-${ACCUMULO_IDENT_STRING}-${SERVICE}.pid"
+      if [ -f ${PID_FILE} ]; then
+         PID=`cat ${PID_FILE}`
+         if kill -0 $PID 2>/dev/null; then
+            # Starting an already-started service shouldn't be an error per LSB
+            echo "$HOST : $SERVICE already running (${PID})"
+            exit 0
+         fi
+      fi
+      echo "Starting $SERVICE on $HOST"
+
+      ACCUMULO_NUMACTL_OPTIONS=${ACCUMULO_NUMACTL_OPTIONS:-"--interleave=all"}
+      ACCUMULO_NUMACTL_OPTIONS=${TSERVER_NUMA_OPTIONS[$t]:-$ACCUMULO_NUMACTL_OPTIONS}
+      if [[ "$ACCUMULO_ENABLE_NUMACTL" == "true" ]]; then
+         NUMA=`which numactl 2>/dev/null`
+         NUMACTL_EXISTS=$?
+         if [[ ( ${NUMACTL_EXISTS} -eq 0 ) ]]; then
+            export NUMA_CMD="${NUMA} ${ACCUMULO_NUMACTL_OPTIONS}"
+         else
+            export NUMA_CMD=""
+         fi
+      fi
+
+      # Fork the process, store the pid
+      nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out" 2>"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err" < /dev/null &
+      echo $! > ${PID_FILE}
+
+   done
+
+fi
 
 # Check the max open files limit and selectively warn
 MAX_FILES_OPEN=$(ulimit -n)

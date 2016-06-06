@@ -79,3 +79,11 @@ export ZKLOCK_RETRIES="5"
 
 # The number of .out and .err files per process to retain
 # export ACCUMULO_NUM_OUT_FILES=5
+
+export NUM_TSERVERS=1
+
+### Example for configuring multiple tservers per host
+### export NUM_TSERVERS=2
+### declare -a TSERVER_NUMA_OPTIONS
+### TSERVER_NUMA_OPTIONS[1]="--cpunodebind 0"
+### TSERVER_NUMA_OPTIONS[2]="--cpunodebind 1"
