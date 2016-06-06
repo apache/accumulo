@@ -121,7 +121,7 @@ else
          if kill -0 $PID 2>/dev/null; then
             # Starting an already-started service shouldn't be an error per LSB
             echo "$HOST : $SERVICE already running (${PID})"
-            exit 0
+            continue
          fi
       fi
       echo "Starting $SERVICE on $HOST"

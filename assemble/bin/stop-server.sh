@@ -42,7 +42,7 @@ fi
 # only stop if there's not one already running
 if [[ $HOST == localhost || $HOST = "$(hostname -s)" || $HOST = "$(hostname -f)" || $HOST = "$IP" ]] ; then
    for PID_FILE in "${ACCUMULO_PID_DIR}/accumulo-${ACCUMULO_IDENT_STRING}-${3}*.pid"; do
-      if [[ ! -z ${PID_FILE} && -f ${PID_FILE} ]]; then
+      if [[ ! -z ${PID_FILE} ]]; then
          echo "Stopping $3 on $1";
          kill -s "$4" `cat ${PID_FILE}` 2>/dev/null
          rm -f ${PID_FILE} 2>/dev/null
