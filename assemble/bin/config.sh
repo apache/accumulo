@@ -119,6 +119,10 @@ else
 fi
 
 # NUMA sanity checks
+if [[ -z $NUM_TSERVERS ]]; then
+   echo "NUM_TSERVERS is missing in accumulo-env.sh, please check your configuration."
+   exit 1
+fi
 if [[ $NUM_TSERVERS -eq 1 && -n $TSERVER_NUMA_OPTIONS ]]; then
    echo "TSERVER_NUMA_OPTIONS declared when NUM_TSERVERS is 1, use ACCUMULO_NUMACTL_OPTIONS instead"
    exit 1
