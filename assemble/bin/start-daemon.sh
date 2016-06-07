@@ -126,6 +126,7 @@ else
       fi
       echo "Starting $SERVICE on $HOST"
 
+      ACCUMULO_NUMACTL_OPTIONS=${ACCUMULO_NUMACTL_OPTIONS:-"--interleave=all"}
       ACCUMULO_NUMACTL_OPTIONS=${TSERVER_NUMA_OPTIONS[$t]}
       if [[ "$ACCUMULO_ENABLE_NUMACTL" == "true" ]]; then
          NUMA=`which numactl 2>/dev/null`

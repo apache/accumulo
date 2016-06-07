@@ -127,8 +127,8 @@ if [[ $NUM_TSERVERS -eq 1 && -n $TSERVER_NUMA_OPTIONS ]]; then
    echo "TSERVER_NUMA_OPTIONS declared when NUM_TSERVERS is 1, use ACCUMULO_NUMACTL_OPTIONS instead"
    exit 1
 fi
-if [[ $NUM_TSERVERS -gt 1 && ${#TSERVER_NUMA_OPTIONS[*]} -ne $NUM_TSERVERS ]]; then
-   echo "TSERVER_NUMA_OPTIONS is not the same size as NUM_TSERVERS"
+if [[ $NUM_TSERVERS -gt 1 && -n $TSERVER_NUMA_OPTIONS && ${#TSERVER_NUMA_OPTIONS[*]} -ne $NUM_TSERVERS ]]; then
+   echo "TSERVER_NUMA_OPTIONS is declared, but not the same size as NUM_TSERVERS"
    exit 1
 fi
 
