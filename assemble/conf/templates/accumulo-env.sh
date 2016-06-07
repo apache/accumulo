@@ -82,7 +82,11 @@ export ZKLOCK_RETRIES="5"
 
 export NUM_TSERVERS=1
 
-### Example for configuring multiple tservers per host
+### Example for configuring multiple tservers per host. Note that the ACCUMULO_NUMACTL_OPTIONS
+### environment variable is used when NUM_TSERVERS is 1 to preserve backwards compatibility.
+### If NUM_TSERVERS is greater than 2, then the TSERVER_NUMA_OPTIONS array is used if it is
+### declared, otherwise the ACCUMULO_NUMACTL_OPTIONS setting is used for each tserver.
+###
 ### export NUM_TSERVERS=2
 ### declare -a TSERVER_NUMA_OPTIONS
 ### TSERVER_NUMA_OPTIONS[1]="--cpunodebind 0"

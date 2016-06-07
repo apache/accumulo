@@ -488,13 +488,20 @@ set the numactl options for each TabletServer.
 
 Accumulo TabletServers bind certain ports on the host to accommodate remote procedure calls to/from
 other nodes. Running more than one TabletServer on a host requires that you set the following
-properties to zero in +accumulo-site.xml+:
+properties in +accumulo-site.xml+:
 
-* +tserver.port.client+
-* +replication.receipt.service.port+
+  <property>
+    <name>tserver.port.client</name>
+    <value>0</value>
+  </property>
+  <property>
+    <name>replication.receipt.service.port</name>
+    <value>0</value>
+  </property>
 
 Accumulo's provided scripts for starting and stopping the cluster should work normally with multiple
-TabletServers on a host.
+TabletServers on a host. Sanity checks are provided in the scripts and will output an error on
+startup when there is a configuration mismatch.
 
 [[monitoring]]
 === Monitoring
