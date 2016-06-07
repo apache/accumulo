@@ -500,8 +500,8 @@ properties in +accumulo-site.xml+:
   </property>
 
 Accumulo's provided scripts for starting and stopping the cluster should work normally with multiple
-TabletServers on a host. Sanity checks are provided in the scripts and will output an error on
-startup when there is a configuration mismatch.
+TabletServers on a host. Sanity checks are provided in the scripts and will output an error when there
+is a configuration mismatch.
 
 [[monitoring]]
 === Monitoring
