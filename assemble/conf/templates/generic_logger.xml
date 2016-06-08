@@ -20,7 +20,7 @@
 
   <!-- Write out everything at the DEBUG level to the debug log -->
   <appender name="A2" class="org.apache.log4j.RollingFileAppender">
-     <param name="File"           value="${org.apache.accumulo.core.dir.log}/${org.apache.accumulo.core.application}_${org.apache.accumulo.core.ip.localhost.hostname}.debug.log"/>
+     <param name="File"           value="${org.apache.accumulo.core.dir.log}/${org.apache.accumulo.core.application}_${instance}_${org.apache.accumulo.core.ip.localhost.hostname}.debug.log"/>
      <param name="MaxFileSize"    value="1000MB"/>
      <param name="MaxBackupIndex" value="10"/>
      <param name="Threshold"      value="DEBUG"/>
@@ -31,7 +31,7 @@
 
   <!--  Write out INFO and higher to the regular log -->
   <appender name="A3" class="org.apache.log4j.RollingFileAppender">
-     <param name="File"           value="${org.apache.accumulo.core.dir.log}/${org.apache.accumulo.core.application}_${org.apache.accumulo.core.ip.localhost.hostname}.log"/>
+     <param name="File"           value="${org.apache.accumulo.core.dir.log}/${org.apache.accumulo.core.application}_${instance}_${org.apache.accumulo.core.ip.localhost.hostname}.log"/>
      <param name="MaxFileSize"    value="1000MB"/>
      <param name="MaxBackupIndex" value="10"/>
      <param name="Threshold"      value="INFO"/>
