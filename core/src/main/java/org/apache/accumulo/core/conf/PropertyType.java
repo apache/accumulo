@@ -56,8 +56,10 @@ public enum PropertyType {
           + "Examples of valid host lists are 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
-  PORT("port", Predicates.or(new Bounds(1024, 65535), in(true, "0")),
-      "An positive integer in the range 1024-65535, not already in use or specified elsewhere in the configuration"),
+  @SuppressWarnings("unchecked")
+  PORT("port", Predicates.or(new Bounds(1024, 65535), in(true, "0"), new Matches("\\d{1,5}-\\d{1,5}")),
+      "An positive integer in the range 1024-65535 (not already in use or specified elsewhere in the configuration),\n"
+          + "zero to indicate any open ephemeral port, or a range of positive integers specified as M-N"),
 
   COUNT("count", new Bounds(0, Integer.MAX_VALUE), "A non-negative integer in the range of 0-" + Integer.MAX_VALUE),
 

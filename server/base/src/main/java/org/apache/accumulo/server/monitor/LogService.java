@@ -94,7 +94,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
    */
   public static void startLogListener(AccumuloConfiguration conf, String instanceId, String hostAddress) {
     try {
-      SocketServer server = new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT));
+      SocketServer server = new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT)[0]);
 
       // getLocalPort will return the actual ephemeral port used when '0' was provided.
       String logForwardingAddr = hostAddress + ":" + server.getLocalPort();

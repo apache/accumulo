@@ -341,18 +341,42 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    *           if the property is of the wrong type
    * @see #getTimeInMillis(String)
    */
-  public int getPort(Property property) {
+  public int[] getPort(Property property) {
     checkType(property, PropertyType.PORT);
 
     String portString = get(property);
-    int port = Integer.parseInt(portString);
-    if (port != 0) {
-      if (port < 1024 || port > 65535) {
-        log.error("Invalid port number " + port + "; Using default " + property.getDefaultValue());
-        port = Integer.parseInt(property.getDefaultValue());
+    int[] ports = null;
+    int idx = portString.indexOf('-');
+    if (idx != -1) {
+      int low = Integer.parseInt(portString.substring(0, idx));
+      if (low < 1024) {
+        log.error("Invalid port number for low end of the range, using 1024");
+        low = 1024;
+      }
+      int high = Integer.parseInt(portString.substring(idx + 1));
+      if (high > 65535) {
+        log.error("Invalid port number for high end of the range, using 65535");
+        high = 65535;
+      }
+      ports = new int[high - low + 1];
+      for (int i = 0, j = low; j <= high; i++, j++) {
+        ports[i] = j;
+      }
+    } else {
+      ports = new int[1];
+      int port = Integer.parseInt(portString);
+      if (port != 0) {
+        if (port < 1024 || port > 65535) {
+          log.error("Invalid port number " + port + "; Using default " + property.getDefaultValue());
+          ports[0] = Integer.parseInt(property.getDefaultValue());
+        } else {
+          ports[0] = port;
+        }
+      } else {
+        ports[0] = port;
       }
     }
-    return port;
+    return ports;
   }
 
   /**

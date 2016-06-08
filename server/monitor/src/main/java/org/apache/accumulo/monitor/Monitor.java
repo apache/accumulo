@@ -16,9 +16,11 @@
  */
 package org.apache.accumulo.monitor;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -98,7 +100,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Serve master statistics with an embedded web server.
@@ -454,35 +455,38 @@ public class Monitor {
     }
 
     Monitor.START_TIME = System.currentTimeMillis();
-    int port = config.getConfiguration().getPort(Property.MONITOR_PORT);
-    try {
-      log.debug("Creating monitor on port " + port);
-      server = new EmbeddedWebServer(hostname, port);
-    } catch (Throwable ex) {
-      log.error("Unable to start embedded web server", ex);
-      throw new RuntimeException(ex);
+    int ports[] = config.getConfiguration().getPort(Property.MONITOR_PORT);
+    for (int port : ports) {
+      try {
+        log.debug("Creating monitor on port " + port);
+        server = new EmbeddedWebServer(hostname, port);
+        server.addServlet(DefaultServlet.class, "/");
+        server.addServlet(OperationServlet.class, "/op");
+        server.addServlet(MasterServlet.class, "/master");
+        server.addServlet(TablesServlet.class, "/tables");
+        server.addServlet(TServersServlet.class, "/tservers");
+        server.addServlet(ProblemServlet.class, "/problems");
+        server.addServlet(GcStatusServlet.class, "/gc");
+        server.addServlet(LogServlet.class, "/log");
+        server.addServlet(XMLServlet.class, "/xml");
+        server.addServlet(JSONServlet.class, "/json");
+        server.addServlet(VisServlet.class, "/vis");
+        server.addServlet(ScanServlet.class, "/scans");
+        server.addServlet(BulkImportServlet.class, "/bulkImports");
+        server.addServlet(Summary.class, "/trace/summary");
+        server.addServlet(ListType.class, "/trace/listType");
+        server.addServlet(ShowTrace.class, "/trace/show");
+        server.addServlet(ReplicationServlet.class, "/replication");
+        if (server.isUsingSsl())
+          server.addServlet(ShellServlet.class, "/shell");
+        server.start();
+      } catch (Throwable ex) {
+        log.error("Unable to start embedded web server", ex);
+      }
     }
-
-    server.addServlet(DefaultServlet.class, "/");
-    server.addServlet(OperationServlet.class, "/op");
-    server.addServlet(MasterServlet.class, "/master");
-    server.addServlet(TablesServlet.class, "/tables");
-    server.addServlet(TServersServlet.class, "/tservers");
-    server.addServlet(ProblemServlet.class, "/problems");
-    server.addServlet(GcStatusServlet.class, "/gc");
-    server.addServlet(LogServlet.class, "/log");
-    server.addServlet(XMLServlet.class, "/xml");
-    server.addServlet(JSONServlet.class, "/json");
-    server.addServlet(VisServlet.class, "/vis");
-    server.addServlet(ScanServlet.class, "/scans");
-    server.addServlet(BulkImportServlet.class, "/bulkImports");
-    server.addServlet(Summary.class, "/trace/summary");
-    server.addServlet(ListType.class, "/trace/listType");
-    server.addServlet(ShowTrace.class, "/trace/show");
-    server.addServlet(ReplicationServlet.class, "/replication");
-    if (server.isUsingSsl())
-      server.addServlet(ShellServlet.class, "/shell");
-    server.start();
+    if (!server.isRunning()) {
+      throw new RuntimeException("Unable to start embedded web server on ports: " + Arrays.toString(ports));
+    }
 
     try {
       log.debug("Using " + hostname + " to advertise monitor location in ZooKeeper");
