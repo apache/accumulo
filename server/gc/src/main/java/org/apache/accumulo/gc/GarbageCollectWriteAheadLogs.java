@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.gc;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,12 +56,16 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.net.HostAndPort;
+import java.util.concurrent.TimeUnit;
+import org.apache.accumulo.core.conf.Property;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
 
   private final Instance instance;
   private final VolumeManager fs;
+  private final Map<HostAndPort,Long> firstSeenDead = new HashMap<HostAndPort,Long>();
+  private AccumuloConfiguration config;
 
   private boolean useTrash;
 
@@ -107,6 +112,15 @@ public class GarbageCollectWriteAheadLogs {
     return useTrash;
   }
 
+  /**
+   * Removes all the WAL files that are no longer used.
+   * <p>
+   *
+   * This method is not Threadsafe. SimpleGarbageCollector#run does not invoke collect in a concurrent manner.
+   *
+   * @param status
+   *          GCStatus object
+   */
   public void collect(GCStatus status) {
 
     Span span = Trace.start("scanServers");
@@ -170,76 +184,202 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
 
-  private int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String,Path> sortedWALogs, final GCStatus status) {
-    AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration(instance);
+  private AccumuloConfiguration getConfig() {
+    return ServerConfiguration.getSystemConfiguration(instance);
+  }
+
+  /**
+   * Top level method for removing WAL files.
+   * <p>
+   * Loops over all the gathered WAL and sortedWAL entries and calls the appropriate methods for removal
+   *
+   * @param nameToFileMap
+   *          Map of filename to Path
+   * @param serverToFileMap
+   *          Map of HostAndPort string to a list of Paths
+   * @param sortedWALogs
+   *          Map of sorted WAL names to Path
+   * @param status
+   *          GCStatus object for tracking what is done
+   * @return 0 always
+   */
+  @VisibleForTesting
+  int removeFiles(Map<String,Path> nameToFileMap, Map<String,ArrayList<Path>> serverToFileMap, Map<String,Path> sortedWALogs, final GCStatus status) {
+    // TODO: remove nameToFileMap from method signature, not used here I don't think
+    AccumuloConfiguration conf = getConfig();
     for (Entry<String,ArrayList<Path>> entry : serverToFileMap.entrySet()) {
       if (entry.getKey().isEmpty()) {
-        // old-style log entry, just remove it
-        for (Path path : entry.getValue()) {
-          log.debug("Removing old-style WAL " + path);
-          try {
-            if (!useTrash || !fs.moveToTrash(path))
-              fs.deleteRecursively(path);
-            status.currentLog.deleted++;
-          } catch (FileNotFoundException ex) {
-            // ignored
-          } catch (IOException ex) {
-            log.error("Unable to delete wal " + path + ": " + ex);
-          }
-        }
+        removeOldStyleWAL(entry, status);
       } else {
-        HostAndPort address = AddressUtil.parseAddress(entry.getKey(), false);
-        if (!holdsLock(address)) {
-          for (Path path : entry.getValue()) {
-            log.debug("Removing WAL for offline server " + path);
-            try {
-              if (!useTrash || !fs.moveToTrash(path))
-                fs.deleteRecursively(path);
-              status.currentLog.deleted++;
-            } catch (FileNotFoundException ex) {
-              // ignored
-            } catch (IOException ex) {
-              log.error("Unable to delete wal " + path + ": " + ex);
-            }
-          }
-          continue;
-        } else {
-          Client tserver = null;
-          try {
-            tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
-            tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance), paths2strings(entry.getValue()));
-            log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
-            status.currentLog.deleted += entry.getValue().size();
-          } catch (TException e) {
-            log.warn("Error talking to " + address + ": " + e);
-          } finally {
-            if (tserver != null)
-              ThriftUtil.returnClient(tserver);
-          }
-        }
+        removeWALFile(entry, conf, status);
       }
     }
-
     for (Path swalog : sortedWALogs.values()) {
-      log.debug("Removing sorted WAL " + swalog);
+      removeSortedWAL(swalog);
+    }
+    return 0;
+  }
+
+  /**
+   * Removes sortedWALs.
+   * <p>
+   * Sorted WALs are WALs that are in the recovery directory and have already been used.
+   *
+   * @param swalog
+   *          Path to the WAL
+   */
+  @VisibleForTesting
+  void removeSortedWAL(Path swalog) {
+    log.debug("Removing sorted WAL " + swalog);
+    try {
+      if (!useTrash || !fs.moveToTrash(swalog)) {
+        fs.deleteRecursively(swalog);
+      }
+    } catch (FileNotFoundException ex) {
+      // ignored
+    } catch (IOException ioe) {
       try {
-        if (!useTrash || !fs.moveToTrash(swalog)) {
-          fs.deleteRecursively(swalog);
+        if (fs.exists(swalog)) {
+          log.error("Unable to delete sorted walog " + swalog + ": " + ioe);
         }
+      } catch (IOException ex) {
+        log.error("Unable to check for the existence of " + swalog, ex);
+      }
+    }
+  }
+
+  /**
+   * A wrapper method to check if the tserver using the WAL is still alive
+   * <p>
+   * Delegates to the deletion to #removeWALfromDownTserver if the ZK lock is gone or #askTserverToRemoveWAL if the server is known to still be alive
+   *
+   * @param entry
+   *          WAL information gathered
+   * @param conf
+   *          AccumuloConfiguration object
+   * @param status
+   *          GCStatus object
+   */
+  void removeWALFile(Entry<String,ArrayList<Path>> entry, AccumuloConfiguration conf, final GCStatus status) {
+    HostAndPort address = AddressUtil.parseAddress(entry.getKey(), false);
+    if (!holdsLock(address)) {
+      removeWALfromDownTserver(address, conf, entry, status);
+    } else {
+      askTserverToRemoveWAL(address, conf, entry, status);
+    }
+  }
+
+  /**
+   * Asks a currently running tserver to remove it's WALs.
+   * <p>
+   * A tserver has more information about whether a WAL is still being used for current mutations. It is safer to ask the tserver to remove the file instead of
+   * just relying on information in the metadata table.
+   *
+   * @param address
+   *          HostAndPort of the tserver
+   * @param conf
+   *          AccumuloConfiguration entry
+   * @param entry
+   *          WAL information gathered
+   * @param status
+   *          GCStatus object
+   */
+  @VisibleForTesting
+  void askTserverToRemoveWAL(HostAndPort address, AccumuloConfiguration conf, Entry<String,ArrayList<Path>> entry, final GCStatus status) {
+    firstSeenDead.remove(address);
+    Client tserver = null;
+    try {
+      tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
+      tserver.removeLogs(Tracer.traceInfo(), SystemCredentials.get().toThrift(instance), paths2strings(entry.getValue()));
+      log.debug("asked tserver to delete " + entry.getValue() + " from " + entry.getKey());
+      status.currentLog.deleted += entry.getValue().size();
+    } catch (TException e) {
+      log.warn("Error talking to " + address + ": " + e);
+    } finally {
+      if (tserver != null)
+        ThriftUtil.returnClient(tserver);
+    }
+  }
+
+  /**
+   * Get the configured wait period a server has to be dead.
+   * <p>
+   * The property is "gc.wal.dead.server.wait" defined in Property.GC_WAL_DEAD_SERVER_WAIT and is duration. Valid values include a unit with no space like
+   * 3600s, 5m or 2h.
+   *
+   * @param conf
+   *          AccumuloConfiguration
+   * @return long that represents the millis to wait
+   */
+  @VisibleForTesting
+  long getGCWALDeadServerWaitTime(AccumuloConfiguration conf) {
+    return conf.getTimeInMillis(Property.GC_WAL_DEAD_SERVER_WAIT);
+  }
+
+  /**
+   * Remove walogs associated with a tserver that no longer has a look.
+   * <p>
+   * There is configuration option, see #getGCWALDeadServerWaitTime, that defines how long a server must be "dead" before removing the associated write ahead
+   * log files. The intent to ensure that recovery succeeds for the tablet that were host on that tserver.
+   *
+   * @param address
+   *          HostAndPort of the tserver with no lock
+   * @param conf
+   *          AccumuloConfiguration to get that gc.wal.dead.server.wait info
+   * @param entry
+   *          The WALOG path
+   * @param status
+   *          GCStatus for tracking changes
+   */
+  @VisibleForTesting
+  void removeWALfromDownTserver(HostAndPort address, AccumuloConfiguration conf, Entry<String,ArrayList<Path>> entry, final GCStatus status) {
+    // tserver is down, only delete once configured time has passed
+    if (timeToDelete(address, getGCWALDeadServerWaitTime(conf))) {
+      for (Path path : entry.getValue()) {
+        log.debug("Removing WAL for offline server " + address + " at " + path);
+        try {
+          if (!useTrash || !fs.moveToTrash(path)) {
+            fs.deleteRecursively(path);
+          }
+          status.currentLog.deleted++;
+        } catch (FileNotFoundException ex) {
+          // ignored
+        } catch (IOException ex) {
+          log.error("Unable to delete wal " + path + ": " + ex);
+        }
+      }
+      firstSeenDead.remove(address);
+    } else {
+      log.debug("Not removing " + entry.getValue().size() + " WAL(s) for offline server since it has not be long enough: " + address);
+    }
+  }
+
+  /**
+   * Removes old style WAL entries.
+   * <p>
+   * The format for storing WAL info in the metadata table changed at some point, maybe the 1.5 release. Once that is known for sure and we no longer support
+   * upgrading from that version, this code should be removed
+   *
+   * @param entry
+   *          Map of empty server address to List of Paths
+   * @param status
+   *          GCStatus object
+   */
+  @VisibleForTesting
+  void removeOldStyleWAL(Entry<String,ArrayList<Path>> entry, final GCStatus status) {
+    // old-style log entry, just remove it
+    for (Path path : entry.getValue()) {
+      log.debug("Removing old-style WAL " + path);
+      try {
+        if (!useTrash || !fs.moveToTrash(path))
+          fs.deleteRecursively(path);
+        status.currentLog.deleted++;
       } catch (FileNotFoundException ex) {
         // ignored
-      } catch (IOException ioe) {
-        try {
-          if (fs.exists(swalog)) {
-            log.error("Unable to delete sorted walog " + swalog + ": " + ioe);
-          }
-        } catch (IOException ex) {
-          log.error("Unable to check for the existence of " + swalog, ex);
-        }
+      } catch (IOException ex) {
+        log.error("Unable to delete wal " + path + ": " + ex);
       }
     }
-
-    return 0;
   }
 
   /**
@@ -281,7 +421,8 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
-  private int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+  @VisibleForTesting
+  int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
       InterruptedException {
     int count = 0;
     Iterator<LogEntry> iterator = MetadataTableUtil.getLogEntries(SystemCredentials.get());
@@ -307,19 +448,22 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
 
-  private int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
+  @VisibleForTesting
+  int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
     return scanServers(ServerConstants.getWalDirs(), fileToServerMap, nameToFileMap);
   }
 
   // TODO Remove deprecation warning suppression when Hadoop1 support is dropped
   @SuppressWarnings("deprecation")
   /**
-   * Scans write-ahead log directories for logs. The maps passed in are
-   * populated with scan information.
+   * Scans write-ahead log directories for logs. The maps passed in are populated with scan information.
    *
-   * @param walDirs write-ahead log directories
-   * @param fileToServerMap map of file paths to servers
-   * @param nameToFileMap map of file names to paths
+   * @param walDirs
+   *          write-ahead log directories
+   * @param fileToServerMap
+   *          map of file paths to servers
+   * @param nameToFileMap
+   *          map of file names to paths
    * @return number of servers located (including those with no logs present)
    */
   int scanServers(String[] walDirs, Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
@@ -360,7 +504,8 @@ public class GarbageCollectWriteAheadLogs {
     return servers.size();
   }
 
-  private Map<String,Path> getSortedWALogs() throws IOException {
+  @VisibleForTesting
+  Map<String,Path> getSortedWALogs() throws IOException {
     return getSortedWALogs(ServerConstants.getRecoveryDirs());
   }
 
@@ -408,6 +553,43 @@ public class GarbageCollectWriteAheadLogs {
     } catch (IllegalArgumentException ex) {
       return false;
     }
+  }
+
+  /**
+   * Determine if TServer has been dead long enough to remove associated WALs.
+   * <p>
+   * Uses a map where the key is the address and the value is the time first seen dead. If the address is not in the map, it is added with the current system
+   * nanoTime. When the passed in wait time has elapsed, this method returns true and removes the key and value from the map.
+   *
+   * @param address
+   *          HostAndPort of dead tserver
+   * @param wait
+   *          long value of elapsed millis to wait
+   * @return boolean whether enough time elapsed since the server was first seen as dead.
+   */
+  @VisibleForTesting
+  protected boolean timeToDelete(HostAndPort address, long wait) {
+    // check whether the tserver has been dead long enough
+    Long firstSeen = firstSeenDead.get(address);
+    if (firstSeen != null) {
+      long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - firstSeen);
+      log.trace("Elapsed milliseconds since " + address + " first seen dead: " + elapsedTime);
+      return elapsedTime > wait;
+    } else {
+      log.trace("Adding server to firstSeenDead map " + address);
+      firstSeenDead.put(address, System.nanoTime());
+      return false;
+    }
+  }
+
+  /**
+   * Method to clear the map used in timeToDelete.
+   * <p>
+   * Useful for testing.
+   */
+  @VisibleForTesting
+  void clearFirstSeenDead() {
+    firstSeenDead.clear();
   }
 
 }
