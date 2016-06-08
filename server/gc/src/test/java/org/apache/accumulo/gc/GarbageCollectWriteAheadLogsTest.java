@@ -16,40 +16,32 @@
  */
 package org.apache.accumulo.gc;
 
-import static org.easymock.EasyMock.createMock;
+import com.google.common.net.HostAndPort;
+
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.gc.thrift.GCStatus;
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -60,12 +52,15 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.junit.Assert;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.gc.thrift.GCStatus;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,6 +68,29 @@ import org.junit.rules.TestName;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+
+import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.zookeeper.KeeperException;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map.Entry;
+
+import static org.easymock.EasyMock.createMock;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static java.lang.Thread.sleep;
+
+import java.io.FileOutputStream;
+
+import org.apache.commons.io.FileUtils;
+
+import java.util.concurrent.TimeUnit;
 
 public class GarbageCollectWriteAheadLogsTest {
   private static final long BLOCK_SIZE = 64000000L;
@@ -561,6 +579,292 @@ public class GarbageCollectWriteAheadLogsTest {
         Assert.assertTrue(row.endsWith(wal));
       } else {
         Assert.assertEquals(wal, row);
+      }
+    }
+  }
+
+  @Test
+  public void testTimeToDeleteTrue() throws InterruptedException {
+    HostAndPort address = HostAndPort.fromString("tserver1:9998");
+    long wait = AccumuloConfiguration.getTimeInMillis("1s");
+    gcwal.clearFirstSeenDead();
+    assertFalse("First call should be false and should store the first seen time", gcwal.timeToDelete(address, wait));
+    sleep(wait * 2);
+    assertTrue(gcwal.timeToDelete(address, wait));
+  }
+
+  @Test
+  public void testTimeToDeleteFalse() {
+    HostAndPort address = HostAndPort.fromString("tserver1:9998");
+    long wait = AccumuloConfiguration.getTimeInMillis("1h");
+    long t1, t2;
+    boolean ttd;
+    do {
+      t1 = System.nanoTime();
+      gcwal.clearFirstSeenDead();
+      assertFalse("First call should be false and should store the first seen time", gcwal.timeToDelete(address, wait));
+      ttd = gcwal.timeToDelete(address, wait);
+      t2 = System.nanoTime();
+    } while (TimeUnit.NANOSECONDS.toMillis(t2 - t1) > (wait / 2)); // as long as it took less than half of the configured wait
+
+    assertFalse(ttd);
+  }
+
+  @Test
+  public void testTimeToDeleteWithNullAddress() {
+    assertFalse(gcwal.timeToDelete(null, 123l));
+  }
+
+  /**
+   * Wrapper class with some helper methods
+   * <p>
+   * Just a wrapper around a LinkedHashMap that store method name and argument information. Also includes some convenience methods to make usage cleaner.
+   */
+  class MethodCalls {
+
+    private LinkedHashMap<String,List<Object>> mapWrapper;
+
+    public MethodCalls() {
+      mapWrapper = new LinkedHashMap<String,List<Object>>();
+    }
+
+    public void put(String methodName, Object... args) {
+      mapWrapper.put(methodName, Arrays.asList(args));
+    }
+
+    public int size() {
+      return mapWrapper.size();
+    }
+
+    public boolean hasOneEntry() {
+      return size() == 1;
+    }
+
+    public Map.Entry<String,List<Object>> getFirstEntry() {
+      return mapWrapper.entrySet().iterator().next();
+    }
+
+    public String getFirstEntryMethod() {
+      return getFirstEntry().getKey();
+    }
+
+    public List<Object> getFirstEntryArgs() {
+      return getFirstEntry().getValue();
+    }
+
+    public Object getFirstEntryArg(int number) {
+      return getFirstEntryArgs().get(number);
+    }
+  }
+
+  /**
+   * Partial mock of the GarbageCollectWriteAheadLogs for testing the removeFile method
+   * <p>
+   * There is a map named methodCalls that can be used to assert parameters on methods called inside the removeFile method
+   */
+  class GCWALPartialMock extends GarbageCollectWriteAheadLogs {
+
+    private boolean holdsLockBool = false;
+
+    public GCWALPartialMock(AccumuloServerContext ctx, VolumeManager vm, boolean useTrash, boolean holdLock) throws IOException {
+      super(ctx, vm, useTrash);
+      this.holdsLockBool = holdLock;
+    }
+
+    public MethodCalls methodCalls = new MethodCalls();
+
+    @Override
+    boolean holdsLock(HostAndPort addr) {
+      return holdsLockBool;
+    }
+
+    @Override
+    void removeWALfromDownTserver(HostAndPort address, AccumuloConfiguration conf, Entry<String,ArrayList<Path>> entry, final GCStatus status) {
+      methodCalls.put("removeWALFromDownTserver", address, conf, entry, status);
+    }
+
+    @Override
+    void askTserverToRemoveWAL(HostAndPort address, AccumuloConfiguration conf, Entry<String,ArrayList<Path>> entry, final GCStatus status) {
+      methodCalls.put("askTserverToRemoveWAL", address, conf, entry, status);
+    }
+
+    @Override
+    void removeOldStyleWAL(Entry<String,ArrayList<Path>> entry, final GCStatus status) {
+      methodCalls.put("removeOldStyleWAL", entry, status);
+    }
+
+    @Override
+    void removeSortedWAL(Path swalog) {
+      methodCalls.put("removeSortedWAL", swalog);
+    }
+  }
+
+  private GCWALPartialMock getGCWALForRemoveFileTest(GCStatus s, final boolean locked) throws IOException {
+    AccumuloServerContext ctx = new AccumuloServerContext(new ServerConfigurationFactory(new MockInstance("accumulo")));
+    return new GCWALPartialMock(ctx, VolumeManagerImpl.get(), false, locked);
+  }
+
+  private Map<String,Path> getEmptyMap() {
+    return new HashMap<String,Path>();
+  }
+
+  private Map<String,ArrayList<Path>> getServerToFileMap1(String key, Path singlePath) {
+    Map<String,ArrayList<Path>> serverToFileMap = new HashMap<String,ArrayList<Path>>();
+    serverToFileMap.put(key, new ArrayList<Path>(Arrays.asList(singlePath)));
+    return serverToFileMap;
+  }
+
+  @Test
+  public void testRemoveFilesWithOldStyle() throws IOException {
+    GCStatus status = new GCStatus();
+    GarbageCollectWriteAheadLogs realGCWAL = getGCWALForRemoveFileTest(status, true);
+    Path p1 = new Path("hdfs://localhost:9000/accumulo/wal/tserver1+9997/" + UUID.randomUUID().toString());
+    Map<String,ArrayList<Path>> serverToFileMap = getServerToFileMap1("", p1);
+
+    realGCWAL.removeFiles(getEmptyMap(), serverToFileMap, getEmptyMap(), status);
+
+    MethodCalls calls = ((GCWALPartialMock) realGCWAL).methodCalls;
+    assertEquals("Only one method should have been called", 1, calls.size());
+    assertEquals("Method should be removeOldStyleWAL", "removeOldStyleWAL", calls.getFirstEntryMethod());
+    Entry<String,ArrayList<Path>> firstServerToFileMap = serverToFileMap.entrySet().iterator().next();
+    assertEquals("First param should be empty", firstServerToFileMap, calls.getFirstEntryArg(0));
+    assertEquals("Second param should be the status", status, calls.getFirstEntryArg(1));
+  }
+
+  @Test
+  public void testRemoveFilesWithDeadTservers() throws IOException {
+    GCStatus status = new GCStatus();
+    GarbageCollectWriteAheadLogs realGCWAL = getGCWALForRemoveFileTest(status, false);
+    String server = "tserver1+9997";
+    Path p1 = new Path("hdfs://localhost:9000/accumulo/wal/" + server + "/" + UUID.randomUUID().toString());
+    Map<String,ArrayList<Path>> serverToFileMap = getServerToFileMap1(server, p1);
+
+    realGCWAL.removeFiles(getEmptyMap(), serverToFileMap, getEmptyMap(), status);
+
+    MethodCalls calls = ((GCWALPartialMock) realGCWAL).methodCalls;
+    assertEquals("Only one method should have been called", 1, calls.size());
+    assertEquals("Method should be removeWALfromDownTserver", "removeWALFromDownTserver", calls.getFirstEntryMethod());
+    assertEquals("First param should be address", HostAndPort.fromString(server.replaceAll("[+]", ":")), calls.getFirstEntryArg(0));
+    assertTrue("Second param should be an AccumuloConfiguration", calls.getFirstEntryArg(1) instanceof AccumuloConfiguration);
+    Entry<String,ArrayList<Path>> firstServerToFileMap = serverToFileMap.entrySet().iterator().next();
+    assertEquals("Third param should be the entry", firstServerToFileMap, calls.getFirstEntryArg(2));
+    assertEquals("Forth param should be the status", status, calls.getFirstEntryArg(3));
+  }
+
+  @Test
+  public void testRemoveFilesWithLiveTservers() throws IOException {
+    GCStatus status = new GCStatus();
+    GarbageCollectWriteAheadLogs realGCWAL = getGCWALForRemoveFileTest(status, true);
+    String server = "tserver1+9997";
+    Path p1 = new Path("hdfs://localhost:9000/accumulo/wal/" + server + "/" + UUID.randomUUID().toString());
+    Map<String,ArrayList<Path>> serverToFileMap = getServerToFileMap1(server, p1);
+
+    realGCWAL.removeFiles(getEmptyMap(), serverToFileMap, getEmptyMap(), status);
+
+    MethodCalls calls = ((GCWALPartialMock) realGCWAL).methodCalls;
+    assertEquals("Only one method should have been called", 1, calls.size());
+    assertEquals("Method should be askTserverToRemoveWAL", "askTserverToRemoveWAL", calls.getFirstEntryMethod());
+    assertEquals("First param should be address", HostAndPort.fromString(server.replaceAll("[+]", ":")), calls.getFirstEntryArg(0));
+    assertTrue("Second param should be an AccumuloConfiguration", calls.getFirstEntryArg(1) instanceof AccumuloConfiguration);
+    Entry<String,ArrayList<Path>> firstServerToFileMap = serverToFileMap.entrySet().iterator().next();
+    assertEquals("Third param should be the entry", firstServerToFileMap, calls.getFirstEntryArg(2));
+    assertEquals("Forth param should be the status", status, calls.getFirstEntryArg(3));
+  }
+
+  @Test
+  public void testRemoveFilesRemovesSortedWALs() throws IOException {
+    GCStatus status = new GCStatus();
+    GarbageCollectWriteAheadLogs realGCWAL = getGCWALForRemoveFileTest(status, true);
+    Map<String,ArrayList<Path>> serverToFileMap = new HashMap<String,ArrayList<Path>>();
+    Map<String,Path> sortedWALogs = new HashMap<String,Path>();
+    Path p1 = new Path("hdfs://localhost:9000/accumulo/wal/tserver1+9997/" + UUID.randomUUID().toString());
+    sortedWALogs.put("junk", p1); // TODO: see if this key is actually used here, maybe can be removed
+
+    realGCWAL.removeFiles(getEmptyMap(), serverToFileMap, sortedWALogs, status);
+    MethodCalls calls = ((GCWALPartialMock) realGCWAL).methodCalls;
+    assertEquals("Only one method should have been called", 1, calls.size());
+    assertEquals("Method should be removeSortedWAL", "removeSortedWAL", calls.getFirstEntryMethod());
+    assertEquals("First param should be the Path", p1, calls.getFirstEntryArg(0));
+
+  }
+
+  static String GCWAL_DEAD_DIR = "gcwal-collect-deadtserver";
+  static String GCWAL_DEAD_TSERVER = "tserver1";
+  static String GCWAL_DEAD_TSERVER_PORT = "9995";
+  static String GCWAL_DEAD_TSERVER_COLLECT_FILE = UUID.randomUUID().toString();
+
+  class GCWALDeadTserverCollectMock extends GarbageCollectWriteAheadLogs {
+
+    public GCWALDeadTserverCollectMock(AccumuloServerContext ctx, VolumeManager vm, boolean useTrash) throws IOException {
+      super(ctx, vm, useTrash);
+    }
+
+    @Override
+    boolean holdsLock(HostAndPort addr) {
+      // tries use zookeeper
+      return false;
+    }
+
+    @Override
+    Map<String,Path> getSortedWALogs() {
+      return new HashMap<String,Path>();
+    }
+
+    @Override
+    int scanServers(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
+      String sep = File.separator;
+      Path p = new Path(System.getProperty("user.dir") + sep + "target" + sep + GCWAL_DEAD_DIR + sep + GCWAL_DEAD_TSERVER + "+" + GCWAL_DEAD_TSERVER_PORT + sep
+          + GCWAL_DEAD_TSERVER_COLLECT_FILE);
+      fileToServerMap.put(p, GCWAL_DEAD_TSERVER + ":" + GCWAL_DEAD_TSERVER_PORT);
+      nameToFileMap.put(GCWAL_DEAD_TSERVER_COLLECT_FILE, p);
+      return 1;
+    }
+
+    @Override
+    int removeMetadataEntries(Map<String,Path> nameToFileMap, Map<String,Path> sortedWALogs, GCStatus status) throws IOException, KeeperException,
+        InterruptedException {
+      return 0;
+    }
+
+    long getGCWALDeadServerWaitTime(AccumuloConfiguration conf) {
+      // tries to use zookeeper
+      return 1000l;
+    }
+  }
+
+  @Test
+  public void testCollectWithDeadTserver() throws IOException, InterruptedException {
+    Instance i = new MockInstance();
+    AccumuloServerContext ctx = new AccumuloServerContext(new ServerConfigurationFactory(i));
+    File walDir = new File(System.getProperty("user.dir") + File.separator + "target" + File.separator + GCWAL_DEAD_DIR);
+    File walFileDir = new File(walDir + File.separator + GCWAL_DEAD_TSERVER + "+" + GCWAL_DEAD_TSERVER_PORT);
+    File walFile = new File(walFileDir + File.separator + GCWAL_DEAD_TSERVER_COLLECT_FILE);
+    if (!walFileDir.exists()) {
+      assertTrue("Directory was made", walFileDir.mkdirs());
+      new FileOutputStream(walFile).close();
+    }
+
+    try {
+      VolumeManager vm = VolumeManagerImpl.getLocal(walDir.toString());
+      GarbageCollectWriteAheadLogs gcwal2 = new GCWALDeadTserverCollectMock(ctx, vm, false);
+      GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
+
+      gcwal2.collect(status);
+
+      assertTrue("File should not be deleted", walFile.exists());
+      assertEquals("Should have one candidate", 1, status.lastLog.getCandidates());
+      assertEquals("Should not have deleted that file", 0, status.lastLog.getDeleted());
+
+      sleep(2000);
+      gcwal2.collect(status);
+
+      assertFalse("File should be gone", walFile.exists());
+      assertEquals("Should have one candidate", 1, status.lastLog.getCandidates());
+      assertEquals("Should have deleted that file", 1, status.lastLog.getDeleted());
+
+    } finally {
+      if (walDir.exists()) {
+        FileUtils.deleteDirectory(walDir);
       }
     }
   }
