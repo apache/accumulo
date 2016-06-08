@@ -299,7 +299,7 @@ public class TServerUtils {
         try {
           finalServer.serve();
         } catch (Error e) {
-          Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.");
+          Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.", 1);
         }
       }
     };

@@ -678,7 +678,7 @@ public class SimpleGarbageCollector implements Iface {
     LockWatcher lockWatcher = new LockWatcher() {
       @Override
       public void lostLock(LockLossReason reason) {
-        Halt.halt("GC lock in zookeeper lost (reason = " + reason + "), exiting!");
+        Halt.halt("GC lock in zookeeper lost (reason = " + reason + "), exiting!", 1);
       }
 
       @Override
