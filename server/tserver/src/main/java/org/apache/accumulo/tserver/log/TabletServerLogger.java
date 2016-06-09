@@ -232,7 +232,7 @@ public class TabletServerLogger {
       } else {
         log.error("Repeatedly failed to create WAL. Going to exit tabletserver.", t);
         // We didn't have retries or we failed too many times.
-        Halt.halt("Experienced too many errors creating WALs, giving up");
+        Halt.halt("Experienced too many errors creating WALs, giving up", 1);
       }
 
       // The exception will trigger the log creation to be re-attempted.

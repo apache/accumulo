@@ -2358,7 +2358,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
         @Override
         public void lostLock(final LockLossReason reason) {
-          Halt.halt(0, new Runnable() {
+          Halt.halt(serverStopRequested ? 0 : 1, new Runnable() {
             @Override
             public void run() {
               if (!serverStopRequested)
@@ -2370,7 +2370,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
         @Override
         public void unableToMonitorLockNode(final Throwable e) {
-          Halt.halt(0, new Runnable() {
+          Halt.halt(1, new Runnable() {
             @Override
             public void run() {
               log.error("Lost ability to monitor tablet server lock, exiting.", e);
