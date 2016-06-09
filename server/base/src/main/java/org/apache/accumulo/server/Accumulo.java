@@ -168,7 +168,7 @@ public class Accumulo {
     logConfigWatcher.start();
 
     // Makes sure the log-forwarding to the monitor is configured
-    int logPort[] = conf.getPort(Property.MONITOR_LOG4J_PORT);
+    int[] logPort = conf.getPort(Property.MONITOR_LOG4J_PORT);
     System.setProperty("org.apache.accumulo.core.host.log.port", Integer.toString(logPort[0]));
 
     log.info(application + " starting");
