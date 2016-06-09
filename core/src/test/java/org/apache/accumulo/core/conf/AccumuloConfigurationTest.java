@@ -139,4 +139,12 @@ public class AccumuloConfigurationTest {
     assertEquals(65535, ports[2]);
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testGetPortInvalidSyntax() {
+    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    ConfigurationCopy cc = new ConfigurationCopy(c);
+    cc.set(Property.TSERV_CLIENTPORT, "[65533,65538]");
+    cc.getPort(Property.TSERV_CLIENTPORT);
+  }
+
 }
