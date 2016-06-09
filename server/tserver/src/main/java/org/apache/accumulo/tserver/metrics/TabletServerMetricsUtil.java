@@ -48,10 +48,10 @@ public class TabletServerMetricsUtil {
     return result;
   }
 
-  public long getIngest() {
-    long result = 0;
+  public double getIngest() {
+    double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets()) {
-      result += tablet.getNumEntriesInMemory();
+      result += tablet.ingestRate();
     }
     return result;
   }
