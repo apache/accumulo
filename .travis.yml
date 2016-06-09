@@ -18,11 +18,15 @@ notifications:
     channels:
       - "chat.freenode.net#accumulo"
     use_notice: true
+    on_success: change
+    on_failure: always
+    template:
+      - "%{result} %{repository_slug} %{branch} (%{build_url}): %{message}"
 # speed up builds; don't use with install
 cache:
   directories:
     - $HOME/.m2
-# skip pre-fetch of maven dependencies
+# skip pre-fetch of maven dependencies by making install step a NOOP
 install: true
 jdk:
   - oraclejdk8
