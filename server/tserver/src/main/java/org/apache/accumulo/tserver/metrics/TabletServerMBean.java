@@ -38,7 +38,7 @@ public interface TabletServerMBean {
 
   long getQueries();
 
-  long getIngest();
+  double getIngest();
 
   long getTotalMinorCompactions();
 
