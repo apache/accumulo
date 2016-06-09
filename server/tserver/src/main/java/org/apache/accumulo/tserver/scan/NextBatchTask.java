@@ -88,7 +88,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     } catch (TooManyFilesException | SampleNotPresentException e) {
       addResult(e);
     } catch (OutOfMemoryError ome) {
-      Halt.halt("Ran out of memory scanning " + scanSession.extent + " for " + scanSession.client);
+      Halt.halt("Ran out of memory scanning " + scanSession.extent + " for " + scanSession.client, 1);
       addResult(ome);
     } catch (Throwable e) {
       log.warn("exception while scanning tablet " + (scanSession == null ? "(unknown)" : scanSession.extent), e);
