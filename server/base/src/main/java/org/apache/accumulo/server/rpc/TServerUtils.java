@@ -522,6 +522,7 @@ public class TServerUtils {
             serverAddress = createNonBlockingServer(address, processor, protocolFactory, serverName, threadName, numThreads, numSTThreads,
                 timeBetweenThreadChecks, maxMessageSize);
         }
+        break;
       } catch (TTransportException e) {
         log.warn("Error attempting to create server at {}. Error: {}", address.toString(), e.getMessage());
       }
