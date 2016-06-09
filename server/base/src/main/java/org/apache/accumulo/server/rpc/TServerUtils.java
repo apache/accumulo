@@ -26,7 +26,6 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -84,7 +83,7 @@ public class TServerUtils {
    */
   public static HostAndPort[] getHostAndPorts(String hostname, int[] ports) {
     HostAndPort[] addresses = new HostAndPort[ports.length];
-    for (int i = 0; i <= ports.length; i++) {
+    for (int i = 0; i < ports.length; i++) {
       addresses[i] = HostAndPort.fromParts(hostname, ports[i]);
     }
     return addresses;
@@ -154,12 +153,13 @@ public class TServerUtils {
           maxMessageSize, service.getServerSslParams(), service.getSaslParams(), service.getClientTimeoutInMillis(), addresses);
     } catch (TTransportException e) {
       if (portSearch) {
+        HostAndPort last = addresses[addresses.length - 1];
         // Attempt to allocate a port outside of the specified port property
-        Random random = new Random();
-        for (int i = 0; i < 1000; i++) {
-          int port = 1024 + random.nextInt(65535 - 1024);
+        // Search sequentially over the next 1000 ports
+        for (int i = last.getPort() + 1; i < last.getPort() + 1001; i++) {
+          int port = i;
           if (port > 65535) {
-            port = 1024 + port % (65535 - 1024);
+            break;
           }
           try {
             HostAndPort addr = HostAndPort.fromParts(hostname, port);
