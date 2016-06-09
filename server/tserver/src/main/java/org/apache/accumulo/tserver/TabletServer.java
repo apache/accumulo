@@ -3832,11 +3832,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   @Override
   public long getIngest() {
     if (this.isEnabled()) {
-      long result = 0;
+      double result = 0;
       for (Tablet tablet : Collections.unmodifiableCollection(onlineTablets.values())) {
-        result += tablet.getNumEntriesInMemory();
+        result += tablet.ingestRate();
       }
-      return result;
+      return (long) result;
     }
     return 0;
   }
