@@ -65,7 +65,7 @@ public class TabletServerMBeanImpl extends AbstractMetricsImpl implements Tablet
   }
 
   @Override
-  public long getIngest() {
+  public double getIngest() {
     if (isEnabled()) {
       return util.getIngest();
     }
