@@ -74,12 +74,12 @@ public class TServerUtils {
   public static final ThreadLocal<String> clientAddress = new ThreadLocal<String>();
 
   /**
-   * 
+   *
    * @param hostname
    *          name of the host
    * @param ports
    *          array of ports
-   * @return
+   * @return array of HostAndPort objects
    */
   public static HostAndPort[] getHostAndPorts(String hostname, int[] ports) {
     HostAndPort[] addresses = new HostAndPort[ports.length];
