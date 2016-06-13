@@ -42,6 +42,15 @@ public class Main {
 
   public static void main(final String[] args) {
     try {
+      // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when using
+      // the VFSClassLoader with jars in HDFS.
+      ClassLoader loader = getClassLoader();
+      Class<?> confClass = AccumuloClassLoader.getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
+      Object conf = confClass.newInstance();
+      Method getClassByNameOrNullMethod = conf.getClass().getMethod("getClassByNameOrNull", String.class);
+      getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
+      getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
+
       if (args.length == 0) {
         printUsage();
         System.exit(1);
@@ -49,7 +58,7 @@ public class Main {
 
       // determine whether a keyword was used or a class name, and execute it with the remaining args
       String keywordOrClassName = args[0];
-      KeywordExecutable keywordExec = getExecutables(getClassLoader()).get(keywordOrClassName);
+      KeywordExecutable keywordExec = getExecutables(loader).get(keywordOrClassName);
       if (keywordExec != null) {
         execKeyword(keywordExec, stripArgs(args, 1));
       } else {
@@ -67,6 +76,7 @@ public class Main {
       try {
         ClassLoader clTmp = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
         classLoader = clTmp;
+        Thread.currentThread().setContextClassLoader(classLoader);
       } catch (ClassNotFoundException | IOException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
           | SecurityException e) {
         log.error("Problem initializing the class loader", e);
