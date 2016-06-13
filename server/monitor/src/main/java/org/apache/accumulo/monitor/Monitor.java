@@ -480,6 +480,7 @@ public class Monitor {
         if (server.isUsingSsl())
           server.addServlet(ShellServlet.class, "/shell");
         server.start();
+        break;
       } catch (Throwable ex) {
         log.error("Unable to start embedded web server", ex);
       }
