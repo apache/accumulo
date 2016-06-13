@@ -30,15 +30,18 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 #
 # Find the system context directory in HDFS
 #
-SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_CONF_DIR/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; s|[^/]+$||; print $ARGV[1]')
+SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_CONF_DIR/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; s/,.+$//; s|[^/]+$||; print $ARGV[1]')
 
 if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]
 then
-   echo "Your accumulo-site.xml file is not set up for the HDFS Classloader. Please add the following to your accumulo-site.xml file:"
+   echo "Your accumulo-site.xml file is not set up for the HDFS Classloader. Please add the following to your accumulo-site.xml file where ##CLASSPATH## is one of the following formats:"
+   echo "A single directory: hdfs://host:port/directory/"
+   echo "A single directory with a regex: hdfs://host:port/directory/.*.jar"
+   echo "Multiple directories: hdfs://host:port/directory/.*.jar,hdfs://host:port/directory2/"
    echo ""
    echo "<property>"
    echo "   <name>general.vfs.classpaths</name>"
-   echo "   <value>hdfs://host:port/dir</value>"
+   echo "   <value>##CLASSPATH##</value>"
    echo "   <description>location of the jars for the default (system) context</description>"
    echo "</property>"
    exit 1
@@ -50,6 +53,10 @@ fi
 "$HADOOP_PREFIX/bin/hadoop" fs -ls "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 if [[ $? != 0 ]]; then
    "$HADOOP_PREFIX/bin/hadoop" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
+   if [[ $? != 0 ]]; then
+      echo "Unable to create classpath directory at $SYSTEM_CONTEXT_HDFS_DIR"
+      exit 1
+   fi
 fi
 
 #
@@ -69,12 +76,14 @@ REP=$(( NUM_SLAVES / 50 ))
 "$HADOOP_PREFIX/bin/hadoop" fs -setrep -R $REP "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 
 #
-# We need two of the jars in lib, copy them back out and remove them from the system context dir
+# We need some of the jars in lib, copy them back out and remove them from the system context dir
 #
 "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
-"$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar"  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
-"$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar"  > /dev/null
 for f in $(grep -v '^#' "$ACCUMULO_CONF_DIR/slaves")
 do
   rsync -ra --delete "$ACCUMULO_HOME" $(dirname "$ACCUMULO_HOME")
