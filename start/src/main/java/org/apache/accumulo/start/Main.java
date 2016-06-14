@@ -42,6 +42,32 @@ public class Main {
 
   public static void main(final String[] args) {
     try {
+      // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when using
+      // the VFSClassLoader with jars in HDFS.
+      ClassLoader loader = getClassLoader();
+      Class<?> confClass = null;
+      try {
+        confClass = AccumuloClassLoader.getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
+      } catch (ClassNotFoundException e) {
+        log.error("Unable to find Hadoop Configuration class on classpath, check configuration.", e);
+        System.exit(1);
+      }
+      Object conf = null;
+      try {
+        conf = confClass.newInstance();
+      } catch (Exception e) {
+        log.error("Error creating new instance of Hadoop Configuration", e);
+        System.exit(1);
+      }
+      try {
+        Method getClassByNameOrNullMethod = conf.getClass().getMethod("getClassByNameOrNull", String.class);
+        getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
+        getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
+      } catch (Exception e) {
+        log.error("Error pre-loading JobConf and JobConfigurable classes, VFS classloader with " + "system classes in HDFS may not work correctly", e);
+        System.exit(1);
+      }
+
       if (args.length == 0) {
         printUsage();
         System.exit(1);
@@ -49,7 +75,7 @@ public class Main {
 
       // determine whether a keyword was used or a class name, and execute it with the remaining args
       String keywordOrClassName = args[0];
-      KeywordExecutable keywordExec = getExecutables(getClassLoader()).get(keywordOrClassName);
+      KeywordExecutable keywordExec = getExecutables(loader).get(keywordOrClassName);
       if (keywordExec != null) {
         execKeyword(keywordExec, stripArgs(args, 1));
       } else {
@@ -62,11 +88,12 @@ public class Main {
     }
   }
 
-  public static ClassLoader getClassLoader() {
+  public static synchronized ClassLoader getClassLoader() {
     if (classLoader == null) {
       try {
         ClassLoader clTmp = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
         classLoader = clTmp;
+        Thread.currentThread().setContextClassLoader(classLoader);
       } catch (ClassNotFoundException | IOException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
           | SecurityException e) {
         log.error("Problem initializing the class loader", e);
@@ -76,7 +103,7 @@ public class Main {
     return classLoader;
   }
 
-  public static Class<?> getVFSClassLoader() throws IOException, ClassNotFoundException {
+  public static synchronized Class<?> getVFSClassLoader() throws IOException, ClassNotFoundException {
     if (vfsClassLoader == null) {
       Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
       Class<?> vfsClassLoaderTmp = AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
@@ -183,7 +210,7 @@ public class Main {
     System.out.println("accumulo " + kwString + " | <accumulo class> args");
   }
 
-  static Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {
+  static synchronized Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {
     if (servicesMap == null) {
       servicesMap = checkDuplicates(ServiceLoader.load(KeywordExecutable.class, cl));
     }
