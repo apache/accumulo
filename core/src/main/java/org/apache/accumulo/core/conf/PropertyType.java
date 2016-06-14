@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.commons.lang.math.IntRange;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -254,6 +255,7 @@ public enum PropertyType {
   public static class PortRange extends Matches {
 
     private static final Logger log = LoggerFactory.getLogger(PortRange.class);
+    private static final IntRange VALID_RANGE = new IntRange(1024, 65535);
 
     public PortRange(final String pattern) {
       super(pattern);
@@ -277,14 +279,9 @@ public enum PropertyType {
       int idx = portRange.indexOf('-');
       if (idx != -1) {
         int low = Integer.parseInt(portRange.substring(0, idx));
-        if (low < 1024) {
-          log.error("Invalid port number for low end of the range, using 1024");
-          low = 1024;
-        }
         int high = Integer.parseInt(portRange.substring(idx + 1));
-        if (high > 65535) {
-          log.error("Invalid port number for high end of the range, using 65535");
-          high = 65535;
+        if (!VALID_RANGE.containsInteger(low) || !VALID_RANGE.containsInteger(high) || !(low <= high)) {
+          throw new IllegalArgumentException("Invalid port range specified, only 1024 to 65535 supported.");
         }
         return new Pair<Integer,Integer>(low, high);
       }
