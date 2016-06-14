@@ -374,15 +374,17 @@ public class Admin implements KeywordExecutable {
     final String zTServerRoot = getTServersZkPath(instance);
     final ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     for (String server : servers) {
-      HostAndPort address = AddressUtil.parseAddress(server, context.getConfiguration().getPort(Property.TSERV_CLIENTPORT));
-      final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
-      log.info("Stopping server " + finalServer);
-      MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          client.shutdownTabletServer(Tracer.traceInfo(), context.rpcCreds(), finalServer, force);
-        }
-      });
+      for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
+        HostAndPort address = AddressUtil.parseAddress(server, port);
+        final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
+        log.info("Stopping server " + finalServer);
+        MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
+          @Override
+          public void execute(MasterClientService.Client client) throws Exception {
+            client.shutdownTabletServer(Tracer.traceInfo(), context.rpcCreds(), finalServer, force);
+          }
+        });
+      }
     }
   }
 

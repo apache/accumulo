@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -231,10 +232,22 @@ public class TraceServer implements Watcher {
     // make sure we refer to the final variable from now on.
     connector = null;
 
-    int port = conf.getPort(Property.TRACE_PORT);
-    final ServerSocket sock = ServerSocketChannel.open().socket();
-    sock.setReuseAddress(true);
-    sock.bind(new InetSocketAddress(hostname, port));
+    int ports[] = conf.getPort(Property.TRACE_PORT);
+    ServerSocket sock = null;
+    for (int port : ports) {
+      ServerSocket s = ServerSocketChannel.open().socket();
+      s.setReuseAddress(true);
+      try {
+        s.bind(new InetSocketAddress(hostname, port));
+        sock = s;
+        break;
+      } catch (Exception e) {
+        log.warn("Unable to start trace server on port {}", port);
+      }
+    }
+    if (null == sock) {
+      throw new RuntimeException("Unable to start trace server on configured ports: " + Arrays.toString(ports));
+    }
     final TServerTransport transport = new TServerSocket(sock);
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.processor(new Processor<Iface>(new Receiver()));
