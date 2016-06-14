@@ -115,7 +115,7 @@ public class AccumuloConfigurationTest {
     assertEquals(9999, ports[2]);
   }
 
-  @Test
+  @Test(expected = IllegalArgumentException.class)
   public void testGetPortRangeInvalidLow() {
     AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(c);
@@ -127,7 +127,7 @@ public class AccumuloConfigurationTest {
     assertEquals(1026, ports[2]);
   }
 
-  @Test
+  @Test(expected = IllegalArgumentException.class)
   public void testGetPortRangeInvalidHigh() {
     AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(c);
