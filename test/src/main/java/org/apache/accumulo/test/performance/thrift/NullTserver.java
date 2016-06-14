@@ -244,7 +244,7 @@ public class NullTserver {
     @Parameter(names = "--table", description = "table to adopt", required = true)
     String tableName = null;
     @Parameter(names = "--port", description = "port number to use")
-    int port = DefaultConfiguration.getInstance().getPort(Property.TSERV_CLIENTPORT);
+    int port = DefaultConfiguration.getInstance().getPort(Property.TSERV_CLIENTPORT)[0];
   }
 
   public static void main(String[] args) throws Exception {
@@ -258,8 +258,8 @@ public class NullTserver {
     TransactionWatcher watcher = new TransactionWatcher();
     ThriftClientHandler tch = new ThriftClientHandler(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())), watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
-    TServerUtils.startTServer(context.getConfiguration(), HostAndPort.fromParts("0.0.0.0", opts.port), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
-        "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1);
+    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
+        "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 

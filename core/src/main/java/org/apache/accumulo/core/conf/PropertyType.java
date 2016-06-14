@@ -24,7 +24,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -56,8 +59,10 @@ public enum PropertyType {
           + "Examples of valid host lists are 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
-  PORT("port", Predicates.or(new Bounds(1024, 65535), in(true, "0")),
-      "An positive integer in the range 1024-65535, not already in use or specified elsewhere in the configuration"),
+  @SuppressWarnings("unchecked")
+  PORT("port", Predicates.or(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}")),
+      "An positive integer in the range 1024-65535 (not already in use or specified elsewhere in the configuration),\n"
+          + "zero to indicate any open ephemeral port, or a range of positive integers specified as M-N"),
 
   COUNT("count", new Bounds(0, Integer.MAX_VALUE), "A non-negative integer in the range of 0-" + Integer.MAX_VALUE),
 
@@ -237,7 +242,7 @@ public enum PropertyType {
 
   private static class Matches implements Predicate<String> {
 
-    private final Pattern pattern;
+    protected final Pattern pattern;
 
     public Matches(final String pattern) {
       this(pattern, Pattern.DOTALL);
@@ -258,6 +263,48 @@ public enum PropertyType {
       // we can add checks for not null for required properties with Predicates.and(Predicates.notNull(), ...),
       // or we can stop assuming that null is always okay for a Matches predicate, and do that explicitly with Predicates.or(Predicates.isNull(), ...)
       return input == null || pattern.matcher(input).matches();
+    }
+
+  }
+
+  public static class PortRange extends Matches {
+
+    private static final Logger log = LoggerFactory.getLogger(PortRange.class);
+
+    public PortRange(final String pattern) {
+      super(pattern);
+    }
+
+    @Override
+    public boolean apply(final String input) {
+      if (super.apply(input)) {
+        try {
+          PortRange.parse(input);
+          return true;
+        } catch (IllegalArgumentException e) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+
+    public static Pair<Integer,Integer> parse(String portRange) {
+      int idx = portRange.indexOf('-');
+      if (idx != -1) {
+        int low = Integer.parseInt(portRange.substring(0, idx));
+        if (low < 1024) {
+          log.error("Invalid port number for low end of the range, using 1024");
+          low = 1024;
+        }
+        int high = Integer.parseInt(portRange.substring(idx + 1));
+        if (high > 65535) {
+          log.error("Invalid port number for high end of the range, using 65535");
+          high = 65535;
+        }
+        return new Pair<Integer,Integer>(low, high);
+      }
+      throw new IllegalArgumentException("Invalid port range specification, must use M-N notation.");
     }
 
   }
