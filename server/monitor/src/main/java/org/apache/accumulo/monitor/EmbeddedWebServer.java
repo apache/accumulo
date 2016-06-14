@@ -129,4 +129,8 @@ public class EmbeddedWebServer {
   public boolean isUsingSsl() {
     return usingSsl;
   }
+
+  public boolean isRunning() {
+    return server.isRunning();
+  }
 }

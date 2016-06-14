@@ -30,6 +30,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.PropertyType.PortRange;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -322,18 +324,38 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    *           if the property is of the wrong type
    * @see #getTimeInMillis(String)
    */
-  public int getPort(Property property) {
+  public int[] getPort(Property property) {
     checkType(property, PropertyType.PORT);
 
     String portString = get(property);
-    int port = Integer.parseInt(portString);
-    if (port != 0) {
-      if (port < 1024 || port > 65535) {
-        log.error("Invalid port number " + port + "; Using default " + property.getDefaultValue());
-        port = Integer.parseInt(property.getDefaultValue());
+    int[] ports = null;
+    try {
+      Pair<Integer,Integer> portRange = PortRange.parse(portString);
+      int low = portRange.getFirst();
+      int high = portRange.getSecond();
+      ports = new int[high - low + 1];
+      for (int i = 0, j = low; j <= high; i++, j++) {
+        ports[i] = j;
+      }
+    } catch (IllegalArgumentException e) {
+      ports = new int[1];
+      try {
+        int port = Integer.parseInt(portString);
+        if (port != 0) {
+          if (port < 1024 || port > 65535) {
+            log.error("Invalid port number " + port + "; Using default " + property.getDefaultValue());
+            ports[0] = Integer.parseInt(property.getDefaultValue());
+          } else {
+            ports[0] = port;
+          }
+        } else {
+          ports[0] = port;
+        }
+      } catch (NumberFormatException e1) {
+        throw new IllegalArgumentException("Invalid port syntax. Must be a single positive integers or a range (M-N) of positive integers");
       }
     }
-    return port;
+    return ports;
   }
 
   /**

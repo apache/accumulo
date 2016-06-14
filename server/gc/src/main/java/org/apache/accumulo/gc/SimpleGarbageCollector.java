@@ -91,6 +91,7 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.RpcWrapper;
+import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -705,13 +706,15 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     } else {
       processor = new Processor<Iface>(rpcProxy);
     }
-    int port = getConfiguration().getPort(Property.GC_PORT);
+    int port[] = getConfiguration().getPort(Property.GC_PORT);
+    HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
-    HostAndPort result = HostAndPort.fromParts(opts.getAddress(), port);
-    log.debug("Starting garbage collector listening on " + result);
     try {
-      return TServerUtils.startTServer(getConfiguration(), result, getThriftServerType(), processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
-          getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, getServerSslParams(), getSaslParams(), 0).address;
+      ServerAddress server = TServerUtils.startTServer(getConfiguration(), getThriftServerType(), processor, this.getClass().getSimpleName(),
+          "GC Monitor Service", 2, getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, getServerSslParams(),
+          getSaslParams(), 0, addresses);
+      log.debug("Starting garbage collector listening on " + server.address);
+      return server.address;
     } catch (Exception ex) {
       // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
       log.error("FATAL:", ex);

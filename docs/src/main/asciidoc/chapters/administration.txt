@@ -63,7 +63,10 @@ In addition, the user can provide +0+ and an ephemeral port will be chosen inste
 ephemeral port is likely to be unique and not already bound. Thus, configuring ports to
 use +0+ instead of an explicit value, should, in most cases, work around any issues of
 running multiple distinct Accumulo instances (or any other process which tries to use the
-same default ports) on the same hardware.
+same default ports) on the same hardware. Finally, the *.port.client properties will work
+with the port range syntax (M-N) allowing the user to specify a range of ports for the
+service to attempt to bind. The ports in the range will be tried in a 1-up manner starting
+at the low end of the range to, and including, the high end of the range.
 
 === Installation
 Choose a directory for the Accumulo installation. This directory will be referenced
