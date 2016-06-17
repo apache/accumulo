@@ -101,6 +101,36 @@ The Accumulo project maintains binary compatibility across this API within a
 major release, as defined in the Java Language Specification 3rd ed. Starting
 with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][12]
 
+Export Control
+--------------
+
+This distribution includes cryptographic software. The country in which you
+currently reside may have restrictions on the import, possession, use, and/or
+re-export to another country, of encryption software. BEFORE using any
+encryption software, please check your country's laws, regulations and
+policies concerning the import, possession, or use, and re-export of encryption
+software, to see if this is permitted. See <http://www.wassenaar.org/> for more
+information.
+
+The U.S. Government Department of Commerce, Bureau of Industry and Security
+(BIS), has classified this software as Export Commodity Control Number (ECCN)
+5D002.C.1, which includes information security software using or performing
+cryptographic functions with asymmetric algorithms. The form and manner of this
+Apache Software Foundation distribution makes it eligible for export under the
+License Exception ENC Technology Software Unrestricted (TSU) exception (see the
+BIS Export Administration Regulations, Section 740.13) for both object code and
+source code.
+
+The following provides more details on the included cryptographic software:
+
+Apache Accumulo uses the built-in java cryptography libraries in its RFile
+encryption implementation. See [oracle's export-regulations doc][java-export]
+for more details for on Java's cryptography features. Apache Accumulo also uses
+the bouncycastle library for some crypographic technology as well. See
+[the BouncyCastle FAQ][bouncy-faq] for
+more details on bouncycastle's cryptography features.
+
+
 [1]: http://accumulo.apache.org
 [2]: INSTALL.md
 [3]: TESTING.md
@@ -112,3 +142,5 @@ with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][12]
 [9]: http://maven.apache.org/
 [12]: http://semver.org/spec/v2.0.0.html
 [13]: http://checkstyle.sourceforge.net/config_regexp.html
+[java-export]: http://www.oracle.com/us/products/export/export-regulations-345813.html
+[bouncy-faq]: http://www.bouncycastle.org/wiki/display/JA1/Frequently+Asked+Questions
