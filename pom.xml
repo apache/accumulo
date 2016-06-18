@@ -24,7 +24,7 @@
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
-  <version>1.7.2-SNAPSHOT</version>
+  <version>1.7.2</version>
   <packaging>pom</packaging>
   <name>Apache Accumulo Project</name>
   <description>Apache Accumulo is a sorted, distributed key/value store based
@@ -103,7 +103,7 @@
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/accumulo.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>rel/1.7.2</tag>
     <url>https://git-wip-us.apache.org/repos/asf?p=accumulo.git</url>
   </scm>
   <issueManagement>
