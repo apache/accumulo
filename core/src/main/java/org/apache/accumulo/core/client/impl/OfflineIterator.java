@@ -211,7 +211,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private void nextTablet() throws TableNotFoundException, AccumuloException, IOException {
 
-    Range nextRange = null;
+    Range nextRange;
 
     if (currentExtent == null) {
       Text startRow;

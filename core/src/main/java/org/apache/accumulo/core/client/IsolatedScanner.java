@@ -86,7 +86,6 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
           lastRow = row;
           rowIter = buffer.iterator();
-          // System.out.println("lastRow <- "+lastRow + " "+buffer);
           return;
         } catch (IsolationException ie) {
           Range seekRange = null;
@@ -102,7 +101,6 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
             if (!range.afterEndKey(startKey)) {
               seekRange = new Range(startKey, true, range.getEndKey(), range.isEndKeyInclusive());
             }
-            // System.out.println(seekRange);
           }
 
           if (seekRange == null) {
@@ -129,7 +127,6 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
         setOptions((ScannerOptions) scanner, opts);
 
         return scanner.iterator();
-        // return new FaultyIterator(scanner.iterator());
       }
     }
 
@@ -238,6 +235,9 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, readaheadThreshold, bufferFactory);
   }
 
+  /**
+   * @deprecated
+   */
   @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
@@ -247,6 +247,9 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
 
+  /**
+   * @deprecated
+   */
   @Deprecated
   @Override
   public int getTimeOut() {

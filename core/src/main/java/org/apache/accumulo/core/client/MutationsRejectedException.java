@@ -41,10 +41,10 @@ import com.google.common.collect.Collections2;
 public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;
 
-  private List<ConstraintViolationSummary> cvsl;
+  private final List<ConstraintViolationSummary> cvsl;
   private Map<TabletId,Set<SecurityErrorCode>> af;
   private Collection<String> es;
-  private int unknownErrors;
+  private final int unknownErrors;
 
   private static <K,V,L> Map<L,V> transformKeys(Map<K,V> map, Function<K,L> keyFunction) {
     HashMap<L,V> ret = new HashMap<L,V>();
