@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.gc;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,10 +27,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -55,9 +56,8 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
-import java.util.concurrent.TimeUnit;
-import org.apache.accumulo.core.conf.Property;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
@@ -65,7 +65,6 @@ public class GarbageCollectWriteAheadLogs {
   private final Instance instance;
   private final VolumeManager fs;
   private final Map<HostAndPort,Long> firstSeenDead = new HashMap<HostAndPort,Long>();
-  private AccumuloConfiguration config;
 
   private boolean useTrash;
 
