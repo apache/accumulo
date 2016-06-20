@@ -82,10 +82,18 @@ public class ClientOpts extends Help {
   }
 
   public static class Password {
-    public byte[] value;
+    private byte[] value;
 
     public Password(String dfault) {
       value = dfault.getBytes(UTF_8);
+    }
+
+    public void setValue(byte[] value) {
+        this.value = value;
+    }
+
+    public byte[] getValue() {
+        return this.value;
     }
 
     @Override

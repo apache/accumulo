@@ -176,7 +176,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     @Override
     public void seek(final Range range, final Collection<ByteSequence> columnFamilies, final boolean inclusive) throws IOException {
-      if (!inclusive && columnFamilies.size() > 0) {
+      if (!inclusive && !columnFamilies.isEmpty()) {
         throw new IllegalArgumentException();
       }
       scanner.setRange(range);
@@ -284,6 +284,9 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     return smi.scanner.getAuthorizations();
   }
 
+  /**
+   * @deprecated
+   */
   @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
@@ -293,6 +296,9 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
 
+  /**
+   * @deprecated
+   */
   @Deprecated
   @Override
   public int getTimeOut() {
