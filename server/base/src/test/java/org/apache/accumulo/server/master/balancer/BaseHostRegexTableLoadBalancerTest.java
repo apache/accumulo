@@ -22,9 +22,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -81,26 +81,31 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       return 30;
     }
 
+    @Deprecated
     @Override
     public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public AccumuloConfiguration getConfiguration() {
       throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public void setConfiguration(AccumuloConfiguration conf) {}
 
