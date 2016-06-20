@@ -1078,7 +1078,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Path failPath = checkPath(failureDir, "Bulk", "failure");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), ByteBuffer.wrap(dirPath.toString().getBytes(UTF_8)),
-        ByteBuffer.wrap(failPath.toString().getBytes(UTF_8)), ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
+        ByteBuffer.wrap(failPath.toString().getBytes(UTF_8)), ByteBuffer.wrap((Boolean.toString(setTime)).getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<String,String>();
 
     try {

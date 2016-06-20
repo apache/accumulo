@@ -71,8 +71,8 @@ public class DataFileValue {
 
   public String encodeAsString() {
     if (time >= 0)
-      return ("" + size + "," + numEntries + "," + time);
-    return ("" + size + "," + numEntries);
+      return (size + "," + numEntries + "," + time);
+    return (size + "," + numEntries);
   }
 
   public Value encodeAsValue() {

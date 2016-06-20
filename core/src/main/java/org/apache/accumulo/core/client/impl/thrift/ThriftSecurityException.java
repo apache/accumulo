@@ -255,6 +255,8 @@ public class ThriftSecurityException extends TException implements org.apache.th
       }
       break;
 
+    default:
+        break;
     }
   }
 
@@ -266,6 +268,8 @@ public class ThriftSecurityException extends TException implements org.apache.th
     case CODE:
       return getCode();
 
+    default:
+        break;
     }
     throw new IllegalStateException();
   }
@@ -281,6 +285,8 @@ public class ThriftSecurityException extends TException implements org.apache.th
       return isSetUser();
     case CODE:
       return isSetCode();
+    default:
+      break;
     }
     throw new IllegalStateException();
   }

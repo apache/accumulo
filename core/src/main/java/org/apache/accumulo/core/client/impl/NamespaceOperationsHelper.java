@@ -92,7 +92,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     String opt = root + ".opt.";
     for (Entry<String,String> property : this.getProperties(namespace)) {
       if (property.getKey().equals(root)) {
-        String parts[] = property.getValue().split(",");
+        String[] parts = property.getValue().split(",");
         if (parts.length != 2) {
           throw new AccumuloException("Bad value for iterator setting: " + property.getValue());
         }
@@ -147,7 +147,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
             optionConflicts.put(property.getKey(), property.getValue());
           if (property.getKey().contains(".opt."))
             continue;
-          String parts[] = property.getValue().split(",");
+          String[] parts = property.getValue().split(",");
           if (parts.length != 2)
             throw new AccumuloException("Bad value for existing iterator setting: " + property.getKey() + "=" + property.getValue());
           try {
