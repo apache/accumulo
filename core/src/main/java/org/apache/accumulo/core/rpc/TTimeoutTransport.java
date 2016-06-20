@@ -66,12 +66,22 @@ public class TTimeoutTransport {
   }
 
   public static TTransport create(SocketAddress addr, long timeoutMillis) throws IOException {
-    Socket socket = SelectorProvider.provider().openSocketChannel().socket();
-    socket.setSoLinger(false, 0);
-    socket.setTcpNoDelay(true);
-    socket.connect(addr);
-    InputStream input = new BufferedInputStream(getInputStream(socket, timeoutMillis), 1024 * 10);
-    OutputStream output = new BufferedOutputStream(NetUtils.getOutputStream(socket, timeoutMillis), 1024 * 10);
-    return new TIOStreamTransport(input, output);
+    Socket socket = null;
+    try {
+      socket = SelectorProvider.provider().openSocketChannel().socket();
+      socket.setSoLinger(false, 0);
+      socket.setTcpNoDelay(true);
+      socket.connect(addr);
+      InputStream input = new BufferedInputStream(getInputStream(socket, timeoutMillis), 1024 * 10);
+      OutputStream output = new BufferedOutputStream(NetUtils.getOutputStream(socket, timeoutMillis), 1024 * 10);
+      return new TIOStreamTransport(input, output);
+    } catch (IOException e) {
+      try {
+        if (socket != null)
+          socket.close();
+      } catch (IOException ioe) {}
+
+      throw e;
+    }
   }
 }
