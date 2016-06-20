@@ -349,11 +349,17 @@ public class ThriftUtil {
    *          Socket timeout
    */
   private static TSocket createClient(SSLSocketFactory factory, String host, int port, int timeout) throws TTransportException {
+    SSLSocket socket = null;
     try {
-      SSLSocket socket = (SSLSocket) factory.createSocket(host, port);
+      socket = (SSLSocket) factory.createSocket(host, port);
       socket.setSoTimeout(timeout);
       return new TSocket(socket);
     } catch (Exception e) {
+      try {
+        if (socket != null)
+          socket.close();
+      } catch (IOException ioe) {}
+
       throw new TTransportException("Could not connect to " + host + " on port " + port, e);
     }
   }
