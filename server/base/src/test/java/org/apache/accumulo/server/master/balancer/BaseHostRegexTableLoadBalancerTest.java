@@ -80,26 +80,31 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       return 30;
     }
 
+    @Deprecated
     @Override
     public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public AccumuloConfiguration getConfiguration() {
       throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public void setConfiguration(AccumuloConfiguration conf) {}
 

@@ -474,8 +474,8 @@ public class TServerUtils {
   }
 
   /**
-   * @see #startTServer(HostAndPort, ThriftServerType, TimedProcessor, TProtocolFactory, String, String, int, int, long, long, SslConnectionParams,
-   *      SaslServerConnectionParams, long)
+   * @see #startTServer(ThriftServerType, TimedProcessor, TProtocolFactory, String, String, int, int, long, long, SslConnectionParams,
+   *      SaslServerConnectionParams, long, HostAndPort...)
    */
   public static ServerAddress startTServer(ThriftServerType serverType, TimedProcessor processor, String serverName, String threadName, int numThreads,
       int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams, SaslServerConnectionParams saslParams,

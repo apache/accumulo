@@ -149,6 +149,15 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     }
   }
 
+  private static class SettableScannerOptions extends ScannerOptions {
+    public ScannerOptions setColumns(SortedSet<Column> locCols) {
+      this.fetchedColumns = locCols;
+      // see comment in lookupTablet about why iterator is used
+      addScanIterator(new IteratorSetting(10000, "WRI", WholeRowIterator.class.getName()));
+      return this;
+    }
+  }
+
   @Override
   public List<TabletLocation> lookupTablets(ClientContext context, String tserver, Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
       throws AccumuloSecurityException, AccumuloException {
@@ -169,14 +178,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
     };
 
-    ScannerOptions opts = new ScannerOptions() {
-      ScannerOptions setOpts() {
-        this.fetchedColumns = locCols;
-        // see comment in lookupTablet about why iterator is used
-        addScanIterator(new IteratorSetting(10000, "WRI", WholeRowIterator.class.getName()));
-        return this;
-      }
-    }.setOpts();
+    ScannerOptions opts = null;
+    try (SettableScannerOptions unsetOpts = new SettableScannerOptions()) {
+      opts = unsetOpts.setColumns(locCols);
+    }
 
     Map<KeyExtent,List<Range>> unscanned = new HashMap<KeyExtent,List<Range>>();
     Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
