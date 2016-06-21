@@ -130,6 +130,7 @@
     <!-- overwritten in hadoop profiles -->
     <hadoop.version>2.2.0</hadoop.version>
     <httpclient.version>3.1</httpclient.version>
+    <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <jetty.version>8.1.15.v20140411</jetty.version>
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
@@ -143,6 +144,7 @@
     <!-- overwritten in hadoop profiles -->
     <slf4j.version>1.7.5</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
+    <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <!-- Thrift version -->
     <thrift.version>0.9.1</thrift.version>
     <!-- ZooKeeper 3.4.x works also, but we're not using new features yet; this ensures 3.3.x compatibility. -->
@@ -1222,7 +1224,6 @@
       <!-- Minimal testing profile. (a.k.a. SunnyDay) -->
       <id>sunny</id>
       <properties>
-        <failIfNoTests>false</failIfNoTests>
         <it.test>ReadWriteIT,SimpleProxyIT,ExamplesIT,ShellServerIT</it.test>
       </properties>
     </profile>
