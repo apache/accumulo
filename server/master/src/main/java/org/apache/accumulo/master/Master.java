@@ -162,6 +162,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+import org.apache.accumulo.master.TabletGroupWatcher.SuspensionPolicy;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
@@ -196,6 +197,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   private ReplicationDriver replicationWorkDriver;
   private WorkDriver replicationWorkAssigner;
   RecoveryManager recoveryManager = null;
+  private final MasterTime timeKeeper;
 
   // Delegation Token classes
   private final boolean delegationTokensAvailable;
@@ -533,7 +535,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       for (TableCounts counts : watcher.getStats().values()) {
-        result += counts.assigned() + counts.assignedToDeadServers();
+        result += counts.assigned() + counts.assignedToDeadServers() + counts.suspended();
       }
     }
     return result;
@@ -552,7 +554,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
             TableCounts counts = entry.getValue();
             TableState tableState = manager.getTableState(tableId);
             if (tableState != null && tableState.equals(TableState.ONLINE)) {
-              result += counts.unassigned() + counts.assignedToDeadServers() + counts.assigned();
+              result += counts.unassigned() + counts.assignedToDeadServers() + counts.assigned() + counts.suspended();
             }
           }
         }
@@ -560,13 +562,15 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       case SAFE_MODE:
         // Count offline tablets for the metadata table
         for (TabletGroupWatcher watcher : watchers) {
-          result += watcher.getStats(MetadataTable.ID).unassigned();
+          TableCounts counts = watcher.getStats(MetadataTable.ID);
+          result += counts.unassigned() + counts.suspended();
         }
         break;
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         for (TabletGroupWatcher watcher : watchers) {
-          result += watcher.getStats(MetadataTable.ID).unassigned();
+          TableCounts counts = watcher.getStats(MetadataTable.ID);
+          result += counts.unassigned() + counts.suspended();
         }
         break;
       default:
@@ -591,6 +595,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstance().getInstanceID());
+    timeKeeper = new MasterTime(this);
+
     ThriftTransportPool.getInstance().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(this, this);
     this.tabletBalancer = aconf.instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
@@ -626,6 +632,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
+
   }
 
   public TServerConnection getConnection(TServerInstance server) {
@@ -1133,9 +1140,16 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(this, this), null));
-    watchers.add(new TabletGroupWatcher(this, new RootTabletStateStore(this, this), watchers.get(0)));
-    watchers.add(new TabletGroupWatcher(this, new ZooTabletStateStore(new ZooStore(zroot)), watchers.get(1)));
+    // Always allow user data tablets to enter suspended state.
+    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(this, this), null, SuspensionPolicy.SUSPEND));
+
+    // Allow metadata tablets to enter suspended state only if so configured. Generally we'll want metadata tablets to
+    // be immediately reassigned, even if there's a global table.suspension.duration setting.
+    watchers.add(new TabletGroupWatcher(this, new RootTabletStateStore(this, this), watchers.get(0), getConfiguration().getBoolean(
+        Property.MASTER_METADATA_SUSPENDABLE) ? SuspensionPolicy.SUSPEND : SuspensionPolicy.UNASSIGN));
+
+    // Never allow root tablet to enter suspended state.
+    watchers.add(new TabletGroupWatcher(this, new ZooTabletStateStore(new ZooStore(zroot)), watchers.get(1), SuspensionPolicy.UNASSIGN));
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }
@@ -1247,6 +1261,9 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
     log.info("Shutting down fate.");
     fate.shutdown();
+
+    log.info("Shutting down timekeeping.");
+    timeKeeper.shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     statusThread.join(remaining(deadline));
@@ -1619,5 +1636,13 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   public void removeBulkImportStatus(String directory) {
     bulkImportStatus.removeBulkImportStatus(Collections.singletonList(directory));
+  }
+
+  /**
+   * Return how long (in milliseconds) there has been a master overseeing this cluster. This is an approximately monotonic clock, which will be approximately
+   * consistent between different masters or different runs of the same master.
+   */
+  public Long getSteadyTime() {
+    return timeKeeper.getTime();
   }
 }

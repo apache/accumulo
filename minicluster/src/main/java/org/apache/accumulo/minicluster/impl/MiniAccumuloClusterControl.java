@@ -42,6 +42,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  *
@@ -132,37 +134,46 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public synchronized void start(ServerType server, String hostname) throws IOException {
+    start(server, hostname, Collections.EMPTY_MAP, Integer.MAX_VALUE);
+  }
+
+  public synchronized void start(ServerType server, String hostname, Map<String,String> configOverrides, int limit) throws IOException {
+    if (limit <= 0) {
+      return;
+    }
+
     switch (server) {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
-          for (int i = tabletServerProcesses.size(); i < cluster.getConfig().getNumTservers(); i++) {
-            tabletServerProcesses.add(cluster._exec(TabletServer.class, server));
+          int count = 0;
+          for (int i = tabletServerProcesses.size(); count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
+            tabletServerProcesses.add(cluster._exec(TabletServer.class, server, configOverrides));
           }
         }
         break;
       case MASTER:
         if (null == masterProcess) {
-          masterProcess = cluster._exec(Master.class, server);
+          masterProcess = cluster._exec(Master.class, server, configOverrides);
         }
         break;
       case ZOOKEEPER:
         if (null == zooKeeperProcess) {
-          zooKeeperProcess = cluster._exec(ZooKeeperServerMain.class, server, cluster.getZooCfgFile().getAbsolutePath());
+          zooKeeperProcess = cluster._exec(ZooKeeperServerMain.class, server, configOverrides, cluster.getZooCfgFile().getAbsolutePath());
         }
         break;
       case GARBAGE_COLLECTOR:
         if (null == gcProcess) {
-          gcProcess = cluster._exec(SimpleGarbageCollector.class, server);
+          gcProcess = cluster._exec(SimpleGarbageCollector.class, server, configOverrides);
         }
         break;
       case MONITOR:
         if (null == monitor) {
-          monitor = cluster._exec(Monitor.class, server);
+          monitor = cluster._exec(Monitor.class, server, configOverrides);
         }
         break;
       case TRACER:
         if (null == tracer) {
-          tracer = cluster._exec(TraceServer.class, server);
+          tracer = cluster._exec(TraceServer.class, server, configOverrides);
         }
         break;
       default:

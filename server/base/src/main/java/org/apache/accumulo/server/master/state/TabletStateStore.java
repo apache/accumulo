@@ -64,6 +64,17 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
    */
   abstract public void unassign(Collection<TabletLocationState> tablets, Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException;
 
+  /**
+   * Mark tablets as having no known or future location, but desiring to be returned to their previous tserver.
+   */
+  abstract public void suspend(Collection<TabletLocationState> tablets, Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+      throws DistributedStoreException;
+
+  /**
+   * Remove a suspension marker for a collection of tablets, moving them to being simply unassigned.
+   */
+  abstract public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException;
+
   public static void unassign(AccumuloServerContext context, TabletLocationState tls, Map<TServerInstance,List<Path>> logsForDeadServers)
       throws DistributedStoreException {
     TabletStateStore store;

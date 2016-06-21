@@ -46,12 +46,13 @@ public class TabletLocationState {
     }
   }
 
-  public TabletLocationState(KeyExtent extent, TServerInstance future, TServerInstance current, TServerInstance last, Collection<Collection<String>> walogs,
-      boolean chopped) throws BadLocationStateException {
+  public TabletLocationState(KeyExtent extent, TServerInstance future, TServerInstance current, TServerInstance last, SuspendingTServer suspend,
+      Collection<Collection<String>> walogs, boolean chopped) throws BadLocationStateException {
     this.extent = extent;
     this.future = future;
     this.current = current;
     this.last = last;
+    this.suspend = suspend;
     if (walogs == null)
       walogs = Collections.emptyList();
     this.walogs = walogs;
@@ -65,6 +66,7 @@ public class TabletLocationState {
   final public TServerInstance future;
   final public TServerInstance current;
   final public TServerInstance last;
+  final public SuspendingTServer suspend;
   final public Collection<Collection<String>> walogs;
   final public boolean chopped;
 
@@ -93,6 +95,9 @@ public class TabletLocationState {
   }
 
   public TabletState getState(Set<TServerInstance> liveServers) {
+    if (suspend != null) {
+      return TabletState.SUSPENDED;
+    }
     TServerInstance server = getServer();
     if (server == null)
       return TabletState.UNASSIGNED;
