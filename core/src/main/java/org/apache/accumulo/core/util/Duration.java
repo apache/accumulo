@@ -38,21 +38,21 @@ public class Duration {
     sec = time % 60;
     time /= 60;
     if (time == 0)
-      return String.format("%ds" + space + "%dms", sec, ms);
+      return String.format("%ds%s%dms", sec, space, ms);
     min = time % 60;
     time /= 60;
     if (time == 0)
-      return String.format("%dm" + space + "%ds", min, sec);
+      return String.format("%dm%s%ds", min,  space, sec);
     hr = time % 24;
     time /= 24;
     if (time == 0)
-      return String.format("%dh" + space + "%dm", hr, min);
+      return String.format("%dh%s%dm", hr, space, min);
     day = time % 365;
     time /= 365;
     if (time == 0)
-      return String.format("%dd" + space + "%dh", day, hr);
+      return String.format("%dd%s%dh", day, space, hr);
     yr = time;
-    return String.format("%dy" + space + "%dd", yr, day);
+    return String.format("%dy%s%dd", yr, space, day);
 
   }
 
