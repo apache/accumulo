@@ -27,8 +27,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.lang.math.IntRange;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -270,7 +268,6 @@ public enum PropertyType {
 
   public static class PortRange extends Matches {
 
-    private static final Logger log = LoggerFactory.getLogger(PortRange.class);
     private static final IntRange VALID_RANGE = new IntRange(1024, 65535);
 
     public PortRange(final String pattern) {
