@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -169,9 +170,8 @@ public class Environment {
         throw new IllegalArgumentException("Provided keytab is not a normal file: " + keytab);
       }
       try {
-        @SuppressWarnings("deprecation")
-        KerberosToken krbToken = new KerberosToken(getUserName(), keytabFile, true);
-        return krbToken;
+        UserGroupInformation.loginUserFromKeytab(getUserName(), keytabFile.getAbsolutePath());
+        return new KerberosToken();
       } catch (IOException e) {
         throw new RuntimeException("Failed to login", e);
       }

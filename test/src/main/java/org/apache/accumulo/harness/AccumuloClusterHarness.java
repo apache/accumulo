@@ -170,9 +170,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
           UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(), systemUser.getKeytab().getAbsolutePath());
 
           // Open a connector as the system user (ensures the user will exist for us to assign permissions to)
-          @SuppressWarnings("deprecation")
-          KerberosToken krbToken = new KerberosToken(systemUser.getPrincipal(), systemUser.getKeytab(), true);
-          Connector conn = cluster.getConnector(systemUser.getPrincipal(), krbToken);
+          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(), systemUser.getKeytab().getAbsolutePath());
+          Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken());
 
           // Then, log back in as the "root" user and do the grant
           UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
