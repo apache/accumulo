@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,9 +163,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
     if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
       File keytab = getAdminKeytab();
       try {
-        @SuppressWarnings("deprecation")
-        KerberosToken krbToken = new KerberosToken(getAdminPrincipal(), keytab, true);
-        return krbToken;
+        UserGroupInformation.loginUserFromKeytab(getAdminPrincipal(), keytab.getAbsolutePath());
+        return new KerberosToken();
       } catch (IOException e) {
         // The user isn't logged in
         throw new RuntimeException("Failed to create KerberosToken", e);
