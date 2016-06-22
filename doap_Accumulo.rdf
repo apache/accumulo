@@ -36,6 +36,13 @@
     <release>
       <Version>
         <name>Apache Accumulo</name>
+        <created>2016-06-20</created>
+        <revision>1.7.2</revision>
+      </Version>
+    </release>
+    <release>
+      <Version>
+        <name>Apache Accumulo</name>
         <created>2016-02-25</created>
         <revision>1.7.1</revision>
       </Version>

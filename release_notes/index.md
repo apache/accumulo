@@ -21,6 +21,7 @@ Each release notes document aim to provide content broken down into the followin
 
 ### 1.7 releases
 
+* [Apache Accumulo 1.7.2][REL_172]
 * [Apache Accumulo 1.7.1][REL_171]
 * [Apache Accumulo 1.7.0][REL_170]
 
@@ -52,3 +53,4 @@ Each release notes document aim to provide content broken down into the followin
 [REL_165]: 1.6.5
 [REL_170]: 1.7.0
 [REL_171]: 1.7.1
+[REL_172]: 1.7.2
