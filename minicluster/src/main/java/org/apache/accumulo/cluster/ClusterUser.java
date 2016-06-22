@@ -81,7 +81,9 @@ public class ClusterUser {
     if (null != password) {
       return new PasswordToken(password);
     } else if (null != keytab) {
-      return new KerberosToken(principal, keytab, true);
+      @SuppressWarnings("deprecation")
+      KerberosToken krbToken = new KerberosToken(principal, keytab, true);
+      return krbToken;
     }
 
     throw new IllegalStateException("One of password and keytab must be non-null");

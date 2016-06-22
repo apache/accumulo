@@ -193,7 +193,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             KerberosToken token;
             try {
               // Do *not* replace the current user
-              token = new KerberosToken(principal, keytab, false);
+              token = new KerberosToken(principal, keytab);
             } catch (IOException e) {
               log.error("Failed to create KerberosToken", e);
               return status;

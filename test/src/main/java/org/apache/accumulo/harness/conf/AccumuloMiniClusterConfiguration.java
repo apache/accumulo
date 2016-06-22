@@ -86,7 +86,9 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
 
       ClusterUser rootUser = AccumuloClusterHarness.getKdc().getRootUser();
       try {
-        return new KerberosToken(rootUser.getPrincipal(), rootUser.getKeytab(), true);
+        @SuppressWarnings("deprecation")
+        KerberosToken krbToken = new KerberosToken(rootUser.getPrincipal(), rootUser.getKeytab(), true);
+        return krbToken;
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
