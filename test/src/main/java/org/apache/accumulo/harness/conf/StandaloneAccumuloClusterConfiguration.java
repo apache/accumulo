@@ -162,7 +162,9 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
     if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
       File keytab = getAdminKeytab();
       try {
-        return new KerberosToken(getAdminPrincipal(), keytab, true);
+        @SuppressWarnings("deprecation")
+        KerberosToken krbToken = new KerberosToken(getAdminPrincipal(), keytab, true);
+        return krbToken;
       } catch (IOException e) {
         // The user isn't logged in
         throw new RuntimeException("Failed to create KerberosToken", e);

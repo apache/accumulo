@@ -75,7 +75,9 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       ClusterUser rootUser = krb.getRootUser();
       // Get the krb token
       principal = rootUser.getPrincipal();
-      token = new KerberosToken(principal, rootUser.getKeytab(), true);
+      @SuppressWarnings("deprecation")
+      KerberosToken krbToken = new KerberosToken(principal, rootUser.getKeytab(), true);
+      token = krbToken;
     } else {
       rootPassword = "rootPasswordShared1";
       token = new PasswordToken(rootPassword);
@@ -89,7 +91,9 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
       // Login as the trace user
       // Open a connector as the system user (ensures the user will exist for us to assign permissions to)
-      Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken(systemUser.getPrincipal(), systemUser.getKeytab(), true));
+      @SuppressWarnings("deprecation")
+      KerberosToken krbToken = new KerberosToken(systemUser.getPrincipal(), systemUser.getKeytab(), true);
+      Connector conn = cluster.getConnector(systemUser.getPrincipal(), krbToken);
 
       // Then, log back in as the "root" user and do the grant
       UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
