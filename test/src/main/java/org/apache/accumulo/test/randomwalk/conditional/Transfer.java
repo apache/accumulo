@@ -34,7 +34,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
-import org.apache.commons.math.distribution.ZipfDistributionImpl;
+import org.apache.commons.math3.distribution.ZipfDistribution;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -69,9 +69,9 @@ public class Transfer extends Test {
     int numAccts = (Integer) state.get("numAccts");
     // note: non integer exponents are slow
 
-    ZipfDistributionImpl zdiBanks = new ZipfDistributionImpl((Integer) state.get("numBanks"), 1);
+    ZipfDistribution zdiBanks = new ZipfDistribution((Integer) state.get("numBanks"), 1);
     String bank = Utils.getBank(zdiBanks.inverseCumulativeProbability(rand.nextDouble()));
-    ZipfDistributionImpl zdiAccts = new ZipfDistributionImpl(numAccts, 1);
+    ZipfDistribution zdiAccts = new ZipfDistribution(numAccts, 1);
     String acct1 = Utils.getAccount(zdiAccts.inverseCumulativeProbability(rand.nextDouble()));
     String acct2 = Utils.getAccount(zdiAccts.inverseCumulativeProbability(rand.nextDouble()));
     while (acct2.equals(acct1)) {
