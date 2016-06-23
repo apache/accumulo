@@ -37,6 +37,14 @@ import org.apache.accumulo.core.data.impl.TabletIdImpl;
  *
  */
 public class MutationsRejectedException extends AccumuloException {
+  private static final String EXCEPTIONS = " # exceptions ";
+
+  private static final String SERVER_ERRORS = "  # server errors ";
+
+  private static final String SECURITY_CODES = "  security codes: ";
+
+  private static final String CONSTRAINT_VIOLATIONS = "# constraint violations : ";
+
   private static final long serialVersionUID = 1L;
 
   private List<ConstraintViolationSummary> cvsl;
@@ -68,8 +76,8 @@ public class MutationsRejectedException extends AccumuloException {
   @Deprecated
   public MutationsRejectedException(List<ConstraintViolationSummary> cvsList, HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap,
       Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
-    super("# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.values() + "  # server errors " + serverSideErrors.size()
-        + " # exceptions " + unknownErrors, cause);
+    super(CONSTRAINT_VIOLATIONS + cvsList.size() + SECURITY_CODES + hashMap.values() + SERVER_ERRORS + serverSideErrors.size()
+        + EXCEPTIONS + unknownErrors, cause);
     this.cvsl = cvsList;
     this.af = transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD);
     this.es = serverSideErrors;
@@ -91,8 +99,8 @@ public class MutationsRejectedException extends AccumuloException {
   @Deprecated
   public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
       HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
-    super("# constraint violations : " + cvsList.size() + "  security codes: " + format(transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD), instance)
-        + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors, cause);
+    super(CONSTRAINT_VIOLATIONS + cvsList.size() + SECURITY_CODES + format(transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD), instance)
+        + SERVER_ERRORS + serverSideErrors.size() + EXCEPTIONS + unknownErrors, cause);
     this.cvsl = cvsList;
     this.af = transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD);
     this.es = serverSideErrors;
@@ -114,8 +122,8 @@ public class MutationsRejectedException extends AccumuloException {
    */
   public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList, Map<TabletId,Set<SecurityErrorCode>> hashMap,
       Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
-    super("# constraint violations : " + cvsList.size() + "  security codes: " + format(hashMap, instance) + "  # server errors " + serverSideErrors.size()
-        + " # exceptions " + unknownErrors, cause);
+    super(CONSTRAINT_VIOLATIONS + cvsList.size() + SECURITY_CODES + format(hashMap, instance) + SERVER_ERRORS + serverSideErrors.size()
+        + EXCEPTIONS + unknownErrors, cause);
     this.cvsl = cvsList;
     this.af = hashMap;
     this.es = serverSideErrors;

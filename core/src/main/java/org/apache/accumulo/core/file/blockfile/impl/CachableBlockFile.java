@@ -177,7 +177,7 @@ public class CachableBlockFile {
 
       @Override
       public String getInfo() {
-        return "" + blockIndex;
+        return Integer.toString(blockIndex);
       }
 
     }
@@ -201,7 +201,7 @@ public class CachableBlockFile {
 
       @Override
       public String getInfo() {
-        return "" + offset + "," + compressedSize + "," + rawSize;
+        return offset + "," + compressedSize + "," + rawSize;
       }
     }
 

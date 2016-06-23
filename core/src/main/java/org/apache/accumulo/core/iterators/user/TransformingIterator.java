@@ -668,7 +668,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    *          size in bytes
    */
   public static void setMaxBufferSize(IteratorSetting config, long maxBufferSize) {
-    config.addOption(MAX_BUFFER_SIZE_OPT, maxBufferSize + "");
+    config.addOption(MAX_BUFFER_SIZE_OPT, Long.toString(maxBufferSize));
   }
 
 }
