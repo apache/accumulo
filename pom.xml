@@ -122,9 +122,9 @@
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.50</bouncycastle.version>
+    <bouncycastle.version>1.54</bouncycastle.version>
     <!-- Curator version -->
-    <curator.version>2.7.1</curator.version>
+    <curator.version>2.11.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- extra release args for testing -->
@@ -133,23 +133,22 @@
     <findbugs.version>3.0.3</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
-    <!-- overwritten in hadoop profiles -->
-    <hadoop.version>2.2.0</hadoop.version>
+    <hadoop.version>2.6.4</hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
     <httpclient.version>3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
-    <jetty.version>9.1.5.v20140505</jetty.version>
+    <!-- jetty 9.2 is the last version to support jdk less than 1.8 -->
+    <jetty.version>9.2.17.v20160517</jetty.version>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
     <maven.min-version>3.0.5</maven.min-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>1.6.4</powermock.version>
+    <powermock.version>1.6.5</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
-    <!-- overwritten in hadoop profiles -->
-    <slf4j.version>1.7.5</slf4j.version>
+    <slf4j.version>1.7.21</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <!-- Thrift version -->
@@ -162,7 +161,7 @@
       <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
-        <version>1.32</version>
+        <version>1.48</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
@@ -172,7 +171,7 @@
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.2.4</version>
+        <version>2.7</version>
       </dependency>
       <!-- Hadoop-2.4.0 MiniDFSCluster uses classes dropped in Guava 15 -->
       <dependency>
@@ -204,7 +203,7 @@
       <dependency>
         <groupId>commons-configuration</groupId>
         <artifactId>commons-configuration</artifactId>
-        <version>1.6</version>
+        <version>1.10</version>
       </dependency>
       <dependency>
         <groupId>commons-httpclient</groupId>
@@ -249,7 +248,7 @@
       <dependency>
         <groupId>log4j</groupId>
         <artifactId>log4j</artifactId>
-        <version>1.2.16</version>
+        <version>1.2.17</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -372,8 +371,8 @@
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
-        <artifactId>commons-math</artifactId>
-        <version>2.1</version>
+        <artifactId>commons-math3</artifactId>
+        <version>3.6.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -488,7 +487,7 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>3.1</version>
+        <version>3.4</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
@@ -774,12 +773,6 @@
               <requireMavenVersion>
                 <version>[${maven.min-version},)</version>
               </requireMavenVersion>
-              <requireProperty>
-                <property>hadoop.profile</property>
-                <regex>(2)</regex>
-                <regexMessage>You should specify the Hadoop profile by major Hadoop generation, i.e. 1 or 2, not by a version number.
-  Use hadoop.version to use a particular Hadoop version within that generation. See README for more details.</regexMessage>
-              </requireProperty>
             </rules>
           </configuration>
         </plugin>
@@ -903,6 +896,10 @@
                 <module name="RegexpSinglelineJava">
                   <property name="format" value="jline[.]internal[.]Preconditions" />
                   <property name="message" value="Please use Guava Preconditions not JLine" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="org[.]apache[.]commons[.]math[.]" />
+                  <property name="message" value="Use commons-math3 (org.apache.commons.math3.*)" />
                 </module>
                 <module name="OuterTypeFilename" />
                 <module name="LineLength">
@@ -1313,42 +1310,6 @@
       <id>sunny</id>
       <properties>
         <it.test>ReadWriteIT,SimpleProxyIT,ExamplesIT,ShellServerIT</it.test>
-      </properties>
-    </profile>
-    <!-- profile for our default Hadoop build
-         unfortunately, has to duplicate one of our
-         specified profiles. see MNG-3328 -->
-    <profile>
-      <id>hadoop-default</id>
-      <activation>
-        <property>
-          <name>!hadoop.profile</name>
-        </property>
-      </activation>
-      <properties>
-        <!-- Denotes intention and allows the enforcer plugin to pass when
-             the user is relying on default behavior; won't work to activate profile -->
-        <hadoop.profile>2</hadoop.profile>
-        <hadoop.version>2.2.0</hadoop.version>
-        <httpclient.version>3.1</httpclient.version>
-        <slf4j.version>1.7.5</slf4j.version>
-      </properties>
-    </profile>
-    <!-- profile for building against Hadoop 2.x
-     XXX Since this is the default, make sure to sync hadoop-default when changing.
-    Activate using: mvn -Dhadoop.profile=2 -->
-    <profile>
-      <id>hadoop-2</id>
-      <activation>
-        <property>
-          <name>hadoop.profile</name>
-          <value>2</value>
-        </property>
-      </activation>
-      <properties>
-        <hadoop.version>2.2.0</hadoop.version>
-        <httpclient.version>3.1</httpclient.version>
-        <slf4j.version>1.7.5</slf4j.version>
       </properties>
     </profile>
     <profile>

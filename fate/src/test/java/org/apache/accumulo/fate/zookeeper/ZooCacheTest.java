@@ -40,6 +40,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -266,7 +267,7 @@ public class ZooCacheTest {
   }
 
   private Watcher watchData(byte[] initialData) throws Exception {
-    Capture<Watcher> cw = new Capture<Watcher>();
+    Capture<Watcher> cw = EasyMock.newCapture();
     Stat existsStat = new Stat();
     if (initialData != null) {
       expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(existsStat);
@@ -335,7 +336,7 @@ public class ZooCacheTest {
   }
 
   private Watcher watchChildren(List<String> initialChildren) throws Exception {
-    Capture<Watcher> cw = new Capture<Watcher>();
+    Capture<Watcher> cw = EasyMock.newCapture();
     expect(zk.getChildren(eq(ZPATH), capture(cw))).andReturn(initialChildren);
     replay(zk);
     zc.getChildren(ZPATH);

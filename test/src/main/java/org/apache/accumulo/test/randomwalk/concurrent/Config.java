@@ -26,8 +26,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
-import org.apache.commons.math.random.RandomData;
-import org.apache.commons.math.random.RandomDataImpl;
+import org.apache.commons.math3.random.RandomDataGenerator;
 
 public class Config extends Test {
 
@@ -157,7 +156,7 @@ public class Config extends Test {
     state.remove(LAST_SETTING);
     state.remove(LAST_TABLE_SETTING);
     state.remove(LAST_NAMESPACE_SETTING);
-    RandomData random = new RandomDataImpl();
+    RandomDataGenerator random = new RandomDataGenerator();
     int dice = random.nextInt(0, 2);
     if (dice == 0) {
       changeTableSetting(random, state, env, props);
@@ -168,7 +167,7 @@ public class Config extends Test {
     }
   }
 
-  private void changeTableSetting(RandomData random, State state, Environment env, Properties props) throws Exception {
+  private void changeTableSetting(RandomDataGenerator random, State state, Environment env, Properties props) throws Exception {
     // pick a random property
     int choice = random.nextInt(0, tableSettings.length - 1);
     Setting setting = tableSettings[choice];
@@ -195,7 +194,7 @@ public class Config extends Test {
     }
   }
 
-  private void changeNamespaceSetting(RandomData random, State state, Environment env, Properties props) throws Exception {
+  private void changeNamespaceSetting(RandomDataGenerator random, State state, Environment env, Properties props) throws Exception {
     // pick a random property
     int choice = random.nextInt(0, tableSettings.length - 1);
     Setting setting = tableSettings[choice];
@@ -222,7 +221,7 @@ public class Config extends Test {
     }
   }
 
-  private void changeSetting(RandomData random, State state, Environment env, Properties props) throws Exception {
+  private void changeSetting(RandomDataGenerator random, State state, Environment env, Properties props) throws Exception {
     // pick a random property
     int choice = random.nextInt(0, settings.length - 1);
     Setting setting = settings[choice];

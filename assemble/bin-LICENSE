@@ -201,6 +201,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+----
 
 APACHE ACCUMULO SUBCOMPONENTS:
 
@@ -208,6 +209,8 @@ The Apache Accumulo project contains subcomponents with separate copyright
 notices and license terms. Your use of the source code for the these
 subcomponents is subject to the terms and conditions of the following
 licenses.
+
+----
 
 This product bundles software from the European Commission project OneLab
 (http://www.one-lab.org),
@@ -217,7 +220,6 @@ This product bundles software from the European Commission project OneLab
 * Filter.java
 
 Copyright (c) 2005, European Commission project OneLab under contract 034819
-
 available under the following BSD 3-Clause style license:
 
  * Redistribution and use in source and binary forms, with or
@@ -282,8 +284,8 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
-
 ----
+
 This product bundles Flot, For details, see
   server/monitor/src/main/resources/web/flot/
 
@@ -310,8 +312,8 @@ distributed under the MIT license (see above)
 
 ----
 
-The binary distribution of this product bundles jline, which is available
-under the following "3-clause BSD" license:
+This product bundles jline, which is available under the following
+"3-clause BSD" license:
 
     The BSD License
 
@@ -348,47 +350,51 @@ under the following "3-clause BSD" license:
     IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
     OF THE POSSIBILITY OF SUCH DAMAGE.
 
-The distribution of this product bundles Apache Commons Math which
-is available with the following license information:
+----
+
+This product bundles Apache Commons Math3 which is available with the following
+additional license information:
+
+    APACHE COMMONS MATH DERIVATIVE WORKS:
 
     The Apache commons-math library includes a number of subcomponents
     whose implementation is derived from original sources written
     in C or Fortran.  License terms of the original sources
     are reproduced below.
-    
+
     ===============================================================================
     For the lmder, lmpar and qrsolv Fortran routine from minpack and translated in
     the LevenbergMarquardtOptimizer class in package
-    org.apache.commons.math.optimization.general 
+    org.apache.commons.math3.optimization.general
     Original source copyright and license statement:
-    
+
     Minpack Copyright Notice (1999) University of Chicago.  All rights reserved
-    
+
     Redistribution and use in source and binary forms, with or
     without modification, are permitted provided that the
     following conditions are met:
-    
+
     1. Redistributions of source code must retain the above
     copyright notice, this list of conditions and the following
     disclaimer.
-    
+
     2. Redistributions in binary form must reproduce the above
     copyright notice, this list of conditions and the following
     disclaimer in the documentation and/or other materials
     provided with the distribution.
-    
+
     3. The end-user documentation included with the
     redistribution, if any, must include the following
     acknowledgment:
-    
+
        "This product includes software developed by the
        University of Chicago, as Operator of Argonne National
        Laboratory.
-    
+
     Alternately, this acknowledgment may appear in the software
     itself, if and wherever such third-party acknowledgments
     normally appear.
-    
+
     4. WARRANTY DISCLAIMER. THE SOFTWARE IS SUPPLIED "AS IS"
     WITHOUT WARRANTY OF ANY KIND. THE COPYRIGHT HOLDER, THE
     UNITED STATES, THE UNITED STATES DEPARTMENT OF ENERGY, AND
@@ -402,7 +408,7 @@ is available with the following license information:
     DO NOT WARRANT THAT THE SOFTWARE WILL FUNCTION
     UNINTERRUPTED, THAT IT IS ERROR-FREE OR THAT ANY ERRORS WILL
     BE CORRECTED.
-    
+
     5. LIMITATION OF LIABILITY. IN NO EVENT WILL THE COPYRIGHT
     HOLDER, THE UNITED STATES, THE UNITED STATES DEPARTMENT OF
     ENERGY, OR THEIR EMPLOYEES: BE LIABLE FOR ANY INDIRECT,
@@ -414,101 +420,60 @@ is available with the following license information:
     EVEN IF ANY OF SAID PARTIES HAS BEEN WARNED OF THE
     POSSIBILITY OF SUCH LOSS OR DAMAGES.
     ===============================================================================
-    
+
     Copyright and license statement for the odex Fortran routine developed by
     E. Hairer and G. Wanner and translated in GraggBulirschStoerIntegrator class
-    in package org.apache.commons.math.ode.nonstiff:
-    
-    
+    in package org.apache.commons.math3.ode.nonstiff:
+
+
     Copyright (c) 2004, Ernst Hairer
-    
-    Redistribution and use in source and binary forms, with or without 
-    modification, are permitted provided that the following conditions are 
-    met:
-    
-    - Redistributions of source code must retain the above copyright 
-    notice, this list of conditions and the following disclaimer.
-    
-    - Redistributions in binary form must reproduce the above copyright 
-    notice, this list of conditions and the following disclaimer in the 
-    documentation and/or other materials provided with the distribution.
-    
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
-    IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED 
-    TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR 
-    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
-    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
-    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
-    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
-    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
-    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-    ===============================================================================
-    
-    Copyright and license statement for the original lapack fortran routines
-    translated in EigenDecompositionImpl class in package
-    org.apache.commons.math.linear:
-    
-    Copyright (c) 1992-2008 The University of Tennessee.  All rights reserved.
-    
-    $COPYRIGHT$
-    
-    Additional copyrights may follow
-    
-    $HEADER$
-    
+
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are
     met:
-    
+
     - Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer. 
-      
+    notice, this list of conditions and the following disclaimer.
+
     - Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer listed
-      in this license in the documentation and/or other materials
-      provided with the distribution.
-      
-    - Neither the name of the copyright holders nor the names of its
-      contributors may be used to endorse or promote products derived from
-      this software without specific prior written permission.
-      
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT  
-    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT  
-    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+    IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+    TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     ===============================================================================
-    
+
     Copyright and license statement for the original Mersenne twister C
-    routines translated in MersenneTwister class in package 
-    org.apache.commons.math.random:
-    
+    routines translated in MersenneTwister class in package
+    org.apache.commons.math3.random:
+
        Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,
-       All rights reserved.                          
-    
+       All rights reserved.
+
        Redistribution and use in source and binary forms, with or without
        modification, are permitted provided that the following conditions
        are met:
-    
+
          1. Redistributions of source code must retain the above copyright
             notice, this list of conditions and the following disclaimer.
-    
+
          2. Redistributions in binary form must reproduce the above copyright
             notice, this list of conditions and the following disclaimer in the
             documentation and/or other materials provided with the distribution.
-    
-         3. The names of its contributors may not be used to endorse or promote 
-            products derived from this software without specific prior written 
+
+         3. The names of its contributors may not be used to endorse or promote
+            products derived from this software without specific prior written
             permission.
-    
+
        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
        "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
        LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -521,10 +486,110 @@ is available with the following license information:
        NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
        SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-----------
+    ===============================================================================
 
-The binary distribution of this product bundles Protocol Buffers, which is available
-under the following "3-clause BSD" license:
+    The initial code for shuffling an array (originally in class
+    "org.apache.commons.math3.random.RandomDataGenerator", now replaced by
+    a method in class "org.apache.commons.math3.util.MathArrays") was
+    inspired from the algorithm description provided in
+    "Algorithms", by Ian Craw and John Pulham (University of Aberdeen 1999).
+    The textbook (containing a proof that the shuffle is uniformly random) is
+    available here:
+      http://citeseerx.ist.psu.edu/viewdoc/download;?doi=10.1.1.173.1898&rep=rep1&type=pdf
+
+    ===============================================================================
+    License statement for the direction numbers in the resource files for Sobol sequences.
+
+    -----------------------------------------------------------------------------
+    Licence pertaining to sobol.cc and the accompanying sets of direction numbers
+
+    -----------------------------------------------------------------------------
+    Copyright (c) 2008, Frances Y. Kuo and Stephen Joe
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+
+        * Neither the names of the copyright holders nor the names of the
+          University of New South Wales and the University of Waikato
+          and its contributors may be used to endorse or promote products derived
+          from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    ===============================================================================
+
+    The initial commit of package "org.apache.commons.math3.ml.neuralnet" is
+    an adapted version of code developed in the context of the Data Processing
+    and Analysis Consortium (DPAC) of the "Gaia" project of the European Space
+    Agency (ESA).
+    ===============================================================================
+
+    The initial commit of the class "org.apache.commons.math3.special.BesselJ" is
+    an adapted version of code translated from the netlib Fortran program, rjbesl
+    http://www.netlib.org/specfun/rjbesl by R.J. Cody at Argonne National
+    Laboratory (USA).  There is no license or copyright statement included with the
+    original Fortran sources.
+    ===============================================================================
+
+    The BracketFinder (package org.apache.commons.math3.optimization.univariate)
+    and PowellOptimizer (package org.apache.commons.math3.optimization.general)
+    classes are based on the Python code in module "optimize.py" (version 0.5)
+    developed by Travis E. Oliphant for the SciPy library (http://www.scipy.org/)
+    Copyright © 2003-2009 SciPy Developers.
+
+    SciPy license
+    Copyright © 2001, 2002 Enthought, Inc.
+    All rights reserved.
+
+    Copyright © 2003-2013 SciPy Developers.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+
+        * Neither the name of Enthought nor the names of the SciPy Developers may
+          be used to endorse or promote products derived from this software without
+          specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY
+    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    ===============================================================================
+
+----
+
+This product bundles Protocol Buffers, which is available under the following
+"3-clause BSD" license:
 
     Copyright 2014, Google Inc. All rights reserved.
 
@@ -561,10 +626,10 @@ under the following "3-clause BSD" license:
     standalone and requires a support library to be linked with it. This
     support library is itself covered by the above license.
 
----------
+----
 
-This distribution of this product bundles slf4j, which is available
-under the following MIT license:
+This distribution of this product bundles slf4j, which is available under the
+following MIT license:
 
     Copyright (c) 2004-2013 QOS.ch
     All rights reserved.
@@ -588,7 +653,7 @@ under the following MIT license:
     OF CONTRACT, TORT OR OTHERWISE,  ARISING FROM, OUT OF OR IN CONNECTION
     WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-------
+----
 
 The binary distribution of the product bundles javax.servlet-api, which is
 available under the CDDL 1.0 license (http://servlet-spec.java.net).
