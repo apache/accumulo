@@ -10,5 +10,9 @@ notifications:
     channels:
       - "chat.freenode.net#accumulo"
     use_notice: true
+    on_success: change
+    on_failure: always
+    template:
+      - "%{result} %{repository_slug} %{branch} (%{build_url}): %{message}"
 cache: bundler
 script: ./_devtools/cibuild
