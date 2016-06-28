@@ -981,7 +981,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
 
     private long updateStatus() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-      tserverStatus = Collections.synchronizedSortedMap(gatherTableInformation());
+      Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
+      tserverStatus = Collections.synchronizedSortedMap(gatherTableInformation(currentServers));
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -993,6 +994,12 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       } else if (!serversToShutdown.isEmpty()) {
         log.debug("not balancing while shutting down servers " + serversToShutdown);
       } else {
+        for (TabletGroupWatcher tgw : watchers) {
+          if (!tgw.isSameTserversAsLastScan(currentServers)) {
+            log.debug("not balancing just yet, as collection of live tservers is in flux");
+            return DEFAULT_WAIT_FOR_WATCHER;
+          }
+        }
         return balanceTablets();
       }
       return DEFAULT_WAIT_FOR_WATCHER;
@@ -1049,12 +1056,11 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   }
 
-  private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation() {
+  private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(Set<TServerInstance> currentServers) {
     long start = System.currentTimeMillis();
     int threads = Math.max(getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE), 1);
     ExecutorService tp = Executors.newFixedThreadPool(threads);
     final SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
-    Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       tp.submit(new Runnable() {

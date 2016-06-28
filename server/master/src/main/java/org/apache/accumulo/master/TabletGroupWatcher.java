@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master;
 
+import com.google.common.collect.ImmutableSortedSet;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -94,10 +95,14 @@ import com.google.common.collect.Iterators;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import static java.lang.Math.min;
+import java.util.SortedSet;
 
 class TabletGroupWatcher extends Daemon {
   public static enum SuspensionPolicy {
-    UNASSIGN, SUSPEND
+    /** Move tablets in state TabletState.ASSIGNED_TO_DEAD_SERVER to state TabletState.UNASSIGNED, and attempt reassignment. */
+    UNASSIGN,
+    /** Move tablets in state TabletState.ASSIGNED_TO_DEAD_SERVER to state TabletState.SUSPENDED. */
+    SUSPEND
   }
 
   // Constants used to make sure assignment logging isn't excessive in quantity or size
@@ -107,15 +112,12 @@ class TabletGroupWatcher extends Daemon {
   private final Master master;
   final TabletStateStore store;
   final TabletGroupWatcher dependentWatcher;
-  /**
-   * When false, move tablets in state {@code TabletState.ASSIGNED_TO_DEAD_SERVER} to state {@code TabletState.UNASSIGNED}. When true, move such tablets to
-   * state {@code TabletState.SUSPENDED}.
-   */
   private final SuspensionPolicy suspensionPolicy;
 
   private MasterState masterState;
 
   final TableStats stats = new TableStats();
+  private SortedSet<TServerInstance> lastScanServers = ImmutableSortedSet.of();
 
   TabletGroupWatcher(Master master, TabletStateStore store, TabletGroupWatcher dependentWatcher, SuspensionPolicy suspensionPolicy) {
     this.master = master;
@@ -137,9 +139,13 @@ class TabletGroupWatcher extends Daemon {
     return stats.getLast(tableId);
   }
 
+  /** True if the collection of live tservers specified in 'candidates' hasn't changed since the last time an assignment scan was started. */
+  public synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
+    return candidates.equals(lastScanServers);
+  }
+
   @Override
   public void run() {
-
     Thread.currentThread().setName("Watching " + store.name());
     int[] oldCounts = new int[TabletState.values().length];
     EventCoordinator.Listener eventListener = this.master.nextEvent.getListener();
@@ -171,6 +177,9 @@ class TabletGroupWatcher extends Daemon {
 
         if (currentTServers.size() == 0) {
           eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
+          synchronized (this) {
+            lastScanServers = ImmutableSortedSet.of();
+          }
           continue;
         }
 
@@ -370,6 +379,9 @@ class TabletGroupWatcher extends Daemon {
 
         updateMergeState(mergeStatsCache);
 
+        synchronized (this) {
+          lastScanServers = ImmutableSortedSet.copyOf(currentTServers.keySet());
+        }
         if (this.master.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
           Master.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(), Master.TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
           eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
