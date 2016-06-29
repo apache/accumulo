@@ -94,26 +94,29 @@ public class TabletLocationState {
     return result;
   }
 
-  public TabletState getState(Set<TServerInstance> liveServers) {
-    if (suspend != null) {
-      return TabletState.SUSPENDED;
-    }
-    TServerInstance server = getServer();
-    if (server == null)
-      return TabletState.UNASSIGNED;
-    if (server.equals(current) || server.equals(future)) {
-      if (liveServers.contains(server))
-        if (server.equals(future)) {
-          return TabletState.ASSIGNED;
-        } else {
-          return TabletState.HOSTED;
-        }
-      else {
-        return TabletState.ASSIGNED_TO_DEAD_SERVER;
-      }
-    }
-    // server == last
-    return TabletState.UNASSIGNED;
-  }
+  private static final int _HAS_CURRENT = 1 << 0;
+  private static final int _HAS_FUTURE = 1 << 1;
+  private static final int _HAS_SUSPEND = 1 << 2;
 
+  public TabletState getState(Set<TServerInstance> liveServers) {
+    switch ((current == null ? 0 : _HAS_CURRENT) | (future == null ? 0 : _HAS_FUTURE) | (suspend == null ? 0 : _HAS_SUSPEND)) {
+      case 0:
+        return TabletState.UNASSIGNED;
+
+      case _HAS_SUSPEND:
+        return TabletState.SUSPENDED;
+
+      case _HAS_FUTURE:
+      case (_HAS_FUTURE | _HAS_SUSPEND):
+        return liveServers.contains(future) ? TabletState.ASSIGNED : TabletState.ASSIGNED_TO_DEAD_SERVER;
+
+      case _HAS_CURRENT:
+      case (_HAS_CURRENT | _HAS_SUSPEND):
+        return liveServers.contains(current) ? TabletState.HOSTED : TabletState.ASSIGNED_TO_DEAD_SERVER;
+
+      default:
+        // Both current and future are set, which is prevented by constructor.
+        throw new IllegalStateException();
+    }
+  }
 }
