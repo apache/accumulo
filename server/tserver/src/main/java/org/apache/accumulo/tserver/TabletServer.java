@@ -2004,7 +2004,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         TServerInstance instance = new TServerInstance(clientAddress, getLock().getSessionId());
         TabletLocationState tls = null;
         try {
-          tls = new TabletLocationState(extent, null, instance, null, null, false);
+          tls = new TabletLocationState(extent, null, instance, null, null, null, false);
         } catch (BadLocationStateException e) {
           log.error("Unexpected error ", e);
         }

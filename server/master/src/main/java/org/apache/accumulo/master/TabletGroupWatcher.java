@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.master;
 
+import com.google.common.collect.ImmutableSortedSet;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.lang.Math.min;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -92,8 +92,19 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
 import com.google.common.collect.Iterators;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.server.conf.TableConfiguration;
+import static java.lang.Math.min;
+import java.util.SortedSet;
 
 class TabletGroupWatcher extends Daemon {
+  public static enum SuspensionPolicy {
+    /** Move tablets in state TabletState.ASSIGNED_TO_DEAD_SERVER to state TabletState.UNASSIGNED, and attempt reassignment. */
+    UNASSIGN,
+    /** Move tablets in state TabletState.ASSIGNED_TO_DEAD_SERVER to state TabletState.SUSPENDED. */
+    SUSPEND
+  }
+
   // Constants used to make sure assignment logging isn't excessive in quantity or size
   private static final String ASSIGNMENT_BUFFER_SEPARATOR = ", ";
   private static final int ASSINGMENT_BUFFER_MAX_LENGTH = 4096;
@@ -101,14 +112,18 @@ class TabletGroupWatcher extends Daemon {
   private final Master master;
   final TabletStateStore store;
   final TabletGroupWatcher dependentWatcher;
+  private final SuspensionPolicy suspensionPolicy;
+
   private MasterState masterState;
 
   final TableStats stats = new TableStats();
+  private SortedSet<TServerInstance> lastScanServers = ImmutableSortedSet.of();
 
-  TabletGroupWatcher(Master master, TabletStateStore store, TabletGroupWatcher dependentWatcher) {
+  TabletGroupWatcher(Master master, TabletStateStore store, TabletGroupWatcher dependentWatcher, SuspensionPolicy suspensionPolicy) {
     this.master = master;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
+    this.suspensionPolicy = suspensionPolicy;
   }
 
   Map<String,TableCounts> getStats() {
@@ -124,9 +139,13 @@ class TabletGroupWatcher extends Daemon {
     return stats.getLast(tableId);
   }
 
+  /** True if the collection of live tservers specified in 'candidates' hasn't changed since the last time an assignment scan was started. */
+  public synchronized boolean isSameTserversAsLastScan(Set<TServerInstance> candidates) {
+    return candidates.equals(lastScanServers);
+  }
+
   @Override
   public void run() {
-
     Thread.currentThread().setName("Watching " + store.name());
     int[] oldCounts = new int[TabletState.values().length];
     EventCoordinator.Listener eventListener = this.master.nextEvent.getListener();
@@ -158,6 +177,9 @@ class TabletGroupWatcher extends Daemon {
 
         if (currentTServers.size() == 0) {
           eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
+          synchronized (this) {
+            lastScanServers = ImmutableSortedSet.of();
+          }
           continue;
         }
 
@@ -168,6 +190,7 @@ class TabletGroupWatcher extends Daemon {
         List<Assignment> assignments = new ArrayList<Assignment>();
         List<Assignment> assigned = new ArrayList<Assignment>();
         List<TabletLocationState> assignedToDeadServers = new ArrayList<TabletLocationState>();
+        List<TabletLocationState> suspendedToGoneServers = new ArrayList<TabletLocationState>();
         Map<KeyExtent,TServerInstance> unassigned = new HashMap<KeyExtent,TServerInstance>();
         Map<TServerInstance,List<Path>> logsForDeadServers = new TreeMap<>();
 
@@ -192,15 +215,18 @@ class TabletGroupWatcher extends Daemon {
 
           // Don't overwhelm the tablet servers with work
           if (unassigned.size() + unloaded > Master.MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
-            flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers, unassigned);
+            flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers, suspendedToGoneServers, unassigned);
             assignments.clear();
             assigned.clear();
             assignedToDeadServers.clear();
+            suspendedToGoneServers.clear();
             unassigned.clear();
             unloaded = 0;
             eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
           }
           String tableId = tls.extent.getTableId();
+          TableConfiguration tableConf = this.master.getConfigurationFactory().getTableConfiguration(tableId);
+
           MergeStats mergeStats = mergeStatsCache.get(tableId);
           if (mergeStats == null) {
             mergeStats = currentMerges.get(tableId);
@@ -253,6 +279,29 @@ class TabletGroupWatcher extends Daemon {
                   logsForDeadServers.put(tserver, wals.getWalsInUse(tserver));
                 }
                 break;
+              case SUSPENDED:
+                if (master.getSteadyTime() - tls.suspend.suspensionTime < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
+                  // Tablet is suspended. See if its tablet server is back.
+                  TServerInstance returnInstance = null;
+                  Iterator<TServerInstance> find = currentTServers.tailMap(new TServerInstance(tls.suspend.server, " ")).keySet().iterator();
+                  if (find.hasNext()) {
+                    TServerInstance found = find.next();
+                    if (found.getLocation().equals(tls.suspend.server)) {
+                      returnInstance = found;
+                    }
+                  }
+
+                  // Old tablet server is back. Return this tablet to its previous owner.
+                  if (returnInstance != null) {
+                    assignments.add(new Assignment(tls.extent, returnInstance));
+                  } else {
+                    // leave suspended, don't ask for a new assignment.
+                  }
+                } else {
+                  // Treat as unassigned, ask for a new assignment.
+                  unassigned.put(tls.extent, server);
+                }
+                break;
               case UNASSIGNED:
                 // maybe it's a finishing migration
                 TServerInstance dest = this.master.migrations.get(tls.extent);
@@ -276,6 +325,10 @@ class TabletGroupWatcher extends Daemon {
             }
           } else {
             switch (state) {
+              case SUSPENDED:
+                // Request a move to UNASSIGNED, so as to allow balancing to continue.
+                suspendedToGoneServers.add(tls);
+                // Fall through to unassigned to cancel migrations.
               case UNASSIGNED:
                 TServerInstance dest = this.master.migrations.get(tls.extent);
                 TableState tableState = TableManager.getInstance().getTableState(tls.extent.getTableId());
@@ -306,7 +359,7 @@ class TabletGroupWatcher extends Daemon {
           counts[state.ordinal()]++;
         }
 
-        flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers, unassigned);
+        flushChanges(destinations, assignments, assigned, assignedToDeadServers, logsForDeadServers, suspendedToGoneServers, unassigned);
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(masterState);
@@ -326,6 +379,9 @@ class TabletGroupWatcher extends Daemon {
 
         updateMergeState(mergeStatsCache);
 
+        synchronized (this) {
+          lastScanServers = ImmutableSortedSet.copyOf(currentTServers.keySet());
+        }
         if (this.master.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
           Master.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(), Master.TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
           eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
@@ -749,15 +805,27 @@ class TabletGroupWatcher extends Daemon {
   }
 
   private void flushChanges(SortedMap<TServerInstance,TabletServerStatus> currentTServers, List<Assignment> assignments, List<Assignment> assigned,
-      List<TabletLocationState> assignedToDeadServers, Map<TServerInstance,List<Path>> logsForDeadServers, Map<KeyExtent,TServerInstance> unassigned)
-      throws DistributedStoreException, TException, WalMarkerException {
+      List<TabletLocationState> assignedToDeadServers, Map<TServerInstance,List<Path>> logsForDeadServers, List<TabletLocationState> suspendedToGoneServers,
+      Map<KeyExtent,TServerInstance> unassigned) throws DistributedStoreException, TException, WalMarkerException {
     if (!assignedToDeadServers.isEmpty()) {
       int maxServersToShow = min(assignedToDeadServers.size(), 100);
       Master.log.debug(assignedToDeadServers.size() + " assigned to dead servers: " + assignedToDeadServers.subList(0, maxServersToShow) + "...");
       Master.log.debug("logs for dead servers: " + logsForDeadServers);
-      store.unassign(assignedToDeadServers, logsForDeadServers);
+      switch (suspensionPolicy) {
+        case SUSPEND:
+          store.suspend(assignedToDeadServers, logsForDeadServers, master.getSteadyTime());
+          break;
+        case UNASSIGN:
+          store.unassign(assignedToDeadServers, logsForDeadServers);
+          break;
+      }
       this.master.markDeadServerLogsAsClosed(logsForDeadServers);
-      this.master.nextEvent.event("Marked %d tablets as unassigned because they don't have current servers", assignedToDeadServers.size());
+      this.master.nextEvent.event("Marked %d tablets as suspended because they don't have current servers", assignedToDeadServers.size());
+    }
+    if (!suspendedToGoneServers.isEmpty()) {
+      int maxServersToShow = min(assignedToDeadServers.size(), 100);
+      Master.log.debug(assignedToDeadServers.size() + " suspended to gone servers: " + assignedToDeadServers.subList(0, maxServersToShow) + "...");
+      store.unsuspend(suspendedToGoneServers);
     }
 
     if (!currentTServers.isEmpty()) {

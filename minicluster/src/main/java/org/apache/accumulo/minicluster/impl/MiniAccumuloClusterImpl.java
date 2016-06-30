@@ -111,6 +111,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
+import java.nio.file.Files;
 
 /**
  * This class provides the backing implementation for {@link MiniAccumuloCluster}, and may contain features for internal testing which have not yet been
@@ -341,10 +342,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return process;
   }
 
-  Process _exec(Class<?> clazz, ServerType serverType, String... args) throws IOException {
-
+  Process _exec(Class<?> clazz, ServerType serverType, Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<String>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
+    if (configOverrides != null && !configOverrides.isEmpty()) {
+      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo-site", ".xml").toFile();
+      Map<String,String> confMap = new HashMap<>();
+      confMap.putAll(config.getSiteConfig());
+      confMap.putAll(configOverrides);
+      writeConfig(siteFile, confMap.entrySet());
+      jvmOpts.add("-Dorg.apache.accumulo.config.file=" + siteFile.getName());
+    }
 
     if (config.isJDWPEnabled()) {
       Integer port = PortUtils.getRandomFreePort();

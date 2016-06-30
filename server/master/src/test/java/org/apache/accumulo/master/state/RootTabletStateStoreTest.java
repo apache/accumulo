@@ -176,7 +176,7 @@ public class RootTabletStateStoreTest {
     assertEquals(count, 1);
     TabletLocationState assigned = null;
     try {
-      assigned = new TabletLocationState(root, server, null, null, null, false);
+      assigned = new TabletLocationState(root, server, null, null, null, null, false);
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);
     }
@@ -203,7 +203,7 @@ public class RootTabletStateStoreTest {
 
     TabletLocationState broken = null;
     try {
-      broken = new TabletLocationState(notRoot, server, null, null, null, false);
+      broken = new TabletLocationState(notRoot, server, null, null, null, null, false);
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);
     }
