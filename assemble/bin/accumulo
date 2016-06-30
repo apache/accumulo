@@ -110,7 +110,7 @@ fi
 case "$1" in
 master)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MASTER_OPTS}" ;;
 gc)      export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_GC_OPTS}" ;;
-tserver) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}" ;;
+tserver*) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}" ;;
 monitor) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MONITOR_OPTS}" ;;
 *)       export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}" ;;
 esac
@@ -158,10 +158,23 @@ fi
 # Export the variables just in case they are not exported
 # This makes them available to java
 export JAVA_HOME HADOOP_PREFIX ZOOKEEPER_HOME LD_LIBRARY_PATH DYLD_LIBRARY_PATH
+
+# Strip the instance from $1
+APP=$1
+INSTANCE="1"
+if [[ "$1" =~ .*-.* ]]; then
+  APP=`echo $1 | cut -d"-" -f1`
+  INSTANCE=`echo $1 | cut -d"-" -f2`
+
+  #Rewrite the input arguments
+  set -- "$APP" "${@:2}"
+fi
+
 #
 # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
 JAVA="${JAVA_HOME}/bin/java"
-exec $JAVA "-Dapp=$1" \
+exec $JAVA "-Dapp=$APP" \
+   "-Dinstance=$INSTANCE" \
    $ACCUMULO_OPTS \
    -classpath "${CLASSPATH}" \
    -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" \

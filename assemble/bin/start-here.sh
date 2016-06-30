@@ -42,8 +42,8 @@ fi
 
 HOSTS="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $ip"
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/slaves; then
-      ${bin}/start-server.sh $host tserver "tablet server"
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/slaves"; then
+      "${bin}/start-server.sh" "$host" tserver
       break
    fi
 done
@@ -57,8 +57,8 @@ for host in $HOSTS; do
 done
 
 for host in $HOSTS; do
-   if grep -q "^${host}\$" $ACCUMULO_CONF_DIR/gc; then
-      ${bin}/start-server.sh $host gc "garbage collector"
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/gc"; then
+      "${bin}/start-server.sh" "$host" gc
       break
    fi
 done

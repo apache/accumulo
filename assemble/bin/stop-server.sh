@@ -26,6 +26,7 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # Stop: Resolve Script Directory
 
 . "$bin"/config.sh
+. "$bin"/config-server.sh
 
 HOST=$1
 
@@ -41,16 +42,20 @@ then
 fi
 
 # only stop if there's not one already running
-if [ "$HOST" = "localhost" -o "$HOST" = "`hostname -s`" -o "$HOST" = "`hostname -f`" -o "$HOST" = "$ip" ]; then
-   PID=$(ps -ef | grep "$ACCUMULO_HOME" | egrep ${2} | grep "Main ${3}" | grep -v grep | grep -v ssh | grep -v stop-server.sh | awk {'print $2'} | head -1)
-   if [ ! -z $PID ]; then
-      echo "Stopping ${3} on $1";
-      kill -s ${4} ${PID} 2>/dev/null
-   fi;
+if [[ $HOST == localhost || $HOST = "$(hostname -s)" || $HOST = "$(hostname -f)" || $HOST = "$IP" ]] ; then
+   for PID_FILE in ${ACCUMULO_PID_DIR}/accumulo-${ACCUMULO_IDENT_STRING}-${3}*.pid; do
+      if [ -f ${PID_FILE} ]; then
+         echo "Stopping $3 on $1";
+         kill -s "$4" `cat ${PID_FILE}` 2>/dev/null
+         rm -f ${PID_FILE} 2>/dev/null
+      fi;
+   done
 else
-   PID=$(ssh -q -o 'ConnectTimeout 8' $1 "ps -ef | grep \"$ACCUMULO_HOME\" |  egrep '${2}' | grep 'Main ${3}' | grep -v grep | grep -v ssh | grep -v stop-server.sh" | awk {'print $2'} | head -1)
-   if [ ! -z $PID ]; then
-      echo "Stopping ${3} on $1";
-      ssh -q -o 'ConnectTimeout 8' $1 "kill -s ${4} ${PID} 2>/dev/null"
-   fi;
+   for PID_FILE in $(ssh -q -o 'ConnectTimeout 8' "$1" ls "${ACCUMULO_PID_DIR}/accumulo-${ACCUMULO_IDENT_STRING}-${3}*.pid" 2>/dev/null); do
+      PID=$(ssh -q -o 'ConnectTimeout 8' "$1" cat "${PID_FILE}" 2>/dev/null)
+      if [[ ! -z $PID ]]; then
+         echo "Stopping $3 on $1";
+         ssh -q -o 'ConnectTimeout 8' "$1" "kill -s $4 $PID 2>/dev/null; rm -f ${PID_FILE} 2>/dev/null"
+      fi
+   done
 fi
