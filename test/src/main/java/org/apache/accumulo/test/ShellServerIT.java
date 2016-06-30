@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -149,7 +150,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public StringInputStream input;
     public Shell shell;
 
-    TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile) throws IOException {
+    TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile, String... extraArgs) throws IOException {
       ClientConfiguration clientConf;
       try {
         clientConf = new ClientConfiguration(configFile);
@@ -161,12 +162,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
       input = new StringInputStream();
       shell = new Shell(new ConsoleReader(input, output));
       shell.setLogErrorsToConsole();
+      String[] shellArgs = null;
       if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
         // Pull the kerberos principal out when we're using SASL
-        shell.config("-u", user, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath());
+        shellArgs = new String[] {"-u", user, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath()};
       } else {
-        shell.config("-u", user, "-p", rootPass, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath());
+        shellArgs = new String[] {"-u", user, "-p", rootPass, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath()};
       }
+      shell.config(Stream.concat(Arrays.stream(shellArgs), Arrays.stream(extraArgs)).toArray(String[]::new));
       exec("quit", true);
       shell.start();
       shell.setExit(false);
@@ -227,6 +230,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
     }
 
+    void assertBadExit(String s, boolean stringPresent) {
+      assertBadExit(s, stringPresent, noop);
+    }
+
     void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
       shellLog.debug(output.get());
       if (0 == shell.getExitCode()) {
@@ -237,6 +244,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
       if (s.length() > 0)
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
       shell.resetExitCode();
+    }
+
+    void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings) throws IOException {
+      exec(cmd);
+      if (expecteGoodExit) {
+        assertGoodExit("", true);
+      } else {
+        assertBadExit("", true);
+      }
+
+      for (String expectedString : expectedStrings) {
+        assertTrue(expectedString + " was not present in " + output.get(), output.get().contains(expectedString));
+      }
     }
   }
 
@@ -377,24 +397,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
       throw new RuntimeException(e);
     }
     throw new RuntimeException("Unexpected constructors for DistCp");
-  }
-
-  @Test
-  public void setscaniterDeletescaniter() throws Exception {
-    final String table = name.getMethodName();
-
-    // setscaniter, deletescaniter
-    ts.exec("createtable " + table);
-    ts.exec("insert a cf cq 1");
-    ts.exec("insert a cf cq 1");
-    ts.exec("insert a cf cq 1");
-    ts.input.set("true\n\n\n\nSTRING");
-    ts.exec("setscaniter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
-    ts.exec("scan", true, "3", true);
-    ts.exec("deletescaniter -n name", true);
-    ts.exec("scan", true, "1", true);
-    ts.exec("deletetable -f " + table);
-
   }
 
   @Test
@@ -1301,7 +1303,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void help() throws Exception {
     ts.exec("help -np", true, "Help Commands", true);
     ts.exec("?", true, "Help Commands", true);
-    for (String c : ("bye exit quit " + "about help info ? " + "deleteiter deletescaniter listiter setiter setscaniter "
+    for (String c : ("bye exit quit " + "about help info ? " + "deleteiter listiter setiter "
         + "grant revoke systempermissions tablepermissions userpermissions " + "execfile history " + "authenticate cls clear notable sleep table user whoami "
         + "clonetable config createtable deletetable droptable du exporttable importtable offline online renametable tables "
         + "addsplits compact constraint flush getgropus getsplits merge setgroups " + "addauths createuser deleteuser dropuser getauths passwd setauths users "
@@ -1831,6 +1833,204 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.input.set(getRootPassword() + "\n");
       ts.exec("user root", true);
     }
+  }
+
+  @Test
+  public void aboutTest() throws IOException {
+    ts.exec("about", true, "Shell - Apache Accumulo Interactive Shell");
+    ts.exec("about -v", true, "Current user:");
+    ts.exec("about arg", false, "java.lang.IllegalArgumentException: Expected 0 arguments");
+  }
+
+  @Test
+  public void addGetSplitsTest() throws IOException {
+    ts.exec("addsplits arg", false, "java.lang.IllegalStateException: Not in a table context");
+    ts.exec("createtable test", true);
+    ts.exec("addsplits 1 \\x80", true);
+    ts.exec("getsplits", true, "1\n\\x80");
+    ts.exec("getsplits -m 1", true, "1");
+    ts.exec("getsplits -b64", true, "MQ==\ngA==");
+    ts.exec("deletetable test -f", true, "Table: [test] has been deleted");
+  }
+
+  @Test
+  public void insertDeleteScanTest() throws IOException {
+    ts.exec("insert r f q v", false, "java.lang.IllegalStateException: Not in a table context");
+    ts.exec("delete r f q", false, "java.lang.IllegalStateException: Not in a table context");
+    ts.exec("createtable test", true);
+    ts.exec("insert r f q v", true);
+    ts.exec("scan", true, "r f:q []    v");
+    ts.exec("delete r f q", true);
+    ts.exec("scan", true, "r f:q []    v", false);
+    ts.exec("insert \\x90 \\xa0 \\xb0 \\xc0\\xd0\\xe0\\xf0", true);
+    ts.exec("scan", true, "\\x90 \\xA0:\\xB0 []    \\xC0\\xD0");
+    ts.exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []    \\xC0\\xD0");
+    ts.exec("scan -f 2", true, "\\x90 \\xA0:\\xB0 []    \\xC0\\xD0\\xE0", false);
+    ts.exec("scan -b \\x90 -e \\x90 -c \\xA0", true, "\\x90 \\xA0:\\xB0 []    \\xC0");
+    ts.exec("scan -b \\x90 -e \\x90 -c \\xA0:\\xB0", true, "\\x90 \\xA0:\\xB0 []    \\xC0");
+    ts.exec("scan -b \\x90 -be", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    ts.exec("scan -e \\x90 -ee", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    ts.exec("scan -b \\x90\\x00", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    ts.exec("scan -e \\x8f", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    ts.exec("delete \\x90 \\xa0 \\xb0", true);
+    ts.exec("scan", true, "\\x90 \\xA0:\\xB0 []    \\xC0", false);
+    ts.exec("deletetable test -f", true, "Table: [test] has been deleted");
+  }
+
+  @Test
+  public void deleteManyTest() throws IOException {
+    ts.exec("deletemany", false, "java.lang.IllegalStateException: Not in a table context");
+    ts.exec("createtable test", true);
+    ts.exec("deletemany", true, "\n");
+
+    ts.exec("insert 0 0 0 0 -ts 0");
+    ts.exec("insert 0 0 0 0 -l 0 -ts 0");
+    ts.exec("insert 1 1 1 1 -ts 1");
+    ts.exec("insert 2 2 2 2 -ts 2");
+
+    // prompts for delete, and rejects by default
+    ts.exec("deletemany", true, "[SKIPPED] 0 0:0 []");
+    ts.exec("deletemany -r 0", true, "[SKIPPED] 0 0:0 []");
+    ts.exec("deletemany -r 0 -f", true, "[DELETED] 0 0:0 []");
+
+    // with auths, can delete the other record
+    ts.exec("setauths -s 0");
+    ts.exec("deletemany -r 0 -f", true, "[DELETED] 0 0:0 [0]");
+
+    // delete will show the timestamp
+    ts.exec("deletemany -r 1 -f -st", true, "[DELETED] 1 1:1 [] 1");
+
+    // DeleteManyCommand has its own Formatter (DeleterFormatter), so it does not honor the -fm flag
+    ts.exec("deletemany -r 2 -f -st -fm org.apache.accumulo.core.util.format.DateStringFormatter", true, "[DELETED] 2 2:2 [] 2");
+
+    ts.exec("setauths -c ", true);
+    ts.exec("deletetable test -f", true, "Table: [test] has been deleted");
+  }
+
+  @Test
+  public void authsTest() throws Exception {
+    ts.exec("setauths x,y,z", false, "Missing required option");
+    ts.exec("setauths -s x,y,z -u notauser", false, "user does not exist");
+    ts.exec("setauths -s y,z,x", true);
+    ts.exec("getauths -u notauser", false, "user does not exist");
+    ts.execExpectList("getauths", true, Arrays.asList("x", "y", "z"));
+    ts.exec("addauths -u notauser", false, "Missing required option");
+    ts.exec("addauths -u notauser -s foo", false, "user does not exist");
+    ts.exec("addauths -s a", true);
+    ts.execExpectList("getauths", true, Arrays.asList("x", "y", "z", "a"));
+    ts.exec("setauths -c", true);
+  }
+
+  @Test
+  public void duContextTest() throws Exception {
+    ts.exec("createtable t", true);
+    ts.exec("du", true, "0 [t]");
+    ts.exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+
+  @Test
+  public void duTest() throws IOException {
+    ts.exec("createtable t", true);
+    ts.exec("du t", true, "0 [t]");
+    ts.exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+
+  @Test
+  public void duPatternTest() throws IOException {
+    ts.exec("createnamespace n", true);
+    ts.exec("createtable n.t", true);
+    ts.exec("createtable n.tt", true);
+    ts.exec("du -p n[.]t.*", true, "0 [n.t, n.tt]");
+    ts.exec("deletetable n.t -f", true, "Table: [n.t] has been deleted");
+    ts.exec("deletetable n.tt -f", true, "Table: [n.tt] has been deleted");
+    ts.exec("deletenamespace -f n", true);
+  }
+
+  @Test
+  public void scanTimestampTest() throws IOException {
+    ts.exec("createtable test", true);
+    ts.exec("insert r f q v -ts 0", true);
+    ts.exec("scan -st", true, "r f:q [] 0    v");
+    ts.exec("scan -st -f 0", true, " : [] 0   ");
+    ts.exec("deletemany -f", true);
+    ts.exec("deletetable test -f", true, "Table: [test] has been deleted");
+  }
+
+  @Test
+  public void scanFewTest() throws IOException {
+    ts.exec("createtable test", true);
+    // historically, showing few did not pertain to ColVis or Timestamp
+    ts.exec("insert 1 123 123456 -l '12345678' -ts 123456789 1234567890", true);
+    ts.exec("setauths -s 12345678", true);
+    String expected = "1 123:123456 [12345678] 123456789    1234567890";
+    String expectedFew = "1 123:12345 [12345678] 123456789    12345";
+    ts.exec("scan -st", true, expected);
+    ts.exec("scan -st -f 5", true, expectedFew);
+    // also prove that BinaryFormatter behaves same as the default
+    ts.exec("scan -st -fm org.apache.accumulo.core.util.format.BinaryFormatter", true, expected);
+    ts.exec("scan -st -f 5 -fm org.apache.accumulo.core.util.format.BinaryFormatter", true, expectedFew);
+    ts.exec("setauths -c", true);
+    ts.exec("deletetable test -f", true, "Table: [test] has been deleted");
+  }
+
+  @Test
+  public void grepTest() throws IOException {
+    ts.exec("grep", false, "java.lang.IllegalStateException: Not in a table context");
+    ts.exec("createtable t", true);
+    ts.exec("setauths -s vis", true);
+    ts.exec("insert r f q v -ts 0 -l vis", true);
+
+    String expected = "r f:q [vis]    v";
+    String expectedTimestamp = "r f:q [vis] 0    v";
+    ts.exec("grep", false, "No terms specified");
+    ts.exec("grep non_matching_string", true, "");
+    // historically, showing few did not pertain to ColVis or Timestamp
+    ts.exec("grep r", true, expected);
+    ts.exec("grep r -f 1", true, expected);
+    ts.exec("grep r -st", true, expectedTimestamp);
+    ts.exec("grep r -st -f 1", true, expectedTimestamp);
+    ts.exec("setauths -c", true);
+    ts.exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+
+  @Test
+  public void commentTest() throws IOException {
+    ts.exec("#", true, "Unknown command", false);
+    ts.exec("# foo", true, "Unknown command", false);
+    ts.exec("- foo", true, "Unknown command", true);
+  }
+
+  @Test
+  public void execFileTest() throws IOException {
+    TestShell configTestShell = new TestShell(getPrincipal(), getRootPassword(), getCluster().getConfig().getInstanceName(), getCluster().getConfig()
+        .getZooKeepers(), getCluster().getConfig().getClientConfFile(), "-f", "src/test/resources/shelltest.txt");
+    configTestShell.assertGoodExit("Unknown command", false);
+  }
+
+  @Test
+  public void setIterTest() throws IOException {
+    ts.exec("createtable t", true);
+
+    String cmdJustClass = "setiter -class VersioningIterator -p 1";
+    ts.exec(cmdJustClass, false, "java.lang.IllegalArgumentException", false);
+    ts.exec(cmdJustClass, false, "fully qualified package name", true);
+
+    String cmdFullPackage = "setiter -class o.a.a.foo -p 1";
+    ts.exec(cmdFullPackage, false, "java.lang.IllegalArgumentException", false);
+    ts.exec(cmdFullPackage, false, "class not found", true);
+
+    String cmdNoOption = "setiter -class java.lang.String -p 1";
+    ts.exec(cmdNoOption, false, "loaded successfully but does not implement SortedKeyValueIterator", true);
+
+    ts.input.set("\n\n");
+    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name foo", true);
+
+    ts.input.set("bar\nname value\n");
+    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 31", true);
+
+    // TODO can't verify this as config -t fails, functionality verified in ShellServerIT
+
+    ts.exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
 
   private void make10() throws IOException {

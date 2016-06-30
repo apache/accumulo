@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -67,7 +69,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -80,8 +81,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.security.token.Token;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * An abstract input format to provide shared methods common to all other input format classes. At the very least, any classes inheriting from this class will
@@ -206,28 +205,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Gets the serialized token class from either the configuration or the token file.
-   *
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
-   */
-  @Deprecated
-  protected static String getTokenClass(JobContext context) {
-    return getAuthenticationToken(context).getClass().getName();
-  }
-
-  /**
-   * Gets the serialized token from either the configuration or the token file.
-   *
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
-   */
-  @Deprecated
-  protected static byte[] getToken(JobContext context) {
-    return AuthenticationToken.AuthenticationTokenSerializer.serialize(getAuthenticationToken(context));
-  }
-
-  /**
    * Gets the authenticated token from either the specified token file or directly from the configuration, whichever was used when the job was configured.
    *
    * @param context
@@ -247,23 +224,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *
    * @param job
    *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
-   * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(Job, ClientConfiguration)} instead.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
-  }
-
-  /**
-   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
    *
    * @param clientConfig
    *          client configuration containing connection options
@@ -271,21 +231,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    */
   public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
     InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
-  }
-
-  /**
-   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @since 1.5.0
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public static void setMockInstance(Job job, String instanceName) {
-    InputConfigurator.setMockInstance(CLASS, job.getConfiguration(), instanceName);
   }
 
   /**
@@ -379,25 +324,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    */
   protected static InputTableConfig getInputTableConfig(JobContext context, String tableName) {
     return InputConfigurator.getInputTableConfig(CLASS, context.getConfiguration(), tableName);
-  }
-
-  /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.impl.TabletLocator} based on the configuration.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @param table
-   *          the table for which to initialize the locator
-   * @return an Accumulo tablet locator
-   * @throws org.apache.accumulo.core.client.TableNotFoundException
-   *           if the table name set on the configuration doesn't exist
-   * @since 1.6.0
-   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable. The method was deprecated to
-   *             discourage its use.
-   */
-  @Deprecated
-  protected static TabletLocator getTabletLocator(JobContext context, String table) throws TableNotFoundException {
-    return InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(), table);
   }
 
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
@@ -498,23 +424,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         scanner.addScanIterator(iterator);
     }
 
-    /**
-     * Configures the iterators on a scanner for the given table name.
-     *
-     * @param context
-     *          the Hadoop context for the configured job
-     * @param scanner
-     *          the scanner for which to configure the iterators
-     * @param tableName
-     *          the table name for which the scanner is configured
-     * @since 1.6.0
-     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
-     */
-    @Deprecated
-    protected void setupIterators(TaskAttemptContext context, Scanner scanner, String tableName, RangeInputSplit split) {
-      setupIterators(context, (ScannerBase) scanner, tableName, split);
-    }
-
     @Override
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
 
@@ -591,8 +500,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         try {
           if (isOffline) {
             scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
-          } else if (DeprecationUtil.isMockInstance(instance)) {
-            scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(attempt);
             ClientContext context = new ClientContext(instance, new Credentials(principal, token), clientConf);
@@ -718,14 +625,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       Instance instance = getInstance(context);
       String tableId;
       // resolve table name to id once, and use id from this point forward
-      if (DeprecationUtil.isMockInstance(instance)) {
-        tableId = "";
-      } else {
-        try {
-          tableId = Tables.getTableId(instance, tableName);
-        } catch (TableNotFoundException e) {
-          throw new IOException(e);
-        }
+      try {
+        tableId = Tables.getTableId(instance, tableName);
+      } catch (TableNotFoundException e) {
+        throw new IOException(e);
       }
 
       Authorizations auths = getScanAuthorizations(context);
@@ -768,12 +671,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           ClientContext clientContext = new ClientContext(getInstance(context), new Credentials(getPrincipal(context), getAuthenticationToken(context)),
               getClientConfiguration(context));
           while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
-            if (!DeprecationUtil.isMockInstance(instance)) {
-              if (!Tables.exists(instance, tableId))
-                throw new TableDeletedException(tableId);
-              if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(instance, tableId);
-            }
+            if (!Tables.exists(instance, tableId))
+              throw new TableDeletedException(tableId);
+            if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+              throw new TableOfflineException(instance, tableId);
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
             // sleep randomly between 100 and 200 ms

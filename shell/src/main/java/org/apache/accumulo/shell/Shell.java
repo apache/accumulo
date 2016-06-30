@@ -66,7 +66,6 @@ import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.BadArgumentException;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
@@ -96,7 +95,6 @@ import org.apache.accumulo.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.shell.commands.DeleteNamespaceCommand;
 import org.apache.accumulo.shell.commands.DeleteRowsCommand;
-import org.apache.accumulo.shell.commands.DeleteScanIterCommand;
 import org.apache.accumulo.shell.commands.DeleteShellIterCommand;
 import org.apache.accumulo.shell.commands.DeleteTableCommand;
 import org.apache.accumulo.shell.commands.DeleteUserCommand;
@@ -149,7 +147,6 @@ import org.apache.accumulo.shell.commands.ScriptCommand;
 import org.apache.accumulo.shell.commands.SetAuthsCommand;
 import org.apache.accumulo.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.shell.commands.SetIterCommand;
-import org.apache.accumulo.shell.commands.SetScanIterCommand;
 import org.apache.accumulo.shell.commands.SetShellIterCommand;
 import org.apache.accumulo.shell.commands.SleepCommand;
 import org.apache.accumulo.shell.commands.SystemPermissionsCommand;
@@ -367,9 +364,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         }
       }
 
-      if (!options.isFake()) {
-        DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", clientConf);
-      }
+      DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", clientConf);
 
       this.setTableName("");
       connector = instance.getConnector(user, token);
@@ -402,8 +397,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
-    Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
-        new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
+    Command[] iteratorCommands = {new DeleteIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetShellIterCommand(), new ListShellIterCommand(),
+        new DeleteShellIterCommand()};
     Command[] otherCommands = {new HiddenCommand()};
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(), new SystemPermissionsCommand(), new TablePermissionsCommand(),
         new UserPermissionsCommand(), new NamespacePermissionsCommand()};
@@ -447,25 +442,21 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   protected void setInstance(ShellOptionsJC options) {
     // should only be one set of instance options set
     instance = null;
-    if (options.isFake()) {
-      instance = DeprecationUtil.makeMockInstance("fake");
+    String instanceName, hosts;
+    if (options.isHdfsZooInstance()) {
+      instanceName = hosts = null;
+    } else if (options.getZooKeeperInstance().size() > 0) {
+      List<String> zkOpts = options.getZooKeeperInstance();
+      instanceName = zkOpts.get(0);
+      hosts = zkOpts.get(1);
     } else {
-      String instanceName, hosts;
-      if (options.isHdfsZooInstance()) {
-        instanceName = hosts = null;
-      } else if (options.getZooKeeperInstance().size() > 0) {
-        List<String> zkOpts = options.getZooKeeperInstance();
-        instanceName = zkOpts.get(0);
-        hosts = zkOpts.get(1);
-      } else {
-        instanceName = options.getZooKeeperInstanceName();
-        hosts = options.getZooKeeperHosts();
-      }
-      try {
-        instance = getZooInstance(instanceName, hosts, options.getClientConfiguration());
-      } catch (Exception e) {
-        throw new IllegalArgumentException("Unable to load client config from " + options.getClientConfigFile(), e);
-      }
+      instanceName = options.getZooKeeperInstanceName();
+      hosts = options.getZooKeeperHosts();
+    }
+    try {
+      instance = getZooInstance(instanceName, hosts, options.getClientConfiguration());
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Unable to load client config from " + options.getClientConfigFile(), e);
     }
   }
 

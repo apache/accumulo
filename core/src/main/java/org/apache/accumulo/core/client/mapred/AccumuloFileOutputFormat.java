@@ -53,21 +53,6 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   protected static final Logger log = Logger.getLogger(CLASS);
 
   /**
-   * This helper method provides an AccumuloConfiguration object constructed from the Accumulo defaults, and overridden with Accumulo properties that have been
-   * stored in the Job's configuration.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @since 1.5.0
-   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable. The method was deprecated to
-   *             discourage its use.
-   */
-  @Deprecated
-  protected static AccumuloConfiguration getAccumuloConfiguration(JobConf job) {
-    return FileOutputConfigurator.getAccumuloConfiguration(CLASS, job);
-  }
-
-  /**
    * Sets the compression type to use for data blocks. Specifying a compression may require additional libraries to be available to your Job.
    *
    * @param job

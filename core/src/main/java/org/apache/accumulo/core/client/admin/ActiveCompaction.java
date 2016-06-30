@@ -78,13 +78,6 @@ public abstract class ActiveCompaction {
 
   /**
    * @return tablet thats is compacting
-   * @deprecated since 1.7.0 use {@link #getTablet()}
-   */
-  @Deprecated
-  public abstract org.apache.accumulo.core.data.KeyExtent getExtent();
-
-  /**
-   * @return tablet thats is compacting
    * @since 1.7.0
    */
   public abstract TabletId getTablet();

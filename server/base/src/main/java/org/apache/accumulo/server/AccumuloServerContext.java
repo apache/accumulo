@@ -28,11 +28,9 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
@@ -94,9 +92,6 @@ public class AccumuloServerContext extends ClientContext {
    * Get the credentials to use for this instance so it can be passed to the superclass during construction.
    */
   private static Credentials getCredentials(Instance instance) {
-    if (DeprecationUtil.isMockInstance(instance)) {
-      return new Credentials("mockSystemUser", new PasswordToken("mockSystemPassword"));
-    }
     return SystemCredentials.get(instance);
   }
 

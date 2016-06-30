@@ -49,6 +49,8 @@ import org.junit.rules.TestName;
  *
  */
 public class FileUtilTest {
+  @SuppressWarnings("deprecation")
+  private static Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
 
   @Rule
   public TemporaryFolder tmpDir = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
@@ -82,7 +84,6 @@ public class FileUtilTest {
     Assert.assertEquals("/bar", iter.next());
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testCleanupIndexOpWithDfsDir() throws IOException {
     // And a "unique" tmp directory for each volume
@@ -91,7 +92,7 @@ public class FileUtilTest {
     Path tmpPath1 = new Path(tmp1.toURI());
 
     HashMap<Property,String> testProps = new HashMap<Property,String>();
-    testProps.put(Property.INSTANCE_DFS_DIR, accumuloDir.getAbsolutePath());
+    testProps.put(INSTANCE_DFS_DIR, accumuloDir.getAbsolutePath());
 
     AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());

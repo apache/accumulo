@@ -33,7 +33,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -88,7 +87,6 @@ public class BatchInputSplitTest {
     split.setFetchedColumns(fetchedColumns);
     split.setToken(new PasswordToken("password"));
     split.setPrincipal("root");
-    DeprecationUtil.setMockInstance(split, true);
     split.setInstanceName("instance");
     split.setZooKeepers("localhost");
     split.setIterators(iterators);
@@ -113,7 +111,6 @@ public class BatchInputSplitTest {
     Assert.assertEquals(split.getToken(), newSplit.getToken());
     Assert.assertEquals(split.getPrincipal(), newSplit.getPrincipal());
     Assert.assertEquals(split.getInstanceName(), newSplit.getInstanceName());
-    Assert.assertEquals(DeprecationUtil.isMockInstanceSet(split), DeprecationUtil.isMockInstanceSet(newSplit));
     Assert.assertEquals(split.getZooKeepers(), newSplit.getZooKeepers());
     Assert.assertEquals(split.getIterators(), newSplit.getIterators());
     Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());

@@ -19,7 +19,6 @@ package org.apache.accumulo.core.client;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -32,18 +31,13 @@ import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.commons.configuration.Configuration;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +67,6 @@ public class ZooKeeperInstance implements Instance {
 
   private final int zooKeepersSessionTimeOut;
 
-  private AccumuloConfiguration conf;
   private ClientConfiguration clientConf;
 
   /**
@@ -85,49 +78,6 @@ public class ZooKeeperInstance implements Instance {
    */
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
     this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
-  }
-
-  /**
-   *
-   * @param instanceName
-   *          The name of specific accumulo instance. This is set at initialization time.
-   * @param zooKeepers
-   *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
-   * @param sessionTimeout
-   *          zoo keeper session time out in milliseconds.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
-   */
-  @Deprecated
-  public ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout) {
-    this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers).withZkTimeout(sessionTimeout));
-  }
-
-  /**
-   *
-   * @param instanceId
-   *          The UUID that identifies the accumulo instance you want to connect to.
-   * @param zooKeepers
-   *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
-   */
-  @Deprecated
-  public ZooKeeperInstance(UUID instanceId, String zooKeepers) {
-    this(ClientConfiguration.loadDefault().withInstance(instanceId).withZkHosts(zooKeepers));
-  }
-
-  /**
-   *
-   * @param instanceId
-   *          The UUID that identifies the accumulo instance you want to connect to.
-   * @param zooKeepers
-   *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
-   * @param sessionTimeout
-   *          zoo keeper session time out in milliseconds.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
-   */
-  @Deprecated
-  public ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
-    this(ClientConfiguration.loadDefault().withInstance(instanceId).withZkHosts(zooKeepers).withZkTimeout(sessionTimeout));
   }
 
   /**
@@ -254,49 +204,8 @@ public class ZooKeeperInstance implements Instance {
   }
 
   @Override
-  @Deprecated
-  public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
-  }
-
-  @Override
-  @Deprecated
-  public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, ByteBufferUtil.toBytes(pass));
-  }
-
-  @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token), clientConf));
-  }
-
-  @Override
-  @Deprecated
-  public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(principal, new PasswordToken(pass));
-  }
-
-  @Override
-  @Deprecated
-  public AccumuloConfiguration getConfiguration() {
-    return conf = conf == null ? DefaultConfiguration.getInstance() : ClientContext.convertClientConfig(clientConf);
-  }
-
-  @Override
-  @Deprecated
-  public void setConfiguration(AccumuloConfiguration conf) {
-    this.conf = conf;
-  }
-
-  /**
-   * Given a zooCache and instanceId, look up the instance name.
-   *
-   * @deprecated since 1.7.0 {@link ZooCache} is not part of the public API, but its a parameter to this method. Therefore code that uses this method is not
-   *             guaranteed to be stable. This method was deprecated to discourage its use.
-   */
-  @Deprecated
-  public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {
-    return InstanceOperationsImpl.lookupInstanceName(zooCache, instanceId);
   }
 
   @Override

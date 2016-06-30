@@ -93,13 +93,6 @@ public class SecurityOperationsImpl implements SecurityOperations {
     this.context = context;
   }
 
-  @Deprecated
-  @Override
-  public void createUser(String user, byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
-    createLocalUser(user, new PasswordToken(password));
-    changeUserAuthorizations(user, authorizations);
-  }
-
   @Override
   public void createLocalUser(final String principal, final PasswordToken password) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
@@ -118,12 +111,6 @@ public class SecurityOperationsImpl implements SecurityOperations {
     });
   }
 
-  @Deprecated
-  @Override
-  public void dropUser(final String user) throws AccumuloException, AccumuloSecurityException {
-    dropLocalUser(user);
-  }
-
   @Override
   public void dropLocalUser(final String principal) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
@@ -133,12 +120,6 @@ public class SecurityOperationsImpl implements SecurityOperations {
         client.dropLocalUser(Tracer.traceInfo(), context.rpcCreds(), principal);
       }
     });
-  }
-
-  @Deprecated
-  @Override
-  public boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
-    return authenticateUser(user, new PasswordToken(password));
   }
 
   @Override
@@ -152,12 +133,6 @@ public class SecurityOperationsImpl implements SecurityOperations {
         return client.authenticateUser(Tracer.traceInfo(), context.rpcCreds(), toAuth.toThrift(context.getInstance()));
       }
     });
-  }
-
-  @Override
-  @Deprecated
-  public void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
-    changeLocalUserPassword(user, new PasswordToken(password));
   }
 
   @Override
@@ -337,12 +312,6 @@ public class SecurityOperationsImpl implements SecurityOperations {
         client.revokeNamespacePermission(Tracer.traceInfo(), context.rpcCreds(), principal, namespace, permission.getId());
       }
     });
-  }
-
-  @Deprecated
-  @Override
-  public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException {
-    return listLocalUsers();
   }
 
   @Override

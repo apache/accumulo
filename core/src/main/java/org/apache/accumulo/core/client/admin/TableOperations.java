@@ -79,40 +79,6 @@ public interface TableOperations {
   /**
    * @param tableName
    *          the name of the table
-   * @param limitVersion
-   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws TableExistsException
-   *           if the table already exists
-   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
-   */
-  @Deprecated
-  void create(String tableName, boolean limitVersion) throws AccumuloException, AccumuloSecurityException, TableExistsException;
-
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param versioningIter
-   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
-   * @param timeType
-   *          specifies logical or real-time based time recording for entries in the table
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws TableExistsException
-   *           if the table already exists
-   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
-   */
-  @Deprecated
-  void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException;
-
-  /**
-   * @param tableName
-   *          the name of the table
    * @param ntc
    *          specifies the new table's configuration variable, which are: 1. enable/disable the versioning iterator, which will limit the number of Key
    *          versions kept; 2. specifies logical or real-time based time recording for entries in the table; 3. user defined properties to be merged into the
@@ -190,17 +156,6 @@ public interface TableOperations {
    * @return the split points (end-row names) for the table's current split profile
    * @throws TableNotFoundException
    *           if the table does not exist
-   * @deprecated since 1.5.0; use {@link #listSplits(String)} instead.
-   */
-  @Deprecated
-  Collection<Text> getSplits(String tableName) throws TableNotFoundException;
-
-  /**
-   * @param tableName
-   *          the name of the table
-   * @return the split points (end-row names) for the table's current split profile
-   * @throws TableNotFoundException
-   *           if the table does not exist
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -208,17 +163,6 @@ public interface TableOperations {
    * @since 1.5.0
    */
   Collection<Text> listSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
-
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param maxSplits
-   *          specifies the maximum number of splits to return
-   * @return the split points (end-row names) for the table's current split profile, grouped into fewer splits so as not to exceed maxSplits
-   * @deprecated since 1.5.0; use {@link #listSplits(String, int)} instead.
-   */
-  @Deprecated
-  Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException;
 
   /**
    * @param tableName
@@ -414,21 +358,6 @@ public interface TableOperations {
    *           if the new table name already exists
    */
   void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException;
-
-  /**
-   * Initiate a flush of a table's data that is in memory
-   *
-   * @param tableName
-   *          the name of the table
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   *
-   * @deprecated since 1.4; use {@link #flush(String, Text, Text, boolean)} instead
-   */
-  @Deprecated
-  void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Flush a table's data that is currently in memory.

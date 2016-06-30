@@ -34,8 +34,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -49,7 +47,6 @@ import org.apache.log4j.Level;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -59,10 +56,17 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import jline.console.ConsoleReader;
+
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore("javax.security.*")
 @PrepareForTest({Shell.class, ZooUtil.class, ConfigSanityCheck.class})
 public class ShellSetInstanceTest {
+  @SuppressWarnings("deprecation")
+  private static Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
+  @SuppressWarnings("deprecation")
+  private static Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
+
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
 
@@ -121,17 +125,6 @@ public class ShellSetInstanceTest {
     SiteConfiguration.clearInstance();
   }
 
-  @Deprecated
-  @Test
-  public void testSetInstance_Fake() throws Exception {
-    ShellOptionsJC opts = createMock(ShellOptionsJC.class);
-    expect(opts.isFake()).andReturn(true);
-    replay(opts);
-
-    shell.setInstance(opts);
-    Assert.assertTrue(shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
-  }
-
   @Test
   public void testSetInstance_HdfsZooInstance_Explicit() throws Exception {
     testSetInstance_HdfsZooInstance(true, false, false);
@@ -155,7 +148,6 @@ public class ShellSetInstanceTest {
   private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts) throws Exception {
     ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
-    expect(opts.isFake()).andReturn(false);
     expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(explicitHdfs);
     if (!explicitHdfs) {
@@ -191,14 +183,10 @@ public class ShellSetInstanceTest {
     }
     if (!onlyInstance) {
       expect(clientConf.containsKey(Property.INSTANCE_VOLUMES.getKey())).andReturn(false).atLeastOnce();
-      @SuppressWarnings("deprecation")
-      String INSTANCE_DFS_DIR_KEY = Property.INSTANCE_DFS_DIR.getKey();
-      @SuppressWarnings("deprecation")
-      String INSTANCE_DFS_URI_KEY = Property.INSTANCE_DFS_URI.getKey();
-      expect(clientConf.containsKey(INSTANCE_DFS_DIR_KEY)).andReturn(true).atLeastOnce();
-      expect(clientConf.containsKey(INSTANCE_DFS_URI_KEY)).andReturn(true).atLeastOnce();
-      expect(clientConf.getString(INSTANCE_DFS_URI_KEY)).andReturn("hdfs://nn1").atLeastOnce();
-      expect(clientConf.getString(INSTANCE_DFS_DIR_KEY)).andReturn("/dfs").atLeastOnce();
+      expect(clientConf.containsKey(INSTANCE_DFS_DIR.getKey())).andReturn(true).atLeastOnce();
+      expect(clientConf.containsKey(INSTANCE_DFS_URI.getKey())).andReturn(true).atLeastOnce();
+      expect(clientConf.getString(INSTANCE_DFS_URI.getKey())).andReturn("hdfs://nn1").atLeastOnce();
+      expect(clientConf.getString(INSTANCE_DFS_DIR.getKey())).andReturn("/dfs").atLeastOnce();
     }
 
     UUID randomUUID = null;
@@ -233,7 +221,6 @@ public class ShellSetInstanceTest {
   private void testSetInstance_ZKInstance(boolean dashZ) throws Exception {
     ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
-    expect(opts.isFake()).andReturn(false);
     expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(false);
     expect(clientConf.getKeys()).andReturn(Arrays.asList(ClientProperty.INSTANCE_NAME.getKey(), ClientProperty.INSTANCE_ZK_HOST.getKey()).iterator());

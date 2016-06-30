@@ -97,11 +97,8 @@ public class ClientConfiguration extends CompositeConfiguration {
     private PropertyType type;
     private String description;
 
-    private Property accumuloProperty = null;
-
     private ClientProperty(Property prop) {
       this(prop.getKey(), prop.getDefaultValue(), prop.getType(), prop.getDescription());
-      accumuloProperty = prop;
     }
 
     private ClientProperty(String key, String defaultValue, PropertyType type, String description) {
@@ -119,24 +116,12 @@ public class ClientConfiguration extends CompositeConfiguration {
       return defaultValue;
     }
 
-    /**
-     * @deprecated since 1.7.0 This method returns a type that is not part of the public API and not guaranteed to be stable.
-     */
-    @Deprecated
-    public PropertyType getType() {
+    private PropertyType getType() {
       return type;
     }
 
     public String getDescription() {
       return description;
-    }
-
-    /**
-     * @deprecated since 1.7.0 This method returns a type that is not part of the public API and not guaranteed to be stable.
-     */
-    @Deprecated
-    public Property getAccumuloProperty() {
-      return accumuloProperty;
     }
 
     public static ClientProperty getPropertyByKey(String key) {

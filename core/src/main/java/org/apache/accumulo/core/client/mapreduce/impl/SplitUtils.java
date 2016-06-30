@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 
@@ -41,7 +40,6 @@ public class SplitUtils {
       Authorizations auths, Level logLevel) {
     split.setInstanceName(instance.getInstanceName());
     split.setZooKeepers(instance.getZooKeepers());
-    DeprecationUtil.setMockInstance(split, DeprecationUtil.isMockInstance(instance));
 
     split.setPrincipal(principal);
     split.setToken(token);

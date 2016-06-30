@@ -33,7 +33,6 @@ import org.apache.hadoop.io.Text;
 public class OfflineScanner extends ScannerOptions implements Scanner {
 
   private int batchSize;
-  private int timeOut;
   private Range range;
 
   private Instance instance;
@@ -55,18 +54,6 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
 
     this.batchSize = Constants.SCAN_BATCH_SIZE;
     this.timeOut = Integer.MAX_VALUE;
-  }
-
-  @Deprecated
-  @Override
-  public void setTimeOut(int timeOut) {
-    this.timeOut = timeOut;
-  }
-
-  @Deprecated
-  @Override
-  public int getTimeOut() {
-    return timeOut;
   }
 
   @Override

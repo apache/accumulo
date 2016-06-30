@@ -18,8 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.concurrent.TimeUnit;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -96,16 +94,6 @@ public class ConnectorImpl extends Connector {
     return new TabletServerBatchReader(context, getTableId(tableName), authorizations, numQueryThreads);
   }
 
-  @Deprecated
-  @Override
-  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
-      int maxWriteThreads) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
-        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
-  }
-
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
       throws TableNotFoundException {
@@ -114,25 +102,10 @@ public class ConnectorImpl extends Connector {
     return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, config);
   }
 
-  @Deprecated
-  @Override
-  public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    return new BatchWriterImpl(context, getTableId(tableName), new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
-        .setMaxWriteThreads(maxWriteThreads));
-  }
-
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     return new BatchWriterImpl(context, getTableId(tableName), config);
-  }
-
-  @Deprecated
-  @Override
-  public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
-    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
-        .setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override

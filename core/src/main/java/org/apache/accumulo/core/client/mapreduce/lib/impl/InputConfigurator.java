@@ -50,12 +50,10 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -68,7 +66,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.conf.Configuration;
@@ -675,9 +672,6 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.6.0
    */
   public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf, String tableId) throws TableNotFoundException {
-    String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE));
-    if ("MockInstance".equals(instanceType))
-      return DeprecationUtil.makeMockLocator();
     Instance instance = getInstance(implementingClass, conf);
     ClientConfiguration clientConf = getClientConfiguration(implementingClass, conf);
     ClientContext context = new ClientContext(instance,
@@ -730,69 +724,6 @@ public class InputConfigurator extends ConfiguratorBase {
           if (tableConfig.getIterators() != null) {
             for (IteratorSetting iter : tableConfig.getIterators()) {
               if (!conn.tableOperations().testClassLoad(tableConfigEntry.getKey(), iter.getIteratorClass(), SortedKeyValueIterator.class.getName()))
-                throw new AccumuloException("Servers are unable to load " + iter.getIteratorClass() + " as a " + SortedKeyValueIterator.class.getName());
-            }
-          }
-        }
-      }
-    } catch (AccumuloException e) {
-      throw new IOException(e);
-    } catch (AccumuloSecurityException e) {
-      throw new IOException(e);
-    } catch (TableNotFoundException e) {
-      throw new IOException(e);
-    }
-  }
-
-  // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
-  /**
-   * Check whether a configuration is fully configured to be used with an Accumulo {@link org.apache.hadoop.mapreduce.InputFormat}.
-   *
-   * <p>
-   * The implementation (JobContext or JobConf which created the Configuration) needs to be used to extract the proper {@link AuthenticationToken} for
-   * {@link DelegationTokenImpl} support.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @throws IOException
-   *           if the context is improperly configured
-   * @since 1.6.0
-   *
-   * @see #validateInstance(Class, Configuration)
-   * @see #validatePermissions(Class, Configuration, Connector)
-   */
-  @Deprecated
-  public static void validateOptions(Class<?> implementingClass, Configuration conf) throws IOException {
-
-    Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);
-    if (!isConnectorInfoSet(implementingClass, conf))
-      throw new IOException("Input info has not been set.");
-    String instanceKey = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE));
-    if (!"MockInstance".equals(instanceKey) && !"ZooKeeperInstance".equals(instanceKey))
-      throw new IOException("Instance info has not been set.");
-    // validate that we can connect as configured
-    try {
-      String principal = getPrincipal(implementingClass, conf);
-      AuthenticationToken token = getAuthenticationToken(implementingClass, conf);
-      Connector c = getInstance(implementingClass, conf).getConnector(principal, token);
-      if (!c.securityOperations().authenticateUser(principal, token))
-        throw new IOException("Unable to authenticate user");
-
-      if (getInputTableConfigs(implementingClass, conf).size() == 0)
-        throw new IOException("No table set.");
-
-      for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {
-        if (!c.securityOperations().hasTablePermission(getPrincipal(implementingClass, conf), tableConfig.getKey(), TablePermission.READ))
-          throw new IOException("Unable to access table");
-      }
-      for (Map.Entry<String,InputTableConfig> tableConfigEntry : inputTableConfigs.entrySet()) {
-        InputTableConfig tableConfig = tableConfigEntry.getValue();
-        if (!tableConfig.shouldUseLocalIterators()) {
-          if (tableConfig.getIterators() != null) {
-            for (IteratorSetting iter : tableConfig.getIterators()) {
-              if (!c.tableOperations().testClassLoad(tableConfigEntry.getKey(), iter.getIteratorClass(), SortedKeyValueIterator.class.getName()))
                 throw new AccumuloException("Servers are unable to load " + iter.getIteratorClass() + " as a " + SortedKeyValueIterator.class.getName());
             }
           }

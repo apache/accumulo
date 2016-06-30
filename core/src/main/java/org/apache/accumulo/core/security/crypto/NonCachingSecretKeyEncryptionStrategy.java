@@ -39,6 +39,10 @@ import org.slf4j.LoggerFactory;
 //TODO ACCUMULO-2530 Update properties to use a URI instead of a relative path to secret key
 public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
 
+  @SuppressWarnings("deprecation")
+  private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
+  @SuppressWarnings("deprecation")
+  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
   private static final Logger log = LoggerFactory.getLogger(NonCachingSecretKeyEncryptionStrategy.class);
 
   private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params, String pathToKeyName, Path pathToKey, FileSystem fs)
@@ -121,17 +125,16 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     }
   }
 
-  @SuppressWarnings("deprecation")
   private String getFullPathToKey(CryptoModuleParameters params) {
     String pathToKeyName = params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
-    String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
+    String instanceDirectory = params.getAllOptions().get(INSTANCE_DFS_DIR.getKey());
 
     if (pathToKeyName == null) {
       pathToKeyName = Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getDefaultValue();
     }
 
     if (instanceDirectory == null) {
-      instanceDirectory = Property.INSTANCE_DFS_DIR.getDefaultValue();
+      instanceDirectory = INSTANCE_DFS_DIR.getDefaultValue();
     }
 
     if (!pathToKeyName.startsWith("/")) {
@@ -142,12 +145,11 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     return fullPath;
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters params) {
-    String hdfsURI = params.getAllOptions().get(Property.INSTANCE_DFS_URI.getKey());
+    String hdfsURI = params.getAllOptions().get(INSTANCE_DFS_URI.getKey());
     if (hdfsURI == null) {
-      hdfsURI = Property.INSTANCE_DFS_URI.getDefaultValue();
+      hdfsURI = INSTANCE_DFS_URI.getDefaultValue();
     }
 
     String fullPath = getFullPathToKey(params);
@@ -166,12 +168,11 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
     return params;
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public CryptoModuleParameters decryptSecretKey(CryptoModuleParameters params) {
-    String hdfsURI = params.getAllOptions().get(Property.INSTANCE_DFS_URI.getKey());
+    String hdfsURI = params.getAllOptions().get(INSTANCE_DFS_URI.getKey());
     if (hdfsURI == null) {
-      hdfsURI = Property.INSTANCE_DFS_URI.getDefaultValue();
+      hdfsURI = INSTANCE_DFS_URI.getDefaultValue();
     }
 
     String pathToKeyName = getFullPathToKey(params);

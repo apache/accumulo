@@ -48,7 +48,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private static final Logger log = LoggerFactory.getLogger(ScannerIterator.class);
 
   // scanner options
-  private int timeOut;
+  private long timeOut;
 
   // scanner state
   private Iterator<KeyValue> iter;
@@ -104,7 +104,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   }
 
-  ScannerIterator(ClientContext context, String tableId, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options,
+  ScannerIterator(ClientContext context, String tableId, Authorizations authorizations, Range range, int size, long timeOut, ScannerOptions options,
       boolean isolated, long readaheadThreshold) {
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;
@@ -133,7 +133,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public boolean hasNext() {
     if (finished)
       return false;
@@ -160,6 +159,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
           throw new RuntimeException((Exception) obj);
       }
 
+      @SuppressWarnings("unchecked")
       List<KeyValue> currentBatch = (List<KeyValue>) obj;
 
       if (currentBatch.size() == 0) {

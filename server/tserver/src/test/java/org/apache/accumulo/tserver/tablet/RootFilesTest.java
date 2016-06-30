@@ -41,6 +41,10 @@ import org.junit.rules.TemporaryFolder;
  *
  */
 public class RootFilesTest {
+  @SuppressWarnings("deprecation")
+  private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
+  @SuppressWarnings("deprecation")
+  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
@@ -116,13 +120,12 @@ public class RootFilesTest {
     }
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testFileReplacement() throws IOException {
 
     ConfigurationCopy conf = new ConfigurationCopy();
-    conf.set(Property.INSTANCE_DFS_URI, "file:///");
-    conf.set(Property.INSTANCE_DFS_DIR, "/");
+    conf.set(INSTANCE_DFS_URI, "file:///");
+    conf.set(INSTANCE_DFS_DIR, "/");
 
     VolumeManager vm = VolumeManagerImpl.get(conf);
 

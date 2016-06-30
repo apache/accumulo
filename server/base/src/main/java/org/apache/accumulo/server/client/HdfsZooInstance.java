@@ -19,7 +19,6 @@ package org.apache.accumulo.server.client;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -35,27 +34,23 @@ import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Joiner;
 
 /**
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet location.
@@ -175,38 +170,6 @@ public class HdfsZooInstance implements Instance {
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token), SiteConfiguration.getInstance()));
-  }
-
-  @Deprecated
-  @Override
-  public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, new PasswordToken(pass));
-  }
-
-  @Deprecated
-  @Override
-  public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, ByteBufferUtil.toBytes(pass));
-  }
-
-  @Deprecated
-  @Override
-  public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
-  }
-
-  private AccumuloConfiguration conf = null;
-
-  @Deprecated
-  @Override
-  public AccumuloConfiguration getConfiguration() {
-    return conf = conf == null ? new ServerConfigurationFactory(this).getConfiguration() : conf;
-  }
-
-  @Override
-  @Deprecated
-  public void setConfiguration(AccumuloConfiguration conf) {
-    this.conf = conf;
   }
 
   public static void main(String[] args) {

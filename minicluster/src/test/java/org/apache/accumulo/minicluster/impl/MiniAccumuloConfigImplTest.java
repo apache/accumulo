@@ -34,6 +34,9 @@ import org.junit.rules.TemporaryFolder;
 
 public class MiniAccumuloConfigImplTest {
 
+  @SuppressWarnings("deprecation")
+  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
+
   static TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
@@ -61,15 +64,14 @@ public class MiniAccumuloConfigImplTest {
     assertEquals(5000, config.getZooKeeperStartupTime());
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testSiteConfig() {
 
     // constructor site config overrides default props
     Map<String,String> siteConfig = new HashMap<String,String>();
-    siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), "hdfs://");
+    siteConfig.put(INSTANCE_DFS_URI.getKey(), "hdfs://");
     MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").setSiteConfig(siteConfig).initialize();
-    assertEquals("hdfs://", config.getSiteConfig().get(Property.INSTANCE_DFS_URI.getKey()));
+    assertEquals("hdfs://", config.getSiteConfig().get(INSTANCE_DFS_URI.getKey()));
   }
 
   @Test

@@ -99,7 +99,6 @@
     <module>shell</module>
     <module>start</module>
     <module>test</module>
-    <module>trace</module>
   </modules>
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
@@ -336,11 +335,6 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-test</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-trace</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

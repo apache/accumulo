@@ -158,9 +158,6 @@ public enum Property {
    */
   INSTANCE_RPC_SASL_ENABLED("instance.rpc.sasl.enabled", "false", PropertyType.BOOLEAN,
       "Configures Thrift RPCs to require SASL with GSSAPI which supports Kerberos authentication. Mutually exclusive with SSL RPC configuration."),
-  @Deprecated
-  INSTANCE_RPC_SASL_PROXYUSERS("instance.rpc.sasl.impersonation.", null, PropertyType.PREFIX,
-      "Prefix that allows configuration of users that are allowed to impersonate other users"),
   INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION("instance.rpc.sasl.allowed.user.impersonation", "", PropertyType.STRING,
       "One-line configuration property controlling what users are allowed to impersonate other users"),
   INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION("instance.rpc.sasl.allowed.host.impersonation", "", PropertyType.STRING,
@@ -240,12 +237,6 @@ public enum Property {
   TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "512M", PropertyType.MEMORY, "Specifies the size of the cache for file indices."),
   TSERV_PORTSEARCH("tserver.port.search", "false", PropertyType.BOOLEAN, "if the ports above are in use, search higher ports until one is available"),
   TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT, "The port used for handling client connections on the tablet servers"),
-  @Deprecated
-  TSERV_MUTATION_QUEUE_MAX("tserver.mutation.queue.max", "1M", PropertyType.MEMORY, "This setting is deprecated. See tserver.total.mutation.queue.max. "
-      + "The amount of memory to use to store write-ahead-log mutations-per-session before flushing them. Since the buffer is per write session, consider the"
-      + " max number of concurrent writer when configuring. When using Hadoop 2, Accumulo will call hsync() on the WAL . For a small number of "
-      + "concurrent writers, increasing this buffer size decreases the frequncy of hsync calls. For a large number of concurrent writers a small buffers "
-      + "size is ok because of group commit."),
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "50M", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them."),
   TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "300", PropertyType.COUNT,
@@ -339,8 +330,6 @@ public enum Property {
       "The number of threads for the distributed work queue. These threads are used for copying failed bulk files."),
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents problems recovering from sudden system resets."),
-  @Deprecated
-  TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING, "This property is deprecated. Use table.durability instead."),
   TSERV_ASSIGNMENT_DURATION_WARNING("tserver.assignment.duration.warning", "10m", PropertyType.TIMEDURATION, "The amount of time an assignment can run "
       + " before the server will print a warning along with the current stack trace. Meant to help debug stuck assignments"),
   TSERV_REPLICATION_REPLAYERS("tserver.replication.replayer.", null, PropertyType.PREFIX,
@@ -460,8 +449,6 @@ public enum Property {
       "Determines the max # of files each tablet in a table can have. When adjusting this property you may want to consider adjusting"
           + " table.compaction.major.ratio also. Setting this property to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a"
           + " tablet from having more files than can be opened. Setting this property low may throttle ingest and increase query performance."),
-  @Deprecated
-  TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN, "This setting is deprecated.  Use table.durability=none instead."),
   TABLE_BLOOM_ENABLED("table.bloom.enabled", "false", PropertyType.BOOLEAN, "Use bloom filters on this table."),
   TABLE_BLOOM_LOAD_THRESHOLD("table.bloom.load.threshold", "1", PropertyType.COUNT,
       "This number of seeks that would actually use a bloom filter must occur before a file's bloom filter is loaded."
