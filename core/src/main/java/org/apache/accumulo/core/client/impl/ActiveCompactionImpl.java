@@ -28,7 +28,6 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.core.data.thrift.IterInfo;
-import org.apache.hadoop.io.Text;
 
 /**
  *
@@ -47,14 +46,6 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   @Override
   public String getTable() throws TableNotFoundException {
     return Tables.getTableName(instance, new KeyExtent(tac.getExtent()).getTableId());
-  }
-
-  @Override
-  @Deprecated
-  public org.apache.accumulo.core.data.KeyExtent getExtent() {
-    KeyExtent ke = new KeyExtent(tac.getExtent());
-    org.apache.accumulo.core.data.KeyExtent oke = new org.apache.accumulo.core.data.KeyExtent(new Text(ke.getTableId()), ke.getEndRow(), ke.getPrevEndRow());
-    return oke;
   }
 
   @Override

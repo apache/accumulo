@@ -67,19 +67,6 @@ public class UserImpersonationTest {
     };
   }
 
-  void setValidHosts(String user, String hosts) {
-    setUsersOrHosts(user, ".hosts", hosts);
-  }
-
-  void setValidUsers(String user, String users) {
-    setUsersOrHosts(user, ".users", users);
-  }
-
-  @SuppressWarnings("deprecation")
-  void setUsersOrHosts(String user, String suffix, String value) {
-    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + user + suffix, value);
-  }
-
   void setValidHostsNewConfig(String user, String... hosts) {
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION.getKey(), Joiner.on(';').join(hosts));
   }
@@ -93,23 +80,6 @@ public class UserImpersonationTest {
       sb.append(entry.getKey()).append(":").append(entry.getValue());
     }
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, sb.toString());
-  }
-
-  @Test
-  public void testAnyUserAndHosts() {
-    String server = "server";
-    setValidHosts(server, "*");
-    setValidUsers(server, "*");
-    UserImpersonation impersonation = new UserImpersonation(conf);
-
-    UsersWithHosts uwh = impersonation.get(server);
-    assertNotNull(uwh);
-
-    assertTrue(uwh.acceptsAllHosts());
-    assertTrue(uwh.acceptsAllUsers());
-
-    assertEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
-    assertEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
   }
 
   @Test
@@ -130,22 +100,6 @@ public class UserImpersonationTest {
   }
 
   @Test
-  public void testNoHostByDefault() {
-    String server = "server";
-    setValidUsers(server, "*");
-    UserImpersonation impersonation = new UserImpersonation(conf);
-
-    UsersWithHosts uwh = impersonation.get(server);
-    assertNotNull(uwh);
-
-    assertFalse(uwh.acceptsAllHosts());
-    assertTrue(uwh.acceptsAllUsers());
-
-    assertNotEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
-    assertEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
-  }
-
-  @Test
   public void testNoHostByDefaultNewConfig() {
     String server = "server";
     setValidUsersNewConfig(ImmutableMap.of(server, "*"));
@@ -162,22 +116,6 @@ public class UserImpersonationTest {
   }
 
   @Test
-  public void testNoUsersByDefault() {
-    String server = "server";
-    setValidHosts(server, "*");
-    UserImpersonation impersonation = new UserImpersonation(conf);
-
-    UsersWithHosts uwh = impersonation.get(server);
-    assertNotNull(uwh);
-
-    assertTrue(uwh.acceptsAllHosts());
-    assertFalse(uwh.acceptsAllUsers());
-
-    assertEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
-    assertNotEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
-  }
-
-  @Test
   public void testNoUsersByDefaultNewConfig() {
     String server = "server";
     setValidHostsNewConfig(server, "*");
@@ -185,29 +123,6 @@ public class UserImpersonationTest {
 
     UsersWithHosts uwh = impersonation.get(server);
     assertNull("Impersonation config should be drive by user element, not host", uwh);
-  }
-
-  @Test
-  public void testSingleUserAndHost() {
-    String server = "server", host = "single_host.domain.com", client = "single_client";
-    setValidHosts(server, host);
-    setValidUsers(server, client);
-    UserImpersonation impersonation = new UserImpersonation(conf);
-
-    UsersWithHosts uwh = impersonation.get(server);
-    assertNotNull(uwh);
-
-    assertFalse(uwh.acceptsAllHosts());
-    assertFalse(uwh.acceptsAllUsers());
-
-    assertNotEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
-    assertNotEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
-
-    assertTrue(uwh.getUsers().contains(client));
-    assertTrue(uwh.getHosts().contains(host));
-
-    assertFalse(uwh.getUsers().contains("some_other_user"));
-    assertFalse(uwh.getHosts().contains("other_host.domain.com"));
   }
 
   @Test
@@ -234,28 +149,6 @@ public class UserImpersonationTest {
   }
 
   @Test
-  public void testMultipleExplicitUsers() {
-    String server = "server", client1 = "client1", client2 = "client2", client3 = "client3";
-    setValidHosts(server, "*");
-    setValidUsers(server, Joiner.on(',').join(client1, client2, client3));
-    UserImpersonation impersonation = new UserImpersonation(conf);
-
-    UsersWithHosts uwh = impersonation.get(server);
-    assertNotNull(uwh);
-
-    assertTrue(uwh.acceptsAllHosts());
-    assertFalse(uwh.acceptsAllUsers());
-
-    assertEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
-    assertNotEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
-
-    assertTrue(uwh.getUsers().contains(client1));
-    assertTrue(uwh.getUsers().contains(client2));
-    assertTrue(uwh.getUsers().contains(client3));
-    assertFalse(uwh.getUsers().contains("other_client"));
-  }
-
-  @Test
   public void testMultipleExplicitUsersNewConfig() {
     String server = "server", client1 = "client1", client2 = "client2", client3 = "client3";
     setValidHostsNewConfig(server, "*");
@@ -278,28 +171,6 @@ public class UserImpersonationTest {
   }
 
   @Test
-  public void testMultipleExplicitHosts() {
-    String server = "server", host1 = "host1", host2 = "host2", host3 = "host3";
-    setValidHosts(server, Joiner.on(',').join(host1, host2, host3));
-    setValidUsers(server, "*");
-    UserImpersonation impersonation = new UserImpersonation(conf);
-
-    UsersWithHosts uwh = impersonation.get(server);
-    assertNotNull(uwh);
-
-    assertFalse(uwh.acceptsAllHosts());
-    assertTrue(uwh.acceptsAllUsers());
-
-    assertNotEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
-    assertEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
-
-    assertTrue(uwh.getHosts().contains(host1));
-    assertTrue(uwh.getHosts().contains(host2));
-    assertTrue(uwh.getHosts().contains(host3));
-    assertFalse(uwh.getHosts().contains("other_host"));
-  }
-
-  @Test
   public void testMultipleExplicitHostsNewConfig() {
     String server = "server", host1 = "host1", host2 = "host2", host3 = "host3";
     setValidHostsNewConfig(server, Joiner.on(',').join(host1, host2, host3));
@@ -314,33 +185,6 @@ public class UserImpersonationTest {
 
     assertNotEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
     assertEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
-
-    assertTrue(uwh.getHosts().contains(host1));
-    assertTrue(uwh.getHosts().contains(host2));
-    assertTrue(uwh.getHosts().contains(host3));
-    assertFalse(uwh.getHosts().contains("other_host"));
-  }
-
-  @Test
-  public void testMultipleExplicitUsersHosts() {
-    String server = "server", host1 = "host1", host2 = "host2", host3 = "host3", client1 = "client1", client2 = "client2", client3 = "client3";
-    setValidHosts(server, Joiner.on(',').join(host1, host2, host3));
-    setValidUsers(server, Joiner.on(',').join(client1, client2, client3));
-    UserImpersonation impersonation = new UserImpersonation(conf);
-
-    UsersWithHosts uwh = impersonation.get(server);
-    assertNotNull(uwh);
-
-    assertFalse(uwh.acceptsAllHosts());
-    assertFalse(uwh.acceptsAllUsers());
-
-    assertNotEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
-    assertNotEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
-
-    assertTrue(uwh.getUsers().contains(client1));
-    assertTrue(uwh.getUsers().contains(client2));
-    assertTrue(uwh.getUsers().contains(client3));
-    assertFalse(uwh.getUsers().contains("other_client"));
 
     assertTrue(uwh.getHosts().contains(host1));
     assertTrue(uwh.getHosts().contains(host2));
@@ -373,59 +217,6 @@ public class UserImpersonationTest {
     assertTrue(uwh.getHosts().contains(host2));
     assertTrue(uwh.getHosts().contains(host3));
     assertFalse(uwh.getHosts().contains("other_host"));
-  }
-
-  @Test
-  public void testMultipleAllowedImpersonators() {
-    String server1 = "server1", server2 = "server2", host1 = "host1", host2 = "host2", host3 = "host3", client1 = "client1", client2 = "client2", client3 = "client3";
-    // server1 can impersonate client1 and client2 from host1 or host2
-    setValidHosts(server1, Joiner.on(',').join(host1, host2));
-    setValidUsers(server1, Joiner.on(',').join(client1, client2));
-    // server2 can impersonate only client3 from host3
-    setValidHosts(server2, host3);
-    setValidUsers(server2, client3);
-    UserImpersonation impersonation = new UserImpersonation(conf);
-
-    UsersWithHosts uwh = impersonation.get(server1);
-    assertNotNull(uwh);
-
-    assertFalse(uwh.acceptsAllHosts());
-    assertFalse(uwh.acceptsAllUsers());
-
-    assertNotEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
-    assertNotEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
-
-    assertTrue(uwh.getUsers().contains(client1));
-    assertTrue(uwh.getUsers().contains(client2));
-    assertFalse(uwh.getUsers().contains(client3));
-    assertFalse(uwh.getUsers().contains("other_client"));
-
-    assertTrue(uwh.getHosts().contains(host1));
-    assertTrue(uwh.getHosts().contains(host2));
-    assertFalse(uwh.getHosts().contains(host3));
-    assertFalse(uwh.getHosts().contains("other_host"));
-
-    uwh = impersonation.get(server2);
-    assertNotNull(uwh);
-
-    assertFalse(uwh.acceptsAllHosts());
-    assertFalse(uwh.acceptsAllUsers());
-
-    assertNotEquals(AlwaysTrueSet.class, uwh.getHosts().getClass());
-    assertNotEquals(AlwaysTrueSet.class, uwh.getUsers().getClass());
-
-    assertFalse(uwh.getUsers().contains(client1));
-    assertFalse(uwh.getUsers().contains(client2));
-    assertTrue(uwh.getUsers().contains(client3));
-    assertFalse(uwh.getUsers().contains("other_client"));
-
-    assertFalse(uwh.getHosts().contains(host1));
-    assertFalse(uwh.getHosts().contains(host2));
-    assertTrue(uwh.getHosts().contains(host3));
-    assertFalse(uwh.getHosts().contains("other_host"));
-
-    // client3 is not allowed to impersonate anyone
-    assertNull(impersonation.get(client3));
   }
 
   @Test
@@ -477,24 +268,6 @@ public class UserImpersonationTest {
 
     // client3 is not allowed to impersonate anyone
     assertNull(impersonation.get(client3));
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void testSingleUser() throws Exception {
-    final String server = "server/hostname@EXAMPLE.COM", client = "client@EXAMPLE.COM";
-    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + server + ".users", client);
-    cc.set(Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey() + server + ".hosts", "*");
-    UserImpersonation impersonation = new UserImpersonation(conf);
-
-    UsersWithHosts uwh = impersonation.get(server);
-
-    assertNotNull(uwh);
-
-    assertTrue(uwh.acceptsAllHosts());
-    assertFalse(uwh.acceptsAllUsers());
-
-    assertTrue(uwh.getUsers().contains(client));
   }
 
   @Test

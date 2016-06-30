@@ -41,6 +41,11 @@ import org.junit.Test;
  * This test is not thread-safe.
  */
 public class InitializeTest {
+  @SuppressWarnings("deprecation")
+  private static Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
+  @SuppressWarnings("deprecation")
+  private static Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
+
   private Configuration conf;
   private VolumeManager fs;
   private SiteConfiguration sconf;
@@ -77,10 +82,9 @@ public class InitializeTest {
     assertTrue(Initialize.isInitialized(fs));
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testCheckInit_NoZK() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
+    expect(sconf.get(INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expectLastCall().anyTimes();
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
     replay(sconf);
@@ -90,12 +94,11 @@ public class InitializeTest {
     assertFalse(Initialize.checkInit(conf, fs, sconf));
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testCheckInit_AlreadyInit() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
+    expect(sconf.get(INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expectLastCall().anyTimes();
-    expect(sconf.get(Property.INSTANCE_DFS_DIR)).andReturn("/bar");
+    expect(sconf.get(INSTANCE_DFS_DIR)).andReturn("/bar");
     expect(sconf.get(Property.INSTANCE_VOLUMES)).andReturn("");
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
     expect(sconf.get(Property.INSTANCE_SECRET)).andReturn(Property.INSTANCE_SECRET.getDefaultValue());
@@ -109,13 +112,12 @@ public class InitializeTest {
   }
 
   // Cannot test, need to mock static FileSystem.getDefaultUri()
-  @SuppressWarnings("deprecation")
   @Ignore
   @Test
   public void testCheckInit_AlreadyInit_DefaultUri() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("");
+    expect(sconf.get(INSTANCE_DFS_URI)).andReturn("");
     expectLastCall().anyTimes();
-    expect(sconf.get(Property.INSTANCE_DFS_DIR)).andReturn("/bar");
+    expect(sconf.get(INSTANCE_DFS_DIR)).andReturn("/bar");
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
     expect(sconf.get(Property.INSTANCE_SECRET)).andReturn(Property.INSTANCE_SECRET.getDefaultValue());
     replay(sconf);
@@ -128,10 +130,9 @@ public class InitializeTest {
     assertFalse(Initialize.checkInit(conf, fs, sconf));
   }
 
-  @SuppressWarnings("deprecation")
   @Test(expected = IOException.class)
   public void testCheckInit_FSException() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
+    expect(sconf.get(INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expectLastCall().anyTimes();
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
     expect(sconf.get(Property.INSTANCE_SECRET)).andReturn(Property.INSTANCE_SECRET.getDefaultValue());
@@ -144,10 +145,9 @@ public class InitializeTest {
     Initialize.checkInit(conf, fs, sconf);
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testCheckInit_OK() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
+    expect(sconf.get(INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expectLastCall().anyTimes();
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1");
     expect(sconf.get(Property.INSTANCE_SECRET)).andReturn(Property.INSTANCE_SECRET.getDefaultValue());

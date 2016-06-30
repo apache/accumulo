@@ -38,15 +38,11 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * AccumuloCluster implementation to connect to an existing deployment of Accumulo
  */
 public class StandaloneAccumuloCluster implements AccumuloCluster {
-  @SuppressWarnings("unused")
-  private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
   static final List<ServerType> ALL_SERVER_TYPES = Collections.unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER,
       ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));

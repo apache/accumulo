@@ -22,14 +22,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * When SASL is enabled, this parses properties from the site configuration to build up a set of all users capable of impersonating another user, the users
@@ -44,9 +41,8 @@ import org.slf4j.LoggerFactory;
  */
 public class UserImpersonation {
 
-  private static final Logger log = LoggerFactory.getLogger(UserImpersonation.class);
   private static final Set<String> ALWAYS_TRUE = new AlwaysTrueSet<>();
-  private static final String ALL = "*", USERS = "users", HOSTS = "hosts";
+  private static final String ALL = "*";
 
   public static class AlwaysTrueSet<T> implements Set<T> {
 
@@ -173,7 +169,6 @@ public class UserImpersonation {
 
   private final Map<String,UsersWithHosts> proxyUsers;
 
-  @SuppressWarnings("deprecation")
   public UserImpersonation(AccumuloConfiguration conf) {
     proxyUsers = new HashMap<>();
 
@@ -182,9 +177,6 @@ public class UserImpersonation {
     if (!Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION.getDefaultValue().equals(userConfig)) {
       String hostConfig = conf.get(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION);
       parseOnelineConfiguration(userConfig, hostConfig);
-    } else {
-      // Otherwise, assume the old-style
-      parseMultiPropertyConfiguration(conf.getAllPropertiesWithPrefix(Property.INSTANCE_RPC_SASL_PROXYUSERS));
     }
   }
 
@@ -248,64 +240,6 @@ public class UserImpersonation {
         Set<String> hostsSet = new HashSet<>();
         hostsSet.addAll(Arrays.asList(allowedHosts));
         usersWithHosts.setHosts(hostsSet);
-      }
-    }
-  }
-
-  /**
-   * Parses all properties that start with {@link Property#INSTANCE_RPC_SASL_PROXYUSERS}. This approach was the original configuration method, but does not work
-   * with Ambari.
-   *
-   * @param configProperties
-   *          The relevant configuration properties for impersonation.
-   */
-  @SuppressWarnings("javadoc")
-  private void parseMultiPropertyConfiguration(Map<String,String> configProperties) {
-    @SuppressWarnings("deprecation")
-    final String configKey = Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey();
-    for (Entry<String,String> entry : configProperties.entrySet()) {
-      String aclKey = entry.getKey().substring(configKey.length());
-      int index = aclKey.lastIndexOf('.');
-
-      if (-1 == index) {
-        throw new RuntimeException("Expected 2 elements in key suffix: " + aclKey);
-      }
-
-      final String remoteUser = aclKey.substring(0, index).trim(), usersOrHosts = aclKey.substring(index + 1).trim();
-      UsersWithHosts usersWithHosts = proxyUsers.get(remoteUser);
-      if (null == usersWithHosts) {
-        usersWithHosts = new UsersWithHosts();
-        proxyUsers.put(remoteUser, usersWithHosts);
-      }
-
-      if (USERS.equals(usersOrHosts)) {
-        String userString = entry.getValue().trim();
-        if (ALL.equals(userString)) {
-          usersWithHosts.setAcceptAllUsers(true);
-        } else if (!usersWithHosts.acceptsAllUsers()) {
-          Set<String> users = usersWithHosts.getUsers();
-          if (null == users) {
-            users = new HashSet<>();
-            usersWithHosts.setUsers(users);
-          }
-          String[] userValues = StringUtils.split(userString, ',');
-          users.addAll(Arrays.<String> asList(userValues));
-        }
-      } else if (HOSTS.equals(usersOrHosts)) {
-        String hostsString = entry.getValue().trim();
-        if (ALL.equals(hostsString)) {
-          usersWithHosts.setAcceptAllHosts(true);
-        } else if (!usersWithHosts.acceptsAllHosts()) {
-          Set<String> hosts = usersWithHosts.getHosts();
-          if (null == hosts) {
-            hosts = new HashSet<>();
-            usersWithHosts.setHosts(hosts);
-          }
-          String[] hostValues = StringUtils.split(hostsString, ',');
-          hosts.addAll(Arrays.<String> asList(hostValues));
-        }
-      } else {
-        log.debug("Ignoring key " + aclKey);
       }
     }
   }

@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -35,6 +34,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.base.Predicate;
 
 public class TCredentialsUpdatingInvocationHandlerTest {
   private static final DefaultConfiguration DEFAULT_CONFIG = DefaultConfiguration.getInstance();

@@ -50,33 +50,6 @@ public abstract class Connector {
   public abstract BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException;
 
   /**
-   * Factory method to create a BatchDeleter connected to Accumulo.
-   *
-   * @param tableName
-   *          the name of the table to query and delete from
-   * @param authorizations
-   *          A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in
-   *          must be a subset of the accumulo user's set of authorizations. If the accumulo user has authorizations (A1, A2) and authorizations (A2, A3) are
-   *          passed, then an exception will be thrown.
-   * @param numQueryThreads
-   *          the number of concurrent threads to spawn for querying
-   * @param maxMemory
-   *          size in bytes of the maximum memory to batch before writing
-   * @param maxLatency
-   *          size in milliseconds; set to 0 or Long.MAX_VALUE to allow the maximum time to hold a batch before writing
-   * @param maxWriteThreads
-   *          the maximum number of threads to use for writing data to the tablet servers
-   *
-   * @return BatchDeleter object for configuring and deleting
-   * @throws TableNotFoundException
-   *           when the specified table doesn't exist
-   * @deprecated since 1.5.0; Use {@link #createBatchDeleter(String, Authorizations, int, BatchWriterConfig)} instead.
-   */
-  @Deprecated
-  public abstract BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
-      int maxWriteThreads) throws TableNotFoundException;
-
-  /**
    *
    * @param tableName
    *          the name of the table to query and delete from
@@ -91,7 +64,6 @@ public abstract class Connector {
    * @return BatchDeleter object for configuring and deleting
    * @since 1.5.0
    */
-
   public abstract BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
       throws TableNotFoundException;
 
@@ -100,50 +72,12 @@ public abstract class Connector {
    *
    * @param tableName
    *          the name of the table to insert data into
-   * @param maxMemory
-   *          size in bytes of the maximum memory to batch before writing
-   * @param maxLatency
-   *          time in milliseconds; set to 0 or Long.MAX_VALUE to allow the maximum time to hold a batch before writing
-   * @param maxWriteThreads
-   *          the maximum number of threads to use for writing data to the tablet servers
-   *
-   * @return BatchWriter object for configuring and writing data to
-   * @throws TableNotFoundException
-   *           when the specified table doesn't exist
-   * @deprecated since 1.5.0; Use {@link #createBatchWriter(String, BatchWriterConfig)} instead.
-   */
-  @Deprecated
-  public abstract BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException;
-
-  /**
-   * Factory method to create a BatchWriter connected to Accumulo.
-   *
-   * @param tableName
-   *          the name of the table to insert data into
    * @param config
    *          configuration used to create batch writer
    * @return BatchWriter object for configuring and writing data to
    * @since 1.5.0
    */
-
   public abstract BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException;
-
-  /**
-   * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch writers can queue data for multiple tables, which is good for
-   * ingesting data into multiple tables from the same source
-   *
-   * @param maxMemory
-   *          size in bytes of the maximum memory to batch before writing
-   * @param maxLatency
-   *          size in milliseconds; set to 0 or Long.MAX_VALUE to allow the maximum time to hold a batch before writing
-   * @param maxWriteThreads
-   *          the maximum number of threads to use for writing data to the tablet servers
-   *
-   * @return MultiTableBatchWriter object for configuring and writing data to
-   * @deprecated since 1.5.0; Use {@link #createMultiTableBatchWriter(BatchWriterConfig)} instead.
-   */
-  @Deprecated
-  public abstract MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads);
 
   /**
    * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch writers can queue data for multiple tables. Also data for
@@ -154,7 +88,6 @@ public abstract class Connector {
    * @return MultiTableBatchWriter object for configuring and writing data to
    * @since 1.5.0
    */
-
   public abstract MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config);
 
   /**

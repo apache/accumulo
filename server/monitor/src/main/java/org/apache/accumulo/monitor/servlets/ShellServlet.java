@@ -81,7 +81,6 @@ public class ShellServlet extends BasicServlet {
       // user attribute is null, check to see if username and password are passed as parameters
       user = req.getParameter("user");
       String pass = req.getParameter("pass");
-      String mock = req.getParameter("mock");
       if (user == null || pass == null) {
         // username or password are null, re-authenticate
         sb.append(authenticationForm(req.getRequestURI(), CSRF_TOKEN));
@@ -89,7 +88,7 @@ public class ShellServlet extends BasicServlet {
       }
       try {
         // get a new shell for this user
-        ShellExecutionThread shellThread = new ShellExecutionThread(user, pass, mock);
+        ShellExecutionThread shellThread = new ShellExecutionThread(user, pass);
         service().submit(shellThread);
         userShells().put(session.getId(), shellThread);
       } catch (IOException e) {
@@ -224,8 +223,7 @@ public class ShellServlet extends BasicServlet {
 
   private String authenticationForm(String requestURI, String csrfToken) {
     return "<div id='login'><form method=POST action='" + requestURI + "'>"
-        + "<table><tr><td>Mock:&nbsp</td><td><input type='checkbox' name='mock' value='mock'></td></tr>"
-        + "<tr><td>Username:&nbsp;</td><td><input type='text' name='user'></td></tr>"
+        + "<table><tr><td>Username:&nbsp;</td><td><input type='text' name='user'></td></tr>"
         + "<tr><td>Password:&nbsp;</td><td><input type='password' name='pass'></td><td>" + "<input type='hidden' name='" + CSRF_KEY + "' value='" + csrfToken
         + "'/><input type='submit' value='Enter'></td></tr></table></form></div>";
   }
@@ -255,7 +253,7 @@ public class ShellServlet extends BasicServlet {
     private boolean done;
     private boolean readWait;
 
-    private ShellExecutionThread(String username, String password, String mock) throws IOException {
+    private ShellExecutionThread(String username, String password) throws IOException {
       this.done = false;
       this.cmd = null;
       this.cmdIndex = 0;
@@ -264,10 +262,7 @@ public class ShellServlet extends BasicServlet {
       ConsoleReader reader = new ConsoleReader(this, output);
       this.shell = new Shell(reader);
       shell.setLogErrorsToConsole();
-      if (mock != null) {
-        if (shell.config("--fake", "-u", username, "-p", password))
-          throw new IOException("mock shell config error");
-      } else if (shell.config("-u", username, "-p", password)) {
+      if (shell.config("-u", username, "-p", password)) {
         throw new IOException("shell config error");
       }
     }

@@ -85,7 +85,6 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.BatchScanOptions;
@@ -190,23 +189,18 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   public ProxyServer(Properties props) {
 
-    String useMock = props.getProperty("useMockInstance");
-    if (useMock != null && Boolean.parseBoolean(useMock))
-      instance = DeprecationUtil.makeMockInstance(this.getClass().getName());
-    else {
-      ClientConfiguration clientConf;
-      if (props.containsKey("clientConfigurationFile")) {
-        String clientConfFile = props.getProperty("clientConfigurationFile");
-        try {
-          clientConf = new ClientConfiguration(clientConfFile);
-        } catch (ConfigurationException e) {
-          throw new RuntimeException(e);
-        }
-      } else {
-        clientConf = ClientConfiguration.loadDefault();
+    ClientConfiguration clientConf;
+    if (props.containsKey("clientConfigurationFile")) {
+      String clientConfFile = props.getProperty("clientConfigurationFile");
+      try {
+        clientConf = new ClientConfiguration(clientConfFile);
+      } catch (ConfigurationException e) {
+        throw new RuntimeException(e);
       }
-      instance = new ZooKeeperInstance(clientConf.withInstance(props.getProperty("instance")).withZkHosts(props.getProperty("zookeepers")));
+    } else {
+      clientConf = ClientConfiguration.loadDefault();
     }
+    instance = new ZooKeeperInstance(clientConf.withInstance(props.getProperty("instance")).withZkHosts(props.getProperty("zookeepers")));
 
     try {
       String tokenProp = props.getProperty("tokenClass", PasswordToken.class.getName());

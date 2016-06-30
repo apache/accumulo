@@ -65,13 +65,6 @@ public abstract class ActiveScan {
 
   /**
    * @return tablet the scan is running against, if a batch scan may be one of many or null
-   * @deprecated since 1.7.0 use {@link #getTablet()}
-   */
-  @Deprecated
-  public abstract org.apache.accumulo.core.data.KeyExtent getExtent();
-
-  /**
-   * @return tablet the scan is running against, if a batch scan may be one of many or null
    * @since 1.7.0
    */
   public abstract TabletId getTablet();

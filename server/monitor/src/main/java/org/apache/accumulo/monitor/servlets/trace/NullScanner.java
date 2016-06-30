@@ -53,16 +53,6 @@ public class NullScanner implements Scanner {
   @Override
   public void clearScanIterators() {}
 
-  @Deprecated
-  @Override
-  public void setTimeOut(int timeOut) {}
-
-  @Deprecated
-  @Override
-  public int getTimeOut() {
-    return 0;
-  }
-
   @Override
   public void setRange(Range range) {}
 

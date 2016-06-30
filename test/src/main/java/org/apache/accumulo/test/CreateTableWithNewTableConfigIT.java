@@ -102,7 +102,6 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     return false;
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void tableNameOnly() throws Exception {
     log.info("Starting tableNameOnly");
@@ -113,7 +112,7 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     connector.tableOperations().create(tableName, new NewTableConfiguration());
 
     String tableNameOrig = "original";
-    connector.tableOperations().create(tableNameOrig, true);
+    connector.tableOperations().create(tableNameOrig);
 
     int countNew = numProperties(connector, tableName);
     int countOrig = compareProperties(connector, tableNameOrig, tableName, null);
@@ -122,50 +121,6 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
   }
 
-  @SuppressWarnings("deprecation")
-  @Test
-  public void tableNameAndLimitVersion() throws Exception {
-    log.info("Starting tableNameAndLimitVersion");
-
-    // Create a table with the initial properties
-    Connector connector = getConnector();
-    String tableName = getUniqueNames(2)[0];
-    boolean limitVersion = false;
-    connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
-
-    String tableNameOrig = "originalWithLimitVersion";
-    connector.tableOperations().create(tableNameOrig, limitVersion);
-
-    int countNew = numProperties(connector, tableName);
-    int countOrig = compareProperties(connector, tableNameOrig, tableName, null);
-
-    Assert.assertEquals("Extra properties using the new create method", countOrig, countNew);
-    Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void tableNameLimitVersionAndTimeType() throws Exception {
-    log.info("Starting tableNameLimitVersionAndTimeType");
-
-    // Create a table with the initial properties
-    Connector connector = getConnector();
-    String tableName = getUniqueNames(2)[0];
-    boolean limitVersion = false;
-    TimeType tt = TimeType.LOGICAL;
-    connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators().setTimeType(tt));
-
-    String tableNameOrig = "originalWithLimitVersionAndTimeType";
-    connector.tableOperations().create(tableNameOrig, limitVersion, tt);
-
-    int countNew = numProperties(connector, tableName);
-    int countOrig = compareProperties(connector, tableNameOrig, tableName, null);
-
-    Assert.assertEquals("Extra properties using the new create method", countOrig, countNew);
-    Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, tt));
-  }
-
-  @SuppressWarnings("deprecation")
   @Test
   public void addCustomPropAndChangeExisting() throws Exception {
     log.info("Starting addCustomPropAndChangeExisting");
@@ -186,7 +141,7 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     connector.tableOperations().create(tableName, new NewTableConfiguration().setProperties(properties));
 
     String tableNameOrig = "originalWithTableName";
-    connector.tableOperations().create(tableNameOrig, true);
+    connector.tableOperations().create(tableNameOrig);
 
     int countNew = numProperties(connector, tableName);
     int countOrig = compareProperties(connector, tableNameOrig, tableName, propertyName);
