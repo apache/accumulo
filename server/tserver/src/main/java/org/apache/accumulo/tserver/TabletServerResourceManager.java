@@ -410,7 +410,7 @@ public class TabletServerResourceManager {
           synchronized (tabletReports) {
             tabletReportsCopy = new HashMap<>(tabletReports);
           }
-          ArrayList<TabletState> tabletStates = new ArrayList<TabletState>(tabletReportsCopy.values());
+          ArrayList<TabletState> tabletStates = new ArrayList<>(tabletReportsCopy.values());
           mma = memoryManager.getMemoryManagementActions(tabletStates);
 
         } catch (Throwable t) {

@@ -229,7 +229,7 @@ public class FileUtil {
         return .5;
       }
 
-      List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
+      List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow
@@ -310,7 +310,7 @@ public class FileUtil {
         throw new IOException("Failed to find mid point, no entries between " + prevEndRow + " and " + endRow + " for " + mapFiles);
       }
 
-      List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
+      List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow

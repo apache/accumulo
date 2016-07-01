@@ -543,7 +543,7 @@ public class MetadataTableUtil {
       }
     }
 
-    return new Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>>(result, sizes);
+    return new Pair<>(result, sizes);
   }
 
   public static List<LogEntry> getLogEntries(ClientContext context, KeyExtent extent) throws IOException, KeeperException, InterruptedException {

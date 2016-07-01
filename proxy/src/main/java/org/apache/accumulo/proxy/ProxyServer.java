@@ -1466,8 +1466,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
       Set<String> propertiesToExclude) throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, org.apache.accumulo.proxy.thrift.TableExistsException, TException {
     try {
-      propertiesToExclude = propertiesToExclude == null ? new HashSet<String>() : propertiesToExclude;
-      propertiesToSet = propertiesToSet == null ? new HashMap<String,String>() : propertiesToSet;
+      propertiesToExclude = propertiesToExclude == null ? new HashSet<>() : propertiesToExclude;
+      propertiesToSet = propertiesToSet == null ? new HashMap<>() : propertiesToSet;
 
       getConnector(login).tableOperations().clone(tableName, newTableName, flush, propertiesToSet, propertiesToExclude);
     } catch (Exception e) {
