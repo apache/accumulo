@@ -351,7 +351,7 @@ public class InputConfigurator extends ConfiguratorBase {
       int idx = col.indexOf(":");
       Text cf = new Text(idx < 0 ? Base64.getDecoder().decode(col) : Base64.getDecoder().decode(col.substring(0, idx)));
       Text cq = idx < 0 ? null : new Text(Base64.getDecoder().decode(col.substring(idx + 1)));
-      columns.add(new Pair<Text,Text>(cf, cq));
+      columns.add(new Pair<>(cf, cq));
     }
     return columns;
   }

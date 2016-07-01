@@ -38,7 +38,7 @@ public class DefaultConfigurationTest {
 
   @Test
   public void testGetProperties() {
-    Map<String,String> p = new java.util.HashMap<String,String>();
+    Map<String,String> p = new java.util.HashMap<>();
     c.getProperties(p, x -> true);
     assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(), p.get(Property.MASTER_CLIENTPORT.getKey()));
   }

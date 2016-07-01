@@ -75,7 +75,7 @@ public class InputTableConfig implements Writable {
    * Returns the ranges to be queried in the configuration
    */
   public List<Range> getRanges() {
-    return ranges != null ? ranges : new ArrayList<Range>();
+    return ranges != null ? ranges : new ArrayList<>();
   }
 
   /**
@@ -95,7 +95,7 @@ public class InputTableConfig implements Writable {
    * Returns the columns to be fetched for this configuration
    */
   public Collection<Pair<Text,Text>> getFetchedColumns() {
-    return columns != null ? columns : new HashSet<Pair<Text,Text>>();
+    return columns != null ? columns : new HashSet<>();
   }
 
   /**
@@ -114,7 +114,7 @@ public class InputTableConfig implements Writable {
    * Returns the iterators to be set on this configuration
    */
   public List<IteratorSetting> getIterators() {
-    return iterators != null ? iterators : new ArrayList<IteratorSetting>();
+    return iterators != null ? iterators : new ArrayList<>();
   }
 
   /**

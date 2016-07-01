@@ -116,7 +116,7 @@ public class NamespaceConfigurationTest {
   @Test
   public void testGetProperties() {
     Predicate<String> all = x -> true;
-    Map<String,String> props = new java.util.HashMap<String,String>();
+    Map<String,String> props = new java.util.HashMap<>();
     parent.getProperties(props, all);
     replay(parent);
     List<String> children = new java.util.ArrayList<>();

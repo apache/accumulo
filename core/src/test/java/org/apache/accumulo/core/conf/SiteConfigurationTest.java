@@ -64,7 +64,7 @@ public class SiteConfigurationTest {
 
     EasyMock.replay(siteCfg);
 
-    Map<String,String> props = new HashMap<String,String>();
+    Map<String,String> props = new HashMap<>();
     Predicate<String> all = x -> true;
     siteCfg.getProperties(props, all);
 

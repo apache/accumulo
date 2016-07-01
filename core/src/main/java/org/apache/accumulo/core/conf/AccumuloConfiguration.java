@@ -133,7 +133,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   @Override
   public Iterator<Entry<String,String>> iterator() {
     Predicate<String> all = x -> true;
-    TreeMap<String,String> entries = new TreeMap<String,String>();
+    TreeMap<String,String> entries = new TreeMap<>();
     getProperties(entries, all);
     return entries.entrySet().iterator();
   }

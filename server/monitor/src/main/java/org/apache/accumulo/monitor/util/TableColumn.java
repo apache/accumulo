@@ -26,7 +26,7 @@ public class TableColumn<T> {
 
   public TableColumn(String title, CellType<T> type, String legend) {
     this.title = title;
-    this.type = type != null ? type : new StringType<T>();
+    this.type = type != null ? type : new StringType<>();
     this.legend = legend;
   }
 

@@ -213,7 +213,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
 
     @Override
     public Set<String> onlineTables() {
-      HashSet<String> onlineTables = new HashSet<String>(getConnector().tableOperations().tableIdMap().values());
+      HashSet<String> onlineTables = new HashSet<>(getConnector().tableOperations().tableIdMap().values());
       return Sets.filter(onlineTables, tableId -> Tables.getTableState(getConnector().getInstance(), tableId) == TableState.ONLINE);
     }
 

@@ -433,7 +433,7 @@ public class ThriftTransportPool {
                 cachedConnection.setReserved(true);
                 final String serverAddr = ttk.getServer().toString();
                 log.trace("Using existing connection to {}", serverAddr);
-                return new Pair<String,TTransport>(serverAddr, cachedConnection.transport);
+                return new Pair<>(serverAddr, cachedConnection.transport);
               }
             }
           }
@@ -455,7 +455,7 @@ public class ThriftTransportPool {
                 cachedConnection.setReserved(true);
                 final String serverAddr = ttk.getServer().toString();
                 log.trace("Using existing connection to {} timeout {}", serverAddr, ttk.getTimeout());
-                return new Pair<String,TTransport>(serverAddr, cachedConnection.transport);
+                return new Pair<>(serverAddr, cachedConnection.transport);
               }
             }
           }

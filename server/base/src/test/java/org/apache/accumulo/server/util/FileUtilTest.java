@@ -91,7 +91,7 @@ public class FileUtilTest {
     assertTrue(tmp1.mkdirs() || tmp1.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI());
 
-    HashMap<Property,String> testProps = new HashMap<Property,String>();
+    HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(INSTANCE_DFS_DIR, accumuloDir.getAbsolutePath());
 
     AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);

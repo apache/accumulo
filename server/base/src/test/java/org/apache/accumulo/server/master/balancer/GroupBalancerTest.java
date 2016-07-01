@@ -80,7 +80,7 @@ public class GroupBalancerTest {
 
         @Override
         protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
-          return Iterables.transform(tabletLocs.entrySet(), input -> new Pair<KeyExtent,Location>(input.getKey(), new Location(input.getValue())));
+          return Iterables.transform(tabletLocs.entrySet(), input -> new Pair<>(input.getKey(), new Location(input.getValue())));
         }
 
         @Override
