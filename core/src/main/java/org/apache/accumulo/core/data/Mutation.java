@@ -71,7 +71,7 @@ public class Mutation implements Writable {
    */
   public static enum SERIALIZED_FORMAT {
     VERSION1, VERSION2
-  };
+  }
 
   private boolean useOldDeserialize = false;
   private byte[] row;
@@ -319,7 +319,7 @@ public class Mutation implements Writable {
       put(val, valLength);
     } else {
       if (values == null) {
-        values = new ArrayList<byte[]>();
+        values = new ArrayList<>();
       }
       byte copy[] = new byte[valLength];
       System.arraycopy(val, 0, copy, 0, valLength);
@@ -969,7 +969,7 @@ public class Mutation implements Writable {
     if (!valuesPresent) {
       values = null;
     } else {
-      values = new ArrayList<byte[]>();
+      values = new ArrayList<>();
       int numValues = WritableUtils.readVInt(in);
       for (int i = 0; i < numValues; i++) {
         len = WritableUtils.readVInt(in);
@@ -1009,7 +1009,7 @@ public class Mutation implements Writable {
     if (!valuesPresent) {
       localValues = null;
     } else {
-      localValues = new ArrayList<byte[]>();
+      localValues = new ArrayList<>();
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
         len = in.readInt();

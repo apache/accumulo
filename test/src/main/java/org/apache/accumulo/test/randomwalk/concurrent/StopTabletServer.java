@@ -40,7 +40,7 @@ import org.apache.zookeeper.data.Stat;
 public class StopTabletServer extends Test {
 
   Set<TServerInstance> getTServers(Instance instance) throws KeeperException, InterruptedException {
-    Set<TServerInstance> result = new HashSet<TServerInstance>();
+    Set<TServerInstance> result = new HashSet<>();
     ZooReader rdr = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     String base = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     for (String child : rdr.getChildren(base)) {
@@ -66,7 +66,7 @@ public class StopTabletServer extends Test {
 
     Instance instance = env.getInstance();
 
-    List<TServerInstance> currentServers = new ArrayList<TServerInstance>(getTServers(instance));
+    List<TServerInstance> currentServers = new ArrayList<>(getTServers(instance));
     Collections.shuffle(currentServers);
     Runtime runtime = Runtime.getRuntime();
     if (currentServers.size() > 1) {

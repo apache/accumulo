@@ -80,7 +80,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     namespace2 = "ns_" + getUniqueNames(2)[1];
 
     // Set the general volume chooser to the PerTableVolumeChooser so that different choosers can be specified
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), PerTableVolumeChooser.class.getName());
     cfg.setSiteConfig(siteConfig);
 
@@ -108,7 +108,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   public void addSplits(Connector connector, String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // Add 10 splits to the table
-    SortedSet<Text> partitions = new TreeSet<Text>();
+    SortedSet<Text> partitions = new TreeSet<>();
     for (String s : "b,e,g,j,l,o,q,t,v,y".split(","))
       partitions.add(new Text(s));
     connector.tableOperations().addSplits(tableName, partitions);
@@ -135,7 +135,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   public void verifyVolumes(Connector connector, String tableName, Range tableRange, String vol) throws TableNotFoundException {
     // Verify the new files are written to the Volumes specified
-    ArrayList<String> volumes = new ArrayList<String>();
+    ArrayList<String> volumes = new ArrayList<>();
     for (String s : vol.split(","))
       volumes.add(s);
 

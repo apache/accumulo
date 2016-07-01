@@ -43,13 +43,13 @@ public class Init extends Test {
     int numAccts = (Integer) state.get("numAccts");
 
     // add some splits to spread ingest out a little
-    TreeSet<Text> splits = new TreeSet<Text>();
+    TreeSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 10; i++)
       splits.add(new Text(Utils.getBank((int) (numBanks * .1 * i))));
     env.getConnector().tableOperations().addSplits((String) state.get("tableName"), splits);
     log.debug("Added splits " + splits);
 
-    ArrayList<Integer> banks = new ArrayList<Integer>();
+    ArrayList<Integer> banks = new ArrayList<>();
     for (int i = 0; i < numBanks; i++)
       banks.add(i);
     // shuffle for case when multiple threads are adding banks

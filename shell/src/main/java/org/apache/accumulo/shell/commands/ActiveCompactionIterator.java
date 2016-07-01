@@ -54,7 +54,7 @@ class ActiveCompactionIterator implements Iterator<String> {
   }
 
   private void readNext() {
-    final List<String> compactions = new ArrayList<String>();
+    final List<String> compactions = new ArrayList<>();
 
     while (tsIter.hasNext()) {
 
@@ -62,7 +62,7 @@ class ActiveCompactionIterator implements Iterator<String> {
       try {
         List<ActiveCompaction> acl = instanceOps.getActiveCompactions(tserver);
 
-        acl = new ArrayList<ActiveCompaction>(acl);
+        acl = new ArrayList<>(acl);
 
         Collections.sort(acl, new Comparator<ActiveCompaction>() {
           @Override
@@ -80,8 +80,8 @@ class ActiveCompactionIterator implements Iterator<String> {
 
           ac.getIterators();
 
-          List<String> iterList = new ArrayList<String>();
-          Map<String,Map<String,String>> iterOpts = new HashMap<String,Map<String,String>>();
+          List<String> iterList = new ArrayList<>();
+          Map<String,Map<String,String>> iterOpts = new HashMap<>();
           for (IteratorSetting is : ac.getIterators()) {
             iterList.add(is.getName() + "=" + is.getPriority() + "," + is.getIteratorClass());
             iterOpts.put(is.getName(), is.getOptions());

@@ -51,7 +51,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   // The fraction of memory that needs to be used before we begin flushing.
   private double compactionThreshold;
   private long maxObserved;
-  private final HashMap<String,Long> mincIdleThresholds = new HashMap<String,Long>();
+  private final HashMap<String,Long> mincIdleThresholds = new HashMap<>();
   private ServerConfiguration config = null;
 
   private static class TabletInfo {
@@ -71,7 +71,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   // A little map that will hold the "largest" N tablets, where largest is a result of the timeMemoryLoad function
   private static class LargestMap {
     final int max;
-    final TreeMap<Long,List<TabletInfo>> map = new TreeMap<Long,List<TabletInfo>>();
+    final TreeMap<Long,List<TabletInfo>> map = new TreeMap<>();
 
     LargestMap(int n) {
       max = n;
@@ -98,7 +98,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
       if (lst != null) {
         lst.add(value);
       } else {
-        lst = new ArrayList<TabletInfo>();
+        lst = new ArrayList<>();
         lst.add(value);
         map.put(key, lst);
       }
@@ -159,7 +159,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
 
     mincIdleThresholds.clear();
     final MemoryManagementActions result = new MemoryManagementActions();
-    result.tabletsToMinorCompact = new ArrayList<KeyExtent>();
+    result.tabletsToMinorCompact = new ArrayList<>();
 
     LargestMap largestMemTablets = new LargestMap(maxMinCs);
     final LargestMap largestIdleMemTablets = new LargestMap(maxConcurrentMincs);

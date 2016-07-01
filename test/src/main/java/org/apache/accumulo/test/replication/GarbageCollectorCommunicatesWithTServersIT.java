@@ -110,7 +110,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
 
-    Set<String> result = new HashSet<String>();
+    Set<String> result = new HashSet<>();
     for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
       log.debug("Reading WALs: {}={}", entry.getKey(), entry.getValue());
       result.add(entry.getKey().toString());
@@ -132,7 +132,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     s.setRange(r);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-    Set<String> rfiles = new HashSet<String>();
+    Set<String> rfiles = new HashSet<>();
     for (Entry<Key,Value> entry : s) {
       log.debug("Reading RFiles: {}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
       // uri://path/to/wal
@@ -159,7 +159,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     s.setRange(r);
     s.fetchColumn(MetadataSchema.ReplicationSection.COLF, new Text(tableId));
 
-    Map<String,Status> fileToStatus = new HashMap<String,Status>();
+    Map<String,Status> fileToStatus = new HashMap<>();
     for (Entry<Key,Value> entry : s) {
       Text file = new Text();
       MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);

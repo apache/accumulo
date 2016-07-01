@@ -56,10 +56,10 @@ public class DefaultCompactionStrategyTest {
     Key second = null;
     if (secondString != null)
       second = new Key(new Text(secondString));
-    return new Pair<Key,Key>(first, second);
+    return new Pair<>(first, second);
   }
 
-  static final Map<String,Pair<Key,Key>> fakeFiles = new HashMap<String,Pair<Key,Key>>();
+  static final Map<String,Pair<Key,Key>> fakeFiles = new HashMap<>();
 
   static {
     fakeFiles.put("file1", keys("b", "m"));
@@ -162,7 +162,7 @@ public class DefaultCompactionStrategyTest {
   }
 
   private MajorCompactionRequest createRequest(KeyExtent extent, MajorCompactionReason reason, Object... objs) throws IOException {
-    Map<FileRef,DataFileValue> files = new HashMap<FileRef,DataFileValue>();
+    Map<FileRef,DataFileValue> files = new HashMap<>();
     for (int i = 0; i < objs.length; i += 2) {
       files.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + (String) objs[i]), new DataFileValue(((Number) objs[i + 1]).longValue(), 0));
     }
@@ -174,7 +174,7 @@ public class DefaultCompactionStrategyTest {
   }
 
   private static Set<String> asStringSet(Collection<FileRef> refs) {
-    HashSet<String> result = new HashSet<String>();
+    HashSet<String> result = new HashSet<>();
     for (FileRef ref : refs) {
       result.add(ref.path().toString());
     }
@@ -182,7 +182,7 @@ public class DefaultCompactionStrategyTest {
   }
 
   private static Set<String> asSet(Collection<String> strings) {
-    HashSet<String> result = new HashSet<String>();
+    HashSet<String> result = new HashSet<>();
     for (String string : strings)
       result.add("hdfs://nn1/accumulo/tables/5/t-0001/" + string);
     return result;

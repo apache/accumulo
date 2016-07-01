@@ -125,7 +125,7 @@ public class FileManager {
 
       long curTime = System.currentTimeMillis();
 
-      ArrayList<FileSKVIterator> filesToClose = new ArrayList<FileSKVIterator>();
+      ArrayList<FileSKVIterator> filesToClose = new ArrayList<>();
 
       // determine which files to close in a sync block, and then close the
       // files outside of the sync block
@@ -176,8 +176,8 @@ public class FileManager {
     this.maxOpen = maxOpen;
     this.fs = fs;
 
-    this.openFiles = new HashMap<String,List<OpenReader>>();
-    this.reservedReaders = new HashMap<FileSKVIterator,String>();
+    this.openFiles = new HashMap<>();
+    this.reservedReaders = new HashMap<>();
 
     this.maxIdleTime = context.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
     SimpleTimer.getInstance(context.getConfiguration()).schedule(new IdleFileCloser(), maxIdleTime, maxIdleTime / 2);
@@ -196,7 +196,7 @@ public class FileManager {
 
   private List<FileSKVIterator> takeLRUOpenFiles(int numToTake) {
 
-    ArrayList<OpenReader> openReaders = new ArrayList<OpenReader>();
+    ArrayList<OpenReader> openReaders = new ArrayList<>();
 
     for (Entry<String,List<OpenReader>> entry : openFiles.entrySet()) {
       openReaders.addAll(entry.getValue());
@@ -204,7 +204,7 @@ public class FileManager {
 
     Collections.sort(openReaders);
 
-    ArrayList<FileSKVIterator> ret = new ArrayList<FileSKVIterator>();
+    ArrayList<FileSKVIterator> ret = new ArrayList<>();
 
     for (int i = 0; i < numToTake && i < openReaders.size(); i++) {
       OpenReader or = openReaders.get(i);
@@ -227,7 +227,7 @@ public class FileManager {
   private static <T> List<T> getFileList(String file, Map<String,List<T>> files) {
     List<T> ofl = files.get(file);
     if (ofl == null) {
-      ofl = new ArrayList<T>();
+      ofl = new ArrayList<>();
       files.put(file, ofl);
     }
 
@@ -245,7 +245,7 @@ public class FileManager {
   }
 
   private List<String> takeOpenFiles(Collection<String> files, List<FileSKVIterator> reservedFiles, Map<FileSKVIterator,String> readersReserved) {
-    List<String> filesToOpen = new LinkedList<String>(files);
+    List<String> filesToOpen = new LinkedList<>(files);
     for (Iterator<String> iterator = filesToOpen.iterator(); iterator.hasNext();) {
       String file = iterator.next();
 
@@ -280,8 +280,8 @@ public class FileManager {
 
     List<String> filesToOpen = null;
     List<FileSKVIterator> filesToClose = Collections.emptyList();
-    List<FileSKVIterator> reservedFiles = new ArrayList<FileSKVIterator>();
-    Map<FileSKVIterator,String> readersReserved = new HashMap<FileSKVIterator,String>();
+    List<FileSKVIterator> reservedFiles = new ArrayList<>();
+    Map<FileSKVIterator,String> readersReserved = new HashMap<>();
 
     if (!tablet.isMeta()) {
       filePermits.acquireUninterruptibly(files.size());
@@ -401,7 +401,7 @@ public class FileManager {
     FileDataSource(String file, SortedKeyValueIterator<Key,Value> iter) {
       this.file = file;
       this.iter = iter;
-      this.deepCopies = new ArrayList<FileManager.FileDataSource>();
+      this.deepCopies = new ArrayList<>();
     }
 
     public FileDataSource(IteratorEnvironment env, SortedKeyValueIterator<Key,Value> deepCopy, ArrayList<FileDataSource> deepCopies) {
@@ -470,8 +470,8 @@ public class FileManager {
     private boolean continueOnFailure;
 
     ScanFileManager(KeyExtent tablet) {
-      tabletReservedReaders = new ArrayList<FileSKVIterator>();
-      dataSources = new ArrayList<FileDataSource>();
+      tabletReservedReaders = new ArrayList<>();
+      dataSources = new ArrayList<>();
       this.tablet = tablet;
 
       continueOnFailure = context.getServerConfigurationFactory().getTableConfiguration(tablet).getBoolean(Property.TABLE_FAILURES_IGNORE);
@@ -482,7 +482,7 @@ public class FileManager {
     }
 
     private List<FileSKVIterator> openFileRefs(Collection<FileRef> files) throws TooManyFilesException, IOException {
-      List<String> strings = new ArrayList<String>(files.size());
+      List<String> strings = new ArrayList<>(files.size());
       for (FileRef ref : files)
         strings.add(ref.path().toString());
       return openFiles(strings);
@@ -508,7 +508,7 @@ public class FileManager {
 
       List<FileSKVIterator> newlyReservedReaders = openFileRefs(files.keySet());
 
-      ArrayList<InterruptibleIterator> iters = new ArrayList<InterruptibleIterator>();
+      ArrayList<InterruptibleIterator> iters = new ArrayList<>();
 
       for (FileSKVIterator reader : newlyReservedReaders) {
         String filename = getReservedReadeFilename(reader);
@@ -554,17 +554,17 @@ public class FileManager {
       if (tabletReservedReaders.size() != 0)
         throw new IllegalStateException();
 
-      Collection<String> files = new ArrayList<String>();
+      Collection<String> files = new ArrayList<>();
       for (FileDataSource fds : dataSources)
         files.add(fds.file);
 
       List<FileSKVIterator> newlyReservedReaders = openFiles(files);
-      Map<String,List<FileSKVIterator>> map = new HashMap<String,List<FileSKVIterator>>();
+      Map<String,List<FileSKVIterator>> map = new HashMap<>();
       for (FileSKVIterator reader : newlyReservedReaders) {
         String fileName = getReservedReadeFilename(reader);
         List<FileSKVIterator> list = map.get(fileName);
         if (list == null) {
-          list = new LinkedList<FileSKVIterator>();
+          list = new LinkedList<>();
           map.put(fileName, list);
         }
 

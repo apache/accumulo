@@ -122,7 +122,7 @@ public class MasterServlet extends BasicServlet {
       }
 
       int guessHighLoad = ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors();
-      List<String> slaves = new ArrayList<String>();
+      List<String> slaves = new ArrayList<>();
       for (TabletServerStatus up : Monitor.getMmi().tServerInfo) {
         slaves.add(up.name);
       }
@@ -137,8 +137,8 @@ public class MasterServlet extends BasicServlet {
           (int) (slaves.size() * 0.6 + 1.0), slaves.size()), "Number of tablet servers currently available");
       masterStatus.addSortableColumn("#&nbsp;Total<br />Tablet&nbsp;Servers", new PreciseNumberType(), "The total number of tablet servers configured");
       masterStatus.addSortableColumn("Last&nbsp;GC", null, "The last time files were cleaned-up from HDFS.");
-      masterStatus.addSortableColumn("#&nbsp;Tablets", new NumberType<Integer>(0, Integer.MAX_VALUE, 2, Integer.MAX_VALUE), null);
-      masterStatus.addSortableColumn("#&nbsp;Unassigned<br />Tablets", new NumberType<Integer>(0, 0), null);
+      masterStatus.addSortableColumn("#&nbsp;Tablets", new NumberType<>(0, Integer.MAX_VALUE, 2, Integer.MAX_VALUE), null);
+      masterStatus.addSortableColumn("#&nbsp;Unassigned<br />Tablets", new NumberType<>(0, 0), null);
       masterStatus.addSortableColumn("Entries", new NumberType<Long>(), "The total number of key/value pairs in Accumulo");
       masterStatus.addSortableColumn("Ingest", new NumberType<Long>(), "The number of Key/Value pairs inserted, per second. "
           + " Note that deleted records are \"inserted\" and will make the ingest " + "rate increase in the near-term.");
@@ -147,7 +147,7 @@ public class MasterServlet extends BasicServlet {
       masterStatus.addSortableColumn("Entries<br />Returned", new NumberType<Long>(), "The total number of Key/Value pairs returned as a result of scans.");
       masterStatus.addSortableColumn("Hold&nbsp;Time", new DurationType(0l, 0l), "The maximum amount of time that ingest has been held "
           + "across all servers due to a lack of memory to store the records");
-      masterStatus.addSortableColumn("OS&nbsp;Load", new NumberType<Double>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
+      masterStatus.addSortableColumn("OS&nbsp;Load", new NumberType<>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
           "The one-minute load average on the computer that runs the monitor web server.");
       TableRow row = masterStatus.prepareRow();
       row.add(masters.size() == 0 ? "<div class='error'>Down</div>" : AddressUtil.parseAddress(masters.get(0), false).getHostText());

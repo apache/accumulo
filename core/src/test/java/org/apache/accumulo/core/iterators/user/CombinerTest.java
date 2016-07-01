@@ -58,7 +58,7 @@ import org.junit.Test;
 
 public class CombinerTest {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   static class CombinerIteratorEnvironment extends DefaultIteratorEnvironment {
 
@@ -115,7 +115,7 @@ public class CombinerTest {
   public void test1() throws IOException {
     Encoder<Long> encoder = LongCombiner.VAR_LEN_ENCODER;
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that do not aggregate
     nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
@@ -180,7 +180,7 @@ public class CombinerTest {
   public void test2() throws IOException {
     Encoder<Long> encoder = LongCombiner.VAR_LEN_ENCODER;
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
     nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
@@ -242,7 +242,7 @@ public class CombinerTest {
   public void test3() throws IOException {
     Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
     nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
@@ -308,7 +308,7 @@ public class CombinerTest {
   public void testDeepCopy() throws IOException {
     Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
     nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
@@ -376,7 +376,7 @@ public class CombinerTest {
   public void test4() throws IOException {
     Encoder<Long> encoder = LongCombiner.STRING_ENCODER;
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that do not aggregate
     nkv(tm1, 0, 0, 1, 1, false, 7l, encoder);
@@ -481,13 +481,13 @@ public class CombinerTest {
     // try aggregating across multiple data sets that contain
     // the exact same keys w/ different values
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
 
-    TreeMap<Key,Value> tm2 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm2 = new TreeMap<>();
     nkv(tm2, 1, 1, 1, 1, false, 3l, encoder);
 
-    TreeMap<Key,Value> tm3 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm3 = new TreeMap<>();
     nkv(tm3, 1, 1, 1, 1, false, 4l, encoder);
 
     Combiner ai = new SummingCombiner();
@@ -496,7 +496,7 @@ public class CombinerTest {
     LongCombiner.setEncodingType(is, StringEncoder.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    List<SortedKeyValueIterator<Key,Value>> sources = new ArrayList<SortedKeyValueIterator<Key,Value>>(3);
+    List<SortedKeyValueIterator<Key,Value>> sources = new ArrayList<>(3);
     sources.add(new SortedMapIterator(tm1));
     sources.add(new SortedMapIterator(tm2));
     sources.add(new SortedMapIterator(tm3));
@@ -513,7 +513,7 @@ public class CombinerTest {
   @Test
   public void test6() throws IOException {
     Encoder<Long> encoder = LongCombiner.VAR_LEN_ENCODER;
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
     nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
@@ -542,7 +542,7 @@ public class CombinerTest {
 
     // test that delete is not aggregated
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     nkv(tm1, 1, 1, 1, 2, true, 0l, encoder);
     nkv(tm1, 1, 1, 1, 3, false, 4l, encoder);
@@ -570,7 +570,7 @@ public class CombinerTest {
     ai.next();
     assertFalse(ai.hasTop());
 
-    tm1 = new TreeMap<Key,Value>();
+    tm1 = new TreeMap<>();
     nkv(tm1, 1, 1, 1, 2, true, 0l, encoder);
     ai = new SummingCombiner();
     ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
@@ -587,7 +587,7 @@ public class CombinerTest {
 
   @Test
   public void valueIteratorTest() throws IOException {
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
     tm.put(new Key("r", "f", "q", 1), new Value("1".getBytes()));
     tm.put(new Key("r", "f", "q", 2), new Value("2".getBytes()));
     SortedMapIterator smi = new SortedMapIterator(tm);
@@ -600,7 +600,7 @@ public class CombinerTest {
 
   @Test
   public void sumAllColumns() throws IOException {
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
     tm.put(new Key("r", "count", "a", 1), new Value("1".getBytes()));
     tm.put(new Key("r", "count", "a", 2), new Value("1".getBytes()));
     tm.put(new Key("r", "count", "b", 3), new Value("1".getBytes()));
@@ -636,7 +636,7 @@ public class CombinerTest {
   public void maxMinTest() throws IOException {
     Encoder<Long> encoder = LongCombiner.VAR_LEN_ENCODER;
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
     nkv(tm1, 1, 1, 1, 1, false, 4l, encoder);
@@ -675,7 +675,7 @@ public class CombinerTest {
   }
 
   public static List<Long> nal(Long... longs) {
-    List<Long> al = new ArrayList<Long>(longs.length);
+    List<Long> al = new ArrayList<>(longs.length);
     for (Long l : longs) {
       al.add(l);
     }
@@ -692,7 +692,7 @@ public class CombinerTest {
       IllegalAccessException {
     Encoder<List<Long>> encoder = encoderClass.newInstance();
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
     nkv(tm1, 1, 1, 1, 1, false, nal(1l, 2l), encoder);
@@ -773,11 +773,11 @@ public class CombinerTest {
 
     @Override
     public List<Long> decode(byte[] b) {
-      return new ArrayList<Long>();
+      return new ArrayList<>();
     }
 
     public List<Long> decode(byte[] b, int offset, int len) {
-      return new ArrayList<Long>();
+      return new ArrayList<>();
     }
 
   }
@@ -821,7 +821,7 @@ public class CombinerTest {
   }
 
   private TreeMap<Key,Value> readAll(SortedKeyValueIterator<Key,Value> combiner) throws Exception {
-    TreeMap<Key,Value> ret = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> ret = new TreeMap<>();
 
     combiner.seek(new Range(), EMPTY_COL_FAMS, false);
 
@@ -895,7 +895,7 @@ public class CombinerTest {
   public void testDeleteHandling() throws Exception {
     Encoder<Long> encoder = LongCombiner.STRING_ENCODER;
 
-    TreeMap<Key,Value> input = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> input = new TreeMap<>();
 
     IteratorEnvironment paritalMajcIe = new CombinerIteratorEnvironment(IteratorScope.majc, false);
     IteratorEnvironment fullMajcIe = new CombinerIteratorEnvironment(IteratorScope.majc, true);
@@ -906,7 +906,7 @@ public class CombinerTest {
     nkv(input, 1, 1, 1, 3, false, 2l, encoder);
     nkv(input, 1, 1, 1, 4, false, 9l, encoder);
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     nkv(expected, 1, 1, 1, 1, false, 4l, encoder);
     nkv(expected, 1, 1, 1, 2, true, 0l, encoder);
     nkv(expected, 1, 1, 1, 4, false, 11l, encoder);

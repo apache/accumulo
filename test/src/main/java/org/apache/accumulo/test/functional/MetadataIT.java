@@ -71,14 +71,14 @@ public class MetadataIT extends AccumuloClusterHarness {
     rootScanner.setRange(MetadataSchema.TabletsSection.getRange());
     rootScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-    Set<String> files1 = new HashSet<String>();
+    Set<String> files1 = new HashSet<>();
     for (Entry<Key,Value> entry : rootScanner)
       files1.add(entry.getKey().getColumnQualifier().toString());
 
     c.tableOperations().create(tableNames[1]);
     c.tableOperations().flush(MetadataTable.NAME, null, null, true);
 
-    Set<String> files2 = new HashSet<String>();
+    Set<String> files2 = new HashSet<>();
     for (Entry<Key,Value> entry : rootScanner)
       files2.add(entry.getKey().getColumnQualifier().toString());
 
@@ -88,7 +88,7 @@ public class MetadataIT extends AccumuloClusterHarness {
 
     c.tableOperations().compact(MetadataTable.NAME, null, null, false, true);
 
-    Set<String> files3 = new HashSet<String>();
+    Set<String> files3 = new HashSet<>();
     for (Entry<Key,Value> entry : rootScanner)
       files3.add(entry.getKey().getColumnQualifier().toString());
 
@@ -100,7 +100,7 @@ public class MetadataIT extends AccumuloClusterHarness {
   public void mergeMeta() throws Exception {
     Connector c = getConnector();
     String[] names = getUniqueNames(5);
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (String id : "1 2 3 4 5".split(" ")) {
       splits.add(new Text(id));
     }

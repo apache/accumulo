@@ -80,8 +80,8 @@ public class LocalityGroupUtilTest {
     assertEquals(ecf, LocalityGroupUtil.encodeColumnFamily(bs2));
 
     // test encoding multiple column fams containing binary data
-    HashSet<Text> in = new HashSet<Text>();
-    HashSet<ByteSequence> in2 = new HashSet<ByteSequence>();
+    HashSet<Text> in = new HashSet<>();
+    HashSet<ByteSequence> in2 = new HashSet<>();
     in.add(new Text(test1));
     in2.add(new ArrayByteSequence(test1));
     in.add(new Text(test2));

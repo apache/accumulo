@@ -26,11 +26,11 @@ import org.apache.hadoop.io.Text;
 
 public class ListLexicoderTest extends AbstractLexicoderTest {
 
-  private List<Long> data1 = new ArrayList<Long>();
-  private List<Long> data2 = new ArrayList<Long>();
-  private List<Long> data3 = new ArrayList<Long>();
-  private List<Long> data4 = new ArrayList<Long>();
-  private List<Long> data5 = new ArrayList<Long>();
+  private List<Long> data1 = new ArrayList<>();
+  private List<Long> data2 = new ArrayList<>();
+  private List<Long> data3 = new ArrayList<>();
+  private List<Long> data4 = new ArrayList<>();
+  private List<Long> data5 = new ArrayList<>();
 
   @Override
   public void setUp() {
@@ -52,7 +52,7 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
   }
 
   public void testSortOrder() {
-    List<List<Long>> data = new ArrayList<List<Long>>();
+    List<List<Long>> data = new ArrayList<>();
 
     // add list in expected sort order
     data.add(data2);
@@ -61,15 +61,15 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
     data.add(data3);
     data.add(data5);
 
-    TreeSet<Text> sortedEnc = new TreeSet<Text>();
+    TreeSet<Text> sortedEnc = new TreeSet<>();
 
-    ListLexicoder<Long> listLexicoder = new ListLexicoder<Long>(new LongLexicoder());
+    ListLexicoder<Long> listLexicoder = new ListLexicoder<>(new LongLexicoder());
 
     for (List<Long> list : data) {
       sortedEnc.add(new Text(listLexicoder.encode(list)));
     }
 
-    List<List<Long>> unenc = new ArrayList<List<Long>>();
+    List<List<Long>> unenc = new ArrayList<>();
 
     for (Text enc : sortedEnc) {
       unenc.add(listLexicoder.decode(TextUtil.getBytes(enc)));
@@ -80,10 +80,10 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
   }
 
   public void testDecodes() {
-    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data1);
-    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data2);
-    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data3);
-    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data4);
-    assertDecodes(new ListLexicoder<Long>(new LongLexicoder()), data5);
+    assertDecodes(new ListLexicoder<>(new LongLexicoder()), data1);
+    assertDecodes(new ListLexicoder<>(new LongLexicoder()), data2);
+    assertDecodes(new ListLexicoder<>(new LongLexicoder()), data3);
+    assertDecodes(new ListLexicoder<>(new LongLexicoder()), data4);
+    assertDecodes(new ListLexicoder<>(new LongLexicoder()), data5);
   }
 }

@@ -99,7 +99,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
     assertEquals("Unassigned tablets were not assigned within 30 seconds", 0, unassignedTablets);
 
     // Compute online tablets per tserver
-    List<Integer> counts = new ArrayList<Integer>();
+    List<Integer> counts = new ArrayList<>();
     for (TabletServerStatus server : stats.tServerInfo) {
       int count = 0;
       for (TableInfo table : server.tableMap.values()) {

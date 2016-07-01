@@ -96,7 +96,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
     while (!proxyServer.isServing())
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     Client client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
-    Map<String,String> properties = new TreeMap<String,String>();
+    Map<String,String> properties = new TreeMap<>();
     properties.put("password", ROOT_PASSWORD);
     ByteBuffer login = client.login("root", properties);
 
@@ -107,7 +107,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
     WriterOptions options = new WriterOptions();
     options.setDurability(Durability.NONE);
     String writer = client.createWriter(login, tableName, options);
-    Map<ByteBuffer,List<ColumnUpdate>> cells = new TreeMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> cells = new TreeMap<>();
     ColumnUpdate column = new ColumnUpdate(bytes("cf"), bytes("cq"));
     column.setValue("value".getBytes());
     cells.put(bytes("row"), Collections.singletonList(column));

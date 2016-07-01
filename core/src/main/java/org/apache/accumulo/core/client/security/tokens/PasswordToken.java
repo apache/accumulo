@@ -150,7 +150,7 @@ public class PasswordToken implements AuthenticationToken {
 
   @Override
   public Set<TokenProperty> getProperties() {
-    Set<TokenProperty> internal = new LinkedHashSet<TokenProperty>();
+    Set<TokenProperty> internal = new LinkedHashSet<>();
     internal.add(new TokenProperty("password", "the password for the principal", true));
     return internal;
   }

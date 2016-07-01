@@ -68,7 +68,7 @@ public class SynchronizedIterator<K extends WritableComparable<?>,V extends Writ
 
   @Override
   public synchronized SortedKeyValueIterator<K,V> deepCopy(IteratorEnvironment env) {
-    return new SynchronizedIterator<K,V>(source.deepCopy(env));
+    return new SynchronizedIterator<>(source.deepCopy(env));
   }
 
   public SynchronizedIterator() {}

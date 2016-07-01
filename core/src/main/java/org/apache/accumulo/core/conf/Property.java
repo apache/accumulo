@@ -773,8 +773,8 @@ public enum Property {
    */
   public synchronized static boolean isValidPropertyKey(String key) {
     if (validProperties == null) {
-      validProperties = new HashSet<String>();
-      validPrefixes = new HashSet<String>();
+      validProperties = new HashSet<>();
+      validPrefixes = new HashSet<>();
 
       for (Property p : Property.values()) {
         if (p.getType().equals(PropertyType.PREFIX)) {
@@ -799,7 +799,7 @@ public enum Property {
    */
   public synchronized static boolean isValidTablePropertyKey(String key) {
     if (validTableProperties == null) {
-      validTableProperties = new HashSet<String>();
+      validTableProperties = new HashSet<>();
       for (Property p : Property.values()) {
         if (!p.getType().equals(PropertyType.PREFIX) && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
           validTableProperties.add(p.getKey());
@@ -947,7 +947,7 @@ public enum Property {
    */
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
     Map<String,String> longNames = tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
-    Map<String,String> result = new HashMap<String,String>();
+    Map<String,String> result = new HashMap<>();
     for (Entry<String,String> entry : longNames.entrySet()) {
       result.put(entry.getKey().substring(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey().length()), entry.getValue());
     }

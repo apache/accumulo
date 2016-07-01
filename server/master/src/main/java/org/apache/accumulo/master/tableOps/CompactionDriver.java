@@ -80,7 +80,7 @@ class CompactionDriver extends MasterRepo {
       throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
     }
 
-    MapCounter<TServerInstance> serversToFlush = new MapCounter<TServerInstance>();
+    MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
     Connector conn = master.getConnector();
 
     Scanner scanner;

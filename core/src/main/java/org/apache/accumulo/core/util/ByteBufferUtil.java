@@ -48,7 +48,7 @@ public class ByteBufferUtil {
   public static List<ByteBuffer> toByteBuffers(Collection<byte[]> bytesList) {
     if (bytesList == null)
       return null;
-    ArrayList<ByteBuffer> result = new ArrayList<ByteBuffer>();
+    ArrayList<ByteBuffer> result = new ArrayList<>();
     for (byte[] bytes : bytesList) {
       result.add(ByteBuffer.wrap(bytes));
     }
@@ -58,7 +58,7 @@ public class ByteBufferUtil {
   public static List<byte[]> toBytesList(Collection<ByteBuffer> bytesList) {
     if (bytesList == null)
       return null;
-    ArrayList<byte[]> result = new ArrayList<byte[]>(bytesList.size());
+    ArrayList<byte[]> result = new ArrayList<>(bytesList.size());
     for (ByteBuffer bytes : bytesList) {
       result.add(toBytes(bytes));
     }

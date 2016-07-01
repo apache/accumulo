@@ -31,7 +31,7 @@ import org.apache.accumulo.core.iterators.ValueFormatException;
  *
  * @since 1.6.0
  */
-public class UUIDLexicoder extends AbstractLexicoder<UUID> implements Lexicoder<UUID> {
+public class UUIDLexicoder extends AbstractLexicoder<UUID> {
 
   /**
    * {@inheritDoc}

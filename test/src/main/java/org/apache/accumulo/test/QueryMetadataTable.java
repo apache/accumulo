@@ -106,7 +106,7 @@ public class QueryMetadataTable {
     scanner.setBatchSize(scanOpts.scanBatchSize);
     Text mdrow = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, null));
 
-    HashSet<Text> rowSet = new HashSet<Text>();
+    HashSet<Text> rowSet = new HashSet<>();
 
     int count = 0;
 
@@ -127,7 +127,7 @@ public class QueryMetadataTable {
 
     System.out.printf(" %,d%n", count);
 
-    ArrayList<Text> rows = new ArrayList<Text>(rowSet);
+    ArrayList<Text> rows = new ArrayList<>(rowSet);
 
     Random r = new Random();
 

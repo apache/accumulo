@@ -68,10 +68,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
   public MetadataLocationObtainer() {
 
-    locCols = new TreeSet<Column>();
+    locCols = new TreeSet<>();
     locCols.add(new Column(TextUtil.getBytes(TabletsSection.CurrentLocationColumnFamily.NAME), null, null));
     locCols.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
-    columns = new ArrayList<Column>(locCols);
+    columns = new ArrayList<>(locCols);
   }
 
   @Override
@@ -90,12 +90,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
       Range range = new Range(row, true, stopRow, true);
 
-      TreeMap<Key,Value> encodedResults = new TreeMap<Key,Value>();
-      TreeMap<Key,Value> results = new TreeMap<Key,Value>();
+      TreeMap<Key,Value> encodedResults = new TreeMap<>();
+      TreeMap<Key,Value> results = new TreeMap<>();
 
       // Use the whole row iterator so that a partial mutations is not read. The code that extracts locations for tablets does a sanity check to ensure there is
       // only one location. Reading a partial mutation could make it appear there are multiple locations when there are not.
-      List<IterInfo> serverSideIteratorList = new ArrayList<IterInfo>();
+      List<IterInfo> serverSideIteratorList = new ArrayList<>();
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
       boolean more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location, encodedResults, locCols, serverSideIteratorList,
@@ -162,7 +162,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   public List<TabletLocation> lookupTablets(ClientContext context, String tserver, Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
       throws AccumuloSecurityException, AccumuloException {
 
-    final TreeMap<Key,Value> results = new TreeMap<Key,Value>();
+    final TreeMap<Key,Value> results = new TreeMap<>();
 
     ResultReceiver rr = new ResultReceiver() {
 
@@ -183,8 +183,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       opts = unsetOpts.setColumns(locCols);
     }
 
-    Map<KeyExtent,List<Range>> unscanned = new HashMap<KeyExtent,List<Range>>();
-    Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
+    Map<KeyExtent,List<Range>> unscanned = new HashMap<>();
+    Map<KeyExtent,List<Range>> failures = new HashMap<>();
     try {
       TabletServerBatchReaderIterator.doLookup(context, tserver, tabletsRanges, failures, unscanned, rr, columns, opts, Authorizations.EMPTY);
       if (failures.size() > 0) {
@@ -212,8 +212,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     Value prevRow = null;
     KeyExtent ke;
 
-    List<TabletLocation> results = new ArrayList<TabletLocation>();
-    ArrayList<KeyExtent> locationless = new ArrayList<KeyExtent>();
+    List<TabletLocation> results = new ArrayList<>();
+    ArrayList<KeyExtent> locationless = new ArrayList<>();
 
     Text lastRowFromKey = new Text();
 

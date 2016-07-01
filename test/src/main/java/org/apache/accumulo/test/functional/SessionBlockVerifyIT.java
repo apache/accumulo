@@ -110,7 +110,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
 
     final Iterator<Entry<Key,Value>> slow = scanner.iterator();
 
-    final List<Future<Boolean>> callables = new ArrayList<Future<Boolean>>();
+    final List<Future<Boolean>> callables = new ArrayList<>();
     final CountDownLatch latch = new CountDownLatch(10);
     for (int i = 0; i < 10; i++) {
       Future<Boolean> callable = service.submit(new Callable<Boolean>() {

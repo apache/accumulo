@@ -66,18 +66,18 @@ public class LargeRowFilterTest extends TestCase {
   }
 
   public void testBasic() throws Exception {
-    TreeMap<Key,Value> testData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> testData = new TreeMap<>();
 
     genTestData(testData, 20);
 
     for (int i = 1; i <= 20; i++) {
-      TreeMap<Key,Value> expectedData = new TreeMap<Key,Value>();
+      TreeMap<Key,Value> expectedData = new TreeMap<>();
       genTestData(expectedData, i);
 
       LargeRowFilter lrfi = setupIterator(testData, i, IteratorScope.scan);
       lrfi.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
 
-      TreeMap<Key,Value> filteredData = new TreeMap<Key,Value>();
+      TreeMap<Key,Value> filteredData = new TreeMap<>();
 
       while (lrfi.hasTop()) {
         filteredData.put(lrfi.getTopKey(), lrfi.getTopValue());
@@ -89,17 +89,17 @@ public class LargeRowFilterTest extends TestCase {
   }
 
   public void testSeek() throws Exception {
-    TreeMap<Key,Value> testData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> testData = new TreeMap<>();
 
     genTestData(testData, 20);
 
     for (int i = 1; i <= 20; i++) {
-      TreeMap<Key,Value> expectedData = new TreeMap<Key,Value>();
+      TreeMap<Key,Value> expectedData = new TreeMap<>();
       genTestData(expectedData, i);
 
       LargeRowFilter lrfi = setupIterator(testData, i, IteratorScope.scan);
 
-      TreeMap<Key,Value> filteredData = new TreeMap<Key,Value>();
+      TreeMap<Key,Value> filteredData = new TreeMap<>();
 
       // seek to each row... rows that exceed max columns should be filtered
       for (int j = 1; j <= i; j++) {
@@ -117,7 +117,7 @@ public class LargeRowFilterTest extends TestCase {
   }
 
   public void testSeek2() throws Exception {
-    TreeMap<Key,Value> testData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> testData = new TreeMap<>();
 
     genTestData(testData, 20);
 
@@ -130,10 +130,10 @@ public class LargeRowFilterTest extends TestCase {
 
     lrfi.seek(new Range(new Key(genRow(10), "cf001", genCQ(4), 5), true, new Key(genRow(10)).followingKey(PartialKey.ROW), false),
         LocalityGroupUtil.EMPTY_CF_SET, false);
-    TreeMap<Key,Value> expectedData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expectedData = new TreeMap<>();
     genRow(expectedData, 10, 4, 10);
 
-    TreeMap<Key,Value> filteredData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> filteredData = new TreeMap<>();
     while (lrfi.hasTop()) {
       filteredData.put(lrfi.getTopKey(), lrfi.getTopValue());
       lrfi.next();
@@ -143,14 +143,14 @@ public class LargeRowFilterTest extends TestCase {
   }
 
   public void testCompaction() throws Exception {
-    TreeMap<Key,Value> testData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> testData = new TreeMap<>();
 
     genTestData(testData, 20);
 
     LargeRowFilter lrfi = setupIterator(testData, 13, IteratorScope.majc);
     lrfi.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
 
-    TreeMap<Key,Value> compactedData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> compactedData = new TreeMap<>();
     while (lrfi.hasTop()) {
       compactedData.put(lrfi.getTopKey(), lrfi.getTopValue());
       lrfi.next();
@@ -167,10 +167,10 @@ public class LargeRowFilterTest extends TestCase {
     lrfi.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
 
     // only expect to see 13 rows
-    TreeMap<Key,Value> expectedData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expectedData = new TreeMap<>();
     genTestData(expectedData, 13);
 
-    TreeMap<Key,Value> filteredData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> filteredData = new TreeMap<>();
     while (lrfi.hasTop()) {
       filteredData.put(lrfi.getTopKey(), lrfi.getTopValue());
       lrfi.next();
@@ -185,7 +185,7 @@ public class LargeRowFilterTest extends TestCase {
     assertFalse(lrfi.hasTop());
 
     // test seeking w/ column families
-    HashSet<ByteSequence> colfams = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> colfams = new HashSet<>();
     colfams.add(new ArrayByteSequence("cf001"));
     lrfi.seek(new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true, new Key(genRow(15)).followingKey(PartialKey.ROW), false), colfams, true);
     assertFalse(lrfi.hasTop());
@@ -194,20 +194,20 @@ public class LargeRowFilterTest extends TestCase {
   // in other test data is generated in such a way that once a row
   // is suppressed, all subsequent rows are suppressed
   public void testSuppressInner() throws Exception {
-    TreeMap<Key,Value> testData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> testData = new TreeMap<>();
     genRow(testData, 1, 0, 2);
     genRow(testData, 2, 0, 50);
     genRow(testData, 3, 0, 15);
     genRow(testData, 4, 0, 5);
 
-    TreeMap<Key,Value> expectedData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expectedData = new TreeMap<>();
     genRow(expectedData, 1, 0, 2);
     genRow(expectedData, 4, 0, 5);
 
     LargeRowFilter lrfi = setupIterator(testData, 13, IteratorScope.scan);
     lrfi.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
 
-    TreeMap<Key,Value> filteredData = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> filteredData = new TreeMap<>();
     while (lrfi.hasTop()) {
       filteredData.put(lrfi.getTopKey(), lrfi.getTopValue());
       lrfi.next();

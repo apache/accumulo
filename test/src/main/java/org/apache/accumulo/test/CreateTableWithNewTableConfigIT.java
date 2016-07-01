@@ -159,7 +159,7 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
     log.info("Starting addCustomPropAndChangeExisting");
 
     // Create and populate initial properties map for creating table 1
-    Map<String,String> properties = new HashMap<String,String>();
+    Map<String,String> properties = new HashMap<>();
     String propertyName = Property.TABLE_SPLIT_THRESHOLD.getKey();
     String volume = "10K";
     properties.put(propertyName, volume);

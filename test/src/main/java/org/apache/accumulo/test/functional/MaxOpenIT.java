@@ -118,7 +118,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       FunctionalTestUtils.checkRFiles(c, tableName, NUM_TABLETS, NUM_TABLETS, i + 1, i + 1);
     }
 
-    List<Range> ranges = new ArrayList<Range>(NUM_TO_INGEST);
+    List<Range> ranges = new ArrayList<>(NUM_TO_INGEST);
 
     for (int i = 0; i < NUM_TO_INGEST; i++) {
       ranges.add(new Range(TestIngest.generateRow(i, 0)));

@@ -46,7 +46,7 @@ public class LoginProperties implements KeywordExecutable {
     Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader().loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
         .asSubclass(Authenticator.class).newInstance();
 
-    List<Set<TokenProperty>> tokenProps = new ArrayList<Set<TokenProperty>>();
+    List<Set<TokenProperty>> tokenProps = new ArrayList<>();
 
     for (Class<? extends AuthenticationToken> tokenType : authenticator.getSupportedTokenTypes()) {
       tokenProps.add(tokenType.newInstance().getProperties());

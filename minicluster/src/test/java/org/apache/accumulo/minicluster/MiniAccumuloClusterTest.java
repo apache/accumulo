@@ -69,7 +69,7 @@ public class MiniAccumuloClusterTest {
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, "superSecret").setJDWPEnabled(true);
     config.setZooKeeperPort(0);
-    HashMap<String,String> site = new HashMap<String,String>();
+    HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
     config.setSiteConfig(site);
     accumulo = new MiniAccumuloCluster(config);
@@ -216,7 +216,7 @@ public class MiniAccumuloClusterTest {
   public void testConfig() {
     // ensure what user passed in is what comes back
     Assert.assertEquals(0, accumulo.getConfig().getZooKeeperPort());
-    HashMap<String,String> site = new HashMap<String,String>();
+    HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
     Assert.assertEquals(site, accumulo.getConfig().getSiteConfig());
   }

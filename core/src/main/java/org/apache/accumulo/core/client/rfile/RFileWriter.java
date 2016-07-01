@@ -116,7 +116,7 @@ public class RFileWriter implements AutoCloseable {
    *           When default locality group already started.
    */
   public void startNewLocalityGroup(String name, List<byte[]> families) throws IOException {
-    HashSet<ByteSequence> fams = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> fams = new HashSet<>();
     for (byte[] family : families) {
       fams.add(new ArrayByteSequence(family));
     }
@@ -143,7 +143,7 @@ public class RFileWriter implements AutoCloseable {
    *           When default locality group already started.
    */
   public void startNewLocalityGroup(String name, Set<String> families) throws IOException {
-    HashSet<ByteSequence> fams = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> fams = new HashSet<>();
     for (String family : families) {
       fams.add(new ArrayByteSequence(family));
     }
@@ -160,7 +160,7 @@ public class RFileWriter implements AutoCloseable {
    *           When default locality group already started.
    */
   public void startNewLocalityGroup(String name, String... families) throws IOException {
-    HashSet<ByteSequence> fams = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> fams = new HashSet<>();
     for (String family : families) {
       fams.add(new ArrayByteSequence(family));
     }

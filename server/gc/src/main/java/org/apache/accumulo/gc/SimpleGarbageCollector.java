@@ -719,9 +719,9 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     final Processor<Iface> processor;
     if (ThriftServerType.SASL == getThriftServerType()) {
       Iface tcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());
-      processor = new Processor<Iface>(tcProxy);
+      processor = new Processor<>(tcProxy);
     } else {
-      processor = new Processor<Iface>(rpcProxy);
+      processor = new Processor<>(rpcProxy);
     }
     int port[] = getConfiguration().getPort(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);

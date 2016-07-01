@@ -59,7 +59,7 @@ public class Grep extends Test {
     bs.addScanIterator(ii);
     bs.setRanges(Collections.singleton(new Range()));
 
-    HashSet<Text> documentsFoundInIndex = new HashSet<Text>();
+    HashSet<Text> documentsFoundInIndex = new HashSet<>();
 
     for (Entry<Key,Value> entry2 : bs) {
       documentsFoundInIndex.add(entry2.getKey().getColumnQualifier());
@@ -77,7 +77,7 @@ public class Grep extends Test {
 
     bs.setRanges(Collections.singleton(new Range()));
 
-    HashSet<Text> documentsFoundByGrep = new HashSet<Text>();
+    HashSet<Text> documentsFoundByGrep = new HashSet<>();
 
     for (Entry<Key,Value> entry2 : bs) {
       documentsFoundByGrep.add(entry2.getKey().getRow());

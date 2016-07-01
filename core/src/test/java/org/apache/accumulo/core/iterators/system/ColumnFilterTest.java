@@ -40,7 +40,7 @@ public class ColumnFilterTest extends TestCase {
   }
 
   public void test1() {
-    HashSet<Column> columns = new HashSet<Column>();
+    HashSet<Column> columns = new HashSet<>();
 
     columns.add(nc("cf1"));
 
@@ -52,7 +52,7 @@ public class ColumnFilterTest extends TestCase {
   }
 
   public void test2() {
-    HashSet<Column> columns = new HashSet<Column>();
+    HashSet<Column> columns = new HashSet<>();
 
     columns.add(nc("cf1"));
     columns.add(nc("cf2", "cq1"));
@@ -65,7 +65,7 @@ public class ColumnFilterTest extends TestCase {
   }
 
   public void test3() {
-    HashSet<Column> columns = new HashSet<Column>();
+    HashSet<Column> columns = new HashSet<>();
 
     columns.add(nc("cf2", "cq1"));
 

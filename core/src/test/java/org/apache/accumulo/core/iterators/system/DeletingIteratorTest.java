@@ -33,7 +33,7 @@ import org.apache.hadoop.io.Text;
 
 public class DeletingIteratorTest extends TestCase {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   public void test1() {
     Text colf = new Text("a");
@@ -42,7 +42,7 @@ public class DeletingIteratorTest extends TestCase {
     Value dvDel = new Value("old".getBytes());
     Value dvNew = new Value("new".getBytes());
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
     Key k;
 
     for (int i = 0; i < 2; i++) {
@@ -67,7 +67,7 @@ public class DeletingIteratorTest extends TestCase {
       DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
 
-      TreeMap<Key,Value> tmOut = new TreeMap<Key,Value>();
+      TreeMap<Key,Value> tmOut = new TreeMap<>();
       while (it.hasTop()) {
         tmOut.put(it.getTopKey(), it.getTopValue());
         it.next();
@@ -88,7 +88,7 @@ public class DeletingIteratorTest extends TestCase {
     try {
       DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), true);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
-      TreeMap<Key,Value> tmOut = new TreeMap<Key,Value>();
+      TreeMap<Key,Value> tmOut = new TreeMap<>();
       while (it.hasTop()) {
         tmOut.put(it.getTopKey(), it.getTopValue());
         it.next();
@@ -115,7 +115,7 @@ public class DeletingIteratorTest extends TestCase {
 
   // seek test
   public void test2() throws IOException {
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     nkv(tm, "r000", 4, false, "v4");
     nkv(tm, "r000", 3, false, "v3");
@@ -165,7 +165,7 @@ public class DeletingIteratorTest extends TestCase {
 
   // test delete with same timestamp as existing key
   public void test3() throws IOException {
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     nkv(tm, "r000", 3, false, "v3");
     nkv(tm, "r000", 2, false, "v2");
@@ -190,7 +190,7 @@ public class DeletingIteratorTest extends TestCase {
 
   // test range inclusiveness
   public void test4() throws IOException {
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     nkv(tm, "r000", 3, false, "v3");
     nkv(tm, "r000", 2, false, "v2");

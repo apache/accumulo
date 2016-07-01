@@ -220,7 +220,7 @@ public class ARS {
       scanner.setRange(new Range(row));
       scanner.fetchColumnFamily(new Text("res"));
 
-      List<String> reservations = new ArrayList<String>();
+      List<String> reservations = new ArrayList<>();
 
       for (Entry<Key,Value> entry : scanner) {
         String val = entry.getValue().toString();
@@ -246,7 +246,7 @@ public class ARS {
         // start up multiple threads all trying to reserve the same resource, no more than one should succeed
 
         final ARS fars = ars;
-        ArrayList<Thread> threads = new ArrayList<Thread>();
+        ArrayList<Thread> threads = new ArrayList<>();
         for (int i = 3; i < tokens.length; i++) {
           final int whoIndex = i;
           Runnable reservationTask = new Runnable() {

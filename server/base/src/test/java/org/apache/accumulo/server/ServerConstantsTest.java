@@ -94,7 +94,7 @@ public class ServerConstantsTest {
 
     LocalFileSystem fs = FileSystem.getLocal(new Configuration());
 
-    ArrayList<String> accumuloPaths = new ArrayList<String>();
+    ArrayList<String> accumuloPaths = new ArrayList<>();
 
     for (int i = 0; i < uuids.size(); i++) {
       String volume = "v" + i;

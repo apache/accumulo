@@ -118,7 +118,7 @@ public class IteratorUtil {
    * @return A map of Table properties
    */
   public static Map<String,String> generateInitialTableProperties(boolean limitVersion) {
-    TreeMap<String,String> props = new TreeMap<String,String>();
+    TreeMap<String,String> props = new TreeMap<>();
 
     if (limitVersion) {
       for (IteratorScope iterScope : IteratorScope.values()) {
@@ -170,7 +170,7 @@ public class IteratorUtil {
 
         Map<String,String> options = allOptions.get(iterName);
         if (options == null) {
-          options = new HashMap<String,String>();
+          options = new HashMap<>();
           allOptions.put(iterName, options);
         }
 
@@ -195,8 +195,8 @@ public class IteratorUtil {
       SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IteratorSetting> iterators, IteratorEnvironment env)
       throws IOException {
 
-    List<IterInfo> ssiList = new ArrayList<IterInfo>();
-    Map<String,Map<String,String>> ssio = new HashMap<String,Map<String,String>>();
+    List<IterInfo> ssiList = new ArrayList<>();
+    Map<String,Map<String,String>> ssio = new HashMap<>();
 
     for (IteratorSetting is : iterators) {
       ssiList.add(new IterInfo(is.getPriority(), is.getIteratorClass(), is.getName()));
@@ -235,8 +235,8 @@ public class IteratorUtil {
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
       SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
       IteratorEnvironment env, boolean useAccumuloClassLoader) throws IOException {
-    List<IterInfo> iters = new ArrayList<IterInfo>(ssiList);
-    Map<String,Map<String,String>> allOptions = new HashMap<String,Map<String,String>>();
+    List<IterInfo> iters = new ArrayList<>(ssiList);
+    Map<String,Map<String,String>> allOptions = new HashMap<>();
     parseIteratorConfiguration(scope, iters, ssio, allOptions, conf);
     return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, conf.get(Property.TABLE_CLASSPATH));
   }
@@ -244,8 +244,8 @@ public class IteratorUtil {
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
       SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
       IteratorEnvironment env, boolean useAccumuloClassLoader, String classLoaderContext) throws IOException {
-    List<IterInfo> iters = new ArrayList<IterInfo>(ssiList);
-    Map<String,Map<String,String>> allOptions = new HashMap<String,Map<String,String>>();
+    List<IterInfo> iters = new ArrayList<>(ssiList);
+    Map<String,Map<String,String>> allOptions = new HashMap<>();
     parseIteratorConfiguration(scope, iters, ssio, allOptions, conf);
     return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, classLoaderContext);
   }
@@ -260,7 +260,7 @@ public class IteratorUtil {
       Collection<IterInfo> iters, Map<String,Map<String,String>> iterOpts, IteratorEnvironment env, boolean useAccumuloClassLoader, String context,
       Map<String,Class<? extends SortedKeyValueIterator<K,V>>> classCache) throws IOException {
     // wrap the source in a SynchronizedIterator in case any of the additional configured iterators want to use threading
-    SortedKeyValueIterator<K,V> prev = new SynchronizedIterator<K,V>(source);
+    SortedKeyValueIterator<K,V> prev = new SynchronizedIterator<>(source);
 
     try {
       for (IterInfo iterInfo : iters) {
@@ -349,7 +349,7 @@ public class IteratorUtil {
   }
 
   public static IteratorConfig toIteratorConfig(List<IteratorSetting> iterators) {
-    ArrayList<TIteratorSetting> tisList = new ArrayList<TIteratorSetting>();
+    ArrayList<TIteratorSetting> tisList = new ArrayList<>();
 
     for (IteratorSetting iteratorSetting : iterators) {
       tisList.add(toTIteratorSetting(iteratorSetting));
@@ -359,7 +359,7 @@ public class IteratorUtil {
   }
 
   public static List<IteratorSetting> toIteratorSettings(IteratorConfig ic) {
-    List<IteratorSetting> ret = new ArrayList<IteratorSetting>();
+    List<IteratorSetting> ret = new ArrayList<>();
     for (TIteratorSetting tIteratorSetting : ic.getIterators()) {
       ret.add(toIteratorSetting(tIteratorSetting));
     }

@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -48,7 +47,7 @@ import org.apache.commons.lang.NotImplementedException;
  * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework instead.
  */
 @Deprecated
-public class MockScannerBase extends ScannerOptions implements ScannerBase {
+public class MockScannerBase extends ScannerOptions {
 
   protected final MockTable table;
   protected final Authorizations auths;
@@ -59,7 +58,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
   }
 
   static HashSet<ByteSequence> createColumnBSS(Collection<Column> columns) {
-    HashSet<ByteSequence> columnSet = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> columnSet = new HashSet<>();
     for (Column c : columns) {
       columnSet.add(new ArrayByteSequence(c.getColumnFamily()));
     }
@@ -94,7 +93,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
       return false;
     }
 
-    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
 
     @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
@@ -109,7 +108,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
       if (topLevelIterators.isEmpty())
         return iter;
-      ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
+      ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
       allIters.add(iter);
       return new MultiIterator(allIters, false);
     }
@@ -133,7 +132,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
   public SortedKeyValueIterator<Key,Value> createFilter(SortedKeyValueIterator<Key,Value> inner) throws IOException {
     byte[] defaultLabels = {};
     inner = new ColumnFamilySkippingIterator(new DeletingIterator(inner, false));
-    ColumnQualifierFilter cqf = new ColumnQualifierFilter(inner, new HashSet<Column>(fetchedColumns));
+    ColumnQualifierFilter cqf = new ColumnQualifierFilter(inner, new HashSet<>(fetchedColumns));
     VisibilityFilter vf = new VisibilityFilter(cqf, auths, defaultLabels);
     AccumuloConfiguration conf = new MockConfiguration(table.settings);
     MockIteratorEnvironment iterEnv = new MockIteratorEnvironment(auths);

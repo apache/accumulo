@@ -26,7 +26,7 @@ public class DefaultMapTest {
 
   @Test
   public void testDefaultMap() {
-    DefaultMap<String,String> map = new DefaultMap<String,String>("");
+    DefaultMap<String,String> map = new DefaultMap<>("");
     map.put("key", "value");
     String empty = map.get("otherKey");
     assertEquals(map.get("key"), "value");

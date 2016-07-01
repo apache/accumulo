@@ -55,7 +55,7 @@ public class ZKAuthenticatorTest extends TestCase {
   }
 
   public void testSystemConversion() {
-    Set<SystemPermission> perms = new TreeSet<SystemPermission>();
+    Set<SystemPermission> perms = new TreeSet<>();
     for (SystemPermission s : SystemPermission.values())
       perms.add(s);
 
@@ -66,7 +66,7 @@ public class ZKAuthenticatorTest extends TestCase {
   }
 
   public void testTableConversion() {
-    Set<TablePermission> perms = new TreeSet<TablePermission>();
+    Set<TablePermission> perms = new TreeSet<>();
     for (TablePermission s : TablePermission.values())
       perms.add(s);
 

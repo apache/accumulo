@@ -60,16 +60,16 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
   private List<FileRef> findMapFilesToCompact(MajorCompactionRequest request) {
     MajorCompactionReason reason = request.getReason();
     if (reason == MajorCompactionReason.USER) {
-      return new ArrayList<FileRef>(request.getFiles().keySet());
+      return new ArrayList<>(request.getFiles().keySet());
     }
     if (reason == MajorCompactionReason.CHOP) {
       // should not happen, but this is safe
-      return new ArrayList<FileRef>(request.getFiles().keySet());
+      return new ArrayList<>(request.getFiles().keySet());
     }
 
     if (request.getFiles().size() <= 1)
       return null;
-    TreeSet<CompactionFile> candidateFiles = new TreeSet<CompactionFile>(new Comparator<CompactionFile>() {
+    TreeSet<CompactionFile> candidateFiles = new TreeSet<>(new Comparator<CompactionFile>() {
       @Override
       public int compare(CompactionFile o1, CompactionFile o2) {
         if (o1 == o2)
@@ -95,7 +95,7 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
       totalSize += mfi.size;
     }
 
-    List<FileRef> files = new ArrayList<FileRef>();
+    List<FileRef> files = new ArrayList<>();
 
     while (candidateFiles.size() > 1) {
       CompactionFile max = candidateFiles.last();
@@ -121,7 +121,7 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
 
     if (files.size() < totalFilesToCompact) {
 
-      TreeMap<FileRef,Long> tfc = new TreeMap<FileRef,Long>();
+      TreeMap<FileRef,Long> tfc = new TreeMap<>();
       for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
         tfc.put(entry.getKey(), entry.getValue().getSize());
       }

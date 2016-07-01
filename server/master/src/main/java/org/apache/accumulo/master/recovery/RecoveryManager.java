@@ -55,9 +55,9 @@ public class RecoveryManager {
 
   private static final Logger log = LoggerFactory.getLogger(RecoveryManager.class);
 
-  private Map<String,Long> recoveryDelay = new HashMap<String,Long>();
-  private Set<String> closeTasksQueued = new HashSet<String>();
-  private Set<String> sortsQueued = new HashSet<String>();
+  private Map<String,Long> recoveryDelay = new HashMap<>();
+  private Set<String> closeTasksQueued = new HashSet<>();
+  private Set<String> sortsQueued = new HashSet<>();
   private ScheduledExecutorService executor;
   private Master master;
   private ZooCache zooCache;

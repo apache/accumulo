@@ -39,7 +39,7 @@ public class ShardedTableDistributionFormatterTest {
 
   @Before
   public void setUp() {
-    data = new TreeMap<Key,Value>();
+    data = new TreeMap<>();
     formatter = new ShardedTableDistributionFormatter();
   }
 

@@ -243,7 +243,7 @@ public class ShellSetInstanceTest {
       expect(clientConf.getString(ClientProperty.INSTANCE_NAME.getKey())).andReturn("foo");
       expect(clientConf.withZkHosts("host1,host2")).andReturn(clientConf);
       expect(clientConf.getString(ClientProperty.INSTANCE_ZK_HOST.getKey())).andReturn("host1,host2");
-      List<String> zl = new java.util.ArrayList<String>();
+      List<String> zl = new java.util.ArrayList<>();
       zl.add("foo");
       zl.add("host1,host2");
       expect(opts.getZooKeeperInstance()).andReturn(zl);

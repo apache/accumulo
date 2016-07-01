@@ -93,7 +93,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     Assume.assumeTrue("Not enough tservers to run test", conn.instanceOperations().getTabletServers().size() >= 2);
 
     // set up splits
-    final SortedSet<Text> splits = new TreeSet<Text>();
+    final SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < NUM_SPLITS; i++) {
       splits.add(new Text(String.format("%08x", i * 1000)));
     }

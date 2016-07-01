@@ -110,11 +110,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
     Instance instance = context.getInstance();
     ZooCache cache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
-    List<String> results = new ArrayList<String>();
+    List<String> results = new ArrayList<>();
     for (String candidate : cache.getChildren(path)) {
       List<String> children = cache.getChildren(path + "/" + candidate);
       if (children != null && children.size() > 0) {
-        List<String> copy = new ArrayList<String>(children);
+        List<String> copy = new ArrayList<>(children);
         Collections.sort(copy);
         byte[] data = cache.get(path + "/" + candidate + "/" + copy.get(0));
         if (data != null && !"master".equals(new String(data, UTF_8))) {
@@ -132,7 +132,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     try {
       client = ThriftUtil.getTServerClient(parsedTserver, context);
 
-      List<ActiveScan> as = new ArrayList<ActiveScan>();
+      List<ActiveScan> as = new ArrayList<>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client.getActiveScans(Tracer.traceInfo(), context.rpcCreds())) {
         try {
           as.add(new ActiveScanImpl(context.getInstance(), activeScan));
@@ -170,7 +170,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     try {
       client = ThriftUtil.getTServerClient(parsedTserver, context);
 
-      List<ActiveCompaction> as = new ArrayList<ActiveCompaction>();
+      List<ActiveCompaction> as = new ArrayList<>();
       for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client.getActiveCompactions(Tracer.traceInfo(), context.rpcCreds())) {
         as.add(new ActiveCompactionImpl(context.getInstance(), activeCompaction));
       }

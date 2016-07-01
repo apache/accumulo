@@ -51,7 +51,7 @@ public class Merge {
     MergeException(Exception ex) {
       super(ex);
     }
-  };
+  }
 
   private static final Logger log = LoggerFactory.getLogger(Merge.class);
 
@@ -120,7 +120,7 @@ public class Merge {
       if (table.equals(MetadataTable.NAME)) {
         throw new IllegalArgumentException("cannot merge tablets on the metadata table");
       }
-      List<Size> sizes = new ArrayList<Size>();
+      List<Size> sizes = new ArrayList<>();
       long totalSize = 0;
       // Merge any until you get larger than the goal size, and then merge one less tablet
       Iterator<Size> sizeIterator = getSizeIterator(conn, table, start, end);

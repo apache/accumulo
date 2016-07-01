@@ -46,7 +46,7 @@ public class ConcurrentFixture extends Fixture {
    * @return A two element list with first being smaller than the second, but either value (or both) can be null
    */
   public static List<Text> generateRange(Random rand) {
-    ArrayList<Text> toRet = new ArrayList<Text>(2);
+    ArrayList<Text> toRet = new ArrayList<>(2);
 
     long firstLong = rand.nextLong();
 

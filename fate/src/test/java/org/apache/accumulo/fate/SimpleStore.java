@@ -33,8 +33,8 @@ import org.apache.commons.lang.NotImplementedException;
 public class SimpleStore<T> implements TStore<T> {
 
   private long nextId = 1;
-  private Map<Long,TStatus> statuses = new HashMap<Long,TStore.TStatus>();
-  private Set<Long> reserved = new HashSet<Long>();
+  private Map<Long,TStatus> statuses = new HashMap<>();
+  private Set<Long> reserved = new HashSet<>();
 
   @Override
   public long create() {
@@ -120,7 +120,7 @@ public class SimpleStore<T> implements TStore<T> {
 
   @Override
   public List<Long> list() {
-    return new ArrayList<Long>(statuses.keySet());
+    return new ArrayList<>(statuses.keySet());
   }
 
   @Override

@@ -135,7 +135,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     setupIter(bscanner);
     verify(bscanner, 1, 999);
 
-    ArrayList<Range> ranges = new ArrayList<Range>();
+    ArrayList<Range> ranges = new ArrayList<>();
     ranges.add(new Range(new Text(String.format("%06d", 1))));
     ranges.add(new Range(new Text(String.format("%06d", 6)), new Text(String.format("%06d", 16))));
     ranges.add(new Range(new Text(String.format("%06d", 20))));
@@ -144,8 +144,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     ranges.add(new Range(new Text(String.format("%06d", 501)), new Text(String.format("%06d", 504))));
     ranges.add(new Range(new Text(String.format("%06d", 998)), new Text(String.format("%06d", 1000))));
 
-    HashSet<Integer> got = new HashSet<Integer>();
-    HashSet<Integer> expected = new HashSet<Integer>();
+    HashSet<Integer> got = new HashSet<>();
+    HashSet<Integer> expected = new HashSet<>();
     for (int i : new int[] {1, 7, 9, 11, 13, 15, 23, 57, 59, 61, 501, 503, 999}) {
       expected.add(i);
     }

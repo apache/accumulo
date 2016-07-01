@@ -42,7 +42,7 @@ public class DefaultConfigurationTest {
   @Test
   public void testGetProperties() {
     Predicate<String> all = Predicates.alwaysTrue();
-    Map<String,String> p = new java.util.HashMap<String,String>();
+    Map<String,String> p = new java.util.HashMap<>();
     c.getProperties(p, all);
     assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(), p.get(Property.MASTER_CLIENTPORT.getKey()));
   }

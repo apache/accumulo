@@ -297,7 +297,7 @@ public class InMemoryMap {
       this.groupFams = new PreAllocatedArray<>(groups.size());
       this.maps = new SimpleMap[groups.size() + 1];
       this.partitioned = new PreAllocatedArray<>(groups.size() + 1);
-      this.nonDefaultColumnFamilies = new HashSet<ByteSequence>();
+      this.nonDefaultColumnFamilies = new HashSet<>();
 
       for (int i = 0; i < maps.length; i++) {
         maps[i] = newMap(useNativeMap);
@@ -305,7 +305,7 @@ public class InMemoryMap {
 
       int count = 0;
       for (Set<ByteSequence> cfset : groups.values()) {
-        HashMap<ByteSequence,MutableLong> map = new HashMap<ByteSequence,MutableLong>();
+        HashMap<ByteSequence,MutableLong> map = new HashMap<>();
         for (ByteSequence bs : cfset)
           map.put(bs, new MutableLong(1));
         this.groupFams.set(count++, map);
@@ -394,7 +394,7 @@ public class InMemoryMap {
   }
 
   private static class DefaultMap implements SimpleMap {
-    private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<Key,Value>(new MemKeyComparator());
+    private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<>(new MemKeyComparator());
     private AtomicLong bytesInMemory = new AtomicLong();
     private AtomicInteger size = new AtomicInteger();
 
@@ -809,7 +809,7 @@ public class InMemoryMap {
 
         InterruptibleIterator iter = map.skvIterator(null);
 
-        HashSet<ByteSequence> allfams = new HashSet<ByteSequence>();
+        HashSet<ByteSequence> allfams = new HashSet<>();
 
         for (Entry<String,Set<ByteSequence>> entry : lggroups.entrySet()) {
           allfams.addAll(entry.getValue());

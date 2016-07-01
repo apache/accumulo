@@ -58,13 +58,13 @@ public class IMMLGBenchmark {
 
     int numlg = Integer.parseInt(args[0]);
 
-    ArrayList<byte[]> cfset = new ArrayList<byte[]>();
+    ArrayList<byte[]> cfset = new ArrayList<>();
 
     for (int i = 0; i < 32; i++) {
       cfset.add(String.format("%04x", i).getBytes());
     }
 
-    Map<String,Stat> stats = new TreeMap<String,Stat>();
+    Map<String,Stat> stats = new TreeMap<>();
 
     for (int i = 0; i < 5; i++) {
       runTest(conn, numlg, cfset, i > 1 ? stats : null);
@@ -169,9 +169,9 @@ public class IMMLGBenchmark {
       int gNum = 0;
 
       Iterator<byte[]> cfiter = cfset.iterator();
-      Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
+      Map<String,Set<Text>> groups = new HashMap<>();
       while (cfiter.hasNext()) {
-        HashSet<Text> groupCols = new HashSet<Text>();
+        HashSet<Text> groupCols = new HashSet<>();
         for (int i = 0; i < numCF && cfiter.hasNext(); i++) {
           groupCols.add(new Text(cfiter.next()));
         }

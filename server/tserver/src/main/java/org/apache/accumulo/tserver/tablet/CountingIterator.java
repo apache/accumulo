@@ -47,7 +47,7 @@ public class CountingIterator extends WrappingIterator {
   }
 
   public CountingIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong entriesRead) {
-    deepCopies = new ArrayList<CountingIterator>();
+    deepCopies = new ArrayList<>();
     this.setSource(source);
     count = 0;
     this.entriesRead = entriesRead;

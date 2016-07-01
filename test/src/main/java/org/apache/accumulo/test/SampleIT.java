@@ -123,7 +123,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     String someRow = writeData(bw, SC1, expected);
     Assert.assertEquals(20, expected.size());
 
@@ -303,7 +303,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     writeData(bw, SC1, expected);
 
     ArrayList<Key> keys = new ArrayList<>(expected.keySet());
@@ -389,7 +389,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     writeData(bw, SC1, expected);
 
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);

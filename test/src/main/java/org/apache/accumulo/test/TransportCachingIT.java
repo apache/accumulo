@@ -60,7 +60,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
     long rpcTimeout = DefaultConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
     // create list of servers
-    ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
+    ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
     // add tservers
     ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());

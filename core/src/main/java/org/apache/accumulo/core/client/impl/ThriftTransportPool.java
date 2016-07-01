@@ -48,10 +48,10 @@ public class ThriftTransportPool {
   private static final Random random = new Random();
   private long killTime = 1000 * 3;
 
-  private Map<ThriftTransportKey,List<CachedConnection>> cache = new HashMap<ThriftTransportKey,List<CachedConnection>>();
-  private Map<ThriftTransportKey,Long> errorCount = new HashMap<ThriftTransportKey,Long>();
-  private Map<ThriftTransportKey,Long> errorTime = new HashMap<ThriftTransportKey,Long>();
-  private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<ThriftTransportKey>();
+  private Map<ThriftTransportKey,List<CachedConnection>> cache = new HashMap<>();
+  private Map<ThriftTransportKey,Long> errorCount = new HashMap<>();
+  private Map<ThriftTransportKey,Long> errorTime = new HashMap<>();
+  private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
 
   private CountDownLatch closerExitLatch;
 
@@ -95,7 +95,7 @@ public class ThriftTransportPool {
     private void closeConnections() {
       while (true) {
 
-        ArrayList<CachedConnection> connectionsToClose = new ArrayList<CachedConnection>();
+        ArrayList<CachedConnection> connectionsToClose = new ArrayList<>();
 
         synchronized (pool) {
           for (List<CachedConnection> ccl : pool.getCache().values()) {
@@ -394,7 +394,7 @@ public class ThriftTransportPool {
       List<CachedConnection> ccl = getCache().get(cacheKey);
 
       if (ccl == null) {
-        ccl = new LinkedList<CachedConnection>();
+        ccl = new LinkedList<>();
         getCache().put(cacheKey, ccl);
       }
 
@@ -413,10 +413,10 @@ public class ThriftTransportPool {
   @VisibleForTesting
   public Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection) throws TTransportException {
 
-    servers = new ArrayList<ThriftTransportKey>(servers);
+    servers = new ArrayList<>(servers);
 
     if (preferCachedConnection) {
-      HashSet<ThriftTransportKey> serversSet = new HashSet<ThriftTransportKey>(servers);
+      HashSet<ThriftTransportKey> serversSet = new HashSet<>(servers);
 
       synchronized (this) {
 
@@ -424,7 +424,7 @@ public class ThriftTransportPool {
         serversSet.retainAll(getCache().keySet());
 
         if (serversSet.size() > 0) {
-          ArrayList<ThriftTransportKey> cachedServers = new ArrayList<ThriftTransportKey>(serversSet);
+          ArrayList<ThriftTransportKey> cachedServers = new ArrayList<>(serversSet);
           Collections.shuffle(cachedServers, random);
 
           for (ThriftTransportKey ttk : cachedServers) {
@@ -463,7 +463,7 @@ public class ThriftTransportPool {
       }
 
       try {
-        return new Pair<String,TTransport>(ttk.getServer().toString(), createNewTransport(ttk));
+        return new Pair<>(ttk.getServer().toString(), createNewTransport(ttk));
       } catch (TTransportException tte) {
         log.debug("Failed to connect to {}", servers.get(index), tte);
         servers.remove(index);
@@ -490,7 +490,7 @@ public class ThriftTransportPool {
         List<CachedConnection> ccl = getCache().get(cacheKey);
 
         if (ccl == null) {
-          ccl = new LinkedList<CachedConnection>();
+          ccl = new LinkedList<>();
           getCache().put(cacheKey, ccl);
         }
 
@@ -511,7 +511,7 @@ public class ThriftTransportPool {
     boolean existInCache = false;
     CachedTTransport ctsc = (CachedTTransport) tsc;
 
-    ArrayList<CachedConnection> closeList = new ArrayList<ThriftTransportPool.CachedConnection>();
+    ArrayList<CachedConnection> closeList = new ArrayList<>();
 
     synchronized (this) {
       List<CachedConnection> ccl = getCache().get(ctsc.getCacheKey());

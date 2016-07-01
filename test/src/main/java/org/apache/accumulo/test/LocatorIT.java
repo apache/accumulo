@@ -101,7 +101,7 @@ public class LocatorIT extends AccumuloClusterHarness {
     ret = conn.tableOperations().locate(tableName, ranges);
     assertContains(ret, tservers, ImmutableMap.of(r1, ImmutableSet.of(t1), r2, ImmutableSet.of(t1)), ImmutableMap.of(t1, ImmutableSet.of(r1, r2)));
 
-    TreeSet<Text> splits = new TreeSet<Text>();
+    TreeSet<Text> splits = new TreeSet<>();
     splits.add(new Text("r"));
     conn.tableOperations().addSplits(tableName, splits);
 

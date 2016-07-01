@@ -344,7 +344,7 @@ public class TServerUtilsTest {
     AccumuloServerContext ctx = new AccumuloServerContext(factory);
     ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
     Iface rpcProxy = RpcWrapper.service(clientHandler, new Processor<Iface>(clientHandler));
-    Processor<Iface> processor = new Processor<Iface>(rpcProxy);
+    Processor<Iface> processor = new Processor<>(rpcProxy);
     // "localhost" explicitly to make sure we can always bind to that interface (avoids DNS misconfiguration)
     String hostname = "localhost";
 

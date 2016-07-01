@@ -54,7 +54,7 @@ public class DeleteWord extends Test {
     Scanner scanner = env.getConnector().createScanner(indexTableName, Authorizations.EMPTY);
     scanner.fetchColumnFamily(new Text(wordToDelete));
 
-    ArrayList<Range> documentsToDelete = new ArrayList<Range>();
+    ArrayList<Range> documentsToDelete = new ArrayList<>();
 
     for (Entry<Key,Value> entry : scanner)
       documentsToDelete.add(new Range(entry.getKey().getColumnQualifier()));

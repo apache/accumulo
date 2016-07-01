@@ -36,7 +36,7 @@ import org.junit.Test;
 public class CountingIteratorTest {
   @Test
   public void testDeepCopyCount() throws IOException {
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     tm.put(new Key("r1", "cf1", "cq1"), new Value("data1".getBytes()));
     tm.put(new Key("r2", "cf1", "cq1"), new Value("data2".getBytes()));

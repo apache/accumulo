@@ -67,7 +67,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
           // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
           String tserver = conn.instanceOperations().getTabletServers().iterator().next();
           do {
-            ArrayList<ActiveScan> scans = new ArrayList<ActiveScan>(conn.instanceOperations().getActiveScans(tserver));
+            ArrayList<ActiveScan> scans = new ArrayList<>(conn.instanceOperations().getActiveScans(tserver));
             Iterator<ActiveScan> iter = scans.iterator();
             while (iter.hasNext()) {
               ActiveScan scan = iter.next();

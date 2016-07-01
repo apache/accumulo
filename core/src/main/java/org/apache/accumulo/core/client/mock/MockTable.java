@@ -85,15 +85,15 @@ public class MockTable {
       }
       return 0;
     }
-  };
+  }
 
-  final SortedMap<Key,Value> table = new ConcurrentSkipListMap<Key,Value>();
+  final SortedMap<Key,Value> table = new ConcurrentSkipListMap<>();
   int mutationCount = 0;
   final Map<String,String> settings;
-  Map<String,EnumSet<TablePermission>> userPermissions = new HashMap<String,EnumSet<TablePermission>>();
+  Map<String,EnumSet<TablePermission>> userPermissions = new HashMap<>();
   private TimeType timeType;
-  SortedSet<Text> splits = new ConcurrentSkipListSet<Text>();
-  Map<String,Set<Text>> localityGroups = new TreeMap<String,Set<Text>>();
+  SortedSet<Text> splits = new ConcurrentSkipListSet<>();
+  Map<String,Set<Text>> localityGroups = new TreeMap<>();
   private MockNamespace namespace;
   private String namespaceName;
   private String tableId;

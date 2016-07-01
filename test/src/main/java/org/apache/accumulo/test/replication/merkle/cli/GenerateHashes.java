@@ -129,7 +129,7 @@ public class GenerateHashes {
       return endRowsToRanges(endRows);
     } else {
       log.info("Using provided split points");
-      ArrayList<Text> splits = new ArrayList<Text>();
+      ArrayList<Text> splits = new ArrayList<>();
 
       String line;
       java.util.Scanner file = new java.util.Scanner(new File(splitsFile), UTF_8.name());
@@ -249,7 +249,7 @@ public class GenerateHashes {
   }
 
   public TreeSet<Range> endRowsToRanges(Collection<Text> endRows) {
-    ArrayList<Text> sortedEndRows = new ArrayList<Text>(endRows);
+    ArrayList<Text> sortedEndRows = new ArrayList<>(endRows);
     Collections.sort(sortedEndRows);
 
     Text prevEndRow = null;

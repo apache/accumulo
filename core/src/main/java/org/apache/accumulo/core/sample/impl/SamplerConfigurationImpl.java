@@ -109,7 +109,7 @@ public class SamplerConfigurationImpl implements Writable {
 
     className = in.readUTF();
 
-    options = new HashMap<String,String>();
+    options = new HashMap<>();
 
     int num = in.readInt();
 
@@ -130,11 +130,11 @@ public class SamplerConfigurationImpl implements Writable {
     ArrayList<Pair<String,String>> props = new ArrayList<>();
 
     for (Entry<String,String> entry : options.entrySet()) {
-      props.add(new Pair<String,String>(Property.TABLE_SAMPLER_OPTS.getKey() + entry.getKey(), entry.getValue()));
+      props.add(new Pair<>(Property.TABLE_SAMPLER_OPTS.getKey() + entry.getKey(), entry.getValue()));
     }
 
     // intentionally added last, so its set last
-    props.add(new Pair<String,String>(Property.TABLE_SAMPLER.getKey(), className));
+    props.add(new Pair<>(Property.TABLE_SAMPLER.getKey(), className));
 
     return props;
   }

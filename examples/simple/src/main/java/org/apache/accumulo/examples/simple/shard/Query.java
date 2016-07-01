@@ -46,7 +46,7 @@ public class Query {
 
   static class Opts extends ClientOnRequiredTable {
     @Parameter(description = " term { <term> ... }")
-    List<String> terms = new ArrayList<String>();
+    List<String> terms = new ArrayList<>();
 
     @Parameter(names = {"--sample"}, description = "Do queries against sample, useful when sample is built using column qualifier")
     private boolean useSample = false;
@@ -76,7 +76,7 @@ public class Query {
     IntersectingIterator.setColumnFamilies(ii, columns);
     bs.addScanIterator(ii);
     bs.setRanges(Collections.singleton(new Range()));
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     for (Entry<Key,Value> entry : bs) {
       result.add(entry.getKey().getColumnQualifier().toString());
     }

@@ -63,7 +63,7 @@ public class ManySplitIT extends ConfigurableMacBase {
 
     log.info("splitting metadata table");
     tableOperations.create(tableName);
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (byte b : "123456789abcde".getBytes(UTF_8)) {
       splits.add(new Text(new byte[] {'1', ';', b}));
     }

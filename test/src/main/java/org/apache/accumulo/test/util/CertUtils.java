@@ -135,7 +135,7 @@ public class CertUtils {
 
           @Override
           public Iterator<Entry<String,String>> iterator() {
-            TreeMap<String,String> map = new TreeMap<String,String>();
+            TreeMap<String,String> map = new TreeMap<>();
             for (Entry<String,String> props : DefaultConfiguration.getInstance())
               map.put(props.getKey(), props.getValue());
             for (Entry<String,String> props : xml)

@@ -213,7 +213,7 @@ public abstract class TabletBalancer {
    * @return A list of TabletMigration object that passed sanity checks.
    */
   public static List<TabletMigration> checkMigrationSanity(Set<TServerInstance> current, List<TabletMigration> migrations) {
-    List<TabletMigration> result = new ArrayList<TabletMigration>(migrations.size());
+    List<TabletMigration> result = new ArrayList<>(migrations.size());
     for (TabletMigration m : migrations) {
       if (m.tablet == null) {
         log.warn("Balancer gave back a null tablet " + m);

@@ -54,8 +54,8 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(DeleteRowsSplitIT.class);
 
   private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz";
-  static final SortedSet<Text> SPLITS = new TreeSet<Text>();
-  static final List<String> ROWS = new ArrayList<String>();
+  static final SortedSet<Text> SPLITS = new TreeSet<>();
+  static final List<String> ROWS = new ArrayList<>();
   static {
     for (byte b : LETTERS.getBytes(UTF_8)) {
       SPLITS.add(new Text(new byte[] {b}));
@@ -125,7 +125,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
   }
 
   private void generateRandomRange(Text start, Text end) {
-    List<String> bunch = new ArrayList<String>(ROWS);
+    List<String> bunch = new ArrayList<>(ROWS);
     Collections.shuffle(bunch);
     if (bunch.get(0).compareTo((bunch.get(1))) < 0) {
       start.set(bunch.get(0));

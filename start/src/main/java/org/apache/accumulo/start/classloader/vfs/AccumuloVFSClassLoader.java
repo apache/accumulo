@@ -125,7 +125,7 @@ public class AccumuloVFSClassLoader {
     if (uris == null)
       return new FileObject[0];
 
-    ArrayList<FileObject> classpath = new ArrayList<FileObject>();
+    ArrayList<FileObject> classpath = new ArrayList<>();
 
     pathsToMonitor.clear();
 
@@ -281,7 +281,7 @@ public class AccumuloVFSClassLoader {
     vfs.setReplicator(new UniqueFileReplicator(cacheDir));
     vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
     vfs.init();
-    vfsInstances.add(new WeakReference<DefaultFileSystemManager>(vfs));
+    vfsInstances.add(new WeakReference<>(vfs));
     return vfs;
   }
 
@@ -307,7 +307,7 @@ public class AccumuloVFSClassLoader {
   public static void printClassPath(Printer out) {
     try {
       ClassLoader cl = getClassLoader();
-      ArrayList<ClassLoader> classloaders = new ArrayList<ClassLoader>();
+      ArrayList<ClassLoader> classloaders = new ArrayList<>();
 
       while (cl != null) {
         classloaders.add(cl);

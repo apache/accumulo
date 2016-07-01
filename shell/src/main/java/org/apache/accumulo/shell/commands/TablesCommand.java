@@ -62,7 +62,7 @@ public class TablesCommand extends Command {
     });
 
     final boolean sortByTableId = cl.hasOption(sortByTableIdOption.getOpt());
-    tables = new TreeMap<String,String>((sortByTableId ? MapUtils.invertMap(tables) : tables));
+    tables = new TreeMap<>((sortByTableId ? MapUtils.invertMap(tables) : tables));
 
     Iterator<String> it = Iterators.transform(tables.entrySet().iterator(), new Function<Entry<String,String>,String>() {
       @Override

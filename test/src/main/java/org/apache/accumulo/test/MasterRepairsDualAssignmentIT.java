@@ -77,14 +77,14 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
     c.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
     c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
     c.tableOperations().create(table);
-    SortedSet<Text> partitions = new TreeSet<Text>();
+    SortedSet<Text> partitions = new TreeSet<>();
     for (String part : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
       partitions.add(new Text(part));
     }
     c.tableOperations().addSplits(table, partitions);
     // scan the metadata table and get the two table location states
-    Set<TServerInstance> states = new HashSet<TServerInstance>();
-    Set<TabletLocationState> oldLocations = new HashSet<TabletLocationState>();
+    Set<TServerInstance> states = new HashSet<>();
+    Set<TabletLocationState> oldLocations = new HashSet<>();
     MetaDataStateStore store = new MetaDataStateStore(context, null);
     while (states.size() < 2) {
       UtilWaitThread.sleep(250);

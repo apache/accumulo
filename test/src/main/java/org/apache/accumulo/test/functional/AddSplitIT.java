@@ -57,7 +57,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
 
     insertData(tableName, 1l);
 
-    TreeSet<Text> splits = new TreeSet<Text>();
+    TreeSet<Text> splits = new TreeSet<>();
     splits.add(new Text(String.format("%09d", 333)));
     splits.add(new Text(String.format("%09d", 666)));
 
@@ -67,7 +67,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
 
     Collection<Text> actualSplits = c.tableOperations().listSplits(tableName);
 
-    if (!splits.equals(new TreeSet<Text>(actualSplits))) {
+    if (!splits.equals(new TreeSet<>(actualSplits))) {
       throw new Exception(splits + " != " + actualSplits);
     }
 
@@ -87,7 +87,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
 
     actualSplits = c.tableOperations().listSplits(tableName);
 
-    if (!splits.equals(new TreeSet<Text>(actualSplits))) {
+    if (!splits.equals(new TreeSet<>(actualSplits))) {
       throw new Exception(splits + " != " + actualSplits);
     }
 

@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ReplicationTableUtil {
 
-  private static Map<Credentials,Writer> writers = new HashMap<Credentials,Writer>();
+  private static Map<Credentials,Writer> writers = new HashMap<>();
   private static final Logger log = LoggerFactory.getLogger(ReplicationTableUtil.class);
 
   public static final String COMBINER_NAME = "replcombiner";

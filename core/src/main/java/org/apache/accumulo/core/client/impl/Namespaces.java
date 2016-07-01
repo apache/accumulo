@@ -93,7 +93,7 @@ public class Namespaces {
 
     List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
 
-    TreeMap<String,String> namespaceMap = new TreeMap<String,String>();
+    TreeMap<String,String> namespaceMap = new TreeMap<>();
 
     for (String id : namespaceIds) {
       byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
@@ -137,7 +137,7 @@ public class Namespaces {
 
   public static List<String> getTableIds(Instance instance, String namespaceId) throws NamespaceNotFoundException {
     String namespace = getNamespaceName(instance, namespaceId);
-    List<String> names = new LinkedList<String>();
+    List<String> names = new LinkedList<>();
     for (Entry<String,String> nameToId : Tables.getNameToIdMap(instance).entrySet())
       if (namespace.equals(Tables.qualify(nameToId.getKey()).getFirst()))
         names.add(nameToId.getValue());
@@ -146,7 +146,7 @@ public class Namespaces {
 
   public static List<String> getTableNames(Instance instance, String namespaceId) throws NamespaceNotFoundException {
     String namespace = getNamespaceName(instance, namespaceId);
-    List<String> names = new LinkedList<String>();
+    List<String> names = new LinkedList<>();
     for (String name : Tables.getNameToIdMap(instance).keySet())
       if (namespace.equals(Tables.qualify(name).getFirst()))
         names.add(name);

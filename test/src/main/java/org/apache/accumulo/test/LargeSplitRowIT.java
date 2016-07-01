@@ -52,7 +52,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
 
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
   }
@@ -77,7 +77,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     batchWriter.close();
 
     // Create a split point that is too large to be an end row and fill it with all 'm'
-    SortedSet<Text> partitionKeys = new TreeSet<Text>();
+    SortedSet<Text> partitionKeys = new TreeSet<>();
     byte data[] = new byte[(int) (TableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
     for (int i = 0; i < data.length; i++) {
       data[i] = 'm';

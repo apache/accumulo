@@ -72,7 +72,7 @@ public class TestMultiTableIngest {
   }
 
   public static void main(String[] args) throws Exception {
-    ArrayList<String> tableNames = new ArrayList<String>();
+    ArrayList<String> tableNames = new ArrayList<>();
 
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();

@@ -107,7 +107,7 @@ public class BatchInputSplit extends RangeInputSplit {
     super.readFields(in);
 
     int numRanges = in.readInt();
-    ranges = new ArrayList<Range>(numRanges);
+    ranges = new ArrayList<>(numRanges);
     for (int i = 0; i < numRanges; ++i) {
       Range r = new Range();
       r.readFields(in);

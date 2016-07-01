@@ -28,8 +28,8 @@ public class SecurityErrorCodeTest {
 
   @Test
   public void testEnumsSame() {
-    HashSet<String> secNames1 = new HashSet<String>();
-    HashSet<String> secNames2 = new HashSet<String>();
+    HashSet<String> secNames1 = new HashSet<>();
+    HashSet<String> secNames2 = new HashSet<>();
 
     for (SecurityErrorCode sec : SecurityErrorCode.values())
       secNames1.add(sec.name());

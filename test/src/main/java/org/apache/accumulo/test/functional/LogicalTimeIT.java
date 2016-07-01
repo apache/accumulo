@@ -74,7 +74,7 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
       throws Exception {
     log.info("table " + table);
     conn.tableOperations().create(table, new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
-    TreeSet<Text> splitSet = new TreeSet<Text>();
+    TreeSet<Text> splitSet = new TreeSet<>();
     for (String split : splits) {
       splitSet.add(new Text(split));
     }

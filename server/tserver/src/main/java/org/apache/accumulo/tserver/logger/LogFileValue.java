@@ -39,7 +39,7 @@ public class LogFileValue implements Writable {
   @Override
   public void readFields(DataInput in) throws IOException {
     int count = in.readInt();
-    mutations = new ArrayList<Mutation>(count);
+    mutations = new ArrayList<>(count);
     for (int i = 0; i < count; i++) {
       ServerMutation mutation = new ServerMutation();
       mutation.readFields(in);

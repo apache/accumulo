@@ -28,13 +28,13 @@ import org.junit.Test;
 public class TransactionWatcherTest {
 
   static class SimpleArbitrator implements TransactionWatcher.Arbitrator {
-    Map<String,List<Long>> started = new HashMap<String,List<Long>>();
-    Map<String,List<Long>> cleanedUp = new HashMap<String,List<Long>>();
+    Map<String,List<Long>> started = new HashMap<>();
+    Map<String,List<Long>> cleanedUp = new HashMap<>();
 
     public synchronized void start(String txType, Long txid) throws Exception {
       List<Long> txids = started.get(txType);
       if (txids == null)
-        txids = new ArrayList<Long>();
+        txids = new ArrayList<>();
       if (txids.contains(txid))
         throw new Exception("transaction already started");
       txids.add(txid);
@@ -42,7 +42,7 @@ public class TransactionWatcherTest {
 
       txids = cleanedUp.get(txType);
       if (txids == null)
-        txids = new ArrayList<Long>();
+        txids = new ArrayList<>();
       if (txids.contains(txid))
         throw new IllegalStateException("transaction was started but not cleaned up");
       txids.add(txid);
@@ -124,7 +124,7 @@ public class TransactionWatcherTest {
       });
       Assert.fail("work against stopped transaction should fail");
     } catch (Exception ex) {
-      ;
+
     }
     final long txid2 = 9;
     sa.start(txType, txid2);

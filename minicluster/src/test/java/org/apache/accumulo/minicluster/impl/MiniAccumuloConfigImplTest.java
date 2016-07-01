@@ -66,7 +66,7 @@ public class MiniAccumuloConfigImplTest {
   public void testSiteConfig() {
 
     // constructor site config overrides default props
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), "hdfs://");
     MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").setSiteConfig(siteConfig).initialize();
     assertEquals("hdfs://", config.getSiteConfig().get(Property.INSTANCE_DFS_URI.getKey()));

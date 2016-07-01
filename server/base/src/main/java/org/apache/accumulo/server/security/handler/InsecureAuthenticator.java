@@ -73,7 +73,7 @@ public class InsecureAuthenticator implements Authenticator {
 
   @Override
   public Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes() {
-    Set<Class<? extends AuthenticationToken>> cs = new HashSet<Class<? extends AuthenticationToken>>();
+    Set<Class<? extends AuthenticationToken>> cs = new HashSet<>();
     cs.add(NullToken.class);
     return cs;
   }

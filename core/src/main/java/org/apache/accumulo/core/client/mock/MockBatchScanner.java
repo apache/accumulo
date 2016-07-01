@@ -50,7 +50,7 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
       throw new IllegalArgumentException("ranges must be non null and contain at least 1 range");
     }
 
-    this.ranges = new ArrayList<Range>(ranges);
+    this.ranges = new ArrayList<>(ranges);
   }
 
   @SuppressWarnings("unchecked")

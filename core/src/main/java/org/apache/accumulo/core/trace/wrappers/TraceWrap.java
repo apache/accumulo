@@ -39,12 +39,12 @@ import java.lang.reflect.Proxy;
 public class TraceWrap {
 
   public static <T> T service(final T instance) {
-    InvocationHandler handler = new RpcServerInvocationHandler<T>(instance);
+    InvocationHandler handler = new RpcServerInvocationHandler<>(instance);
     return wrappedInstance(handler, instance);
   }
 
   public static <T> T client(final T instance) {
-    InvocationHandler handler = new RpcClientInvocationHandler<T>(instance);
+    InvocationHandler handler = new RpcClientInvocationHandler<>(instance);
     return wrappedInstance(handler, instance);
   }
 

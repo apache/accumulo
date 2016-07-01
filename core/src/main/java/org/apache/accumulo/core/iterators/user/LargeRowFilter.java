@@ -56,8 +56,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   private SortedKeyValueIterator<Key,Value> source;
 
   // a cache of keys
-  private ArrayList<Key> keys = new ArrayList<Key>();
-  private ArrayList<Value> values = new ArrayList<Value>();
+  private ArrayList<Key> keys = new ArrayList<>();
+  private ArrayList<Value> values = new ArrayList<>();
 
   private int currentPosition;
 
@@ -195,11 +195,11 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
 
     if (inclusive && !columnFamilies.contains(EMPTY)) {
-      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
+      columnFamilies = new HashSet<>(columnFamilies);
       columnFamilies.add(EMPTY);
       dropEmptyColFams = true;
     } else if (!inclusive && columnFamilies.contains(EMPTY)) {
-      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
+      columnFamilies = new HashSet<>(columnFamilies);
       columnFamilies.remove(EMPTY);
       dropEmptyColFams = true;
     } else {

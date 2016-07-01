@@ -66,7 +66,7 @@ public class InputTableConfigTest {
 
   @Test
   public void testSerialization_ranges() throws IOException {
-    List<Range> ranges = new ArrayList<Range>();
+    List<Range> ranges = new ArrayList<>();
     ranges.add(new Range("a", "b"));
     ranges.add(new Range("c", "d"));
     tableQueryConfig.setRanges(ranges);
@@ -79,8 +79,8 @@ public class InputTableConfigTest {
 
   @Test
   public void testSerialization_columns() throws IOException {
-    Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
-    columns.add(new Pair<Text,Text>(new Text("cf1"), new Text("cq1")));
+    Set<Pair<Text,Text>> columns = new HashSet<>();
+    columns.add(new Pair<>(new Text("cf1"), new Text("cq1")));
     columns.add(new Pair<Text,Text>(new Text("cf2"), null));
     tableQueryConfig.fetchColumns(columns);
 
@@ -92,7 +92,7 @@ public class InputTableConfigTest {
 
   @Test
   public void testSerialization_iterators() throws IOException {
-    List<IteratorSetting> settings = new ArrayList<IteratorSetting>();
+    List<IteratorSetting> settings = new ArrayList<>();
     settings.add(new IteratorSetting(50, "iter", "iterclass"));
     settings.add(new IteratorSetting(55, "iter2", "iterclass2"));
     tableQueryConfig.setIterators(settings);

@@ -118,7 +118,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * An Encoder that uses a variable-length encoding for Longs. It uses WritableUtils.writeVLong and WritableUtils.readVLong for encoding and decoding.
    */
-  public static class VarLenEncoder extends AbstractLexicoder<Long> implements Encoder<Long> {
+  public static class VarLenEncoder extends AbstractLexicoder<Long> {
     @Override
     public byte[] encode(Long v) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -153,7 +153,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * An Encoder that uses an 8-byte encoding for Longs.
    */
-  public static class FixedLenEncoder extends AbstractLexicoder<Long> implements Encoder<Long> {
+  public static class FixedLenEncoder extends AbstractLexicoder<Long> {
     @Override
     public byte[] encode(Long l) {
       byte[] b = new byte[8];
@@ -198,7 +198,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * An Encoder that uses a String representation of Longs. It uses Long.toString and Long.parseLong for encoding and decoding.
    */
-  public static class StringEncoder extends AbstractLexicoder<Long> implements Encoder<Long> {
+  public static class StringEncoder extends AbstractLexicoder<Long> {
     @Override
     public byte[] encode(Long v) {
       return Long.toString(v).getBytes(UTF_8);

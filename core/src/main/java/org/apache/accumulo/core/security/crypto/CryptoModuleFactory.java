@@ -34,8 +34,8 @@ import org.slf4j.LoggerFactory;
 public class CryptoModuleFactory {
 
   private static final Logger log = LoggerFactory.getLogger(CryptoModuleFactory.class);
-  private static final Map<String,CryptoModule> cryptoModulesCache = new HashMap<String,CryptoModule>();
-  private static final Map<String,SecretKeyEncryptionStrategy> secretKeyEncryptionStrategyCache = new HashMap<String,SecretKeyEncryptionStrategy>();
+  private static final Map<String,CryptoModule> cryptoModulesCache = new HashMap<>();
+  private static final Map<String,SecretKeyEncryptionStrategy> secretKeyEncryptionStrategyCache = new HashMap<>();
 
   /**
    * This method returns a crypto module based on settings in the given configuration parameter.

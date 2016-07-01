@@ -44,8 +44,8 @@ public class FaultyConditionalWriter implements ConditionalWriter {
 
   @Override
   public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
-    ArrayList<Result> resultList = new ArrayList<Result>();
-    ArrayList<ConditionalMutation> writes = new ArrayList<ConditionalMutation>();
+    ArrayList<Result> resultList = new ArrayList<>();
+    ArrayList<ConditionalMutation> writes = new ArrayList<>();
 
     while (mutations.hasNext()) {
       ConditionalMutation cm = mutations.next();

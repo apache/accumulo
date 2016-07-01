@@ -23,7 +23,7 @@ import java.util.HashMap;
  */
 public class State {
 
-  private HashMap<String,Object> stateMap = new HashMap<String,Object>();
+  private HashMap<String,Object> stateMap = new HashMap<>();
 
   /**
    * Creates new empty state.

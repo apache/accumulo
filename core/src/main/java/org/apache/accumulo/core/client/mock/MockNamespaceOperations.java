@@ -52,7 +52,7 @@ class MockNamespaceOperations extends NamespaceOperationsHelper {
 
   @Override
   public SortedSet<String> list() {
-    return new TreeSet<String>(acu.namespaces.keySet());
+    return new TreeSet<>(acu.namespaces.keySet());
   }
 
   @Override
@@ -116,7 +116,7 @@ class MockNamespaceOperations extends NamespaceOperationsHelper {
 
   @Override
   public Map<String,String> namespaceIdMap() {
-    Map<String,String> result = new HashMap<String,String>();
+    Map<String,String> result = new HashMap<>();
     for (String table : acu.tables.keySet()) {
       result.put(table, table);
     }

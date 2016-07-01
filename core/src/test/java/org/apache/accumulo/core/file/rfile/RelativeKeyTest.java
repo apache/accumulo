@@ -122,9 +122,9 @@ public class RelativeKeyTest {
     baos = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(baos);
 
-    expectedKeys = new ArrayList<Key>(initialListSize);
-    expectedValues = new ArrayList<Value>(initialListSize);
-    expectedPositions = new ArrayList<Integer>(initialListSize);
+    expectedKeys = new ArrayList<>(initialListSize);
+    expectedValues = new ArrayList<>(initialListSize);
+    expectedPositions = new ArrayList<>(initialListSize);
 
     Key prev = null;
     int val = 0;

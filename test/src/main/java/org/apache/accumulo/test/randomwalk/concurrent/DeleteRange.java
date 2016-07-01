@@ -43,7 +43,7 @@ public class DeleteRange extends Test {
 
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
 
-    List<Text> range = new ArrayList<Text>();
+    List<Text> range = new ArrayList<>();
     do {
       range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));
       range.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));

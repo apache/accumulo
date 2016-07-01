@@ -84,7 +84,7 @@ public class ZooTabletStateStore extends TabletStateStore {
             currentSession = parse(current);
             futureSession = null;
           }
-          List<Collection<String>> logs = new ArrayList<Collection<String>>();
+          List<Collection<String>> logs = new ArrayList<>();
           for (String entry : store.getChildren(RootTable.ZROOT_TABLET_WALOGS)) {
             byte[] logInfo = store.get(RootTable.ZROOT_TABLET_WALOGS + "/" + entry);
             if (logInfo != null) {

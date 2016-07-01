@@ -161,11 +161,11 @@ public class MasterMetadataUtil {
       } else {
         log.info("Finishing incomplete split " + metadataEntry + " " + metadataPrevEndRow);
 
-        List<FileRef> highDatafilesToRemove = new ArrayList<FileRef>();
+        List<FileRef> highDatafilesToRemove = new ArrayList<>();
 
-        SortedMap<FileRef,DataFileValue> origDatafileSizes = new TreeMap<FileRef,DataFileValue>();
-        SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<FileRef,DataFileValue>();
-        SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<FileRef,DataFileValue>();
+        SortedMap<FileRef,DataFileValue> origDatafileSizes = new TreeMap<>();
+        SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
+        SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
 
         try (Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
           Key rowKey = new Key(metadataEntry);

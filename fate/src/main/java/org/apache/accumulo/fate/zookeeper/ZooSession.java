@@ -51,7 +51,7 @@ public class ZooSession {
     ZooKeeper zooKeeper;
   }
 
-  private static Map<String,ZooSessionInfo> sessions = new HashMap<String,ZooSessionInfo>();
+  private static Map<String,ZooSessionInfo> sessions = new HashMap<>();
 
   private static String sessionKey(String keepers, int timeout, String scheme, byte[] auth) {
     return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":" + (auth == null ? "" : new String(auth, UTF_8));

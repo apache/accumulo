@@ -81,7 +81,7 @@ public class ProblemReportingIteratorTest {
   @Test
   public void testSeek() throws Exception {
     Range r = EasyMock.createMock(Range.class);
-    Collection<ByteSequence> f = new java.util.HashSet<ByteSequence>();
+    Collection<ByteSequence> f = new java.util.HashSet<>();
     ii.seek(r, f, true);
     replay(ii);
     pri.seek(r, f, true);

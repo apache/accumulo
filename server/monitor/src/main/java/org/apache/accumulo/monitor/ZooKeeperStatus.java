@@ -82,7 +82,7 @@ public class ZooKeeperStatus implements Runnable {
     }
   }
 
-  private static SortedSet<ZooKeeperState> status = new TreeSet<ZooKeeperState>();
+  private static SortedSet<ZooKeeperState> status = new TreeSet<>();
 
   public static Collection<ZooKeeperState> getZooKeeperStatus() {
     return status;
@@ -93,7 +93,7 @@ public class ZooKeeperStatus implements Runnable {
 
     while (!stop) {
 
-      TreeSet<ZooKeeperState> update = new TreeSet<ZooKeeperState>();
+      TreeSet<ZooKeeperState> update = new TreeSet<>();
 
       String zookeepers[] = SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST).split(",");
       for (String keeper : zookeepers) {

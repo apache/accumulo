@@ -42,8 +42,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   private static final long serialVersionUID = 1L;
 
-  private Set<ByteSequence> auths = new HashSet<ByteSequence>();
-  private List<byte[]> authsList = new ArrayList<byte[]>(); // sorted order
+  private Set<ByteSequence> auths = new HashSet<>();
+  private List<byte[]> authsList = new ArrayList<>(); // sorted order
 
   /**
    * An empty set of authorizations.
@@ -88,7 +88,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   }
 
   private void checkAuths() {
-    Set<ByteSequence> sortedAuths = new TreeSet<ByteSequence>(auths);
+    Set<ByteSequence> sortedAuths = new TreeSet<>(auths);
 
     for (ByteSequence bs : sortedAuths) {
       if (bs.length() == 0) {
@@ -212,7 +212,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @see #Authorizations(Collection)
    */
   public List<byte[]> getAuthorizations() {
-    ArrayList<byte[]> copy = new ArrayList<byte[]>(authsList.size());
+    ArrayList<byte[]> copy = new ArrayList<>(authsList.size());
     for (byte[] auth : authsList) {
       byte[] bytes = new byte[auth.length];
       System.arraycopy(auth, 0, bytes, 0, auth.length);
@@ -227,7 +227,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @return authorizations, each as a string encoded in UTF-8 and within a buffer
    */
   public List<ByteBuffer> getAuthorizationsBB() {
-    ArrayList<ByteBuffer> copy = new ArrayList<ByteBuffer>(authsList.size());
+    ArrayList<ByteBuffer> copy = new ArrayList<>(authsList.size());
     for (byte[] auth : authsList) {
       byte[] bytes = new byte[auth.length];
       System.arraycopy(auth, 0, bytes, 0, auth.length);

@@ -172,7 +172,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
     Connector conn = getConnector();
     conn.tableOperations().create(t);
     conn.tableOperations().online(t, true);
-    SortedSet<Text> partitionKeys = new TreeSet<Text>();
+    SortedSet<Text> partitionKeys = new TreeSet<>();
     partitionKeys.add(new Text("some split"));
     conn.tableOperations().addSplits(t, partitionKeys);
     if (!online) {
@@ -199,7 +199,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
 
     @Override
     public Set<TServerInstance> onlineTabletServers() {
-      HashSet<TServerInstance> tservers = new HashSet<TServerInstance>();
+      HashSet<TServerInstance> tservers = new HashSet<>();
       for (String tserver : getConnector().instanceOperations().getTabletServers()) {
         try {
           String zPath = ZooUtil.getRoot(getConnector().getInstance()) + Constants.ZTSERVERS + "/" + tserver;
@@ -214,7 +214,7 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
 
     @Override
     public Set<String> onlineTables() {
-      HashSet<String> onlineTables = new HashSet<String>(getConnector().tableOperations().tableIdMap().values());
+      HashSet<String> onlineTables = new HashSet<>(getConnector().tableOperations().tableIdMap().values());
       return Sets.filter(onlineTables, new Predicate<String>() {
         @Override
         public boolean apply(String tableId) {

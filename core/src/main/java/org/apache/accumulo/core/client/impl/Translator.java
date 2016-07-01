@@ -111,7 +111,7 @@ public abstract class Translator<IT,OT> {
   }
 
   public static <IKT,OKT,T> Map<OKT,T> translate(Map<IKT,T> input, Translator<IKT,OKT> keyTranslator) {
-    HashMap<OKT,T> output = new HashMap<OKT,T>();
+    HashMap<OKT,T> output = new HashMap<>();
 
     for (Entry<IKT,T> entry : input.entrySet())
       output.put(keyTranslator.translate(entry.getKey()), entry.getValue());
@@ -120,7 +120,7 @@ public abstract class Translator<IT,OT> {
   }
 
   public static <IKT,OKT,IVT,OVT> Map<OKT,OVT> translate(Map<IKT,IVT> input, Translator<IKT,OKT> keyTranslator, Translator<IVT,OVT> valueTranslator) {
-    HashMap<OKT,OVT> output = new HashMap<OKT,OVT>();
+    HashMap<OKT,OVT> output = new HashMap<>();
 
     for (Entry<IKT,IVT> entry : input.entrySet())
       output.put(keyTranslator.translate(entry.getKey()), valueTranslator.translate(entry.getValue()));
@@ -129,7 +129,7 @@ public abstract class Translator<IT,OT> {
   }
 
   public static <IT,OT> List<OT> translate(Collection<IT> input, Translator<IT,OT> translator) {
-    ArrayList<OT> output = new ArrayList<OT>(input.size());
+    ArrayList<OT> output = new ArrayList<>(input.size());
 
     for (IT in : input)
       output.add(translator.translate(in));

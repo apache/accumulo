@@ -97,7 +97,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
     this.config = config;
     this.fullMajorCompaction = fullMajC;
     this.authorizations = Authorizations.EMPTY;
-    this.topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+    this.topLevelIterators = new ArrayList<>();
   }
 
   @Override
@@ -138,7 +138,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   public SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
     if (topLevelIterators.isEmpty())
       return iter;
-    ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
+    ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
     allIters.add(iter);
     return new MultiIterator(allIters, false);
   }

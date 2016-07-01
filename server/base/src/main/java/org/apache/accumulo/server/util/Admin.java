@@ -90,13 +90,13 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandDescription = "stop the tablet server on the given hosts")
   static class StopCommand {
     @Parameter(description = "<host> {<host> ... }")
-    List<String> args = new ArrayList<String>();
+    List<String> args = new ArrayList<>();
   }
 
   @Parameters(commandDescription = "Ping tablet servers.  If no arguments, pings all.")
   static class PingCommand {
     @Parameter(description = "{<host> ... }")
-    List<String> args = new ArrayList<String>();
+    List<String> args = new ArrayList<>();
   }
 
   @Parameters(commandDescription = "print tablets that are offline in online tables")
@@ -139,7 +139,7 @@ public class Admin implements KeywordExecutable {
     @Parameter(names = {"-n", "--namespaces"}, description = "print the namespace configuration")
     boolean namespaceConfiguration = false;
     @Parameter(names = {"-t", "--tables"}, description = "print per-table configuration")
-    List<String> tables = new ArrayList<String>();
+    List<String> tables = new ArrayList<>();
     @Parameter(names = {"-u", "--users"}, description = "print users and their authorizations and permissions")
     boolean users = false;
   }
@@ -518,7 +518,7 @@ public class Admin implements KeywordExecutable {
     File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
     FileWriter nsWriter = new FileWriter(namespaceScript);
     nsWriter.write(createNsFormat.format(new String[] {namespace}));
-    TreeMap<String,String> props = new TreeMap<String,String>();
+    TreeMap<String,String> props = new TreeMap<>();
     for (Entry<String,String> p : connector.namespaceOperations().getProperties(namespace)) {
       props.put(p.getKey(), p.getValue());
     }
@@ -565,14 +565,14 @@ public class Admin implements KeywordExecutable {
 
   private void printSystemConfiguration(Connector connector, File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
     Configuration conf = new Configuration(false);
-    TreeMap<String,String> site = new TreeMap<String,String>(siteConfig);
+    TreeMap<String,String> site = new TreeMap<>(siteConfig);
     for (Entry<String,String> prop : site.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue) && !systemConfig.containsKey(prop.getKey())) {
         conf.set(prop.getKey(), prop.getValue());
       }
     }
-    TreeMap<String,String> system = new TreeMap<String,String>(systemConfig);
+    TreeMap<String,String> system = new TreeMap<>(systemConfig);
     for (Entry<String,String> prop : system.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue)) {
@@ -593,7 +593,7 @@ public class Admin implements KeywordExecutable {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     FileWriter writer = new FileWriter(tableBackup);
     writer.write(createTableFormat.format(new String[] {tableName}));
-    TreeMap<String,String> props = new TreeMap<String,String>();
+    TreeMap<String,String> props = new TreeMap<>();
     for (Entry<String,String> p : connector.tableOperations().getProperties(tableName)) {
       props.put(p.getKey(), p.getValue());
     }

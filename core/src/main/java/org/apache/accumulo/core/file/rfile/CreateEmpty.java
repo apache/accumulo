@@ -65,7 +65,7 @@ public class CreateEmpty {
     @Parameter(description = " <path> { <path> ... } Each path given is a URL. "
         + "Relative paths are resolved according to the default filesystem defined in your Hadoop configuration, which is usually an HDFS instance.",
         required = true, validateWith = NamedLikeRFile.class)
-    List<String> files = new ArrayList<String>();
+    List<String> files = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {

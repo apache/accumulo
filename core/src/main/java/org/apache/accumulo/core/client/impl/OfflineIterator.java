@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.PartialKey;
@@ -105,7 +104,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       return false;
     }
 
-    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
 
     @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
@@ -120,7 +119,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
       if (topLevelIterators.isEmpty())
         return iter;
-      ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
+      ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
       allIters.add(iter);
       return new MultiIterator(allIters, false);
     }
@@ -165,7 +164,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     this.tableId = table.toString();
     this.authorizations = authorizations;
-    this.readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+    this.readers = new ArrayList<>();
 
     try {
       conn = instance.getConnector(credentials.getPrincipal(), credentials.getToken());
@@ -233,7 +232,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       nextRange = new Range(currentExtent.getMetadataEntry(), false, null, false);
     }
 
-    List<String> relFiles = new ArrayList<String>();
+    List<String> relFiles = new ArrayList<>();
 
     Pair<KeyExtent,String> eloc = getTabletFiles(nextRange, relFiles);
 
@@ -264,7 +263,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     @SuppressWarnings("deprecation")
     String tablesDir = config.get(Property.INSTANCE_DFS_DIR) + Constants.HDFS_TABLES_DIR;
 
-    List<String> absFiles = new ArrayList<String>();
+    List<String> absFiles = new ArrayList<>();
     for (String relPath : relFiles) {
       if (relPath.contains(":")) {
         absFiles.add(relPath);
@@ -313,7 +312,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       }
 
     }
-    return new Pair<KeyExtent,String>(extent, location);
+    return new Pair<>(extent, location);
   }
 
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent, List<String> absFiles) throws TableNotFoundException, AccumuloException,
@@ -359,7 +358,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     ColumnVisibility cv = new ColumnVisibility(acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
     defaultSecurityLabel = cv.getExpression();
 
-    SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(multiIter, new HashSet<Column>(options.fetchedColumns), authorizations,
+    SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(multiIter, new HashSet<>(options.fetchedColumns), authorizations,
         defaultSecurityLabel);
 
     return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, extent, acuTableConf, options.serverSideIteratorList,

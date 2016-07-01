@@ -69,8 +69,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
       Map<KeyExtent,TServerInstance> assignments) {
     long total = assignments.size() + unassigned.size();
     long avg = (long) Math.ceil(((double) total) / current.size());
-    Map<TServerInstance,Long> toAssign = new HashMap<TServerInstance,Long>();
-    List<TServerInstance> tServerArray = new ArrayList<TServerInstance>();
+    Map<TServerInstance,Long> toAssign = new HashMap<>();
+    List<TServerInstance> tServerArray = new ArrayList<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
       long numTablets = 0;
       for (TableInfo ti : e.getValue().getTableMap().values()) {
@@ -105,8 +105,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
 
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
-    Map<TServerInstance,Long> numTablets = new HashMap<TServerInstance,Long>();
-    List<TServerInstance> underCapacityTServer = new ArrayList<TServerInstance>();
+    Map<TServerInstance,Long> numTablets = new HashMap<>();
+    List<TServerInstance> underCapacityTServer = new ArrayList<>();
 
     if (!migrations.isEmpty()) {
       outstandingMigrations.migrations = migrations;

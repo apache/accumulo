@@ -33,7 +33,7 @@ public class Merge extends Test {
     String indexTableName = (String) state.get("indexTableName");
 
     Collection<Text> splits = env.getConnector().tableOperations().listSplits(indexTableName);
-    SortedSet<Text> splitSet = new TreeSet<Text>(splits);
+    SortedSet<Text> splitSet = new TreeSet<>(splits);
     log.debug("merging " + indexTableName);
     env.getConnector().tableOperations().merge(indexTableName, null, null);
     org.apache.accumulo.core.util.Merge merge = new org.apache.accumulo.core.util.Merge();

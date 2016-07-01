@@ -58,7 +58,7 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_LOAD_BALANCER.getKey(), ChaoticLoadBalancer.class.getName());
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 100; i++) {
       splits.add(new Text(String.format("%03d", i)));
     }

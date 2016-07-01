@@ -159,7 +159,7 @@ public class TabletServerLogger {
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
-    final AtomicReference<DfsLogger> result = new AtomicReference<DfsLogger>();
+    final AtomicReference<DfsLogger> result = new AtomicReference<>();
     testLockAndRun(logIdLock, new TestCallWithWriteLock() {
       @Override
       boolean test() {
@@ -490,7 +490,7 @@ public class TabletServerLogger {
 
   public int logManyTablets(Map<CommitSession,Mutations> mutations) throws IOException {
 
-    final Map<CommitSession,Mutations> loggables = new HashMap<CommitSession,Mutations>(mutations);
+    final Map<CommitSession,Mutations> loggables = new HashMap<>(mutations);
     for (Entry<CommitSession,Mutations> entry : mutations.entrySet()) {
       if (entry.getValue().getDurability() == Durability.NONE) {
         loggables.remove(entry.getKey());
@@ -502,7 +502,7 @@ public class TabletServerLogger {
     int seq = write(loggables.keySet(), false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        List<TabletMutations> copy = new ArrayList<TabletMutations>(loggables.size());
+        List<TabletMutations> copy = new ArrayList<>(loggables.size());
         for (Entry<CommitSession,Mutations> entry : loggables.entrySet()) {
           CommitSession cs = entry.getKey();
           Durability durability = entry.getValue().getDurability();

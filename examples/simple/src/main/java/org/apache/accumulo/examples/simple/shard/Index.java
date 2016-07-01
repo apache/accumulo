@@ -53,7 +53,7 @@ public class Index {
 
     Mutation m = new Mutation(partition);
 
-    HashSet<String> tokensSeen = new HashSet<String>();
+    HashSet<String> tokensSeen = new HashSet<>();
 
     for (String token : tokens) {
       token = token.toLowerCase();
@@ -98,7 +98,7 @@ public class Index {
     @Parameter(names = "--partitions", required = true, description = "the number of shards to create")
     int partitions;
     @Parameter(required = true, description = "<file> { <file> ... }")
-    List<String> files = new ArrayList<String>();
+    List<String> files = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {

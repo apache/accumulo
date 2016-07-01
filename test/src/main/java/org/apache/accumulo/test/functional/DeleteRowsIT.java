@@ -54,13 +54,13 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
   private static final int ROWS_PER_TABLET = 10;
   private static final String[] LETTERS = new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
       "u", "v", "w", "x", "y", "z"};
-  static final SortedSet<Text> SPLITS = new TreeSet<Text>();
+  static final SortedSet<Text> SPLITS = new TreeSet<>();
   static {
     for (String alpha : LETTERS) {
       SPLITS.add(new Text(alpha));
     }
   }
-  static final List<String> ROWS = new ArrayList<String>(Arrays.asList(LETTERS));
+  static final List<String> ROWS = new ArrayList<>(Arrays.asList(LETTERS));
   static {
     // put data on first and last tablet
     ROWS.add("A");

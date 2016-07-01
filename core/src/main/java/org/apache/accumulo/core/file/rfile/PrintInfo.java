@@ -61,7 +61,7 @@ public class PrintInfo implements KeywordExecutable {
     @Parameter(names = {"--keyStats"}, description = "print key length statistics for index and all data")
     boolean keyStats = false;
     @Parameter(description = " <file> { <file> ... }")
-    List<String> files = new ArrayList<String>();
+    List<String> files = new ArrayList<>();
     @Parameter(names = {"-c", "--config"}, variableArity = true, description = "Comma-separated Hadoop configuration files")
     List<String> configFiles = new ArrayList<>();
   }

@@ -32,8 +32,8 @@ public class PrintScanTimeHistogram {
   private static final Logger log = LoggerFactory.getLogger(PrintScanTimeHistogram.class);
 
   public static void main(String[] args) throws Exception {
-    Histogram<String> srqHist = new Histogram<String>();
-    Histogram<String> fsrHist = new Histogram<String>();
+    Histogram<String> srqHist = new Histogram<>();
+    Histogram<String> fsrHist = new Histogram<>();
 
     processFile(System.in, srqHist, fsrHist);
 

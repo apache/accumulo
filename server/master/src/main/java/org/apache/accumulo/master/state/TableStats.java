@@ -23,14 +23,14 @@ import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.server.master.state.TabletState;
 
 public class TableStats {
-  private Map<String,TableCounts> last = new HashMap<String,TableCounts>();
+  private Map<String,TableCounts> last = new HashMap<>();
   private Map<String,TableCounts> next;
   private long startScan = 0;
   private long endScan = 0;
   private MasterState state;
 
   public synchronized void begin() {
-    next = new HashMap<String,TableCounts>();
+    next = new HashMap<>();
     startScan = System.currentTimeMillis();
   }
 

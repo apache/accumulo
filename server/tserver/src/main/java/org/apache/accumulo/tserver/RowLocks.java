@@ -34,7 +34,7 @@ import org.apache.accumulo.tserver.data.ServerConditionalMutation;
  */
 class RowLocks {
 
-  private Map<ByteSequence,RowLock> rowLocks = new HashMap<ByteSequence,RowLock>();
+  private Map<ByteSequence,RowLock> rowLocks = new HashMap<>();
 
   static class RowLock {
     ReentrantLock rlock;
@@ -82,7 +82,7 @@ class RowLocks {
   }
 
   List<RowLock> acquireRowlocks(Map<KeyExtent,List<ServerConditionalMutation>> updates, Map<KeyExtent,List<ServerConditionalMutation>> deferred) {
-    ArrayList<RowLock> locks = new ArrayList<RowLock>();
+    ArrayList<RowLock> locks = new ArrayList<>();
 
     // assume that mutations are in sorted order to avoid deadlock
     synchronized (rowLocks) {
@@ -100,7 +100,7 @@ class RowLocks {
       for (RowLock rowLock : locks) {
         if (!rowLock.tryLock()) {
           if (rowsNotLocked == null)
-            rowsNotLocked = new HashSet<ByteSequence>();
+            rowsNotLocked = new HashSet<>();
           rowsNotLocked.add(rowLock.rowSeq);
         }
       }
@@ -126,8 +126,8 @@ class RowLocks {
         }
       });
 
-      ArrayList<RowLock> filteredLocks = new ArrayList<RowLock>();
-      ArrayList<RowLock> locksToReturn = new ArrayList<RowLock>();
+      ArrayList<RowLock> filteredLocks = new ArrayList<>();
+      ArrayList<RowLock> locksToReturn = new ArrayList<>();
       for (RowLock rowLock : locks) {
         if (rowsNotLocked.contains(rowLock.rowSeq)) {
           locksToReturn.add(rowLock);

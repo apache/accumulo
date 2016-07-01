@@ -41,7 +41,7 @@ public class Histogram<T> implements Serializable {
 
   public Histogram() {
     sum = 0;
-    counts = new HashMap<T,HistData<T>>();
+    counts = new HashMap<>();
   }
 
   public void addPoint(T x) {
@@ -52,7 +52,7 @@ public class Histogram<T> implements Serializable {
 
     HistData<T> hd = counts.get(x);
     if (hd == null) {
-      hd = new HistData<T>(x);
+      hd = new HistData<>(x);
       counts.put(x, hd);
     }
 
@@ -80,7 +80,7 @@ public class Histogram<T> implements Serializable {
 
   public List<T> getKeysInCountSortedOrder() {
 
-    ArrayList<HistData<T>> sortedCounts = new ArrayList<HistData<T>>(counts.values());
+    ArrayList<HistData<T>> sortedCounts = new ArrayList<>(counts.values());
 
     Collections.sort(sortedCounts, new Comparator<HistData<T>>() {
       @Override
@@ -93,7 +93,7 @@ public class Histogram<T> implements Serializable {
       }
     });
 
-    ArrayList<T> sortedKeys = new ArrayList<T>();
+    ArrayList<T> sortedKeys = new ArrayList<>();
 
     for (Iterator<HistData<T>> iter = sortedCounts.iterator(); iter.hasNext();) {
       HistData<T> hd = iter.next();
@@ -104,7 +104,7 @@ public class Histogram<T> implements Serializable {
   }
 
   public void print(StringBuilder out) {
-    TreeSet<HistData<T>> sortedCounts = new TreeSet<HistData<T>>(counts.values());
+    TreeSet<HistData<T>> sortedCounts = new TreeSet<>(counts.values());
 
     int maxValueLen = 0;
 
@@ -133,7 +133,7 @@ public class Histogram<T> implements Serializable {
     BufferedOutputStream bos = new BufferedOutputStream(fos);
     PrintStream ps = new PrintStream(bos, false, UTF_8.name());
 
-    TreeSet<HistData<T>> sortedCounts = new TreeSet<HistData<T>>(counts.values());
+    TreeSet<HistData<T>> sortedCounts = new TreeSet<>(counts.values());
     for (Iterator<HistData<T>> iter = sortedCounts.iterator(); iter.hasNext();) {
       HistData<T> hd = iter.next();
       ps.println(" " + hd.bin + " " + hd.count);

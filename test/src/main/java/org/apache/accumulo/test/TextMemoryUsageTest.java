@@ -41,7 +41,7 @@ class TextMemoryUsageTest extends MemoryUsageTest {
 
   @Override
   void init() {
-    map = new TreeMap<Text,Value>();
+    map = new TreeMap<>();
   }
 
   @Override

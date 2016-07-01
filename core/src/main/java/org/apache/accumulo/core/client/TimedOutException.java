@@ -34,7 +34,7 @@ public class TimedOutException extends RuntimeException {
       return set.toString();
     }
 
-    return new ArrayList<String>(set).subList(0, 10).toString() + " ... " + (set.size() - 10) + " servers not shown";
+    return new ArrayList<>(set).subList(0, 10).toString() + " ... " + (set.size() - 10) + " servers not shown";
   }
 
   public TimedOutException(Set<String> timedoutServers) {

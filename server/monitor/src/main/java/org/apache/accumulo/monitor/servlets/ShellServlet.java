@@ -41,7 +41,7 @@ public class ShellServlet extends BasicServlet {
 
   private synchronized Map<String,ShellExecutionThread> userShells() {
     if (userShells == null) {
-      userShells = new HashMap<String,ShellExecutionThread>();
+      userShells = new HashMap<>();
     }
     return userShells;
   }

@@ -141,7 +141,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     connector.tableOperations().clone(tableName, newTable, false, null, null);
 
     // verify tables are exactly the same
-    Set<String> tables = new HashSet<String>();
+    Set<String> tables = new HashSet<>();
     tables.add(tableName);
     tables.add(newTable);
     diskUsages = connector.tableOperations().getDiskUsage(tables);
@@ -230,7 +230,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   private Map<String,String> propsToMap(Iterable<Map.Entry<String,String>> props) {
-    Map<String,String> map = new HashMap<String,String>();
+    Map<String,String> map = new HashMap<>();
     for (Map.Entry<String,String> prop : props) {
       map.put(prop.getKey(), prop.getValue());
     }

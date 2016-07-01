@@ -36,8 +36,8 @@ public class ColumnSet {
   private ColFamHashKey lookupCF = new ColFamHashKey();
 
   public ColumnSet() {
-    objectsCF = new HashSet<ColFamHashKey>();
-    objectsCol = new HashSet<ColHashKey>();
+    objectsCF = new HashSet<>();
+    objectsCol = new HashSet<>();
   }
 
   public ColumnSet(Collection<String> objectStrings) {
@@ -126,9 +126,9 @@ public class ColumnSet {
     String[] cols = columns.split(":");
 
     if (cols.length == 1) {
-      return new Pair<Text,Text>(decode(cols[0]), null);
+      return new Pair<>(decode(cols[0]), null);
     } else if (cols.length == 2) {
-      return new Pair<Text,Text>(decode(cols[0]), decode(cols[1]));
+      return new Pair<>(decode(cols[0]), decode(cols[1]));
     } else {
       throw new IllegalArgumentException(columns);
     }

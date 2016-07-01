@@ -101,7 +101,7 @@ class LoadFiles extends MasterRepo {
     ExecutorService executor = getThreadPool(master);
     final AccumuloConfiguration conf = master.getConfiguration();
     VolumeManager fs = master.getFileSystem();
-    List<FileStatus> files = new ArrayList<FileStatus>();
+    List<FileStatus> files = new ArrayList<>();
     for (FileStatus entry : fs.listStatus(new Path(bulk))) {
       files.add(entry);
     }
@@ -123,7 +123,7 @@ class LoadFiles extends MasterRepo {
 
     final int RETRIES = Math.max(1, conf.getCount(Property.MASTER_BULK_RETRIES));
     for (int attempt = 0; attempt < RETRIES && filesToLoad.size() > 0; attempt++) {
-      List<Future<List<String>>> results = new ArrayList<Future<List<String>>>();
+      List<Future<List<String>>> results = new ArrayList<>();
 
       if (master.onlineTabletServers().size() == 0)
         log.warn("There are no tablet server to process bulk import, waiting (tid = " + tid + ")");
@@ -140,7 +140,7 @@ class LoadFiles extends MasterRepo {
         results.add(executor.submit(new Callable<List<String>>() {
           @Override
           public List<String> call() {
-            List<String> failures = new ArrayList<String>();
+            List<String> failures = new ArrayList<>();
             ClientService.Client client = null;
             HostAndPort server = null;
             try {
@@ -168,7 +168,7 @@ class LoadFiles extends MasterRepo {
           }
         }));
       }
-      Set<String> failures = new HashSet<String>();
+      Set<String> failures = new HashSet<>();
       for (Future<List<String>> f : results)
         failures.addAll(f.get());
       filesToLoad.removeAll(loaded);

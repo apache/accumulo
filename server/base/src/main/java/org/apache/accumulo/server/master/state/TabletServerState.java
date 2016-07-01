@@ -45,8 +45,8 @@ public enum TabletServerState {
   private static HashSet<TabletServerState> badStates;
 
   static {
-    mapping = new HashMap<Byte,TabletServerState>(TabletServerState.values().length);
-    badStates = new HashSet<TabletServerState>();
+    mapping = new HashMap<>(TabletServerState.values().length);
+    badStates = new HashSet<>();
     for (TabletServerState state : TabletServerState.values()) {
       mapping.put(state.id, state);
       if (state.id > 99)

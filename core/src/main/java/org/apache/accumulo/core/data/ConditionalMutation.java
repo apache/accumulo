@@ -34,7 +34,7 @@ import org.apache.hadoop.io.Text;
  */
 public class ConditionalMutation extends Mutation {
 
-  private List<Condition> conditions = new ArrayList<Condition>();
+  private List<Condition> conditions = new ArrayList<>();
 
   public ConditionalMutation(byte[] row, Condition... conditions) {
     super(row);
@@ -64,7 +64,7 @@ public class ConditionalMutation extends Mutation {
 
   public ConditionalMutation(ConditionalMutation cm) {
     super(cm);
-    this.conditions = new ArrayList<Condition>(cm.conditions);
+    this.conditions = new ArrayList<>(cm.conditions);
   }
 
   private void init(Condition... conditions) {

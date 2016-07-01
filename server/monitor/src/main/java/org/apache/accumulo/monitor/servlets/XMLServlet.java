@@ -63,7 +63,7 @@ public class XMLServlet extends BasicServlet {
       sb.append("</servers>\n");
       return;
     }
-    SortedMap<String,TableInfo> tableStats = new TreeMap<String,TableInfo>(Monitor.getMmi().tableMap);
+    SortedMap<String,TableInfo> tableStats = new TreeMap<>(Monitor.getMmi().tableMap);
 
     for (TabletServerStatus status : Monitor.getMmi().tServerInfo) {
 

@@ -59,7 +59,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
         log.info("Existing splits on metadata table. Saving them, and applying single original split of '~'");
         metadataSplits = splits;
         conn.tableOperations().merge(MetadataTable.NAME, null, null);
-        conn.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<Text>(Collections.singleton(new Text("~"))));
+        conn.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(Collections.singleton(new Text("~"))));
       }
     }
   }
@@ -70,14 +70,14 @@ public class MetaSplitIT extends AccumuloClusterHarness {
       log.info("Restoring split on metadata table");
       Connector conn = getConnector();
       conn.tableOperations().merge(MetadataTable.NAME, null, null);
-      conn.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<Text>(metadataSplits));
+      conn.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(metadataSplits));
     }
   }
 
   @Test(expected = AccumuloException.class)
   public void testRootTableSplit() throws Exception {
     TableOperations opts = getConnector().tableOperations();
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     splits.add(new Text("5"));
     opts.addSplits(RootTable.NAME, splits);
   }
@@ -89,7 +89,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   }
 
   private void addSplits(TableOperations opts, String... points) throws Exception {
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (String point : points) {
       splits.add(new Text(point));
     }

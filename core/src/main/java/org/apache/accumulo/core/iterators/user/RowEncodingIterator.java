@@ -91,8 +91,8 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
     return newInstance;
   }
 
-  List<Key> keys = new ArrayList<Key>();
-  List<Value> values = new ArrayList<Value>();
+  List<Key> keys = new ArrayList<>();
+  List<Value> values = new ArrayList<>();
 
   private void prepKeys() throws IOException {
     long kvBufSize = 0;
@@ -163,7 +163,7 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
   public IteratorOptions describeOptions() {
     String desc = "This iterator encapsulates an entire row of Key/Value pairs into a single Key/Value pair.";
     String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use for buffering keys before throwing a BufferOverflowException.";
-    HashMap<String,String> namedOptions = new HashMap<String,String>();
+    HashMap<String,String> namedOptions = new HashMap<>();
     namedOptions.put(MAX_BUFFER_SIZE_OPT, bufferDesc);
     return new IteratorOptions(getClass().getSimpleName(), desc, namedOptions, null);
   }

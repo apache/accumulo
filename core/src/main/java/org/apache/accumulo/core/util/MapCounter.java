@@ -30,7 +30,7 @@ public class MapCounter<KT> {
   private HashMap<KT,MutableLong> map;
 
   public MapCounter() {
-    map = new HashMap<KT,MutableLong>();
+    map = new HashMap<>();
   }
 
   public long increment(KT key, long l) {
@@ -68,7 +68,7 @@ public class MapCounter<KT> {
 
   public Collection<Long> values() {
     Collection<MutableLong> vals = map.values();
-    ArrayList<Long> ret = new ArrayList<Long>(vals.size());
+    ArrayList<Long> ret = new ArrayList<>(vals.size());
     for (MutableLong ml : vals) {
       ret.add(ml.l);
     }

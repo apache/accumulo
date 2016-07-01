@@ -377,7 +377,7 @@ public class StandaloneClusterControl implements ClusterControl {
   protected List<String> getHosts(File f) throws IOException {
     BufferedReader reader = new BufferedReader(new FileReader(f));
     try {
-      List<String> hosts = new ArrayList<String>();
+      List<String> hosts = new ArrayList<>();
       String line = null;
       while ((line = reader.readLine()) != null) {
         line = line.trim();

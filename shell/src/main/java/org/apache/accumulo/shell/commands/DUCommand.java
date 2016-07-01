@@ -42,7 +42,7 @@ public class DUCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException, TableNotFoundException,
       NamespaceNotFoundException {
 
-    final SortedSet<String> tables = new TreeSet<String>(Arrays.asList(cl.getArgs()));
+    final SortedSet<String> tables = new TreeSet<>(Arrays.asList(cl.getArgs()));
 
     if (cl.hasOption(ShellOptions.tableOption)) {
       tables.add(cl.getOptionValue(ShellOptions.tableOption));

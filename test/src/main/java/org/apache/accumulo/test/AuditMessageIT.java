@@ -94,7 +94,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private Connector conn;
 
   private static ArrayList<String> findAuditMessage(ArrayList<String> input, String pattern) {
-    ArrayList<String> result = new ArrayList<String>();
+    ArrayList<String> result = new ArrayList<>();
     for (String s : input) {
       if (s.matches(".*" + pattern + ".*"))
         result.add(s);
@@ -125,7 +125,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Grab the audit messages
     System.out.println("Start of captured audit messages for step " + stepName);
 
-    ArrayList<String> result = new ArrayList<String>();
+    ArrayList<String> result = new ArrayList<>();
     File[] files = getCluster().getConfig().getLogDir().listFiles();
     assertNotNull(files);
     for (File file : files) {

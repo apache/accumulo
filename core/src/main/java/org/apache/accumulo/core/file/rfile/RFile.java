@@ -134,14 +134,14 @@ public class RFile {
     private int version;
 
     public LocalityGroupMetadata(int version, BlockFileReader br) {
-      columnFamilies = new HashMap<ByteSequence,MutableLong>();
+      columnFamilies = new HashMap<>();
       indexReader = new MultiLevelIndex.Reader(br, version);
       this.version = version;
     }
 
     public LocalityGroupMetadata(Set<ByteSequence> pcf, int indexBlockSize, BlockFileWriter bfw) {
       isDefaultLG = true;
-      columnFamilies = new HashMap<ByteSequence,MutableLong>();
+      columnFamilies = new HashMap<>();
       previousColumnFamilies = pcf;
 
       indexWriter = new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
@@ -150,7 +150,7 @@ public class RFile {
     public LocalityGroupMetadata(String name, Set<ByteSequence> cfset, int indexBlockSize, BlockFileWriter bfw) {
       this.name = name;
       isDefaultLG = false;
-      columnFamilies = new HashMap<ByteSequence,MutableLong>();
+      columnFamilies = new HashMap<>();
       for (ByteSequence cf : cfset) {
         columnFamilies.put(cf, new MutableLong(0));
       }
@@ -230,7 +230,7 @@ public class RFile {
         columnFamilies = null;
       } else {
         if (columnFamilies == null)
-          columnFamilies = new HashMap<ByteSequence,MutableLong>();
+          columnFamilies = new HashMap<>();
         else
           columnFamilies.clear();
 
@@ -289,8 +289,8 @@ public class RFile {
         out.printf("\t%-22s : %d\n", "Start block", startBlock);
       }
       out.printf("\t%-22s : %,d\n", "Num   blocks", indexReader.size());
-      TreeMap<Integer,Long> sizesByLevel = new TreeMap<Integer,Long>();
-      TreeMap<Integer,Long> countsByLevel = new TreeMap<Integer,Long>();
+      TreeMap<Integer,Long> sizesByLevel = new TreeMap<>();
+      TreeMap<Integer,Long> countsByLevel = new TreeMap<>();
       indexReader.getIndexInfo(sizesByLevel, countsByLevel);
       for (Entry<Integer,Long> entry : sizesByLevel.descendingMap().entrySet()) {
         out.printf("\t%-22s : %,d bytes  %,d blocks\n", "Index level " + entry.getKey(), entry.getValue(), countsByLevel.get(entry.getKey()));
@@ -498,8 +498,8 @@ public class RFile {
     private final long maxBlockSize;
     private final int indexBlockSize;
 
-    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
-    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<LocalityGroupMetadata>();
+    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
+    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
     private LocalityGroupMetadata currentLocalityGroup = null;
     private LocalityGroupMetadata sampleLocalityGroup = null;
 
@@ -524,7 +524,7 @@ public class RFile {
       this.maxBlockSize = (long) (blockSize * MAX_BLOCK_MULTIPLIER);
       this.indexBlockSize = indexBlockSize;
       this.fileWriter = bfw;
-      previousColumnFamilies = new HashSet<ByteSequence>();
+      previousColumnFamilies = new HashSet<>();
       this.samplerConfig = samplerConfig;
       this.sampler = sampler;
     }
@@ -627,7 +627,7 @@ public class RFile {
         sampleLocalityGroup = new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize, fileWriter);
       } else {
         if (!Collections.disjoint(columnFamilies, previousColumnFamilies)) {
-          HashSet<ByteSequence> overlap = new HashSet<ByteSequence>(columnFamilies);
+          HashSet<ByteSequence> overlap = new HashSet<>(columnFamilies);
           overlap.retainAll(previousColumnFamilies);
           throw new IllegalArgumentException("Column families over lap with previous locality group : " + overlap);
         }
@@ -1043,8 +1043,8 @@ public class RFile {
 
     private BlockFileReader reader;
 
-    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
-    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<LocalityGroupMetadata>();
+    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
+    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
 
     private LocalityGroupReader currentReaders[];
     private LocalityGroupReader readers[];
@@ -1078,7 +1078,7 @@ public class RFile {
         int size = mb.readInt();
         currentReaders = new LocalityGroupReader[size];
 
-        deepCopies = new LinkedList<Reader>();
+        deepCopies = new LinkedList<>();
 
         for (int i = 0; i < size; i++) {
           LocalityGroupMetadata lgm = new LocalityGroupMetadata(ver, rdr);
@@ -1111,7 +1111,7 @@ public class RFile {
         mb.close();
       }
 
-      nonDefaultColumnFamilies = new HashSet<ByteSequence>();
+      nonDefaultColumnFamilies = new HashSet<>();
       for (LocalityGroupMetadata lgm : localityGroups) {
         if (!lgm.isDefaultLG)
           nonDefaultColumnFamilies.addAll(lgm.columnFamilies.keySet());
@@ -1295,7 +1295,7 @@ public class RFile {
       Map<String,ArrayList<ByteSequence>> cf = new HashMap<>();
 
       for (LocalityGroupMetadata lcg : localityGroups) {
-        ArrayList<ByteSequence> setCF = new ArrayList<ByteSequence>();
+        ArrayList<ByteSequence> setCF = new ArrayList<>();
 
         for (Entry<ByteSequence,MutableLong> entry : lcg.columnFamilies.entrySet()) {
           setCF.add(entry.getKey());
@@ -1340,7 +1340,7 @@ public class RFile {
 
     public FileSKVIterator getIndex() throws IOException {
 
-      ArrayList<Iterator<IndexEntry>> indexes = new ArrayList<Iterator<IndexEntry>>();
+      ArrayList<Iterator<IndexEntry>> indexes = new ArrayList<>();
 
       for (LocalityGroupReader lgr : currentReaders) {
         indexes.add(lgr.getIndex());

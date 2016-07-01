@@ -143,7 +143,7 @@ public class QueryUtil {
       path = path.substring(0, path.length() - 1);
     Scanner scanner = conn.createScanner(tableName, auths);
     scanner.setRange(new Range(getRow(path)));
-    Map<String,String> data = new TreeMap<String,String>();
+    Map<String,String> data = new TreeMap<>();
     for (Entry<Key,Value> e : scanner) {
       String type = getType(e.getKey().getColumnFamily());
       data.put("fullname", e.getKey().getRow().toString().substring(3));
@@ -161,7 +161,7 @@ public class QueryUtil {
   public Map<String,Map<String,String>> getDirList(String path) throws TableNotFoundException {
     if (!path.endsWith("/"))
       path = path + "/";
-    Map<String,Map<String,String>> fim = new TreeMap<String,Map<String,String>>();
+    Map<String,Map<String,String>> fim = new TreeMap<>();
     Scanner scanner = conn.createScanner(tableName, auths);
     scanner.setRange(Range.prefix(getRow(path)));
     for (Entry<Key,Value> e : scanner) {

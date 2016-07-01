@@ -169,8 +169,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
   private long query(Connector c, String table, int depth, long start, long end, int num, int step) throws Exception {
     Random r = new Random(42);
 
-    HashSet<Long> expected = new HashSet<Long>();
-    List<Range> ranges = new ArrayList<Range>(num);
+    HashSet<Long> expected = new HashSet<>();
+    List<Range> ranges = new ArrayList<>(num);
     Text key = new Text();
     Text row = new Text("row"), cq = new Text("cq"), cf = new Text("cf");
 

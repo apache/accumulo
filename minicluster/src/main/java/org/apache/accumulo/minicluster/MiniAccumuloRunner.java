@@ -184,7 +184,7 @@ public class MiniAccumuloRunner {
     if (opts.prop.containsKey(SHUTDOWN_PORT_PROP))
       shutdownPort = Integer.parseInt(opts.prop.getProperty(SHUTDOWN_PORT_PROP));
 
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = new HashMap<>();
     for (Map.Entry<Object,Object> entry : opts.prop.entrySet()) {
       String key = (String) entry.getKey();
       if (key.startsWith("site."))

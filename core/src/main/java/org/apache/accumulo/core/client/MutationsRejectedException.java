@@ -47,7 +47,7 @@ public class MutationsRejectedException extends AccumuloException {
   private int unknownErrors;
 
   private static <K,V,L> Map<L,V> transformKeys(Map<K,V> map, Function<K,L> keyFunction) {
-    HashMap<L,V> ret = new HashMap<L,V>();
+    HashMap<L,V> ret = new HashMap<>();
     for (Entry<K,V> entry : map.entrySet()) {
       ret.put(keyFunction.apply(entry.getKey()), entry.getValue());
     }
@@ -125,7 +125,7 @@ public class MutationsRejectedException extends AccumuloException {
   }
 
   private static String format(Map<TabletId,Set<SecurityErrorCode>> hashMap, Instance instance) {
-    Map<String,Set<SecurityErrorCode>> result = new HashMap<String,Set<SecurityErrorCode>>();
+    Map<String,Set<SecurityErrorCode>> result = new HashMap<>();
 
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
       String tableInfo = Tables.getPrintableTableInfoFromId(instance, entry.getKey().getTableId().toString());
@@ -153,7 +153,7 @@ public class MutationsRejectedException extends AccumuloException {
    */
   @Deprecated
   public List<org.apache.accumulo.core.data.KeyExtent> getAuthorizationFailures() {
-    return new ArrayList<org.apache.accumulo.core.data.KeyExtent>(Collections2.transform(af.keySet(), TabletIdImpl.TID_2_KE_OLD));
+    return new ArrayList<>(Collections2.transform(af.keySet(), TabletIdImpl.TID_2_KE_OLD));
   }
 
   /**

@@ -112,7 +112,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
     private byte[] keyEncryptionKey;
     private String pathToKeyName;
 
-    public SecretKeyCache() {};
+    public SecretKeyCache() {}
 
     public synchronized void ensureSecretKeyCacheInitialized(CryptoModuleParameters context) throws IOException {
 

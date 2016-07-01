@@ -202,7 +202,7 @@ class WriteExportFiles extends MasterRepo {
       DataOutputStream dataOut) throws IOException, TableNotFoundException, AccumuloException, AccumuloSecurityException {
     zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_METADATA_FILE));
 
-    Map<String,String> uniqueFiles = new HashMap<String,String>();
+    Map<String,String> uniqueFiles = new HashMap<>();
 
     Scanner metaScanner = context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);

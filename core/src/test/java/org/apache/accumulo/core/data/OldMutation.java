@@ -221,7 +221,7 @@ public class OldMutation implements Writable {
       put(val);
     } else {
       if (values == null)
-        values = new ArrayList<byte[]>();
+        values = new ArrayList<>();
       byte copy[] = new byte[val.length];
       System.arraycopy(val, 0, copy, 0, val.length);
       values.add(copy);
@@ -428,7 +428,7 @@ public class OldMutation implements Writable {
     if (!valuesPresent) {
       values = null;
     } else {
-      values = new ArrayList<byte[]>();
+      values = new ArrayList<>();
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
         len = in.readInt();

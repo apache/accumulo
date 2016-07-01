@@ -60,7 +60,7 @@ public class BulkFileIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (String split : "0333 0666 0999 1333 1666".split(" "))
       splits.add(new Text(split));
     c.tableOperations().addSplits(tableName, splits);

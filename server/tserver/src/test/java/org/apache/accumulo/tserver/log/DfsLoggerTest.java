@@ -31,7 +31,7 @@ public class DfsLoggerTest {
 
   @Test
   public void testDurabilityForGroupCommit() {
-    List<TabletMutations> lst = new ArrayList<TabletMutations>();
+    List<TabletMutations> lst = new ArrayList<>();
     assertEquals(Durability.NONE, DfsLogger.chooseDurabilityForGroupCommit(lst));
     TabletMutations m1 = new TabletMutations(0, 1, Collections.<Mutation> emptyList(), Durability.NONE);
     lst.add(m1);

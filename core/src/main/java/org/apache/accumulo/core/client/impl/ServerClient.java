@@ -123,7 +123,7 @@ public class ServerClient {
       throws TTransportException {
     checkArgument(context != null, "context is null");
     // create list of servers
-    ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
+    ArrayList<ThriftTransportKey> servers = new ArrayList<>();
 
     // add tservers
     Instance instance = context.getInstance();
@@ -144,7 +144,7 @@ public class ServerClient {
       ClientService.Client client = ThriftUtil.createClient(new ClientService.Client.Factory(), pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
-      return new Pair<String,ClientService.Client>(pair.getFirst(), client);
+      return new Pair<>(pair.getFirst(), client);
     } finally {
       if (!opened) {
         if (!warnedAboutTServersBeingDown) {

@@ -30,8 +30,8 @@ public class PairTest {
    */
   @Test
   public void testEqualsObject() {
-    Pair<Integer,String> pair = new Pair<Integer,String>(25, "twenty-five");
-    Pair<Integer,String> pair2 = new Pair<Integer,String>(25, "twenty-five");
+    Pair<Integer,String> pair = new Pair<>(25, "twenty-five");
+    Pair<Integer,String> pair2 = new Pair<>(25, "twenty-five");
     assertEquals(pair, pair2);
   }
 
@@ -40,7 +40,7 @@ public class PairTest {
    */
   @Test
   public void testGetFirst() {
-    Pair<Integer,String> pair = new Pair<Integer,String>(25, "twenty-five");
+    Pair<Integer,String> pair = new Pair<>(25, "twenty-five");
     assertEquals((Integer) 25, pair.getFirst());
   }
 
@@ -49,7 +49,7 @@ public class PairTest {
    */
   @Test
   public void testGetSecond() {
-    Pair<Integer,String> pair = new Pair<Integer,String>(25, "twenty-five");
+    Pair<Integer,String> pair = new Pair<>(25, "twenty-five");
     assertEquals("twenty-five", pair.getSecond());
   }
 
@@ -58,7 +58,7 @@ public class PairTest {
    */
   @Test
   public void testToString() {
-    Pair<Integer,String> pair = new Pair<Integer,String>(25, "twenty-five");
+    Pair<Integer,String> pair = new Pair<>(25, "twenty-five");
     assertEquals("(25,twenty-five)", pair.toString());
   }
 
@@ -67,7 +67,7 @@ public class PairTest {
    */
   @Test
   public void testToStringStringStringString() {
-    Pair<Integer,String> pair = new Pair<Integer,String>(25, "twenty-five");
+    Pair<Integer,String> pair = new Pair<>(25, "twenty-five");
     assertEquals("---25~~~twenty-five+++", pair.toString("---", "~~~", "+++"));
   }
 
@@ -76,7 +76,7 @@ public class PairTest {
    */
   @Test
   public void testToMapEntry() {
-    Pair<Integer,String> pair = new Pair<Integer,String>(10, "IO");
+    Pair<Integer,String> pair = new Pair<>(10, "IO");
 
     Entry<Integer,String> entry = pair.toMapEntry();
     assertEquals(pair.getFirst(), entry.getKey());
@@ -88,9 +88,9 @@ public class PairTest {
    */
   @Test
   public void testSwap() {
-    Pair<Integer,String> pair = new Pair<Integer,String>(25, "twenty-five");
+    Pair<Integer,String> pair = new Pair<>(25, "twenty-five");
     assertEquals(pair, pair.swap().swap());
-    Pair<String,Integer> pair2 = new Pair<String,Integer>("twenty-five", 25);
+    Pair<String,Integer> pair2 = new Pair<>("twenty-five", 25);
     assertEquals(pair, pair2.swap());
     assertEquals(pair2, pair.swap());
   }
@@ -100,7 +100,7 @@ public class PairTest {
    */
   @Test
   public void testFromEntry() {
-    Entry<Integer,String> entry = new SimpleImmutableEntry<Integer,String>(10, "IO");
+    Entry<Integer,String> entry = new SimpleImmutableEntry<>(10, "IO");
 
     Pair<Integer,String> pair0 = Pair.fromEntry(entry);
     assertEquals(entry.getKey(), pair0.getFirst());

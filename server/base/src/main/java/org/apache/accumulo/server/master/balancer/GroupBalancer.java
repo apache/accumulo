@@ -145,7 +145,7 @@ public abstract class GroupBalancer extends TabletBalancer {
         }
       }
 
-      tabletsByGroup.add(new ComparablePair<String,KeyExtent>(partitioner.apply(entry.getKey()), entry.getKey()));
+      tabletsByGroup.add(new ComparablePair<>(partitioner.apply(entry.getKey()), entry.getKey()));
     }
 
     Collections.sort(tabletsByGroup);
@@ -528,7 +528,7 @@ public abstract class GroupBalancer extends TabletBalancer {
             if (srcTgi.getExtras().size() <= maxExtraGroups) {
               serversToRemove.add(srcTgi.getTserverInstance());
             } else {
-              serversGroupsToRemove.add(new Pair<String,TServerInstance>(group, srcTgi.getTserverInstance()));
+              serversGroupsToRemove.add(new Pair<>(group, srcTgi.getTserverInstance()));
             }
 
             if (destTgi.getExtras().size() >= maxExtraGroups || moves.size() >= getMaxMigrations()) {
@@ -593,7 +593,7 @@ public abstract class GroupBalancer extends TabletBalancer {
             moves.move(group, 1, srcTgi, destTgi);
 
             if (num == 2) {
-              serversToRemove.add(new Pair<String,TserverGroupInfo>(group, srcTgi));
+              serversToRemove.add(new Pair<>(group, srcTgi));
             }
 
             if (destTgi.getExtras().size() >= maxExtraGroups || moves.size() >= getMaxMigrations()) {
@@ -655,7 +655,7 @@ public abstract class GroupBalancer extends TabletBalancer {
             if (srcTgi.getExtras().size() <= expectedExtra) {
               emptyServers.add(srcTgi.getTserverInstance());
             } else if (srcTgi.getExtras().get(group) == null) {
-              emptyServerGroups.add(new Pair<String,TServerInstance>(group, srcTgi.getTserverInstance()));
+              emptyServerGroups.add(new Pair<>(group, srcTgi.getTserverInstance()));
             }
 
             if (destTgi.getExtras().size() >= expectedExtra || moves.size() >= getMaxMigrations()) {
@@ -761,7 +761,7 @@ public abstract class GroupBalancer extends TabletBalancer {
         }
       }
 
-      return new Pair<KeyExtent,Location>(extent, loc);
+      return new Pair<>(extent, loc);
     }
 
   }

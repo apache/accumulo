@@ -108,7 +108,7 @@ public class InterferenceTest {
 
         // all columns in a row should have the same value,
         // use this hash set to track that
-        HashSet<String> values = new HashSet<String>();
+        HashSet<String> values = new HashSet<>();
 
         for (Entry<Key,Value> entry : scanner) {
           if (row == null)

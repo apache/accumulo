@@ -63,7 +63,7 @@ public class ScanMeta extends Test {
     Random rand = new Random();
     int numToScan = rand.nextInt(maxScan - minScan) + minScan;
 
-    Map<Text,Text> hashes = new HashMap<Text,Text>();
+    Map<Text,Text> hashes = new HashMap<>();
 
     Iterator<Entry<Key,Value>> iter = imageScanner.iterator();
 
@@ -84,14 +84,14 @@ public class ScanMeta extends Test {
 
     // use batch scanner to verify all of these exist in index
     BatchScanner indexScanner = conn.createBatchScanner(indexTableName, Authorizations.EMPTY, 3);
-    ArrayList<Range> ranges = new ArrayList<Range>();
+    ArrayList<Range> ranges = new ArrayList<>();
     for (Text row : hashes.keySet()) {
       ranges.add(new Range(row));
     }
 
     indexScanner.setRanges(ranges);
 
-    Map<Text,Text> hashes2 = new HashMap<Text,Text>();
+    Map<Text,Text> hashes2 = new HashMap<>();
 
     for (Entry<Key,Value> entry : indexScanner)
       hashes2.put(entry.getKey().getRow(), new Text(entry.getValue().get()));

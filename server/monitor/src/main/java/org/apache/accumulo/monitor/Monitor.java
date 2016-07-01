@@ -173,20 +173,20 @@ public class Monitor {
   private ZooLock monitorLock;
 
   private static final String DEFAULT_INSTANCE_NAME = "(Unavailable)";
-  public static final AtomicReference<String> cachedInstanceName = new AtomicReference<String>(DEFAULT_INSTANCE_NAME);
+  public static final AtomicReference<String> cachedInstanceName = new AtomicReference<>(DEFAULT_INSTANCE_NAME);
 
   private static class EventCounter {
 
-    Map<String,Pair<Long,Long>> prevSamples = new HashMap<String,Pair<Long,Long>>();
-    Map<String,Pair<Long,Long>> samples = new HashMap<String,Pair<Long,Long>>();
-    Set<String> serversUpdated = new HashSet<String>();
+    Map<String,Pair<Long,Long>> prevSamples = new HashMap<>();
+    Map<String,Pair<Long,Long>> samples = new HashMap<>();
+    Set<String> serversUpdated = new HashSet<>();
 
     void startingUpdates() {
       serversUpdated.clear();
     }
 
     void updateTabletServer(String name, long sampleTime, long numEvents) {
-      Pair<Long,Long> newSample = new Pair<Long,Long>(sampleTime, numEvents);
+      Pair<Long,Long> newSample = new Pair<>(sampleTime, numEvents);
       Pair<Long,Long> lastSample = samples.get(name);
 
       if (lastSample == null || !lastSample.equals(newSample)) {
@@ -347,25 +347,25 @@ public class Monitor {
         Monitor.totalHoldTime = totalHoldTime;
         Monitor.totalLookups = totalLookups;
 
-        ingestRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestRate));
-        ingestByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestByteRate));
+        ingestRateOverTime.add(new Pair<>(currentTime, totalIngestRate));
+        ingestByteRateOverTime.add(new Pair<>(currentTime, totalIngestByteRate));
 
         double totalLoad = 0.;
         for (TabletServerStatus status : mmi.tServerInfo) {
           if (status != null)
             totalLoad += status.osLoad;
         }
-        loadOverTime.add(new Pair<Long,Double>(currentTime, totalLoad));
+        loadOverTime.add(new Pair<>(currentTime, totalLoad));
 
-        minorCompactionsOverTime.add(new Pair<Long,Integer>(currentTime, minorCompactions));
-        majorCompactionsOverTime.add(new Pair<Long,Integer>(currentTime, majorCompactions));
+        minorCompactionsOverTime.add(new Pair<>(currentTime, minorCompactions));
+        majorCompactionsOverTime.add(new Pair<>(currentTime, majorCompactions));
 
-        lookupsOverTime.add(new Pair<Long,Double>(currentTime, lookupRateTracker.calculateRate()));
+        lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
 
-        queryRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalQueryRate));
-        queryByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalQueryByteRate));
+        queryRateOverTime.add(new Pair<>(currentTime, (int) totalQueryRate));
+        queryByteRateOverTime.add(new Pair<>(currentTime, totalQueryByteRate));
 
-        scanRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalScanRate));
+        scanRateOverTime.add(new Pair<>(currentTime, (int) totalScanRate));
 
         calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker, indexCacheRequestTracker);
         calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker, dataCacheRequestTracker);
@@ -390,7 +390,7 @@ public class Monitor {
   private static void calcCacheHitRate(List<Pair<Long,Double>> hitRate, long currentTime, EventCounter cacheHits, EventCounter cacheReq) {
     long req = cacheReq.calculateCount();
     if (req > 0)
-      hitRate.add(new Pair<Long,Double>(currentTime, cacheHits.calculateCount() / (double) cacheReq.calculateCount()));
+      hitRate.add(new Pair<>(currentTime, cacheHits.calculateCount() / (double) cacheReq.calculateCount()));
     else
       hitRate.add(new Pair<Long,Double>(currentTime, null));
   }
@@ -558,11 +558,11 @@ public class Monitor {
     }
   }
 
-  static final Map<HostAndPort,ScanStats> allScans = new HashMap<HostAndPort,ScanStats>();
+  static final Map<HostAndPort,ScanStats> allScans = new HashMap<>();
 
   public static Map<HostAndPort,ScanStats> getScans() {
     synchronized (allScans) {
-      return new HashMap<HostAndPort,ScanStats>(allScans);
+      return new HashMap<>(allScans);
     }
   }
 
@@ -762,37 +762,37 @@ public class Monitor {
 
   public static List<Pair<Long,Double>> getLoadOverTime() {
     synchronized (loadOverTime) {
-      return new ArrayList<Pair<Long,Double>>(loadOverTime);
+      return new ArrayList<>(loadOverTime);
     }
   }
 
   public static List<Pair<Long,Double>> getIngestRateOverTime() {
     synchronized (ingestRateOverTime) {
-      return new ArrayList<Pair<Long,Double>>(ingestRateOverTime);
+      return new ArrayList<>(ingestRateOverTime);
     }
   }
 
   public static List<Pair<Long,Double>> getIngestByteRateOverTime() {
     synchronized (ingestByteRateOverTime) {
-      return new ArrayList<Pair<Long,Double>>(ingestByteRateOverTime);
+      return new ArrayList<>(ingestByteRateOverTime);
     }
   }
 
   public static List<Pair<Long,Integer>> getMinorCompactionsOverTime() {
     synchronized (minorCompactionsOverTime) {
-      return new ArrayList<Pair<Long,Integer>>(minorCompactionsOverTime);
+      return new ArrayList<>(minorCompactionsOverTime);
     }
   }
 
   public static List<Pair<Long,Integer>> getMajorCompactionsOverTime() {
     synchronized (majorCompactionsOverTime) {
-      return new ArrayList<Pair<Long,Integer>>(majorCompactionsOverTime);
+      return new ArrayList<>(majorCompactionsOverTime);
     }
   }
 
   public static List<Pair<Long,Double>> getLookupsOverTime() {
     synchronized (lookupsOverTime) {
-      return new ArrayList<Pair<Long,Double>>(lookupsOverTime);
+      return new ArrayList<>(lookupsOverTime);
     }
   }
 
@@ -802,31 +802,31 @@ public class Monitor {
 
   public static List<Pair<Long,Integer>> getQueryRateOverTime() {
     synchronized (queryRateOverTime) {
-      return new ArrayList<Pair<Long,Integer>>(queryRateOverTime);
+      return new ArrayList<>(queryRateOverTime);
     }
   }
 
   public static List<Pair<Long,Integer>> getScanRateOverTime() {
     synchronized (scanRateOverTime) {
-      return new ArrayList<Pair<Long,Integer>>(scanRateOverTime);
+      return new ArrayList<>(scanRateOverTime);
     }
   }
 
   public static List<Pair<Long,Double>> getQueryByteRateOverTime() {
     synchronized (queryByteRateOverTime) {
-      return new ArrayList<Pair<Long,Double>>(queryByteRateOverTime);
+      return new ArrayList<>(queryByteRateOverTime);
     }
   }
 
   public static List<Pair<Long,Double>> getIndexCacheHitRateOverTime() {
     synchronized (indexCacheHitRateOverTime) {
-      return new ArrayList<Pair<Long,Double>>(indexCacheHitRateOverTime);
+      return new ArrayList<>(indexCacheHitRateOverTime);
     }
   }
 
   public static List<Pair<Long,Double>> getDataCacheHitRateOverTime() {
     synchronized (dataCacheHitRateOverTime) {
-      return new ArrayList<Pair<Long,Double>>(dataCacheHitRateOverTime);
+      return new ArrayList<>(dataCacheHitRateOverTime);
     }
   }
 

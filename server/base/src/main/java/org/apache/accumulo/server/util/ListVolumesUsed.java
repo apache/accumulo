@@ -67,10 +67,10 @@ public class ListVolumesUsed {
 
   private static void listZookeeper() throws Exception {
     System.out.println("Listing volumes referenced in zookeeper");
-    TreeSet<String> volumes = new TreeSet<String>();
+    TreeSet<String> volumes = new TreeSet<>();
 
     volumes.add(getTableURI(MetadataTableUtil.getRootTabletDir()));
-    ArrayList<LogEntry> result = new ArrayList<LogEntry>();
+    ArrayList<LogEntry> result = new ArrayList<>();
     MetadataTableUtil.getRootLogEntries(result);
     for (LogEntry logEntry : result) {
       getLogURIs(volumes, logEntry);
@@ -92,7 +92,7 @@ public class ListVolumesUsed {
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
     MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
 
-    TreeSet<String> volumes = new TreeSet<String>();
+    TreeSet<String> volumes = new TreeSet<>();
 
     for (Entry<Key,Value> entry : scanner) {
       if (entry.getKey().getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {

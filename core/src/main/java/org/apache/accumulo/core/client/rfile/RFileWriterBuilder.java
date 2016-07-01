@@ -39,7 +39,7 @@ import org.apache.hadoop.fs.Path;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
-class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions, RFile.WriterOptions {
+class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions {
 
   private static class OutputArgs extends FSConfArgs {
     private Path path;

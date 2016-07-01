@@ -691,7 +691,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   protected WalReplication getWalEdits(ReplicationTarget target, DataInputStream wal, Path p, Status status, long sizeLimit, Set<Integer> desiredTids)
       throws IOException {
     WalEdits edits = new WalEdits();
-    edits.edits = new ArrayList<ByteBuffer>();
+    edits.edits = new ArrayList<>();
     long size = 0l;
     long entriesConsumed = 0l;
     long numUpdates = 0l;

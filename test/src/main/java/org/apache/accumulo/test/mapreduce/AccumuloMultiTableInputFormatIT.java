@@ -103,7 +103,7 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       InputTableConfig tableConfig1 = new InputTableConfig();
       InputTableConfig tableConfig2 = new InputTableConfig();
 
-      Map<String,InputTableConfig> configMap = new HashMap<String,InputTableConfig>();
+      Map<String,InputTableConfig> configMap = new HashMap<>();
       configMap.put(table1, tableConfig1);
       configMap.put(table2, tableConfig2);
 

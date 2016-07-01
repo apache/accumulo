@@ -59,12 +59,12 @@ public class BloomFilterLayerLookupTest {
 
   @Test
   public void test() throws IOException {
-    HashSet<Integer> valsSet = new HashSet<Integer>();
+    HashSet<Integer> valsSet = new HashSet<>();
     for (int i = 0; i < 100000; i++) {
       valsSet.add(random.nextInt(Integer.MAX_VALUE));
     }
 
-    ArrayList<Integer> vals = new ArrayList<Integer>(valsSet);
+    ArrayList<Integer> vals = new ArrayList<>(valsSet);
     Collections.sort(vals);
 
     ConfigurationCopy acuconf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());

@@ -43,9 +43,9 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
   ScanTask(TabletServer server) {
     this.server = server;
     interruptFlag = new AtomicBoolean(false);
-    runState = new AtomicReference<ScanRunState>(ScanRunState.QUEUED);
+    runState = new AtomicReference<>(ScanRunState.QUEUED);
     state = new AtomicInteger(INITIAL);
-    resultQueue = new ArrayBlockingQueue<Object>(1);
+    resultQueue = new ArrayBlockingQueue<>(1);
   }
 
   protected void addResult(Object o) {

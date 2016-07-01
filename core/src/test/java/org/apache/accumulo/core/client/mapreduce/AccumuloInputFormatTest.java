@@ -175,12 +175,12 @@ public class AccumuloInputFormatTest {
   @Test
   public void testEmptyColumnFamily() throws IOException {
     Job job = Job.getInstance();
-    Set<Pair<Text,Text>> cols = new HashSet<Pair<Text,Text>>();
+    Set<Pair<Text,Text>> cols = new HashSet<>();
     cols.add(new Pair<Text,Text>(new Text(""), null));
-    cols.add(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
-    cols.add(new Pair<Text,Text>(new Text(""), new Text("bar")));
-    cols.add(new Pair<Text,Text>(new Text(""), new Text("")));
-    cols.add(new Pair<Text,Text>(new Text("foo"), new Text("")));
+    cols.add(new Pair<>(new Text("foo"), new Text("bar")));
+    cols.add(new Pair<>(new Text(""), new Text("bar")));
+    cols.add(new Pair<>(new Text(""), new Text("")));
+    cols.add(new Pair<>(new Text("foo"), new Text("")));
     AccumuloInputFormat.fetchColumns(job, cols);
     Set<Pair<Text,Text>> setCols = AccumuloInputFormat.getFetchedColumns(job);
     assertEquals(cols, setCols);

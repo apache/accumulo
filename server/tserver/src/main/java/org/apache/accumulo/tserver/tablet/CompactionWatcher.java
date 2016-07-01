@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class CompactionWatcher implements Runnable {
-  private final Map<List<Long>,ObservedCompactionInfo> observedCompactions = new HashMap<List<Long>,ObservedCompactionInfo>();
+  private final Map<List<Long>,ObservedCompactionInfo> observedCompactions = new HashMap<>();
   private final AccumuloConfiguration config;
   private static boolean watching = false;
 
@@ -55,7 +55,7 @@ public class CompactionWatcher implements Runnable {
   public void run() {
     List<CompactionInfo> runningCompactions = Compactor.getRunningCompactions();
 
-    Set<List<Long>> newKeys = new HashSet<List<Long>>();
+    Set<List<Long>> newKeys = new HashSet<>();
 
     long time = System.currentTimeMillis();
 
@@ -69,7 +69,7 @@ public class CompactionWatcher implements Runnable {
     }
 
     // look for compactions that finished or made progress and logged a warning
-    HashMap<List<Long>,ObservedCompactionInfo> copy = new HashMap<List<Long>,ObservedCompactionInfo>(observedCompactions);
+    HashMap<List<Long>,ObservedCompactionInfo> copy = new HashMap<>(observedCompactions);
     copy.keySet().removeAll(newKeys);
 
     for (ObservedCompactionInfo oci : copy.values()) {

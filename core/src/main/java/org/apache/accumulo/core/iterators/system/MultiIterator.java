@@ -50,7 +50,7 @@ public class MultiIterator extends HeapIterator {
 
   private MultiIterator(MultiIterator other, IteratorEnvironment env) {
     super(other.iters.size());
-    this.iters = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+    this.iters = new ArrayList<>();
     this.fence = other.fence;
     for (SortedKeyValueIterator<Key,Value> iter : other.iters) {
       iters.add(iter.deepCopy(env));

@@ -57,7 +57,7 @@ public class LogicalTimeTest {
 
   @Test
   public void testSetUpdateTimes() {
-    List<Mutation> ms = new java.util.ArrayList<Mutation>();
+    List<Mutation> ms = new java.util.ArrayList<>();
     ServerMutation m = createMock(ServerMutation.class);
     ServerMutation m2 = createMock(ServerMutation.class);
     m.setSystemTimestamp(1235L);
@@ -74,7 +74,7 @@ public class LogicalTimeTest {
 
   @Test
   public void testSetUpdateTimes_NoMutations() {
-    List<Mutation> ms = new java.util.ArrayList<Mutation>();
+    List<Mutation> ms = new java.util.ArrayList<>();
     assertEquals(TIME, ltime.setUpdateTimes(ms));
   }
 

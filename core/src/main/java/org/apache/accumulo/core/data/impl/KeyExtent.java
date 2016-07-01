@@ -309,7 +309,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       startRow = new Text();
     if (endRow == null)
       endRow = new Text();
-    Collection<KeyExtent> keys = new ArrayList<KeyExtent>();
+    Collection<KeyExtent> keys = new ArrayList<>();
     for (KeyExtent ckes : kes) {
       if (ckes.getPrevEndRow() == null) {
         if (ckes.getEndRow() == null) {
@@ -611,7 +611,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
       if (ke.getPrevEndRow() == tabletKe.getPrevEndRow() || ke.getPrevEndRow() != null && tabletKe.getPrevEndRow() != null
           && tabletKe.getPrevEndRow().compareTo(ke.getPrevEndRow()) == 0) {
-        children = new TreeSet<KeyExtent>();
+        children = new TreeSet<>();
       }
 
       if (children != null) {
@@ -624,7 +624,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       }
     }
 
-    return new TreeSet<KeyExtent>();
+    return new TreeSet<>();
   }
 
   public static KeyExtent findContainingExtent(KeyExtent extent, SortedSet<KeyExtent> extents) {
@@ -690,7 +690,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       start = extents.tailSet(lookupKey);
     }
 
-    TreeSet<KeyExtent> result = new TreeSet<KeyExtent>();
+    TreeSet<KeyExtent> result = new TreeSet<>();
     for (KeyExtent ke : start) {
       if (startsAfter(nke, ke)) {
         break;
@@ -701,7 +701,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public boolean overlaps(KeyExtent other) {
-    SortedSet<KeyExtent> set = new TreeSet<KeyExtent>();
+    SortedSet<KeyExtent> set = new TreeSet<>();
     set.add(other);
     return !findOverlapping(this, set).isEmpty();
   }
@@ -722,7 +722,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       start = extents.tailMap(lookupKey);
     }
 
-    TreeSet<KeyExtent> result = new TreeSet<KeyExtent>();
+    TreeSet<KeyExtent> result = new TreeSet<>();
     for (Entry<KeyExtent,?> entry : start.entrySet()) {
       KeyExtent ke = entry.getKey();
       if (startsAfter(nke, ke)) {

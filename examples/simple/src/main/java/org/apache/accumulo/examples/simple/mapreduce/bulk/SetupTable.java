@@ -30,7 +30,7 @@ public class SetupTable {
 
   static class Opts extends ClientOnRequiredTable {
     @Parameter(description = "<split> { <split> ... } ")
-    List<String> splits = new ArrayList<String>();
+    List<String> splits = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {
@@ -40,7 +40,7 @@ public class SetupTable {
     conn.tableOperations().create(opts.getTableName());
     if (!opts.splits.isEmpty()) {
       // create a table with initial partitions
-      TreeSet<Text> intialPartitions = new TreeSet<Text>();
+      TreeSet<Text> intialPartitions = new TreeSet<>();
       for (String split : opts.splits) {
         intialPartitions.add(new Text(split));
       }

@@ -206,12 +206,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   protected ConsoleReader reader;
   private AuthenticationToken token;
   private final Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
-  public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
-  public Map<String,List<IteratorSetting>> iteratorProfiles = new HashMap<String,List<IteratorSetting>>();
+  public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<>();
+  public Map<String,List<IteratorSetting>> iteratorProfiles = new HashMap<>();
 
   private Token rootToken;
-  public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
-  public final Map<String,Command[]> commandGrouping = new TreeMap<String,Command[]>();
+  public final Map<String,Command> commandFactory = new TreeMap<>();
+  public final Map<String,Command[]> commandGrouping = new TreeMap<>();
 
   // exit if true
   private boolean exit = false;
@@ -875,15 +875,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       namespaces = Collections.emptySet();
     }
 
-    Map<Command.CompletionSet,Set<String>> options = new HashMap<Command.CompletionSet,Set<String>>();
+    Map<Command.CompletionSet,Set<String>> options = new HashMap<>();
 
-    Set<String> commands = new HashSet<String>();
+    Set<String> commands = new HashSet<>();
     for (String a : commandFactory.keySet())
       commands.add(a);
 
-    Set<String> modifiedUserlist = new HashSet<String>();
-    Set<String> modifiedTablenames = new HashSet<String>();
-    Set<String> modifiedNamespaces = new HashSet<String>();
+    Set<String> modifiedUserlist = new HashSet<>();
+    Set<String> modifiedTablenames = new HashSet<>();
+    Set<String> modifiedNamespaces = new HashSet<>();
 
     for (String a : tableNames)
       modifiedTablenames.add(a.replaceAll("([\\s'\"])", "\\\\$1"));
@@ -1026,7 +1026,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     @Override
     public void close() {}
-  };
+  }
 
   public static class PrintFile implements PrintLine {
     PrintWriter writer;
@@ -1044,7 +1044,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     public void close() {
       writer.close();
     }
-  };
+  }
 
   public final void printLines(Iterator<String> lines, boolean paginate) throws IOException {
     printLines(lines, paginate, null);

@@ -38,7 +38,7 @@ public class QuotedStringTokenizer implements Iterable<String> {
   private String input;
 
   public QuotedStringTokenizer(final String t) throws BadArgumentException {
-    tokens = new ArrayList<String>();
+    tokens = new ArrayList<>();
     this.input = t;
     try {
       createTokens();

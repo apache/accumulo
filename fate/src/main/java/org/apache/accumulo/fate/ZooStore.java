@@ -97,8 +97,8 @@ public class ZooStore<T> implements TStore<T> {
 
     this.path = path;
     this.zk = zk;
-    this.reserved = new HashSet<Long>();
-    this.defered = new HashMap<Long,Long>();
+    this.reserved = new HashSet<>();
+    this.defered = new HashMap<>();
     this.idgenerator = new SecureRandom();
 
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
@@ -130,7 +130,7 @@ public class ZooStore<T> implements TStore<T> {
           events = statusChangeEvents;
         }
 
-        List<String> txdirs = new ArrayList<String>(zk.getChildren(path));
+        List<String> txdirs = new ArrayList<>(zk.getChildren(path));
         Collections.sort(txdirs);
 
         synchronized (this) {
@@ -287,7 +287,7 @@ public class ZooStore<T> implements TStore<T> {
   private String findTop(String txpath) throws KeeperException, InterruptedException {
     List<String> ops = zk.getChildren(txpath);
 
-    ops = new ArrayList<String>(ops);
+    ops = new ArrayList<>(ops);
 
     String max = "";
 
@@ -448,7 +448,7 @@ public class ZooStore<T> implements TStore<T> {
   @Override
   public List<Long> list() {
     try {
-      ArrayList<Long> l = new ArrayList<Long>();
+      ArrayList<Long> l = new ArrayList<>();
       List<String> transactions = zk.getChildren(path);
       for (String txid : transactions) {
         l.add(parseTid(txid));
@@ -473,7 +473,7 @@ public class ZooStore<T> implements TStore<T> {
         throw new RuntimeException(e1);
       }
 
-      ops = new ArrayList<String>(ops);
+      ops = new ArrayList<>(ops);
       Collections.sort(ops, Collections.reverseOrder());
 
       ArrayList<ReadOnlyRepo<T>> dops = new ArrayList<>();

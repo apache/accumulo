@@ -59,7 +59,7 @@ public class CacheTestWriter {
 
     zk.putPersistentData(rootDir + "/dir", new byte[0], NodeExistsPolicy.FAIL);
 
-    ArrayList<String> children = new ArrayList<String>();
+    ArrayList<String> children = new ArrayList<>();
 
     Random r = new Random();
 
@@ -69,7 +69,7 @@ public class CacheTestWriter {
       // change children in dir
 
       for (int u = 0; u < r.nextInt(4) + 1; u++) {
-        expectedData = new TreeMap<String,String>();
+        expectedData = new TreeMap<>();
 
         if (r.nextFloat() < .5) {
           String child = UUID.randomUUID().toString();

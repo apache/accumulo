@@ -78,7 +78,7 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
   public static void setupClass() {
     System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
 
-    data = new ArrayList<Entry<Key,Value>>();
+    data = new ArrayList<>();
     ChunkInputStreamIT.addData(data, "a", "refs", "ida\0ext", "A&B", "ext");
     ChunkInputStreamIT.addData(data, "a", "refs", "ida\0name", "A&B", "name");
     ChunkInputStreamIT.addData(data, "a", "~chunk", 100, 0, "A&B", "asdfjkl;");
@@ -90,7 +90,7 @@ public class ChunkInputFormatIT extends AccumuloClusterHarness {
     ChunkInputStreamIT.addData(data, "b", "~chunk", 100, 1, "A&B", "");
     ChunkInputStreamIT.addData(data, "b", "~chunk", 100, 1, "B&C", "");
     ChunkInputStreamIT.addData(data, "b", "~chunk", 100, 1, "D", "");
-    baddata = new ArrayList<Entry<Key,Value>>();
+    baddata = new ArrayList<>();
     ChunkInputStreamIT.addData(baddata, "c", "refs", "ida\0ext", "A&B", "ext");
     ChunkInputStreamIT.addData(baddata, "c", "refs", "ida\0name", "A&B", "name");
   }

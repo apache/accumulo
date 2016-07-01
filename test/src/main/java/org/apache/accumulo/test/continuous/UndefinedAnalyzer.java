@@ -68,7 +68,7 @@ public class UndefinedAnalyzer {
 
   static class IngestInfo {
 
-    Map<String,TreeMap<Long,Long>> flushes = new HashMap<String,TreeMap<Long,Long>>();
+    Map<String,TreeMap<Long,Long>> flushes = new HashMap<>();
 
     public IngestInfo(String logDir) throws Exception {
       File dir = new File(logDir);
@@ -103,7 +103,7 @@ public class UndefinedAnalyzer {
             return;
           }
 
-          tm = new TreeMap<Long,Long>(Collections.reverseOrder());
+          tm = new TreeMap<>(Collections.reverseOrder());
           tm.put(0l, Long.parseLong(time));
           flushes.put(uuid, tm);
           break;
@@ -162,7 +162,7 @@ public class UndefinedAnalyzer {
 
   static class TabletHistory {
 
-    List<TabletAssignment> assignments = new ArrayList<TabletAssignment>();
+    List<TabletAssignment> assignments = new ArrayList<>();
 
     TabletHistory(String tableId, String acuLogDir) throws Exception {
       File dir = new File(acuLogDir);
@@ -263,7 +263,7 @@ public class UndefinedAnalyzer {
     BatchScannerOpts bsOpts = new BatchScannerOpts();
     opts.parseArgs(UndefinedAnalyzer.class.getName(), args, bsOpts);
 
-    List<UndefinedNode> undefs = new ArrayList<UndefinedNode>();
+    List<UndefinedNode> undefs = new ArrayList<>();
 
     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, UTF_8));
     String line;
@@ -278,20 +278,20 @@ public class UndefinedAnalyzer {
     Connector conn = opts.getConnector();
     BatchScanner bscanner = conn.createBatchScanner(opts.getTableName(), opts.auths, bsOpts.scanThreads);
     bscanner.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
-    List<Range> refs = new ArrayList<Range>();
+    List<Range> refs = new ArrayList<>();
 
     for (UndefinedNode undefinedNode : undefs)
       refs.add(new Range(new Text(undefinedNode.ref)));
 
     bscanner.setRanges(refs);
 
-    HashMap<String,List<String>> refInfo = new HashMap<String,List<String>>();
+    HashMap<String,List<String>> refInfo = new HashMap<>();
 
     for (Entry<Key,Value> entry : bscanner) {
       String ref = entry.getKey().getRow().toString();
       List<String> vals = refInfo.get(ref);
       if (vals == null) {
-        vals = new ArrayList<String>();
+        vals = new ArrayList<>();
         refInfo.put(ref, vals);
       }
 

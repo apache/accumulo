@@ -34,7 +34,7 @@ import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Preconditions;
 
-class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOptions, RFile.ScannerOptions {
+class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOptions {
 
   static class InputArgs extends FSConfArgs {
     private Path[] paths;

@@ -50,7 +50,7 @@ public class KeyUtil {
    * @return an array of strings
    */
   public static String[] splitNullSepText(Text t) {
-    ArrayList<String> s = new ArrayList<String>();
+    ArrayList<String> s = new ArrayList<>();
     byte[] b = t.getBytes();
     int lastindex = 0;
     for (int i = 0; i < t.getLength(); i++) {

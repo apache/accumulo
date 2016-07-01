@@ -37,7 +37,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   static enum LockType {
     READ, WRITE,
-  };
+  }
 
   // serializer for lock type and user data
   static class ParsedLock {

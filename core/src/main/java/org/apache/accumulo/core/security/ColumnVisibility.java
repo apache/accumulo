@@ -123,7 +123,7 @@ public class ColumnVisibility {
 
     public void add(Node child) {
       if (children == EMPTY)
-        children = new ArrayList<Node>();
+        children = new ArrayList<>();
 
       children.add(child);
     }
@@ -220,7 +220,7 @@ public class ColumnVisibility {
   // @formatter:on
   public static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
     if (root.type != NodeType.TERM) {
-      TreeSet<Node> rolledUp = new TreeSet<Node>(comparator);
+      TreeSet<Node> rolledUp = new TreeSet<>(comparator);
       java.util.Iterator<Node> itr = root.children.iterator();
       while (itr.hasNext()) {
         Node c = normalize(itr.next(), expression, comparator);

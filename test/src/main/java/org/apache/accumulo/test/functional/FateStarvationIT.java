@@ -64,7 +64,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
 
     c.tableOperations().flush(tableName, null, null, true);
 
-    List<Text> splits = new ArrayList<Text>(TestIngest.getSplitPoints(0, 100000, 67));
+    List<Text> splits = new ArrayList<>(TestIngest.getSplitPoints(0, 100000, 67));
     Random rand = new Random();
 
     for (int i = 0; i < 100; i++) {

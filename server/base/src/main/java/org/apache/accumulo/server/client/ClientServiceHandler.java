@@ -262,7 +262,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     security.authenticateUser(credentials, credentials);
     conf.invalidateCache();
 
-    Map<String,String> result = new HashMap<String,String>();
+    Map<String,String> result = new HashMap<>();
     for (Entry<String,String> entry : conf) {
       String key = entry.getKey();
       if (!Property.isSensitive(key))
@@ -421,7 +421,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials) throws ThriftTableOperationException, ThriftSecurityException, TException {
     try {
-      HashSet<String> tableIds = new HashSet<String>();
+      HashSet<String> tableIds = new HashSet<>();
 
       for (String table : tables) {
         // ensure that table table exists
@@ -435,9 +435,9 @@ public class ClientServiceHandler implements ClientService.Iface {
       // use the same set of tableIds that were validated above to avoid race conditions
       Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(context.getServerConfigurationFactory().getConfiguration(), tableIds, fs,
           context.getConnector());
-      List<TDiskUsage> retUsages = new ArrayList<TDiskUsage>();
+      List<TDiskUsage> retUsages = new ArrayList<>();
       for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
-        retUsages.add(new TDiskUsage(new ArrayList<String>(usageItem.getKey()), usageItem.getValue()));
+        retUsages.add(new TDiskUsage(new ArrayList<>(usageItem.getKey()), usageItem.getValue()));
       }
       return retUsages;
 

@@ -57,10 +57,10 @@ public interface OptionDescriber {
       this.name = name;
       this.namedOptions = null;
       if (namedOptions != null)
-        this.namedOptions = new LinkedHashMap<String,String>(namedOptions);
+        this.namedOptions = new LinkedHashMap<>(namedOptions);
       this.unnamedOptionDescriptions = null;
       if (unnamedOptionDescriptions != null)
-        this.unnamedOptionDescriptions = new ArrayList<String>(unnamedOptionDescriptions);
+        this.unnamedOptionDescriptions = new ArrayList<>(unnamedOptionDescriptions);
       this.description = description;
     }
 
@@ -81,11 +81,11 @@ public interface OptionDescriber {
     }
 
     public void setNamedOptions(Map<String,String> namedOptions) {
-      this.namedOptions = new LinkedHashMap<String,String>(namedOptions);
+      this.namedOptions = new LinkedHashMap<>(namedOptions);
     }
 
     public void setUnnamedOptionDescriptions(List<String> unnamedOptionDescriptions) {
-      this.unnamedOptionDescriptions = new ArrayList<String>(unnamedOptionDescriptions);
+      this.unnamedOptionDescriptions = new ArrayList<>(unnamedOptionDescriptions);
     }
 
     public void setName(String name) {
@@ -98,13 +98,13 @@ public interface OptionDescriber {
 
     public void addNamedOption(String name, String description) {
       if (namedOptions == null)
-        namedOptions = new LinkedHashMap<String,String>();
+        namedOptions = new LinkedHashMap<>();
       namedOptions.put(name, description);
     }
 
     public void addUnnamedOption(String description) {
       if (unnamedOptionDescriptions == null)
-        unnamedOptionDescriptions = new ArrayList<String>();
+        unnamedOptionDescriptions = new ArrayList<>();
       unnamedOptionDescriptions.add(description);
     }
   }

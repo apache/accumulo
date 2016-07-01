@@ -99,7 +99,7 @@ public class ClientContextTest {
     clientConf.addProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
-    Map<String,String> props = new HashMap<String,String>();
+    Map<String,String> props = new HashMap<>();
     Predicate<String> all = Predicates.alwaysTrue();
     accClientConf.getProperties(props, all);
 

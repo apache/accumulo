@@ -83,10 +83,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     BatchWriter bw = writeData(table1, c);
 
-    Map<String,String> props = new HashMap<String,String>();
+    Map<String,String> props = new HashMap<>();
     props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
 
-    Set<String> exclude = new HashSet<String>();
+    Set<String> exclude = new HashSet<>();
     exclude.add(Property.TABLE_FILE_MAX.getKey());
 
     c.tableOperations().clone(table1, table2, true, props, exclude);
@@ -101,7 +101,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     checkMetadata(table2, c);
 
-    HashMap<String,String> tableProps = new HashMap<String,String>();
+    HashMap<String,String> tableProps = new HashMap<>();
     for (Entry<String,String> prop : c.tableOperations().getProperties(table2)) {
       tableProps.put(prop.getKey(), prop.getValue());
     }
@@ -118,13 +118,13 @@ public class CloneTestIT extends AccumuloClusterHarness {
   private void checkData(String table2, Connector c) throws TableNotFoundException {
     Scanner scanner = c.createScanner(table2, Authorizations.EMPTY);
 
-    HashMap<String,String> expected = new HashMap<String,String>();
+    HashMap<String,String> expected = new HashMap<>();
     expected.put("001:x", "9");
     expected.put("001:y", "7");
     expected.put("008:x", "3");
     expected.put("008:y", "4");
 
-    HashMap<String,String> actual = new HashMap<String,String>();
+    HashMap<String,String> actual = new HashMap<>();
 
     for (Entry<Key,Value> entry : scanner)
       actual.put(entry.getKey().getRowData().toString() + ":" + entry.getKey().getColumnQualifierData().toString(), entry.getValue().toString());
@@ -229,10 +229,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     BatchWriter bw = writeData(table1, c);
 
-    Map<String,String> props = new HashMap<String,String>();
+    Map<String,String> props = new HashMap<>();
     props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
 
-    Set<String> exclude = new HashSet<String>();
+    Set<String> exclude = new HashSet<>();
     exclude.add(Property.TABLE_FILE_MAX.getKey());
 
     c.tableOperations().clone(table1, table2, true, props, exclude);
@@ -260,8 +260,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
   public void testCloneWithSplits() throws Exception {
     Connector conn = getConnector();
 
-    List<Mutation> mutations = new ArrayList<Mutation>();
-    TreeSet<Text> splits = new TreeSet<Text>();
+    List<Mutation> mutations = new ArrayList<>();
+    TreeSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 10; i++) {
       splits.add(new Text(Integer.toString(i)));
       Mutation m = new Mutation(Integer.toString(i));
@@ -284,7 +284,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     conn.tableOperations().deleteRows(tables[1], new Text("4"), new Text("8"));
 
     List<String> rows = Arrays.asList("0", "1", "2", "3", "4", "9");
-    List<String> actualRows = new ArrayList<String>();
+    List<String> actualRows = new ArrayList<>();
     for (Entry<Key,Value> entry : conn.createScanner(tables[1], Authorizations.EMPTY)) {
       actualRows.add(entry.getKey().getRow().toString());
     }

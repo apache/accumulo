@@ -67,7 +67,7 @@ public class MerkleTree {
 
       // At the same level
       if (left.getLevel() == right.getLevel()) {
-        return new Pair<Integer,Integer>(i, j);
+        return new Pair<>(i, j);
       }
 
       // Peek to see if we have another element
@@ -77,14 +77,14 @@ public class MerkleTree {
         j++;
       } else {
         // Otherwise, the last two elements must be paired
-        return new Pair<Integer,Integer>(i, j);
+        return new Pair<>(i, j);
       }
     }
 
     if (2 < nodes.size()) {
       throw new IllegalStateException("Should not have exited loop without pairing two elements when we have at least 3 nodes");
     } else if (2 == nodes.size()) {
-      return new Pair<Integer,Integer>(0, 1);
+      return new Pair<>(0, 1);
     } else {
       throw new IllegalStateException("Must have at least two nodes to pair");
     }

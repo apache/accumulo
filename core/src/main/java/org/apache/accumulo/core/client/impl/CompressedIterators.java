@@ -32,13 +32,13 @@ public class CompressedIterators {
   private List<String> symbolTable;
 
   public static class IterConfig {
-    public List<IterInfo> ssiList = new ArrayList<IterInfo>();
-    public Map<String,Map<String,String>> ssio = new HashMap<String,Map<String,String>>();
+    public List<IterInfo> ssiList = new ArrayList<>();
+    public Map<String,Map<String,String>> ssio = new HashMap<>();
   }
 
   public CompressedIterators() {
-    symbolMap = new HashMap<String,Integer>();
-    symbolTable = new ArrayList<String>();
+    symbolMap = new HashMap<>();
+    symbolTable = new ArrayList<>();
   }
 
   public CompressedIterators(List<String> symbols) {
@@ -96,7 +96,7 @@ public class CompressedIterators {
 
       int numOpts = in.readVInt();
 
-      HashMap<String,String> opts = new HashMap<String,String>();
+      HashMap<String,String> opts = new HashMap<>();
 
       for (int j = 0; j < numOpts; j++) {
         String key = symbolTable.get(in.readVInt());

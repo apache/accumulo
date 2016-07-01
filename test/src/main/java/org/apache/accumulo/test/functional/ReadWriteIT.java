@@ -399,7 +399,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     final Connector connector = getConnector();
     final String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
-    Map<String,Set<Text>> groups = new TreeMap<String,Set<Text>>();
+    Map<String,Set<Text>> groups = new TreeMap<>();
     groups.put("g1", Collections.singleton(t("colf")));
     connector.tableOperations().setLocalityGroups(tableName, groups);
     ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
@@ -473,11 +473,11 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   }
 
   private Map<String,Set<Text>> getGroups(String cfg) {
-    Map<String,Set<Text>> groups = new TreeMap<String,Set<Text>>();
+    Map<String,Set<Text>> groups = new TreeMap<>();
     if (cfg != null) {
       for (String group : cfg.split(";")) {
         String[] parts = group.split(":");
-        Set<Text> cols = new HashSet<Text>();
+        Set<Text> cols = new HashSet<>();
         for (String col : parts[1].split(",")) {
           cols.add(t(col));
         }

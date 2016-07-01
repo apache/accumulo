@@ -37,7 +37,7 @@ public class AssignmentWatcherTest {
 
   @Before
   public void setup() {
-    assignments = new HashMap<KeyExtent,RunnableStartedAt>();
+    assignments = new HashMap<>();
     timer = EasyMock.createMock(SimpleTimer.class);
     conf = EasyMock.createMock(AccumuloConfiguration.class);
     watcher = new AssignmentWatcher(conf, assignments, timer);

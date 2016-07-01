@@ -34,6 +34,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Key;
@@ -41,11 +42,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
+import org.junit.Before;
+import org.junit.Test;
 
 import jline.UnsupportedTerminal;
 import jline.console.ConsoleReader;
-import org.junit.Before;
-import org.junit.Test;
 
 public class DeleterFormatterTest {
   DeleterFormatter formatter;
@@ -70,7 +71,7 @@ public class DeleterFormatterTest {
     public void set(String in) {
       bais = new ByteArrayInputStream(in.getBytes(UTF_8));
     }
-  };
+  }
 
   @Before
   public void setUp() throws IOException, MutationsRejectedException {
@@ -93,7 +94,7 @@ public class DeleterFormatterTest {
 
     replay(writer, exceptionWriter, shellState);
 
-    data = new TreeMap<Key,Value>();
+    data = new TreeMap<>();
     data.put(new Key("r", "cf", "cq"), new Value("value".getBytes(UTF_8)));
   }
 

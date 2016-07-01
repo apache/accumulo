@@ -34,8 +34,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class FirstEntryInRowTest {
-  private static final Map<String,String> EMPTY_MAP = new HashMap<String,String>();
-  private static final Collection<ByteSequence> EMPTY_SET = new HashSet<ByteSequence>();
+  private static final Map<String,String> EMPTY_MAP = new HashMap<>();
+  private static final Collection<ByteSequence> EMPTY_SET = new HashSet<>();
 
   private Key nk(String row, String cf, String cq, long time) {
     return new Key(new Text(row), new Text(cf), new Text(cq), time);
@@ -73,7 +73,7 @@ public class FirstEntryInRowTest {
 
   @Test
   public void test1() throws Exception {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq3", 5, "v2");
     put(tm1, "r2", "cf1", "cq1", 5, "v3");
@@ -94,7 +94,7 @@ public class FirstEntryInRowTest {
 
   @Test
   public void test2() throws Exception {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     for (int r = 0; r < 5; r++) {
       for (int cf = r; cf < 100; cf++) {

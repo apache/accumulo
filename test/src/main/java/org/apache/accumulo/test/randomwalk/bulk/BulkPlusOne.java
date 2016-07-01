@@ -45,7 +45,7 @@ public class BulkPlusOne extends BulkImportTest {
   public static final int COLS = 10;
   public static final int HEX_SIZE = (int) Math.ceil(Math.log(LOTS) / Math.log(16));
   public static final String FMT = "r%0" + HEX_SIZE + "x";
-  public static final List<Column> COLNAMES = new ArrayList<Column>();
+  public static final List<Column> COLNAMES = new ArrayList<>();
   public static final Text CHECK_COLUMN_FAMILY = new Text("cf");
   static {
     for (int i = 0; i < COLS; i++) {
@@ -66,19 +66,19 @@ public class BulkPlusOne extends BulkImportTest {
     fs.mkdirs(fail);
     final int parts = rand.nextInt(10) + 1;
 
-    TreeSet<Integer> startRows = new TreeSet<Integer>();
+    TreeSet<Integer> startRows = new TreeSet<>();
     startRows.add(0);
     while (startRows.size() < parts)
       startRows.add(rand.nextInt(LOTS));
 
-    List<String> printRows = new ArrayList<String>(startRows.size());
+    List<String> printRows = new ArrayList<>(startRows.size());
     for (Integer row : startRows)
       printRows.add(String.format(FMT, row));
 
     String markerColumnQualifier = String.format("%07d", counter.incrementAndGet());
     log.debug("preparing bulk files with start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
 
-    List<Integer> rows = new ArrayList<Integer>(startRows);
+    List<Integer> rows = new ArrayList<>(startRows);
     rows.add(LOTS);
 
     for (int i = 0; i < parts; i++) {

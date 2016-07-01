@@ -84,7 +84,7 @@ class MockTableOperations extends TableOperationsHelper {
 
   @Override
   public SortedSet<String> list() {
-    return new TreeSet<String>(acu.tables.keySet());
+    return new TreeSet<>(acu.tables.keySet());
   }
 
   @Override
@@ -209,7 +209,7 @@ class MockTableOperations extends TableOperationsHelper {
       throw new TableNotFoundException(null, tableName, null);
     }
 
-    Set<Entry<String,String>> props = new HashSet<Entry<String,String>>(acu.namespaces.get(namespace).settings.entrySet());
+    Set<Entry<String,String>> props = new HashSet<>(acu.namespaces.get(namespace).settings.entrySet());
 
     Set<Entry<String,String>> tableProps = acu.tables.get(tableName).settings.entrySet();
     for (Entry<String,String> e : tableProps) {
@@ -359,7 +359,7 @@ class MockTableOperations extends TableOperationsHelper {
 
   @Override
   public Map<String,String> tableIdMap() {
-    Map<String,String> result = new HashMap<String,String>();
+    Map<String,String> result = new HashMap<>();
     for (Entry<String,MockTable> entry : acu.tables.entrySet()) {
       String table = entry.getKey();
       if (RootTable.NAME.equals(table))
@@ -375,8 +375,8 @@ class MockTableOperations extends TableOperationsHelper {
   @Override
   public List<DiskUsage> getDiskUsage(Set<String> tables) throws AccumuloException, AccumuloSecurityException {
 
-    List<DiskUsage> diskUsages = new ArrayList<DiskUsage>();
-    diskUsages.add(new DiskUsage(new TreeSet<String>(tables), 0l));
+    List<DiskUsage> diskUsages = new ArrayList<>();
+    diskUsages.add(new DiskUsage(new TreeSet<>(tables), 0l));
 
     return diskUsages;
   }
@@ -401,7 +401,7 @@ class MockTableOperations extends TableOperationsHelper {
     Text endText = end != null ? new Text(end) : new Text(t.table.lastKey().getRow().getBytes());
     startText.append(ZERO, 0, 1);
     endText.append(ZERO, 0, 1);
-    Set<Key> keep = new TreeSet<Key>(t.table.subMap(new Key(startText), new Key(endText)).keySet());
+    Set<Key> keep = new TreeSet<>(t.table.subMap(new Key(startText), new Key(endText)).keySet());
     t.table.keySet().removeAll(keep);
   }
 

@@ -74,7 +74,7 @@ public class FileSystemMonitorTest {
     List<Mount> mounts = FileSystemMonitor.getMountsFromFile(reader);
     log.info("Filtered mount points: " + mounts);
     assertEquals(2, mounts.size());
-    Set<String> expectedCheckedMountPoints = new HashSet<String>();
+    Set<String> expectedCheckedMountPoints = new HashSet<>();
     expectedCheckedMountPoints.add("/");
     expectedCheckedMountPoints.add("/grid/0");
     for (Mount mount : mounts) {

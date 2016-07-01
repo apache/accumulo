@@ -58,7 +58,7 @@ public class TableLoadBalancerTest {
 
   static private TabletServerStatus status(Object... config) {
     TabletServerStatus result = new TabletServerStatus();
-    result.tableMap = new HashMap<String,TableInfo>();
+    result.tableMap = new HashMap<>();
     String tablename = null;
     for (Object c : config) {
       if (c instanceof String) {
@@ -77,7 +77,7 @@ public class TableLoadBalancerTest {
   static SortedMap<TServerInstance,TabletServerStatus> state;
 
   static List<TabletStats> generateFakeTablets(TServerInstance tserver, String tableId) {
-    List<TabletStats> result = new ArrayList<TabletStats>();
+    List<TabletStats> result = new ArrayList<>();
     TabletServerStatus tableInfo = state.get(tserver);
     // generate some fake tablets
     for (int i = 0; i < tableInfo.tableMap.get(tableId).onlineTablets; i++) {
@@ -155,12 +155,12 @@ public class TableLoadBalancerTest {
     };
 
     String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"), t3Id = TABLE_ID_MAP.get("t3");
-    state = new TreeMap<TServerInstance,TabletServerStatus>();
+    state = new TreeMap<>();
     TServerInstance svr = mkts("10.0.0.1", "0x01020304");
     state.put(svr, status(t1Id, 10, t2Id, 10, t3Id, 10));
 
     Set<KeyExtent> migrations = Collections.emptySet();
-    List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+    List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
     tls.init(confFactory);
     tls.balance(state, migrations, migrationsOut);
@@ -171,7 +171,7 @@ public class TableLoadBalancerTest {
     tls.init(confFactory);
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
-    Map<String,Integer> movedByTable = new HashMap<String,Integer>();
+    Map<String,Integer> movedByTable = new HashMap<>();
     movedByTable.put(t1Id, Integer.valueOf(0));
     movedByTable.put(t2Id, Integer.valueOf(0));
     movedByTable.put(t3Id, Integer.valueOf(0));

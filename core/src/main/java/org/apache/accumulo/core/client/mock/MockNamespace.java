@@ -34,10 +34,10 @@ import org.apache.accumulo.core.security.NamespacePermission;
 public class MockNamespace {
 
   final HashMap<String,String> settings;
-  Map<String,EnumSet<NamespacePermission>> userPermissions = new HashMap<String,EnumSet<NamespacePermission>>();
+  Map<String,EnumSet<NamespacePermission>> userPermissions = new HashMap<>();
 
   public MockNamespace() {
-    settings = new HashMap<String,String>();
+    settings = new HashMap<>();
     for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
       String key = entry.getKey();
       if (key.startsWith(Property.TABLE_PREFIX.getKey())) {
@@ -47,7 +47,7 @@ public class MockNamespace {
   }
 
   public List<String> getTables(MockAccumulo acu) {
-    List<String> l = new LinkedList<String>();
+    List<String> l = new LinkedList<>();
     for (String t : acu.tables.keySet()) {
       if (acu.tables.get(t).getNamespace().equals(this)) {
         l.add(t);

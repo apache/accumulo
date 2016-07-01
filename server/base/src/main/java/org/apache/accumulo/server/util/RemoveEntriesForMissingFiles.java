@@ -124,7 +124,7 @@ public class RemoveEntriesForMissingFiles {
 
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
-    Set<Path> processing = new HashSet<Path>();
+    Set<Path> processing = new HashSet<>();
     ExecutorService threadPool = Executors.newFixedThreadPool(16);
 
     System.out.printf("Scanning : %s %s\n", table, range);
@@ -136,7 +136,7 @@ public class RemoveEntriesForMissingFiles {
     metadata.fetchColumnFamily(DataFileColumnFamily.NAME);
     int count = 0;
     AtomicInteger missing = new AtomicInteger(0);
-    AtomicReference<Exception> exceptionRef = new AtomicReference<Exception>(null);
+    AtomicReference<Exception> exceptionRef = new AtomicReference<>(null);
     BatchWriter writer = null;
 
     if (fix)

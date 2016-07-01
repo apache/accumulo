@@ -52,7 +52,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
   @BeforeClass
   public static void createData() throws Exception {
-    splits = new TreeSet<Text>();
+    splits = new TreeSet<>();
 
     for (int i = 1; i < 256; i++) {
       splits.add(new Text(String.format("%08x", i << 8)));
@@ -110,7 +110,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
   @Test
   public void createTableAndBatchScan() throws Exception {
-    ArrayList<Range> ranges = new ArrayList<Range>();
+    ArrayList<Range> ranges = new ArrayList<>();
     for (int i = 1; i < 257; i++) {
       ranges.add(new Range(new Text(String.format("%08x", (i << 8) - 16))));
     }

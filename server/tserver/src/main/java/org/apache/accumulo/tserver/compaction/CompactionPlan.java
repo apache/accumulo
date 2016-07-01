@@ -31,8 +31,8 @@ import com.google.common.collect.Sets;
  * create the resulting output file.
  */
 public class CompactionPlan {
-  public final List<FileRef> inputFiles = new ArrayList<FileRef>();
-  public final List<FileRef> deleteFiles = new ArrayList<FileRef>();
+  public final List<FileRef> inputFiles = new ArrayList<>();
+  public final List<FileRef> deleteFiles = new ArrayList<>();
   public WriteParameters writeParameters = null;
 
   @Override
@@ -67,8 +67,8 @@ public class CompactionPlan {
    *           thrown when validation fails.
    */
   public final void validate(Set<FileRef> allFiles) {
-    Set<FileRef> inputSet = new HashSet<FileRef>(inputFiles);
-    Set<FileRef> deleteSet = new HashSet<FileRef>(deleteFiles);
+    Set<FileRef> inputSet = new HashSet<>(inputFiles);
+    Set<FileRef> deleteSet = new HashSet<>(deleteFiles);
 
     if (!allFiles.containsAll(inputSet)) {
       inputSet.removeAll(allFiles);

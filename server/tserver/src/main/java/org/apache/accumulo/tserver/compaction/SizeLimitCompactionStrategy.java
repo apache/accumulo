@@ -39,7 +39,7 @@ public class SizeLimitCompactionStrategy extends DefaultCompactionStrategy {
   }
 
   private MajorCompactionRequest filterFiles(MajorCompactionRequest mcr) {
-    Map<FileRef,DataFileValue> filteredFiles = new HashMap<FileRef,DataFileValue>();
+    Map<FileRef,DataFileValue> filteredFiles = new HashMap<>();
     for (Entry<FileRef,DataFileValue> entry : mcr.getFiles().entrySet()) {
       if (entry.getValue().getSize() <= limit) {
         filteredFiles.put(entry.getKey(), entry.getValue());

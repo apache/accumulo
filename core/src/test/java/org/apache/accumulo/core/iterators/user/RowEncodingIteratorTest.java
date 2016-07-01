@@ -62,9 +62,9 @@ public class RowEncodingIteratorTest {
     public static SortedMap<Key,Value> decodeRow(Key rowKey, Value rowValue) throws IOException {
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(rowValue.get()));
       int numKeys = dis.readInt();
-      List<Key> decodedKeys = new ArrayList<Key>();
-      List<Value> decodedValues = new ArrayList<Value>();
-      SortedMap<Key,Value> out = new TreeMap<Key,Value>();
+      List<Key> decodedKeys = new ArrayList<>();
+      List<Value> decodedValues = new ArrayList<>();
+      SortedMap<Key,Value> out = new TreeMap<>();
       for (int i = 0; i < numKeys; i++) {
         Key k = new Key();
         k.readFields(dis);
@@ -115,26 +115,26 @@ public class RowEncodingIteratorTest {
   public void testEncodeAll() throws IOException {
     byte[] kbVal = new byte[1024];
     // This code is shamelessly borrowed from the WholeRowIteratorTest.
-    SortedMap<Key,Value> map1 = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map1 = new TreeMap<>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, kbVal);
     pkv(map1, "row1", "cf1", "cq2", "cv1", 6, kbVal);
 
-    SortedMap<Key,Value> map2 = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map2 = new TreeMap<>();
     pkv(map2, "row2", "cf1", "cq1", "cv1", 5, kbVal);
     pkv(map2, "row2", "cf1", "cq2", "cv1", 6, kbVal);
 
-    SortedMap<Key,Value> map3 = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map3 = new TreeMap<>();
     pkv(map3, "row3", "cf1", "cq1", "cv1", 5, kbVal);
     pkv(map3, "row3", "cf1", "cq2", "cv1", 6, kbVal);
 
-    SortedMap<Key,Value> map = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map = new TreeMap<>();
     map.putAll(map1);
     map.putAll(map2);
     map.putAll(map3);
     SortedMapIterator src = new SortedMapIterator(map);
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
     RowEncodingIteratorImpl iter = new RowEncodingIteratorImpl();
-    Map<String,String> bigBufferOpts = new HashMap<String,String>();
+    Map<String,String> bigBufferOpts = new HashMap<>();
     bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "3K");
     iter.init(src, bigBufferOpts, new DummyIteratorEnv());
     iter.seek(range, new ArrayList<ByteSequence>(), false);
@@ -159,16 +159,16 @@ public class RowEncodingIteratorTest {
   public void testEncodeSome() throws IOException {
     byte[] kbVal = new byte[1024];
     // This code is shamelessly borrowed from the WholeRowIteratorTest.
-    SortedMap<Key,Value> map1 = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map1 = new TreeMap<>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, kbVal);
     pkv(map1, "row1", "cf1", "cq2", "cv1", 6, kbVal);
 
-    SortedMap<Key,Value> map = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map = new TreeMap<>();
     map.putAll(map1);
     SortedMapIterator src = new SortedMapIterator(map);
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
     RowEncodingIteratorImpl iter = new RowEncodingIteratorImpl();
-    Map<String,String> bigBufferOpts = new HashMap<String,String>();
+    Map<String,String> bigBufferOpts = new HashMap<>();
     bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "1K");
     iter.init(src, bigBufferOpts, new DummyIteratorEnv());
     iter.seek(range, new ArrayList<ByteSequence>(), false);

@@ -114,14 +114,14 @@ public class CompactionInfo {
       }
     }
 
-    List<IterInfo> iiList = new ArrayList<IterInfo>();
-    Map<String,Map<String,String>> iterOptions = new HashMap<String,Map<String,String>>();
+    List<IterInfo> iiList = new ArrayList<>();
+    Map<String,Map<String,String>> iterOptions = new HashMap<>();
 
     for (IteratorSetting iterSetting : compactor.getIterators()) {
       iiList.add(new IterInfo(iterSetting.getPriority(), iterSetting.getIteratorClass(), iterSetting.getName()));
       iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
     }
-    List<String> filesToCompact = new ArrayList<String>();
+    List<String> filesToCompact = new ArrayList<>();
     for (FileRef ref : compactor.getFilesToCompact())
       filesToCompact.add(ref.toString());
     return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.getStartTime(), filesToCompact, compactor.getOutputFile(),

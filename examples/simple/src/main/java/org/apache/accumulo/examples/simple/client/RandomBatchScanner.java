@@ -116,8 +116,8 @@ public class RandomBatchScanner {
    */
   static boolean doRandomQueries(int num, long min, long max, int evs, Random r, BatchScanner tsbr) {
 
-    HashSet<Range> ranges = new HashSet<Range>(num);
-    HashMap<Text,Boolean> expectedRows = new java.util.HashMap<Text,Boolean>();
+    HashSet<Range> ranges = new HashSet<>(num);
+    HashMap<Text,Boolean> expectedRows = new java.util.HashMap<>();
 
     generateRandomQueries(num, min, max, r, ranges, expectedRows);
 

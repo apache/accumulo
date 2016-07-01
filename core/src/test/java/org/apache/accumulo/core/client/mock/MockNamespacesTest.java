@@ -248,7 +248,7 @@ public class MockNamespacesTest {
     conn.tableOperations().create(tableName);
 
     IteratorSetting setting = new IteratorSetting(250, iter, SimpleFilter.class.getName());
-    HashSet<IteratorScope> scope = new HashSet<IteratorScope>();
+    HashSet<IteratorScope> scope = new HashSet<>();
     scope.add(IteratorScope.scan);
     conn.namespaceOperations().attachIterator(namespace, setting, EnumSet.copyOf(scope));
 

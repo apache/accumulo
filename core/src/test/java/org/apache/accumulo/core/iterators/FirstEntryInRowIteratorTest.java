@@ -51,12 +51,12 @@ public class FirstEntryInRowIteratorTest {
 
   @Test
   public void test() throws IOException {
-    TreeMap<Key,Value> sourceMap = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> sourceMap = new TreeMap<>();
     Value emptyValue = new Value("".getBytes());
     sourceMap.put(new Key("r1", "cf", "cq"), emptyValue);
     sourceMap.put(new Key("r2", "cf", "cq"), emptyValue);
     sourceMap.put(new Key("r3", "cf", "cq"), emptyValue);
-    TreeMap<Key,Value> resultMap = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> resultMap = new TreeMap<>();
     long numSourceEntries = sourceMap.size();
     long numNexts = process(sourceMap, resultMap, new Range(), 10);
     assertEquals(numNexts, numSourceEntries);

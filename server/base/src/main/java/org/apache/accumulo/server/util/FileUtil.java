@@ -109,7 +109,7 @@ public class FileUtil {
 
   public static Collection<String> reduceFiles(AccumuloConfiguration acuConf, Configuration conf, VolumeManager fs, Text prevEndRow, Text endRow,
       Collection<String> mapFiles, int maxFiles, Path tmpDir, int pass) throws IOException {
-    ArrayList<String> paths = new ArrayList<String>(mapFiles);
+    ArrayList<String> paths = new ArrayList<>(mapFiles);
 
     if (paths.size() <= maxFiles)
       return paths;
@@ -118,7 +118,7 @@ public class FileUtil {
 
     int start = 0;
 
-    ArrayList<String> outFiles = new ArrayList<String>();
+    ArrayList<String> outFiles = new ArrayList<>();
 
     int count = 0;
 
@@ -134,7 +134,7 @@ public class FileUtil {
       FileSystem ns = fs.getVolumeByPath(new Path(newMapFile)).getFileSystem();
       FileSKVWriter writer = new RFileOperations().newWriterBuilder().forFile(newMapFile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf).build();
       writer.startDefaultLocalityGroup();
-      List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(inFiles.size());
+      List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(inFiles.size());
 
       FileSKVIterator reader = null;
       try {
@@ -202,7 +202,7 @@ public class FileUtil {
     Path tmpDir = null;
 
     int maxToOpen = acuconf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
-    ArrayList<FileSKVIterator> readers = new ArrayList<FileSKVIterator>(mapFiles.size());
+    ArrayList<FileSKVIterator> readers = new ArrayList<>(mapFiles.size());
 
     try {
       if (mapFiles.size() > maxToOpen) {
@@ -275,7 +275,7 @@ public class FileUtil {
     Path tmpDir = null;
 
     int maxToOpen = acuConf.getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
-    ArrayList<FileSKVIterator> readers = new ArrayList<FileSKVIterator>(mapFiles.size());
+    ArrayList<FileSKVIterator> readers = new ArrayList<>(mapFiles.size());
 
     try {
       if (mapFiles.size() > maxToOpen) {
@@ -319,7 +319,7 @@ public class FileUtil {
         mmfi.next();
 
       // read half of the keys in the index
-      TreeMap<Double,Key> ret = new TreeMap<Double,Key>();
+      TreeMap<Double,Key> ret = new TreeMap<>();
       Key lastKey = null;
       long keysRead = 0;
 
@@ -436,7 +436,7 @@ public class FileUtil {
 
   public static Map<FileRef,FileInfo> tryToGetFirstAndLastRows(VolumeManager fs, AccumuloConfiguration acuConf, Set<FileRef> mapfiles) {
 
-    HashMap<FileRef,FileInfo> mapFilesInfo = new HashMap<FileRef,FileInfo>();
+    HashMap<FileRef,FileInfo> mapFilesInfo = new HashMap<>();
 
     long t1 = System.currentTimeMillis();
 
@@ -517,7 +517,7 @@ public class FileUtil {
       VolumeManager fs) throws IOException {
 
     long totalIndexEntries = 0;
-    Map<KeyExtent,MLong> counts = new TreeMap<KeyExtent,MLong>();
+    Map<KeyExtent,MLong> counts = new TreeMap<>();
     for (KeyExtent keyExtent : extents)
       counts.put(keyExtent, new MLong(0));
 
@@ -548,7 +548,7 @@ public class FileUtil {
       }
     }
 
-    Map<KeyExtent,Long> results = new TreeMap<KeyExtent,Long>();
+    Map<KeyExtent,Long> results = new TreeMap<>();
     for (KeyExtent keyExtent : extents) {
       double numEntries = counts.get(keyExtent).l;
       if (numEntries == 0)
@@ -560,7 +560,7 @@ public class FileUtil {
   }
 
   public static Collection<String> toPathStrings(Collection<FileRef> refs) {
-    ArrayList<String> ret = new ArrayList<String>();
+    ArrayList<String> ret = new ArrayList<>();
     for (FileRef fileRef : refs) {
       ret.add(fileRef.path().toString());
     }

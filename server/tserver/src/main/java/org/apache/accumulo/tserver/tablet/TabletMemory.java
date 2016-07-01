@@ -158,7 +158,7 @@ class TabletMemory implements Closeable {
   }
 
   public List<MemoryIterator> getIterators(SamplerConfigurationImpl samplerConfig) {
-    List<MemoryIterator> toReturn = new ArrayList<MemoryIterator>(2);
+    List<MemoryIterator> toReturn = new ArrayList<>(2);
     toReturn.add(memTable.skvIterator(samplerConfig));
     if (otherMemTable != null)
       toReturn.add(otherMemTable.skvIterator(samplerConfig));

@@ -416,7 +416,7 @@ public class InMemoryMapTest {
 
     imm.delete(0);
 
-    ArrayList<ByteSequence> columns = new ArrayList<ByteSequence>();
+    ArrayList<ByteSequence> columns = new ArrayList<>();
     columns.add(new ArrayByteSequence("bar"));
 
     // this seek resulted in an infinite loop before a bug was fixed
@@ -474,7 +474,7 @@ public class InMemoryMapTest {
   @Test
   @Ignore
   public void parallelWriteSpeed() throws Exception {
-    List<Double> timings = new ArrayList<Double>();
+    List<Double> timings = new ArrayList<>();
     for (int threads : new int[] {1, 2, 16, /* 64, 256 */}) {
       final long now = System.currentTimeMillis();
       final long counts[] = new long[threads];

@@ -40,7 +40,7 @@ public class Merge extends Test {
 
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    tableNames = new ArrayList<String>(tableNames);
+    tableNames = new ArrayList<>(tableNames);
     tableNames.add(MetadataTable.NAME);
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
 

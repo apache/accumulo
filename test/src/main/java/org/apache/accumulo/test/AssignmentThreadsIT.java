@@ -67,7 +67,7 @@ public class AssignmentThreadsIT extends ConfigurableMacBase {
     Connector c = getConnector();
     log.info("Creating table");
     c.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 1000; i++) {
       splits.add(new Text(randomHex(8)));
     }

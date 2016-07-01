@@ -51,7 +51,7 @@ public class LocalityGroupUtil {
   public static Set<ByteSequence> families(Collection<Column> columns) {
     if (columns.size() == 0)
       return EMPTY_CF_SET;
-    Set<ByteSequence> result = new HashSet<ByteSequence>(columns.size());
+    Set<ByteSequence> result = new HashSet<>(columns.size());
     for (Column col : columns) {
       result.add(new ArrayByteSequence(col.getColumnFamily()));
     }
@@ -66,13 +66,13 @@ public class LocalityGroupUtil {
   }
 
   public static Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuconf) throws LocalityGroupConfigurationError {
-    Map<String,Set<ByteSequence>> result = new HashMap<String,Set<ByteSequence>>();
+    Map<String,Set<ByteSequence>> result = new HashMap<>();
     String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
     for (String group : groups) {
       if (group.length() > 0)
         result.put(group, new HashSet<ByteSequence>());
     }
-    HashSet<ByteSequence> all = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> all = new HashSet<>();
     for (Entry<String,String> entry : acuconf) {
       String property = entry.getKey();
       String value = entry.getValue();
@@ -101,7 +101,7 @@ public class LocalityGroupUtil {
   }
 
   public static Set<ByteSequence> decodeColumnFamilies(String colFams) throws LocalityGroupConfigurationError {
-    HashSet<ByteSequence> colFamsSet = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> colFamsSet = new HashSet<>();
 
     for (String family : colFams.split(",")) {
       ByteSequence cfbs = decodeColumnFamily(family);
@@ -152,7 +152,7 @@ public class LocalityGroupUtil {
   }
 
   public static String encodeColumnFamilies(Set<Text> colFams) {
-    SortedSet<String> ecfs = new TreeSet<String>();
+    SortedSet<String> ecfs = new TreeSet<>();
 
     StringBuilder sb = new StringBuilder();
 
@@ -235,7 +235,7 @@ public class LocalityGroupUtil {
 
     public Partitioner(PreAllocatedArray<Map<ByteSequence,MutableLong>> groups) {
       this.groups = groups;
-      this.colfamToLgidMap = new HashMap<ByteSequence,Integer>();
+      this.colfamToLgidMap = new HashMap<>();
 
       for (int i = 0; i < groups.length; i++) {
         for (ByteSequence cf : groups.get(i).keySet()) {

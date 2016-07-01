@@ -48,14 +48,14 @@ public class AccumuloMultiTableInputFormatTest {
     JobConf job = new JobConf();
 
     InputTableConfig table1 = new InputTableConfig().setRanges(Collections.singletonList(new Range("a", "b")))
-        .fetchColumns(Collections.singleton(new Pair<Text,Text>(new Text("CF1"), new Text("CQ1"))))
+        .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
     InputTableConfig table2 = new InputTableConfig().setRanges(Collections.singletonList(new Range("a", "b")))
-        .fetchColumns(Collections.singleton(new Pair<Text,Text>(new Text("CF1"), new Text("CQ1"))))
+        .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
-    Map<String,InputTableConfig> configMap = new HashMap<String,InputTableConfig>();
+    Map<String,InputTableConfig> configMap = new HashMap<>();
     configMap.put(table1Name, table1);
     configMap.put(table2Name, table2);
     AccumuloMultiTableInputFormat.setInputTableConfigs(job, configMap);

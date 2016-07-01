@@ -62,7 +62,7 @@ public class CreateTableCommand extends Command {
       TableExistsException, TableNotFoundException, IOException, ClassNotFoundException {
 
     final String testTableName = cl.getArgs()[0];
-    final HashMap<String,String> props = new HashMap<String,String>();
+    final HashMap<String,String> props = new HashMap<>();
 
     if (!testTableName.matches(Tables.VALID_NAME_REGEX)) {
       shellState.getReader().println("Only letters, numbers and underscores are allowed for use in table names.");
@@ -73,7 +73,7 @@ public class CreateTableCommand extends Command {
     if (shellState.getConnector().tableOperations().exists(tableName)) {
       throw new TableExistsException(null, tableName, null);
     }
-    final SortedSet<Text> partitions = new TreeSet<Text>();
+    final SortedSet<Text> partitions = new TreeSet<>();
     final boolean decode = cl.hasOption(base64Opt.getOpt());
 
     if (cl.hasOption(createTableOptSplit.getOpt())) {

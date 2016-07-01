@@ -16,16 +16,15 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import java.io.IOException;
+import java.util.Map;
+
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
-import java.io.IOException;
-import java.util.Map;
 
 /**
  * Filters key/value pairs for a range of column families and a range of column qualifiers. Only keys which fall in both ranges will be passed by the filter.
@@ -34,7 +33,7 @@ import java.util.Map;
  *
  * @see org.apache.accumulo.core.iterators.user.CfCqSliceOpts for a description of this iterator's options.
  */
-public class CfCqSliceFilter extends Filter implements OptionDescriber {
+public class CfCqSliceFilter extends Filter {
 
   private CfCqSliceOpts cso;
 

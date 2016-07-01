@@ -174,7 +174,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   }
 
   private static Map<String,String> map(Iterable<Entry<String,String>> entries) {
-    Map<String,String> result = new HashMap<String,String>();
+    Map<String,String> result = new HashMap<>();
     for (Entry<String,String> entry : entries) {
       result.put(entry.getKey(), entry.getValue());
     }

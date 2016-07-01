@@ -33,7 +33,7 @@ class ActiveScanIterator implements Iterator<String> {
   private Iterator<String> scansIter;
 
   private void readNext() {
-    final List<String> scans = new ArrayList<String>();
+    final List<String> scans = new ArrayList<>();
 
     while (tsIter.hasNext()) {
 

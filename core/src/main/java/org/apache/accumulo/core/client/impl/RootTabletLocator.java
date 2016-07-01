@@ -61,7 +61,7 @@ public class RootTabletLocator extends TabletLocator {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
-      TabletServerMutations<T> tsm = new TabletServerMutations<T>(rootTabletLocation.tablet_session);
+      TabletServerMutations<T> tsm = new TabletServerMutations<>(rootTabletLocation.tablet_session);
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }

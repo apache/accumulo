@@ -56,7 +56,7 @@ public class NativeMapStressTest {
 
   private static void testLotsOfGetsAndScans() {
 
-    ArrayList<Thread> threads = new ArrayList<Thread>();
+    ArrayList<Thread> threads = new ArrayList<>();
 
     final int numThreads = 8;
     final int totalGets = 100000000;
@@ -182,7 +182,7 @@ public class NativeMapStressTest {
 
     System.out.println("insertsPerMapPerThread " + insertsPerMapPerThread);
 
-    ArrayList<Thread> threads = new ArrayList<Thread>();
+    ArrayList<Thread> threads = new ArrayList<>();
 
     for (int i = 0; i < numThreads; i++) {
       Runnable r = new Runnable() {
@@ -236,14 +236,14 @@ public class NativeMapStressTest {
   }
 
   private static void testLotsOfOverwrites() {
-    final Map<Integer,NativeMap> nativeMaps = new HashMap<Integer,NativeMap>();
+    final Map<Integer,NativeMap> nativeMaps = new HashMap<>();
 
     int numThreads = 8;
     final int insertsPerThread = (int) (100000000 / (double) numThreads);
     final int rowRange = 10000;
     final int numMaps = 50;
 
-    ArrayList<Thread> threads = new ArrayList<Thread>();
+    ArrayList<Thread> threads = new ArrayList<>();
 
     for (int i = 0; i < numThreads; i++) {
       Runnable r = new Runnable() {
