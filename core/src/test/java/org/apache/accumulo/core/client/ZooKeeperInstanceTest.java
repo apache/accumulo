@@ -139,7 +139,7 @@ public class ZooKeeperInstanceTest {
     replay(config);
     zki = new ZooKeeperInstance(config, zcf);
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn("yup".getBytes());
-    List<String> children = new java.util.ArrayList<String>();
+    List<String> children = new java.util.ArrayList<>();
     children.add("child1");
     children.add("child2");
     expect(zc.getChildren(Constants.ZROOT + Constants.ZINSTANCES)).andReturn(children);

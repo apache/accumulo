@@ -47,7 +47,7 @@ public class ImageFixture extends Fixture {
     Connector conn = env.getConnector();
     Instance instance = env.getInstance();
 
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 256; i++) {
       splits.add(new Text(String.format("%04x", i << 8)));
     }
@@ -94,13 +94,13 @@ public class ImageFixture extends Fixture {
   }
 
   static Map<String,Set<Text>> getLocalityGroups() {
-    Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
+    Map<String,Set<Text>> groups = new HashMap<>();
 
-    HashSet<Text> lg1 = new HashSet<Text>();
+    HashSet<Text> lg1 = new HashSet<>();
     lg1.add(Write.CONTENT_COLUMN_FAMILY);
     groups.put("lg1", lg1);
 
-    HashSet<Text> lg2 = new HashSet<Text>();
+    HashSet<Text> lg2 = new HashSet<>();
     lg2.add(Write.META_COLUMN_FAMILY);
     groups.put("lg2", lg2);
     return groups;

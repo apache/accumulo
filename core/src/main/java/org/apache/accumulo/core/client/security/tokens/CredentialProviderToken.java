@@ -75,7 +75,7 @@ public class CredentialProviderToken extends PasswordToken {
 
   @Override
   public Set<TokenProperty> getProperties() {
-    LinkedHashSet<TokenProperty> properties = new LinkedHashSet<TokenProperty>();
+    LinkedHashSet<TokenProperty> properties = new LinkedHashSet<>();
     // Neither name or CPs are sensitive
     properties.add(new TokenProperty(NAME_PROPERTY, "Alias to extract from CredentialProvider", false));
     properties.add(new TokenProperty(CREDENTIAL_PROVIDERS_PROPERTY, "Comma separated list of URLs defining CredentialProvider(s)", false));

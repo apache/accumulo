@@ -115,7 +115,7 @@ public class Insert extends Test {
 
     Mutation m = new Mutation(partition);
 
-    HashSet<String> tokensSeen = new HashSet<String>();
+    HashSet<String> tokensSeen = new HashSet<>();
 
     for (String token : tokens) {
       token = token.toLowerCase();

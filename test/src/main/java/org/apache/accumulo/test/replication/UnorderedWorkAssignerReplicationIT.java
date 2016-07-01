@@ -122,7 +122,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     // Set the same SSL information from the primary when present
     Map<String,String> primarySiteConfig = primaryCfg.getSiteConfig();
     if ("true".equals(primarySiteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
-      Map<String,String> peerSiteConfig = new HashMap<String,String>();
+      Map<String,String> peerSiteConfig = new HashMap<>();
       peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
       String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
       Assert.assertNotNull("Keystore Path was null", keystorePath);

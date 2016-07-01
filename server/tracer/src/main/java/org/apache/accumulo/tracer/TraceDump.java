@@ -52,7 +52,7 @@ public class TraceDump {
     @Parameter(names = {"-d", "--dump"}, description = "Dump all traces")
     boolean dump = false;
     @Parameter(description = " <trace id> { <trace id> ... }")
-    List<String> traceIds = new ArrayList<String>();
+    List<String> traceIds = new ArrayList<>();
 
     Opts() {
       super("trace");
@@ -74,7 +74,7 @@ public class TraceDump {
   }
 
   public static List<RemoteSpan> sortByStart(Collection<RemoteSpan> spans) {
-    List<RemoteSpan> spanList = new ArrayList<RemoteSpan>(spans);
+    List<RemoteSpan> spanList = new ArrayList<>(spans);
     Collections.sort(spanList, new Comparator<RemoteSpan>() {
       @Override
       public int compare(RemoteSpan o1, RemoteSpan o2) {

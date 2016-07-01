@@ -35,7 +35,7 @@ public class HexFormatterTest {
 
   @Before
   public void setUp() {
-    data = new TreeMap<Key,Value>();
+    data = new TreeMap<>();
     formatter = new HexFormatter();
   }
 

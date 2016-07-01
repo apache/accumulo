@@ -109,7 +109,7 @@ public abstract class TestCfCqSlice {
     assertTrue("slice param must be less than LR_DIM", sliceMinCq < LR_DIM);
     assertTrue("slice param must be less than LR_DIM", sliceMaxCf < LR_DIM);
     assertTrue("slice param must be less than LR_DIM", sliceMaxCq < LR_DIM);
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     opts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
@@ -135,7 +135,7 @@ public abstract class TestCfCqSlice {
     long sliceMinCq = 20;
     long sliceMaxCf = 20;
     long sliceMaxCq = 20;
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     opts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
@@ -161,7 +161,7 @@ public abstract class TestCfCqSlice {
     long sliceMinCq = 20;
     long sliceMaxCf = 22;
     long sliceMaxCq = 22;
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     opts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
@@ -187,7 +187,7 @@ public abstract class TestCfCqSlice {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCq = 10;
     long sliceMaxCq = 30;
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
     loadKvs(foundKvs, opts, INFINITY);
@@ -209,7 +209,7 @@ public abstract class TestCfCqSlice {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 10;
     long sliceMaxCf = 30;
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     opts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
     loadKvs(foundKvs, opts, INFINITY);
@@ -233,7 +233,7 @@ public abstract class TestCfCqSlice {
     long sliceMinCq = LR_DIM + 1;
     long sliceMaxCf = LR_DIM + 1;
     long sliceMaxCq = LR_DIM + 1;
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     opts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));

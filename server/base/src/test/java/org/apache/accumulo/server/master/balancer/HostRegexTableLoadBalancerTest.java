@@ -324,7 +324,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     SortedMap<TServerInstance,TabletServerStatus> current = createCurrent(15);
     // Remove the BAR tablet servers from current
-    List<TServerInstance> removals = new ArrayList<TServerInstance>();
+    List<TServerInstance> removals = new ArrayList<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
       if (e.getKey().host().equals("192.168.0.6") || e.getKey().host().equals("192.168.0.7") || e.getKey().host().equals("192.168.0.8")
           || e.getKey().host().equals("192.168.0.9") || e.getKey().host().equals("192.168.0.10")) {
@@ -349,8 +349,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init((ServerConfiguration) factory);
     // Wait to trigger the out of bounds check which will call our version of getOnlineTabletsForTable
     UtilWaitThread.sleep(11000);
-    Set<KeyExtent> migrations = new HashSet<KeyExtent>();
-    List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+    Set<KeyExtent> migrations = new HashSet<>();
+    List<TabletMigration> migrationsOut = new ArrayList<>();
     this.balance(createCurrent(15), migrations, migrationsOut);
     Assert.assertEquals(2, migrationsOut.size());
   }

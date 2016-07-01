@@ -226,7 +226,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key) && !logs.isEmpty()) {
         KeyExtent extent = new KeyExtent(key.getRow(), entry.getValue());
         result.put(extent, logs);
-        logs = new ArrayList<String>();
+        logs = new ArrayList<>();
       }
     }
     return result;

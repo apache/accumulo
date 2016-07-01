@@ -70,7 +70,7 @@ public class MetadataBatchScanTest {
     Instance inst = new ZooKeeperInstance(new ClientConfiguration().withInstance("acu14").withZkHosts("localhost"));
     final Connector connector = inst.getConnector(opts.getPrincipal(), opts.getToken());
 
-    TreeSet<Long> splits = new TreeSet<Long>();
+    TreeSet<Long> splits = new TreeSet<>();
     Random r = new Random(42);
 
     while (splits.size() < 99999) {
@@ -80,7 +80,7 @@ public class MetadataBatchScanTest {
     String tid = "8";
     Text per = null;
 
-    ArrayList<KeyExtent> extents = new ArrayList<KeyExtent>();
+    ArrayList<KeyExtent> extents = new ArrayList<>();
 
     for (Long split : splits) {
       Text er = new Text(String.format("%012d", split));
@@ -128,12 +128,12 @@ public class MetadataBatchScanTest {
       final int numLoop = Integer.parseInt(args[2]);
       int numLookups = Integer.parseInt(args[3]);
 
-      HashSet<Integer> indexes = new HashSet<Integer>();
+      HashSet<Integer> indexes = new HashSet<>();
       while (indexes.size() < numLookups) {
         indexes.add(r.nextInt(extents.size()));
       }
 
-      final List<Range> ranges = new ArrayList<Range>();
+      final List<Range> ranges = new ArrayList<>();
       for (Integer i : indexes) {
         ranges.add(extents.get(i).toMetadataRange());
       }

@@ -45,8 +45,8 @@ public class ChunkInputFormat extends InputFormatBase<List<Entry<Key,Value>>,Inp
       @Override
       public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
         super.initialize(inSplit, attempt);
-        peekingScannerIterator = new PeekingIterator<Entry<Key,Value>>(scannerIterator);
-        currentK = new ArrayList<Entry<Key,Value>>();
+        peekingScannerIterator = new PeekingIterator<>(scannerIterator);
+        currentK = new ArrayList<>();
         currentV = new ChunkInputStream();
       }
 

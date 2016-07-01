@@ -42,11 +42,11 @@ import org.junit.rules.TestName;
 
 public class IntersectingIteratorTest {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static IteratorEnvironment env = new DefaultIteratorEnvironment();
 
   TreeMap<Key,Value> map;
-  HashSet<Text> docs = new HashSet<Text>();
+  HashSet<Text> docs = new HashSet<>();
   Text[] columnFamilies;
   Text[] negatedColumns;
   Text[] otherColumnFamilies;
@@ -59,7 +59,7 @@ public class IntersectingIteratorTest {
       HashSet<Text> docs, Text[] negatedColumns) {
     Random r = new Random();
     Value v = new Value(new byte[0]);
-    TreeMap<Key,Value> map = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> map = new TreeMap<>();
     boolean[] negateMask = new boolean[columnFamilies.length];
 
     for (int i = 0; i < columnFamilies.length; i++) {
@@ -198,7 +198,7 @@ public class IntersectingIteratorTest {
     float hitRatio = 0.5f;
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     SortedKeyValueIterator<Key,Value> source2 = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
-    ArrayList<SortedKeyValueIterator<Key,Value>> sourceIters = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+    ArrayList<SortedKeyValueIterator<Key,Value>> sourceIters = new ArrayList<>();
     sourceIters.add(source);
     sourceIters.add(source2);
     MultiIterator mi = new MultiIterator(sourceIters, false);

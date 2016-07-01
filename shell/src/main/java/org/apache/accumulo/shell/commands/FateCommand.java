@@ -124,12 +124,12 @@ public class FateCommand extends Command {
     String cmd = args[0];
     boolean failedCommand = false;
 
-    AdminUtil<FateCommand> admin = new AdminUtil<FateCommand>(false);
+    AdminUtil<FateCommand> admin = new AdminUtil<>(false);
 
     String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
     String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
     IZooReaderWriter zk = getZooReaderWriter(shellState.getInstance(), cl.getOptionValue(secretOption.getOpt()));
-    ZooStore<FateCommand> zs = new ZooStore<FateCommand>(path, zk);
+    ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
 
     if ("fail".equals(cmd)) {
       if (args.length <= 1) {
@@ -157,7 +157,7 @@ public class FateCommand extends Command {
       // Parse transaction ID filters for print display
       Set<Long> filterTxid = null;
       if (args.length >= 2) {
-        filterTxid = new HashSet<Long>(args.length);
+        filterTxid = new HashSet<>(args.length);
         for (int i = 1; i < args.length; i++) {
           try {
             Long val = Long.parseLong(args[i], 16);

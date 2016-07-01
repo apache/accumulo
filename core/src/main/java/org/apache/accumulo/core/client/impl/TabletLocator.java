@@ -99,7 +99,7 @@ public abstract class TabletLocator {
 
   }
 
-  private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<LocatorKey,TabletLocator>();
+  private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
 
   public static synchronized void clearLocators() {
     for (TabletLocator locator : locators.values()) {
@@ -148,7 +148,7 @@ public abstract class TabletLocator {
   }
 
   public static class TabletLocation implements Comparable<TabletLocation> {
-    private static final WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<String,WeakReference<String>>();
+    private static final WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<>();
 
     private static String dedupeLocation(String tabletLoc) {
       synchronized (tabletLocs) {
@@ -160,7 +160,7 @@ public abstract class TabletLocator {
           }
         }
 
-        tabletLocs.put(tabletLoc, new WeakReference<String>(tabletLoc));
+        tabletLocs.put(tabletLoc, new WeakReference<>(tabletLoc));
         return tabletLoc;
       }
     }
@@ -215,13 +215,13 @@ public abstract class TabletLocator {
 
     public TabletServerMutations(String tserverSession) {
       this.tserverSession = tserverSession;
-      this.mutations = new HashMap<KeyExtent,List<T>>();
+      this.mutations = new HashMap<>();
     }
 
     public void addMutation(KeyExtent ke, T m) {
       List<T> mutList = mutations.get(ke);
       if (mutList == null) {
-        mutList = new ArrayList<T>();
+        mutList = new ArrayList<>();
         mutations.put(ke, mutList);
       }
 

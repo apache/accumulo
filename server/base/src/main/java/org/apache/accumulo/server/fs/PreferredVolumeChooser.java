@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * to selecting from all of the options presented. Can be customized via the table property {@value #PREFERRED_VOLUMES_CUSTOM_KEY}, which should contain a comma
  * separated list of {@link Volume} URIs. Note that both the property name and the format of its value are specific to this particular implementation.
  */
-public class PreferredVolumeChooser extends RandomVolumeChooser implements VolumeChooser {
+public class PreferredVolumeChooser extends RandomVolumeChooser {
   private static final Logger log = LoggerFactory.getLogger(PreferredVolumeChooser.class);
 
   /**
@@ -71,7 +71,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser implements Volum
       serverConfs = localConf;
     }
     TableConfiguration tableConf = localConf.getTableConfiguration(env.getTableId());
-    final Map<String,String> props = new HashMap<String,String>();
+    final Map<String,String> props = new HashMap<>();
     tableConf.getProperties(props, PREFERRED_VOLUMES_FILTER);
     if (props.isEmpty()) {
       log.warn("No preferred volumes specified. Defaulting to randomly choosing from instance volumes");
@@ -87,12 +87,12 @@ public class PreferredVolumeChooser extends RandomVolumeChooser implements Volum
     // If the preferred volumes property was specified, split the returned string by the comma and add use it to filter the given options.
     Set<String> preferred = parsedPreferredVolumes.get(volumes);
     if (preferred == null) {
-      preferred = new HashSet<String>(Arrays.asList(StringUtils.split(volumes, ',')));
+      preferred = new HashSet<>(Arrays.asList(StringUtils.split(volumes, ',')));
       parsedPreferredVolumes.put(volumes, preferred);
     }
 
     // Only keep the options that are in the preferred set
-    final ArrayList<String> filteredOptions = new ArrayList<String>(Arrays.asList(options));
+    final ArrayList<String> filteredOptions = new ArrayList<>(Arrays.asList(options));
     filteredOptions.retainAll(preferred);
 
     // If there are no preferred volumes left, then warn the user and choose randomly from the instance volumes

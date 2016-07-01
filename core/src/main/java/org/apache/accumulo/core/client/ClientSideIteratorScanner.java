@@ -236,7 +236,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     smi.samplerConfig = getSamplerConfiguration();
 
-    final TreeMap<Integer,IterInfo> tm = new TreeMap<Integer,IterInfo>();
+    final TreeMap<Integer,IterInfo> tm = new TreeMap<>();
 
     for (IterInfo iterInfo : serverSideIteratorList) {
       tm.put(iterInfo.getPriority(), iterInfo);
@@ -250,7 +250,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       throw new RuntimeException(e);
     }
 
-    final Set<ByteSequence> colfs = new TreeSet<ByteSequence>();
+    final Set<ByteSequence> colfs = new TreeSet<>();
     for (Column c : this.getFetchedColumns()) {
       colfs.add(new ArrayByteSequence(c.getColumnFamily()));
     }

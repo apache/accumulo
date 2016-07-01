@@ -104,7 +104,7 @@ public class TestProxyTableOperations {
   // This test does not yet function because the backing Mock instance does not yet support merging
   @Test
   public void merge() throws TException {
-    Set<ByteBuffer> splits = new HashSet<ByteBuffer>();
+    Set<ByteBuffer> splits = new HashSet<>();
     splits.add(ByteBuffer.wrap("a".getBytes()));
     splits.add(ByteBuffer.wrap("c".getBytes()));
     splits.add(ByteBuffer.wrap("z".getBytes()));
@@ -124,7 +124,7 @@ public class TestProxyTableOperations {
 
   @Test
   public void splits() throws TException {
-    Set<ByteBuffer> splits = new HashSet<ByteBuffer>();
+    Set<ByteBuffer> splits = new HashSet<>();
     splits.add(ByteBuffer.wrap("a".getBytes()));
     splits.add(ByteBuffer.wrap("b".getBytes()));
     splits.add(ByteBuffer.wrap("z".getBytes()));
@@ -149,11 +149,11 @@ public class TestProxyTableOperations {
 
   @Test
   public void localityGroups() throws TException {
-    Map<String,Set<String>> groups = new HashMap<String,Set<String>>();
-    Set<String> group1 = new HashSet<String>();
+    Map<String,Set<String>> groups = new HashMap<>();
+    Set<String> group1 = new HashSet<>();
     group1.add("cf1");
     groups.put("group1", group1);
-    Set<String> group2 = new HashSet<String>();
+    Set<String> group2 = new HashSet<>();
     group2.add("cf2");
     group2.add("cf3");
     groups.put("group2", group2);
@@ -187,7 +187,7 @@ public class TestProxyTableOperations {
 
   @Test
   public void tableOperationsRowMethods() throws TException {
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     for (int i = 0; i < 10; i++) {
       addMutation(mutations, "" + i, "cf", "cq", "");
     }

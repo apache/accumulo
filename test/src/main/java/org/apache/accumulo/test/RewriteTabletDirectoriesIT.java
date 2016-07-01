@@ -87,7 +87,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
 
     // Write some data to a table and add some splits
     BatchWriter bw = c.createBatchWriter(tableName, null);
-    final SortedSet<Text> splits = new TreeSet<Text>();
+    final SortedSet<Text> splits = new TreeSet<>();
     for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
       splits.add(new Text(split));
       Mutation m = new Mutation(new Text(split));

@@ -122,7 +122,7 @@ public class ReplicationServlet extends BasicServlet {
 
     // Up to 2x the number of slots for replication available, WARN
     // More than 2x the number of slots for replication available, ERROR
-    NumberType<Long> filesPendingFormat = new NumberType<Long>(Long.valueOf(0), Long.valueOf(2 * totalWorkQueueSize), Long.valueOf(0),
+    NumberType<Long> filesPendingFormat = new NumberType<>(Long.valueOf(0), Long.valueOf(2 * totalWorkQueueSize), Long.valueOf(0),
         Long.valueOf(4 * totalWorkQueueSize));
 
     String utilization = filesPendingFormat.format(filesPendingOverAllTargets);

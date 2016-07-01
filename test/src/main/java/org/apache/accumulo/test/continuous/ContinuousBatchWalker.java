@@ -68,7 +68,7 @@ public class ContinuousBatchWalker {
       bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
 
       Set<Text> batch = getBatch(scanner, opts.min, opts.max, scanOpts.scanBatchSize, r);
-      List<Range> ranges = new ArrayList<Range>(batch.size());
+      List<Range> ranges = new ArrayList<>(batch.size());
 
       for (Text row : batch) {
         ranges.add(new Range(row));
@@ -84,7 +84,7 @@ public class ContinuousBatchWalker {
   private static void runBatchScan(int batchSize, BatchScanner bs, Set<Text> batch, List<Range> ranges) {
     bs.setRanges(ranges);
 
-    Set<Text> rowsSeen = new HashSet<Text>();
+    Set<Text> rowsSeen = new HashSet<>();
 
     int count = 0;
 
@@ -104,8 +104,8 @@ public class ContinuousBatchWalker {
     long t2 = System.currentTimeMillis();
 
     if (!rowsSeen.equals(batch)) {
-      HashSet<Text> copy1 = new HashSet<Text>(rowsSeen);
-      HashSet<Text> copy2 = new HashSet<Text>(batch);
+      HashSet<Text> copy1 = new HashSet<>(rowsSeen);
+      HashSet<Text> copy2 = new HashSet<>(batch);
 
       copy1.removeAll(batch);
       copy2.removeAll(rowsSeen);
@@ -133,7 +133,7 @@ public class ContinuousBatchWalker {
     }
   }
 
-  private static HashSet<Text> rowsToQuery = new HashSet<Text>();
+  private static HashSet<Text> rowsToQuery = new HashSet<>();
 
   private static Set<Text> getBatch(Scanner scanner, long min, long max, int batchSize, Random r) {
 
@@ -160,7 +160,7 @@ public class ContinuousBatchWalker {
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     }
 
-    HashSet<Text> ret = new HashSet<Text>();
+    HashSet<Text> ret = new HashSet<>();
 
     Iterator<Text> iter = rowsToQuery.iterator();
 

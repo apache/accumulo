@@ -29,12 +29,12 @@ import java.util.Date;
 public class ReverseLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {
     Comparator<Long> comp = Collections.reverseOrder();
-    assertSortOrder(new ReverseLexicoder<Long>(new LongLexicoder()), comp, Arrays.asList(Long.MIN_VALUE, 0xff1234567890abcdl, 0xffff1234567890abl,
+    assertSortOrder(new ReverseLexicoder<>(new LongLexicoder()), comp, Arrays.asList(Long.MIN_VALUE, 0xff1234567890abcdl, 0xffff1234567890abl,
         0xffffff567890abcdl, 0xffffffff7890abcdl, 0xffffffffff90abcdl, 0xffffffffffffabcdl, 0xffffffffffffffcdl, -1l, 0l, 0x01l, 0x1234l, 0x123456l,
         0x12345678l, 0x1234567890l, 0x1234567890abl, 0x1234567890abcdl, 0x1234567890abcdefl, Long.MAX_VALUE));
 
     Comparator<String> comp2 = Collections.reverseOrder();
-    assertSortOrder(new ReverseLexicoder<String>(new StringLexicoder()), comp2, Arrays.asList("a", "aa", "ab", "b", "aab"));
+    assertSortOrder(new ReverseLexicoder<>(new StringLexicoder()), comp2, Arrays.asList("a", "aa", "ab", "b", "aab"));
 
   }
 
@@ -44,7 +44,7 @@ public class ReverseLexicoderTest extends AbstractLexicoderTest {
   @Test
   public void testReverseSortDates() throws UnsupportedEncodingException {
 
-    ReverseLexicoder<Date> revLex = new ReverseLexicoder<Date>(new DateLexicoder());
+    ReverseLexicoder<Date> revLex = new ReverseLexicoder<>(new DateLexicoder());
 
     Calendar cal = Calendar.getInstance();
     cal.set(1920, 1, 2, 3, 4, 5); // create an instance prior to 1970 for ACCUMULO-3385
@@ -65,10 +65,10 @@ public class ReverseLexicoderTest extends AbstractLexicoderTest {
   }
 
   public void testDecodes() {
-    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), Long.MIN_VALUE);
-    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), -1l);
-    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), 0l);
-    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), 1l);
-    assertDecodes(new ReverseLexicoder<Long>(new LongLexicoder()), Long.MAX_VALUE);
+    assertDecodes(new ReverseLexicoder<>(new LongLexicoder()), Long.MIN_VALUE);
+    assertDecodes(new ReverseLexicoder<>(new LongLexicoder()), -1l);
+    assertDecodes(new ReverseLexicoder<>(new LongLexicoder()), 0l);
+    assertDecodes(new ReverseLexicoder<>(new LongLexicoder()), 1l);
+    assertDecodes(new ReverseLexicoder<>(new LongLexicoder()), Long.MAX_VALUE);
   }
 }

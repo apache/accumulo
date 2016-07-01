@@ -300,7 +300,7 @@ public class DefaultCryptoModule implements CryptoModule {
       String marker = dataIn.readUTF();
       if (marker.equals(ENCRYPTION_HEADER_MARKER_V1) || marker.equals(ENCRYPTION_HEADER_MARKER_V2)) {
 
-        Map<String,String> paramsFromFile = new HashMap<String,String>();
+        Map<String,String> paramsFromFile = new HashMap<>();
 
         // Read in the bulk of parameters
         int paramsCount = dataIn.readInt();

@@ -205,15 +205,15 @@ public class LiveTServerSet implements Watcher {
       this.connection = connection;
       this.instance = instance;
     }
-  };
+  }
 
   // The set of active tservers with locks, indexed by their name in zookeeper
-  private Map<String,TServerInfo> current = new HashMap<String,TServerInfo>();
+  private Map<String,TServerInfo> current = new HashMap<>();
   // as above, indexed by TServerInstance
-  private Map<TServerInstance,TServerInfo> currentInstances = new HashMap<TServerInstance,TServerInfo>();
+  private Map<TServerInstance,TServerInfo> currentInstances = new HashMap<>();
 
   // The set of entries in zookeeper without locks, and the first time each was noticed
-  private Map<String,Long> locklessServers = new HashMap<String,Long>();
+  private Map<String,Long> locklessServers = new HashMap<>();
 
   public LiveTServerSet(ClientContext context, Listener cback) {
     this.cback = cback;
@@ -238,12 +238,12 @@ public class LiveTServerSet implements Watcher {
 
   public synchronized void scanServers() {
     try {
-      final Set<TServerInstance> updates = new HashSet<TServerInstance>();
-      final Set<TServerInstance> doomed = new HashSet<TServerInstance>();
+      final Set<TServerInstance> updates = new HashSet<>();
+      final Set<TServerInstance> doomed = new HashSet<>();
 
       final String path = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS;
 
-      HashSet<String> all = new HashSet<String>(current.keySet());
+      HashSet<String> all = new HashSet<>(current.keySet());
       all.addAll(getZooCache().getChildren(path));
 
       locklessServers.keySet().retainAll(all);
@@ -332,8 +332,8 @@ public class LiveTServerSet implements Watcher {
 
           String server = event.getPath().substring(pos + 1);
 
-          final Set<TServerInstance> updates = new HashSet<TServerInstance>();
-          final Set<TServerInstance> doomed = new HashSet<TServerInstance>();
+          final Set<TServerInstance> updates = new HashSet<>();
+          final Set<TServerInstance> doomed = new HashSet<>();
 
           final String path = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS;
 
@@ -359,7 +359,7 @@ public class LiveTServerSet implements Watcher {
   }
 
   public synchronized Set<TServerInstance> getCurrentServers() {
-    return new HashSet<TServerInstance>(currentInstances.keySet());
+    return new HashSet<>(currentInstances.keySet());
   }
 
   public synchronized int size() {

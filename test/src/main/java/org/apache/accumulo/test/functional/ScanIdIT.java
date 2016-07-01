@@ -92,7 +92,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
   private static final AtomicBoolean testInProgress = new AtomicBoolean(true);
 
-  private static final Map<Integer,Value> resultsByWorker = new ConcurrentHashMap<Integer,Value>();
+  private static final Map<Integer,Value> resultsByWorker = new ConcurrentHashMap<>();
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -146,7 +146,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
     }
 
     // all scanner have reported at least 1 result, so check for unique scan ids.
-    Set<Long> scanIds = new HashSet<Long>();
+    Set<Long> scanIds = new HashSet<>();
 
     List<String> tservers = conn.instanceOperations().getTabletServers();
 
@@ -314,7 +314,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
    */
   private SortedSet<Text> createSplits() {
 
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
 
     for (int split = 0; split < 10; split++) {
       splits.add(new Text(Integer.toString(split)));

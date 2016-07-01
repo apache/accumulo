@@ -32,7 +32,7 @@ import org.apache.hadoop.io.Text;
 
 public class ColumnFamilySkippingIteratorTest extends TestCase {
 
-  private static final Collection<ByteSequence> EMPTY_SET = new HashSet<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_SET = new HashSet<>();
 
   Key nk(String row, String cf, String cq, long time) {
     return new Key(new Text(row), new Text(cf), new Text(cq), time);
@@ -62,7 +62,7 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
   }
 
   public void test1() throws Exception {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq3", 5, "v2");
     put(tm1, "r2", "cf1", "cq1", 5, "v3");
@@ -77,14 +77,14 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
 
     cfi.seek(new Range(), EMPTY_SET, false);
     assertTrue(cfi.hasTop());
-    TreeMap<Key,Value> tm2 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm2 = new TreeMap<>();
     while (cfi.hasTop()) {
       tm2.put(cfi.getTopKey(), cfi.getTopValue());
       cfi.next();
     }
     assertEquals(tm1, tm2);
 
-    HashSet<ByteSequence> colfams = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> colfams = new HashSet<>();
     colfams.add(new ArrayByteSequence("cf2"));
     cfi.seek(new Range(), colfams, true);
     aten(cfi, "r2", "cf2", "cq4", 5, "v4");
@@ -108,7 +108,7 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
   }
 
   public void test2() throws Exception {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     for (int r = 0; r < 10; r++) {
       for (int cf = 0; cf < 1000; cf++) {
@@ -118,13 +118,13 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
       }
     }
 
-    HashSet<ByteSequence> allColfams = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> allColfams = new HashSet<>();
     for (int cf = 0; cf < 1000; cf++) {
       allColfams.add(new ArrayByteSequence(String.format("%06d", cf)));
     }
 
     ColumnFamilySkippingIterator cfi = new ColumnFamilySkippingIterator(new SortedMapIterator(tm1));
-    HashSet<ByteSequence> colfams = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> colfams = new HashSet<>();
 
     runTest(cfi, 30000, 0, allColfams, colfams);
 
@@ -162,11 +162,11 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
   private void runTest(ColumnFamilySkippingIterator cfi, int total, int expected, HashSet<ByteSequence> allColfams, HashSet<ByteSequence> colfams)
       throws Exception {
     cfi.seek(new Range(), colfams, true);
-    HashSet<ByteSequence> excpected1 = new HashSet<ByteSequence>(colfams);
+    HashSet<ByteSequence> excpected1 = new HashSet<>(colfams);
     excpected1.retainAll(allColfams);
     runTest(cfi, expected, excpected1);
 
-    HashSet<ByteSequence> excpected2 = new HashSet<ByteSequence>(allColfams);
+    HashSet<ByteSequence> excpected2 = new HashSet<>(allColfams);
     excpected2.removeAll(colfams);
     cfi.seek(new Range(), colfams, false);
     runTest(cfi, total - expected, excpected2);
@@ -175,7 +175,7 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
   private void runTest(ColumnFamilySkippingIterator cfi, int expected, HashSet<ByteSequence> colfams) throws Exception {
     int count = 0;
 
-    HashSet<ByteSequence> ocf = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> ocf = new HashSet<>();
 
     while (cfi.hasTop()) {
       count++;
@@ -189,7 +189,7 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
 
   public void test3() throws Exception {
     // construct test where ColumnFamilySkippingIterator might try to seek past the end of the user supplied range
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     for (int r = 0; r < 3; r++) {
       for (int cf = 4; cf < 1000; cf++) {
@@ -201,7 +201,7 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
 
     CountingIterator ci = new CountingIterator(new SortedMapIterator(tm1));
     ColumnFamilySkippingIterator cfi = new ColumnFamilySkippingIterator(ci);
-    HashSet<ByteSequence> colfams = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> colfams = new HashSet<>();
     colfams.add(new ArrayByteSequence(String.format("%06d", 4)));
 
     Range range = new Range(nk(0, 4, 0, 6), true, nk(0, 400, 0, 6), true);

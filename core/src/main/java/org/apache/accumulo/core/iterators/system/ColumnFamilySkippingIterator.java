@@ -108,12 +108,12 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
     if (columnFamilies instanceof Set<?>) {
       colFamSet = (Set<ByteSequence>) columnFamilies;
     } else {
-      colFamSet = new HashSet<ByteSequence>();
+      colFamSet = new HashSet<>();
       colFamSet.addAll(columnFamilies);
     }
 
     if (inclusive) {
-      sortedColFams = new TreeSet<ByteSequence>(colFamSet);
+      sortedColFams = new TreeSet<>(colFamSet);
     } else {
       sortedColFams = null;
     }

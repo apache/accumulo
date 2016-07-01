@@ -61,7 +61,7 @@ public class Violations {
    * Creates a new empty object.
    */
   public Violations() {
-    cvsmap = new HashMap<CVSKey,ConstraintViolationSummary>();
+    cvsmap = new HashMap<>();
   }
 
   /**
@@ -128,7 +128,7 @@ public class Violations {
    * @return list of violation summaries
    */
   public List<ConstraintViolationSummary> asList() {
-    return new ArrayList<ConstraintViolationSummary>(cvsmap.values());
+    return new ArrayList<>(cvsmap.values());
   }
 
 }

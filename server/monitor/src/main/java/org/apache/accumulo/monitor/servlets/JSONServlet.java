@@ -49,7 +49,7 @@ public class JSONServlet extends BasicServlet {
 
   private static Map<String,Object> addServer(String ip, String hostname, double osload, double ingest, double query, double ingestMB, double queryMB,
       int scans, double scansessions, long holdtime) {
-    Map<String,Object> map = new HashMap<String,Object>();
+    Map<String,Object> map = new HashMap<>();
     map.put("ip", ip);
     map.put("hostname", hostname);
     map.put("osload", osload);
@@ -69,8 +69,8 @@ public class JSONServlet extends BasicServlet {
       return;
     }
 
-    Map<String,Object> results = new HashMap<String,Object>();
-    List<Map<String,Object>> servers = new ArrayList<Map<String,Object>>();
+    Map<String,Object> results = new HashMap<>();
+    List<Map<String,Object>> servers = new ArrayList<>();
 
     for (TabletServerStatus status : Monitor.getMmi().tServerInfo) {
       TableInfo summary = TableInfoUtil.summarizeTableStats(status);
@@ -80,14 +80,14 @@ public class JSONServlet extends BasicServlet {
     }
 
     for (Entry<String,Byte> entry : Monitor.getMmi().badTServers.entrySet()) {
-      Map<String,Object> badServer = new HashMap<String,Object>();
+      Map<String,Object> badServer = new HashMap<>();
       badServer.put("ip", entry.getKey());
       badServer.put("bad", true);
       servers.add(badServer);
     }
 
     for (DeadServer dead : Monitor.getMmi().deadTabletServers) {
-      Map<String,Object> deadServer = new HashMap<String,Object>();
+      Map<String,Object> deadServer = new HashMap<>();
       deadServer.put("ip", dead.server);
       deadServer.put("dead", true);
       servers.add(deadServer);

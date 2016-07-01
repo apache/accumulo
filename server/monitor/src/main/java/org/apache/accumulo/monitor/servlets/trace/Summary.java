@@ -168,7 +168,7 @@ public class Summary extends Basic {
     }
     Range range = getRangeForTrace(minutes);
     scanner.setRange(range);
-    final Map<String,Stats> summary = new TreeMap<String,Stats>();
+    final Map<String,Stats> summary = new TreeMap<>();
     if (null != pair.getValue()) {
       pair.getValue().doAs(new PrivilegedAction<Void>() {
         @Override

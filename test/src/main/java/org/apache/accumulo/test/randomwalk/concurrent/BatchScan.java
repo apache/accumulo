@@ -52,7 +52,7 @@ public class BatchScan extends Test {
 
     try {
       BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 3);
-      List<Range> ranges = new ArrayList<Range>();
+      List<Range> ranges = new ArrayList<>();
       for (int i = 0; i < rand.nextInt(2000) + 1; i++)
         ranges.add(new Range(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));
 

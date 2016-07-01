@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
  *
  * @since 1.6.0
  */
-public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> implements Lexicoder<List<LT>> {
+public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> {
 
   private Lexicoder<LT> lexicoder;
 
@@ -66,7 +66,7 @@ public class ListLexicoder<LT> extends AbstractLexicoder<List<LT>> implements Le
   protected List<LT> decodeUnchecked(byte[] b, int offset, int len) {
 
     byte[][] escapedElements = split(b, offset, len);
-    ArrayList<LT> ret = new ArrayList<LT>(escapedElements.length);
+    ArrayList<LT> ret = new ArrayList<>(escapedElements.length);
 
     for (byte[] escapedElement : escapedElements) {
       ret.add(lexicoder.decode(unescape(escapedElement)));

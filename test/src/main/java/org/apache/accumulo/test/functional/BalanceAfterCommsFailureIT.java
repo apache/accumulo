@@ -65,7 +65,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     Connector c = this.getConnector();
     c.tableOperations().create("test");
     Collection<ProcessReference> tservers = getCluster().getProcesses().get(ServerType.TABLET_SERVER);
-    ArrayList<Integer> tserverPids = new ArrayList<Integer>(tservers.size());
+    ArrayList<Integer> tserverPids = new ArrayList<>(tservers.size());
     for (ProcessReference tserver : tservers) {
       Process p = tserver.getProcess();
       if (!p.getClass().getName().equals("java.lang.UNIXProcess")) {
@@ -85,7 +85,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     for (int pid : tserverPids) {
       assertEquals(0, Runtime.getRuntime().exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
     }
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (String split : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
       splits.add(new Text(split));
     }
@@ -120,7 +120,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
     assertEquals("Unassigned tablets were not assigned within 30 seconds", 0, unassignedTablets);
 
-    List<Integer> counts = new ArrayList<Integer>();
+    List<Integer> counts = new ArrayList<>();
     for (TabletServerStatus server : stats.tServerInfo) {
       int count = 0;
       for (TableInfo table : server.tableMap.values()) {

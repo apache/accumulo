@@ -23,8 +23,8 @@ public class StopWatch<K extends Enum<K>> {
   EnumMap<K,Long> totalTime;
 
   public StopWatch(Class<K> k) {
-    startTime = new EnumMap<K,Long>(k);
-    totalTime = new EnumMap<K,Long>(k);
+    startTime = new EnumMap<>(k);
+    totalTime = new EnumMap<>(k);
   }
 
   public synchronized void start(K timer) {

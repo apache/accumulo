@@ -89,7 +89,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private volatile long lastPoolRecheck = 0;
   private boolean isIpBasedRegex = false;
-  private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<String,SortedMap<TServerInstance,TabletServerStatus>>();
+  private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
   private int maxTServerMigrations = HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT;
 
   /**
@@ -103,13 +103,13 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   protected synchronized Map<String,SortedMap<TServerInstance,TabletServerStatus>> splitCurrentByRegex(SortedMap<TServerInstance,TabletServerStatus> current) {
     if ((System.currentTimeMillis() - lastPoolRecheck) > poolRecheckMillis) {
       LOG.debug("Performing pool recheck - regrouping tablet servers based on regular expressions");
-      Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<String,SortedMap<TServerInstance,TabletServerStatus>>();
+      Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<>();
       for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
         List<String> poolNames = getPoolNamesForHost(e.getKey().host());
         for (String pool : poolNames) {
           SortedMap<TServerInstance,TabletServerStatus> np = newPools.get(pool);
           if (null == np) {
-            np = new TreeMap<TServerInstance,TabletServerStatus>(current.comparator());
+            np = new TreeMap<>(current.comparator());
             newPools.put(pool, np);
           }
           np.put(e.getKey(), e.getValue());
@@ -265,18 +265,18 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
     // group the unassigned into tables
-    Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<String,Map<KeyExtent,TServerInstance>>();
+    Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
     for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId());
       if (tableUnassigned == null) {
-        tableUnassigned = new HashMap<KeyExtent,TServerInstance>();
+        tableUnassigned = new HashMap<>();
         groupedUnassigned.put(e.getKey().getTableId(), tableUnassigned);
       }
       tableUnassigned.put(e.getKey(), e.getValue());
     }
     // Send a view of the current servers to the tables tablet balancer
     for (Entry<String,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
-      Map<KeyExtent,TServerInstance> newAssignments = new HashMap<KeyExtent,TServerInstance>();
+      Map<KeyExtent,TServerInstance> newAssignments = new HashMap<>();
       String tableName = tableIdToTableName.get(e.getKey());
       String poolName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = pools.get(poolName);
@@ -377,7 +377,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
             this.poolRecheckMillis);
         continue;
       }
-      ArrayList<TabletMigration> newMigrations = new ArrayList<TabletMigration>();
+      ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       long tableBalanceTime = getBalancerForTable(s).balance(currentView, migrations, newMigrations);
       if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;

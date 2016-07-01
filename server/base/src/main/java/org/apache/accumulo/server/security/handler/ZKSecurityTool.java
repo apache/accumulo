@@ -120,7 +120,7 @@ class ZKSecurityTool {
   public static Set<SystemPermission> convertSystemPermissions(byte[] systempermissions) {
     ByteArrayInputStream bytes = new ByteArrayInputStream(systempermissions);
     DataInputStream in = new DataInputStream(bytes);
-    Set<SystemPermission> toReturn = new HashSet<SystemPermission>();
+    Set<SystemPermission> toReturn = new HashSet<>();
     try {
       while (in.available() > 0)
         toReturn.add(SystemPermission.getPermissionById(in.readByte()));
@@ -145,7 +145,7 @@ class ZKSecurityTool {
   }
 
   public static Set<TablePermission> convertTablePermissions(byte[] tablepermissions) {
-    Set<TablePermission> toReturn = new HashSet<TablePermission>();
+    Set<TablePermission> toReturn = new HashSet<>();
     for (byte b : tablepermissions)
       toReturn.add(TablePermission.getPermissionById(b));
     return toReturn;
@@ -165,7 +165,7 @@ class ZKSecurityTool {
   }
 
   public static Set<NamespacePermission> convertNamespacePermissions(byte[] namespacepermissions) {
-    Set<NamespacePermission> toReturn = new HashSet<NamespacePermission>();
+    Set<NamespacePermission> toReturn = new HashSet<>();
     for (byte b : namespacepermissions)
       toReturn.add(NamespacePermission.getPermissionById(b));
     return toReturn;

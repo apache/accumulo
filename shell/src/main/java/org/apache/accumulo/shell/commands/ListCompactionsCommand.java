@@ -45,7 +45,7 @@ public class ListCompactionsCommand extends Command {
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 
     if (cl.hasOption(tserverOption.getOpt())) {
-      tservers = new ArrayList<String>();
+      tservers = new ArrayList<>();
       tservers.add(cl.getOptionValue(tserverOption.getOpt()));
     } else {
       tservers = instanceOps.getTabletServers();

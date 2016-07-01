@@ -154,7 +154,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
 
   @Override
   public Set<String> listUsers() throws AccumuloSecurityException {
-    Set<String> userList = new TreeSet<String>();
+    Set<String> userList = new TreeSet<>();
     for (String user : new String[] {getSysUserName(), getTabUserName()}) {
       if (userExists(user))
         userList.add(user);
@@ -488,7 +488,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
 
   @Override
   public Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes() {
-    Set<Class<? extends AuthenticationToken>> cs = new HashSet<Class<? extends AuthenticationToken>>();
+    Set<Class<? extends AuthenticationToken>> cs = new HashSet<>();
     cs.add(PasswordToken.class);
     return cs;
   }

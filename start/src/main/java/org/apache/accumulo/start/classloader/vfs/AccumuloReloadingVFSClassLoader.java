@@ -56,7 +56,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private final boolean preDelegate;
   private final ThreadPoolExecutor executor;
   {
-    BlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(2);
+    BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(2);
     ThreadFactory factory = new ThreadFactory() {
 
       @Override
@@ -140,7 +140,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     this.parent = parent;
     this.preDelegate = preDelegate;
 
-    ArrayList<FileObject> pathsToMonitor = new ArrayList<FileObject>();
+    ArrayList<FileObject> pathsToMonitor = new ArrayList<>();
     files = AccumuloVFSClassLoader.resolve(vfs, uris, pathsToMonitor);
 
     if (preDelegate)

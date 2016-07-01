@@ -143,7 +143,7 @@ public class ContinuousStatsCollector {
         MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
 
         TableInfo all = new TableInfo();
-        Map<String,TableInfo> tableSummaries = new HashMap<String,TableInfo>();
+        Map<String,TableInfo> tableSummaries = new HashMap<>();
 
         for (TabletServerStatus server : stats.tServerInfo) {
           for (Entry<String,TableInfo> info : server.tableMap.entrySet()) {

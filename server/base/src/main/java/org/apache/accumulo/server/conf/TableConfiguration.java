@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 public class TableConfiguration extends ObservableConfiguration {
   private static final Logger log = LoggerFactory.getLogger(TableConfiguration.class);
 
-  private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<PropCacheKey,ZooCache>();
+  private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<>();
 
   private ZooCachePropertyAccessor propCacheAccessor = null;
   private final Instance instance;

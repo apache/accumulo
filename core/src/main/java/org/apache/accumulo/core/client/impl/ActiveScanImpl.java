@@ -66,12 +66,12 @@ public class ActiveScanImpl extends ActiveScan {
     this.extent = new KeyExtent(activeScan.extent);
     this.authorizations = new Authorizations(activeScan.authorizations);
 
-    this.columns = new ArrayList<Column>(activeScan.columns.size());
+    this.columns = new ArrayList<>(activeScan.columns.size());
 
     for (TColumn tcolumn : activeScan.columns)
       this.columns.add(new Column(tcolumn));
 
-    this.ssiList = new ArrayList<String>();
+    this.ssiList = new ArrayList<>();
     for (IterInfo ii : activeScan.ssiList) {
       this.ssiList.add(ii.iterName + "=" + ii.priority + "," + ii.className);
     }

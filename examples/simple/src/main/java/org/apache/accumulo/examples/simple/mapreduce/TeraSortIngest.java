@@ -167,7 +167,7 @@ public class TeraSortIngest extends Configured implements Tool {
       int numSplits = job.getConfiguration().getInt(NUMSPLITS, 1);
       long rowsPerSplit = totalRows / numSplits;
       System.out.println("Generating " + totalRows + " using " + numSplits + " maps with step of " + rowsPerSplit);
-      ArrayList<InputSplit> splits = new ArrayList<InputSplit>(numSplits);
+      ArrayList<InputSplit> splits = new ArrayList<>(numSplits);
       long currentRow = 0;
       for (int split = 0; split < numSplits - 1; ++split) {
         splits.add(new RangeInputSplit(currentRow, rowsPerSplit));

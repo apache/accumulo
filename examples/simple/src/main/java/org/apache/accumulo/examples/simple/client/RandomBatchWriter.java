@@ -143,7 +143,7 @@ public class RandomBatchWriter {
     ColumnVisibility cv = opts.visiblity;
 
     // Generate num unique row ids in the given range
-    HashSet<Long> rowids = new HashSet<Long>(opts.num);
+    HashSet<Long> rowids = new HashSet<>(opts.num);
     while (rowids.size() < opts.num) {
       rowids.add((abs(r.nextLong()) % (opts.max - opts.min)) + opts.min);
     }
@@ -156,12 +156,12 @@ public class RandomBatchWriter {
       bw.close();
     } catch (MutationsRejectedException e) {
       if (e.getSecurityErrorCodes().size() > 0) {
-        HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<String,Set<SecurityErrorCode>>();
+        HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<>();
         for (Entry<TabletId,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
           String tableId = ke.getKey().getTableId().toString();
           Set<SecurityErrorCode> secCodes = tables.get(tableId);
           if (secCodes == null) {
-            secCodes = new HashSet<SecurityErrorCode>();
+            secCodes = new HashSet<>();
             tables.put(tableId, secCodes);
           }
           secCodes.addAll(ke.getValue());

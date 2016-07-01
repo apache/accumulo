@@ -60,8 +60,8 @@ public class DeleteZooInstance {
 
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     // try instance name:
-    Set<String> instances = new HashSet<String>(zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES));
-    Set<String> uuids = new HashSet<String>(zk.getChildren(Constants.ZROOT));
+    Set<String> instances = new HashSet<>(zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES));
+    Set<String> uuids = new HashSet<>(zk.getChildren(Constants.ZROOT));
     uuids.remove("instances");
     if (instances.contains(opts.instance)) {
       String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + opts.instance;

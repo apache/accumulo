@@ -39,7 +39,7 @@ class WriteTracker {
   private static final Logger log = LoggerFactory.getLogger(WriteTracker.class);
 
   private static final AtomicLong operationCounter = new AtomicLong(1);
-  private final Map<TabletType,TreeSet<Long>> inProgressWrites = new EnumMap<TabletType,TreeSet<Long>>(TabletType.class);
+  private final Map<TabletType,TreeSet<Long>> inProgressWrites = new EnumMap<>(TabletType.class);
 
   WriteTracker() {
     for (TabletType ttype : TabletType.values()) {
@@ -87,7 +87,7 @@ class WriteTracker {
     if (keySet.size() == 0)
       return -1;
 
-    List<KeyExtent> extents = new ArrayList<KeyExtent>(keySet.size());
+    List<KeyExtent> extents = new ArrayList<>(keySet.size());
 
     for (Tablet tablet : keySet)
       extents.add(tablet.getExtent());

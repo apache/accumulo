@@ -54,7 +54,7 @@ public class ChangeSecret {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    List<String> argsList = new ArrayList<String>(args.length + 2);
+    List<String> argsList = new ArrayList<>(args.length + 2);
     argsList.add("--old");
     argsList.add("--new");
     argsList.addAll(Arrays.asList(args));
@@ -90,7 +90,7 @@ public class ChangeSecret {
   private static boolean verifyAccumuloIsDown(Instance inst, String oldPassword) {
     ZooReader zooReader = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPassword);
     String root = ZooUtil.getRoot(inst);
-    final List<String> ephemerals = new ArrayList<String>();
+    final List<String> ephemerals = new ArrayList<>();
     recurse(zooReader, root, new Visitor() {
       @Override
       public void visit(ZooReader zoo, String path) throws Exception {

@@ -57,7 +57,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   public static final String QUEUE_SIZE = "tracer.queue.size";
   public static final String SPAN_MIN_MS = "tracer.span.min.ms";
 
-  private final Map<SpanKey,Destination> clients = new HashMap<SpanKey,Destination>();
+  private final Map<SpanKey,Destination> clients = new HashMap<>();
 
   protected String host = null;
   protected String service = null;
@@ -69,7 +69,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   protected abstract SpanKey getSpanKey(Map<String,String> data);
 
   Timer timer = new Timer("SpanSender", true);
-  protected final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
+  protected final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<>();
   protected final AtomicInteger sendQueueSize = new AtomicInteger(0);
   int maxQueueSize = 5000;
   long lastNotificationOfDroppedSpans = 0;
@@ -150,7 +150,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   public static List<Annotation> convertToAnnotations(List<TimelineAnnotation> annotations) {
     if (annotations == null)
       return null;
-    List<Annotation> result = new ArrayList<Annotation>();
+    List<Annotation> result = new ArrayList<>();
     for (TimelineAnnotation annotation : annotations) {
       result.add(new Annotation(annotation.getTime(), annotation.getMessage()));
     }

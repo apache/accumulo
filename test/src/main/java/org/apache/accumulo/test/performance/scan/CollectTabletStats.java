@@ -119,7 +119,7 @@ public class CollectTabletStats {
       System.exit(-1);
     }
 
-    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
+    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
     List<KeyExtent> candidates = findTablets(context, !opts.selectFarTablets, opts.getTableName(), tabletLocations);
 
     if (candidates.size() < opts.numThreads) {
@@ -129,7 +129,7 @@ public class CollectTabletStats {
 
     List<KeyExtent> tabletsToTest = selectRandomTablets(opts.numThreads, candidates);
 
-    Map<KeyExtent,List<FileRef>> tabletFiles = new HashMap<KeyExtent,List<FileRef>>();
+    Map<KeyExtent,List<FileRef>> tabletFiles = new HashMap<>();
 
     for (KeyExtent ke : tabletsToTest) {
       List<FileRef> files = getTabletFiles(context, tableId, ke);
@@ -155,7 +155,7 @@ public class CollectTabletStats {
 
     for (int i = 0; i < opts.iterations; i++) {
 
-      ArrayList<Test> tests = new ArrayList<Test>();
+      ArrayList<Test> tests = new ArrayList<>();
 
       for (final KeyExtent ke : tabletsToTest) {
         final List<FileRef> files = tabletFiles.get(ke);
@@ -175,7 +175,7 @@ public class CollectTabletStats {
 
     for (int i = 0; i < opts.iterations; i++) {
 
-      ArrayList<Test> tests = new ArrayList<Test>();
+      ArrayList<Test> tests = new ArrayList<>();
 
       for (final KeyExtent ke : tabletsToTest) {
         final List<FileRef> files = tabletFiles.get(ke);
@@ -193,7 +193,7 @@ public class CollectTabletStats {
     }
 
     for (int i = 0; i < opts.iterations; i++) {
-      ArrayList<Test> tests = new ArrayList<Test>();
+      ArrayList<Test> tests = new ArrayList<>();
 
       for (final KeyExtent ke : tabletsToTest) {
         final List<FileRef> files = tabletFiles.get(ke);
@@ -212,7 +212,7 @@ public class CollectTabletStats {
 
     for (int i = 0; i < opts.iterations; i++) {
 
-      ArrayList<Test> tests = new ArrayList<Test>();
+      ArrayList<Test> tests = new ArrayList<>();
 
       final Connector conn = opts.getConnector();
 
@@ -354,7 +354,7 @@ public class CollectTabletStats {
 
     InetAddress localaddress = InetAddress.getLocalHost();
 
-    List<KeyExtent> candidates = new ArrayList<KeyExtent>();
+    List<KeyExtent> candidates = new ArrayList<>();
 
     for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
       String loc = entry.getValue();
@@ -372,7 +372,7 @@ public class CollectTabletStats {
   }
 
   private static List<KeyExtent> selectRandomTablets(int numThreads, List<KeyExtent> candidates) {
-    List<KeyExtent> tabletsToTest = new ArrayList<KeyExtent>();
+    List<KeyExtent> tabletsToTest = new ArrayList<>();
 
     Random rand = new Random();
     for (int i = 0; i < numThreads; i++) {
@@ -385,7 +385,7 @@ public class CollectTabletStats {
   }
 
   private static List<FileRef> getTabletFiles(ClientContext context, String tableId, KeyExtent ke) throws IOException {
-    return new ArrayList<FileRef>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
+    return new ArrayList<>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
   }
 
   private static void reportHdfsBlockLocations(List<FileRef> files) throws Exception {
@@ -423,7 +423,7 @@ public class CollectTabletStats {
 
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<Key,Value>());
 
-    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(mapfiles.size() + 1);
+    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(mapfiles.size() + 1);
 
     iters.addAll(mapfiles);
     iters.add(smi);
@@ -462,7 +462,7 @@ public class CollectTabletStats {
   }
 
   private static HashSet<ByteSequence> createColumnBSS(String[] columns) {
-    HashSet<ByteSequence> columnSet = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> columnSet = new HashSet<>();
     for (String c : columns) {
       columnSet.add(new ArrayByteSequence(c));
     }
@@ -474,7 +474,7 @@ public class CollectTabletStats {
 
     SortedKeyValueIterator<Key,Value> reader;
 
-    List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<SortedKeyValueIterator<Key,Value>>(files.size());
+    List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
 
     for (FileRef file : files) {
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();

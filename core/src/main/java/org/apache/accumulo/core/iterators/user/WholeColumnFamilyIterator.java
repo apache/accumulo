@@ -73,7 +73,7 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
    *           Signals that an I/O exception has occurred.
    */
   public static final SortedMap<Key,Value> decodeColumnFamily(Key rowKey, Value rowValue) throws IOException {
-    SortedMap<Key,Value> map = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map = new TreeMap<>();
     ByteArrayInputStream in = new ByteArrayInputStream(rowValue.get());
     DataInputStream din = new DataInputStream(in);
     int numKeys = din.readInt();
@@ -148,8 +148,8 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
     return new Value(out.toByteArray());
   }
 
-  List<Key> keys = new ArrayList<Key>();
-  List<Value> values = new ArrayList<Value>();
+  List<Key> keys = new ArrayList<>();
+  List<Value> values = new ArrayList<>();
 
   private void prepKeys() throws IOException {
     if (topKey != null)

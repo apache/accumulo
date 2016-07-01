@@ -224,9 +224,9 @@ public class AccumuloClassLoader {
   private static ArrayList<URL> findAccumuloURLs() throws IOException {
     String cp = getAccumuloString(AccumuloClassLoader.CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.ACCUMULO_CLASSPATH_VALUE);
     if (cp == null)
-      return new ArrayList<URL>();
+      return new ArrayList<>();
     String[] cps = replaceEnvVars(cp, System.getenv()).split(",");
-    ArrayList<URL> urls = new ArrayList<URL>();
+    ArrayList<URL> urls = new ArrayList<>();
     for (String classpath : getMavenClasspaths())
       addUrl(classpath, urls);
     for (String classpath : cps) {
@@ -241,7 +241,7 @@ public class AccumuloClassLoader {
     String baseDirname = AccumuloClassLoader.getAccumuloString(MAVEN_PROJECT_BASEDIR_PROPERTY_NAME, DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE);
     if (baseDirname == null || baseDirname.trim().isEmpty())
       return Collections.emptySet();
-    Set<String> paths = new TreeSet<String>();
+    Set<String> paths = new TreeSet<>();
     findMavenTargetClasses(paths, new File(baseDirname.trim()), 0);
     return paths;
   }

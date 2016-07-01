@@ -84,7 +84,7 @@ public class TablesServlet extends BasicServlet {
     tableList.addSortableColumn("Table&nbsp;Name", new TableLinkType(), null);
     tableList.addSortableColumn("State", new TableStateType(), null);
     tableList.addSortableColumn("#&nbsp;Tablets", new NumberType<Integer>(), "Tables are broken down into ranges of rows called tablets.");
-    tableList.addSortableColumn("#&nbsp;Offline<br />Tablets", new NumberType<Integer>(0, 0), "Tablets unavailable for query or ingest.  "
+    tableList.addSortableColumn("#&nbsp;Offline<br />Tablets", new NumberType<>(0, 0), "Tablets unavailable for query or ingest.  "
         + "May be a transient condition when tablets are moved for balancing.");
     tableList.addSortableColumn("Entries", new NumberType<Long>(), "Key/value pairs over each instance, table or tablet.");
     tableList.addSortableColumn("Entries<br />In&nbsp;Memory", new NumberType<Long>(),
@@ -106,7 +106,7 @@ public class TablesServlet extends BasicServlet {
         "Gathering up many small files and rewriting them as one larger file is called a 'Major Compaction'. "
             + "Major Compactions are performed as a consequence of new files created from Minor Compactions and Bulk Load operations.  "
             + "They reduce the number of files used during queries.");
-    SortedMap<String,TableInfo> tableStats = new TreeMap<String,TableInfo>();
+    SortedMap<String,TableInfo> tableStats = new TreeMap<>();
 
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
       for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
@@ -145,7 +145,7 @@ public class TablesServlet extends BasicServlet {
   private void doTableDetails(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap, String tableId) {
     String displayName = Tables.getPrintableTableNameFromId(tidToNameMap, tableId);
     Instance instance = Monitor.getContext().getInstance();
-    TreeSet<String> locs = new TreeSet<String>();
+    TreeSet<String> locs = new TreeSet<>();
     if (RootTable.ID.equals(tableId)) {
       locs.add(instance.getRootTabletLocation());
     } else {
@@ -168,7 +168,7 @@ public class TablesServlet extends BasicServlet {
 
     log.debug("Locs: " + locs);
 
-    List<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
+    List<TabletServerStatus> tservers = new ArrayList<>();
     if (Monitor.getMmi() != null) {
       for (TabletServerStatus tss : Monitor.getMmi().tServerInfo) {
         try {

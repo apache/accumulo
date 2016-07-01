@@ -33,14 +33,14 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 
 public class UpdateSession extends Session {
   public final TservConstraintEnv cenv;
-  public final MapCounter<Tablet> successfulCommits = new MapCounter<Tablet>();
-  public final Map<KeyExtent,Long> failures = new HashMap<KeyExtent,Long>();
-  public final HashMap<KeyExtent,SecurityErrorCode> authFailures = new HashMap<KeyExtent,SecurityErrorCode>();
+  public final MapCounter<Tablet> successfulCommits = new MapCounter<>();
+  public final Map<KeyExtent,Long> failures = new HashMap<>();
+  public final HashMap<KeyExtent,SecurityErrorCode> authFailures = new HashMap<>();
   public final Stat prepareTimes = new Stat();
   public final Stat walogTimes = new Stat();
   public final Stat commitTimes = new Stat();
   public final Stat authTimes = new Stat();
-  public final Map<Tablet,List<Mutation>> queuedMutations = new HashMap<Tablet,List<Mutation>>();
+  public final Map<Tablet,List<Mutation>> queuedMutations = new HashMap<>();
   public final Violations violations;
 
   public Tablet currentTablet = null;

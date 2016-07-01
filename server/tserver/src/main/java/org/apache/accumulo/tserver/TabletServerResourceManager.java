@@ -84,7 +84,7 @@ public class TabletServerResourceManager {
   private final ExecutorService assignMetaDataPool;
   private final ExecutorService readAheadThreadPool;
   private final ExecutorService defaultReadAheadThreadPool;
-  private final Map<String,ExecutorService> threadPools = new TreeMap<String,ExecutorService>();
+  private final Map<String,ExecutorService> threadPools = new TreeMap<>();
 
   private final ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments;
 
@@ -207,7 +207,7 @@ public class TabletServerResourceManager {
 
     assignMetaDataPool = createEs(0, 1, 60, "metadata tablet assignment");
 
-    activeAssignments = new ConcurrentHashMap<KeyExtent,RunnableStartedAt>();
+    activeAssignments = new ConcurrentHashMap<>();
 
     readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
     defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
@@ -332,7 +332,7 @@ public class TabletServerResourceManager {
 
     MemoryManagementFramework() {
       tabletReports = Collections.synchronizedMap(new HashMap<KeyExtent,TabletStateImpl>());
-      memUsageReports = new LinkedBlockingQueue<TabletStateImpl>();
+      memUsageReports = new LinkedBlockingQueue<>();
       maxMem = conf.getConfiguration().getMemoryInBytes(Property.TSERV_MAXMEM);
 
       Runnable r1 = new Runnable() {
@@ -408,7 +408,7 @@ public class TabletServerResourceManager {
         Map<KeyExtent,TabletStateImpl> tabletReportsCopy = null;
         try {
           synchronized (tabletReports) {
-            tabletReportsCopy = new HashMap<KeyExtent,TabletStateImpl>(tabletReports);
+            tabletReportsCopy = new HashMap<>(tabletReports);
           }
           ArrayList<TabletState> tabletStates = new ArrayList<TabletState>(tabletReportsCopy.values());
           mma = memoryManager.getMemoryManagementActions(tabletStates);

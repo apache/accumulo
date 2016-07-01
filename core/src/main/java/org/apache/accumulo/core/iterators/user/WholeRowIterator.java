@@ -84,7 +84,7 @@ public class WholeRowIterator extends RowEncodingIterator {
 
   // decode a bunch of key value pairs that have been encoded into a single value
   public static final SortedMap<Key,Value> decodeRow(Key rowKey, Value rowValue) throws IOException {
-    SortedMap<Key,Value> map = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map = new TreeMap<>();
     ByteArrayInputStream in = new ByteArrayInputStream(rowValue.get());
     DataInputStream din = new DataInputStream(in);
     int numKeys = din.readInt();

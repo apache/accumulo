@@ -148,9 +148,9 @@ public class ZooCache {
    */
   public ZooCache(ZooReader reader, Watcher watcher) {
     this.zReader = reader;
-    this.cache = new HashMap<String,byte[]>();
-    this.statCache = new HashMap<String,Stat>();
-    this.childrenCache = new HashMap<String,List<String>>();
+    this.cache = new HashMap<>();
+    this.statCache = new HashMap<>();
+    this.childrenCache = new HashMap<>();
     this.externalWatcher = watcher;
   }
 

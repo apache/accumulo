@@ -40,7 +40,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
 
   private TermSource currentTerm;
   private ArrayList<TermSource> sources;
-  private PriorityQueue<TermSource> sorted = new PriorityQueue<TermSource>(5);
+  private PriorityQueue<TermSource> sorted = new PriorityQueue<>(5);
   private static final Text nullText = new Text();
   private static final Key nullKey = new Key();
 
@@ -83,11 +83,11 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   public OrIterator() {
-    this.sources = new ArrayList<TermSource>();
+    this.sources = new ArrayList<>();
   }
 
   private OrIterator(OrIterator other, IteratorEnvironment env) {
-    this.sources = new ArrayList<TermSource>();
+    this.sources = new ArrayList<>();
 
     for (TermSource TS : other.sources)
       this.sources.add(new TermSource(TS.iter.deepCopy(env), TS.term));

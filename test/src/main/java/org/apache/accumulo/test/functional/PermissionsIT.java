@@ -126,7 +126,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
   }
 
   static Map<String,String> map(Iterable<Entry<String,String>> i) {
-    Map<String,String> result = new HashMap<String,String>();
+    Map<String,String> result = new HashMap<>();
     for (Entry<String,String> e : i) {
       result.put(e.getKey(), e.getValue());
     }
@@ -609,8 +609,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
         // test for bulk import permission would go here
         break;
       case ALTER_TABLE:
-        Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
-        groups.put("tgroup", new HashSet<Text>(Arrays.asList(new Text("t1"), new Text("t2"))));
+        Map<String,Set<Text>> groups = new HashMap<>();
+        groups.put("tgroup", new HashSet<>(Arrays.asList(new Text("t1"), new Text("t2"))));
         try {
           test_user_conn.tableOperations().setLocalityGroups(tableName, groups);
           throw new IllegalStateException("User should not be able to set locality groups");
@@ -668,8 +668,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
         // test for bulk import permission would go here
         break;
       case ALTER_TABLE:
-        Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
-        groups.put("tgroup", new HashSet<Text>(Arrays.asList(new Text("t1"), new Text("t2"))));
+        Map<String,Set<Text>> groups = new HashMap<>();
+        groups.put("tgroup", new HashSet<>(Arrays.asList(new Text("t1"), new Text("t2"))));
         break;
       case DROP_TABLE:
         test_user_conn.tableOperations().delete(tableName);

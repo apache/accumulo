@@ -107,7 +107,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
             }
             writer.close();
           }
-          return new Pair<String,String>(files.toString(), bulkFailures.toString());
+          return new Pair<>(files.toString(), bulkFailures.toString());
         }
       }));
     }

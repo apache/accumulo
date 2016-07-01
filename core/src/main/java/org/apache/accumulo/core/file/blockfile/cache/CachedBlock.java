@@ -44,7 +44,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
      * Block from in-memory store
      */
     MEMORY
-  };
+  }
 
   private final String blockName;
   private final byte buf[];

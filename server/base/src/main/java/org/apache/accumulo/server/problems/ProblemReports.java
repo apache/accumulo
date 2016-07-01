@@ -305,12 +305,12 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
   public Map<String,Map<ProblemType,Integer>> summarize() {
 
-    TreeMap<String,Map<ProblemType,Integer>> summary = new TreeMap<String,Map<ProblemType,Integer>>();
+    TreeMap<String,Map<ProblemType,Integer>> summary = new TreeMap<>();
 
     for (ProblemReport pr : this) {
       Map<ProblemType,Integer> tableProblems = summary.get(pr.getTableName());
       if (tableProblems == null) {
-        tableProblems = new EnumMap<ProblemType,Integer>(ProblemType.class);
+        tableProblems = new EnumMap<>(ProblemType.class);
         summary.put(pr.getTableName(), tableProblems);
       }
 

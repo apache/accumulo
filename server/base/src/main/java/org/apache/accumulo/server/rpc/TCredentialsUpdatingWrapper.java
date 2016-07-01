@@ -29,7 +29,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 public class TCredentialsUpdatingWrapper {
 
   public static <T> T service(final T instance, final Class<? extends T> originalClass, AccumuloConfiguration conf) {
-    InvocationHandler handler = new TCredentialsUpdatingInvocationHandler<T>(instance, conf);
+    InvocationHandler handler = new TCredentialsUpdatingInvocationHandler<>(instance, conf);
 
     @SuppressWarnings("unchecked")
     T proxiedInstance = (T) Proxy.newProxyInstance(originalClass.getClassLoader(), originalClass.getInterfaces(), handler);

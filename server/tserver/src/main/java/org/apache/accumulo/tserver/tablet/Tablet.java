@@ -186,7 +186,7 @@ public class Tablet implements TabletCommitter {
     return dataSourceDeletions.get();
   }
 
-  private final Set<ScanDataSource> activeScans = new HashSet<ScanDataSource>();
+  private final Set<ScanDataSource> activeScans = new HashSet<>();
 
   private static enum CloseState {
     OPEN, CLOSING, CLOSED, COMPLETE
@@ -209,14 +209,14 @@ public class Tablet implements TabletCommitter {
 
   static enum CompactionState {
     WAITING_TO_START, IN_PROGRESS
-  };
+  }
 
   private volatile CompactionState minorCompactionState = null;
   private volatile CompactionState majorCompactionState = null;
 
   private final Set<MajorCompactionReason> majorCompactionQueued = Collections.synchronizedSet(EnumSet.noneOf(MajorCompactionReason.class));
 
-  private final AtomicReference<ConstraintChecker> constraintChecker = new AtomicReference<ConstraintChecker>();
+  private final AtomicReference<ConstraintChecker> constraintChecker = new AtomicReference<>();
 
   private int writesInProgress = 0;
 
@@ -257,7 +257,7 @@ public class Tablet implements TabletCommitter {
   }
 
   public static class LookupResult {
-    public List<Range> unfinishedRanges = new ArrayList<Range>();
+    public List<Range> unfinishedRanges = new ArrayList<>();
     public long bytesAdded = 0;
     public long dataSize = 0;
     public boolean closed = false;
@@ -349,7 +349,7 @@ public class Tablet implements TabletCommitter {
     this.location = locationPath;
     this.tabletDirectory = tabletPaths.dir;
     for (Entry<Long,List<FileRef>> entry : data.getBulkImported().entrySet()) {
-      this.bulkImported.put(entry.getKey(), new CopyOnWriteArrayList<FileRef>(entry.getValue()));
+      this.bulkImported.put(entry.getKey(), new CopyOnWriteArrayList<>(entry.getValue()));
     }
     setupDefaultSecurityLabels(extent);
 
@@ -408,7 +408,7 @@ public class Tablet implements TabletCommitter {
       final AtomicLong maxTime = new AtomicLong(Long.MIN_VALUE);
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
-        Set<String> absPaths = new HashSet<String>();
+        Set<String> absPaths = new HashSet<>();
         for (FileRef ref : datafiles.keySet())
           absPaths.add(ref.path().toString());
 
@@ -466,7 +466,7 @@ public class Tablet implements TabletCommitter {
         }
       }
       // make some closed references that represent the recovered logs
-      currentLogs = new ConcurrentSkipListSet<DfsLogger>();
+      currentLogs = new ConcurrentSkipListSet<>();
       for (LogEntry logEntry : logEntries) {
         currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.filename, logEntry.getColumnQualifier().toString()));
       }
@@ -704,7 +704,7 @@ public class Tablet implements TabletCommitter {
     if (batchTimeOut == Long.MAX_VALUE || batchTimeOut <= 0) {
       batchTimeOut = 0;
     }
-    List<KVEntry> results = new ArrayList<KVEntry>();
+    List<KVEntry> results = new ArrayList<>();
     Key key = null;
 
     Value value;
@@ -853,7 +853,7 @@ public class Tablet implements TabletCommitter {
   private synchronized MinorCompactionTask prepareForMinC(long flushId, MinorCompactionReason mincReason) {
     CommitSession oldCommitSession = getTabletMemory().prepareForMinC();
     otherLogs = currentLogs;
-    currentLogs = new ConcurrentSkipListSet<DfsLogger>();
+    currentLogs = new ConcurrentSkipListSet<>();
 
     FileRef mergeFile = null;
     if (mincReason != MinorCompactionReason.RECOVERY) {
@@ -1050,7 +1050,7 @@ public class Tablet implements TabletCommitter {
         }
       }
 
-      return new Pair<Long,UserCompactionConfig>(compactID, compactionConfig);
+      return new Pair<>(compactID, compactionConfig);
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (NumberFormatException nfe) {
@@ -1103,7 +1103,7 @@ public class Tablet implements TabletCommitter {
       if (more != null) {
         violations.add(more);
         if (violators == null)
-          violators = new ArrayList<Mutation>();
+          violators = new ArrayList<>();
         violators.add(mutation);
       }
     }
@@ -1112,8 +1112,8 @@ public class Tablet implements TabletCommitter {
 
     if (!violations.isEmpty()) {
 
-      HashSet<Mutation> violatorsSet = new HashSet<Mutation>(violators);
-      ArrayList<Mutation> nonViolators = new ArrayList<Mutation>();
+      HashSet<Mutation> violatorsSet = new HashSet<>(violators);
+      ArrayList<Mutation> nonViolators = new ArrayList<>();
 
       for (Mutation mutation : mutations) {
         if (!violatorsSet.contains(mutation)) {
@@ -1578,7 +1578,7 @@ public class Tablet implements TabletCommitter {
   }
 
   private Map<FileRef,Pair<Key,Key>> getFirstAndLastKeys(SortedMap<FileRef,DataFileValue> allFiles) throws IOException {
-    Map<FileRef,Pair<Key,Key>> result = new HashMap<FileRef,Pair<Key,Key>>();
+    Map<FileRef,Pair<Key,Key>> result = new HashMap<>();
     FileOperations fileFactory = FileOperations.getInstance();
     VolumeManager fs = getTabletServer().getFileSystem();
     for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
@@ -1589,7 +1589,7 @@ public class Tablet implements TabletCommitter {
       try {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
-        result.put(file, new Pair<Key,Key>(first, last));
+        result.put(file, new Pair<>(first, last));
       } finally {
         openReader.close();
       }
@@ -1598,7 +1598,7 @@ public class Tablet implements TabletCommitter {
   }
 
   List<FileRef> findChopFiles(KeyExtent extent, Map<FileRef,Pair<Key,Key>> firstAndLastKeys, Collection<FileRef> allFiles) throws IOException {
-    List<FileRef> result = new ArrayList<FileRef>();
+    List<FileRef> result = new ArrayList<>();
     if (firstAndLastKeys == null) {
       result.addAll(allFiles);
       return result;
@@ -1706,7 +1706,7 @@ public class Tablet implements TabletCommitter {
         RootFiles.cleanupReplacement(fs, fs.listStatus(this.location), false);
       }
       SortedMap<FileRef,DataFileValue> allFiles = getDatafileManager().getDatafileSizes();
-      List<FileRef> inputFiles = new ArrayList<FileRef>();
+      List<FileRef> inputFiles = new ArrayList<>();
       if (reason == MajorCompactionReason.CHOP) {
         // enforce rules: files with keys outside our range need to be compacted
         inputFiles.addAll(findChopFiles(extent, firstAndLastKeys, allFiles.keySet()));
@@ -1773,7 +1773,7 @@ public class Tablet implements TabletCommitter {
         }
       }
 
-      List<IteratorSetting> compactionIterators = new ArrayList<IteratorSetting>();
+      List<IteratorSetting> compactionIterators = new ArrayList<>();
       if (compactionId != null) {
         if (reason == MajorCompactionReason.USER) {
           if (getCompactionCancelID() >= compactionId.getFirst()) {
@@ -1834,7 +1834,7 @@ public class Tablet implements TabletCommitter {
 
           };
 
-          HashMap<FileRef,DataFileValue> copy = new HashMap<FileRef,DataFileValue>(getDatafileManager().getDatafileSizes());
+          HashMap<FileRef,DataFileValue> copy = new HashMap<>(getDatafileManager().getDatafileSizes());
           if (!copy.keySet().containsAll(smallestFiles))
             throw new IllegalStateException("Cannot find data file values for " + smallestFiles);
 
@@ -1902,12 +1902,12 @@ public class Tablet implements TabletCommitter {
 
     // short-circuit; also handles zero files case
     if (filesToCompact.size() <= maxFilesToCompact) {
-      Set<FileRef> smallestFiles = new HashSet<FileRef>(filesToCompact.keySet());
+      Set<FileRef> smallestFiles = new HashSet<>(filesToCompact.keySet());
       filesToCompact.clear();
       return smallestFiles;
     }
 
-    PriorityQueue<Pair<FileRef,Long>> fileHeap = new PriorityQueue<Pair<FileRef,Long>>(filesToCompact.size(), new Comparator<Pair<FileRef,Long>>() {
+    PriorityQueue<Pair<FileRef,Long>> fileHeap = new PriorityQueue<>(filesToCompact.size(), new Comparator<Pair<FileRef,Long>>() {
       @Override
       public int compare(Pair<FileRef,Long> o1, Pair<FileRef,Long> o2) {
         if (o1.getSecond() == o2.getSecond())
@@ -1920,10 +1920,10 @@ public class Tablet implements TabletCommitter {
 
     for (Iterator<Entry<FileRef,DataFileValue>> iterator = filesToCompact.entrySet().iterator(); iterator.hasNext();) {
       Entry<FileRef,DataFileValue> entry = iterator.next();
-      fileHeap.add(new Pair<FileRef,Long>(entry.getKey(), entry.getValue().getSize()));
+      fileHeap.add(new Pair<>(entry.getKey(), entry.getValue().getSize()));
     }
 
-    Set<FileRef> smallestFiles = new HashSet<FileRef>();
+    Set<FileRef> smallestFiles = new HashSet<>();
     while (smallestFiles.size() < maxFilesToCompact && fileHeap.size() > 0) {
       Pair<FileRef,Long> pair = fileHeap.remove();
       filesToCompact.remove(pair.getFirst());
@@ -2092,7 +2092,7 @@ public class Tablet implements TabletCommitter {
 
     synchronized (this) {
       // java needs tuples ...
-      TreeMap<KeyExtent,TabletData> newTablets = new TreeMap<KeyExtent,TabletData>();
+      TreeMap<KeyExtent,TabletData> newTablets = new TreeMap<>();
 
       long t1 = System.currentTimeMillis();
       // choose a split point
@@ -2123,9 +2123,9 @@ public class Tablet implements TabletCommitter {
       String lowDirectory = createTabletDirectory(getTabletServer().getFileSystem(), extent.getTableId(), midRow);
 
       // write new tablet information to MetadataTable
-      SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<FileRef,DataFileValue>();
-      SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<FileRef,DataFileValue>();
-      List<FileRef> highDatafilesToRemove = new ArrayList<FileRef>();
+      SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
+      SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
+      List<FileRef> highDatafilesToRemove = new ArrayList<>();
 
       MetadataTableUtil.splitDatafiles(extent.getTableId(), midRow, splitRatio, firstAndLastRows, getDatafileManager().getDatafileSizes(), lowDatafileSizes,
           highDatafileSizes, highDatafilesToRemove);
@@ -2196,7 +2196,7 @@ public class Tablet implements TabletCommitter {
   }
 
   public void importMapFiles(long tid, Map<FileRef,MapFileInfo> fileMap, boolean setTime) throws IOException {
-    Map<FileRef,DataFileValue> entries = new HashMap<FileRef,DataFileValue>(fileMap.size());
+    Map<FileRef,DataFileValue> entries = new HashMap<>(fileMap.size());
     List<String> files = new ArrayList<>();
 
     for (Entry<FileRef,MapFileInfo> entry : fileMap.entrySet()) {
@@ -2259,7 +2259,7 @@ public class Tablet implements TabletCommitter {
           bulkImported.get(tid, new Callable<List<FileRef>>() {
             @Override
             public List<FileRef> call() throws Exception {
-              return new ArrayList<FileRef>();
+              return new ArrayList<>();
             }
           }).addAll(fileMap.keySet());
         } catch (Exception ex) {
@@ -2270,18 +2270,18 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private ConcurrentSkipListSet<DfsLogger> currentLogs = new ConcurrentSkipListSet<DfsLogger>();
+  private ConcurrentSkipListSet<DfsLogger> currentLogs = new ConcurrentSkipListSet<>();
 
   // currentLogs may be updated while a tablet is otherwise locked
   public Set<DfsLogger> getCurrentLogFiles() {
-    return new HashSet<DfsLogger>(currentLogs);
+    return new HashSet<>(currentLogs);
   }
 
   Set<String> beginClearingUnusedLogs() {
-    Set<String> doomed = new HashSet<String>();
+    Set<String> doomed = new HashSet<>();
 
-    ArrayList<String> otherLogsCopy = new ArrayList<String>();
-    ArrayList<String> currentLogsCopy = new ArrayList<String>();
+    ArrayList<String> otherLogsCopy = new ArrayList<>();
+    ArrayList<String> currentLogsCopy = new ArrayList<>();
 
     // do not hold tablet lock while acquiring the log lock
     logLock.lock();
@@ -2650,7 +2650,7 @@ public class Tablet implements TabletCommitter {
   }
 
   public Map<Long,List<FileRef>> getBulkIngestedFiles() {
-    return new HashMap<Long,List<FileRef>>(bulkImported.asMap());
+    return new HashMap<>(bulkImported.asMap());
   }
 
   public void cleanupBulkLoadedFiles(Set<Long> tids) {

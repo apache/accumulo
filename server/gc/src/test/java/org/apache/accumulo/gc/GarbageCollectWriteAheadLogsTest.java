@@ -88,7 +88,7 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
 
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
-    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<WalState,Path>(WalState.UNREFERENCED, path));
+    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.UNREFERENCED, path));
     EasyMock.expect(fs.deleteRecursively(path)).andReturn(true).once();
     marker.removeWalMarker(server1, id);
     EasyMock.expectLastCall().once();
@@ -114,7 +114,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
-    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<WalState,Path>(WalState.CLOSED, path));
+    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.CLOSED, path));
     EasyMock.replay(context, marker, tserverSet, fs);
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false, tserverSet, marker, tabletOnServer1List) {
       @Override
@@ -215,7 +215,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
-    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<WalState,Path>(WalState.UNREFERENCED, path));
+    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.UNREFERENCED, path));
     EasyMock.expect(context.getConnector()).andReturn(conn);
 
     EasyMock.expect(conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)).andReturn(rscanner);

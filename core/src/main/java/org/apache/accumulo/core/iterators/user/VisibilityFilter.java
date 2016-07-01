@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -37,7 +36,7 @@ import org.apache.hadoop.io.Text;
 /**
  *
  */
-public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.VisibilityFilter implements OptionDescriber {
+public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.VisibilityFilter {
 
   private static final String AUTHS = "auths";
   private static final String FILTER_INVALID_ONLY = "filterInvalid";

@@ -41,11 +41,11 @@ public class AddSplits extends Test {
 
     @SuppressWarnings("unchecked")
     List<String> tableNames = (List<String>) state.get("tables");
-    tableNames = new ArrayList<String>(tableNames);
+    tableNames = new ArrayList<>(tableNames);
     tableNames.add(MetadataTable.NAME);
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
 
-    TreeSet<Text> splits = new TreeSet<Text>();
+    TreeSet<Text> splits = new TreeSet<>();
 
     for (int i = 0; i < rand.nextInt(10) + 1; i++)
       splits.add(new Text(String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl)));

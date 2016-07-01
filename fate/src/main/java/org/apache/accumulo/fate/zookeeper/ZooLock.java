@@ -404,7 +404,7 @@ public class ZooLock implements Watcher {
       return false;
     }
 
-    children = new ArrayList<String>(children);
+    children = new ArrayList<>(children);
     Collections.sort(children);
 
     String lockNode = children.get(0);
@@ -437,7 +437,7 @@ public class ZooLock implements Watcher {
       return null;
     }
 
-    children = new ArrayList<String>(children);
+    children = new ArrayList<>(children);
     Collections.sort(children);
 
     String lockNode = children.get(0);
@@ -456,7 +456,7 @@ public class ZooLock implements Watcher {
       return 0;
     }
 
-    children = new ArrayList<String>(children);
+    children = new ArrayList<>(children);
     Collections.sort(children);
 
     String lockNode = children.get(0);

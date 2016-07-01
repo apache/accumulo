@@ -382,7 +382,7 @@ public final class Compression {
   public static String[] getSupportedAlgorithms() {
     Algorithm[] algos = Algorithm.class.getEnumConstants();
 
-    ArrayList<String> ret = new ArrayList<String>();
+    ArrayList<String> ret = new ArrayList<>();
     for (Algorithm a : algos) {
       if (a.isSupported()) {
         ret.add(a.getName());

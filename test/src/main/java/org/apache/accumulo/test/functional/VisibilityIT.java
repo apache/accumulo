@@ -94,7 +94,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
   }
 
   private static SortedSet<String> nss(String... labels) {
-    TreeSet<String> ts = new TreeSet<String>();
+    TreeSet<String> ts = new TreeSet<>();
 
     for (String s : labels) {
       ts.add(s);
@@ -153,7 +153,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
     bw.addMutation(m1);
     bw.close();
 
-    Map<Set<String>,Set<String>> expected = new HashMap<Set<String>,Set<String>>();
+    Map<Set<String>,Set<String>> expected = new HashMap<>();
 
     expected.put(nss("A", "L"), nss("v5"));
     expected.put(nss("A", "M"), nss("v5"));
@@ -184,10 +184,10 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
     all.add(prefix);
 
-    TreeSet<String> ss = new TreeSet<String>(suffix);
+    TreeSet<String> ss = new TreeSet<>(suffix);
 
     for (String s : suffix) {
-      TreeSet<String> ps = new TreeSet<String>(prefix);
+      TreeSet<String> ps = new TreeSet<>(prefix);
       ps.add(s);
       ss.remove(s);
 
@@ -196,7 +196,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
   }
 
   private void queryData(Connector c, String tableName) throws Exception {
-    Map<Set<String>,Set<String>> expected = new HashMap<Set<String>,Set<String>>();
+    Map<Set<String>,Set<String>> expected = new HashMap<>();
     expected.put(nss(), nss("v1"));
     expected.put(nss("A"), nss("v2"));
     expected.put(nss("A", "L"), nss("v5"));
@@ -227,14 +227,14 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
     c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations(nbas(userAuths)));
 
-    ArrayList<Set<String>> combos = new ArrayList<Set<String>>();
+    ArrayList<Set<String>> combos = new ArrayList<>();
     uniqueCombos(combos, nss(), allAuths);
 
     for (Set<String> set1 : combos) {
-      Set<String> e = new TreeSet<String>();
+      Set<String> e = new TreeSet<>();
       for (Set<String> set2 : combos) {
 
-        set2 = new HashSet<String>(set2);
+        set2 = new HashSet<>(set2);
         set2.retainAll(userAuths);
 
         if (set1.containsAll(set2) && expected.containsKey(set2)) {
@@ -300,7 +300,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
   }
 
   private void verify(Iterator<Entry<Key,Value>> iter, String... expected) throws Exception {
-    HashSet<String> valuesSeen = new HashSet<String>();
+    HashSet<String> valuesSeen = new HashSet<>();
 
     while (iter.hasNext()) {
       Entry<Key,Value> entry = iter.next();

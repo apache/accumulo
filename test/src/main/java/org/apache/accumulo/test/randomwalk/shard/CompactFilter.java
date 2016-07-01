@@ -49,7 +49,7 @@ public class CompactFilter extends Test {
     String deleteChar = Integer.toHexString(rand.nextInt(16)) + "";
     String regex = "^[0-9a-f][" + deleteChar + "].*";
 
-    ArrayList<IteratorSetting> documentFilters = new ArrayList<IteratorSetting>();
+    ArrayList<IteratorSetting> documentFilters = new ArrayList<>();
 
     IteratorSetting is = new IteratorSetting(21, "ii", RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
@@ -61,7 +61,7 @@ public class CompactFilter extends Test {
     long t2 = System.currentTimeMillis();
     long t3 = t2 - t1;
 
-    ArrayList<IteratorSetting> indexFilters = new ArrayList<IteratorSetting>();
+    ArrayList<IteratorSetting> indexFilters = new ArrayList<>();
 
     is = new IteratorSetting(21, RegExFilter.class);
     RegExFilter.setRegexs(is, null, null, regex, null, false);
@@ -76,7 +76,7 @@ public class CompactFilter extends Test {
 
     BatchScanner bscanner = env.getConnector().createBatchScanner(docTableName, new Authorizations(), 10);
 
-    List<Range> ranges = new ArrayList<Range>();
+    List<Range> ranges = new ArrayList<>();
     for (int i = 0; i < 16; i++) {
       ranges.add(Range.prefix(new Text(Integer.toHexString(i) + "" + deleteChar)));
     }

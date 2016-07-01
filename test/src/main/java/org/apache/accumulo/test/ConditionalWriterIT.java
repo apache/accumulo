@@ -520,7 +520,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       cm5.put("count2", "comments", "1");
 
       Iterator<Result> results = cw.write(Arrays.asList(cm3, cm4, cm5).iterator());
-      Map<String,Status> actual = new HashMap<String,Status>();
+      Map<String,Status> actual = new HashMap<>();
 
       while (results.hasNext()) {
         Result result = results.next();
@@ -529,7 +529,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         actual.put(k, result.getStatus());
       }
 
-      Map<String,Status> expected = new HashMap<String,Status>();
+      Map<String,Status> expected = new HashMap<>();
       expected.put("ACCUMULO-1000", Status.ACCEPTED);
       expected.put("ACCUMULO-1001", Status.ACCEPTED);
       expected.put("ACCUMULO-1002", Status.REJECTED);
@@ -647,7 +647,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       cm5.put("count", "comments", "3");
 
       Iterator<Result> results = cw.write(Arrays.asList(cm3, cm4, cm5).iterator());
-      Map<String,Status> actual = new HashMap<String,Status>();
+      Map<String,Status> actual = new HashMap<>();
 
       while (results.hasNext()) {
         Result result = results.next();
@@ -656,7 +656,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         actual.put(k, result.getStatus());
       }
 
-      Map<String,Status> expected = new HashMap<String,Status>();
+      Map<String,Status> expected = new HashMap<>();
       expected.put("ACCUMULO-1000", Status.ACCEPTED);
       expected.put("ACCUMULO-1001", Status.ACCEPTED);
       expected.put("ACCUMULO-1002", Status.REJECTED);
@@ -677,7 +677,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     ColumnVisibility cvab = new ColumnVisibility("A|B");
 
-    ArrayList<ConditionalMutation> mutations = new ArrayList<ConditionalMutation>();
+    ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
     ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvab));
     cm0.put("name", "last", cvab, "doe");
@@ -717,7 +717,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         Assert.assertEquals("1", entry.getValue().toString());
       }
 
-      TreeSet<Text> splits = new TreeSet<Text>();
+      TreeSet<Text> splits = new TreeSet<>();
       splits.add(new Text("7"));
       splits.add(new Text("3"));
       conn.tableOperations().addSplits(tableName, splits);
@@ -786,8 +786,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     int num = 100;
 
-    ArrayList<byte[]> rows = new ArrayList<byte[]>(num);
-    ArrayList<ConditionalMutation> cml = new ArrayList<ConditionalMutation>(num);
+    ArrayList<byte[]> rows = new ArrayList<>(num);
+    ArrayList<ConditionalMutation> cml = new ArrayList<>(num);
 
     Random r = new Random();
     byte[] e = new byte[0];
@@ -820,7 +820,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       Assert.assertEquals("Did not receive the expected number of results", num, count);
 
-      ArrayList<ConditionalMutation> cml2 = new ArrayList<ConditionalMutation>(num);
+      ArrayList<ConditionalMutation> cml2 = new ArrayList<>(num);
 
       for (int i = 0; i < num; i++) {
         ConditionalMutation cm = new ConditionalMutation(rows.get(i), new Condition("meta", "seq").setValue("1"));
@@ -869,7 +869,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         break;
     }
 
-    ArrayList<ConditionalMutation> mutations = new ArrayList<ConditionalMutation>();
+    ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
     ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq").setVisibility(cvaob));
     cm0.put("name+", "last", cvaob, "doe");
@@ -897,7 +897,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(new Authorizations("A")))) {
       Iterator<Result> results = cw.write(mutations.iterator());
-      HashSet<String> rows = new HashSet<String>();
+      HashSet<String> rows = new HashSet<>();
       while (results.hasNext()) {
         Result result = results.next();
         String row = new String(result.getMutation().getRow());
@@ -1071,8 +1071,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         for (int i = 0; i < 20; i++) {
           int numRows = rand.nextInt(10) + 1;
 
-          ArrayList<ByteSequence> changes = new ArrayList<ByteSequence>(numRows);
-          ArrayList<ConditionalMutation> mutations = new ArrayList<ConditionalMutation>();
+          ArrayList<ByteSequence> changes = new ArrayList<>(numRows);
+          ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
           for (int j = 0; j < numRows; j++)
             changes.add(rows.get(rand.nextInt(rows.size())));
@@ -1084,7 +1084,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
             mutations.add(stats.toMutation());
           }
 
-          ArrayList<ByteSequence> changed = new ArrayList<ByteSequence>(numRows);
+          ArrayList<ByteSequence> changed = new ArrayList<>(numRows);
           Iterator<Result> results = cw.write(mutations.iterator());
           while (results.hasNext()) {
             Result result = results.next();
@@ -1125,18 +1125,18 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
 
-      ArrayList<ByteSequence> rows = new ArrayList<ByteSequence>();
+      ArrayList<ByteSequence> rows = new ArrayList<>();
 
       for (int i = 0; i < 1000; i++) {
         rows.add(new ArrayByteSequence(FastFormat.toZeroPaddedString(abs(rand.nextLong()), 16, 16, new byte[0])));
       }
 
-      ArrayList<ConditionalMutation> mutations = new ArrayList<ConditionalMutation>();
+      ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
       for (ByteSequence row : rows)
         mutations.add(new Stats(row).toMutation());
 
-      ArrayList<ByteSequence> rows2 = new ArrayList<ByteSequence>();
+      ArrayList<ByteSequence> rows2 = new ArrayList<>();
       Iterator<Result> results = cw.write(mutations.iterator());
       while (results.hasNext()) {
         Result result = results.next();
@@ -1177,7 +1177,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   }
 
   private SortedSet<Text> nss(String... splits) {
-    TreeSet<Text> ret = new TreeSet<Text>();
+    TreeSet<Text> ret = new TreeSet<>();
     for (String split : splits)
       ret.add(new Text(split));
 

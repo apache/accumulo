@@ -42,10 +42,10 @@ public class VolumeUtilTest {
 
   @Test
   public void testSwitchVolume() {
-    List<Pair<Path,Path>> replacements = new ArrayList<Pair<Path,Path>>();
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1/accumulo"), new Path("viewfs:/a/accumulo")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1:9000/accumulo"), new Path("viewfs:/a/accumulo")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn2/accumulo"), new Path("viewfs:/b/accumulo")));
+    List<Pair<Path,Path>> replacements = new ArrayList<>();
+    replacements.add(new Pair<>(new Path("hdfs://nn1/accumulo"), new Path("viewfs:/a/accumulo")));
+    replacements.add(new Pair<>(new Path("hdfs://nn1:9000/accumulo"), new Path("viewfs:/a/accumulo")));
+    replacements.add(new Pair<>(new Path("hdfs://nn2/accumulo"), new Path("viewfs:/b/accumulo")));
 
     Assert.assertEquals("viewfs:/a/accumulo/tables/t-00000/C000.rf",
         VolumeUtil.switchVolume("hdfs://nn1/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
@@ -57,9 +57,9 @@ public class VolumeUtilTest {
     Assert.assertNull(VolumeUtil.switchVolume("file:/nn1/a/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
 
     replacements.clear();
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1/d1/accumulo"), new Path("viewfs:/a/accumulo")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1:9000/d1/accumulo"), new Path("viewfs:/a/accumulo")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn2/d2/accumulo"), new Path("viewfs:/b/accumulo")));
+    replacements.add(new Pair<>(new Path("hdfs://nn1/d1/accumulo"), new Path("viewfs:/a/accumulo")));
+    replacements.add(new Pair<>(new Path("hdfs://nn1:9000/d1/accumulo"), new Path("viewfs:/a/accumulo")));
+    replacements.add(new Pair<>(new Path("hdfs://nn2/d2/accumulo"), new Path("viewfs:/b/accumulo")));
 
     Assert.assertEquals("viewfs:/a/accumulo/tables/t-00000/C000.rf",
         VolumeUtil.switchVolume("hdfs://nn1/d1/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
@@ -74,10 +74,10 @@ public class VolumeUtilTest {
 
   @Test
   public void testSwitchVolumesDifferentSourceDepths() {
-    List<Pair<Path,Path>> replacements = new ArrayList<Pair<Path,Path>>();
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1/accumulo"), new Path("viewfs:/a")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1:9000/accumulo"), new Path("viewfs:/a")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn2/accumulo"), new Path("viewfs:/b")));
+    List<Pair<Path,Path>> replacements = new ArrayList<>();
+    replacements.add(new Pair<>(new Path("hdfs://nn1/accumulo"), new Path("viewfs:/a")));
+    replacements.add(new Pair<>(new Path("hdfs://nn1:9000/accumulo"), new Path("viewfs:/a")));
+    replacements.add(new Pair<>(new Path("hdfs://nn2/accumulo"), new Path("viewfs:/b")));
 
     Assert
         .assertEquals("viewfs:/a/tables/t-00000/C000.rf", VolumeUtil.switchVolume("hdfs://nn1/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
@@ -89,9 +89,9 @@ public class VolumeUtilTest {
     Assert.assertNull(VolumeUtil.switchVolume("file:/nn1/a/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
 
     replacements.clear();
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1/d1/accumulo"), new Path("viewfs:/a")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1:9000/d1/accumulo"), new Path("viewfs:/a")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn2/d2/accumulo"), new Path("viewfs:/b")));
+    replacements.add(new Pair<>(new Path("hdfs://nn1/d1/accumulo"), new Path("viewfs:/a")));
+    replacements.add(new Pair<>(new Path("hdfs://nn1:9000/d1/accumulo"), new Path("viewfs:/a")));
+    replacements.add(new Pair<>(new Path("hdfs://nn2/d2/accumulo"), new Path("viewfs:/b")));
 
     Assert.assertEquals("viewfs:/a/tables/t-00000/C000.rf",
         VolumeUtil.switchVolume("hdfs://nn1/d1/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
@@ -106,10 +106,10 @@ public class VolumeUtilTest {
 
   @Test
   public void testSwitchVolumesDifferentTargetDepths() {
-    List<Pair<Path,Path>> replacements = new ArrayList<Pair<Path,Path>>();
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1/accumulo"), new Path("viewfs:/path1/path2")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1:9000/accumulo"), new Path("viewfs:/path1/path2")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn2/accumulo"), new Path("viewfs:/path3")));
+    List<Pair<Path,Path>> replacements = new ArrayList<>();
+    replacements.add(new Pair<>(new Path("hdfs://nn1/accumulo"), new Path("viewfs:/path1/path2")));
+    replacements.add(new Pair<>(new Path("hdfs://nn1:9000/accumulo"), new Path("viewfs:/path1/path2")));
+    replacements.add(new Pair<>(new Path("hdfs://nn2/accumulo"), new Path("viewfs:/path3")));
 
     Assert.assertEquals("viewfs:/path1/path2/tables/t-00000/C000.rf",
         VolumeUtil.switchVolume("hdfs://nn1/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
@@ -121,9 +121,9 @@ public class VolumeUtilTest {
     Assert.assertNull(VolumeUtil.switchVolume("file:/nn1/a/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
 
     replacements.clear();
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1/d1/accumulo"), new Path("viewfs:/path1/path2")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn1:9000/d1/accumulo"), new Path("viewfs:/path1/path2")));
-    replacements.add(new Pair<Path,Path>(new Path("hdfs://nn2/d2/accumulo"), new Path("viewfs:/path3")));
+    replacements.add(new Pair<>(new Path("hdfs://nn1/d1/accumulo"), new Path("viewfs:/path1/path2")));
+    replacements.add(new Pair<>(new Path("hdfs://nn1:9000/d1/accumulo"), new Path("viewfs:/path1/path2")));
+    replacements.add(new Pair<>(new Path("hdfs://nn2/d2/accumulo"), new Path("viewfs:/path3")));
 
     Assert.assertEquals("viewfs:/path1/path2/tables/t-00000/C000.rf",
         VolumeUtil.switchVolume("hdfs://nn1/d1/accumulo/tables/t-00000/C000.rf", FileType.TABLE, replacements));
@@ -199,9 +199,9 @@ public class VolumeUtilTest {
 
   @Test
   public void testRootTableReplacement() throws IOException {
-    List<Pair<Path,Path>> replacements = new ArrayList<Pair<Path,Path>>();
-    replacements.add(new Pair<Path,Path>(new Path("file:/foo/v1"), new Path("file:/foo/v8")));
-    replacements.add(new Pair<Path,Path>(new Path("file:/foo/v2"), new Path("file:/foo/v9")));
+    List<Pair<Path,Path>> replacements = new ArrayList<>();
+    replacements.add(new Pair<>(new Path("file:/foo/v1"), new Path("file:/foo/v8")));
+    replacements.add(new Pair<>(new Path("file:/foo/v2"), new Path("file:/foo/v9")));
 
     FileType ft = FileType.TABLE;
 

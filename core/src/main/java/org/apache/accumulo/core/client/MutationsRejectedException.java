@@ -65,7 +65,7 @@ public class MutationsRejectedException extends AccumuloException {
   }
 
   private static String format(Map<TabletId,Set<SecurityErrorCode>> hashMap, Instance instance) {
-    Map<String,Set<SecurityErrorCode>> result = new HashMap<String,Set<SecurityErrorCode>>();
+    Map<String,Set<SecurityErrorCode>> result = new HashMap<>();
 
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
       String tableInfo = Tables.getPrintableTableInfoFromId(instance, entry.getKey().getTableId().toString());

@@ -47,12 +47,12 @@ public class MiniAccumuloConfigImpl {
 
   private File dir = null;
   private String rootPassword = null;
-  private Map<String,String> siteConfig = new HashMap<String,String>();
-  private Map<String,String> configuredSiteConig = new HashMap<String,String>();
+  private Map<String,String> siteConfig = new HashMap<>();
+  private Map<String,String> configuredSiteConig = new HashMap<>();
   private int numTservers = 2;
-  private Map<ServerType,Long> memoryConfig = new HashMap<ServerType,Long>();
+  private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private boolean jdwpEnabled = false;
-  private Map<String,String> systemProperties = new HashMap<String,String>();
+  private Map<String,String> systemProperties = new HashMap<>();
 
   private String instanceName = "miniInstance";
   private String rootUserName = "root";
@@ -284,8 +284,8 @@ public class MiniAccumuloConfigImpl {
   }
 
   private MiniAccumuloConfigImpl _setSiteConfig(Map<String,String> siteConfig) {
-    this.siteConfig = new HashMap<String,String>(siteConfig);
-    this.configuredSiteConig = new HashMap<String,String>(siteConfig);
+    this.siteConfig = new HashMap<>(siteConfig);
+    this.configuredSiteConig = new HashMap<>(siteConfig);
     return this;
   }
 
@@ -378,11 +378,11 @@ public class MiniAccumuloConfigImpl {
    * @return a copy of the site config
    */
   public Map<String,String> getSiteConfig() {
-    return new HashMap<String,String>(siteConfig);
+    return new HashMap<>(siteConfig);
   }
 
   public Map<String,String> getConfiguredSiteConfig() {
-    return new HashMap<String,String>(configuredSiteConig);
+    return new HashMap<>(configuredSiteConig);
   }
 
   /**
@@ -547,7 +547,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public void setSystemProperties(Map<String,String> systemProperties) {
-    this.systemProperties = new HashMap<String,String>(systemProperties);
+    this.systemProperties = new HashMap<>(systemProperties);
   }
 
   /**
@@ -556,7 +556,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public Map<String,String> getSystemProperties() {
-    return new HashMap<String,String>(systemProperties);
+    return new HashMap<>(systemProperties);
   }
 
   /**
@@ -662,7 +662,7 @@ public class MiniAccumuloConfigImpl {
       throw e1;
     }
 
-    Map<String,String> siteConfigMap = new HashMap<String,String>();
+    Map<String,String> siteConfigMap = new HashMap<>();
     for (Entry<String,String> e : accumuloConf) {
       siteConfigMap.put(e.getKey(), e.getValue());
     }

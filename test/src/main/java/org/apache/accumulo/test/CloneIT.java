@@ -113,7 +113,7 @@ public class CloneIT extends AccumuloClusterHarness {
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     for (Entry<Key,Value> entry : scanner) {
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
@@ -154,7 +154,7 @@ public class CloneIT extends AccumuloClusterHarness {
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
@@ -204,7 +204,7 @@ public class CloneIT extends AccumuloClusterHarness {
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     int count = 0;
 
@@ -274,7 +274,7 @@ public class CloneIT extends AccumuloClusterHarness {
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
@@ -339,7 +339,7 @@ public class CloneIT extends AccumuloClusterHarness {
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent("1", null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {

@@ -88,13 +88,13 @@ public class ChangePermissions extends Test {
     more.removeAll(perms);
 
     if (rand.nextBoolean() && more.size() > 0) {
-      List<TablePermission> moreList = new ArrayList<TablePermission>(more);
+      List<TablePermission> moreList = new ArrayList<>(more);
       TablePermission choice = moreList.get(rand.nextInt(moreList.size()));
       log.debug("adding permission " + choice);
       conn.securityOperations().grantTablePermission(userName, tableName, choice);
     } else {
       if (perms.size() > 0) {
-        List<TablePermission> permList = new ArrayList<TablePermission>(perms);
+        List<TablePermission> permList = new ArrayList<>(perms);
         TablePermission choice = permList.get(rand.nextInt(permList.size()));
         log.debug("removing permission " + choice);
         conn.securityOperations().revokeTablePermission(userName, tableName, choice);
@@ -114,13 +114,13 @@ public class ChangePermissions extends Test {
     more.remove(SystemPermission.GRANT);
 
     if (rand.nextBoolean() && more.size() > 0) {
-      List<SystemPermission> moreList = new ArrayList<SystemPermission>(more);
+      List<SystemPermission> moreList = new ArrayList<>(more);
       SystemPermission choice = moreList.get(rand.nextInt(moreList.size()));
       log.debug("adding permission " + choice);
       conn.securityOperations().grantSystemPermission(userName, choice);
     } else {
       if (perms.size() > 0) {
-        List<SystemPermission> permList = new ArrayList<SystemPermission>(perms);
+        List<SystemPermission> permList = new ArrayList<>(perms);
         SystemPermission choice = permList.get(rand.nextInt(permList.size()));
         log.debug("removing permission " + choice);
         conn.securityOperations().revokeSystemPermission(userName, choice);
@@ -140,13 +140,13 @@ public class ChangePermissions extends Test {
     more.removeAll(perms);
 
     if (rand.nextBoolean() && more.size() > 0) {
-      List<NamespacePermission> moreList = new ArrayList<NamespacePermission>(more);
+      List<NamespacePermission> moreList = new ArrayList<>(more);
       NamespacePermission choice = moreList.get(rand.nextInt(moreList.size()));
       log.debug("adding permission " + choice);
       conn.securityOperations().grantNamespacePermission(userName, namespace, choice);
     } else {
       if (perms.size() > 0) {
-        List<NamespacePermission> permList = new ArrayList<NamespacePermission>(perms);
+        List<NamespacePermission> permList = new ArrayList<>(perms);
         NamespacePermission choice = permList.get(rand.nextInt(permList.size()));
         log.debug("removing permission " + choice);
         conn.securityOperations().revokeNamespacePermission(userName, namespace, choice);

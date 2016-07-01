@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.Path;
  * A factory for {@link ZooConfiguration} objects.
  */
 class ZooConfigurationFactory {
-  private static final Map<String,ZooConfiguration> instances = new HashMap<String,ZooConfiguration>();
+  private static final Map<String,ZooConfiguration> instances = new HashMap<>();
 
   /**
    * Gets a configuration object for the given instance with the given parent. Repeated calls will return the same object.

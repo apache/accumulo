@@ -33,7 +33,7 @@ import org.apache.htrace.wrappers.TraceRunnable;
  */
 class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQueue<TraceRunnable> {
 
-  private List<TraceRunnable> task = new LinkedList<TraceRunnable>();
+  private List<TraceRunnable> task = new LinkedList<>();
 
   private static final Comparator<TraceRunnable> comparator = new Comparator<TraceRunnable>() {
     @SuppressWarnings("unchecked")

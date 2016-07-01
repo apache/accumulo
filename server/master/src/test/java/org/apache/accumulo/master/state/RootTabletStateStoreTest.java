@@ -48,7 +48,7 @@ public class RootTabletStateStoreTest {
       this.name = name;
     }
 
-    List<Node> children = new ArrayList<Node>();
+    List<Node> children = new ArrayList<>();
     String name;
     byte[] value = new byte[] {};
 
@@ -58,7 +58,7 @@ public class RootTabletStateStoreTest {
           return node;
       return null;
     }
-  };
+  }
 
   static class FakeZooStore implements DistributedStore {
 
@@ -83,7 +83,7 @@ public class RootTabletStateStoreTest {
       Node node = navigate(path);
       if (node == null)
         return Collections.emptyList();
-      List<String> children = new ArrayList<String>(node.children.size());
+      List<String> children = new ArrayList<>(node.children.size());
       for (Node child : node.children)
         children.add(child.name);
       return children;
@@ -143,10 +143,10 @@ public class RootTabletStateStoreTest {
     assertArrayEquals(store.get("/a/b"), "ab".getBytes());
     store.put("/a/b/b", "abb".getBytes());
     List<String> children = store.getChildren("/a/b");
-    assertEquals(new HashSet<String>(children), new HashSet<String>(Arrays.asList("b", "c")));
+    assertEquals(new HashSet<>(children), new HashSet<>(Arrays.asList("b", "c")));
     store.remove("/a/b/c");
     children = store.getChildren("/a/b");
-    assertEquals(new HashSet<String>(children), new HashSet<String>(Arrays.asList("b")));
+    assertEquals(new HashSet<>(children), new HashSet<>(Arrays.asList("b")));
   }
 
   @Test

@@ -41,7 +41,7 @@ public class RegExTest {
   @BeforeClass
   public static void setupTests() throws Exception {
 
-    ArrayList<Character> chars = new ArrayList<Character>();
+    ArrayList<Character> chars = new ArrayList<>();
     for (char c = 'a'; c <= 'z'; c++)
       chars.add(c);
 

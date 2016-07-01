@@ -34,9 +34,9 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
  */
 public class ServerConfigurationFactory extends ServerConfiguration {
 
-  private static final Map<String,Map<String,TableConfiguration>> tableConfigs = new HashMap<String,Map<String,TableConfiguration>>(1);
-  private static final Map<String,Map<String,NamespaceConfiguration>> namespaceConfigs = new HashMap<String,Map<String,NamespaceConfiguration>>(1);
-  private static final Map<String,Map<String,NamespaceConfiguration>> tableParentConfigs = new HashMap<String,Map<String,NamespaceConfiguration>>(1);
+  private static final Map<String,Map<String,TableConfiguration>> tableConfigs = new HashMap<>(1);
+  private static final Map<String,Map<String,NamespaceConfiguration>> namespaceConfigs = new HashMap<>(1);
+  private static final Map<String,Map<String,NamespaceConfiguration>> tableParentConfigs = new HashMap<>(1);
 
   private static void addInstanceToCaches(String iid) {
     synchronized (tableConfigs) {

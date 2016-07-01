@@ -39,7 +39,7 @@ public class ShardFixture extends Fixture {
     long distance = max / numTablets;
     long split = distance;
 
-    TreeSet<Text> splits = new TreeSet<Text>();
+    TreeSet<Text> splits = new TreeSet<>();
 
     for (int i = 0; i < numSplits; i++) {
       splits.add(new Text(String.format(format, split)));

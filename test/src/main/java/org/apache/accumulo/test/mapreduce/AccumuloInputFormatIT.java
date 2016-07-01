@@ -129,7 +129,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
 
     // split table
-    TreeSet<Text> splitsToAdd = new TreeSet<Text>();
+    TreeSet<Text> splitsToAdd = new TreeSet<>();
     for (int i = 0; i < 10000; i += 1000)
       splitsToAdd.add(new Text(String.format("%09d", i)));
     conn.tableOperations().addSplits(table, splitsToAdd);
@@ -141,7 +141,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertEquals(actualSplits.size() + 1, splits.size()); // No ranges set on the job so it'll start with -inf
 
     // set ranges and get splits
-    List<Range> ranges = new ArrayList<Range>();
+    List<Range> ranges = new ArrayList<>();
     for (Text text : actualSplits)
       ranges.add(new Range(text));
     AccumuloInputFormat.setRanges(job, ranges);
@@ -160,7 +160,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertEquals(actualSplits.size(), splits.size());
 
     // auto adjust ranges
-    ranges = new ArrayList<Range>();
+    ranges = new ArrayList<>();
     for (int i = 0; i < 5; i++)
       // overlapping ranges
       ranges.add(new Range(String.format("%09d", i), String.format("%09d", i + 2)));
@@ -402,7 +402,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -506,7 +506,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     @Override
     public List<InputSplit> getSplits(JobContext context) throws IOException {
       List<InputSplit> oldSplits = super.getSplits(context);
-      List<InputSplit> newSplits = new ArrayList<InputSplit>(oldSplits.size());
+      List<InputSplit> newSplits = new ArrayList<>(oldSplits.size());
 
       // Copy only the necessary information
       for (InputSplit oldSplit : oldSplits) {

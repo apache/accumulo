@@ -47,7 +47,7 @@ public class BinaryIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     splits.add(new Text("8"));
     splits.add(new Text("256"));
     c.tableOperations().addSplits(tableName, splits);

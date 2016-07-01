@@ -39,7 +39,7 @@ import org.junit.Test;
 
 public class VisibilityFilterTest {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   private static final Text BAD = new Text("bad");
   private static final Text GOOD = new Text("good");
@@ -50,7 +50,7 @@ public class VisibilityFilterTest {
   private static final Value EMPTY_VALUE = new Value(new byte[0]);
 
   private TreeMap<Key,Value> createUnprotectedSource(int numPublic, int numHidden) {
-    TreeMap<Key,Value> source = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> source = new TreeMap<>();
     for (int i = 0; i < numPublic; i++)
       source.put(new Key(new Text(String.format("%03d", i)), GOOD, GOOD, EMPTY_VIS), EMPTY_VALUE);
     for (int i = 0; i < numHidden; i++)
@@ -59,7 +59,7 @@ public class VisibilityFilterTest {
   }
 
   private TreeMap<Key,Value> createPollutedSource(int numGood, int numBad) {
-    TreeMap<Key,Value> source = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> source = new TreeMap<>();
     for (int i = 0; i < numGood; i++)
       source.put(new Key(new Text(String.format("%03d", i)), GOOD, GOOD, GOOD_VIS), EMPTY_VALUE);
     for (int i = 0; i < numBad; i++)
@@ -68,7 +68,7 @@ public class VisibilityFilterTest {
   }
 
   private TreeMap<Key,Value> createSourceWithHiddenData(int numViewable, int numHidden) {
-    TreeMap<Key,Value> source = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> source = new TreeMap<>();
     for (int i = 0; i < numViewable; i++)
       source.put(new Key(new Text(String.format("%03d", i)), GOOD, GOOD, GOOD_VIS), EMPTY_VALUE);
     for (int i = 0; i < numHidden; i++)

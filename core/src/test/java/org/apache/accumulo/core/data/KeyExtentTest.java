@@ -45,7 +45,7 @@ public class KeyExtentTest {
 
   @Before
   public void setup() {
-    set0 = new TreeSet<KeyExtent>();
+    set0 = new TreeSet<>();
   }
 
   @Test
@@ -83,7 +83,7 @@ public class KeyExtentTest {
     assertNull(KeyExtent.findContainingExtent(nke("t", "1", null), set0));
     assertNull(KeyExtent.findContainingExtent(nke("t", null, "0"), set0));
 
-    TreeSet<KeyExtent> set1 = new TreeSet<KeyExtent>();
+    TreeSet<KeyExtent> set1 = new TreeSet<>();
 
     set1.add(nke("t", null, null));
 
@@ -92,7 +92,7 @@ public class KeyExtentTest {
     assertEquals(nke("t", null, null), KeyExtent.findContainingExtent(nke("t", "1", null), set1));
     assertEquals(nke("t", null, null), KeyExtent.findContainingExtent(nke("t", null, "0"), set1));
 
-    TreeSet<KeyExtent> set2 = new TreeSet<KeyExtent>();
+    TreeSet<KeyExtent> set2 = new TreeSet<>();
 
     set2.add(nke("t", "g", null));
     set2.add(nke("t", null, "g"));
@@ -116,7 +116,7 @@ public class KeyExtentTest {
     assertEquals(nke("t", null, "g"), KeyExtent.findContainingExtent(nke("t", "z", "h"), set2));
     assertEquals(nke("t", null, "g"), KeyExtent.findContainingExtent(nke("t", null, "h"), set2));
 
-    TreeSet<KeyExtent> set3 = new TreeSet<KeyExtent>();
+    TreeSet<KeyExtent> set3 = new TreeSet<>();
 
     set3.add(nke("t", "g", null));
     set3.add(nke("t", "s", "g"));
@@ -142,7 +142,7 @@ public class KeyExtentTest {
     assertEquals(nke("t", "g", null), KeyExtent.findContainingExtent(nke("t", "f", null), set3));
     assertNull(KeyExtent.findContainingExtent(nke("t", "h", null), set3));
 
-    TreeSet<KeyExtent> set4 = new TreeSet<KeyExtent>();
+    TreeSet<KeyExtent> set4 = new TreeSet<>();
 
     set4.add(nke("t1", "d", null));
     set4.add(nke("t1", "q", "d"));
@@ -178,14 +178,14 @@ public class KeyExtentTest {
 
   @Test
   public void testOverlaps() {
-    SortedMap<KeyExtent,Object> set0 = new TreeMap<KeyExtent,Object>();
+    SortedMap<KeyExtent,Object> set0 = new TreeMap<>();
     set0.put(nke("a", null, null), null);
 
     // Nothing overlaps with the empty set
     assertFalse(overlaps(nke("t", null, null), null));
     assertFalse(overlaps(nke("t", null, null), set0));
 
-    SortedMap<KeyExtent,Object> set1 = new TreeMap<KeyExtent,Object>();
+    SortedMap<KeyExtent,Object> set1 = new TreeMap<>();
 
     // Everything overlaps with the infinite range
     set1.put(nke("t", null, null), null);
@@ -199,7 +199,7 @@ public class KeyExtentTest {
     assertTrue(overlaps(nke("t", null, "a"), set1));
 
     // simple overlaps
-    SortedMap<KeyExtent,Object> set2 = new TreeMap<KeyExtent,Object>();
+    SortedMap<KeyExtent,Object> set2 = new TreeMap<>();
     set2.put(nke("a", null, null), null);
     set2.put(nke("t", "m", "j"), null);
     set2.put(nke("z", null, null), null);
@@ -218,7 +218,7 @@ public class KeyExtentTest {
     assertFalse(overlaps(nke("t", null, "m"), set2));
 
     // infinite overlaps
-    SortedMap<KeyExtent,Object> set3 = new TreeMap<KeyExtent,Object>();
+    SortedMap<KeyExtent,Object> set3 = new TreeMap<>();
     set3.put(nke("t", "j", null), null);
     set3.put(nke("t", null, "m"), null);
     assertTrue(overlaps(nke("t", "k", "a"), set3));
@@ -230,7 +230,7 @@ public class KeyExtentTest {
     // falls between
     assertFalse(overlaps(nke("t", "l", "k"), set3));
 
-    SortedMap<KeyExtent,Object> set4 = new TreeMap<KeyExtent,Object>();
+    SortedMap<KeyExtent,Object> set4 = new TreeMap<>();
     set4.put(nke("t", null, null), null);
     assertTrue(overlaps(nke("t", "k", "a"), set4));
     assertTrue(overlaps(nke("t", "k", null), set4));

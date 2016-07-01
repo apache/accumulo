@@ -98,8 +98,8 @@ public class ContinuousQuery {
 
     Text currentRow = null;
 
-    ArrayList<Text> words = new ArrayList<Text>();
-    ArrayList<Text[]> ret = new ArrayList<Text[]>();
+    ArrayList<Text> words = new ArrayList<>();
+    ArrayList<Text[]> ret = new ArrayList<>();
 
     Random rand = new Random();
 

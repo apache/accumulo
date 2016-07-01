@@ -58,7 +58,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     Connector c = getConnector();
     c.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 200; i++) {
       splits.add(new Text(AssignmentThreadsIT.randomHex(8)));
     }

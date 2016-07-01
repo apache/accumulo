@@ -64,7 +64,7 @@ public class TransformingIteratorTest {
   private static final Map<String,String> EMPTY_OPTS = ImmutableMap.of();
   private TransformingIterator titer;
 
-  private TreeMap<Key,Value> data = new TreeMap<Key,Value>();
+  private TreeMap<Key,Value> data = new TreeMap<>();
 
   @Before
   public void createData() throws Exception {
@@ -113,7 +113,7 @@ public class TransformingIteratorTest {
     // the same key/value pair for every getTopKey/getTopValue call. The code
     // will always return the final key/value if we didn't copy the original key
     // in the iterator.
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     for (int row = 1; row <= 3; ++row) {
       for (int cf = 1; cf <= 3; ++cf) {
         for (int cq = 1; cq <= 3; ++cq) {
@@ -129,7 +129,7 @@ public class TransformingIteratorTest {
 
   @Test
   public void testNoRangeScan() throws Exception {
-    List<Class<? extends ReversingKeyTransformingIterator>> classes = new ArrayList<Class<? extends ReversingKeyTransformingIterator>>();
+    List<Class<? extends ReversingKeyTransformingIterator>> classes = new ArrayList<>();
     classes.add(ColFamReversingKeyTransformingIterator.class);
     classes.add(ColQualReversingKeyTransformingIterator.class);
     classes.add(ColVisReversingKeyTransformingIterator.class);
@@ -140,7 +140,7 @@ public class TransformingIteratorTest {
 
       // All rows with visibilities reversed
       TransformingIterator iter = clazz.newInstance();
-      TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+      TreeMap<Key,Value> expected = new TreeMap<>();
       for (int row = 1; row <= 3; ++row) {
         for (int cf = 1; cf <= 3; ++cf) {
           for (int cq = 1; cq <= 3; ++cq) {
@@ -166,7 +166,7 @@ public class TransformingIteratorTest {
     // Make sure it shows up in the output with the default test auths which include
     // vis0.
     setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     for (int row = 1; row <= 3; ++row) {
       for (int cf = 1; cf <= 3; ++cf) {
         for (int cq = 1; cq <= 3; ++cq) {
@@ -194,7 +194,7 @@ public class TransformingIteratorTest {
   public void testRangeStart() throws Exception {
     setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     putExpected(expected, 1, 2, 2, 1, PartialKey.ROW_COLFAM_COLQUAL); // before the range start, but transforms in the range
     putExpected(expected, 1, 2, 2, 2, PartialKey.ROW_COLFAM_COLQUAL);
 
@@ -205,7 +205,7 @@ public class TransformingIteratorTest {
   public void testRangeEnd() throws Exception {
     setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     // putExpected(expected, 1, 2, 2, 1, part); // transforms vis outside range end
     putExpected(expected, 1, 2, 2, 2, PartialKey.ROW_COLFAM_COLQUAL);
     putExpected(expected, 1, 2, 2, 3, PartialKey.ROW_COLFAM_COLQUAL);
@@ -220,7 +220,7 @@ public class TransformingIteratorTest {
     // the data with untransformed col fam cf3 will transform to cf0 and
     // be inside the range.
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     for (int cq = 1; cq <= 3; ++cq)
       for (int cv = 1; cv <= 3; ++cv)
         putExpected(expected, 1, 3, cq, cv, PartialKey.ROW);
@@ -266,7 +266,7 @@ public class TransformingIteratorTest {
     int expectedCF = 1;
     setUpTransformIterator(ColFamReversingKeyTransformingIterator.class);
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     for (int row = 1; row <= 3; ++row)
       for (int cq = 1; cq <= 3; ++cq)
         for (int cv = 1; cv <= 3; ++cv)
@@ -317,7 +317,7 @@ public class TransformingIteratorTest {
     int expectedCF = 1;
     setUpTransformIterator(ColFamReversingCompactionKeyTransformingIterator.class);
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     for (int row = 1; row <= 3; ++row)
       for (int cq = 1; cq <= 3; ++cq)
         for (int cv = 1; cv <= 3; ++cv)
@@ -332,7 +332,7 @@ public class TransformingIteratorTest {
     // should still show up.
     setUpTransformIterator(BadVisCompactionKeyTransformingIterator.class);
 
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
     for (int rowID = 1; rowID <= 3; ++rowID) {
       for (int cfID = 1; cfID <= 3; ++cfID) {
         for (int cqID = 1; cqID <= 3; ++cqID) {
@@ -391,7 +391,7 @@ public class TransformingIteratorTest {
     TransformingIterator.setMaxBufferSize(is, 10000000);
     Assert.assertTrue(ti.validateOptions(is.getOptions()));
 
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "10M");
     Assert.assertTrue(ti.validateOptions(is.getOptions()));
@@ -583,7 +583,7 @@ public class TransformingIteratorTest {
 
     @Override
     protected Collection<ByteSequence> untransformColumnFamilies(Collection<ByteSequence> columnFamilies) {
-      HashSet<ByteSequence> untransformed = new HashSet<ByteSequence>();
+      HashSet<ByteSequence> untransformed = new HashSet<>();
       for (ByteSequence cf : columnFamilies)
         untransformed.add(untransformColumnFamily(cf));
       return untransformed;

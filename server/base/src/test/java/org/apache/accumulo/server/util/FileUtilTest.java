@@ -67,7 +67,7 @@ public class FileUtilTest {
 
   @Test
   public void testToPathStrings() {
-    Collection<FileRef> c = new java.util.ArrayList<FileRef>();
+    Collection<FileRef> c = new java.util.ArrayList<>();
     FileRef r1 = createMock(FileRef.class);
     expect(r1.path()).andReturn(new Path("/foo"));
     replay(r1);
@@ -118,7 +118,7 @@ public class FileUtilTest {
     assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
-    HashMap<Property,String> testProps = new HashMap<Property,String>();
+    HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
 
     AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);
@@ -150,7 +150,7 @@ public class FileUtilTest {
     assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
-    HashMap<Property,String> testProps = new HashMap<Property,String>();
+    HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
 
     AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);
@@ -178,7 +178,7 @@ public class FileUtilTest {
     assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
-    HashMap<Property,String> testProps = new HashMap<Property,String>();
+    HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
 
     AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);
@@ -207,7 +207,7 @@ public class FileUtilTest {
     assertTrue(tmp2.mkdirs() || tmp2.isDirectory());
     Path tmpPath1 = new Path(tmp1.toURI()), tmpPath2 = new Path(tmp2.toURI());
 
-    HashMap<Property,String> testProps = new HashMap<Property,String>();
+    HashMap<Property,String> testProps = new HashMap<>();
     testProps.put(Property.INSTANCE_VOLUMES, v1.toURI().toString() + "," + v2.toURI().toString());
 
     AccumuloConfiguration testConf = new FileUtilTestConfiguration(testProps);

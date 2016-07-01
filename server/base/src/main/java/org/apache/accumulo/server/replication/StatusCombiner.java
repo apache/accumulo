@@ -45,7 +45,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class StatusCombiner extends TypedValueCombiner<Status> {
   private static final Logger log = LoggerFactory.getLogger(StatusCombiner.class);
 
-  public static class StatusEncoder extends AbstractEncoder<Status> implements Encoder<Status> {
+  public static class StatusEncoder extends AbstractEncoder<Status> {
     private static final Logger log = LoggerFactory.getLogger(StatusEncoder.class);
 
     @Override

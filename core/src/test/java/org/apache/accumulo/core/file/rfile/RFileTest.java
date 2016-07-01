@@ -110,7 +110,7 @@ public class RFileTest {
     }
   }
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
@@ -373,8 +373,8 @@ public class RFileTest {
 
     int val = 0;
 
-    ArrayList<Key> expectedKeys = new ArrayList<Key>(10000);
-    ArrayList<Value> expectedValues = new ArrayList<Value>(10000);
+    ArrayList<Key> expectedKeys = new ArrayList<>(10000);
+    ArrayList<Value> expectedValues = new ArrayList<>(10000);
 
     for (int row = 0; row < 4; row++) {
       String rowS = nf("r_", row);
@@ -797,7 +797,7 @@ public class RFileTest {
   }
 
   public static Set<ByteSequence> ncfs(String... colFams) {
-    HashSet<ByteSequence> cfs = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> cfs = new HashSet<>();
 
     for (String cf : colFams) {
       cfs.add(new ArrayByteSequence(cf));
@@ -1394,7 +1394,7 @@ public class RFileTest {
   }
 
   private Set<ByteSequence> t18ncfs(int... colFams) {
-    HashSet<ByteSequence> cfs = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> cfs = new HashSet<>();
     for (int i : colFams) {
       cfs.add(new ArrayByteSequence(t18ncf(i)));
     }
@@ -1411,7 +1411,7 @@ public class RFileTest {
   private void t18Verify(Set<ByteSequence> cfs, SortedKeyValueIterator<Key,Value> iter, Reader reader, HashSet<ByteSequence> allCf, int eialg, int eealg)
       throws IOException {
 
-    HashSet<ByteSequence> colFamsSeen = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> colFamsSeen = new HashSet<>();
 
     iter.seek(new Range(), cfs, true);
     assertEquals(eialg, reader.getNumLocalityGroupsSeeked());
@@ -1421,7 +1421,7 @@ public class RFileTest {
       iter.next();
     }
 
-    HashSet<ByteSequence> expected = new HashSet<ByteSequence>(allCf);
+    HashSet<ByteSequence> expected = new HashSet<>(allCf);
     expected.retainAll(cfs);
     assertEquals(expected, colFamsSeen);
 
@@ -1434,7 +1434,7 @@ public class RFileTest {
       iter.next();
     }
 
-    HashSet<ByteSequence> nonExcluded = new HashSet<ByteSequence>(allCf);
+    HashSet<ByteSequence> nonExcluded = new HashSet<>(allCf);
     nonExcluded.removeAll(cfs);
     assertEquals(nonExcluded, colFamsSeen);
   }
@@ -1447,7 +1447,7 @@ public class RFileTest {
 
     trf.openWriter(false);
 
-    HashSet<ByteSequence> allCf = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> allCf = new HashSet<>();
 
     trf.writer.startNewLocalityGroup("lg1", t18ncfs(0));
     for (int i = 0; i < 1; i++)
@@ -1850,7 +1850,7 @@ public class RFileTest {
 
   private static void add(TestRFile trf, Key key, Value val, Hasher dataHasher, List<Entry<Key,Value>> sample, Sampler sampler) throws IOException {
     if (sampler.accept(key)) {
-      sample.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(key, val));
+      sample.add(new AbstractMap.SimpleImmutableEntry<>(key, val));
     }
 
     hash(dataHasher, key, val);
@@ -1862,7 +1862,7 @@ public class RFileTest {
     ArrayList<Entry<Key,Value>> ret = new ArrayList<>();
 
     while (sample.hasTop()) {
-      ret.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(new Key(sample.getTopKey()), new Value(sample.getTopValue())));
+      ret.add(new AbstractMap.SimpleImmutableEntry<>(new Key(sample.getTopKey()), new Value(sample.getTopValue())));
       sample.next();
     }
 
@@ -1929,7 +1929,7 @@ public class RFileTest {
 
       for (int modulus : new int[] {19, 103, 1019}) {
         Hasher dataHasher = Hashing.md5().newHasher();
-        List<Entry<Key,Value>> sampleData = new ArrayList<Entry<Key,Value>>();
+        List<Entry<Key,Value>> sampleData = new ArrayList<>();
 
         ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? AccumuloConfiguration.getDefaultConfiguration() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
@@ -2009,8 +2009,8 @@ public class RFileTest {
       RFile.setSampleBufferSize(sampleBufferSize);
 
       for (int modulus : new int[] {19, 103, 1019}) {
-        List<Entry<Key,Value>> sampleDataLG1 = new ArrayList<Entry<Key,Value>>();
-        List<Entry<Key,Value>> sampleDataLG2 = new ArrayList<Entry<Key,Value>>();
+        List<Entry<Key,Value>> sampleDataLG1 = new ArrayList<>();
+        List<Entry<Key,Value>> sampleDataLG2 = new ArrayList<>();
 
         ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? AccumuloConfiguration.getDefaultConfiguration() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
@@ -2035,9 +2035,9 @@ public class RFileTest {
           Value v3 = new Value(("" + r * 113).getBytes());
 
           if (sampler.accept(k1)) {
-            sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(k1, v1));
-            sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(k2, v2));
-            sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(k3, v3));
+            sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<>(k1, v1));
+            sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<>(k2, v2));
+            sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<>(k3, v3));
           }
 
           trf.writer.append(k1, v1);
@@ -2054,7 +2054,7 @@ public class RFileTest {
           Value v1 = new Value(("" + r).getBytes());
 
           if (sampler.accept(k1)) {
-            sampleDataLG2.add(new AbstractMap.SimpleImmutableEntry<Key,Value>(k1, v1));
+            sampleDataLG2.add(new AbstractMap.SimpleImmutableEntry<>(k1, v1));
           }
 
           trf.writer.append(k1, v1);
@@ -2076,7 +2076,7 @@ public class RFileTest {
         checkSample(sample, sampleDataLG2, ncfs("metaA", "metaB"), false);
         checkSample(sample, sampleDataLG2, ncfs("dataA"), true);
 
-        ArrayList<Entry<Key,Value>> allSampleData = new ArrayList<Entry<Key,Value>>();
+        ArrayList<Entry<Key,Value>> allSampleData = new ArrayList<>();
         allSampleData.addAll(sampleDataLG1);
         allSampleData.addAll(sampleDataLG2);
 

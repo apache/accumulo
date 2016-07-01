@@ -59,7 +59,7 @@ public class ThriftUtil {
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
   private static final TFramedTransport.Factory transportFactory = new TFramedTransport.Factory(Integer.MAX_VALUE);
-  private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<Integer,TTransportFactory>();
+  private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
 

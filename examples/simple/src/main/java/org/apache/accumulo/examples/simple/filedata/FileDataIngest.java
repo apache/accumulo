@@ -178,7 +178,7 @@ public class FileDataIngest {
     int chunkSize = 64 * 1024;
 
     @Parameter(description = "<file> { <file> ... }")
-    List<String> files = new ArrayList<String>();
+    List<String> files = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {

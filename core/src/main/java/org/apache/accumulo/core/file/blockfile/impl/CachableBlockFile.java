@@ -34,10 +34,10 @@ import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Writer.BlockAppender;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.file.streams.PositionedOutput;
 import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
 import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 
 public class CachableBlockFile {
 
-  private CachableBlockFile() {};
+  private CachableBlockFile() {}
 
   private static final Logger log = LoggerFactory.getLogger(CachableBlockFile.class);
 
@@ -482,7 +482,7 @@ public class CachableBlockFile {
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
-          cb.setIndex(new SoftReference<T>(bi));
+          cb.setIndex(new SoftReference<>(bi));
         }
       }
 

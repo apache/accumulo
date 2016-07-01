@@ -46,7 +46,7 @@ public class DeleteAuthsCommand extends Command {
     final Authorizations auths = connector.securityOperations().getUserAuthorizations(user);
     final StringBuilder userAuths = new StringBuilder();
     final String[] toBeRemovedAuths = scanOpts.split(",");
-    final Set<String> toBeRemovedSet = new HashSet<String>();
+    final Set<String> toBeRemovedSet = new HashSet<>();
     for (String auth : toBeRemovedAuths) {
       toBeRemovedSet.add(auth);
     }

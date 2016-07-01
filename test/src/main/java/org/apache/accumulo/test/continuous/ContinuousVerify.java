@@ -105,7 +105,7 @@ public class ContinuousVerify extends Configured implements Tool {
   }
 
   public static class CReducer extends Reducer<LongWritable,VLongWritable,Text,Text> {
-    private ArrayList<Long> refs = new ArrayList<Long>();
+    private ArrayList<Long> refs = new ArrayList<>();
 
     @Override
     public void reduce(LongWritable key, Iterable<VLongWritable> values, Context context) throws IOException, InterruptedException {

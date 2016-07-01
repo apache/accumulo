@@ -34,9 +34,9 @@ public class ExtensionCommand extends Command {
 
   private ServiceLoader<ShellExtension> extensions = null;
 
-  private Set<String> loadedHeaders = new HashSet<String>();
-  private Set<String> loadedCommands = new HashSet<String>();
-  private Set<String> loadedExtensions = new TreeSet<String>();
+  private Set<String> loadedHeaders = new HashSet<>();
+  private Set<String> loadedCommands = new HashSet<>();
+  private Set<String> loadedExtensions = new TreeSet<>();
 
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {

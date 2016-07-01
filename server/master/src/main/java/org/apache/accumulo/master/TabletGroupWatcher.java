@@ -142,8 +142,8 @@ class TabletGroupWatcher extends Daemon {
       int unloaded = 0;
       ClosableIterator<TabletLocationState> iter = null;
       try {
-        Map<String,MergeStats> mergeStatsCache = new HashMap<String,MergeStats>();
-        Map<String,MergeStats> currentMerges = new HashMap<String,MergeStats>();
+        Map<String,MergeStats> mergeStatsCache = new HashMap<>();
+        Map<String,MergeStats> currentMerges = new HashMap<>();
         for (MergeInfo merge : master.merges()) {
           if (merge.getExtent() != null) {
             currentMerges.put(merge.getExtent().getTableId(), new MergeStats(merge));
@@ -151,7 +151,7 @@ class TabletGroupWatcher extends Daemon {
         }
 
         // Get the current status for the current list of tservers
-        SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<TServerInstance,TabletServerStatus>();
+        SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<>();
         for (TServerInstance entry : this.master.tserverSet.getCurrentServers()) {
           currentTServers.put(entry, this.master.tserverStatus.get(entry));
         }
@@ -162,13 +162,13 @@ class TabletGroupWatcher extends Daemon {
         }
 
         // Don't move tablets to servers that are shutting down
-        SortedMap<TServerInstance,TabletServerStatus> destinations = new TreeMap<TServerInstance,TabletServerStatus>(currentTServers);
+        SortedMap<TServerInstance,TabletServerStatus> destinations = new TreeMap<>(currentTServers);
         destinations.keySet().removeAll(this.master.serversToShutdown);
 
-        List<Assignment> assignments = new ArrayList<Assignment>();
-        List<Assignment> assigned = new ArrayList<Assignment>();
-        List<TabletLocationState> assignedToDeadServers = new ArrayList<TabletLocationState>();
-        Map<KeyExtent,TServerInstance> unassigned = new HashMap<KeyExtent,TServerInstance>();
+        List<Assignment> assignments = new ArrayList<>();
+        List<Assignment> assigned = new ArrayList<>();
+        List<TabletLocationState> assignedToDeadServers = new ArrayList<>();
+        Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
         Map<TServerInstance,List<Path>> logsForDeadServers = new TreeMap<>();
 
         MasterState masterState = master.getMasterState();
@@ -356,8 +356,8 @@ class TabletGroupWatcher extends Daemon {
     // ACCUMULO-2261 if a dying tserver writes a location before its lock information propagates, it may cause duplicate assignment.
     // Attempt to find the dead server entry and remove it.
     try {
-      Map<Key,Value> future = new HashMap<Key,Value>();
-      Map<Key,Value> assigned = new HashMap<Key,Value>();
+      Map<Key,Value> future = new HashMap<>();
+      Map<Key,Value> assigned = new HashMap<>();
       KeyExtent extent = new KeyExtent(row, new Value(new byte[] {0}));
       String table = MetadataTable.NAME;
       if (extent.isMeta())
@@ -536,7 +536,7 @@ class TabletGroupWatcher extends Daemon {
       TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-      Set<FileRef> datafiles = new TreeSet<FileRef>();
+      Set<FileRef> datafiles = new TreeSet<>();
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
         if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
@@ -761,7 +761,7 @@ class TabletGroupWatcher extends Daemon {
     }
 
     if (!currentTServers.isEmpty()) {
-      Map<KeyExtent,TServerInstance> assignedOut = new HashMap<KeyExtent,TServerInstance>();
+      Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
       final StringBuilder builder = new StringBuilder(64);
       this.master.tabletBalancer.getAssignments(Collections.unmodifiableSortedMap(currentTServers), Collections.unmodifiableMap(unassigned), assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {

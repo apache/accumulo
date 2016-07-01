@@ -53,9 +53,9 @@ public class LocalityCheck {
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
 
-    Map<String,Long> totalBlocks = new HashMap<String,Long>();
-    Map<String,Long> localBlocks = new HashMap<String,Long>();
-    ArrayList<String> files = new ArrayList<String>();
+    Map<String,Long> totalBlocks = new HashMap<>();
+    Map<String,Long> localBlocks = new HashMap<>();
+    ArrayList<String> files = new ArrayList<>();
 
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();

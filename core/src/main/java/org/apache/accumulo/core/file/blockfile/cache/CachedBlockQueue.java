@@ -48,7 +48,7 @@ public class CachedBlockQueue implements HeapSize {
     int initialSize = (int) Math.ceil(maxSize / (double) blockSize);
     if (initialSize == 0)
       initialSize++;
-    queue = new PriorityQueue<CachedBlock>(initialSize);
+    queue = new PriorityQueue<>(initialSize);
     heapSize = 0;
     this.maxSize = maxSize;
   }
@@ -88,7 +88,7 @@ public class CachedBlockQueue implements HeapSize {
    * @return list of cached elements in descending order
    */
   public CachedBlock[] get() {
-    LinkedList<CachedBlock> blocks = new LinkedList<CachedBlock>();
+    LinkedList<CachedBlock> blocks = new LinkedList<>();
     while (!queue.isEmpty()) {
       blocks.addFirst(queue.poll());
     }
@@ -101,7 +101,7 @@ public class CachedBlockQueue implements HeapSize {
    * @return list of cached elements in descending order
    */
   public LinkedList<CachedBlock> getList() {
-    LinkedList<CachedBlock> blocks = new LinkedList<CachedBlock>();
+    LinkedList<CachedBlock> blocks = new LinkedList<>();
     while (!queue.isEmpty()) {
       blocks.addFirst(queue.poll());
     }

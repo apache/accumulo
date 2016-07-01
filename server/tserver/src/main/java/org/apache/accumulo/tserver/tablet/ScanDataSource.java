@@ -169,7 +169,7 @@ class ScanDataSource implements DataSource {
     for (SortedKeyValueIterator<Key,Value> skvi : Iterables.concat(mapfiles, memIters))
       ((InterruptibleIterator) skvi).setInterruptFlag(interruptFlag);
 
-    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(mapfiles.size() + memIters.size());
+    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(mapfiles.size() + memIters.size());
 
     iters.addAll(mapfiles);
     iters.addAll(memIters);

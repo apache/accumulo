@@ -162,7 +162,7 @@ public class BlockIndex {
 
     int count = 0;
 
-    ArrayList<BlockIndexEntry> index = new ArrayList<BlockIndexEntry>(indexEntries - 1);
+    ArrayList<BlockIndexEntry> index = new ArrayList<>(indexEntries - 1);
 
     while (count < (indexEntry.getNumEntries() - interval + 1)) {
 

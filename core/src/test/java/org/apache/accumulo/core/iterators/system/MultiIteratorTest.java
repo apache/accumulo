@@ -36,7 +36,7 @@ import junit.framework.TestCase;
 
 public class MultiIteratorTest extends TestCase {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   public static Key nk(int row, long ts) {
     return new Key(nr(row), ts);
@@ -57,7 +57,7 @@ public class MultiIteratorTest extends TestCase {
   }
 
   void verify(int start, int end, Key seekKey, Text endRow, Text prevEndRow, boolean init, boolean incrRow, List<TreeMap<Key,Value>> maps) throws IOException {
-    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(maps.size());
+    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(maps.size());
 
     for (TreeMap<Key,Value> map : maps) {
       iters.add(new SortedMapIterator(map));
@@ -121,14 +121,14 @@ public class MultiIteratorTest extends TestCase {
   public void test1() throws IOException {
     // TEST non overlapping inputs
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
-    List<TreeMap<Key,Value>> tmpList = new ArrayList<TreeMap<Key,Value>>(2);
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
+    List<TreeMap<Key,Value>> tmpList = new ArrayList<>(2);
 
     for (int i = 0; i < 4; i++) {
       nkv(tm1, 0, i, false, "v" + i);
     }
     tmpList.add(tm1);
-    tm1 = new TreeMap<Key,Value>();
+    tm1 = new TreeMap<>();
     for (int i = 4; i < 8; i++) {
       nkv(tm1, 0, i, false, "v" + i);
     }
@@ -144,9 +144,9 @@ public class MultiIteratorTest extends TestCase {
   public void test2() throws IOException {
     // TEST overlapping inputs
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
-    TreeMap<Key,Value> tm2 = new TreeMap<Key,Value>();
-    List<TreeMap<Key,Value>> tmpList = new ArrayList<TreeMap<Key,Value>>(2);
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
+    TreeMap<Key,Value> tm2 = new TreeMap<>();
+    List<TreeMap<Key,Value>> tmpList = new ArrayList<>(2);
 
     for (int i = 0; i < 8; i++) {
       if (i % 2 == 0)
@@ -167,8 +167,8 @@ public class MultiIteratorTest extends TestCase {
   public void test3() throws IOException {
     // TEST single input
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
-    List<TreeMap<Key,Value>> tmpList = new ArrayList<TreeMap<Key,Value>>(2);
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
+    List<TreeMap<Key,Value>> tmpList = new ArrayList<>(2);
 
     for (int i = 0; i < 8; i++) {
       nkv(tm1, 0, i, false, "v" + i);
@@ -186,9 +186,9 @@ public class MultiIteratorTest extends TestCase {
   public void test4() throws IOException {
     // TEST empty input
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
-    List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<SortedKeyValueIterator<Key,Value>>(1);
+    List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
     MultiIterator mi = new MultiIterator(skvil, true);
 
@@ -201,9 +201,9 @@ public class MultiIteratorTest extends TestCase {
   public void test5() throws IOException {
     // TEST overlapping inputs AND prevRow AND endRow AND seek
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
-    TreeMap<Key,Value> tm2 = new TreeMap<Key,Value>();
-    List<TreeMap<Key,Value>> tmpList = new ArrayList<TreeMap<Key,Value>>(2);
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
+    TreeMap<Key,Value> tm2 = new TreeMap<>();
+    List<TreeMap<Key,Value>> tmpList = new ArrayList<>(2);
 
     for (int i = 0; i < 8; i++) {
       if (i % 2 == 0)
@@ -257,12 +257,12 @@ public class MultiIteratorTest extends TestCase {
 
   public void test6() throws IOException {
     // TEst setting an endKey
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     nkv(tm1, 3, 0, false, "1");
     nkv(tm1, 4, 0, false, "2");
     nkv(tm1, 6, 0, false, "3");
 
-    List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<SortedKeyValueIterator<Key,Value>>(1);
+    List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
     MultiIterator mi = new MultiIterator(skvil, true);
     mi.seek(new Range(null, true, nk(5, 9), false), EMPTY_COL_FAMS, false);
@@ -330,7 +330,7 @@ public class MultiIteratorTest extends TestCase {
 
   public void test7() throws IOException {
     // TEst setting an endKey
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     nkv(tm1, 0, 3, false, "1");
     nkv(tm1, 0, 2, false, "2");
     nkv(tm1, 0, 1, false, "3");
@@ -341,7 +341,7 @@ public class MultiIteratorTest extends TestCase {
     nkv(tm1, 2, 1, false, "8");
     nkv(tm1, 2, 0, false, "9");
 
-    List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<SortedKeyValueIterator<Key,Value>>(1);
+    List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
 
     KeyExtent extent = new KeyExtent("tablename", nr(1), nr(0));

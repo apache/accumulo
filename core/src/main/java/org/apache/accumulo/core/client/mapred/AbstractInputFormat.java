@@ -593,7 +593,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     validateOptions(job);
 
     Random random = new Random();
-    LinkedList<InputSplit> splits = new LinkedList<InputSplit>();
+    LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(job);
     for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
       String tableName = tableConfigEntry.getKey();
@@ -623,12 +623,12 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
       List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
-        ranges = new ArrayList<Range>(1);
+        ranges = new ArrayList<>(1);
         ranges.add(new Range());
       }
 
       // get the metadata information for these ranges
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
       TabletLocator tl;
       try {
         if (tableConfig.isOfflineScan()) {
@@ -665,9 +665,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       HashMap<Range,ArrayList<String>> splitsToAdd = null;
 
       if (!autoAdjust)
-        splitsToAdd = new HashMap<Range,ArrayList<String>>();
+        splitsToAdd = new HashMap<>();
 
-      HashMap<String,String> hostNameCache = new HashMap<String,String>();
+      HashMap<String,String> hostNameCache = new HashMap<>();
       for (Map.Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
         String ip = tserverBin.getKey().split(":", 2)[0];
         String location = hostNameCache.get(ip);
@@ -680,7 +680,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           Range ke = extentRanges.getKey().toDataRange();
           if (batchScan) {
             // group ranges by tablet to be read by a BatchScanner
-            ArrayList<Range> clippedRanges = new ArrayList<Range>();
+            ArrayList<Range> clippedRanges = new ArrayList<>();
             for (Range r : extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
 
@@ -704,7 +704,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
                 // don't divide ranges
                 ArrayList<String> locations = splitsToAdd.get(r);
                 if (locations == null)
-                  locations = new ArrayList<String>(1);
+                  locations = new ArrayList<>(1);
                 locations.add(location);
                 splitsToAdd.put(r, locations);
               }

@@ -67,7 +67,7 @@ class CopyFailed extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master master) throws Exception {
-    Set<TServerInstance> finished = new HashSet<TServerInstance>();
+    Set<TServerInstance> finished = new HashSet<>();
     Set<TServerInstance> running = master.onlineTabletServers();
     for (TServerInstance server : running) {
       try {
@@ -92,8 +92,8 @@ class CopyFailed extends MasterRepo {
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
 
-    HashMap<FileRef,String> failures = new HashMap<FileRef,String>();
-    HashMap<FileRef,String> loadedFailures = new HashMap<FileRef,String>();
+    HashMap<FileRef,String> failures = new HashMap<>();
+    HashMap<FileRef,String> loadedFailures = new HashMap<>();
 
     try (BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(error, BulkImport.FAILURES_TXT)), UTF_8))) {
       String line = null;
@@ -138,7 +138,7 @@ class CopyFailed extends MasterRepo {
       DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
           master.getConfiguration());
 
-      HashSet<String> workIds = new HashSet<String>();
+      HashSet<String> workIds = new HashSet<>();
 
       for (String failure : loadedFailures.values()) {
         Path orig = new Path(failure);

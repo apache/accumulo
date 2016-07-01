@@ -104,7 +104,7 @@ public class IteratorSettingTest {
 
     assertNotEquals(setting1, notEqual1);
 
-    Map<String,String> props = new HashMap<String,String>();
+    Map<String,String> props = new HashMap<>();
     props.put("foo", "bar");
     IteratorSetting notEquals2 = new IteratorSetting(100, "Combiner", Combiner.class, props);
 

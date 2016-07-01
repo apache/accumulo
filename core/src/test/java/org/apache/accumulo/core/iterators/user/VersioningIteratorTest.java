@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 
 public class VersioningIteratorTest {
   // add test for seek function
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
   private static final Logger log = LoggerFactory.getLogger(VersioningIteratorTest.class);
 
@@ -56,7 +56,7 @@ public class VersioningIteratorTest {
   }
 
   TreeMap<Key,Value> iteratorOverTestData(VersioningIterator it) throws IOException {
-    TreeMap<Key,Value> tmOut = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tmOut = new TreeMap<>();
     while (it.hasTop()) {
       tmOut.put(it.getTopKey(), it.getTopValue());
       it.next();
@@ -70,7 +70,7 @@ public class VersioningIteratorTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     createTestData(tm, colf, colq);
 
@@ -101,7 +101,7 @@ public class VersioningIteratorTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     createTestData(tm, colf, colq);
 
@@ -137,7 +137,7 @@ public class VersioningIteratorTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     createTestData(tm, colf, colq);
 
@@ -186,7 +186,7 @@ public class VersioningIteratorTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     createTestData(tm, colf, colq);
 
@@ -215,7 +215,7 @@ public class VersioningIteratorTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     createTestData(tm, colf, colq);
 
@@ -237,7 +237,7 @@ public class VersioningIteratorTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     createTestData(tm, colf, colq);
 

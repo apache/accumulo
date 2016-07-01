@@ -99,16 +99,16 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
       mtbw.close();
 
-      Map<Entry<String,String>,String> table1Expectations = new HashMap<Entry<String,String>,String>();
+      Map<Entry<String,String>,String> table1Expectations = new HashMap<>();
       table1Expectations.put(Maps.immutableEntry("bar", "col1"), "val1");
 
-      Map<Entry<String,String>,String> table2Expectations = new HashMap<Entry<String,String>,String>();
+      Map<Entry<String,String>,String> table2Expectations = new HashMap<>();
       table2Expectations.put(Maps.immutableEntry("foo", "col1"), "val1");
       table2Expectations.put(Maps.immutableEntry("bar", "col1"), "val1");
 
       Scanner s = connector.createScanner(table1, new Authorizations());
       s.setRange(new Range());
-      Map<Entry<String,String>,String> actual = new HashMap<Entry<String,String>,String>();
+      Map<Entry<String,String>,String> actual = new HashMap<>();
       for (Entry<Key,Value> entry : s) {
         actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
       }
@@ -117,7 +117,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
       s = connector.createScanner(table2, new Authorizations());
       s.setRange(new Range());
-      actual = new HashMap<Entry<String,String>,String>();
+      actual = new HashMap<>();
       for (Entry<Key,Value> entry : s) {
         actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
       }
@@ -164,7 +164,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
       mtbw.close();
 
-      Map<Entry<String,String>,String> expectations = new HashMap<Entry<String,String>,String>();
+      Map<Entry<String,String>,String> expectations = new HashMap<>();
       expectations.put(Maps.immutableEntry("foo", "col1"), "val1");
       expectations.put(Maps.immutableEntry("foo", "col2"), "val2");
       expectations.put(Maps.immutableEntry("bar", "col1"), "val1");
@@ -173,7 +173,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       for (String table : Arrays.asList(newTable1, newTable2)) {
         Scanner s = connector.createScanner(table, new Authorizations());
         s.setRange(new Range());
-        Map<Entry<String,String>,String> actual = new HashMap<Entry<String,String>,String>();
+        Map<Entry<String,String>,String> actual = new HashMap<>();
         for (Entry<Key,Value> entry : s) {
           actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }
@@ -240,7 +240,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
       mtbw.close();
 
-      Map<Entry<String,String>,String> expectations = new HashMap<Entry<String,String>,String>();
+      Map<Entry<String,String>,String> expectations = new HashMap<>();
       expectations.put(Maps.immutableEntry("foo", "col1"), "val1");
       expectations.put(Maps.immutableEntry("foo", "col2"), "val2");
       expectations.put(Maps.immutableEntry("bar", "col1"), "val1");
@@ -249,7 +249,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       for (String table : Arrays.asList(newTable1, newTable2)) {
         Scanner s = connector.createScanner(table, new Authorizations());
         s.setRange(new Range());
-        Map<Entry<String,String>,String> actual = new HashMap<Entry<String,String>,String>();
+        Map<Entry<String,String>,String> actual = new HashMap<>();
         for (Entry<Key,Value> entry : s) {
           actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }

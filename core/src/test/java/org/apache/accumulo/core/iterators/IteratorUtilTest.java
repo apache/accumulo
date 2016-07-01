@@ -45,7 +45,7 @@ import org.junit.Test;
 
 public class IteratorUtilTest {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   static class WrappedIter implements SortedKeyValueIterator<Key,Value> {
 
@@ -131,7 +131,7 @@ public class IteratorUtilTest {
     conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter", "1," + AddingIter.class.getName());
     conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".sqIter", "2," + SquaringIter.class.getName());
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     MultiIteratorTest.nkv(tm, 1, 0, false, "1");
     MultiIteratorTest.nkv(tm, 2, 0, false, "2");
@@ -163,7 +163,7 @@ public class IteratorUtilTest {
     // try loading for a different scope
     AccumuloConfiguration conf = new ConfigurationCopy();
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     MultiIteratorTest.nkv(tm, 1, 0, false, "1");
     MultiIteratorTest.nkv(tm, 2, 0, false, "2");
@@ -196,7 +196,7 @@ public class IteratorUtilTest {
 
     ConfigurationCopy conf = new ConfigurationCopy();
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     MultiIteratorTest.nkv(tm, 1, 0, false, "1");
     MultiIteratorTest.nkv(tm, 2, 0, false, "2");
@@ -235,7 +235,7 @@ public class IteratorUtilTest {
     conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".addIter.opt.amount", "7");
     conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".sqIter", "2," + SquaringIter.class.getName());
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     MultiIteratorTest.nkv(tm, 1, 0, false, "1");
     MultiIteratorTest.nkv(tm, 2, 0, false, "2");
@@ -271,7 +271,7 @@ public class IteratorUtilTest {
     conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".filter.opt.ttl", "100");
     conf.set(Property.TABLE_ITERATOR_PREFIX + IteratorScope.minc.name() + ".filter.opt.currentTime", "1000");
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     MultiIteratorTest.nkv(tm, 1, 850, false, "1");
     MultiIteratorTest.nkv(tm, 2, 950, false, "2");
@@ -292,7 +292,7 @@ public class IteratorUtilTest {
 
   @Test
   public void onlyReadsRelevantIteratorScopeConfigurations() throws Exception {
-    Map<String,String> data = new HashMap<String,String>();
+    Map<String,String> data = new HashMap<>();
 
     // Make some configuration items, one with a bogus scope
     data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo", "50," + SummingCombiner.class.getName());
@@ -302,8 +302,8 @@ public class IteratorUtilTest {
 
     AccumuloConfiguration conf = new ConfigurationCopy(data);
 
-    List<IterInfo> iterators = new ArrayList<IterInfo>();
-    Map<String,Map<String,String>> options = new HashMap<String,Map<String,String>>();
+    List<IterInfo> iterators = new ArrayList<>();
+    Map<String,Map<String,String>> options = new HashMap<>();
 
     IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
 

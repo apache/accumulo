@@ -70,7 +70,7 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   public void ageOff() {
-    HashSet<Long> oldTxs = new HashSet<Long>();
+    HashSet<Long> oldTxs = new HashSet<>();
 
     synchronized (this) {
       long time = timeSource.currentTimeMillis();
@@ -114,7 +114,7 @@ public class AgeOffStore<T> implements TStore<T> {
     this.store = store;
     this.ageOffTime = ageOffTime;
     this.timeSource = timeSource;
-    candidates = new HashMap<Long,Long>();
+    candidates = new HashMap<>();
 
     minTime = Long.MAX_VALUE;
 

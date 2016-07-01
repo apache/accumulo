@@ -44,7 +44,7 @@ public enum SystemPermission {
 
   private static HashMap<Byte,SystemPermission> mapping;
   static {
-    mapping = new HashMap<Byte,SystemPermission>(SystemPermission.values().length);
+    mapping = new HashMap<>(SystemPermission.values().length);
     for (SystemPermission perm : SystemPermission.values())
       mapping.put(perm.permID, perm);
   }
@@ -70,7 +70,7 @@ public enum SystemPermission {
   public static List<String> printableValues() {
     SystemPermission[] a = SystemPermission.values();
 
-    List<String> list = new ArrayList<String>(a.length);
+    List<String> list = new ArrayList<>(a.length);
 
     for (SystemPermission p : a)
       list.add("System." + p);

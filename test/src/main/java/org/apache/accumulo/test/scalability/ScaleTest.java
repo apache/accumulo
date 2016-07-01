@@ -70,7 +70,7 @@ public abstract class ScaleTest {
     int numSplits = numTabletServers - 1;
     long distance = (Long.MAX_VALUE / numTabletServers) + 1;
     long split = distance;
-    TreeSet<Text> keys = new TreeSet<Text>();
+    TreeSet<Text> keys = new TreeSet<>();
     for (int i = 0; i < numSplits; i++) {
       keys.add(new Text(String.format("%016x", split)));
       split += distance;

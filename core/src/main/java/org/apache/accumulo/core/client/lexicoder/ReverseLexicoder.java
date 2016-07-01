@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
-
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.escape;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 
 /**
  * A lexicoder that flips the sort order from another lexicoder. If this is applied to {@link DateLexicoder}, the most recent date will be sorted first and the
@@ -29,7 +29,7 @@ import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
  * @since 1.6.0
  */
 
-public class ReverseLexicoder<T> extends AbstractLexicoder<T> implements Lexicoder<T> {
+public class ReverseLexicoder<T> extends AbstractLexicoder<T> {
 
   private Lexicoder<T> lexicoder;
 

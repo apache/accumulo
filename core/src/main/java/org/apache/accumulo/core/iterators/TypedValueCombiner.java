@@ -179,7 +179,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
 
   @Override
   public Value reduce(Key key, Iterator<Value> iter) {
-    return new Value(encoder.encode(typedReduce(key, new VIterator<V>(iter, encoder, lossy))));
+    return new Value(encoder.encode(typedReduce(key, new VIterator<>(iter, encoder, lossy))));
   }
 
   @Override

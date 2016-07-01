@@ -63,7 +63,7 @@ public class ListIterCommand extends Command {
     }
 
     final boolean allScopes = cl.hasOption(allScopesOpt.getOpt());
-    Set<IteratorScope> desiredScopes = new HashSet<IteratorScope>();
+    Set<IteratorScope> desiredScopes = new HashSet<>();
     for (IteratorScope scope : IteratorScope.values()) {
       if (allScopes || cl.hasOption(scopeOpts.get(scope).getOpt()))
         desiredScopes.add(scope);
@@ -120,7 +120,7 @@ public class ListIterCommand extends Command {
     allScopesOpt = new Option("all", "all-scopes", false, "list from all scopes");
     o.addOption(allScopesOpt);
 
-    scopeOpts = new EnumMap<IteratorScope,Option>(IteratorScope.class);
+    scopeOpts = new EnumMap<>(IteratorScope.class);
     scopeOpts.put(IteratorScope.minc, new Option(IteratorScope.minc.name(), "minor-compaction", false, "list iterator for minor compaction scope"));
     scopeOpts.put(IteratorScope.majc, new Option(IteratorScope.majc.name(), "major-compaction", false, "list iterator for major compaction scope"));
     scopeOpts.put(IteratorScope.scan, new Option(IteratorScope.scan.name(), "scan-time", false, "list iterator for scan scope"));

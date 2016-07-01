@@ -25,7 +25,7 @@ import org.apache.accumulo.core.data.ByteSequence;
  */
 public class VisibilityCombiner {
 
-  private TreeSet<String> visibilities = new TreeSet<String>();
+  private TreeSet<String> visibilities = new TreeSet<>();
 
   void add(ByteSequence cv) {
     if (cv.length() == 0)

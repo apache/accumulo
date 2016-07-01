@@ -90,12 +90,12 @@ public class TabletLocatorImpl extends TabletLocator {
 
   protected String tableId;
   protected TabletLocator parent;
-  protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<Text,TabletLocation>(endRowComparator);
+  protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(endRowComparator);
   protected TabletLocationObtainer locationObtainer;
   private TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
 
-  private TreeSet<KeyExtent> badExtents = new TreeSet<KeyExtent>();
+  private TreeSet<KeyExtent> badExtents = new TreeSet<>();
   private ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final Lock rLock = rwLock.readLock();
   private final Lock wLock = rwLock.writeLock();
@@ -119,8 +119,8 @@ public class TabletLocatorImpl extends TabletLocator {
 
   private class LockCheckerSession {
 
-    private HashSet<Pair<String,String>> okLocks = new HashSet<Pair<String,String>>();
-    private HashSet<Pair<String,String>> invalidLocks = new HashSet<Pair<String,String>>();
+    private HashSet<Pair<String,String>> okLocks = new HashSet<>();
+    private HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
 
     private TabletLocation checkLock(TabletLocation tl) {
       // the goal of this class is to minimize calls out to lockChecker under that assumption that its a resource synchronized among many threads... want to
@@ -130,7 +130,7 @@ public class TabletLocatorImpl extends TabletLocator {
       if (tl == null)
         return null;
 
-      Pair<String,String> lock = new Pair<String,String>(tl.tablet_location, tl.tablet_session);
+      Pair<String,String> lock = new Pair<>(tl.tablet_location, tl.tablet_session);
 
       if (okLocks.contains(lock))
         return tl;
@@ -173,7 +173,7 @@ public class TabletLocatorImpl extends TabletLocator {
       timer = new OpTimer().start();
     }
 
-    ArrayList<T> notInCache = new ArrayList<T>();
+    ArrayList<T> notInCache = new ArrayList<>();
     Text row = new Text();
 
     LockCheckerSession lcSession = new LockCheckerSession();
@@ -247,7 +247,7 @@ public class TabletLocatorImpl extends TabletLocator {
       // do lock check once per tserver here to make binning faster
       boolean lockHeld = lcSession.checkLock(tl) != null;
       if (lockHeld) {
-        tsm = new TabletServerMutations<T>(tl.tablet_session);
+        tsm = new TabletServerMutations<>(tl.tablet_session);
         binnedMutations.put(tl.tablet_location, tsm);
       } else {
         return false;
@@ -265,8 +265,8 @@ public class TabletLocatorImpl extends TabletLocator {
 
   private List<Range> binRanges(ClientContext context, List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, boolean useCache,
       LockCheckerSession lcSession) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    List<Range> failures = new ArrayList<Range>();
-    List<TabletLocation> tabletLocations = new ArrayList<TabletLocation>();
+    List<Range> failures = new ArrayList<>();
+    List<TabletLocation> tabletLocations = new ArrayList<>();
 
     boolean lookupFailed = false;
 
@@ -676,7 +676,7 @@ public class TabletLocatorImpl extends TabletLocator {
           return;
       }
 
-      List<Range> lookups = new ArrayList<Range>(badExtents.size());
+      List<Range> lookups = new ArrayList<>(badExtents.size());
 
       for (KeyExtent be : badExtents) {
         lookups.add(be.toMetadataRange());
@@ -685,12 +685,12 @@ public class TabletLocatorImpl extends TabletLocator {
 
       lookups = Range.mergeOverlapping(lookups);
 
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
       parent.binRanges(context, lookups, binnedRanges);
 
       // randomize server order
-      ArrayList<String> tabletServers = new ArrayList<String>(binnedRanges.keySet());
+      ArrayList<String> tabletServers = new ArrayList<>(binnedRanges.keySet());
       Collections.shuffle(tabletServers);
 
       for (String tserver : tabletServers) {
@@ -711,13 +711,13 @@ public class TabletLocatorImpl extends TabletLocator {
   protected static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges, String location, KeyExtent ke, Range range) {
     Map<KeyExtent,List<Range>> tablets = binnedRanges.get(location);
     if (tablets == null) {
-      tablets = new HashMap<KeyExtent,List<Range>>();
+      tablets = new HashMap<>();
       binnedRanges.put(location, tablets);
     }
 
     List<Range> tabletsRanges = tablets.get(ke);
     if (tabletsRanges == null) {
-      tabletsRanges = new ArrayList<Range>();
+      tabletsRanges = new ArrayList<>();
       tablets.put(ke, tabletsRanges);
     }
 

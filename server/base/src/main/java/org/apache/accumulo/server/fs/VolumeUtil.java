@@ -124,7 +124,7 @@ public class VolumeUtil {
     else
       switchedPath = le.filename;
 
-    ArrayList<String> switchedLogs = new ArrayList<String>();
+    ArrayList<String> switchedLogs = new ArrayList<>();
     String switchedLog = switchVolume(le.filename, FileType.WAL, replacements);
     if (switchedLog != null) {
       switchedLogs.add(switchedLog);
@@ -151,8 +151,8 @@ public class VolumeUtil {
     public SortedMap<FileRef,DataFileValue> datafiles;
 
     public TabletFiles() {
-      logEntries = new ArrayList<LogEntry>();
-      datafiles = new TreeMap<FileRef,DataFileValue>();
+      logEntries = new ArrayList<>();
+      datafiles = new TreeMap<>();
     }
 
     public TabletFiles(String dir, List<LogEntry> logEntries, SortedMap<FileRef,DataFileValue> datafiles) {
@@ -181,11 +181,11 @@ public class VolumeUtil {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
     log.trace("Using volume replacements: " + replacements);
 
-    List<LogEntry> logsToRemove = new ArrayList<LogEntry>();
-    List<LogEntry> logsToAdd = new ArrayList<LogEntry>();
+    List<LogEntry> logsToRemove = new ArrayList<>();
+    List<LogEntry> logsToAdd = new ArrayList<>();
 
-    List<FileRef> filesToRemove = new ArrayList<FileRef>();
-    SortedMap<FileRef,DataFileValue> filesToAdd = new TreeMap<FileRef,DataFileValue>();
+    List<FileRef> filesToRemove = new ArrayList<>();
+    SortedMap<FileRef,DataFileValue> filesToAdd = new TreeMap<>();
 
     TabletFiles ret = new TabletFiles();
 
@@ -343,7 +343,7 @@ public class VolumeUtil {
   }
 
   private static HashSet<String> getFileNames(FileStatus[] filesStatuses) {
-    HashSet<String> names = new HashSet<String>();
+    HashSet<String> names = new HashSet<>();
     for (FileStatus fileStatus : filesStatuses)
       if (fileStatus.isDirectory())
         throw new IllegalArgumentException("expected " + fileStatus.getPath() + " to be a file");

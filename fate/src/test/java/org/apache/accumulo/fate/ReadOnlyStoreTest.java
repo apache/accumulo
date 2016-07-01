@@ -51,7 +51,7 @@ public class ReadOnlyStoreTest {
     EasyMock.replay(repo);
     EasyMock.replay(mock);
 
-    ReadOnlyTStore<String> store = new ReadOnlyStore<String>(mock);
+    ReadOnlyTStore<String> store = new ReadOnlyStore<>(mock);
     Assert.assertEquals(0xdeadbeefl, store.reserve());
     store.reserve(0xdeadbeefl);
     ReadOnlyRepo<String> top = store.top(0xdeadbeefl);

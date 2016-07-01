@@ -78,8 +78,8 @@ public class MetadataBulkLoadFilterTest {
 
   @Test
   public void testBasic() throws IOException {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
-    TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
+    TreeMap<Key,Value> expected = new TreeMap<>();
 
     // following should not be deleted by filter
     put(tm1, "2;m", TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, "/t1");
@@ -117,7 +117,7 @@ public class MetadataBulkLoadFilterTest {
 
     iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
 
-    TreeMap<Key,Value> actual = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> actual = new TreeMap<>();
 
     while (iter.hasTop()) {
       actual.put(iter.getTopKey(), iter.getTopValue());

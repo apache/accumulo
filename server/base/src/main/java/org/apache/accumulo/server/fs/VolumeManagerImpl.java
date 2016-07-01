@@ -65,7 +65,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   private static final Logger log = LoggerFactory.getLogger(VolumeManagerImpl.class);
 
-  private static final HashSet<String> WARNED_ABOUT_SYNCONCLOSE = new HashSet<String>();
+  private static final HashSet<String> WARNED_ABOUT_SYNCONCLOSE = new HashSet<>();
 
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;
@@ -326,7 +326,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf) throws IOException {
-    final Map<String,Volume> volumes = new HashMap<String,Volume>();
+    final Map<String,Volume> volumes = new HashMap<>();
 
     // The "default" Volume for Accumulo (in case no volumes are specified)
     for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf, hadoopConf)) {

@@ -49,15 +49,15 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
 
   @Before
   public void setupData() {
-    resultSet1 = new ArrayList<Key>();
+    resultSet1 = new ArrayList<>();
     resultSet1.add(new Key("row1", "colf", "colq", 4l));
     resultSet1.add(new Key("row1", "colf", "colq", 3l));
-    resultSet2 = new ArrayList<Key>();
+    resultSet2 = new ArrayList<>();
     resultSet2.add(new Key("row1", "colf", "colq", 4l));
     resultSet2.add(new Key("row1", "colf", "colq", 3l));
     resultSet2.add(new Key("row1", "colf", "colq", 2l));
     resultSet2.add(new Key("row1", "colf", "colq", 1l));
-    resultSet3 = new ArrayList<Key>();
+    resultSet3 = new ArrayList<>();
     resultSet3.add(new Key("part1", "", "doc2"));
     resultSet3.add(new Key("part2", "", "DOC2"));
   }

@@ -56,7 +56,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.instanceOperations().waitForBalance();
-    final SortedSet<Text> partitionKeys = new TreeSet<Text>();
+    final SortedSet<Text> partitionKeys = new TreeSet<>();
     for (int i = 0; i < 1000; i++) {
       partitionKeys.add(new Text("" + i));
     }
@@ -67,7 +67,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
   }
 
   private boolean isBalanced() throws Exception {
-    final Map<String,Integer> counts = new HashMap<String,Integer>();
+    final Map<String,Integer> counts = new HashMap<>();
     int offline = 0;
     final Connector c = getConnector();
     for (String tableName : new String[] {MetadataTable.NAME, RootTable.NAME}) {

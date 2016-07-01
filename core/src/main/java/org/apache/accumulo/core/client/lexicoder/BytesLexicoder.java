@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
  *
  * @since 1.6.0
  */
-public class BytesLexicoder extends AbstractLexicoder<byte[]> implements Lexicoder<byte[]> {
+public class BytesLexicoder extends AbstractLexicoder<byte[]> {
 
   @Override
   public byte[] encode(byte[] data) {

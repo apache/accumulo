@@ -80,7 +80,7 @@ public class RootFiles {
     /*
      * called in constructor and before major compactions
      */
-    Collection<String> goodFiles = new ArrayList<String>(files.length);
+    Collection<String> goodFiles = new ArrayList<>(files.length);
 
     for (FileStatus file : files) {
 

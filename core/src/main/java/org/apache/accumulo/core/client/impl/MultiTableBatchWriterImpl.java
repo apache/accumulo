@@ -118,7 +118,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
     checkArgument(cacheTimeUnit != null, "cacheTimeUnit is null");
     this.context = context;
     this.bw = new TabletServerBatchWriter(context, config);
-    tableWriters = new ConcurrentHashMap<String,BatchWriter>();
+    tableWriters = new ConcurrentHashMap<>();
     this.closed = new AtomicBoolean(false);
     this.cacheLastState = new AtomicLong(0);
 

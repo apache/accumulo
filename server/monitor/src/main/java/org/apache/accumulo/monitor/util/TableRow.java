@@ -25,7 +25,7 @@ public class TableRow {
 
   TableRow(int size) {
     this.size = size;
-    this.row = new ArrayList<Object>(size);
+    this.row = new ArrayList<>(size);
   }
 
   public boolean add(Object obj) {
@@ -47,7 +47,7 @@ public class TableRow {
   }
 
   public static <T> Comparator<TableRow> getComparator(int index, Comparator<T> comp) {
-    return new TableRowComparator<T>(index, comp);
+    return new TableRowComparator<>(index, comp);
   }
 
   private static class TableRowComparator<T> implements Comparator<TableRow> {

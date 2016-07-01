@@ -95,7 +95,7 @@ public class CfCqSliceOpts {
   static class Describer implements OptionDescriber {
     @Override
     public OptionDescriber.IteratorOptions describeOptions() {
-      Map<String,String> options = new HashMap<String,String>();
+      Map<String,String> options = new HashMap<>();
       options.put(OPT_MIN_CF, OPT_MIN_CF_DESC);
       options.put(OPT_MIN_CQ, OPT_MIN_CQ_DESC);
       options.put(OPT_MAX_CF, OPT_MAX_CF_DESC);

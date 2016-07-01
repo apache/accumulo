@@ -183,7 +183,7 @@ public class NullTserver {
 
     @Override
     public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
-      return new ArrayList<ActiveScan>();
+      return new ArrayList<>();
     }
 
     @Override
@@ -206,7 +206,7 @@ public class NullTserver {
 
     @Override
     public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
-      return new ArrayList<ActiveCompaction>();
+      return new ArrayList<>();
     }
 
     @Override
@@ -270,7 +270,7 @@ public class NullTserver {
     MetaDataTableScanner s = new MetaDataTableScanner(context, tableRange);
     long randomSessionID = opts.port;
     TServerInstance instance = new TServerInstance(addr, randomSessionID);
-    List<Assignment> assignments = new ArrayList<Assignment>();
+    List<Assignment> assignments = new ArrayList<>();
     while (s.hasNext()) {
       TabletLocationState next = s.next();
       assignments.add(new Assignment(next.extent, instance));

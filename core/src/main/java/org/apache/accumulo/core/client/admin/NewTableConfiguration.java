@@ -41,7 +41,7 @@ public class NewTableConfiguration {
 
   private boolean limitVersion = true;
 
-  private Map<String,String> properties = new HashMap<String,String>();
+  private Map<String,String> properties = new HashMap<>();
   private SamplerConfiguration samplerConfiguration;
 
   /**
@@ -90,7 +90,7 @@ public class NewTableConfiguration {
     checkArgument(prop != null, "properties is null");
     SamplerConfigurationImpl.checkDisjoint(prop, samplerConfiguration);
 
-    this.properties = new HashMap<String,String>(prop);
+    this.properties = new HashMap<>(prop);
     return this;
   }
 

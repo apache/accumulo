@@ -38,14 +38,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class GrepIteratorTest {
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   SortedMap<Key,Value> input;
   SortedMap<Key,Value> output;
 
   @Before
   public void init() {
-    input = new TreeMap<Key,Value>();
-    output = new TreeMap<Key,Value>();
+    input = new TreeMap<>();
+    output = new TreeMap<>();
     input.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
     output.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
 

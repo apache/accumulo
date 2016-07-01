@@ -64,7 +64,7 @@ public class RootFilesTest {
 
       rootTabletDir = new File(tempFolder.newFolder(), "accumulo/tables/+r/root_tablet");
       assertTrue(rootTabletDir.mkdirs() || rootTabletDir.isDirectory());
-      oldDatafiles = new HashSet<FileRef>();
+      oldDatafiles = new HashSet<>();
       for (String filename : inputFiles) {
         File file = new File(rootTabletDir, filename);
         assertTrue(file.createNewFile());
@@ -95,17 +95,17 @@ public class RootFilesTest {
     public Collection<String> cleanupReplacement(String... expectedFiles) throws IOException {
       Collection<String> ret = RootFiles.cleanupReplacement(vm, vm.listStatus(new Path(rootTabletDir.toURI())), true);
 
-      HashSet<String> expected = new HashSet<String>();
+      HashSet<String> expected = new HashSet<>();
       for (String efile : expectedFiles)
         expected.add(new File(rootTabletDir, efile).toURI().toString());
 
-      Assert.assertEquals(expected, new HashSet<String>(ret));
+      Assert.assertEquals(expected, new HashSet<>(ret));
 
       return ret;
     }
 
     public void assertFiles(String... files) {
-      HashSet<String> actual = new HashSet<String>();
+      HashSet<String> actual = new HashSet<>();
       File[] children = rootTabletDir.listFiles();
       if (children != null) {
         for (File file : children) {
@@ -113,7 +113,7 @@ public class RootFilesTest {
         }
       }
 
-      HashSet<String> expected = new HashSet<String>();
+      HashSet<String> expected = new HashSet<>();
       expected.addAll(Arrays.asList(files));
 
       Assert.assertEquals(expected, actual);

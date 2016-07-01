@@ -313,7 +313,7 @@ public class NativeMapIT {
 
     NativeMap nm = new NativeMap();
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     tm.put(new Key(new Text("fo")), new Value(new byte[] {'0'}));
     tm.put(new Key(new Text("foo")), new Value(new byte[] {'1'}));
@@ -451,14 +451,14 @@ public class NativeMapIT {
     // generate random data
     Random r = new Random(75);
 
-    ArrayList<Pair<Key,Value>> testData = new ArrayList<Pair<Key,Value>>();
+    ArrayList<Pair<Key,Value>> testData = new ArrayList<>();
 
     for (int i = 0; i < 100000; i++) {
 
       Key k = new Key(rlrf(r, 97), rlrf(r, 13), rlrf(r, 31), rlrf(r, 11), (r.nextLong() & 0x7fffffffffffffffl), false, false);
       Value v = new Value(rlrf(r, 511));
 
-      testData.add(new Pair<Key,Value>(k, v));
+      testData.add(new Pair<>(k, v));
     }
 
     // insert unsorted data

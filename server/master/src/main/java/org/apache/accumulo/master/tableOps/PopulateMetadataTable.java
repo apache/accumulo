@@ -68,7 +68,7 @@ class PopulateMetadataTable extends MasterRepo {
     BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), UTF_8));
 
     try {
-      Map<String,String> map = new HashMap<String,String>();
+      Map<String,String> map = new HashMap<>();
 
       String line = null;
       while ((line = in.readLine()) != null) {

@@ -1199,8 +1199,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("deletetable -f formatter_test", true);
 
-    assertTrue(Iterables.elementsEqual(expectedDefault, new ArrayList<String>(actualDefault)));
-    assertTrue(Iterables.elementsEqual(expectedFormatted, new ArrayList<String>(actualFormatted)));
+    assertTrue(Iterables.elementsEqual(expectedDefault, new ArrayList<>(actualDefault)));
+    assertTrue(Iterables.elementsEqual(expectedFormatted, new ArrayList<>(actualFormatted)));
   }
 
   /**
@@ -1512,7 +1512,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     };
     thread.start();
 
-    List<String> scans = new ArrayList<String>();
+    List<String> scans = new ArrayList<>();
     // Try to find the active scan for about 15seconds
     for (int i = 0; i < 50 && scans.isEmpty(); i++) {
       String currentScans = ts.exec("listscans", true);

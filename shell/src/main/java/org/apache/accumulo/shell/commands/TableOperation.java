@@ -43,7 +43,7 @@ public abstract class TableOperation extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     // populate the tableSet set with the tables you want to operate on
-    final SortedSet<String> tableSet = new TreeSet<String>();
+    final SortedSet<String> tableSet = new TreeSet<>();
     if (cl.hasOption(optTablePattern.getOpt())) {
       String tablePattern = cl.getOptionValue(optTablePattern.getOpt());
       for (String table : shellState.getConnector().tableOperations().list())

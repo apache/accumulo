@@ -109,7 +109,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are compacted.
     c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(), "org.apache.accumulo.test.EfgCompactionStrat");
 
-    c.tableOperations().addSplits(tableName, new TreeSet<Text>(Arrays.asList(new Text("efg"))));
+    c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
 
     for (char ch = 'a'; ch < 'l'; ch++)
       writeFlush(c, tableName, ch + "");

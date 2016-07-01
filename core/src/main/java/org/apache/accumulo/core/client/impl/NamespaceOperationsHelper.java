@@ -66,7 +66,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       NamespaceNotFoundException {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
-    Map<String,String> copy = new TreeMap<String,String>();
+    Map<String,String> copy = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(namespace)) {
       copy.put(property.getKey(), property.getValue());
     }
@@ -86,7 +86,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       throw new NamespaceNotFoundException(null, namespace, null);
     int priority = -1;
     String classname = null;
-    Map<String,String> settings = new HashMap<String,String>();
+    Map<String,String> settings = new HashMap<>();
 
     String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
     String opt = root + ".opt.";
@@ -112,7 +112,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   public Map<String,EnumSet<IteratorScope>> listIterators(String namespace) throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
-    Map<String,EnumSet<IteratorScope>> result = new TreeMap<String,EnumSet<IteratorScope>>();
+    Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(namespace)) {
       String name = property.getKey();
       String[] parts = name.split("\\.");
@@ -137,7 +137,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
       String optStr = String.format("%s.opt.", nameStr);
-      Map<String,String> optionConflicts = new TreeMap<String,String>();
+      Map<String,String> optionConflicts = new TreeMap<>();
       for (Entry<String,String> property : this.getProperties(namespace)) {
         if (property.getKey().startsWith(scopeStr)) {
           if (property.getKey().equals(nameStr))
@@ -165,8 +165,8 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
 
   @Override
   public int addConstraint(String namespace, String constraintClassName) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    TreeSet<Integer> constraintNumbers = new TreeSet<Integer>();
-    TreeMap<String,Integer> constraintClasses = new TreeMap<String,Integer>();
+    TreeSet<Integer> constraintNumbers = new TreeSet<>();
+    TreeMap<String,Integer> constraintClasses = new TreeMap<>();
     int i;
     for (Entry<String,String> property : this.getProperties(namespace)) {
       if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
@@ -196,7 +196,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
 
   @Override
   public Map<String,Integer> listConstraints(String namespace) throws AccumuloException, NamespaceNotFoundException, AccumuloSecurityException {
-    Map<String,Integer> constraints = new TreeMap<String,Integer>();
+    Map<String,Integer> constraints = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(namespace)) {
       if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
         if (constraints.containsKey(property.getValue()))

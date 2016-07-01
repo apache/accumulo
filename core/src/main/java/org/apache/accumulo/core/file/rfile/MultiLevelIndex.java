@@ -132,7 +132,7 @@ public class MultiLevelIndex {
     }
   }
 
-  private static abstract class SerializedIndexBase<T> extends AbstractList<T> implements List<T>, RandomAccess {
+  private static abstract class SerializedIndexBase<T> extends AbstractList<T> implements RandomAccess {
     protected int[] offsets;
     protected byte[] data;
 
@@ -276,7 +276,7 @@ public class MultiLevelIndex {
 
       indexBytes = new ByteArrayOutputStream();
       indexOut = new DataOutputStream(indexBytes);
-      offsets = new ArrayList<Integer>();
+      offsets = new ArrayList<>();
     }
 
     public IndexBlock() {}
@@ -352,7 +352,7 @@ public class MultiLevelIndex {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
-        ArrayList<Integer> oal = new ArrayList<Integer>();
+        ArrayList<Integer> oal = new ArrayList<>();
 
         for (int i = 0; i < size; i++) {
           IndexEntry ie = new IndexEntry(false);
@@ -501,7 +501,7 @@ public class MultiLevelIndex {
     Writer(BlockFileWriter blockFileWriter, int maxBlockSize) {
       this.blockFileWriter = blockFileWriter;
       this.threshold = maxBlockSize;
-      levels = new ArrayList<IndexBlock>();
+      levels = new ArrayList<>();
     }
 
     private void add(int level, Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {

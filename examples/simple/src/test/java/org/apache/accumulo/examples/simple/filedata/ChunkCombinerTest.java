@@ -135,22 +135,22 @@ public class ChunkCombinerTest extends TestCase {
 
   @Override
   protected void setUp() {
-    row1 = new TreeMap<Key,Value>();
-    row2 = new TreeMap<Key,Value>();
-    row3 = new TreeMap<Key,Value>();
-    allRows = new TreeMap<Key,Value>();
+    row1 = new TreeMap<>();
+    row2 = new TreeMap<>();
+    row3 = new TreeMap<>();
+    allRows = new TreeMap<>();
 
-    cRow1 = new TreeMap<Key,Value>();
-    cRow2 = new TreeMap<Key,Value>();
-    cRow3 = new TreeMap<Key,Value>();
-    allCRows = new TreeMap<Key,Value>();
+    cRow1 = new TreeMap<>();
+    cRow2 = new TreeMap<>();
+    cRow3 = new TreeMap<>();
+    allCRows = new TreeMap<>();
 
-    cOnlyRow1 = new TreeMap<Key,Value>();
-    cOnlyRow2 = new TreeMap<Key,Value>();
-    cOnlyRow3 = new TreeMap<Key,Value>();
-    allCOnlyRows = new TreeMap<Key,Value>();
+    cOnlyRow1 = new TreeMap<>();
+    cOnlyRow2 = new TreeMap<>();
+    cOnlyRow3 = new TreeMap<>();
+    allCOnlyRows = new TreeMap<>();
 
-    badrow = new TreeMap<Key,Value>();
+    badrow = new TreeMap<>();
 
     String refs = FileDataIngest.REFS_CF.toString();
     String fileext = FileDataIngest.REFS_FILE_EXT;
@@ -218,7 +218,7 @@ public class ChunkCombinerTest extends TestCase {
     allCOnlyRows.putAll(cOnlyRow3);
   }
 
-  private static final Collection<ByteSequence> emptyColfs = new HashSet<ByteSequence>();
+  private static final Collection<ByteSequence> emptyColfs = new HashSet<>();
 
   public void test1() throws IOException {
     runTest(false, allRows, allCRows, emptyColfs);
@@ -241,7 +241,7 @@ public class ChunkCombinerTest extends TestCase {
     iter = iter.deepCopy(null);
     iter.seek(new Range(), cols, true);
 
-    TreeMap<Key,Value> seen = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> seen = new TreeMap<>();
 
     while (iter.hasTop()) {
       assertFalse("already contains " + iter.getTopKey(), seen.containsKey(iter.getTopKey()));

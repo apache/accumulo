@@ -197,7 +197,7 @@ public class BatchWriterIterator extends WrappingIterator {
           if (clearCacheAfterFirstWrite)
             TabletLocator.clearLocators();
           if (splitAfterFirstWrite) {
-            SortedSet<Text> splits = new TreeSet<Text>();
+            SortedSet<Text> splits = new TreeSet<>();
             splits.add(new Text(row));
             connector.tableOperations().addSplits(tableName, splits);
           }

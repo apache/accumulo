@@ -68,15 +68,15 @@ public class AdminUtil<T> {
 
   public void print(ReadOnlyTStore<T> zs, IZooReaderWriter zk, String lockPath, Formatter fmt, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
-    Map<Long,List<String>> heldLocks = new HashMap<Long,List<String>>();
-    Map<Long,List<String>> waitingLocks = new HashMap<Long,List<String>>();
+    Map<Long,List<String>> heldLocks = new HashMap<>();
+    Map<Long,List<String>> waitingLocks = new HashMap<>();
 
     List<String> lockedIds = zk.getChildren(lockPath);
 
     for (String id : lockedIds) {
       try {
         List<String> lockNodes = zk.getChildren(lockPath + "/" + id);
-        lockNodes = new ArrayList<String>(lockNodes);
+        lockNodes = new ArrayList<>(lockNodes);
         Collections.sort(lockNodes);
 
         int pos = 0;
@@ -104,7 +104,7 @@ public class AdminUtil<T> {
 
             List<String> tables = locks.get(Long.parseLong(lda[1], 16));
             if (tables == null) {
-              tables = new ArrayList<String>();
+              tables = new ArrayList<>();
               locks.put(Long.parseLong(lda[1], 16), tables);
             }
 

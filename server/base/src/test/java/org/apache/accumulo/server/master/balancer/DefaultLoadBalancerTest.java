@@ -48,11 +48,11 @@ import com.google.common.net.HostAndPort;
 public class DefaultLoadBalancerTest {
 
   class FakeTServer {
-    List<KeyExtent> extents = new ArrayList<KeyExtent>();
+    List<KeyExtent> extents = new ArrayList<>();
 
     TabletServerStatus getStatus(TServerInstance server) {
       TabletServerStatus result = new TabletServerStatus();
-      result.tableMap = new HashMap<String,TableInfo>();
+      result.tableMap = new HashMap<>();
       for (KeyExtent extent : extents) {
         String table = extent.getTableId();
         TableInfo info = result.tableMap.get(table);
@@ -67,14 +67,14 @@ public class DefaultLoadBalancerTest {
     }
   }
 
-  Map<TServerInstance,FakeTServer> servers = new HashMap<TServerInstance,FakeTServer>();
-  Map<KeyExtent,TServerInstance> last = new HashMap<KeyExtent,TServerInstance>();
+  Map<TServerInstance,FakeTServer> servers = new HashMap<>();
+  Map<KeyExtent,TServerInstance> last = new HashMap<>();
 
   class TestDefaultLoadBalancer extends DefaultLoadBalancer {
 
     @Override
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String table) throws ThriftSecurityException, TException {
-      List<TabletStats> result = new ArrayList<TabletStats>();
+      List<TabletStats> result = new ArrayList<>();
       for (KeyExtent extent : servers.get(tserver).extents) {
         if (extent.getTableId().equals(table)) {
           result.add(new TabletStats(extent.toThrift(), null, null, null, 0l, 0., 0., 0));
@@ -95,7 +95,7 @@ public class DefaultLoadBalancerTest {
     servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), "a"), new FakeTServer());
     servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.2", 1234), "b"), new FakeTServer());
     servers.put(new TServerInstance(HostAndPort.fromParts("127.0.0.3", 1234), "c"), new FakeTServer());
-    List<KeyExtent> metadataTable = new ArrayList<KeyExtent>();
+    List<KeyExtent> metadataTable = new ArrayList<>();
     String table = "t1";
     metadataTable.add(makeExtent(table, null, null));
     table = "t2";
@@ -112,14 +112,14 @@ public class DefaultLoadBalancerTest {
 
     TestDefaultLoadBalancer balancer = new TestDefaultLoadBalancer();
 
-    SortedMap<TServerInstance,TabletServerStatus> current = new TreeMap<TServerInstance,TabletServerStatus>();
+    SortedMap<TServerInstance,TabletServerStatus> current = new TreeMap<>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
       current.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
     }
     assignTablets(metadataTable, servers, current, balancer);
 
     // Verify that the counts on the tables are correct
-    Map<String,Integer> expectedCounts = new HashMap<String,Integer>();
+    Map<String,Integer> expectedCounts = new HashMap<>();
     expectedCounts.put("t1", 1);
     expectedCounts.put("t2", 1);
     expectedCounts.put("t3", 2);
@@ -131,7 +131,7 @@ public class DefaultLoadBalancerTest {
     }
 
     // Nothing should happen, we are balanced
-    ArrayList<TabletMigration> out = new ArrayList<TabletMigration>();
+    ArrayList<TabletMigration> out = new ArrayList<>();
     balancer.getMigrations(current, out);
     assertEquals(out.size(), 0);
 
@@ -158,7 +158,7 @@ public class DefaultLoadBalancerTest {
   }
 
   SortedMap<TServerInstance,TabletServerStatus> getAssignments(Map<TServerInstance,FakeTServer> servers) {
-    SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
+    SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
       result.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
     }
@@ -192,7 +192,7 @@ public class DefaultLoadBalancerTest {
     int moved = 0;
     // balance until we can't balance no more!
     while (true) {
-      List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+      List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
       if (migrationsOut.size() == 0)
         break;
@@ -217,7 +217,7 @@ public class DefaultLoadBalancerTest {
       servers.put(tsi, fakeTServer);
     }
     // put 60 tablets on 25 of them
-    List<Entry<TServerInstance,FakeTServer>> shortList = new ArrayList<Entry<TServerInstance,FakeTServer>>(servers.entrySet());
+    List<Entry<TServerInstance,FakeTServer>> shortList = new ArrayList<>(servers.entrySet());
     Entry<TServerInstance,FakeTServer> shortServer = shortList.remove(0);
     int c = 0;
     for (int i = 0; i < 60; i++) {
@@ -235,7 +235,7 @@ public class DefaultLoadBalancerTest {
     int moved = 0;
     // balance until we can't balance no more!
     while (true) {
-      List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+      List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
       if (migrationsOut.size() == 0)
         break;
@@ -264,7 +264,7 @@ public class DefaultLoadBalancerTest {
 
     if (expectedCounts != null) {
       for (FakeTServer server : servers.values()) {
-        Map<String,Integer> counts = new HashMap<String,Integer>();
+        Map<String,Integer> counts = new HashMap<>();
         for (KeyExtent extent : server.extents) {
           String t = extent.getTableId();
           if (counts.get(t) == null)

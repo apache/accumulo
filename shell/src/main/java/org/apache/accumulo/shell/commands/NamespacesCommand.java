@@ -39,7 +39,7 @@ public class NamespacesCommand extends Command {
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
-    Map<String,String> namespaces = new TreeMap<String,String>(shellState.getConnector().namespaceOperations().namespaceIdMap());
+    Map<String,String> namespaces = new TreeMap<>(shellState.getConnector().namespaceOperations().namespaceIdMap());
 
     Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(), entry -> {
       String name = entry.getKey();

@@ -41,7 +41,7 @@ public class DefaultKeySizeConstraint implements Constraint {
     return null;
   }
 
-  final static List<Short> NO_VIOLATIONS = new ArrayList<Short>();
+  final static List<Short> NO_VIOLATIONS = new ArrayList<>();
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
@@ -50,7 +50,7 @@ public class DefaultKeySizeConstraint implements Constraint {
     if (mutation.numBytes() < maxSize)
       return NO_VIOLATIONS;
 
-    List<Short> violations = new ArrayList<Short>();
+    List<Short> violations = new ArrayList<>();
 
     for (ColumnUpdate cu : mutation.getUpdates()) {
       int size = mutation.getRow().length;

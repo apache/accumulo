@@ -233,7 +233,7 @@ public class DistributedWorkQueue {
   }
 
   public List<String> getWorkQueued() throws KeeperException, InterruptedException {
-    ArrayList<String> children = new ArrayList<String>(zoo.getChildren(path));
+    ArrayList<String> children = new ArrayList<>(zoo.getChildren(path));
     children.remove(LOCKS_NODE);
     return children;
   }

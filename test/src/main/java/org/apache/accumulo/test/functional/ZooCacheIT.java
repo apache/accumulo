@@ -48,8 +48,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     assertEquals(0, exec(CacheTestClean.class, pathName, testDir.getAbsolutePath()).waitFor());
-    final AtomicReference<Exception> ref = new AtomicReference<Exception>();
-    List<Thread> threads = new ArrayList<Thread>();
+    final AtomicReference<Exception> ref = new AtomicReference<>();
+    List<Thread> threads = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       Thread reader = new Thread() {
         @Override

@@ -48,7 +48,7 @@ public class ProxyServerTest {
 
     final ByteBuffer login = ByteBuffer.wrap("my_login".getBytes(UTF_8));
     final String tableName = "table1";
-    final Map<ByteBuffer,List<ColumnUpdate>> cells = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    final Map<ByteBuffer,List<ColumnUpdate>> cells = new HashMap<>();
 
     EasyMock.expect(server.getWriter(login, tableName, null)).andReturn(bwpe);
     server.addCellsToWriter(cells, bwpe);
@@ -83,7 +83,7 @@ public class ProxyServerTest {
 
     final ByteBuffer login = ByteBuffer.wrap("my_login".getBytes(UTF_8));
     final String tableName = "table1";
-    final Map<ByteBuffer,List<ColumnUpdate>> cells = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    final Map<ByteBuffer,List<ColumnUpdate>> cells = new HashMap<>();
 
     EasyMock.expect(server.getWriter(login, tableName, null)).andReturn(bwpe);
     server.addCellsToWriter(cells, bwpe);

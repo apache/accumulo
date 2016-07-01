@@ -37,7 +37,7 @@ public class BulkImportDirectory {
     @Parameter(names = {"-f", "--failures"}, description = "directory to copy failures into: will be deleted before the bulk import")
     String failures = null;
     @Parameter(description = "<username> <password> <tablename> <sourcedir> <failuredir>")
-    List<String> args = new ArrayList<String>();
+    List<String> args = new ArrayList<>();
   }
 
   public static void main(String[] args) throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {

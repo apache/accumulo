@@ -70,13 +70,13 @@ class DatafileManager {
   }
 
   private FileRef mergingMinorCompactionFile = null;
-  private final Set<FileRef> filesToDeleteAfterScan = new HashSet<FileRef>();
-  private final Map<Long,Set<FileRef>> scanFileReservations = new HashMap<Long,Set<FileRef>>();
-  private final MapCounter<FileRef> fileScanReferenceCounts = new MapCounter<FileRef>();
+  private final Set<FileRef> filesToDeleteAfterScan = new HashSet<>();
+  private final Map<Long,Set<FileRef>> scanFileReservations = new HashMap<>();
+  private final MapCounter<FileRef> fileScanReferenceCounts = new MapCounter<>();
   private long nextScanReservationId = 0;
   private boolean reservationsBlocked = false;
 
-  private final Set<FileRef> majorCompactingFiles = new HashSet<FileRef>();
+  private final Set<FileRef> majorCompactingFiles = new HashSet<>();
 
   static void rename(VolumeManager fs, Path src, Path dst) throws IOException {
     if (!fs.rename(src, dst)) {
@@ -95,26 +95,26 @@ class DatafileManager {
         }
       }
 
-      Set<FileRef> absFilePaths = new HashSet<FileRef>(datafileSizes.keySet());
+      Set<FileRef> absFilePaths = new HashSet<>(datafileSizes.keySet());
 
       long rid = nextScanReservationId++;
 
       scanFileReservations.put(rid, absFilePaths);
 
-      Map<FileRef,DataFileValue> ret = new HashMap<FileRef,DataFileValue>();
+      Map<FileRef,DataFileValue> ret = new HashMap<>();
 
       for (FileRef path : absFilePaths) {
         fileScanReferenceCounts.increment(path, 1);
         ret.put(path, datafileSizes.get(path));
       }
 
-      return new Pair<Long,Map<FileRef,DataFileValue>>(rid, ret);
+      return new Pair<>(rid, ret);
     }
   }
 
   void returnFilesForScan(Long reservationId) {
 
-    final Set<FileRef> filesToDelete = new HashSet<FileRef>();
+    final Set<FileRef> filesToDelete = new HashSet<>();
 
     synchronized (tablet) {
       Set<FileRef> absFilePaths = scanFileReservations.remove(reservationId);
@@ -147,7 +147,7 @@ class DatafileManager {
     if (scanFiles.size() == 0)
       return;
 
-    Set<FileRef> filesToDelete = new HashSet<FileRef>();
+    Set<FileRef> filesToDelete = new HashSet<>();
 
     synchronized (tablet) {
       for (FileRef path : scanFiles) {
@@ -166,7 +166,7 @@ class DatafileManager {
 
   private TreeSet<FileRef> waitForScansToFinish(Set<FileRef> pathsToWaitFor, boolean blockNewScans, long maxWaitTime) {
     long startTime = System.currentTimeMillis();
-    TreeSet<FileRef> inUse = new TreeSet<FileRef>();
+    TreeSet<FileRef> inUse = new TreeSet<>();
 
     Span waitForScans = Trace.start("waitForScans");
     try {
@@ -209,7 +209,7 @@ class DatafileManager {
 
     String bulkDir = null;
 
-    Map<FileRef,DataFileValue> paths = new HashMap<FileRef,DataFileValue>();
+    Map<FileRef,DataFileValue> paths = new HashMap<>();
     for (Entry<FileRef,DataFileValue> entry : pathsString.entrySet())
       paths.put(entry.getKey(), entry.getValue());
 
@@ -575,14 +575,14 @@ class DatafileManager {
 
   public SortedMap<FileRef,DataFileValue> getDatafileSizes() {
     synchronized (tablet) {
-      TreeMap<FileRef,DataFileValue> copy = new TreeMap<FileRef,DataFileValue>(datafileSizes);
+      TreeMap<FileRef,DataFileValue> copy = new TreeMap<>(datafileSizes);
       return Collections.unmodifiableSortedMap(copy);
     }
   }
 
   public Set<FileRef> getFiles() {
     synchronized (tablet) {
-      HashSet<FileRef> files = new HashSet<FileRef>(datafileSizes.keySet());
+      HashSet<FileRef> files = new HashSet<>(datafileSizes.keySet());
       return Collections.unmodifiableSet(files);
     }
   }

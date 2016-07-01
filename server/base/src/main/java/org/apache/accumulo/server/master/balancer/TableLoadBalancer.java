@@ -43,7 +43,7 @@ public class TableLoadBalancer extends TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TableLoadBalancer.class);
 
-  Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
+  Map<String,TabletBalancer> perTableBalancers = new HashMap<>();
 
   private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
     String context = null;
@@ -114,17 +114,17 @@ public class TableLoadBalancer extends TabletBalancer {
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments) {
     // separate the unassigned into tables
-    Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<String,Map<KeyExtent,TServerInstance>>();
+    Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
     for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId());
       if (tableUnassigned == null) {
-        tableUnassigned = new HashMap<KeyExtent,TServerInstance>();
+        tableUnassigned = new HashMap<>();
         groupedUnassigned.put(e.getKey().getTableId(), tableUnassigned);
       }
       tableUnassigned.put(e.getKey(), e.getValue());
     }
     for (Entry<String,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
-      Map<KeyExtent,TServerInstance> newAssignments = new HashMap<KeyExtent,TServerInstance>();
+      Map<KeyExtent,TServerInstance> newAssignments = new HashMap<>();
       getBalancerForTable(e.getKey()).getAssignments(current, e.getValue(), newAssignments);
       assignments.putAll(newAssignments);
     }
@@ -152,7 +152,7 @@ public class TableLoadBalancer extends TabletBalancer {
     if (t == null)
       return minBalanceTime;
     for (String s : t.tableIdMap().values()) {
-      ArrayList<TabletMigration> newMigrations = new ArrayList<TabletMigration>();
+      ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       long tableBalanceTime = getBalancerForTable(s).balance(current, migrations, newMigrations);
       if (tableBalanceTime < minBalanceTime)
         minBalanceTime = tableBalanceTime;

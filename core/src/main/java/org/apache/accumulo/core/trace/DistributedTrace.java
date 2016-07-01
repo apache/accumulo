@@ -49,7 +49,7 @@ public class DistributedTrace {
   public static final String TRACER_ZK_TIMEOUT = "tracer.zookeeper.timeout";
   public static final String TRACER_ZK_PATH = "tracer.zookeeper.path";
 
-  private static final HashSet<SpanReceiver> receivers = new HashSet<SpanReceiver>();
+  private static final HashSet<SpanReceiver> receivers = new HashSet<>();
 
   /**
    * Enable tracing by setting up SpanReceivers for the current process.

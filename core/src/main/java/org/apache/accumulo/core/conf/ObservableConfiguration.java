@@ -69,7 +69,7 @@ public abstract class ObservableConfiguration extends AccumuloConfiguration {
   }
 
   private static Collection<ConfigurationObserver> snapshot(Collection<ConfigurationObserver> observers) {
-    Collection<ConfigurationObserver> c = new java.util.ArrayList<ConfigurationObserver>();
+    Collection<ConfigurationObserver> c = new java.util.ArrayList<>();
     synchronized (observers) {
       c.addAll(observers);
     }

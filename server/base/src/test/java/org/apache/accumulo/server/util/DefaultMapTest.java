@@ -38,7 +38,7 @@ public class DefaultMapTest {
     assertNotNull(canConstruct);
     assertEquals(new AtomicInteger(0).get(), canConstruct.get());
 
-    DefaultMap<String,String> map = new DefaultMap<String,String>("");
+    DefaultMap<String,String> map = new DefaultMap<>("");
     assertEquals(map.get("foo"), "");
     map.put("foo", "bar");
     assertEquals(map.get("foo"), "bar");

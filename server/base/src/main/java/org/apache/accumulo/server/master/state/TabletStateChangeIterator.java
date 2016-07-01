@@ -88,7 +88,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     if (migrations == null)
       return Collections.emptySet();
     try {
-      Set<KeyExtent> result = new HashSet<KeyExtent>();
+      Set<KeyExtent> result = new HashSet<>();
       DataInputBuffer buffer = new DataInputBuffer();
       byte[] data = Base64.getDecoder().decode(migrations);
       buffer.reset(data, data.length);
@@ -106,7 +106,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private Set<String> parseTables(String tables) {
     if (tables == null)
       return null;
-    Set<String> result = new HashSet<String>();
+    Set<String> result = new HashSet<>();
     for (String table : tables.split(","))
       result.add(table);
     return result;
@@ -116,7 +116,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     if (servers == null)
       return null;
     // parse "host:port[INSTANCE]"
-    Set<TServerInstance> result = new HashSet<TServerInstance>();
+    Set<TServerInstance> result = new HashSet<>();
     if (servers.length() > 0) {
       for (String part : servers.split(",")) {
         String parts[] = part.split("\\[", 2);
@@ -134,7 +134,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     if (merges == null)
       return null;
     try {
-      Map<String,MergeInfo> result = new HashMap<String,MergeInfo>();
+      Map<String,MergeInfo> result = new HashMap<>();
       DataInputBuffer buffer = new DataInputBuffer();
       byte[] data = Base64.getDecoder().decode(merges);
       buffer.reset(data, data.length);
@@ -213,7 +213,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
 
   public static void setCurrentServers(IteratorSetting cfg, Set<TServerInstance> goodServers) {
     if (goodServers != null) {
-      List<String> servers = new ArrayList<String>();
+      List<String> servers = new ArrayList<>();
       for (TServerInstance server : goodServers)
         servers.add(server.toString());
       cfg.addOption(SERVERS_OPTION, Joiner.on(",").join(servers));
@@ -260,7 +260,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
 
   public static void setShuttingDown(IteratorSetting cfg, Set<TServerInstance> servers) {
     if (servers != null) {
-      List<String> serverList = new ArrayList<String>();
+      List<String> serverList = new ArrayList<>();
       for (TServerInstance server : servers) {
         serverList.add(server.toString());
       }

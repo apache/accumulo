@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
 public class VisibilityFilterTest extends TestCase {
 
   public void testBadVisibility() throws IOException {
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     tm.put(new Key("r1", "cf1", "cq1", "A&"), new Value(new byte[0]));
     VisibilityFilter filter = new VisibilityFilter(new SortedMapIterator(tm), new Authorizations("A"), "".getBytes());

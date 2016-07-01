@@ -60,7 +60,7 @@ public class TableToFile extends Configured implements Tool {
   public static class TTFMapper extends Mapper<Key,Value,NullWritable,Text> {
     @Override
     public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
-      Map.Entry<Key,Value> entry = new SimpleImmutableEntry<Key,Value>(row, data);
+      Map.Entry<Key,Value> entry = new SimpleImmutableEntry<>(row, data);
       context.write(NullWritable.get(), new Text(DefaultFormatter.formatEntry(entry, false)));
       context.setStatus("Outputed Value");
     }
@@ -77,13 +77,13 @@ public class TableToFile extends Configured implements Tool {
     job.setInputFormatClass(AccumuloInputFormat.class);
     opts.setAccumuloConfigs(job);
 
-    HashSet<Pair<Text,Text>> columnsToFetch = new HashSet<Pair<Text,Text>>();
+    HashSet<Pair<Text,Text>> columnsToFetch = new HashSet<>();
     for (String col : opts.columns.split(",")) {
       int idx = col.indexOf(":");
       Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
       Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
       if (cf.getLength() > 0)
-        columnsToFetch.add(new Pair<Text,Text>(cf, cq));
+        columnsToFetch.add(new Pair<>(cf, cq));
     }
     if (!columnsToFetch.isEmpty())
       AccumuloInputFormat.fetchColumns(job, columnsToFetch);

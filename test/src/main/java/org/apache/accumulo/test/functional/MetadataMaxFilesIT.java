@@ -63,7 +63,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 1000; i++) {
       splits.add(new Text(String.format("%03d", i)));
     }

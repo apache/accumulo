@@ -68,7 +68,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     log.info("Splitting the table");
     final long SPLIT_COUNT = 100;
     final long distance = Long.MAX_VALUE / SPLIT_COUNT;
-    final SortedSet<Text> splits = new TreeSet<Text>();
+    final SortedSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < SPLIT_COUNT; i++) {
       splits.add(new Text(String.format("%016x", i * distance)));
     }

@@ -36,7 +36,7 @@ import org.junit.Test;
 public class RowIteratorTest {
 
   Iterator<Entry<Key,Value>> makeIterator(final String... args) {
-    final Map<Key,Value> result = new TreeMap<Key,Value>();
+    final Map<Key,Value> result = new TreeMap<>();
     for (String s : args) {
       final String parts[] = s.split("[ \t]");
       final Key key = new Key(parts[0], parts[1], parts[2]);
@@ -47,11 +47,11 @@ public class RowIteratorTest {
   }
 
   List<List<Entry<Key,Value>>> getRows(final Iterator<Entry<Key,Value>> iter) {
-    final List<List<Entry<Key,Value>>> result = new ArrayList<List<Entry<Key,Value>>>();
+    final List<List<Entry<Key,Value>>> result = new ArrayList<>();
     final RowIterator riter = new RowIterator(iter);
     while (riter.hasNext()) {
       final Iterator<Entry<Key,Value>> row = riter.next();
-      final List<Entry<Key,Value>> rlist = new ArrayList<Entry<Key,Value>>();
+      final List<Entry<Key,Value>> rlist = new ArrayList<>();
       while (row.hasNext())
         rlist.add(row.next());
       result.add(rlist);

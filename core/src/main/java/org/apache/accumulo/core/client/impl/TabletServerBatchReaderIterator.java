@@ -90,7 +90,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private ArrayBlockingQueue<List<Entry<Key,Value>>> resultsQueue;
   private Iterator<Entry<Key,Value>> batchIterator;
   private List<Entry<Key,Value>> batch;
-  private static final List<Entry<Key,Value>> LAST_BATCH = new ArrayList<Map.Entry<Key,Value>>();
+  private static final List<Entry<Key,Value>> LAST_BATCH = new ArrayList<>();
   private final Object nextLock = new Object();
 
   private long failSleepTime = 100;
@@ -117,7 +117,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.numThreads = numThreads;
     this.queryThreadPool = queryThreadPool;
     this.options = new ScannerOptions(scannerOptions);
-    resultsQueue = new ArrayBlockingQueue<List<Entry<Key,Value>>>(numThreads);
+    resultsQueue = new ArrayBlockingQueue<>(numThreads);
 
     this.locator = new TimeoutTabletLocator(timeout, context, tableId);
 
@@ -126,7 +126,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.timeout = timeout;
 
     if (options.fetchedColumns.size() > 0) {
-      ArrayList<Range> ranges2 = new ArrayList<Range>(ranges.size());
+      ArrayList<Range> ranges2 = new ArrayList<>(ranges.size());
       for (Range range : ranges) {
         ranges2.add(range.bound(options.fetchedColumns.first(), options.fetchedColumns.last()));
       }
@@ -215,10 +215,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private synchronized void lookup(List<Range> ranges, ResultReceiver receiver) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    List<Column> columns = new ArrayList<Column>(options.fetchedColumns);
+    List<Column> columns = new ArrayList<>(options.fetchedColumns);
     ranges = Range.mergeOverlapping(ranges);
 
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
     binRanges(locator, ranges, binnedRanges);
 
@@ -264,13 +264,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // truncate the ranges to within the tablets... this makes it easier to know what work
     // needs to be redone when failures occurs and tablets have merged or split
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<String,Map<KeyExtent,List<Range>>>();
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>();
     for (Entry<String,Map<KeyExtent,List<Range>>> entry : binnedRanges.entrySet()) {
-      Map<KeyExtent,List<Range>> tabletMap = new HashMap<KeyExtent,List<Range>>();
+      Map<KeyExtent,List<Range>> tabletMap = new HashMap<>();
       binnedRanges2.put(entry.getKey(), tabletMap);
       for (Entry<KeyExtent,List<Range>> tabletRanges : entry.getValue().entrySet()) {
         Range tabletRange = tabletRanges.getKey().toDataRange();
-        List<Range> clippedRanges = new ArrayList<Range>();
+        List<Range> clippedRanges = new ArrayList<>();
         tabletMap.put(tabletRanges.getKey(), clippedRanges);
         for (Range range : tabletRanges.getValue())
           clippedRanges.add(tabletRange.clip(range));
@@ -298,8 +298,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     failSleepTime = Math.min(5000, failSleepTime * 2);
 
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
-    List<Range> allRanges = new ArrayList<Range>();
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+    List<Range> allRanges = new ArrayList<>();
 
     for (List<Range> ranges : failures.values())
       allRanges.addAll(ranges);
@@ -342,8 +342,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     public void run() {
       String threadName = Thread.currentThread().getName();
       Thread.currentThread().setName(threadName + " looking up " + tabletsRanges.size() + " ranges at " + tsLocation);
-      Map<KeyExtent,List<Range>> unscanned = new HashMap<KeyExtent,List<Range>>();
-      Map<KeyExtent,List<Range>> tsFailures = new HashMap<KeyExtent,List<Range>>();
+      Map<KeyExtent,List<Range>> unscanned = new HashMap<>();
+      Map<KeyExtent,List<Range>> tsFailures = new HashMap<>();
       try {
         TimeoutTracker timeoutTracker = timeoutTrackers.get(tsLocation);
         if (timeoutTracker == null) {
@@ -462,7 +462,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     }
 
-    Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
+    Map<KeyExtent,List<Range>> failures = new HashMap<>();
 
     if (timedoutServers.size() > 0) {
       // go ahead and fail any timed out servers
@@ -477,10 +477,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // randomize tabletserver order... this will help when there are multiple
     // batch readers and writers running against accumulo
-    List<String> locations = new ArrayList<String>(binnedRanges.keySet());
+    List<String> locations = new ArrayList<>(binnedRanges.keySet());
     Collections.shuffle(locations);
 
-    List<QueryTask> queryTasks = new ArrayList<QueryTask>();
+    List<QueryTask> queryTasks = new ArrayList<>();
 
     for (final String tsLocation : locations) {
 
@@ -489,13 +489,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         QueryTask queryTask = new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns);
         queryTasks.add(queryTask);
       } else {
-        HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<KeyExtent,List<Range>>();
+        HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<>();
         for (Entry<KeyExtent,List<Range>> entry : tabletsRanges.entrySet()) {
           tabletSubset.put(entry.getKey(), entry.getValue());
           if (tabletSubset.size() >= maxTabletsPerRequest) {
             QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
             queryTasks.add(queryTask);
-            tabletSubset = new HashMap<KeyExtent,List<Range>>();
+            tabletSubset = new HashMap<>();
           }
         }
 
@@ -518,13 +518,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   static void trackScanning(Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned, MultiScanResult scanResult) {
 
     // translate returned failures, remove them from unscanned, and add them to failures
-    Map<KeyExtent,List<Range>> retFailures = Translator.translate(scanResult.failures, Translators.TKET, new Translator.ListTranslator<TRange,Range>(
-        Translators.TRT));
+    Map<KeyExtent,List<Range>> retFailures = Translator.translate(scanResult.failures, Translators.TKET, new Translator.ListTranslator<>(Translators.TRT));
     unscanned.keySet().removeAll(retFailures.keySet());
     failures.putAll(retFailures);
 
     // translate full scans and remove them from unscanned
-    HashSet<KeyExtent> fullScans = new HashSet<KeyExtent>(Translator.translate(scanResult.fullScans, Translators.TKET));
+    HashSet<KeyExtent> fullScans = new HashSet<>(Translator.translate(scanResult.fullScans, Translators.TKET));
     unscanned.keySet().removeAll(fullScans);
 
     // remove partial scan from unscanned
@@ -612,7 +611,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // copy requested to unscanned map. we will remove ranges as they are scanned in trackScanning()
     for (Entry<KeyExtent,List<Range>> entry : requested.entrySet()) {
-      ArrayList<Range> ranges = new ArrayList<Range>();
+      ArrayList<Range> ranges = new ArrayList<>();
       for (Range range : entry.getValue()) {
         ranges.add(new Range(range));
       }
@@ -643,8 +642,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         TabletType ttype = TabletType.type(requested.keySet());
         boolean waitForWrites = !ThriftScanner.serversWaitedForWrites.get(ttype).contains(server);
 
-        Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested, Translators.KET, new Translator.ListTranslator<Range,TRange>(
-            Translators.RT));
+        Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested, Translators.KET, new Translator.ListTranslator<>(Translators.RT));
         InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), context.rpcCreds(), thriftTabletRanges,
             Translator.translate(columns, Translators.CT), options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
@@ -660,9 +658,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               (scanResult.more ? "scanID=" + imsr.scanID : ""), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
         }
 
-        ArrayList<Entry<Key,Value>> entries = new ArrayList<Map.Entry<Key,Value>>(scanResult.results.size());
+        ArrayList<Entry<Key,Value>> entries = new ArrayList<>(scanResult.results.size());
         for (TKeyValue kv : scanResult.results) {
-          entries.add(new SimpleImmutableEntry<Key,Value>(new Key(kv.key), new Value(kv.value)));
+          entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
         }
 
         if (entries.size() > 0)
@@ -692,9 +690,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
                 scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""), String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
           }
 
-          entries = new ArrayList<Map.Entry<Key,Value>>(scanResult.results.size());
+          entries = new ArrayList<>(scanResult.results.size());
           for (TKeyValue kv : scanResult.results) {
-            entries.add(new SimpleImmutableEntry<Key,Value>(new Key(kv.key), new Value(kv.value)));
+            entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
           }
 
           if (entries.size() > 0)

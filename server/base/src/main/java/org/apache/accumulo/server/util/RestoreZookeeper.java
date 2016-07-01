@@ -43,7 +43,7 @@ public class RestoreZookeeper {
 
   private static class Restore extends DefaultHandler {
     IZooReaderWriter zk = null;
-    Stack<String> cwd = new Stack<String>();
+    Stack<String> cwd = new Stack<>();
     boolean overwrite = false;
 
     Restore(IZooReaderWriter zk, boolean overwrite) {

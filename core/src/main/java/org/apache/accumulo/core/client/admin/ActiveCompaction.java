@@ -45,7 +45,7 @@ public abstract class ActiveCompaction {
      * compaction that merges all of a tablets files into one file
      */
     FULL
-  };
+  }
 
   public static enum CompactionReason {
     /**
@@ -68,7 +68,7 @@ public abstract class ActiveCompaction {
      * Compaction initiated to close a unload a tablet
      */
     CLOSE
-  };
+  }
 
   /**
    *

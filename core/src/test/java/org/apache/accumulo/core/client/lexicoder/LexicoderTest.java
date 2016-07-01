@@ -32,8 +32,8 @@ public abstract class LexicoderTest extends TestCase {
   }
 
   public <T extends Comparable<T>> void assertSortOrder(Lexicoder<T> lexicoder, Comparator<T> comp, List<T> data) {
-    List<T> list = new ArrayList<T>();
-    List<Text> encList = new ArrayList<Text>();
+    List<T> list = new ArrayList<>();
+    List<Text> encList = new ArrayList<>();
 
     for (T d : data) {
       list.add(d);
@@ -47,7 +47,7 @@ public abstract class LexicoderTest extends TestCase {
 
     Collections.sort(encList);
 
-    List<T> decodedList = new ArrayList<T>();
+    List<T> decodedList = new ArrayList<>();
 
     for (Text t : encList) {
       decodedList.add(lexicoder.decode(TextUtil.getBytes(t)));

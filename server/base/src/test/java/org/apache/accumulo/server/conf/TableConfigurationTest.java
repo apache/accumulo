@@ -103,7 +103,7 @@ public class TableConfigurationTest {
     Map<String,String> props = new java.util.HashMap<String,String>();
     parent.getProperties(props, all);
     replay(parent);
-    List<String> children = new java.util.ArrayList<String>();
+    List<String> children = new java.util.ArrayList<>();
     children.add("foo");
     children.add("ding");
     expect(zc.getChildren(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF)).andReturn(children);

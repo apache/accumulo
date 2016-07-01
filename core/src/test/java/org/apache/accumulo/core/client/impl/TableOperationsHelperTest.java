@@ -48,7 +48,7 @@ import org.junit.Test;
 public class TableOperationsHelperTest {
 
   static class Tester extends TableOperationsHelper {
-    Map<String,Map<String,String>> settings = new HashMap<String,Map<String,String>>();
+    Map<String,Map<String,String>> settings = new HashMap<>();
 
     @Override
     public SortedSet<String> list() {
@@ -229,12 +229,12 @@ public class TableOperationsHelperTest {
   }
 
   void check(TableOperationsHelper t, String tablename, String[] values) throws Exception {
-    Map<String,String> expected = new TreeMap<String,String>();
+    Map<String,String> expected = new TreeMap<>();
     for (String value : values) {
       String parts[] = value.split("=", 2);
       expected.put(parts[0], parts[1]);
     }
-    Map<String,String> actual = new TreeMap<String,String>();
+    Map<String,String> actual = new TreeMap<>();
     for (Entry<String,String> entry : t.getProperties(tablename)) {
       actual.put(entry.getKey(), entry.getValue());
     }

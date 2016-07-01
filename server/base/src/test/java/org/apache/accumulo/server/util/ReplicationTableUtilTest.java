@@ -65,7 +65,7 @@ public class ReplicationTableUtilTest {
   public void properPathInRow() throws Exception {
     Writer writer = EasyMock.createNiceMock(Writer.class);
     writer.update(EasyMock.anyObject(Mutation.class));
-    final List<Mutation> mutations = new ArrayList<Mutation>();
+    final List<Mutation> mutations = new ArrayList<>();
 
     // Mock a Writer to just add the mutation to a list
     EasyMock.expectLastCall().andAnswer(new IAnswer<Object>() {

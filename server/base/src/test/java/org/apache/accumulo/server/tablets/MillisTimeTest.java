@@ -59,7 +59,7 @@ public class MillisTimeTest {
 
   @Test
   public void testSetUpdateTimes() {
-    List<Mutation> ms = new java.util.ArrayList<Mutation>();
+    List<Mutation> ms = new java.util.ArrayList<>();
     ServerMutation m = createMock(ServerMutation.class);
     m.setSystemTimestamp(anyLong());
     replay(m);
@@ -71,7 +71,7 @@ public class MillisTimeTest {
 
   @Test
   public void testSetUpdateTimes_NoMutations() {
-    List<Mutation> ms = new java.util.ArrayList<Mutation>();
+    List<Mutation> ms = new java.util.ArrayList<>();
     assertEquals(TIME, mtime.setUpdateTimes(ms));
   }
 

@@ -48,8 +48,8 @@ import org.junit.Test;
 
 public class FilterTest {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
-  private static final Map<String,String> EMPTY_OPTS = new HashMap<String,String>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
+  private static final Map<String,String> EMPTY_OPTS = new HashMap<>();
 
   public static class SimpleFilter extends Filter {
     @Override
@@ -85,7 +85,7 @@ public class FilterTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     for (int i = 0; i < 1000; i++) {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
@@ -120,7 +120,7 @@ public class FilterTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     for (int i = 0; i < 1000; i++) {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
@@ -157,7 +157,7 @@ public class FilterTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     for (int i = 0; i < 1000; i++) {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
@@ -185,7 +185,7 @@ public class FilterTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     for (int i = 0; i < 1000; i++) {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
@@ -218,7 +218,7 @@ public class FilterTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
     IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901l);
     long ts = System.currentTimeMillis();
@@ -253,8 +253,8 @@ public class FilterTest {
   @Test
   public void test3() throws IOException {
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-    HashSet<Column> hsc = new HashSet<Column>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
+    HashSet<Column> hsc = new HashSet<>();
     hsc.add(new Column("c".getBytes(), null, null));
 
     Text colf1 = new Text("a");
@@ -281,14 +281,14 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 1000);
 
-    hsc = new HashSet<Column>();
+    hsc = new HashSet<>();
     hsc.add(new Column("a".getBytes(), "b".getBytes(), null));
     a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
     assertTrue("size was " + size, size == 500);
 
-    hsc = new HashSet<Column>();
+    hsc = new HashSet<>();
     a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(a);
@@ -298,7 +298,7 @@ public class FilterTest {
   @Test
   public void test4() throws IOException {
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     ColumnVisibility le1 = new ColumnVisibility("L1");
     ColumnVisibility le2 = new ColumnVisibility("L0&OFFICIAL");
@@ -320,7 +320,7 @@ public class FilterTest {
   }
 
   private ColumnQualifierFilter ncqf(TreeMap<Key,Value> tm, Column... columns) throws IOException {
-    HashSet<Column> hsc = new HashSet<Column>();
+    HashSet<Column> hsc = new HashSet<>();
 
     for (Column column : columns) {
       hsc.add(column);
@@ -334,7 +334,7 @@ public class FilterTest {
   @Test
   public void test5() throws IOException {
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     tm.put(new Key(new Text(String.format("%03d", 1)), new Text("a"), new Text("x")), dv);
     tm.put(new Key(new Text(String.format("%03d", 2)), new Text("a"), new Text("y")), dv);
@@ -365,7 +365,7 @@ public class FilterTest {
 
   @Test
   public void testNoVisFilter() throws IOException {
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
     Value v = new Value();
     for (int i = 0; i < 1000; i++) {
       Key k = new Key(String.format("%03d", i), "a", "b", i % 10 == 0 ? "vis" : "");
@@ -385,7 +385,7 @@ public class FilterTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     for (int i = 0; i < 100; i++) {
       Key k = new Key(new Text(String.format("%02d", i)), colf, colq);
@@ -482,7 +482,7 @@ public class FilterTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     Key k = new Key(new Text("0"), colf, colq);
     tm.put(k, dv);

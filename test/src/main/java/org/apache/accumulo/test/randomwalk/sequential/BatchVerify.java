@@ -55,7 +55,7 @@ public class BatchVerify extends Test {
 
     try {
       int count = 0;
-      List<Range> ranges = new ArrayList<Range>();
+      List<Range> ranges = new ArrayList<>();
       while (count < numVerify) {
         long rangeStart = rand.nextInt((int) numWrites);
         long rangeEnd = rangeStart + 99;
@@ -81,7 +81,7 @@ public class BatchVerify extends Test {
 
       scanner.setRanges(ranges);
 
-      List<Key> keys = new ArrayList<Key>();
+      List<Key> keys = new ArrayList<>();
       for (Entry<Key,Value> entry : scanner) {
         keys.add(entry.getKey());
       }

@@ -61,7 +61,7 @@ public class NativeMapPerformanceTest {
     NativeMap nm = null;
 
     if (mapType.equals("SKIP_LIST"))
-      tm = new ConcurrentSkipListMap<Key,Value>();
+      tm = new ConcurrentSkipListMap<>();
     else if (mapType.equals("TREE_MAP"))
       tm = Collections.synchronizedSortedMap(new TreeMap<Key,Value>());
     else if (mapType.equals("NATIVE_MAP"))

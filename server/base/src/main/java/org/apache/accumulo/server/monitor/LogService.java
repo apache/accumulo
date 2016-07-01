@@ -181,7 +181,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
   }
 
   synchronized public List<DedupedLogEvent> getEvents() {
-    return new ArrayList<DedupedLogEvent>(events.values());
+    return new ArrayList<>(events.values());
   }
 
   synchronized public void clear() {

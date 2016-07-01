@@ -56,7 +56,7 @@ public class VisibilityConstraint implements Constraint {
 
     HashSet<String> ok = null;
     if (updates.size() > 1)
-      ok = new HashSet<String>();
+      ok = new HashSet<>();
 
     VisibilityEvaluator ve = null;
 

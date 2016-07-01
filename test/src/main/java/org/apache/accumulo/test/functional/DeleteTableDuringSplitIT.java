@@ -53,13 +53,13 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
     for (String tableName : tableNames) {
       getConnector().tableOperations().create(tableName);
     }
-    final SortedSet<Text> splits = new TreeSet<Text>();
+    final SortedSet<Text> splits = new TreeSet<>();
     for (byte i = 0; i < 100; i++) {
       splits.add(new Text(new byte[] {0, 0, i}));
     }
 
-    List<Future<?>> results = new ArrayList<Future<?>>();
-    List<Runnable> tasks = new ArrayList<Runnable>();
+    List<Future<?>> results = new ArrayList<>();
+    List<Runnable> tasks = new ArrayList<>();
     SimpleThreadPool es = new SimpleThreadPool(batchSize * 2, "concurrent-api-requests");
     for (String tableName : tableNames) {
       final String finalName = tableName;

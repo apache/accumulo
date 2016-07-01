@@ -196,7 +196,7 @@ public class BatchWriterConfig implements Writable {
   @Override
   public void write(DataOutput out) throws IOException {
     // write this out in a human-readable way
-    ArrayList<String> fields = new ArrayList<String>();
+    ArrayList<String> fields = new ArrayList<>();
     if (maxMemory != null)
       addField(fields, "maxMemory", maxMemory);
     if (maxLatency != null)

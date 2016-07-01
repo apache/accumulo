@@ -52,7 +52,7 @@ public class IsolatedScan extends Test {
       RowIterator iter = new RowIterator(new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY)));
 
       while (iter.hasNext()) {
-        PeekingIterator<Entry<Key,Value>> row = new PeekingIterator<Entry<Key,Value>>(iter.next());
+        PeekingIterator<Entry<Key,Value>> row = new PeekingIterator<>(iter.next());
         Entry<Key,Value> kv = null;
         if (row.hasNext())
           kv = row.peek();

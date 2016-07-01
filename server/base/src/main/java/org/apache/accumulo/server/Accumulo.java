@@ -182,7 +182,7 @@ public class Accumulo {
       throw new RuntimeException("This version of accumulo (" + codeVersion + ") is not compatible with files stored using data version " + dataVersion);
     }
 
-    TreeMap<String,String> sortedProps = new TreeMap<String,String>();
+    TreeMap<String,String> sortedProps = new TreeMap<>();
     for (Entry<String,String> entry : conf)
       sortedProps.put(entry.getKey(), entry.getValue());
 
@@ -313,8 +313,8 @@ public class Accumulo {
    */
   public static void abortIfFateTransactions() {
     try {
-      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<Accumulo>(new ZooStore<Accumulo>(
-          ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE, ZooReaderWriter.getInstance()));
+      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<>(new ZooStore<Accumulo>(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZFATE,
+          ZooReaderWriter.getInstance()));
       if (!(fate.list().isEmpty())) {
         throw new AccumuloException("Aborting upgrade because there are outstanding FATE transactions from a previous Accumulo version. "
             + "Please see the README document for instructions on what to do under your previous version.");

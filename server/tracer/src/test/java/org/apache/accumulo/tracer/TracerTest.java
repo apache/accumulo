@@ -79,7 +79,7 @@ public class TracerTest {
   }
 
   static class TestReceiver implements SpanReceiver {
-    public Map<Long,List<SpanStruct>> traces = new HashMap<Long,List<SpanStruct>>();
+    public Map<Long,List<SpanStruct>> traces = new HashMap<>();
 
     public TestReceiver() {}
 

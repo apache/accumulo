@@ -54,8 +54,8 @@ public class ConditionalMutationSet {
   static void defer(Map<KeyExtent,List<ServerConditionalMutation>> updates, Map<KeyExtent,List<ServerConditionalMutation>> deferredMutations, DeferFilter filter) {
     for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : updates.entrySet()) {
       List<ServerConditionalMutation> scml = entry.getValue();
-      List<ServerConditionalMutation> okMutations = new ArrayList<ServerConditionalMutation>(scml.size());
-      List<ServerConditionalMutation> deferred = new ArrayList<ServerConditionalMutation>();
+      List<ServerConditionalMutation> okMutations = new ArrayList<>(scml.size());
+      List<ServerConditionalMutation> deferred = new ArrayList<>();
       filter.defer(scml, okMutations, deferred);
 
       if (deferred.size() > 0) {

@@ -57,7 +57,7 @@ public class MergeIT extends AccumuloClusterHarness {
   }
 
   SortedSet<Text> splits(String[] points) {
-    SortedSet<Text> result = new TreeSet<Text>();
+    SortedSet<Text> result = new TreeSet<>();
     for (String point : points)
       result.add(new Text(point));
     return result;
@@ -155,14 +155,14 @@ public class MergeIT extends AccumuloClusterHarness {
     System.out.println("Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
 
     conn.tableOperations().create(table, new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
-    TreeSet<Text> splitSet = new TreeSet<Text>();
+    TreeSet<Text> splitSet = new TreeSet<>();
     for (String split : splits) {
       splitSet.add(new Text(split));
     }
     conn.tableOperations().addSplits(table, splitSet);
 
     BatchWriter bw = conn.createBatchWriter(table, null);
-    HashSet<String> expected = new HashSet<String>();
+    HashSet<String> expected = new HashSet<>();
     for (String row : inserts) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", row);
@@ -176,7 +176,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
     Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
 
-    HashSet<String> observed = new HashSet<String>();
+    HashSet<String> observed = new HashSet<>();
     for (Entry<Key,Value> entry : scanner) {
       String row = entry.getKey().getRowData().toString();
       if (!observed.add(row)) {
@@ -188,8 +188,8 @@ public class MergeIT extends AccumuloClusterHarness {
       throw new Exception("data inconsistency " + table + " " + observed + " != " + expected);
     }
 
-    HashSet<Text> currentSplits = new HashSet<Text>(conn.tableOperations().listSplits(table));
-    HashSet<Text> ess = new HashSet<Text>();
+    HashSet<Text> currentSplits = new HashSet<>(conn.tableOperations().listSplits(table));
+    HashSet<Text> ess = new HashSet<>();
     for (String es : expectedSplits) {
       ess.add(new Text(es));
     }

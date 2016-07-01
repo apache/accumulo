@@ -32,7 +32,7 @@ import org.apache.accumulo.tserver.scan.ScanTask;
 
 public class MultiScanSession extends Session {
   public final KeyExtent threadPoolExtent;
-  public final HashSet<Column> columnSet = new HashSet<Column>();
+  public final HashSet<Column> columnSet = new HashSet<>();
   public final Map<KeyExtent,List<Range>> queries;
   public final List<IterInfo> ssiList;
   public final Map<String,Map<String,String>> ssio;

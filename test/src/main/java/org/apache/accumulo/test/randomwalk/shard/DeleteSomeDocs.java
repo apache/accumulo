@@ -43,7 +43,7 @@ public class DeleteSomeDocs extends Test {
     String indexTableName = (String) state.get("indexTableName");
     String dataTableName = (String) state.get("docTableName");
 
-    ArrayList<String> patterns = new ArrayList<String>();
+    ArrayList<String> patterns = new ArrayList<>();
 
     for (Object key : props.keySet())
       if (key instanceof String && ((String) key).startsWith("pattern"))

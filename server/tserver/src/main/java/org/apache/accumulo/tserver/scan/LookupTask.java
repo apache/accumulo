@@ -78,9 +78,9 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
       long startTime = System.currentTimeMillis();
 
-      List<KVEntry> results = new ArrayList<KVEntry>();
-      Map<KeyExtent,List<Range>> failures = new HashMap<KeyExtent,List<Range>>();
-      List<KeyExtent> fullScans = new ArrayList<KeyExtent>();
+      List<KVEntry> results = new ArrayList<>();
+      Map<KeyExtent,List<Range>> failures = new HashMap<>();
+      List<KeyExtent> fullScans = new ArrayList<>();
       KeyExtent partScan = null;
       Key partNextKey = null;
       boolean partNextKeyInclusive = false;
@@ -146,10 +146,10 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       session.numEntries += results.size();
 
       // convert everything to thrift before adding result
-      List<TKeyValue> retResults = new ArrayList<TKeyValue>();
+      List<TKeyValue> retResults = new ArrayList<>();
       for (KVEntry entry : results)
         retResults.add(new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())));
-      Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET, new Translator.ListTranslator<Range,TRange>(Translators.RT));
+      Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET, new Translator.ListTranslator<>(Translators.RT));
       List<TKeyExtent> retFullScans = Translator.translate(fullScans, Translators.KET);
       TKeyExtent retPartScan = null;
       TKey retPartNextKey = null;

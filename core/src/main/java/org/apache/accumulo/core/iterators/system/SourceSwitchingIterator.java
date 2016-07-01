@@ -36,7 +36,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  * (InMemoryMap that was minor compacted to a file). Clients reading from a table that has data in memory should not see interruption in their scan when that
  * data is minor compacted. This iterator is designed to manage this behind the scene.
  */
-public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value>, InterruptibleIterator {
+public class SourceSwitchingIterator implements InterruptibleIterator {
 
   public interface DataSource {
     boolean isCurrent();

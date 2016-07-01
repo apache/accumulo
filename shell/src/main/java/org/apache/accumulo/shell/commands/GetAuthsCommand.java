@@ -46,7 +46,7 @@ public class GetAuthsCommand extends Command {
   }
 
   protected List<String> sortAuthorizations(Authorizations auths) {
-    List<String> list = new ArrayList<String>();
+    List<String> list = new ArrayList<>();
     for (byte[] auth : auths) {
       list.add(new String(auth));
     }

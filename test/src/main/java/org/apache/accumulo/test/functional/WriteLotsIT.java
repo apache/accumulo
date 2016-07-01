@@ -43,7 +43,7 @@ public class WriteLotsIT extends AccumuloClusterHarness {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    final AtomicReference<Exception> ref = new AtomicReference<Exception>();
+    final AtomicReference<Exception> ref = new AtomicReference<>();
     final ClientConfiguration clientConfig = getCluster().getClientConfig();
     final int THREADS = 5;
     ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(THREADS));

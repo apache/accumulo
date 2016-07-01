@@ -130,7 +130,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   private static final int MAX_ELEMENTS_TO_LOG = 10;
 
   private static List<String> truncate(Collection<?> list) {
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     int i = 0;
     for (Object obj : list) {
       if (i++ > MAX_ELEMENTS_TO_LOG) {
@@ -173,7 +173,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       @SuppressWarnings({"unchecked", "rawtypes"})
       Map<KeyExtent,List<Range>> convertedBatch = Translator.translate(tbatch, new Translator.TKeyExtentTranslator(), new Translator.ListTranslator(
           new Translator.TRangeTranslator()));
-      Map<KeyExtent,List<String>> truncated = new HashMap<KeyExtent,List<String>>();
+      Map<KeyExtent,List<String>> truncated = new HashMap<>();
       for (Entry<KeyExtent,List<Range>> entry : convertedBatch.entrySet()) {
         truncated.put(entry.getKey(), truncate(entry.getValue()));
       }

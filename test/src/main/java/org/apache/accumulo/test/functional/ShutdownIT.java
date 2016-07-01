@@ -78,7 +78,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     for (int i = 0; i < 10; i++) {
       c.tableOperations().create("table" + i);
     }
-    final AtomicReference<Exception> ref = new AtomicReference<Exception>();
+    final AtomicReference<Exception> ref = new AtomicReference<>();
     Thread async = new Thread() {
       @Override
       public void run() {

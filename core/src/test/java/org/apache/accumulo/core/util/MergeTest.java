@@ -32,8 +32,8 @@ import org.junit.Test;
 public class MergeTest {
 
   static class MergeTester extends Merge {
-    public List<List<Size>> merges = new ArrayList<List<Size>>();
-    public List<Size> tablets = new ArrayList<Size>();
+    public List<List<Size>> merges = new ArrayList<>();
+    public List<Size> tablets = new ArrayList<>();
 
     MergeTester(Integer... sizes) {
       Text start = null;
@@ -95,7 +95,7 @@ public class MergeTest {
 
     @Override
     protected void merge(Connector conn, String table, List<Size> sizes, int numToMerge) throws MergeException {
-      List<Size> merge = new ArrayList<Size>();
+      List<Size> merge = new ArrayList<>();
       for (int i = 0; i < numToMerge; i++) {
         merge.add(sizes.get(i));
       }

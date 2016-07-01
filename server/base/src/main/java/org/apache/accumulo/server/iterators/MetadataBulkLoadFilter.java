@@ -82,7 +82,7 @@ public class MetadataBulkLoadFilter extends Filter {
       throw new IOException("This iterator not intended for use at scan time");
     }
 
-    bulkTxStatusCache = new HashMap<Long,MetadataBulkLoadFilter.Status>();
+    bulkTxStatusCache = new HashMap<>();
     arbitrator = getArbitrator();
   }
 

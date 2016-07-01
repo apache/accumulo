@@ -58,7 +58,7 @@ public class MerkleTreeNode {
 
   public MerkleTreeNode(List<MerkleTreeNode> children, String digestAlgorithm) throws NoSuchAlgorithmException {
     level = 0;
-    this.children = new ArrayList<Range>(children.size());
+    this.children = new ArrayList<>(children.size());
     MessageDigest digest = MessageDigest.getInstance(digestAlgorithm);
 
     Range childrenRange = null;

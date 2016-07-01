@@ -47,7 +47,7 @@ public class ConstraintChecker {
   private AtomicLong lastCheck = new AtomicLong(0);
 
   public ConstraintChecker(TableConfiguration conf) {
-    constrains = new ArrayList<Constraint>();
+    constrains = new ArrayList<>();
 
     this.conf = conf;
 

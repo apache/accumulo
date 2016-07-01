@@ -83,7 +83,7 @@ public class CredentialProviderFactoryShimTest {
     List<String> keys = CredentialProviderFactoryShim.getKeys(conf);
     Assert.assertNotNull(keys);
 
-    Assert.assertEquals(expectation.keySet(), new HashSet<String>(keys));
+    Assert.assertEquals(expectation.keySet(), new HashSet<>(keys));
     for (String expectedKey : keys) {
       char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, expectedKey);
       Assert.assertNotNull(value);
@@ -96,7 +96,7 @@ public class CredentialProviderFactoryShimTest {
     String absPath = getKeyStoreUrl(populatedKeyStore);
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, absPath);
-    Map<String,String> expectations = new HashMap<String,String>();
+    Map<String,String> expectations = new HashMap<>();
     expectations.put("key1", "value1");
     expectations.put("key2", "value2");
 
@@ -117,7 +117,7 @@ public class CredentialProviderFactoryShimTest {
     String populatedAbsPath = getKeyStoreUrl(populatedKeyStore), emptyAbsPath = getKeyStoreUrl(emptyKeyStore);
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, populatedAbsPath + "," + emptyAbsPath);
-    Map<String,String> expectations = new HashMap<String,String>();
+    Map<String,String> expectations = new HashMap<>();
     expectations.put("key1", "value1");
     expectations.put("key2", "value2");
 
@@ -186,7 +186,7 @@ public class CredentialProviderFactoryShimTest {
       Configuration cpConf = CredentialProviderFactoryShim.getConfiguration(dfsConfiguration, "jceks://hdfs/accumulo.jceks");
 
       // The values in the keystore
-      Map<String,String> expectations = new HashMap<String,String>();
+      Map<String,String> expectations = new HashMap<>();
       expectations.put("key1", "value1");
       expectations.put("key2", "value2");
 

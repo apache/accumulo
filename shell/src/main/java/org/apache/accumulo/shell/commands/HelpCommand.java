@@ -49,7 +49,7 @@ public class HelpCommand extends Command {
       if (numColumns < 40) {
         throw new IllegalArgumentException("numColumns must be at least 40 (was " + numColumns + ")");
       }
-      final ArrayList<String> output = new ArrayList<String>();
+      final ArrayList<String> output = new ArrayList<>();
       for (Entry<String,Command[]> cmdGroup : shellState.commandGrouping.entrySet()) {
         output.add(cmdGroup.getKey());
         for (Command c : cmdGroup.getValue()) {

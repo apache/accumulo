@@ -569,7 +569,7 @@ public final class BCFile {
 
     public void read(DataInput in) throws IOException {
 
-      Map<String,String> optionsFromFile = new HashMap<String,String>();
+      Map<String,String> optionsFromFile = new HashMap<>();
 
       int numContextEntries = in.readInt();
       for (int i = 0; i < numContextEntries; i++) {
@@ -1077,13 +1077,13 @@ public final class BCFile {
 
     // for write
     public MetaIndex() {
-      index = new TreeMap<String,MetaIndexEntry>();
+      index = new TreeMap<>();
     }
 
     // for read, construct the map from the file
     public MetaIndex(DataInput in) throws IOException {
       int count = Utils.readVInt(in);
-      index = new TreeMap<String,MetaIndexEntry>();
+      index = new TreeMap<>();
 
       for (int nx = 0; nx < count; nx++) {
         MetaIndexEntry indexEntry = new MetaIndexEntry(in);
@@ -1175,7 +1175,7 @@ public final class BCFile {
       defaultCompressionAlgorithm = Compression.getCompressionAlgorithmByName(Utils.readString(in));
 
       int n = Utils.readVInt(in);
-      listRegions = new ArrayList<BlockRegion>(n);
+      listRegions = new ArrayList<>(n);
 
       for (int i = 0; i < n; i++) {
         BlockRegion region = new BlockRegion(in);
@@ -1187,7 +1187,7 @@ public final class BCFile {
     public DataIndex(String defaultCompressionAlgorithmName, boolean trackBlocks) {
       this.trackBlocks = trackBlocks;
       this.defaultCompressionAlgorithm = Compression.getCompressionAlgorithmByName(defaultCompressionAlgorithmName);
-      listRegions = new ArrayList<BlockRegion>();
+      listRegions = new ArrayList<>();
     }
 
     public Algorithm getDefaultCompressionAlgorithm() {

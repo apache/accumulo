@@ -85,13 +85,13 @@ public class TabletLocatorImplTest {
 
   static Map<String,Map<KeyExtent,List<Range>>> createExpectedBinnings(Object... data) {
 
-    Map<String,Map<KeyExtent,List<Range>>> expBinnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
+    Map<String,Map<KeyExtent,List<Range>>> expBinnedRanges = new HashMap<>();
 
     for (int i = 0; i < data.length; i += 2) {
       String loc = (String) data[i];
       Object binData[] = (Object[]) data[i + 1];
 
-      HashMap<KeyExtent,List<Range>> binnedKE = new HashMap<KeyExtent,List<Range>>();
+      HashMap<KeyExtent,List<Range>> binnedKE = new HashMap<>();
 
       expBinnedRanges.put(loc, binnedKE);
 
@@ -108,7 +108,7 @@ public class TabletLocatorImplTest {
   }
 
   static TreeMap<KeyExtent,TabletLocation> createMetaCacheKE(Object... data) {
-    TreeMap<KeyExtent,TabletLocation> mcke = new TreeMap<KeyExtent,TabletLocation>();
+    TreeMap<KeyExtent,TabletLocation> mcke = new TreeMap<>();
 
     for (int i = 0; i < data.length; i += 2) {
       KeyExtent ke = (KeyExtent) data[i];
@@ -122,7 +122,7 @@ public class TabletLocatorImplTest {
   static TreeMap<Text,TabletLocation> createMetaCache(Object... data) {
     TreeMap<KeyExtent,TabletLocation> mcke = createMetaCacheKE(data);
 
-    TreeMap<Text,TabletLocation> mc = new TreeMap<Text,TabletLocation>(TabletLocatorImpl.endRowComparator);
+    TreeMap<Text,TabletLocation> mc = new TreeMap<>(TabletLocatorImpl.endRowComparator);
 
     for (Entry<KeyExtent,TabletLocation> entry : mcke.entrySet()) {
       if (entry.getKey().getEndRow() == null)
@@ -180,18 +180,18 @@ public class TabletLocatorImplTest {
   private void runTest(Text tableName, List<Range> ranges, TabletLocatorImpl tab1TabletCache, Map<String,Map<KeyExtent,List<Range>>> expected,
       List<Range> efailures) throws Exception {
 
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     List<Range> f = tab1TabletCache.binRanges(context, ranges, binnedRanges);
     assertEquals(expected, binnedRanges);
 
-    HashSet<Range> f1 = new HashSet<Range>(f);
-    HashSet<Range> f2 = new HashSet<Range>(efailures);
+    HashSet<Range> f1 = new HashSet<>(f);
+    HashSet<Range> f2 = new HashSet<>(efailures);
 
     assertEquals(f2, f1);
   }
 
   static Set<KeyExtent> nkes(KeyExtent... extents) {
-    HashSet<KeyExtent> kes = new HashSet<KeyExtent>();
+    HashSet<KeyExtent> kes = new HashSet<>();
 
     for (KeyExtent keyExtent : extents) {
       kes.add(keyExtent);
@@ -203,11 +203,11 @@ public class TabletLocatorImplTest {
   static void runTest(TreeMap<Text,TabletLocation> mc, KeyExtent remove, Set<KeyExtent> expected) {
     // copy so same metaCache can be used for multiple test
 
-    mc = new TreeMap<Text,TabletLocation>(mc);
+    mc = new TreeMap<>(mc);
 
     TabletLocatorImpl.removeOverlapping(mc, remove);
 
-    HashSet<KeyExtent> eic = new HashSet<KeyExtent>();
+    HashSet<KeyExtent> eic = new HashSet<>();
     for (TabletLocation tl : mc.values()) {
       eic.add(tl.tablet_extent);
     }
@@ -233,14 +233,14 @@ public class TabletLocatorImplTest {
   }
 
   private void runTest(TabletLocatorImpl metaCache, List<Mutation> ml, Map<String,Map<KeyExtent,List<String>>> emb, String... efailures) throws Exception {
-    Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<String,TabletServerMutations<Mutation>>();
-    List<Mutation> afailures = new ArrayList<Mutation>();
+    Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
+    List<Mutation> afailures = new ArrayList<>();
     metaCache.binMutations(context, ml, binnedMutations, afailures);
 
     verify(emb, binnedMutations);
 
-    ArrayList<String> afs = new ArrayList<String>();
-    ArrayList<String> efs = new ArrayList<String>(Arrays.asList(efailures));
+    ArrayList<String> afs = new ArrayList<>();
+    ArrayList<String> efs = new ArrayList<>(Arrays.asList(efailures));
 
     for (Mutation mutation : afailures) {
       afs.add(new String(mutation.getRow()));
@@ -263,8 +263,8 @@ public class TabletLocatorImplTest {
       assertEquals(etb.keySet(), atb.getMutations().keySet());
 
       for (KeyExtent ke : etb.keySet()) {
-        ArrayList<String> eRows = new ArrayList<String>(etb.get(ke));
-        ArrayList<String> aRows = new ArrayList<String>();
+        ArrayList<String> eRows = new ArrayList<>(etb.get(ke));
+        ArrayList<String> aRows = new ArrayList<>();
 
         for (Mutation m : atb.getMutations().get(ke)) {
           aRows.add(new String(m.getRow()));
@@ -281,7 +281,7 @@ public class TabletLocatorImplTest {
 
   static Map<String,Map<KeyExtent,List<String>>> cemb(Object[]... ols) {
 
-    Map<String,Map<KeyExtent,List<String>>> emb = new HashMap<String,Map<KeyExtent,List<String>>>();
+    Map<String,Map<KeyExtent,List<String>>> emb = new HashMap<>();
 
     for (Object[] ol : ols) {
       String row = (String) ol[0];
@@ -290,13 +290,13 @@ public class TabletLocatorImplTest {
 
       Map<KeyExtent,List<String>> tb = emb.get(server);
       if (tb == null) {
-        tb = new HashMap<KeyExtent,List<String>>();
+        tb = new HashMap<>();
         emb.put(server, tb);
       }
 
       List<String> rl = tb.get(ke);
       if (rl == null) {
-        rl = new ArrayList<String>();
+        rl = new ArrayList<>();
         tb.put(ke, rl);
       }
 
@@ -444,7 +444,7 @@ public class TabletLocatorImplTest {
   }
 
   static class TServers {
-    private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers = new HashMap<String,Map<KeyExtent,SortedMap<Key,Value>>>();
+    private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers = new HashMap<>();
   }
 
   static class TestTabletLocationObtainer implements TabletLocationObtainer {
@@ -491,7 +491,7 @@ public class TabletLocatorImplTest {
     public List<TabletLocation> lookupTablets(ClientContext context, String tserver, Map<KeyExtent,List<Range>> map, TabletLocator parent)
         throws AccumuloSecurityException {
 
-      ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
+      ArrayList<TabletLocation> list = new ArrayList<>();
 
       Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(tserver);
 
@@ -500,10 +500,10 @@ public class TabletLocatorImplTest {
         return list;
       }
 
-      TreeMap<Key,Value> results = new TreeMap<Key,Value>();
+      TreeMap<Key,Value> results = new TreeMap<>();
 
       Set<Entry<KeyExtent,List<Range>>> es = map.entrySet();
-      List<KeyExtent> failures = new ArrayList<KeyExtent>();
+      List<KeyExtent> failures = new ArrayList<>();
       for (Entry<KeyExtent,List<Range>> entry : es) {
         SortedMap<Key,Value> tabletData = tablets.get(entry.getKey());
 
@@ -569,13 +569,13 @@ public class TabletLocatorImplTest {
   static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
     if (tablets == null) {
-      tablets = new HashMap<KeyExtent,SortedMap<Key,Value>>();
+      tablets = new HashMap<>();
       tservers.tservers.put(server, tablets);
     }
 
     SortedMap<Key,Value> tabletData = tablets.get(tablet);
     if (tabletData == null) {
-      tabletData = new TreeMap<Key,Value>();
+      tabletData = new TreeMap<>();
       tablets.put(tablet, tabletData);
     } else if (tabletData.size() > 0) {
       throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
@@ -602,13 +602,13 @@ public class TabletLocatorImplTest {
   static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke, String location, String instance) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
     if (tablets == null) {
-      tablets = new HashMap<KeyExtent,SortedMap<Key,Value>>();
+      tablets = new HashMap<>();
       tservers.tservers.put(server, tablets);
     }
 
     SortedMap<Key,Value> tabletData = tablets.get(tablet);
     if (tabletData == null) {
-      tabletData = new TreeMap<Key,Value>();
+      tabletData = new TreeMap<>();
       tablets.put(tablet, tabletData);
     }
 
@@ -1237,7 +1237,7 @@ public class TabletLocatorImplTest {
     setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
 
     // create the ~ tablet so it exists
-    Map<KeyExtent,SortedMap<Key,Value>> ts3 = new HashMap<KeyExtent,SortedMap<Key,Value>>();
+    Map<KeyExtent,SortedMap<Key,Value>> ts3 = new HashMap<>();
     ts3.put(mte2, new TreeMap<Key,Value>());
     tservers.tservers.put("tserver3", ts3);
 
@@ -1304,7 +1304,7 @@ public class TabletLocatorImplTest {
   @Test
   public void testLostLock() throws Exception {
 
-    final HashSet<String> activeLocks = new HashSet<String>();
+    final HashSet<String> activeLocks = new HashSet<>();
 
     TServers tservers = new TServers();
     TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo", new TabletServerLockChecker() {

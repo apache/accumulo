@@ -26,7 +26,7 @@ import org.apache.zookeeper.Watcher;
  */
 public class ZooCacheFactory {
   // TODO: make this better - LRU, soft references, ...
-  private static Map<String,ZooCache> instances = new HashMap<String,ZooCache>();
+  private static Map<String,ZooCache> instances = new HashMap<>();
 
   /**
    * Gets a {@link ZooCache}. The same object may be returned for multiple calls with the same arguments.

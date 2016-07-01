@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.trace.wrappers.RpcServerInvocationHandler;
-import org.apache.accumulo.server.rpc.RpcWrapper;
 import org.apache.thrift.ProcessFunction;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
@@ -49,12 +48,12 @@ public class RpcWrapperTest {
    * @return A ProcessFunction.
    */
   private fake_proc<FakeService> createProcessFunction(String methodName, boolean isOneway) {
-    return new fake_proc<FakeService>(methodName, isOneway);
+    return new fake_proc<>(methodName, isOneway);
   }
 
   @Test
   public void testSomeOnewayMethods() {
-    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<>();
     procs.put("foo", createProcessFunction("foo", true));
     procs.put("foobar", createProcessFunction("foobar", false));
     procs.put("bar", createProcessFunction("bar", true));
@@ -66,7 +65,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testNoOnewayMethods() {
-    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<>();
     procs.put("foo", createProcessFunction("foo", false));
     procs.put("foobar", createProcessFunction("foobar", false));
     procs.put("bar", createProcessFunction("bar", false));
@@ -78,7 +77,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testAllOnewayMethods() {
-    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<>();
     procs.put("foo", createProcessFunction("foo", true));
     procs.put("foobar", createProcessFunction("foobar", true));
     procs.put("bar", createProcessFunction("bar", true));
@@ -196,7 +195,7 @@ public class RpcWrapperTest {
     public long barfoo() {
       return 0;
     }
-  };
+  }
 
   /**
    * A fake ProcessFunction implementation for testing that allows injection of method name and oneway.

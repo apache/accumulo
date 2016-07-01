@@ -280,7 +280,7 @@ public enum PropertyType {
         if (!VALID_RANGE.containsInteger(low) || !VALID_RANGE.containsInteger(high) || !(low <= high)) {
           throw new IllegalArgumentException("Invalid port range specified, only 1024 to 65535 supported.");
         }
-        return new Pair<Integer,Integer>(low, high);
+        return new Pair<>(low, high);
       }
       throw new IllegalArgumentException("Invalid port range specification, must use M-N notation.");
     }

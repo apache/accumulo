@@ -49,7 +49,7 @@ public class FileDataQuery {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ZooKeeperInstance instance = new ZooKeeperInstance(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
     conn = instance.getConnector(user, token);
-    lastRefs = new ArrayList<Entry<Key,Value>>();
+    lastRefs = new ArrayList<>();
     cis = new ChunkInputStream();
     scanner = conn.createScanner(tableName, auths);
   }
@@ -62,7 +62,7 @@ public class FileDataQuery {
     scanner.setRange(new Range(hash));
     scanner.setBatchSize(1);
     lastRefs.clear();
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(scanner.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(scanner.iterator());
     if (pi.hasNext()) {
       while (!pi.peek().getKey().getColumnFamily().equals(FileDataIngest.CHUNK_CF)) {
         lastRefs.add(pi.peek());

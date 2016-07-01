@@ -147,7 +147,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    TreeSet<String> tableNames = new TreeSet<String>(Tables.getNameToIdMap(context.getInstance()).keySet());
+    TreeSet<String> tableNames = new TreeSet<>(Tables.getNameToIdMap(context.getInstance()).keySet());
 
     if (timer != null) {
       timer.stop();
@@ -357,7 +357,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           return;
 
         if (splits.size() <= 2) {
-          addSplits(env.tableName, new TreeSet<Text>(splits), env.tableId);
+          addSplits(env.tableName, new TreeSet<>(splits), env.tableId);
           for (int i = 0; i < splits.size(); i++)
             env.latch.countDown();
           return;
@@ -367,7 +367,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         // split the middle split point to ensure that child task split different tablets and can therefore
         // run in parallel
-        addSplits(env.tableName, new TreeSet<Text>(splits.subList(mid, mid + 1)), env.tableId);
+        addSplits(env.tableName, new TreeSet<>(splits.subList(mid, mid + 1)), env.tableId);
         env.latch.countDown();
 
         env.executor.submit(new SplitTask(env, splits.subList(0, mid)));
@@ -384,13 +384,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     String tableId = Tables.getTableId(context.getInstance(), tableName);
 
-    List<Text> splits = new ArrayList<Text>(partitionKeys);
+    List<Text> splits = new ArrayList<>(partitionKeys);
     // should be sorted because we copied from a sorted set, but that makes assumptions about
     // how the copy was done so resort to be sure.
     Collections.sort(splits);
 
     CountDownLatch latch = new CountDownLatch(splits.size());
-    AtomicReference<Exception> exception = new AtomicReference<Exception>(null);
+    AtomicReference<Exception> exception = new AtomicReference<>(null);
 
     ExecutorService executor = Executors.newFixedThreadPool(16, new NamingThreadFactory("addSplits"));
     try {
@@ -508,7 +508,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_MERGE, args, opts);
     } catch (TableExistsException e) {
@@ -524,7 +524,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_DELETE_RANGE, args, opts);
     } catch (TableExistsException e) {
@@ -540,7 +540,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     String tableId = Tables.getTableId(context.getInstance(), tableName);
 
-    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
+    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
 
     while (true) {
       try {
@@ -564,7 +564,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    ArrayList<Text> endRows = new ArrayList<Text>(tabletLocations.size());
+    ArrayList<Text> endRows = new ArrayList<>(tabletLocations.size());
 
     for (KeyExtent ke : tabletLocations.keySet())
       if (ke.getEndRow() != null)
@@ -583,7 +583,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     double r = (maxSplits + 1) / (double) (endRows.size());
     double pos = 0;
 
-    ArrayList<Text> subset = new ArrayList<Text>(maxSplits);
+    ArrayList<Text> subset = new ArrayList<>(maxSplits);
 
     int j = 0;
     for (int i = 0; i < endRows.size() && j < maxSplits; i++) {
@@ -603,7 +603,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_DELETE, args, opts);
@@ -633,7 +633,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       propertiesToSet = Collections.emptyMap();
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes(UTF_8)), ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     for (Entry<String,String> entry : propertiesToSet.entrySet()) {
       if (entry.getKey().startsWith(CLONE_EXCLUDE_PREFIX))
         throw new IllegalArgumentException("Property can not start with " + CLONE_EXCLUDE_PREFIX);
@@ -652,7 +652,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       TableExistsException {
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(UTF_8)), ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     doTableFateOperation(oldTableName, TableNotFoundException.class, FateOperation.TABLE_RENAME, args, opts);
   }
 
@@ -710,7 +710,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(config.getIterators())), ByteBuffer
         .wrap(CompactionStrategyConfigUtil.encode(config.getCompactionStrategy())));
 
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     try {
       doFateOperation(FateOperation.TABLE_COMPACT, args, opts, tableName, config.getWait());
     } catch (TableExistsException e) {
@@ -730,7 +730,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(UTF_8)));
 
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_CANCEL_COMPACT, args, opts);
     } catch (TableExistsException e) {
@@ -859,7 +859,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // ensure locality groups do not overlap
-    HashSet<Text> all = new HashSet<Text>();
+    HashSet<Text> all = new HashSet<>();
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
 
       if (!Collections.disjoint(all, entry.getValue())) {
@@ -905,10 +905,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
     Map<String,Set<ByteSequence>> groups = LocalityGroupUtil.getLocalityGroups(conf);
 
-    Map<String,Set<Text>> groups2 = new HashMap<String,Set<Text>>();
+    Map<String,Set<Text>> groups2 = new HashMap<>();
     for (Entry<String,Set<ByteSequence>> entry : groups.entrySet()) {
 
-      HashSet<Text> colFams = new HashSet<Text>();
+      HashSet<Text> colFams = new HashSet<>();
 
       for (ByteSequence bs : entry.getValue()) {
         colFams.add(new Text(bs.toArray()));
@@ -931,7 +931,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return Collections.singleton(range);
 
     Random random = new Random();
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     String tableId = Tables.getTableId(context.getInstance(), tableName);
     TabletLocator tl = TabletLocator.getLocator(context, tableId);
     // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
@@ -950,8 +950,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     // group key extents to get <= maxSplits
-    LinkedList<KeyExtent> unmergedExtents = new LinkedList<KeyExtent>();
-    List<KeyExtent> mergedExtents = new ArrayList<KeyExtent>();
+    LinkedList<KeyExtent> unmergedExtents = new LinkedList<>();
+    List<KeyExtent> mergedExtents = new ArrayList<>();
 
     for (Map<KeyExtent,List<Range>> map : binnedRanges.values())
       unmergedExtents.addAll(map.keySet());
@@ -976,7 +976,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     mergedExtents.addAll(unmergedExtents);
 
-    Set<Range> ranges = new HashSet<Range>();
+    Set<Range> ranges = new HashSet<>();
     for (KeyExtent k : mergedExtents)
       ranges.add(k.toDataRange().clip(range));
 
@@ -1028,7 +1028,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)), ByteBuffer.wrap(dirPath.toString().getBytes(UTF_8)),
         ByteBuffer.wrap(failPath.toString().getBytes(UTF_8)), ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_BULK_IMPORT, args, opts);
@@ -1075,7 +1075,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       int waitFor = 0;
       int holes = 0;
       Text continueRow = null;
-      MapCounter<String> serverCounts = new MapCounter<String>();
+      MapCounter<String> serverCounts = new MapCounter<>();
 
       while (rowIter.hasNext()) {
         Iterator<Entry<Key,Value>> row = rowIter.next();
@@ -1174,7 +1174,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     String tableId = Tables.getTableId(context.getInstance(), tableName);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_OFFLINE, args, opts);
@@ -1197,7 +1197,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     String tableId = Tables.getTableId(context.getInstance(), tableName);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_ONLINE, args, opts);
@@ -1271,16 +1271,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    List<DiskUsage> finalUsages = new ArrayList<DiskUsage>();
+    List<DiskUsage> finalUsages = new ArrayList<>();
     for (TDiskUsage diskUsage : diskUsages) {
-      finalUsages.add(new DiskUsage(new TreeSet<String>(diskUsage.getTables()), diskUsage.getUsage()));
+      finalUsages.add(new DiskUsage(new TreeSet<>(diskUsage.getTables()), diskUsage.getUsage()));
     }
 
     return finalUsages;
   }
 
   public static Map<String,String> getExportedProps(FileSystem fs, Path path) throws IOException {
-    HashMap<String,String> props = new HashMap<String,String>();
+    HashMap<String,String> props = new HashMap<>();
 
     ZipInputStream zis = new ZipInputStream(fs.open(path));
     try {

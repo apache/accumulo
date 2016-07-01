@@ -180,7 +180,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     String tableName = tableNames[0];
     c.tableOperations().create(tableName);
     for (int x = 0; x < NUM_THREADS; x++) {
-      c.tableOperations().addSplits(tableName, new TreeSet<Text>(Collections.singleton(new Text(Integer.toString(x * NUM_TO_FLUSH)))));
+      c.tableOperations().addSplits(tableName, new TreeSet<>(Collections.singleton(new Text(Integer.toString(x * NUM_TO_FLUSH)))));
     }
     c.instanceOperations().waitForBalance();
 

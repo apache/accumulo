@@ -116,7 +116,7 @@ public class BulkImport extends Test {
     try {
       BatchWriter bw = new RFileBatchWriter(conf, fs, bulkDir + "/file01.rf");
       try {
-        TreeSet<Long> rows = new TreeSet<Long>();
+        TreeSet<Long> rows = new TreeSet<>();
         int numRows = rand.nextInt(100000);
         for (int i = 0; i < numRows; i++) {
           rows.add(rand.nextLong() & 0x7fffffffffffffffl);

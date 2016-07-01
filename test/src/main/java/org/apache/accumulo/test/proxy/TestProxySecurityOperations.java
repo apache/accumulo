@@ -130,7 +130,7 @@ public class TestProxySecurityOperations {
 
   @Test
   public void auths() throws TException {
-    HashSet<ByteBuffer> newauths = new HashSet<ByteBuffer>();
+    HashSet<ByteBuffer> newauths = new HashSet<>();
     newauths.add(ByteBuffer.wrap("BBR".getBytes()));
     newauths.add(ByteBuffer.wrap("Barney".getBytes()));
     tpc.proxy().changeUserAuthorizations(userpass, testuser, newauths);
@@ -152,7 +152,7 @@ public class TestProxySecurityOperations {
   }
 
   private Map<String,String> bb2pp(ByteBuffer cf) {
-    Map<String,String> toRet = new TreeMap<String,String>();
+    Map<String,String> toRet = new TreeMap<>();
     toRet.put("password", ByteBufferUtil.toString(cf));
     return toRet;
   }

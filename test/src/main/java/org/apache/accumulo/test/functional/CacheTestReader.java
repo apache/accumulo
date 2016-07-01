@@ -53,7 +53,7 @@ public class CacheTestReader {
         return;
       }
 
-      Map<String,String> readData = new TreeMap<String,String>();
+      Map<String,String> readData = new TreeMap<>();
 
       for (int i = 0; i < numData; i++) {
         byte[] v = zc.get(rootDir + "/data" + i);

@@ -81,7 +81,7 @@ public class GarbageCollectionAlgorithm {
     }
 
     if (containsEmpty) {
-      ArrayList<String> tmp = new ArrayList<String>();
+      ArrayList<String> tmp = new ArrayList<>();
       for (String token : tokens) {
         if (!token.equals("")) {
           tmp.add(token);
@@ -112,7 +112,7 @@ public class GarbageCollectionAlgorithm {
 
   private SortedMap<String,String> makeRelative(Collection<String> candidates) {
 
-    SortedMap<String,String> ret = new TreeMap<String,String>();
+    SortedMap<String,String> ret = new TreeMap<>();
 
     for (String candidate : candidates) {
       String relPath;
@@ -243,7 +243,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void cleanUpDeletedTableDirs(GarbageCollectionEnvironment gce, SortedMap<String,String> candidateMap) throws IOException {
-    HashSet<String> tableIdsWithDeletes = new HashSet<String>();
+    HashSet<String> tableIdsWithDeletes = new HashSet<>();
 
     // find the table ids that had dirs deleted
     for (String delete : candidateMap.keySet()) {
@@ -305,7 +305,7 @@ public class GarbageCollectionAlgorithm {
 
     boolean outOfMemory = true;
     while (outOfMemory) {
-      List<String> candidates = new ArrayList<String>();
+      List<String> candidates = new ArrayList<>();
 
       outOfMemory = getCandidates(gce, lastCandidate, candidates);
 

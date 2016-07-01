@@ -98,7 +98,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalStateException("batch reader closed");
     }
 
-    this.ranges = new ArrayList<Range>(ranges);
+    this.ranges = new ArrayList<>(ranges);
 
   }
 

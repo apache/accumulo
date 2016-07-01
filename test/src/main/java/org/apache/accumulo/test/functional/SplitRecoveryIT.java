@@ -140,7 +140,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
       String tdir = ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId() + "/dir_" + i;
       MetadataTableUtil.addTablet(extent, tdir, context, TabletTime.LOGICAL_TIME_ID, zl);
-      SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<FileRef,DataFileValue>();
+      SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"), new DataFileValue(1000017 + i, 10000 + i));
 
       if (i == extentToSplit) {
@@ -162,9 +162,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   private void splitPartiallyAndRecover(AccumuloServerContext context, KeyExtent extent, KeyExtent high, KeyExtent low, double splitRatio,
       SortedMap<FileRef,DataFileValue> mapFiles, Text midRow, String location, int steps, ZooLock zl) throws Exception {
 
-    SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<FileRef,DataFileValue>();
-    SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<FileRef,DataFileValue>();
-    List<FileRef> highDatafilesToRemove = new ArrayList<FileRef>();
+    SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
+    SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
+    List<FileRef> highDatafilesToRemove = new ArrayList<>();
 
     MetadataTableUtil.splitDatafiles(extent.getTableId(), midRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), mapFiles, lowDatafileSizes,
         highDatafileSizes, highDatafilesToRemove);
@@ -211,13 +211,13 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetadataRange());
 
-      HashSet<ColumnFQ> expectedColumns = new HashSet<ColumnFQ>();
+      HashSet<ColumnFQ> expectedColumns = new HashSet<>();
       expectedColumns.add(TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN);
       expectedColumns.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
       expectedColumns.add(TabletsSection.ServerColumnFamily.TIME_COLUMN);
       expectedColumns.add(TabletsSection.ServerColumnFamily.LOCK_COLUMN);
 
-      HashSet<Text> expectedColumnFamilies = new HashSet<Text>();
+      HashSet<Text> expectedColumnFamilies = new HashSet<>();
       expectedColumnFamilies.add(DataFileColumnFamily.NAME);
       expectedColumnFamilies.add(TabletsSection.FutureLocationColumnFamily.NAME);
       expectedColumnFamilies.add(TabletsSection.CurrentLocationColumnFamily.NAME);

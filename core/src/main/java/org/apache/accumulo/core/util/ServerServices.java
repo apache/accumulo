@@ -32,7 +32,7 @@ public class ServerServices implements Comparable<ServerServices> {
   private String stringForm = null;
 
   public ServerServices(String services) {
-    this.services = new EnumMap<Service,String>(Service.class);
+    this.services = new EnumMap<>(Service.class);
 
     String[] addresses = services.split(SERVICE_SEPARATOR);
     for (String address : addresses) {

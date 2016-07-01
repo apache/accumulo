@@ -74,7 +74,7 @@ public class FindMaxIT extends AccumuloClusterHarness {
 
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
 
-    ArrayList<Text> rows = new ArrayList<Text>();
+    ArrayList<Text> rows = new ArrayList<>();
 
     for (Entry<Key,Value> entry : scanner) {
       rows.add(entry.getKey().getRow());
