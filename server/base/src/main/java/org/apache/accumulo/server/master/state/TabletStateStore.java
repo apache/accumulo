@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.apache.accumulo.core.data.impl.KeyExtent;
 
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.hadoop.fs.Path;
@@ -77,26 +78,25 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
 
   public static void unassign(AccumuloServerContext context, TabletLocationState tls, Map<TServerInstance,List<Path>> logsForDeadServers)
       throws DistributedStoreException {
-    TabletStateStore store;
-    if (tls.extent.isRootTablet()) {
-      store = new ZooTabletStateStore();
-    } else if (tls.extent.isMeta()) {
-      store = new RootTabletStateStore(context);
-    } else {
-      store = new MetaDataStateStore(context);
-    }
-    store.unassign(Collections.singletonList(tls), logsForDeadServers);
+    getStoreForTablet(tls.extent, context).unassign(Collections.singletonList(tls), logsForDeadServers);
+  }
+
+  public static void suspend(AccumuloServerContext context, TabletLocationState tls, Map<TServerInstance,List<Path>> logsForDeadServers,
+      long suspensionTimestamp) throws DistributedStoreException {
+    getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls), logsForDeadServers, suspensionTimestamp);
   }
 
   public static void setLocation(AccumuloServerContext context, Assignment assignment) throws DistributedStoreException {
-    TabletStateStore store;
-    if (assignment.tablet.isRootTablet()) {
-      store = new ZooTabletStateStore();
-    } else if (assignment.tablet.isMeta()) {
-      store = new RootTabletStateStore(context);
+    getStoreForTablet(assignment.tablet, context).setLocations(Collections.singletonList(assignment));
+  }
+
+  protected static TabletStateStore getStoreForTablet(KeyExtent extent, AccumuloServerContext context) throws DistributedStoreException {
+    if (extent.isRootTablet()) {
+      return new ZooTabletStateStore();
+    } else if (extent.isMeta()) {
+      return new RootTabletStateStore(context);
     } else {
-      store = new MetaDataStateStore(context);
+      return new MetaDataStateStore(context);
     }
-    store.setLocations(Collections.singletonList(assignment));
   }
 }

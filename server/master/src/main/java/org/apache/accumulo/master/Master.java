@@ -162,7 +162,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import org.apache.accumulo.master.TabletGroupWatcher.SuspensionPolicy;
+import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
@@ -733,7 +733,18 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   }
 
   static enum TabletGoalState {
-    HOSTED, UNASSIGNED, DELETED
+    HOSTED(TUnloadTabletGoal.UNKNOWN), UNASSIGNED(TUnloadTabletGoal.UNASSIGNED), DELETED(TUnloadTabletGoal.DELETED), SUSPENDED(TUnloadTabletGoal.SUSPENDED);
+
+    private final TUnloadTabletGoal unloadGoal;
+
+    TabletGoalState(TUnloadTabletGoal unloadGoal) {
+      this.unloadGoal = unloadGoal;
+    }
+
+    /** The purpose of unloading this tablet. */
+    public TUnloadTabletGoal howUnload() {
+      return unloadGoal;
+    }
   };
 
   TabletGoalState getSystemGoalState(TabletLocationState tls) {
@@ -780,7 +791,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     TabletGoalState state = getSystemGoalState(tls);
     if (state == TabletGoalState.HOSTED) {
       if (tls.current != null && serversToShutdown.contains(tls.current)) {
-        return TabletGoalState.UNASSIGNED;
+        return TabletGoalState.SUSPENDED;
       }
       // Handle merge transitions
       if (mergeInfo.getExtent() != null) {
@@ -1146,16 +1157,30 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       }
     });
 
-    // Always allow user data tablets to enter suspended state.
-    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(this, this), null, SuspensionPolicy.SUSPEND));
+    watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(this, this), null) {
+      @Override
+      boolean canSuspendTablets() {
+        // Always allow user data tablets to enter suspended state.
+        return true;
+      }
+    });
 
-    // Allow metadata tablets to enter suspended state only if so configured. Generally we'll want metadata tablets to
-    // be immediately reassigned, even if there's a global table.suspension.duration setting.
-    watchers.add(new TabletGroupWatcher(this, new RootTabletStateStore(this, this), watchers.get(0), getConfiguration().getBoolean(
-        Property.MASTER_METADATA_SUSPENDABLE) ? SuspensionPolicy.SUSPEND : SuspensionPolicy.UNASSIGN));
+    watchers.add(new TabletGroupWatcher(this, new RootTabletStateStore(this, this), watchers.get(0)) {
+      @Override
+      boolean canSuspendTablets() {
+        // Allow metadata tablets to enter suspended state only if so configured. Generally we'll want metadata tablets to
+        // be immediately reassigned, even if there's a global table.suspension.duration setting.
+        return getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE);
+      }
+    });
 
-    // Never allow root tablet to enter suspended state.
-    watchers.add(new TabletGroupWatcher(this, new ZooTabletStateStore(new ZooStore(zroot)), watchers.get(1), SuspensionPolicy.UNASSIGN));
+    watchers.add(new TabletGroupWatcher(this, new ZooTabletStateStore(new ZooStore(zroot)), watchers.get(1)) {
+      @Override
+      boolean canSuspendTablets() {
+        // Never allow root tablet to enter suspended state.
+        return false;
+      }
+    });
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }

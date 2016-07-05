@@ -258,6 +258,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
 
@@ -329,7 +330,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
 
-  public TabletServer(ServerConfigurationFactory confFactory, VolumeManager fs) {
+  public TabletServer(ServerConfigurationFactory confFactory, VolumeManager fs) throws IOException {
     super(confFactory);
     this.confFactory = confFactory;
     this.fs = fs;
@@ -1550,7 +1551,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
 
     @Override
-    public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent, boolean save) {
+    public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent, TUnloadTabletGoal goal, long requestTime) {
       try {
         checkPermission(credentials, lock, "unloadTablet");
       } catch (ThriftSecurityException e) {
@@ -1560,7 +1561,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       KeyExtent extent = new KeyExtent(textent);
 
-      resourceManager.addMigration(extent, new LoggingRunnable(log, new UnloadTabletHandler(extent, save)));
+      resourceManager.addMigration(extent, new LoggingRunnable(log, new UnloadTabletHandler(extent, goal, requestTime)));
     }
 
     @Override
@@ -1940,11 +1941,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private class UnloadTabletHandler implements Runnable {
     private final KeyExtent extent;
-    private final boolean saveState;
+    private final TUnloadTabletGoal goalState;
+    private final long requestTimeSkew;
 
-    public UnloadTabletHandler(KeyExtent extent, boolean saveState) {
+    public UnloadTabletHandler(KeyExtent extent, TUnloadTabletGoal goalState, long requestTime) {
       this.extent = extent;
-      this.saveState = saveState;
+      this.goalState = goalState;
+      this.requestTimeSkew = requestTime - System.nanoTime();
     }
 
     @Override
@@ -1983,7 +1986,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       try {
-        t.close(saveState);
+        t.close(!goalState.equals(TUnloadTabletGoal.DELETED));
       } catch (Throwable e) {
 
         if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
@@ -2008,8 +2011,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         } catch (BadLocationStateException e) {
           log.error("Unexpected error ", e);
         }
-        log.debug("Unassigning " + tls);
-        TabletStateStore.unassign(TabletServer.this, tls, null);
+        if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
+            || (extent.isMeta() && !getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE))) {
+          log.debug("Unassigning " + tls);
+          TabletStateStore.unassign(TabletServer.this, tls, null);
+        } else {
+          log.debug("Suspending " + tls);
+          TabletStateStore.suspend(TabletServer.this, tls, null, requestTimeSkew + System.nanoTime());
+        }
       } catch (DistributedStoreException ex) {
         log.warn("Unable to update storage", ex);
       } catch (KeeperException e) {

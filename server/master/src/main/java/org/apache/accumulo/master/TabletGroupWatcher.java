@@ -96,15 +96,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import static java.lang.Math.min;
 import java.util.SortedSet;
+import static java.lang.Math.min;
 
-class TabletGroupWatcher extends Daemon {
-  public static enum SuspensionPolicy {
-    /** Move tablets in state TabletState.ASSIGNED_TO_DEAD_SERVER to state TabletState.UNASSIGNED, and attempt reassignment. */
-    UNASSIGN,
-    /** Move tablets in state TabletState.ASSIGNED_TO_DEAD_SERVER to state TabletState.SUSPENDED. */
-    SUSPEND
-  }
-
+abstract class TabletGroupWatcher extends Daemon {
   // Constants used to make sure assignment logging isn't excessive in quantity or size
   private static final String ASSIGNMENT_BUFFER_SEPARATOR = ", ";
   private static final int ASSINGMENT_BUFFER_MAX_LENGTH = 4096;
@@ -112,19 +106,20 @@ class TabletGroupWatcher extends Daemon {
   private final Master master;
   final TabletStateStore store;
   final TabletGroupWatcher dependentWatcher;
-  private final SuspensionPolicy suspensionPolicy;
 
   private MasterState masterState;
 
   final TableStats stats = new TableStats();
   private SortedSet<TServerInstance> lastScanServers = ImmutableSortedSet.of();
 
-  TabletGroupWatcher(Master master, TabletStateStore store, TabletGroupWatcher dependentWatcher, SuspensionPolicy suspensionPolicy) {
+  TabletGroupWatcher(Master master, TabletStateStore store, TabletGroupWatcher dependentWatcher) {
     this.master = master;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
-    this.suspensionPolicy = suspensionPolicy;
   }
+
+  /** Should this {@code TabletGroupWatcher} suspend tablets? */
+  abstract boolean canSuspendTablets();
 
   Map<String,TableCounts> getStats() {
     return stats.getLast();
@@ -252,7 +247,7 @@ class TabletGroupWatcher extends Daemon {
           }
 
           // if we are shutting down all the tabletservers, we have to do it in order
-          if (goal == TabletGoalState.UNASSIGNED && state == TabletState.HOSTED) {
+          if (goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED) {
             if (this.master.serversToShutdown.equals(currentTServers.keySet())) {
               if (dependentWatcher != null && dependentWatcher.assignedOrHosted() > 0) {
                 goal = TabletGoalState.HOSTED;
@@ -283,7 +278,7 @@ class TabletGroupWatcher extends Daemon {
                 if (master.getSteadyTime() - tls.suspend.suspensionTime < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
                   // Tablet is suspended. See if its tablet server is back.
                   TServerInstance returnInstance = null;
-                  Iterator<TServerInstance> find = currentTServers.tailMap(new TServerInstance(tls.suspend.server, " ")).keySet().iterator();
+                  Iterator<TServerInstance> find = destinations.tailMap(new TServerInstance(tls.suspend.server, " ")).keySet().iterator();
                   if (find.hasNext()) {
                     TServerInstance found = find.next();
                     if (found.getLocation().equals(tls.suspend.server)) {
@@ -345,7 +340,7 @@ class TabletGroupWatcher extends Daemon {
               case HOSTED:
                 TServerConnection conn = this.master.tserverSet.getConnection(server);
                 if (conn != null) {
-                  conn.unloadTablet(this.master.masterLock, tls.extent, goal != TabletGoalState.DELETED);
+                  conn.unloadTablet(this.master.masterLock, tls.extent, goal.howUnload(), master.getSteadyTime());
                   unloaded++;
                   totalUnloaded++;
                 } else {
@@ -807,17 +802,15 @@ class TabletGroupWatcher extends Daemon {
   private void flushChanges(SortedMap<TServerInstance,TabletServerStatus> currentTServers, List<Assignment> assignments, List<Assignment> assigned,
       List<TabletLocationState> assignedToDeadServers, Map<TServerInstance,List<Path>> logsForDeadServers, List<TabletLocationState> suspendedToGoneServers,
       Map<KeyExtent,TServerInstance> unassigned) throws DistributedStoreException, TException, WalMarkerException {
+    boolean tabletsSuspendable = canSuspendTablets();
     if (!assignedToDeadServers.isEmpty()) {
       int maxServersToShow = min(assignedToDeadServers.size(), 100);
       Master.log.debug(assignedToDeadServers.size() + " assigned to dead servers: " + assignedToDeadServers.subList(0, maxServersToShow) + "...");
       Master.log.debug("logs for dead servers: " + logsForDeadServers);
-      switch (suspensionPolicy) {
-        case SUSPEND:
-          store.suspend(assignedToDeadServers, logsForDeadServers, master.getSteadyTime());
-          break;
-        case UNASSIGN:
-          store.unassign(assignedToDeadServers, logsForDeadServers);
-          break;
+      if (tabletsSuspendable) {
+        store.suspend(assignedToDeadServers, logsForDeadServers, master.getSteadyTime());
+      } else {
+        store.unassign(assignedToDeadServers, logsForDeadServers);
       }
       this.master.markDeadServerLogsAsClosed(logsForDeadServers);
       this.master.nextEvent.event("Marked %d tablets as suspended because they don't have current servers", assignedToDeadServers.size());
