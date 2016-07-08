@@ -23,6 +23,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,6 +38,11 @@ import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Maps;
 
 /**
  * Compression related stuff.
@@ -78,41 +86,91 @@ public final class Compression {
   public static final String COMPRESSION_NONE = "none";
 
   /**
-   * Compression algorithms.
+   * Compression algorithms. There is a static initializer, below the values defined in the enumeration, that calls the initializer of all defined codecs within
+   * the Algorithm enum. This promotes a model of the following call graph of initialization by the static initializer, followed by calls to getCodec() and
+   * createCompressionStream/DecompressionStream. In some cases, the compression and decompression call methods will include a different buffer size for the
+   * stream. Note that if the compressed buffer size requested in these calls is zero, we will not set the buffer size for that algorithm. Instead, we will use
+   * the default within the codec.
+   *
+   * The buffer size is configured in the Codec by way of a Hadoop Configuration reference. One approach may be to use the same Configuration object, but when
+   * calls are made to createCompressionStream and DecompressionStream, with non default buffer sizes, the configuration object must be changed. In this case,
+   * concurrent calls to createCompressionStream and DecompressionStream would mutate the configuration object beneath each other, requiring synchronization to
+   * avoid undesirable activity via co-modification. To avoid synchronization entirely, we will create Codecs with their own Configuration object and cache them
+   * for re-use. A default codec will be statically created, as mentioned above to ensure we always have a codec available at loader initialization.
+   *
+   * There is a Guava cache defined within Algorithm that allows us to cache Codecs for re-use. Since they will have their own configuration object and thus do
+   * not need to be mutable, there is no concern for using them concurrently; however, the Guava cache exists to ensure a maximal size of the cache and
+   * efficient and concurrent read/write access to the cache itself.
+   *
+   * To provide Algorithm specific details and to describe what is in code:
+   *
+   * LZO will always have the default LZO codec because the buffer size is never overridden within it.
+   *
+   * GZ will use the default GZ codec for the compression stream, but can potentially use a different codec instance for the decompression stream if the
+   * requested buffer size does not match the default GZ buffer size of 32k.
+   *
+   * Snappy will use the default Snappy codec with the default buffer size of 64k for the compression stream, but will use a cached codec if the buffer size
+   * differs from the default.
    */
   public static enum Algorithm {
+
     LZO(COMPRESSION_LZO) {
-      private transient boolean checked = false;
+      /**
+       * determines if we've checked the codec status. ensures we don't recreate the defualt codec
+       */
+      private final AtomicBoolean checked = new AtomicBoolean(false);
       private static final String defaultClazz = "org.apache.hadoop.io.compress.LzoCodec";
       private transient CompressionCodec codec = null;
 
+      /**
+       * Configuration option for LZO buffer size
+       */
+      private static final String BUFFER_SIZE_OPT = "io.compression.codec.lzo.buffersize";
+
+      /**
+       * Default buffer size
+       */
+      private static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
+
       @Override
-      public synchronized boolean isSupported() {
-        if (!checked) {
-          checked = true;
-          String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
-          String clazz = (extClazz != null) ? extClazz : defaultClazz;
-          try {
-            LOG.info("Trying to load Lzo codec class: " + clazz);
-            codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), conf);
-          } catch (ClassNotFoundException e) {
-            // that is okay
-          }
-        }
+      public boolean isSupported() {
         return codec != null;
       }
 
       @Override
-      CompressionCodec getCodec() throws IOException {
-        if (!isSupported()) {
-          throw new IOException("LZO codec class not specified. Did you forget to set property " + CONF_LZO_CLASS + "?");
+      public void initializeDefaultCodec() {
+        if (!checked.get()) {
+          checked.set(true);
+          codec = createNewCodec(DEFAULT_BUFFER_SIZE);
         }
+      }
 
+      @Override
+      CompressionCodec createNewCodec(int bufferSize) {
+        String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
+        String clazz = (extClazz != null) ? extClazz : defaultClazz;
+        try {
+          LOG.info("Trying to load Lzo codec class: " + clazz);
+          Configuration myConf = new Configuration(conf);
+          // only use the buffersize if > 0, otherwise we'll use
+          // the default defined within the codec
+          if (bufferSize > 0)
+            myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
+          codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+          return codec;
+        } catch (ClassNotFoundException e) {
+          // that is okay
+        }
+        return null;
+      }
+
+      @Override
+      CompressionCodec getCodec() throws IOException {
         return codec;
       }
 
       @Override
-      public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
+      public InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
         if (!isSupported()) {
           throw new IOException("LZO codec class not specified. Did you forget to set property " + CONF_LZO_CLASS + "?");
         }
@@ -122,14 +180,13 @@ public final class Compression {
         } else {
           bis1 = downStream;
         }
-        conf.setInt("io.compression.codec.lzo.buffersize", 64 * 1024);
         CompressionInputStream cis = codec.createInputStream(bis1, decompressor);
         BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
         return bis2;
       }
 
       @Override
-      public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
         if (!isSupported()) {
           throw new IOException("LZO codec class not specified. Did you forget to set property " + CONF_LZO_CLASS + "?");
         }
@@ -139,46 +196,83 @@ public final class Compression {
         } else {
           bos1 = downStream;
         }
-        conf.setInt("io.compression.codec.lzo.buffersize", 64 * 1024);
         CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
         BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
+
     },
 
     GZ(COMPRESSION_GZ) {
-      private transient DefaultCodec codec;
+
+      private transient DefaultCodec codec = null;
+
+      /**
+       * Configuration option for gz buffer size
+       */
+      private static final String BUFFER_SIZE_OPT = "io.file.buffer.size";
+
+      /**
+       * Default buffer size
+       */
+      private static final int DEFAULT_BUFFER_SIZE = 32 * 1024;
 
       @Override
-      synchronized CompressionCodec getCodec() {
-        if (codec == null) {
-          codec = new DefaultCodec();
-          codec.setConf(conf);
-        }
-
+      CompressionCodec getCodec() {
         return codec;
       }
 
       @Override
-      public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
+      public void initializeDefaultCodec() {
+        codec = (DefaultCodec) createNewCodec(DEFAULT_BUFFER_SIZE);
+      }
+
+      /**
+       * Create a new GZ codec
+       *
+       * @param bufferSize
+       *          buffer size to for GZ
+       * @return created codec
+       */
+      @Override
+      protected CompressionCodec createNewCodec(final int bufferSize) {
+        DefaultCodec myCodec = new DefaultCodec();
+        Configuration myConf = new Configuration(conf);
+        // only use the buffersize if > 0, otherwise we'll use
+        // the default defined within the codec
+        if (bufferSize > 0)
+          myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
+        myCodec.setConf(myConf);
+        return myCodec;
+      }
+
+      @Override
+      public InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
         // Set the internal buffer size to read from down stream.
-        if (downStreamBufferSize > 0) {
-          codec.getConf().setInt("io.file.buffer.size", downStreamBufferSize);
+        CompressionCodec decomCodec = codec;
+        // if we're not using the default, let's pull from the loading cache
+        if (DEFAULT_BUFFER_SIZE != downStreamBufferSize) {
+          Entry<Algorithm,Integer> sizeOpt = Maps.immutableEntry(GZ, downStreamBufferSize);
+          try {
+            decomCodec = codecCache.get(sizeOpt);
+          } catch (ExecutionException e) {
+            throw new IOException(e);
+          }
         }
-        CompressionInputStream cis = codec.createInputStream(downStream, decompressor);
+        CompressionInputStream cis = decomCodec.createInputStream(downStream, decompressor);
         BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
         return bis2;
       }
 
       @Override
-      public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
         OutputStream bos1 = null;
         if (downStreamBufferSize > 0) {
           bos1 = new BufferedOutputStream(downStream, downStreamBufferSize);
         } else {
           bos1 = downStream;
         }
-        codec.getConf().setInt("io.file.buffer.size", 32 * 1024);
+        // always uses the default buffer size
         CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
         BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
@@ -197,7 +291,7 @@ public final class Compression {
       }
 
       @Override
-      public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
+      public InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
         if (downStreamBufferSize > 0) {
           return new BufferedInputStream(downStream, downStreamBufferSize);
         }
@@ -205,7 +299,17 @@ public final class Compression {
       }
 
       @Override
-      public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
+      public void initializeDefaultCodec() {
+
+      }
+
+      @Override
+      protected CompressionCodec createNewCodec(final int bufferSize) {
+        return null;
+      }
+
+      @Override
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
         if (downStreamBufferSize > 0) {
           return new BufferedOutputStream(downStream, downStreamBufferSize);
         }
@@ -222,19 +326,67 @@ public final class Compression {
     SNAPPY(COMPRESSION_SNAPPY) {
       // Use base type to avoid compile-time dependencies.
       private transient CompressionCodec snappyCodec = null;
-      private transient boolean checked = false;
+      /**
+       * determines if we've checked the codec status. ensures we don't recreate the defualt codec
+       */
+      private final AtomicBoolean checked = new AtomicBoolean(false);
       private static final String defaultClazz = "org.apache.hadoop.io.compress.SnappyCodec";
+
+      /**
+       * Buffer size option
+       */
+      private static final String BUFFER_SIZE_OPT = "io.compression.codec.snappy.buffersize";
+
+      /**
+       * Default buffer size value
+       */
+      private static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
 
       @Override
       public CompressionCodec getCodec() throws IOException {
-        if (!isSupported()) {
-          throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
-        }
         return snappyCodec;
       }
 
       @Override
-      public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
+      public void initializeDefaultCodec() {
+        if (!checked.get()) {
+          checked.set(true);
+          snappyCodec = createNewCodec(DEFAULT_BUFFER_SIZE);
+        }
+      }
+
+      /**
+       * Creates a new snappy codec.
+       *
+       * @param bufferSize
+       *          incoming buffer size
+       * @return new codec or null, depending on if installed
+       */
+      @Override
+      protected CompressionCodec createNewCodec(final int bufferSize) {
+
+        String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null ? System.getProperty(CONF_SNAPPY_CLASS) : null);
+        String clazz = (extClazz != null) ? extClazz : defaultClazz;
+        try {
+          LOG.info("Trying to load snappy codec class: " + clazz);
+
+          Configuration myConf = new Configuration(conf);
+          // only use the buffersize if > 0, otherwise we'll use
+          // the default defined within the codec
+          if (bufferSize > 0)
+            myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
+
+          return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+
+        } catch (ClassNotFoundException e) {
+          // that is okay
+        }
+
+        return null;
+      }
+
+      @Override
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
 
         if (!isSupported()) {
           throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
@@ -245,44 +397,72 @@ public final class Compression {
         } else {
           bos1 = downStream;
         }
-        conf.setInt("io.compression.codec.snappy.buffersize", 64 * 1024);
+        // use the default codec
         CompressionOutputStream cos = snappyCodec.createOutputStream(bos1, compressor);
         BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
         return bos2;
       }
 
       @Override
-      public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
+      public InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
         if (!isSupported()) {
           throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
         }
-        if (downStreamBufferSize > 0) {
-          conf.setInt("io.file.buffer.size", downStreamBufferSize);
+
+        CompressionCodec decomCodec = snappyCodec;
+        // if we're not using the same buffer size, we'll pull the codec from the loading cache
+        if (DEFAULT_BUFFER_SIZE != downStreamBufferSize) {
+          Entry<Algorithm,Integer> sizeOpt = Maps.immutableEntry(SNAPPY, downStreamBufferSize);
+          try {
+            decomCodec = codecCache.get(sizeOpt);
+          } catch (ExecutionException e) {
+            throw new IOException(e);
+          }
         }
-        CompressionInputStream cis = snappyCodec.createInputStream(downStream, decompressor);
+
+        CompressionInputStream cis = decomCodec.createInputStream(downStream, decompressor);
         BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
         return bis2;
       }
 
       @Override
-      public synchronized boolean isSupported() {
-        if (!checked) {
-          checked = true;
-          String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null ? System.getProperty(CONF_SNAPPY_CLASS) : null);
-          String clazz = (extClazz != null) ? extClazz : defaultClazz;
-          try {
-            LOG.info("Trying to load snappy codec class: " + clazz);
-            snappyCodec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), conf);
-          } catch (ClassNotFoundException e) {
-            // that is okay
-          }
-        }
+      public boolean isSupported() {
+
         return snappyCodec != null;
       }
     };
+
+    /**
+     * The model defined by the static block, below, creates a singleton for each defined codec in the Algorithm enumeration. By creating the codecs, each call
+     * to isSupported shall return true/false depending on if the codec singleton is defined. The static initializer, below, will ensure this occurs when the
+     * Enumeration is loaded. Furthermore, calls to getCodec will return the singleton, whether it is null or not.
+     *
+     * Calls to createCompressionStream and createDecompressionStream may return a different codec than getCodec, if the incoming downStreamBufferSize is
+     * different than the default. In such a case, we will place the resulting codec into the codecCache, defined below, to ensure we have cache codecs.
+     *
+     * Since codecs are immutable, there is no concern about concurrent access to the CompressionCodec objects within the guava cache.
+     */
+    static {
+      conf = new Configuration();
+      for (final Algorithm al : Algorithm.values()) {
+        al.initializeDefaultCodec();
+      }
+    }
+
+    /**
+     * Guava cache to have a limited factory pattern defined in the Algorithm enum.
+     */
+    private static LoadingCache<Entry<Algorithm,Integer>,CompressionCodec> codecCache = CacheBuilder.newBuilder().maximumSize(25)
+        .build(new CacheLoader<Entry<Algorithm,Integer>,CompressionCodec>() {
+          @Override
+          public CompressionCodec load(Entry<Algorithm,Integer> key) {
+            return key.getKey().createNewCodec(key.getValue());
+          }
+        });
+
     // We require that all compression related settings are configured
     // statically in the Configuration object.
-    protected static final Configuration conf = new Configuration();
+    protected static final Configuration conf;
     private final String compressName;
     // data input buffer size to absorb small reads from application.
     private static final int DATA_IBUF_SIZE = 1 * 1024;
@@ -296,6 +476,20 @@ public final class Compression {
     }
 
     abstract CompressionCodec getCodec() throws IOException;
+
+    /**
+     * function to create the default codec object.
+     */
+    abstract void initializeDefaultCodec();
+
+    /**
+     * Shared function to create new codec objects. It is expected that if buffersize is invalid, a codec will be created with the default buffer size
+     *
+     * @param bufferSize
+     *          configured buffer size.
+     * @return new codec
+     */
+    abstract CompressionCodec createNewCodec(int bufferSize);
 
     public abstract InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException;
 
