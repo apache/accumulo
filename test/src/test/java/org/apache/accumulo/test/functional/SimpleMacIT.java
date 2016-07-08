@@ -17,9 +17,22 @@
 package org.apache.accumulo.test.functional;
 
 import org.apache.accumulo.harness.SharedMiniClusterIT;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
 /**
  * @deprecated since 1.6.2; use {@link SharedMiniClusterIT} instead
  */
 @Deprecated
-public class SimpleMacIT extends SharedMiniClusterIT {}
+public class SimpleMacIT extends SharedMiniClusterIT {
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterIT.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() throws Exception {
+    SharedMiniClusterIT.stopMiniCluster();
+  }
+}
