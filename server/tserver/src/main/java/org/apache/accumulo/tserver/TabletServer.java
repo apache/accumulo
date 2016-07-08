@@ -258,6 +258,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
@@ -1947,7 +1949,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public UnloadTabletHandler(KeyExtent extent, TUnloadTabletGoal goalState, long requestTime) {
       this.extent = extent;
       this.goalState = goalState;
-      this.requestTimeSkew = requestTime - System.nanoTime();
+      this.requestTimeSkew = requestTime - MILLISECONDS.convert(System.nanoTime(), NANOSECONDS);
     }
 
     @Override
@@ -2017,7 +2019,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           TabletStateStore.unassign(TabletServer.this, tls, null);
         } else {
           log.debug("Suspending " + tls);
-          TabletStateStore.suspend(TabletServer.this, tls, null, requestTimeSkew + System.nanoTime());
+          TabletStateStore.suspend(TabletServer.this, tls, null, requestTimeSkew + MILLISECONDS.convert(System.nanoTime(), NANOSECONDS));
         }
       } catch (DistributedStoreException ex) {
         log.warn("Unable to update storage", ex);
