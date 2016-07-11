@@ -169,6 +169,7 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
@@ -448,11 +449,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         instanceName = options.getZooKeeperInstanceName();
         hosts = options.getZooKeeperHosts();
       }
+      final ClientConfiguration clientConf;
       try {
-        instance = getZooInstance(instanceName, hosts, options.getClientConfiguration());
-      } catch (Exception e) {
+        clientConf = options.getClientConfiguration();
+      } catch (ConfigurationException | FileNotFoundException e) {
         throw new IllegalArgumentException("Unable to load client config from " + options.getClientConfigFile(), e);
       }
+      instance = getZooInstance(instanceName, hosts, clientConf);
     }
   }
 
