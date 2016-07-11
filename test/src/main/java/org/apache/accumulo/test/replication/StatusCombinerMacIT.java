@@ -41,7 +41,9 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -51,6 +53,16 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
   @Override
   public int defaultTimeoutSeconds() {
     return 60;
+  }
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() throws Exception {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @Test

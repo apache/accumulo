@@ -58,6 +58,8 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletStateChangeIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.base.Predicate;
@@ -72,6 +74,16 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
   @Override
   public int defaultTimeoutSeconds() {
     return 2 * 60;
+  }
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() throws Exception {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @Test

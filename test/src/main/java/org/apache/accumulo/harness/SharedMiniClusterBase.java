@@ -34,8 +34,6 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +43,10 @@ import org.slf4j.LoggerFactory;
  * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the logical place) because we need to start the
  * MiniAccumuloCluster in a static BeforeClass-annotated method. Because it is static and invoked before any other BeforeClass methods in the implementation,
  * the actual test classes can't expose any information to tell the base class that it is to perform the one-MAC-per-class semantics.
+ *
+ * Implementations of this class must be sure to invoke {@link #startMiniCluster()} or {@link #startMiniClusterWithConfig(MiniClusterConfigurationCallback)} in
+ * a method annotated with the {@link org.junit.BeforeClass} JUnit annotation and {@link #stopMiniCluster()} in a method annotated with the
+ * {@link org.junit.AfterClass} JUnit annotation.
  */
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
@@ -56,8 +58,21 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   private static MiniAccumuloClusterImpl cluster;
   private static TestingKdc krb;
 
-  @BeforeClass
+  /**
+   * Starts a MiniAccumuloCluster instance with the default configuration.
+   */
   public static void startMiniCluster() throws Exception {
+    startMiniClusterWithConfig(MiniClusterConfigurationCallback.NO_CALLBACK);
+  }
+
+  /**
+   * Starts a MiniAccumuloCluster instance with the default configuration but also provides the caller the opportunity to update the configuration before the
+   * MiniAccumuloCluster is started.
+   *
+   * @param miniClusterCallback
+   *          A callback to configure the minicluster before it is started.
+   */
+  public static void startMiniClusterWithConfig(MiniClusterConfigurationCallback miniClusterCallback) throws Exception {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
 
@@ -81,7 +96,8 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       token = new PasswordToken(rootPassword);
     }
 
-    cluster = harness.create(SharedMiniClusterBase.class.getName(), System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token, krb);
+    cluster = harness.create(SharedMiniClusterBase.class.getName(), System.currentTimeMillis() + "_" + new Random().nextInt(Short.MAX_VALUE), token,
+        miniClusterCallback, krb);
     cluster.start();
 
     if (null != krb) {
@@ -107,7 +123,9 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
     }
   }
 
-  @AfterClass
+  /**
+   * Stops the MiniAccumuloCluster and related services if they are running.
+   */
   public static void stopMiniCluster() throws Exception {
     if (null != cluster) {
       try {

@@ -64,6 +64,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
@@ -250,8 +252,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Rule
   public TestName name = new TestName();
 
+  private static class ShellServerITConfigCallback implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      // Only one tserver to avoid race conditions on ZK propagation (auths and configuration)
+      cfg.setNumTservers(1);
+    }
+  }
+
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setupMiniCluster() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(new ShellServerITConfigCallback());
     rootPath = getMiniClusterDir().getAbsolutePath();
 
     // history file is updated in $HOME
@@ -280,6 +291,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     if (null != traceProcess) {
       traceProcess.destroy();
     }
+
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @After
@@ -1446,7 +1459,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     }
-    assertEquals(3, ts.output.get().split("\n").length);
+    assertEquals(2, ts.output.get().split("\n").length);
   }
 
   @Test

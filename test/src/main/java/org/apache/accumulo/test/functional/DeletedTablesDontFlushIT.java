@@ -27,6 +27,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 // ACCUMULO-2880
@@ -35,6 +37,16 @@ public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
   @Override
   public int defaultTimeoutSeconds() {
     return 60;
+  }
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() throws Exception {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @Test
