@@ -34,6 +34,8 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
@@ -44,6 +46,16 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
   @Override
   public int defaultTimeoutSeconds() {
     return 2 * 60;
+  }
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() throws Exception {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @Test

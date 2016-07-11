@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.proxy;
 
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.thrift.protocol.TTupleProtocol;
 import org.junit.BeforeClass;
 
@@ -26,6 +27,7 @@ public class TTupleProxyIT extends SimpleProxyBase {
 
   @BeforeClass
   public static void setProtocol() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
     SimpleProxyBase.factory = new TTupleProtocol.Factory();
     setUpProxy();
   }

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.proxy;
 
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.junit.BeforeClass;
 
@@ -26,6 +27,7 @@ public class TBinaryProxyIT extends SimpleProxyBase {
 
   @BeforeClass
   public static void setProtocol() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
     SimpleProxyBase.factory = new TBinaryProtocol.Factory();
     setUpProxy();
   }

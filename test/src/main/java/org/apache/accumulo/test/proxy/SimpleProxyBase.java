@@ -243,6 +243,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     if (null != proxyServer) {
       proxyServer.stop();
     }
+
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   final IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "200"));

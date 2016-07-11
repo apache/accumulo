@@ -51,6 +51,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -65,6 +66,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
@@ -270,8 +273,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Rule
   public TestName name = new TestName();
 
+  private static class ShellServerITConfigCallback implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      // Only one tserver to avoid race conditions on ZK propagation (auths and configuration)
+      cfg.setNumTservers(1);
+    }
+  }
+
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setupMiniCluster() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(new ShellServerITConfigCallback());
     rootPath = getMiniClusterDir().getAbsolutePath();
 
     // history file is updated in $HOME
@@ -300,6 +312,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     if (null != traceProcess) {
       traceProcess.destroy();
     }
+
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @After
@@ -981,8 +995,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(3, countFiles(cloneId));
 
     String clone2 = table + "_clone_2";
-    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=7,table.sampler=org.apache.accumulo.core.sample.RowSampler " + clone
-        + " " + clone2);
+    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=7,table.sampler=" + RowSampler.class.getName() + " " + clone + " "
+        + clone2);
     String clone2Id = getTableId(clone2);
 
     assertEquals(3, countFiles(clone2Id));
@@ -1029,8 +1043,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert 3900 doc uril file://final_project.txt");
 
     String clone1 = table + "_clone_1";
-    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=3,table.sampler=org.apache.accumulo.core.sample.RowSampler " + table
-        + " " + clone1);
+    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=3,table.sampler=" + RowSampler.class.getName() + " " + table + " "
+        + clone1);
 
     ts.exec("compact -t " + clone1 + " -w --sf-no-sample");
 
@@ -1042,8 +1056,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // create table where table sample config differs from whats in file
     String clone2 = table + "_clone_2";
-    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=2,table.sampler=org.apache.accumulo.core.sample.RowSampler " + clone1
-        + " " + clone2);
+    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=2,table.sampler=" + RowSampler.class.getName() + " " + clone1 + " "
+        + clone2);
 
     ts.exec("table " + clone2);
     ts.exec("scan --sample", false, "SampleNotPresentException", true);
@@ -1448,7 +1462,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     }
-    assertEquals(3, ts.output.get().split("\n").length);
+    assertEquals(2, ts.output.get().split("\n").length);
   }
 
   @Test
