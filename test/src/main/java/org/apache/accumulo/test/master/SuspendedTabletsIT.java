@@ -20,10 +20,15 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.net.HostAndPort;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -32,7 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadFactory;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.concurrent.TimeoutException;
@@ -41,15 +45,19 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.ClientExec;
 import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
+import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
@@ -63,25 +71,106 @@ import org.slf4j.LoggerFactory;
 
 public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(SuspendedTabletsIT.class);
-  private static ExecutorService threadPool;
+  private static final Random RANDOM = new Random();
+  private static ExecutorService THREAD_POOL;
 
   public static final int TSERVERS = 5;
-  public static final long SUSPEND_DURATION = MILLISECONDS.convert(2, MINUTES);
+  public static final long SUSPEND_DURATION = MILLISECONDS.convert(30, SECONDS);
   public static final int TABLETS = 100;
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
     cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "ms");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setNumTservers(TSERVERS);
   }
 
   @Test
-  public void suspendAndResumeTserver() throws Exception {
-    String tableName = getUniqueNames(1)[0];
+  public void crashAndResumeTserver() throws Exception {
+    // Run the test body. When we get to the point where we need a tserver to go away, get rid of it via crashing
+    suspensionTestBody(new TServerKiller() {
+      @Override
+      public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count) throws Exception {
+        List<ProcessReference> procs = new ArrayList<>(getCluster().getProcesses().get(ServerType.TABLET_SERVER));
+        Collections.shuffle(procs);
 
+        for (int i = 0; i < count; ++i) {
+          ProcessReference pr = procs.get(i);
+          log.info("Crashing {}", pr.getProcess());
+          getCluster().killProcess(ServerType.TABLET_SERVER, pr);
+        }
+      }
+    });
+  }
+
+  @Test
+  public void shutdownAndResumeTserver() throws Exception {
+    // Run the test body. When we get to the point where we need tservers to go away, stop them via a clean shutdown.
+    suspensionTestBody(new TServerKiller() {
+      @Override
+      public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count) throws Exception {
+        Set<TServerInstance> tserversSet = new HashSet<>();
+        for (TabletLocationState tls : locs.locationStates.values()) {
+          if (tls.current != null) {
+            tserversSet.add(tls.current);
+          }
+        }
+        List<TServerInstance> tserversList = new ArrayList<>(tserversSet);
+        Collections.shuffle(tserversList, RANDOM);
+
+        for (int i = 0; i < count; ++i) {
+          final String tserverName = tserversList.get(i).toString();
+          MasterClient.execute(ctx, new ClientExec<MasterClientService.Client>() {
+            @Override
+            public void execute(MasterClientService.Client client) throws Exception {
+              log.info("Sending shutdown command to {} via MasterClientService", tserverName);
+              client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
+            }
+          });
+        }
+
+        log.info("Waiting for tserver process{} to die", count == 1 ? "" : "es");
+        for (int i = 0; i < 10; ++i) {
+          List<ProcessReference> deadProcs = new ArrayList<>();
+          for (ProcessReference pr : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
+            Process p = pr.getProcess();
+            if (!p.isAlive()) {
+              deadProcs.add(pr);
+            }
+          }
+          for (ProcessReference pr : deadProcs) {
+            log.info("Process {} is dead, informing cluster control about this", pr.getProcess());
+            getCluster().getClusterControl().killProcess(ServerType.TABLET_SERVER, pr);
+            --count;
+          }
+          if (count == 0) {
+            return;
+          } else {
+            Thread.sleep(MILLISECONDS.convert(2, SECONDS));
+          }
+        }
+        throw new IllegalStateException("Tablet servers didn't die!");
+      }
+    });
+  }
+
+  /**
+   * Main test body for suspension tests.
+   * 
+   * @param ctx
+   *          client context for cluster.
+   * @param tableName
+   *          name of table to create
+   * @param serverStopper
+   *          callback which shuts down some tablet servers.
+   * @throws Exception
+   */
+  private void suspensionTestBody(TServerKiller serverStopper) throws Exception {
     Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
     Instance instance = new ZooKeeperInstance(getCluster().getClientConfig());
     ClientContext ctx = new ClientContext(instance, creds, getCluster().getClientConfig());
+
+    String tableName = getUniqueNames(1)[0];
 
     Connector conn = ctx.getConnector();
 
@@ -113,16 +202,10 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     Assert.assertEquals(TSERVERS, ds.hosted.keySet().size());
 
     // Kill two tablet servers hosting our tablets. This should put tablets into suspended state, and thus halt balancing.
-    log.info("Killing tservers");
 
     TabletLocations beforeDeathState = ds;
-    {
-      Iterator<ProcessReference> prIt = getCluster().getProcesses().get(ServerType.TABLET_SERVER).iterator();
-      ProcessReference first = prIt.next();
-      ProcessReference second = prIt.next();
-      getCluster().killProcess(ServerType.TABLET_SERVER, first);
-      getCluster().killProcess(ServerType.TABLET_SERVER, second);
-    }
+    log.info("Eliminating tablet servers");
+    serverStopper.eliminateTabletServers(ctx, beforeDeathState, 2);
 
     // Eventually some tablets will be suspended.
     log.info("Waiting on suspended tablets");
@@ -166,14 +249,17 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     long recoverTime = System.nanoTime();
     Assert.assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
-    Assert.assertTrue(recoverTime - killTime <= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS) + NANOSECONDS.convert(3, MINUTES));
+  }
+
+  private static interface TServerKiller {
+    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count) throws Exception;
   }
 
   private static final AtomicInteger threadCounter = new AtomicInteger(0);
 
   @BeforeClass
   public static void init() {
-    threadPool = Executors.newCachedThreadPool(new ThreadFactory() {
+    THREAD_POOL = Executors.newCachedThreadPool(new ThreadFactory() {
       @Override
       public Thread newThread(Runnable r) {
         return new Thread(r, "Scanning deadline thread #" + threadCounter.incrementAndGet());
@@ -183,7 +269,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
   @AfterClass
   public static void cleanup() {
-    threadPool.shutdownNow();
+    THREAD_POOL.shutdownNow();
   }
 
   private static class TabletLocations {
@@ -211,7 +297,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
               return answer;
             }
           });
-          threadPool.submit(tlsFuture);
+          THREAD_POOL.submit(tlsFuture);
           return tlsFuture.get(5, SECONDS);
         } catch (TimeoutException ex) {
           log.debug("Retrieval timed out", ex);
