@@ -144,7 +144,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
     // log.debug("markers " + markers);
     assertEquals("one tablet should have markers", 1, markers.keySet().size());
-    assertEquals("tableId of the keyExtent should be 1", markers.keySet().iterator().next().getTableId(), new Text("1"));
+    assertEquals("tableId of the keyExtent should be 1", "1", markers.keySet().iterator().next().getTableId());
 
     // put some data in the WAL
     assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").waitFor());
