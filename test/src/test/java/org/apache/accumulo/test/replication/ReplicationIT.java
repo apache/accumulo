@@ -106,6 +106,7 @@ import com.google.protobuf.TextFormat;
  */
 public class ReplicationIT extends ConfigurableMacIT {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
+  private static final long MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS = 5000l;
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -277,16 +278,10 @@ public class ReplicationIT extends ConfigurableMacIT {
     bw.close();
 
     // After writing data, we'll get a replication table online
-    boolean online = ReplicationTable.isOnline(conn);
-    int attempts = 10;
-    do {
-      if (!online) {
-        UtilWaitThread.sleep(2000);
-        online = ReplicationTable.isOnline(conn);
-        attempts--;
-      }
-    } while (!online && attempts > 0);
-    Assert.assertTrue("Replication table was not online", online);
+    while (!ReplicationTable.isOnline(conn)) {
+      UtilWaitThread.sleep(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS);
+    }
+    Assert.assertTrue("Replication table did not exist", ReplicationTable.isOnline(conn));
 
     for (int i = 0; i < 5; i++) {
       if (conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ)) {
@@ -301,7 +296,7 @@ public class ReplicationIT extends ConfigurableMacIT {
 
     Set<String> replRows = new HashSet<>();
     Scanner scanner;
-    attempts = 5;
+    int attempts = 5;
     while (replRows.isEmpty() && attempts > 0) {
       scanner = ReplicationTable.getScanner(conn);
       StatusSection.limit(scanner);
@@ -426,17 +421,9 @@ public class ReplicationIT extends ConfigurableMacIT {
     // Don't want to compact table1 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
 
     // After writing data, we'll get a replication table online
-    boolean online = ReplicationTable.isOnline(conn);
-    int attempts = 10;
-    do {
-      if (!online) {
-        UtilWaitThread.sleep(5000);
-        online = ReplicationTable.isOnline(conn);
-        attempts--;
-      }
-    } while (!online && attempts > 0);
-    Assert.assertTrue("Replication table did not exist", online);
-
+    while (!ReplicationTable.isOnline(conn)) {
+      UtilWaitThread.sleep(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS);
+    }
     Assert.assertTrue(ReplicationTable.isOnline(conn));
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.READ);
 
@@ -444,7 +431,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     Scanner s = ReplicationTable.getScanner(conn);
     StatusSection.limit(s);
     Iterator<Entry<Key,Value>> iter = s.iterator();
-    attempts = 5;
+    int attempts = 5;
     while (attempts > 0) {
       if (!iter.hasNext()) {
         s.close();
@@ -812,7 +799,7 @@ public class ReplicationIT extends ConfigurableMacIT {
     conn.tableOperations().flush(table, null, null, true);
 
     while (!ReplicationTable.isOnline(conn)) {
-      UtilWaitThread.sleep(2000);
+      UtilWaitThread.sleep(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS);
     }
 
     for (int i = 0; i < 10; i++) {
@@ -919,16 +906,10 @@ public class ReplicationIT extends ConfigurableMacIT {
     bw.close();
 
     // Make sure the replication table is online at this point
-    boolean online = ReplicationTable.isOnline(conn);
-    attempts = 10;
-    do {
-      if (!online) {
-        UtilWaitThread.sleep(2000);
-        online = ReplicationTable.isOnline(conn);
-        attempts--;
-      }
-    } while (!online && attempts > 0);
-    Assert.assertTrue("Replication table was never created", online);
+    while (!ReplicationTable.isOnline(conn)) {
+      UtilWaitThread.sleep(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS);
+    }
+    Assert.assertTrue("Replication table was never created", ReplicationTable.isOnline(conn));
 
     // ACCUMULO-2743 The Observer in the tserver has to be made aware of the change to get the combiner (made by the master)
     for (int i = 0; i < 10 && !conn.tableOperations().listIterators(ReplicationTable.NAME).keySet().contains(ReplicationTable.COMBINER_NAME); i++) {
@@ -1103,16 +1084,10 @@ public class ReplicationIT extends ConfigurableMacIT {
     Assert.assertNotNull("Table ID was null", tableId);
 
     // Make sure the replication table exists at this point
-    boolean online = ReplicationTable.isOnline(conn);
-    attempts = 5;
-    do {
-      if (!online) {
-        UtilWaitThread.sleep(500);
-        online = ReplicationTable.isOnline(conn);
-        attempts--;
-      }
-    } while (!online && attempts > 0);
-    Assert.assertTrue("Replication table did not exist", online);
+    while (!ReplicationTable.isOnline(conn)) {
+      UtilWaitThread.sleep(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS);
+    }
+    Assert.assertTrue("Replication table did not exist", ReplicationTable.isOnline(conn));
 
     for (int i = 0; i < 5 && !conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ); i++) {
       Thread.sleep(1000);
@@ -1410,16 +1385,10 @@ public class ReplicationIT extends ConfigurableMacIT {
     conn.tableOperations().flush(table1, null, null, true);
 
     // Make sure the replication table exists at this point
-    boolean online = ReplicationTable.isOnline(conn);
-    attempts = 10;
-    do {
-      if (!online) {
-        UtilWaitThread.sleep(1000);
-        online = ReplicationTable.isOnline(conn);
-        attempts--;
-      }
-    } while (!online && attempts > 0);
-    Assert.assertTrue("Replication table did not exist", online);
+    while (!ReplicationTable.isOnline(conn)) {
+      UtilWaitThread.sleep(MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS);
+    }
+    Assert.assertTrue("Replication table did not exist", ReplicationTable.isOnline(conn));
 
     // Grant ourselves the write permission for later
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME, TablePermission.WRITE);
