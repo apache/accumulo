@@ -476,6 +476,20 @@ from the +$ACCUMULO_HOME/conf/slaves+ file) to gracefully stop a node. This will
 ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
 when the tablets are re-hosted.
 
+===== A note on rolling restarts
+
+For sufficiently large Accumulo clusters, restarting multiple TabletServers within a short window can place significant 
+load on the Master server.  If slightly lower availability is acceptable, this load can be reduced by globally setting 
++table.suspend.duration+ to a positive value.  
+
+With +table.suspend.duration+ set to, say, +5m+, Accumulo will wait 
+for 5 minutes for any dead TabletServer to return before reassigning that TabletServer's responsibilities to other TabletServers.
+If the TabletServer returns to the cluster before the specified timeout has elapsed, Accumulo will assign the TabletServer 
+its original responsibilities.
+
+It is important not to choose too large a value for +table.suspend.duration+, as during this time, all scans against the 
+data that TabletServer had hosted will block (or time out).
+
 ==== Running multiple TabletServers on a single node
 
 With very powerful nodes, it may be beneficial to run more than one TabletServer on a given
