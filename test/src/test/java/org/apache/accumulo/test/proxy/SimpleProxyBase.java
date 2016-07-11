@@ -1367,6 +1367,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     // zookeeper propagation time
     UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
 
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, table, true);
+    client.onlineTable(creds, table, true);
+
     WriterOptions writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(2);
@@ -1406,6 +1410,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     }
 
     client.removeConstraint(creds, table, 2);
+
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, table, true);
+    client.onlineTable(creds, table, true);
 
     constraints = client.listConstraints(creds, table);
     while (constraints.containsKey(NumericValueConstraint.class.getName())) {
@@ -1459,6 +1467,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     // zookeeper propagation time
     Thread.sleep(ZOOKEEPER_PROPAGATION_TIME);
 
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, table, true);
+    client.onlineTable(creds, table, true);
+
     log.debug("Attempting to verify client-side that constraints are observed");
 
     Map<String,Integer> constraints = client.listConstraints(creds, table);
@@ -1492,6 +1504,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
     log.debug("Removing constraint from table");
     client.removeConstraint(creds, table, 2);
+
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, table, true);
+    client.onlineTable(creds, table, true);
 
     UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
 
@@ -1826,6 +1842,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     log.debug("Adding constraint {} to {}", table, NumericValueConstraint.class.getName());
     client.addConstraint(creds, table, NumericValueConstraint.class.getName());
     UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME);
+
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, table, true);
+    client.onlineTable(creds, table, true);
 
     while (!client.listConstraints(creds, table).containsKey(NumericValueConstraint.class.getName())) {
       log.info("Failed to see constraint");
