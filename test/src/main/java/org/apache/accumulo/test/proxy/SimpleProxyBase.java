@@ -1685,6 +1685,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     // zookeeper propagation time
     sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
 
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, tableName, true);
+    client.onlineTable(creds, tableName, true);
+
     WriterOptions writerOptions = new WriterOptions();
     writerOptions.setLatencyMs(10000);
     writerOptions.setMaxMemory(2);
@@ -1724,6 +1728,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     }
 
     client.removeConstraint(creds, tableName, 2);
+
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, tableName, true);
+    client.onlineTable(creds, tableName, true);
 
     constraints = client.listConstraints(creds, tableName);
     while (constraints.containsKey(NumericValueConstraint.class.getName())) {
@@ -1777,6 +1785,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     // zookeeper propagation time
     Thread.sleep(ZOOKEEPER_PROPAGATION_TIME);
 
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, tableName, true);
+    client.onlineTable(creds, tableName, true);
+
     log.debug("Attempting to verify client-side that constraints are observed");
 
     Map<String,Integer> constraints = client.listConstraints(creds, tableName);
@@ -1812,6 +1824,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     client.removeConstraint(creds, tableName, 2);
 
     sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
+
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, tableName, true);
+    client.onlineTable(creds, tableName, true);
 
     constraints = client.listConstraints(creds, tableName);
     while (constraints.containsKey(NumericValueConstraint.class.getName())) {
@@ -2145,6 +2161,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     log.debug("Adding constraint {} to {}", tableName, NumericValueConstraint.class.getName());
     client.addConstraint(creds, tableName, NumericValueConstraint.class.getName());
     sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
+
+    // Take the table offline and online to force a config update
+    client.offlineTable(creds, tableName, true);
+    client.onlineTable(creds, tableName, true);
 
     while (!client.listConstraints(creds, tableName).containsKey(NumericValueConstraint.class.getName())) {
       log.info("Failed to see constraint");
