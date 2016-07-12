@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.util.Pair;
@@ -34,8 +35,11 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.Uninterruptibles;
 
 /*
  * This class governs the space in Zookeeper that advertises the status of Write-Ahead Logs
@@ -98,10 +102,16 @@ public class WalStateManager {
   // Tablet server exists
   public void initWalMarker(TServerInstance tsi) throws WalMarkerException {
     byte[] data = new byte[0];
-    try {
-      zoo.putPersistentData(root() + "/" + tsi.toString(), data, NodeExistsPolicy.FAIL);
-    } catch (KeeperException | InterruptedException e) {
-      throw new WalMarkerException(e);
+    while (true) {
+      try {
+        zoo.putPersistentData(root() + "/" + tsi.toString(), data, NodeExistsPolicy.FAIL);
+        break;
+      } catch (NoNodeException e) {
+        log.info("WAL parent node does not exist (upgrade may be in progress) : " + e.getMessage());
+        Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+      } catch (KeeperException | InterruptedException e) {
+        throw new WalMarkerException(e);
+      }
     }
   }
 
