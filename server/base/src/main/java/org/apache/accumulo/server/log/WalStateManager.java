@@ -86,18 +86,33 @@ public class WalStateManager {
   private final Instance instance;
   private final ZooReaderWriter zoo;
 
+  private volatile boolean checkedExistance = false;
+
   public WalStateManager(Instance instance, ZooReaderWriter zoo) {
     this.instance = instance;
     this.zoo = zoo;
   }
 
-  private String root() {
-    return ZooUtil.getRoot(instance) + ZWALS;
+  private String root() throws WalMarkerException {
+    String root = ZooUtil.getRoot(instance) + ZWALS;
+
+    try {
+      if (!checkedExistance && !zoo.exists(root)) {
+        zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
+      }
+
+      checkedExistance = true;
+    } catch (KeeperException | InterruptedException e) {
+      throw new WalMarkerException(e);
+    }
+
+    return root;
   }
 
   // Tablet server exists
   public void initWalMarker(TServerInstance tsi) throws WalMarkerException {
     byte[] data = new byte[0];
+
     try {
       zoo.putPersistentData(root() + "/" + tsi.toString(), data, NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {

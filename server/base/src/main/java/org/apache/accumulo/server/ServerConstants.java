@@ -72,7 +72,7 @@ public class ServerConstants {
   public static final int LOGGING_TO_HDFS = 4;
   public static final BitSet CAN_UPGRADE = new BitSet();
   static {
-    for (int i : new int[] {DATA_VERSION, MOVE_TO_ROOT_TABLE, MOVE_DELETE_MARKERS, LOGGING_TO_HDFS}) {
+    for (int i : new int[] {DATA_VERSION, MOVE_TO_REPLICATION_TABLE, MOVE_TO_ROOT_TABLE}) {
       CAN_UPGRADE.set(i);
     }
   }
