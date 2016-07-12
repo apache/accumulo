@@ -28,21 +28,22 @@ fi
 
 #TODO could support multinode configs, this script assumes single node config
 
-PREV=../../../../accumulo-1.5.0
+PREV=../../../accumulo-1.7.1
 CURR=../../
 DIR=/accumulo
 BULK=/tmp/upt
+INSTANCE=testUp
 
 pkill -f accumulo.start
 hadoop fs -rmr "$DIR"
 hadoop fs -rmr "$BULK"
-hadoop fs -mkdir "$BULK/fail"
+hadoop fs -mkdir -p "$BULK/fail"
 
-"$PREV/bin/accumulo" init --clear-instance-name --instance-name testUp --password secret
+"$PREV/bin/accumulo" init --clear-instance-name --instance-name $INSTANCE --password secret
 "$PREV/bin/start-all.sh"
 
-"$PREV/bin/accumulo" org.apache.accumulo.test.TestIngest -u root -p secret --timestamp 1 --size 50 --random 56 --rows 200000 --start 0 --cols 1  --createTable --splits 10
-"$PREV/bin/accumulo" org.apache.accumulo.test.TestIngest --rfile $BULK/bulk/test --timestamp 1 --size 50 --random 56 --rows 200000 --start 200000 --cols 1
+"$PREV/bin/accumulo" org.apache.accumulo.test.TestIngest -i $INSTANCE -u root -p secret --timestamp 1 --size 50 --random 56 --rows 200000 --start 0 --cols 1  --createTable --splits 10
+"$PREV/bin/accumulo" org.apache.accumulo.test.TestIngest -i $INSTANCE -u root -p secret --rfile $BULK/bulk/test --timestamp 1 --size 50 --random 56 --rows 200000 --start 200000 --cols 1
 
 echo -e "table test_ingest\nimportdirectory $BULK/bulk $BULK/fail false" | $PREV/bin/accumulo shell -u root -p secret
 if [[ $1 == dirty ]]; then
@@ -54,23 +55,23 @@ fi
 echo "==== Starting Current ==="
 
 "$CURR/bin/start-all.sh"
-"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 echo "compact -t test_ingest -w" | $CURR/bin/accumulo shell -u root -p secret
-"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 
 
-"$CURR/bin/accumulo" org.apache.accumulo.test.TestIngest --timestamp 2 --size 50 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
-"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.TestIngest --timestamp 2 --size 50 --random 57 --rows 500000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 echo "compact -t test_ingest -w" | $CURR/bin/accumulo shell -u root -p secret
-"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 
 "$CURR/bin/stop-all.sh"
 "$CURR/bin/start-all.sh"
 
-"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 
 pkill -9 -f accumulo.start
 "$CURR/bin/start-all.sh"
 
-"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -u root -p secret
+"$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 
