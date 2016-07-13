@@ -65,9 +65,9 @@ public class MetadataConstraints implements Constraint {
   }
 
   private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<>(Arrays.asList(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN, TabletsSection.ServerColumnFamily.LOCK_COLUMN,
-      TabletsSection.ServerColumnFamily.FLUSH_COLUMN, TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
+      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN, TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN,
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN, TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN,
+      TabletsSection.ServerColumnFamily.LOCK_COLUMN, TabletsSection.ServerColumnFamily.FLUSH_COLUMN, TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
 
   private static final HashSet<Text> validColumnFams = new HashSet<>(Arrays.asList(TabletsSection.BulkFileColumnFamily.NAME, LogColumnFamily.NAME,
       ScanFileColumnFamily.NAME, DataFileColumnFamily.NAME, TabletsSection.CurrentLocationColumnFamily.NAME, TabletsSection.LastLocationColumnFamily.NAME,

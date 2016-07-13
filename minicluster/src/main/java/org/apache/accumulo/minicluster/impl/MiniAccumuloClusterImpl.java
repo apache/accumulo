@@ -111,7 +111,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 /**
  * This class provides the backing implementation for {@link MiniAccumuloCluster}, and may contain features for internal testing which have not yet been
@@ -342,10 +342,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return process;
   }
 
-  Process _exec(Class<?> clazz, ServerType serverType, String... args) throws IOException {
-
+  Process _exec(Class<?> clazz, ServerType serverType, Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
+    if (configOverrides != null && !configOverrides.isEmpty()) {
+      File siteFile = File.createTempFile("accumulo-site", ".xml", config.getConfDir());
+      Map<String,String> confMap = new HashMap<>();
+      confMap.putAll(config.getSiteConfig());
+      confMap.putAll(configOverrides);
+      writeConfig(siteFile, confMap.entrySet());
+      jvmOpts.add("-Dorg.apache.accumulo.config.file=" + siteFile.getName());
+    }
 
     if (config.isJDWPEnabled()) {
       Integer port = PortUtils.getRandomFreePort();
@@ -622,7 +629,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString()).waitFor();
       if (ret == 0)
         break;
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
     if (ret != 0) {
       throw new RuntimeException("Could not set master goal state, process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");
