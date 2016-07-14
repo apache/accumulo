@@ -156,8 +156,7 @@ public final class Compression {
           // the default defined within the codec
           if (bufferSize > 0)
             myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
-          codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
-          return codec;
+          return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
         } catch (ClassNotFoundException e) {
           // that is okay
         }
