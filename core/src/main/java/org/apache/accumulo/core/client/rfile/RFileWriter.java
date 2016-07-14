@@ -35,7 +35,7 @@ import org.apache.commons.collections.map.LRUMap;
 
 import com.google.common.base.Preconditions;
 
-//formatter was adding spaced that checkstyle did not like, so turned off formatter
+//formatter was adding spaces that checkstyle did not like, so turned off formatter
 //@formatter:off
 /**
  * This class provides an API for writing RFiles. It can be used to create file for bulk import into Accumulo using
@@ -54,30 +54,30 @@ import com.google.common.base.Preconditions;
  * Below is an example of using RFileWriter
  *
  * <pre>
- * {@code
- *    Iterable<Entry<Key, Value>> localityGroup1Data = ...
- *    Iterable<Entry<Key, Value>> localityGroup2Data = ...
- *    Iterable<Entry<Key, Value>> defaultGroupData = ...
+ * <code>
+ *     {@code Iterable<Entry<Key, Value>>} localityGroup1Data = ...
+ *     {@code Iterable<Entry<Key, Value>>} localityGroup2Data = ...
+ *     {@code Iterable<Entry<Key, Value>>} defaultGroupData = ...
  *
- *     try(RFileWriter writer = RFile.newWriter().to(file).build()){
+ *     try(RFileWriter writer = RFile.newWriter().to(file).build()) {
  *
- *       //Start a locality group before appending data.
+ *       // Start a locality group before appending data.
  *       writer.startNewLocalityGroup("groupA", "columnFam1", "columnFam2");
- *       //Append data to the locality group that was started above.  Must append in sorted order.
+ *       // Append data to the locality group that was started above. Must append in sorted order.
  *       writer.append(localityGroup1Data);
  *
- *       //Add another locality group.
+ *       // Add another locality group.
  *       writer.startNewLocalityGroup("groupB", "columnFam3", "columnFam4");
  *       writer.append(localityGroup2Data);
  *
- *       //The default locality group must be started last.  The column families for the default group do not need to be specified.
+ *       // The default locality group must be started last. The column families for the default group do not need to be specified.
  *       writer.startDefaultLocalityGroup();
- *       //Data appended here can not contain any column families specified in previous locality groups.
+ *       // Data appended here can not contain any column families specified in previous locality groups.
  *       writer.append(defaultGroupData);
  *
- *       //This is a try-with-resources so the writer is closed here at the end of the code block.
+ *       // This is a try-with-resources so the writer is closed here at the end of the code block.
  *     }
- * }
+ * </code>
  * </pre>
  *
  * <p>
