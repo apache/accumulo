@@ -219,7 +219,9 @@ public class CompressionTest {
               CompressionCodec codec = al.getCodec();
               Assert.assertNotNull(al + " resulted in a non-null codec", codec);
               // add the identity hashcode to the set.
-              testSet.add(System.identityHashCode(codec));
+              synchronized (testSet) {
+                testSet.add(System.identityHashCode(codec));
+              }
               return true;
             }
           });
