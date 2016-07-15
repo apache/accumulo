@@ -242,9 +242,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  public Shell() throws IOException {
-    this(new ConsoleReader());
-  }
+  // no arg constructor should do minimal work since its used in Main ServiceLoader
+  public Shell() throws IOException {}
 
   public Shell(ConsoleReader reader) {
     super();
@@ -255,8 +254,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    * Configures the shell using the provided options. Not for client use.
    *
    * @return true if the shell was successfully configured, false otherwise.
+   * @throws IOException
    */
-  public boolean config(String... args) {
+  public boolean config(String... args) throws IOException {
+    if (this.reader == null)
+      this.reader = new ConsoleReader();
     ShellOptionsJC options = new ShellOptionsJC();
     JCommander jc = new JCommander();
 
@@ -587,7 +589,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static void main(String args[]) throws IOException {
-    new Shell().execute(args);
+    new Shell(new ConsoleReader()).execute(args);
   }
 
   public int start() throws IOException {
