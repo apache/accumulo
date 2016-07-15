@@ -230,10 +230,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private PrintWriter writer = null;
   private boolean masking = false;
 
-  public Shell() throws IOException {
-    this(new ConsoleReader(), new PrintWriter(new OutputStreamWriter(System.out, Charset.forName(System.getProperty("jline.WindowsTerminal.output.encoding",
-        System.getProperty("file.encoding"))))));
-  }
+  // no arg constructor should do minimal work since its used in Main ServiceLoader
+  public Shell() {}
 
   public Shell(ConsoleReader reader, PrintWriter writer) {
     super();
@@ -246,7 +244,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    *
    * @return true if the shell was successfully configured, false otherwise.
    */
-  public boolean config(String... args) {
+  public boolean config(String... args) throws IOException {
+    if (this.reader == null)
+      this.reader = new ConsoleReader();
+    if (this.writer == null)
+      this.writer = new PrintWriter(new OutputStreamWriter(System.out, Charset.forName(System.getProperty("jline.WindowsTerminal.output.encoding",
+          System.getProperty("file.encoding")))));
     ShellOptionsJC options = new ShellOptionsJC();
     JCommander jc = new JCommander();
 
@@ -583,7 +586,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public static void main(String args[]) throws IOException {
-    new Shell().execute(args);
+    new Shell(new ConsoleReader(), new PrintWriter(new OutputStreamWriter(System.out, Charset.forName(System.getProperty(
+        "jline.WindowsTerminal.output.encoding", System.getProperty("file.encoding")))))).execute(args);
   }
 
   public int start() throws IOException {
