@@ -52,7 +52,7 @@ public class MockShell extends Shell {
   }
 
   @Override
-  public boolean config(String... args) {
+  public boolean config(String... args) throws IOException {
     // If configuring the shell failed, fail quickly
     if (!super.config(args)) {
       return false;
