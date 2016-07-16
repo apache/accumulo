@@ -103,7 +103,18 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          row ID
    */
   public Key(Text row) {
-    init(row.getBytes(), 0, row.getLength(), EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
+    this(row.getBytes());
+  }
+
+  /**
+   * Creates a key with the specified row, empty column family, empty column qualifier, empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete
+   * marker false.
+   *
+   * @param row
+   *          row ID
+   */
+  public Key(byte[] row) {
+    init(row, 0, row.length, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
   }
 
   /**
@@ -116,6 +127,19 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          timestamp
    */
   public Key(Text row, long ts) {
+    this(row.getBytes(), ts);
+  }
+
+  /**
+   * Creates a key with the specified row, empty column family, empty column qualifier, empty column visibility, the specified timestamp, and delete marker
+   * false.
+   *
+   * @param row
+   *          row ID
+   * @param ts
+   *          timestamp
+   */
+  public Key(byte[] row, long ts) {
     this(row);
     timestamp = ts;
   }
@@ -219,7 +243,15 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * delete marker false.
    */
   public Key(Text row, Text cf) {
-    init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
+    this(row.getBytes(), cf.getBytes());
+  }
+
+  /**
+   * Creates a key with the specified row, the specified column family, empty column qualifier, empty column visibility, timestamp {@link Long#MAX_VALUE}, and
+   * delete marker false.
+   */
+  public Key(byte[] row, byte[] cf) {
+    init(row, 0, row.length, cf, 0, cf.length, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
   }
 
   /**
@@ -227,7 +259,15 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Long#MAX_VALUE}, and delete marker false.
    */
   public Key(Text row, Text cf, Text cq) {
-    init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
+    this(row.getBytes(), cf.getBytes(), cq.getBytes());
+  }
+
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column qualifier, empty column visibility, timestamp
+   * {@link Long#MAX_VALUE}, and delete marker false.
+   */
+  public Key(byte[] row, byte[] cf, byte[] cq) {
+    init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
   }
 
   /**
@@ -235,8 +275,15 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Long#MAX_VALUE}, and delete marker false.
    */
   public Key(Text row, Text cf, Text cq, Text cv) {
-    init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), cv.getBytes(), 0, cv.getLength(),
-        Long.MAX_VALUE, false, true);
+    this(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes());
+  }
+
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column qualifier, the specified column visibility, timestamp
+   * {@link Long#MAX_VALUE}, and delete marker false.
+   */
+  public Key(byte[] row, byte[] cf, byte[] cq, byte[] cv) {
+    init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, cv, 0, cv.length, Long.MAX_VALUE, false, true);
   }
 
   /**
@@ -244,7 +291,15 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * delete marker false.
    */
   public Key(Text row, Text cf, Text cq, long ts) {
-    init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), EMPTY_BYTES, 0, 0, ts, false, true);
+    this(row.getBytes(), cf.getBytes(), cq.getBytes(), ts);
+  }
+
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column qualifier, empty column visibility, the specified timestamp, and
+   * delete marker false.
+   */
+  public Key(byte[] row, byte[] cf, byte[] cq, long ts) {
+    init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, EMPTY_BYTES, 0, 0, ts, false, true);
   }
 
   /**
@@ -261,8 +316,16 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * timestamp, and delete marker false.
    */
   public Key(Text row, Text cf, Text cq, ColumnVisibility cv, long ts) {
+    this(row.getBytes(), cf.getBytes(), cq.getBytes(), cv, ts);
+  }
+
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column qualifier, the specified column visibility, the specified
+   * timestamp, and delete marker false.
+   */
+  public Key(byte[] row, byte[] cf, byte[] cq, ColumnVisibility cv, long ts) {
     byte[] expr = cv.getExpression();
-    init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), expr, 0, expr.length, ts, false, true);
+    init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, expr, 0, expr.length, ts, false, true);
   }
 
   /**

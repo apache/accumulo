@@ -166,4 +166,45 @@ public class KeyTest {
       assertEquals(kv.getKey(), new Key(tkv.getKey()));
     }
   }
+
+  @Test
+  public void testBytesText() {
+    byte[] row = new byte[] {1};
+    Key bytesRowKey = new Key(row);
+    Key textRowKey = new Key(new Text(row));
+    assertEquals(bytesRowKey, textRowKey);
+
+    byte[] colFamily = new byte[] {0, 1};
+    Key bytesColFamilyKey = new Key(row, colFamily);
+    Key textColFamilyKey = new Key(new Text(row), new Text(colFamily));
+    assertEquals(bytesColFamilyKey, textColFamilyKey);
+
+    byte[] colQualifier = new byte[] {0, 0, 1};
+    Key bytesColQualifierKey = new Key(row, colFamily, colQualifier);
+    Key textColQualifierKey = new Key(new Text(row), new Text(colFamily), new Text(colQualifier));
+    assertEquals(bytesColQualifierKey, textColQualifierKey);
+
+    byte[] colVisibility = new byte[] {0, 0, 0, 1};
+    Key bytesColVisibilityKey = new Key(row, colFamily, colQualifier, colVisibility);
+    Key textColVisibilityKey = new Key(new Text(row), new Text(colFamily), new Text(colQualifier), new Text(colVisibility));
+    assertEquals(bytesColVisibilityKey, textColVisibilityKey);
+
+    long ts = 0L;
+    Key bytesTSKey = new Key(row, colFamily, colQualifier, colVisibility, ts);
+    Key textTSKey = new Key(new Text(row), new Text(colFamily), new Text(colQualifier), new Text(colVisibility), ts);
+    assertEquals(bytesTSKey, textTSKey);
+
+    Key bytesTSKey2 = new Key(row, ts);
+    Key textTSKey2 = new Key(new Text(row), ts);
+    assertEquals(bytesTSKey2, textTSKey2);
+
+    Key bytesTSKey3 = new Key(row, colFamily, colQualifier, ts);
+    Key testTSKey3 = new Key(new Text(row), new Text(colFamily), new Text(colQualifier), ts);
+    assertEquals(bytesTSKey3, testTSKey3);
+
+    ColumnVisibility colVisibility2 = new ColumnVisibility("v1");
+    Key bytesColVisibilityKey2 = new Key(row, colFamily, colQualifier, colVisibility2, ts);
+    Key textColVisibilityKey2 = new Key(new Text(row), new Text(colFamily), new Text(colQualifier), colVisibility2, ts);
+    assertEquals(bytesColVisibilityKey2, textColVisibilityKey2);
+  }
 }
