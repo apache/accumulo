@@ -82,6 +82,7 @@ nav: nav_people
 |             | Kevin Faro          | [Tetra Concepts LLC][TETRA]                                       | [ET][ET]              |
 |             | Laura Peaslee       | [Objective Solutions, Inc.][OBJECTIVE]                            | [ET][ET]              |
 |             | Luke Brassard       | [sqrrl][SQRRL]                                                    | [ET][ET]              |
+|             | Mario Pastorelli    | [Teralytics AG][TERALYTICS]                                       | [CEST][CEST]          |
 |             | Matt Dailey         |                                                                   |                       |
 |             | Matthew Kirkley     |                                                                   |                       |
 |             | Max Jordan          |                                                                   |                       |
@@ -145,6 +146,7 @@ nav: nav_people
 [SQRRL]: http://sqrrl.com
 [SRA]: http://sra.com
 [SWC]: http://swcomplete.com
+[TERALYTICS]: http://www.teralytics.net/
 [TETRA]: http://www.tetraconcepts.com
 [UW]: http://www.uw.edu
 
@@ -154,3 +156,4 @@ nav: nav_people
 [GMT]: http://www.timeanddate.com/time/zones/gmt
 [MT]: http://www.timeanddate.com/time/zones/mt
 [PT]: http://www.timeanddate.com/time/zones/pt
+[CEST]: http://www.timeanddate.com/time/zones/cest
