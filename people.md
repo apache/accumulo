@@ -88,6 +88,7 @@ nav: nav_people
 |             | Max Jordan          |                                                                   |                       |
 |             | Michael Allen       | [sqrrl][SQRRL]                                                    | [ET][ET]              |
 |             | Michael Berman      | [sqrrl][SQRRL]                                                    | [ET][ET]              |
+|             | Michael Miller      | [Centroid, LLC][CENTROID]                                         | [ET][ET]              |
 |             | Miguel Pereira      | [SRA International, Inc][SRA]                                     | [ET][ET]              |
 |             | Mike Fagan          | [Arcus Research][ARCUS]                                           | [MT][MT]              |
 |             | Mike Walch          | [Peterson Technologies][PETERSON]                                 | [ET][ET]              |
@@ -125,6 +126,7 @@ nav: nav_people
 [ATT]: http://www.att.com
 [BASISTECH]: http://www.basistech.com
 [BOOZ]: http://www.boozallen.com
+[CENTROID]: http://www.centroid-llc.com/
 [CLEAREDGE]: http://clearedgeit.com
 [CLOUDERA]: http://www.cloudera.com
 [DATATACT]: http://www.data-tactics.com
