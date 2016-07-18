@@ -243,7 +243,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   // no arg constructor should do minimal work since its used in Main ServiceLoader
-  public Shell() throws IOException {}
+  public Shell() {}
 
   public Shell(ConsoleReader reader) {
     super();
@@ -255,6 +255,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    *
    * @return true if the shell was successfully configured, false otherwise.
    * @throws IOException
+   *           if problems occur creating the ConsoleReader
    */
   public boolean config(String... args) throws IOException {
     if (this.reader == null)
