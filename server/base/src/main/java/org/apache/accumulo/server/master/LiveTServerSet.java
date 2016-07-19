@@ -57,6 +57,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 
 public class LiveTServerSet implements Watcher {
 
@@ -105,10 +106,10 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void unloadTablet(ZooLock lock, KeyExtent extent, boolean save) throws TException {
+    public void unloadTablet(ZooLock lock, KeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws TException {
       TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
-        client.unloadTablet(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift(), save);
+        client.unloadTablet(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift(), goal, requestTime);
       } finally {
         ThriftUtil.returnClient(client);
       }

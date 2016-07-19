@@ -146,6 +146,13 @@ struct TSamplerConfiguration {
    2:map<string, string> options
 }
 
+enum TUnloadTabletGoal {
+   UNKNOWN,
+   UNASSIGNED,
+   SUSPENDED,
+   DELETED
+}
+
 service TabletClientService extends client.ClientService {
   // scan a range of keys
   data.InitialScan startScan(11:trace.TInfo tinfo,
@@ -207,7 +214,7 @@ service TabletClientService extends client.ClientService {
   void splitTablet(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:data.TKeyExtent extent, 3:binary splitPoint) throws (1:client.ThriftSecurityException sec, 2:NotServingTabletException nste)
  
   oneway void loadTablet(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 4:string lock, 2:data.TKeyExtent extent),
-  oneway void unloadTablet(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 4:string lock, 2:data.TKeyExtent extent, 3:bool save),
+  oneway void unloadTablet(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 4:string lock, 2:data.TKeyExtent extent, 6:TUnloadTabletGoal goal, 7:i64 requestTime),
   oneway void flush(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 3:string lock, 2:string tableId, 5:binary startRow, 6:binary endRow),
   oneway void flushTablet(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string lock, 4:data.TKeyExtent extent),
   oneway void chop(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string lock, 4:data.TKeyExtent extent),

@@ -89,7 +89,7 @@ public class TabletClientService {
 
     public void loadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent) throws org.apache.thrift.TException;
 
-    public void unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) throws org.apache.thrift.TException;
+    public void unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws org.apache.thrift.TException;
 
     public void flush(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws org.apache.thrift.TException;
 
@@ -155,7 +155,7 @@ public class TabletClientService {
 
     public void loadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
-    public void unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+    public void unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void flush(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
@@ -667,19 +667,20 @@ public class TabletClientService {
       sendBaseOneway("loadTablet", args);
     }
 
-    public void unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) throws org.apache.thrift.TException
+    public void unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws org.apache.thrift.TException
     {
-      send_unloadTablet(tinfo, credentials, lock, extent, save);
+      send_unloadTablet(tinfo, credentials, lock, extent, goal, requestTime);
     }
 
-    public void send_unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) throws org.apache.thrift.TException
+    public void send_unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws org.apache.thrift.TException
     {
       unloadTablet_args args = new unloadTablet_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setLock(lock);
       args.setExtent(extent);
-      args.setSave(save);
+      args.setGoal(goal);
+      args.setRequestTime(requestTime);
       sendBaseOneway("unloadTablet", args);
     }
 
@@ -1692,9 +1693,9 @@ public class TabletClientService {
       }
     }
 
-    public void unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+    public void unloadTablet(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      unloadTablet_call method_call = new unloadTablet_call(tinfo, credentials, lock, extent, save, resultHandler, this, ___protocolFactory, ___transport);
+      unloadTablet_call method_call = new unloadTablet_call(tinfo, credentials, lock, extent, goal, requestTime, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1704,14 +1705,16 @@ public class TabletClientService {
       private org.apache.accumulo.core.security.thrift.TCredentials credentials;
       private String lock;
       private org.apache.accumulo.core.data.thrift.TKeyExtent extent;
-      private boolean save;
-      public unloadTablet_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private TUnloadTabletGoal goal;
+      private long requestTime;
+      public unloadTablet_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.lock = lock;
         this.extent = extent;
-        this.save = save;
+        this.goal = goal;
+        this.requestTime = requestTime;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -1721,7 +1724,8 @@ public class TabletClientService {
         args.setCredentials(credentials);
         args.setLock(lock);
         args.setExtent(extent);
-        args.setSave(save);
+        args.setGoal(goal);
+        args.setRequestTime(requestTime);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -2700,7 +2704,7 @@ public class TabletClientService {
       }
 
       public org.apache.thrift.TBase getResult(I iface, unloadTablet_args args) throws org.apache.thrift.TException {
-        iface.unloadTablet(args.tinfo, args.credentials, args.lock, args.extent, args.save);
+        iface.unloadTablet(args.tinfo, args.credentials, args.lock, args.extent, args.goal, args.requestTime);
         return null;
       }
     }
@@ -3953,7 +3957,7 @@ public class TabletClientService {
       }
 
       public void start(I iface, unloadTablet_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws TException {
-        iface.unloadTablet(args.tinfo, args.credentials, args.lock, args.extent, args.save,resultHandler);
+        iface.unloadTablet(args.tinfo, args.credentials, args.lock, args.extent, args.goal, args.requestTime,resultHandler);
       }
     }
 
@@ -24718,7 +24722,8 @@ public class TabletClientService {
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField LOCK_FIELD_DESC = new org.apache.thrift.protocol.TField("lock", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField SAVE_FIELD_DESC = new org.apache.thrift.protocol.TField("save", org.apache.thrift.protocol.TType.BOOL, (short)3);
+    private static final org.apache.thrift.protocol.TField GOAL_FIELD_DESC = new org.apache.thrift.protocol.TField("goal", org.apache.thrift.protocol.TType.I32, (short)6);
+    private static final org.apache.thrift.protocol.TField REQUEST_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("requestTime", org.apache.thrift.protocol.TType.I64, (short)7);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -24730,7 +24735,12 @@ public class TabletClientService {
     public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
     public String lock; // required
     public org.apache.accumulo.core.data.thrift.TKeyExtent extent; // required
-    public boolean save; // required
+    /**
+     * 
+     * @see TUnloadTabletGoal
+     */
+    public TUnloadTabletGoal goal; // required
+    public long requestTime; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -24738,7 +24748,12 @@ public class TabletClientService {
       CREDENTIALS((short)1, "credentials"),
       LOCK((short)4, "lock"),
       EXTENT((short)2, "extent"),
-      SAVE((short)3, "save");
+      /**
+       * 
+       * @see TUnloadTabletGoal
+       */
+      GOAL((short)6, "goal"),
+      REQUEST_TIME((short)7, "requestTime");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -24761,8 +24776,10 @@ public class TabletClientService {
             return LOCK;
           case 2: // EXTENT
             return EXTENT;
-          case 3: // SAVE
-            return SAVE;
+          case 6: // GOAL
+            return GOAL;
+          case 7: // REQUEST_TIME
+            return REQUEST_TIME;
           default:
             return null;
         }
@@ -24803,7 +24820,7 @@ public class TabletClientService {
     }
 
     // isset id assignments
-    private static final int __SAVE_ISSET_ID = 0;
+    private static final int __REQUESTTIME_ISSET_ID = 0;
     private byte __isset_bitfield = 0;
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
@@ -24816,8 +24833,10 @@ public class TabletClientService {
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
-      tmpMap.put(_Fields.SAVE, new org.apache.thrift.meta_data.FieldMetaData("save", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      tmpMap.put(_Fields.GOAL, new org.apache.thrift.meta_data.FieldMetaData("goal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TUnloadTabletGoal.class)));
+      tmpMap.put(_Fields.REQUEST_TIME, new org.apache.thrift.meta_data.FieldMetaData("requestTime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(unloadTablet_args.class, metaDataMap);
     }
@@ -24830,15 +24849,17 @@ public class TabletClientService {
       org.apache.accumulo.core.security.thrift.TCredentials credentials,
       String lock,
       org.apache.accumulo.core.data.thrift.TKeyExtent extent,
-      boolean save)
+      TUnloadTabletGoal goal,
+      long requestTime)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.lock = lock;
       this.extent = extent;
-      this.save = save;
-      setSaveIsSet(true);
+      this.goal = goal;
+      this.requestTime = requestTime;
+      setRequestTimeIsSet(true);
     }
 
     /**
@@ -24858,7 +24879,10 @@ public class TabletClientService {
       if (other.isSetExtent()) {
         this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent(other.extent);
       }
-      this.save = other.save;
+      if (other.isSetGoal()) {
+        this.goal = other.goal;
+      }
+      this.requestTime = other.requestTime;
     }
 
     public unloadTablet_args deepCopy() {
@@ -24871,8 +24895,9 @@ public class TabletClientService {
       this.credentials = null;
       this.lock = null;
       this.extent = null;
-      setSaveIsSet(false);
-      this.save = false;
+      this.goal = null;
+      setRequestTimeIsSet(false);
+      this.requestTime = 0;
     }
 
     public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
@@ -24971,27 +24996,59 @@ public class TabletClientService {
       }
     }
 
-    public boolean isSave() {
-      return this.save;
+    /**
+     * 
+     * @see TUnloadTabletGoal
+     */
+    public TUnloadTabletGoal getGoal() {
+      return this.goal;
     }
 
-    public unloadTablet_args setSave(boolean save) {
-      this.save = save;
-      setSaveIsSet(true);
+    /**
+     * 
+     * @see TUnloadTabletGoal
+     */
+    public unloadTablet_args setGoal(TUnloadTabletGoal goal) {
+      this.goal = goal;
       return this;
     }
 
-    public void unsetSave() {
-      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SAVE_ISSET_ID);
+    public void unsetGoal() {
+      this.goal = null;
     }
 
-    /** Returns true if field save is set (has been assigned a value) and false otherwise */
-    public boolean isSetSave() {
-      return EncodingUtils.testBit(__isset_bitfield, __SAVE_ISSET_ID);
+    /** Returns true if field goal is set (has been assigned a value) and false otherwise */
+    public boolean isSetGoal() {
+      return this.goal != null;
     }
 
-    public void setSaveIsSet(boolean value) {
-      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SAVE_ISSET_ID, value);
+    public void setGoalIsSet(boolean value) {
+      if (!value) {
+        this.goal = null;
+      }
+    }
+
+    public long getRequestTime() {
+      return this.requestTime;
+    }
+
+    public unloadTablet_args setRequestTime(long requestTime) {
+      this.requestTime = requestTime;
+      setRequestTimeIsSet(true);
+      return this;
+    }
+
+    public void unsetRequestTime() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __REQUESTTIME_ISSET_ID);
+    }
+
+    /** Returns true if field requestTime is set (has been assigned a value) and false otherwise */
+    public boolean isSetRequestTime() {
+      return EncodingUtils.testBit(__isset_bitfield, __REQUESTTIME_ISSET_ID);
+    }
+
+    public void setRequestTimeIsSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __REQUESTTIME_ISSET_ID, value);
     }
 
     public void setFieldValue(_Fields field, Object value) {
@@ -25028,11 +25085,19 @@ public class TabletClientService {
         }
         break;
 
-      case SAVE:
+      case GOAL:
         if (value == null) {
-          unsetSave();
+          unsetGoal();
         } else {
-          setSave((Boolean)value);
+          setGoal((TUnloadTabletGoal)value);
+        }
+        break;
+
+      case REQUEST_TIME:
+        if (value == null) {
+          unsetRequestTime();
+        } else {
+          setRequestTime((Long)value);
         }
         break;
 
@@ -25053,8 +25118,11 @@ public class TabletClientService {
       case EXTENT:
         return getExtent();
 
-      case SAVE:
-        return isSave();
+      case GOAL:
+        return getGoal();
+
+      case REQUEST_TIME:
+        return getRequestTime();
 
       }
       throw new IllegalStateException();
@@ -25075,8 +25143,10 @@ public class TabletClientService {
         return isSetLock();
       case EXTENT:
         return isSetExtent();
-      case SAVE:
-        return isSetSave();
+      case GOAL:
+        return isSetGoal();
+      case REQUEST_TIME:
+        return isSetRequestTime();
       }
       throw new IllegalStateException();
     }
@@ -25130,12 +25200,21 @@ public class TabletClientService {
           return false;
       }
 
-      boolean this_present_save = true;
-      boolean that_present_save = true;
-      if (this_present_save || that_present_save) {
-        if (!(this_present_save && that_present_save))
+      boolean this_present_goal = true && this.isSetGoal();
+      boolean that_present_goal = true && that.isSetGoal();
+      if (this_present_goal || that_present_goal) {
+        if (!(this_present_goal && that_present_goal))
           return false;
-        if (this.save != that.save)
+        if (!this.goal.equals(that.goal))
+          return false;
+      }
+
+      boolean this_present_requestTime = true;
+      boolean that_present_requestTime = true;
+      if (this_present_requestTime || that_present_requestTime) {
+        if (!(this_present_requestTime && that_present_requestTime))
+          return false;
+        if (this.requestTime != that.requestTime)
           return false;
       }
 
@@ -25166,10 +25245,15 @@ public class TabletClientService {
       if (present_extent)
         list.add(extent);
 
-      boolean present_save = true;
-      list.add(present_save);
-      if (present_save)
-        list.add(save);
+      boolean present_goal = true && (isSetGoal());
+      list.add(present_goal);
+      if (present_goal)
+        list.add(goal.getValue());
+
+      boolean present_requestTime = true;
+      list.add(present_requestTime);
+      if (present_requestTime)
+        list.add(requestTime);
 
       return list.hashCode();
     }
@@ -25222,12 +25306,22 @@ public class TabletClientService {
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetSave()).compareTo(other.isSetSave());
+      lastComparison = Boolean.valueOf(isSetGoal()).compareTo(other.isSetGoal());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSave()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.save, other.save);
+      if (isSetGoal()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.goal, other.goal);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetRequestTime()).compareTo(other.isSetRequestTime());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetRequestTime()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.requestTime, other.requestTime);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -25284,8 +25378,16 @@ public class TabletClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("save:");
-      sb.append(this.save);
+      sb.append("goal:");
+      if (this.goal == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.goal);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("requestTime:");
+      sb.append(this.requestTime);
       first = false;
       sb.append(")");
       return sb.toString();
@@ -25376,10 +25478,18 @@ public class TabletClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // SAVE
-              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
-                struct.save = iprot.readBool();
-                struct.setSaveIsSet(true);
+            case 6: // GOAL
+              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+                struct.goal = org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal.findByValue(iprot.readI32());
+                struct.setGoalIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 7: // REQUEST_TIME
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.requestTime = iprot.readI64();
+                struct.setRequestTimeIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -25409,9 +25519,6 @@ public class TabletClientService {
           struct.extent.write(oprot);
           oprot.writeFieldEnd();
         }
-        oprot.writeFieldBegin(SAVE_FIELD_DESC);
-        oprot.writeBool(struct.save);
-        oprot.writeFieldEnd();
         if (struct.lock != null) {
           oprot.writeFieldBegin(LOCK_FIELD_DESC);
           oprot.writeString(struct.lock);
@@ -25422,6 +25529,14 @@ public class TabletClientService {
           struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
+        if (struct.goal != null) {
+          oprot.writeFieldBegin(GOAL_FIELD_DESC);
+          oprot.writeI32(struct.goal.getValue());
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldBegin(REQUEST_TIME_FIELD_DESC);
+        oprot.writeI64(struct.requestTime);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -25452,10 +25567,13 @@ public class TabletClientService {
         if (struct.isSetExtent()) {
           optionals.set(3);
         }
-        if (struct.isSetSave()) {
+        if (struct.isSetGoal()) {
           optionals.set(4);
         }
-        oprot.writeBitSet(optionals, 5);
+        if (struct.isSetRequestTime()) {
+          optionals.set(5);
+        }
+        oprot.writeBitSet(optionals, 6);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -25468,15 +25586,18 @@ public class TabletClientService {
         if (struct.isSetExtent()) {
           struct.extent.write(oprot);
         }
-        if (struct.isSetSave()) {
-          oprot.writeBool(struct.save);
+        if (struct.isSetGoal()) {
+          oprot.writeI32(struct.goal.getValue());
+        }
+        if (struct.isSetRequestTime()) {
+          oprot.writeI64(struct.requestTime);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, unloadTablet_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(5);
+        BitSet incoming = iprot.readBitSet(6);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -25497,8 +25618,12 @@ public class TabletClientService {
           struct.setExtentIsSet(true);
         }
         if (incoming.get(4)) {
-          struct.save = iprot.readBool();
-          struct.setSaveIsSet(true);
+          struct.goal = org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal.findByValue(iprot.readI32());
+          struct.setGoalIsSet(true);
+        }
+        if (incoming.get(5)) {
+          struct.requestTime = iprot.readI64();
+          struct.setRequestTimeIsSet(true);
         }
       }
     }

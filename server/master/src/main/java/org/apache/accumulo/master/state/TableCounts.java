@@ -36,4 +36,8 @@ public class TableCounts {
   public int hosted() {
     return counts[TabletState.HOSTED.ordinal()];
   }
+
+  public int suspended() {
+    return counts[TabletState.SUSPENDED.ordinal()];
+  }
 }
