@@ -415,7 +415,7 @@ public class ThriftScanner {
 
       if (scanState.scanID == null) {
         String msg = "Starting scan tserver=" + loc.tablet_location + " tablet=" + loc.tablet_extent + " range=" + scanState.range + " ssil="
-            + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions;
+            + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions + " context=" + scanState.classLoaderContext;
         Thread.currentThread().setName(msg);
 
         if (log.isTraceEnabled()) {

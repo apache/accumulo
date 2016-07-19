@@ -328,6 +328,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (config.getHadoopConfDir() != null)
       builder.environment().put("HADOOP_CONF_DIR", config.getHadoopConfDir().getAbsolutePath());
 
+    log.info("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName() + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath
+        + "\n, args: " + argList + "\n, environment: " + builder.environment().toString());
     Process process = builder.start();
 
     LogWriter lw;

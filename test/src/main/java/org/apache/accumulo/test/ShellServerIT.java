@@ -1747,16 +1747,21 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(true);
     }
     ts.exec("createtable t");
+    // Assert that the TabletServer does not know anything about our class
+    String result = ts.exec("setiter -scan -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
+    assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
-    // Add the context to the table so that setscaniter works. After setscaniter succeeds, then
-    // remove the property from the table.
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
-    ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
-    ts.exec("setscaniter -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
-    String result = ts.exec("scan -np -b row1 -e row1");
+    // Add the context to the table so that setiter works.
+    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
+    result = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
+    assertEquals("root@miniInstance t> config -t t -s table.classpath.context=" + FAKE_CONTEXT + "\n", result);
+    result = ts.exec("setiter -scan -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
+    assertTrue(result.contains("The iterator class does not implement OptionDescriber"));
+    // The implementation of ValueReversingIterator in the FAKE context does nothing, the value is not reversed.
+    result = ts.exec("scan -np -b row1 -e row1");
     assertEquals(2, result.split("\n").length);
-    log.error(result);
     assertTrue(result.contains("value"));
     result = ts.exec("scan -np -b row3 -e row5");
     assertEquals(4, result.split("\n").length);
@@ -1774,9 +1779,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("value"));
 
     setupRealContextPath();
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
+    // Define a new classloader context, but don't set it on the table
+    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
+    // Override the table classloader context with the REAL implementation of ValueReversingIterator, which does reverse the value.
     result = ts.exec("scan -np -b row1 -e row1 -cc " + REAL_CONTEXT);
-    log.error(result);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
