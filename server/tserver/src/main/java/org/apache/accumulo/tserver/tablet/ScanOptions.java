@@ -109,4 +109,20 @@ final class ScanOptions {
   public void setClassLoaderContext(String context) {
     this.classLoaderContext = context;
   }
+
+  @Override
+  public String toString() {
+    StringBuilder buf = new StringBuilder();
+    buf.append("[");
+    buf.append("auths=").append(this.authorizations);
+    buf.append(", batchTimeOut=").append(this.batchTimeOut);
+    buf.append(", context=").append(this.classLoaderContext);
+    buf.append(", columns=").append(this.columnSet);
+    buf.append(", interruptFlag=").append(this.interruptFlag);
+    buf.append(", isolated=").append(this.isolated);
+    buf.append(", num=").append(this.num);
+    buf.append(", samplerConfig=").append(this.samplerConfig);
+    buf.append("]");
+    return buf.toString();
+  }
 }

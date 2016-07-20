@@ -194,6 +194,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
           break;
         case ASSIGNED_TO_DEAD_SERVER:
           return;
+        case SUSPENDED:
         case UNASSIGNED:
           if (shouldBeOnline)
             return;

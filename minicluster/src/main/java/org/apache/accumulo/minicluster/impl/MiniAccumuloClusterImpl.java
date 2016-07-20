@@ -33,6 +33,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -328,6 +329,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (config.getHadoopConfDir() != null)
       builder.environment().put("HADOOP_CONF_DIR", config.getHadoopConfDir().getAbsolutePath());
 
+    log.info("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName() + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath
+        + "\n, args: " + argList + "\n, environment: " + builder.environment().toString());
     Process process = builder.start();
 
     LogWriter lw;
@@ -341,10 +344,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return process;
   }
 
-  Process _exec(Class<?> clazz, ServerType serverType, String... args) throws IOException {
-
+  Process _exec(Class<?> clazz, ServerType serverType, Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
+    if (configOverrides != null && !configOverrides.isEmpty()) {
+      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo-site", ".xml").toFile();
+      Map<String,String> confMap = new HashMap<>();
+      confMap.putAll(config.getSiteConfig());
+      confMap.putAll(configOverrides);
+      writeConfig(siteFile, confMap.entrySet());
+      jvmOpts.add("-Dorg.apache.accumulo.config.file=" + siteFile.getName());
+    }
 
     if (config.isJDWPEnabled()) {
       Integer port = PortUtils.getRandomFreePort();

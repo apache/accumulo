@@ -49,11 +49,14 @@ import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.TabletServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
 class ScanDataSource implements DataSource {
 
+  private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);
   // data source state
   private final Tablet tablet;
   private ScanFileManager fileManager;
@@ -76,6 +79,8 @@ class ScanDataSource implements DataSource {
     this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false, samplerConfig, batchTimeOut, context);
     this.interruptFlag = interruptFlag;
     this.loadIters = true;
+    log.debug("new scan data source, tablet: {}, options: {}, interruptFlag: {}, loadIterators: {}", this.tablet, this.options, this.interruptFlag,
+        this.loadIters);
   }
 
   ScanDataSource(Tablet tablet, ScanOptions options) {
@@ -84,6 +89,8 @@ class ScanDataSource implements DataSource {
     this.options = options;
     this.interruptFlag = options.getInterruptFlag();
     this.loadIters = true;
+    log.debug("new scan data source, tablet: {}, options: {}, interruptFlag: {}, loadIterators: {}", this.tablet, this.options, this.interruptFlag,
+        this.loadIters);
   }
 
   ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, AtomicBoolean iFlag) {
@@ -92,6 +99,8 @@ class ScanDataSource implements DataSource {
     this.options = new ScanOptions(-1, authorizations, defaultLabels, EMPTY_COLS, null, null, iFlag, false, null, -1, null);
     this.interruptFlag = iFlag;
     this.loadIters = false;
+    log.debug("new scan data source, tablet: {}, options: {}, interruptFlag: {}, loadIterators: {}", this.tablet, this.options, this.interruptFlag,
+        this.loadIters);
   }
 
   @Override
@@ -187,9 +196,11 @@ class ScanDataSource implements DataSource {
     if (!loadIters) {
       return visFilter;
     } else if (null == options.getClassLoaderContext()) {
+      log.trace("Loading iterators for scan");
       return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
           options.getSsiList(), options.getSsio(), iterEnv));
     } else {
+      log.trace("Loading iterators for scan with scan context: {}", options.getClassLoaderContext());
       return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
           options.getSsiList(), options.getSsio(), iterEnv, true, options.getClassLoaderContext()));
     }

@@ -255,6 +255,7 @@ public class IteratorUtil {
       for (IterInfo iterInfo : iters) {
 
         Class<? extends SortedKeyValueIterator<K,V>> clazz = null;
+        log.trace("Attempting to load iterator class {}", iterInfo.className);
         if (classCache != null) {
           clazz = classCache.get(iterInfo.className);
 
@@ -294,13 +295,17 @@ public class IteratorUtil {
       String context, IterInfo iterInfo) throws ClassNotFoundException, IOException {
     Class<? extends SortedKeyValueIterator<K,V>> clazz;
     if (useAccumuloClassLoader) {
-      if (context != null && !context.equals(""))
+      if (context != null && !context.equals("")) {
         clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader.getContextManager().loadClass(context, iterInfo.className,
             SortedKeyValueIterator.class);
-      else
+        log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className, context, clazz.getClassLoader());
+      } else {
         clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader.loadClass(iterInfo.className, SortedKeyValueIterator.class);
+        log.trace("Iterator class {} loaded from AccumuloVFSClassLoader: {}", iterInfo.className, clazz.getClassLoader());
+      }
     } else {
       clazz = (Class<? extends SortedKeyValueIterator<K,V>>) Class.forName(iterInfo.className).asSubclass(SortedKeyValueIterator.class);
+      log.trace("Iterator class {} loaded from classpath", iterInfo.className);
     }
     return clazz;
   }

@@ -25,8 +25,12 @@ import java.util.Set;
 
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ContextManager {
+
+  private static final Logger log = LoggerFactory.getLogger(ContextManager.class);
 
   // there is a lock per context so that one context can initialize w/o blocking another context
   private class Context {
@@ -202,9 +206,10 @@ public class ContextManager {
       contexts.keySet().removeAll(unused.keySet());
     }
 
-    for (Context context : unused.values()) {
+    for (Entry<String,Context> e : unused.entrySet()) {
       // close outside of lock
-      context.close();
+      log.info("Closing unused context: {}", e.getKey());
+      e.getValue().close();
     }
   }
 }
