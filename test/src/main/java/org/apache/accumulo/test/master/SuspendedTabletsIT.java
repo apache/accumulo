@@ -88,6 +88,15 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     cfg.setNumTservers(TSERVERS);
   }
 
+  private boolean isAlive(Process p) {
+    try {
+      p.exitValue();
+      return false;
+    } catch (IllegalThreadStateException e) {
+      return true;
+    }
+  }
+
   @Test
   public void crashAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need a tserver to go away, get rid of it via crashing
@@ -137,7 +146,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
           List<ProcessReference> deadProcs = new ArrayList<>();
           for (ProcessReference pr : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
             Process p = pr.getProcess();
-            if (!p.isAlive()) {
+            if (!isAlive(p)) {
               deadProcs.add(pr);
             }
           }
