@@ -347,13 +347,13 @@
         <artifactId>exec-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>generate-dependencies-listing</id>
+            <id>generate-download-script</id>
             <goals>
               <goal>exec</goal>
             </goals>
             <phase>prepare-package</phase>
             <configuration>
-              <executable>${basedir}/src/main/scripts/generate-versions-listing.sh</executable>
+              <executable>${basedir}/src/main/scripts/generate-download-script.sh</executable>
             </configuration>
           </execution>
         </executions>
