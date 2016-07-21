@@ -717,6 +717,13 @@
               </requireProperty>
             </rules>
           </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>animal-sniffer-enforcer-rule</artifactId>
+              <version>1.15</version>
+            </dependency>
+          </dependencies>
         </plugin>
         <plugin>
           <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
@@ -783,10 +790,29 @@
         <artifactId>maven-enforcer-plugin</artifactId>
         <executions>
           <execution>
-            <id>enforce-mvn</id>
+            <id>enforce-basic-rules</id>
             <goals>
               <goal>enforce</goal>
             </goals>
+            <phase>validate</phase>
+          </execution>
+          <execution>
+            <id>enforce-java-signatures</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <phase>process-test-classes</phase>
+            <configuration>
+              <rules>
+                <checkSignatureRule implementation="org.codehaus.mojo.animal_sniffer.enforcer.CheckSignatureRule">
+                  <signature>
+                    <groupId>org.codehaus.mojo.signature</groupId>
+                    <artifactId>java16</artifactId>
+                    <version>1.1</version>
+                  </signature>
+                </checkSignatureRule>
+              </rules>
+            </configuration>
           </execution>
         </executions>
       </plugin>
