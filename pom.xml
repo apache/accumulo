@@ -800,7 +800,8 @@
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
-            <excludes>
+            <excludes combine.children="append">
+              <exclude>src/main/resources/META-INF/services/*</exclude>
               <exclude>nbproject/**</exclude>
               <exclude>nb-configuration.xml</exclude>
               <exclude>nbactions.xml</exclude>

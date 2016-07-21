@@ -4,17 +4,17 @@ Copyright 2011-2016 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
+**********
+
 This product includes JCommander (https://github.com/cbeust/jcommander),
 Copyright 2010 Cedric Beust cedric@beust.com.
 
-This product includes the Apache Thrift libthrift JAR file.
-Copyright 2006-2010 The Apache Software Foundation.
+**********
 
-This product includes Apache Commons-VFS (https://commons.apache.org/proper/commons-vfs/).
-Copyright 2002-2015 The Apache Software Foundation.
-
-This product includes Apache Commons-Math (https://commons.apache.org/proper/commons-vfs/).
+This product includes Apache Commons Math (https://commons.apache.org/proper/commons-math/).
 Copyright 2001-2010 The Apache Software Foundation
+
+From commons-math NOTICE.txt:
 
     ===============================================================================
     The LinearConstraint, LinearObjectiveFunction, LinearOptimizer,
@@ -54,6 +54,8 @@ Copyright 2001-2010 The Apache Software Foundation
     Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,
     All rights reserved
     ===============================================================================
+
+**********
 
 This product includes Jetty (http://eclipse.org/jetty)
 Copyright 1996-2009 Mort Bay Consulting Pty. Ltd.

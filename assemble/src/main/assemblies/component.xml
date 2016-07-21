@@ -261,17 +261,15 @@
         <include>VERSIONS</include>
       </includes>
     </fileSet>
+    <fileSet>
+      <directory>src/main/resources</directory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0644</fileMode>
+      <outputDirectory>.</outputDirectory>
+      <includes>
+        <include>LICENSE</include>
+        <include>NOTICE</include>
+      </includes>
+    </fileSet>
   </fileSets>
-  <files>
-    <file>
-      <source>bin-NOTICE</source>
-      <destName>NOTICE</destName>
-      <fileMode>0644</fileMode>
-    </file>
-    <file>
-      <source>bin-LICENSE</source>
-      <destName>LICENSE</destName>
-      <fileMode>0644</fileMode>
-    </file>
-  </files>
 </component>

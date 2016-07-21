@@ -136,42 +136,10 @@
             <excludes>
               <exclude>src/test/resources/*.walog</exclude>
               <exclude>src/test/resources/walog-from-14/*</exclude>
-              <exclude>nbproject/**</exclude>
-              <exclude>nb-configuration.xml</exclude>
-              <exclude>nbactions.xml</exclude>
             </excludes>
           </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>license-javadocs</id>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <phase>prepare-package</phase>
-            <configuration>
-              <outputDirectory>${project.build.directory}/apidocs</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>src/main/javadoc/META-INF/</directory>
-                  <targetPath>META-INF/</targetPath>
-                  <includes>
-                    <include>LICENSE</include>
-                    <include>NOTICE</include>
-                  </includes>
-                  <filtering>true</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
   </build>
 </project>
