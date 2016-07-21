@@ -36,7 +36,11 @@ import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
@@ -53,22 +57,26 @@ public class ChangeSecret {
   }
 
   public static void main(String[] args) throws Exception {
+    VolumeManager fs = VolumeManagerImpl.get();
+    verifyHdfsWritePermission(fs);
+
     Opts opts = new Opts();
     List<String> argsList = new ArrayList<>(args.length + 2);
     argsList.add("--old");
     argsList.add("--new");
     argsList.addAll(Arrays.asList(args));
     opts.parseArgs(ChangeSecret.class.getName(), argsList.toArray(new String[0]));
-    VolumeManager fs = VolumeManagerImpl.get();
+
     Instance inst = opts.getInstance();
-    if (!verifyAccumuloIsDown(inst, opts.oldPass))
-      System.exit(-1);
-    String instanceId = rewriteZooKeeperInstance(inst, opts.oldPass, opts.newPass);
-    updateHdfs(fs, inst, instanceId);
+    verifyAccumuloIsDown(inst, opts.oldPass);
+
+    final String newInstanceId = UUID.randomUUID().toString();
+    updateHdfs(fs, inst, newInstanceId);
+    rewriteZooKeeperInstance(inst, newInstanceId, opts.oldPass, opts.newPass);
     if (opts.oldPass != null) {
       deleteInstance(inst, opts.oldPass);
     }
-    System.out.println("New instance id is " + instanceId);
+    System.out.println("New instance id is " + newInstanceId);
     System.out.println("Be sure to put your new secret in accumulo-site.xml");
   }
 
@@ -87,7 +95,7 @@ public class ChangeSecret {
     }
   }
 
-  private static boolean verifyAccumuloIsDown(Instance inst, String oldPassword) {
+  private static void verifyAccumuloIsDown(Instance inst, String oldPassword) throws Exception {
     ZooReader zooReader = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPassword);
     String root = ZooUtil.getRoot(inst);
     final List<String> ephemerals = new ArrayList<>();
@@ -99,21 +107,19 @@ public class ChangeSecret {
           ephemerals.add(path);
       }
     });
-    if (ephemerals.size() == 0) {
-      return true;
+    if (ephemerals.size() > 0) {
+      System.err.println("The following ephemeral nodes exist, something is still running:");
+      for (String path : ephemerals) {
+        System.err.println(path);
+      }
+      throw new Exception("Accumulo must be shut down in order to run this tool.");
     }
-
-    System.err.println("The following ephemeral nodes exist, something is still running:");
-    for (String path : ephemerals) {
-      System.err.println(path);
-    }
-    return false;
   }
 
-  private static String rewriteZooKeeperInstance(final Instance inst, String oldPass, String newPass) throws Exception {
+  private static void rewriteZooKeeperInstance(final Instance inst, String newInstanceId, String oldPass, String newPass) throws Exception {
     final ZooReaderWriter orig = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPass);
     final IZooReaderWriter new_ = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), newPass);
-    final String newInstanceId = UUID.randomUUID().toString();
+
     String root = ZooUtil.getRoot(inst);
     recurse(orig, root, new Visitor() {
       @Override
@@ -143,7 +149,6 @@ public class ChangeSecret {
     String path = "/accumulo/instances/" + inst.getInstanceName();
     orig.recursiveDelete(path, NodeMissingPolicy.SKIP);
     new_.putPersistentData(path, newInstanceId.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
-    return newInstanceId;
   }
 
   private static void updateHdfs(VolumeManager fs, Instance inst, String newInstanceId) throws IOException {
@@ -160,6 +165,36 @@ public class ChangeSecret {
 
       v.getFileSystem().create(new Path(instanceId, newInstanceId)).close();
     }
+  }
+
+  private static void verifyHdfsWritePermission(VolumeManager fs) throws Exception {
+    for (Volume v : fs.getVolumes()) {
+      final Path instanceId = ServerConstants.getInstanceIdLocation(v);
+      FileStatus fileStatus = v.getFileSystem().getFileStatus(instanceId);
+      checkHdfsAccessPermissions(fileStatus, FsAction.WRITE);
+    }
+  }
+
+  private static void checkHdfsAccessPermissions(FileStatus stat, FsAction mode) throws Exception {
+    FsPermission perm = stat.getPermission();
+    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+    String user = ugi.getShortUserName();
+    List<String> groups = Arrays.asList(ugi.getGroupNames());
+    if (user.equals(stat.getOwner())) {
+      if (perm.getUserAction().implies(mode)) {
+        return;
+      }
+    } else if (groups.contains(stat.getGroup())) {
+      if (perm.getGroupAction().implies(mode)) {
+        return;
+      }
+    } else {
+      if (perm.getOtherAction().implies(mode)) {
+        return;
+      }
+    }
+    throw new Exception(String.format("Permission denied: user=%s, path=\"%s\":%s:%s:%s%s", user, stat.getPath(), stat.getOwner(), stat.getGroup(),
+        stat.isDirectory() ? "d" : "-", perm));
   }
 
   private static void deleteInstance(Instance origInstance, String oldPass) throws Exception {
