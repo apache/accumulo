@@ -110,33 +110,33 @@ public class ShellConfigTest {
   }
 
   @Test
-  public void testHelp() {
+  public void testHelp() throws IOException {
     assertFalse(shell.config(args("--help")));
     assertTrue("Did not print usage", output.get().startsWith("Usage"));
   }
 
   @Test
-  public void testBadArg() {
+  public void testBadArg() throws IOException {
     assertFalse(shell.config(args("--bogus")));
     assertTrue("Did not print usage", output.get().startsWith("Usage"));
   }
 
   @Ignore
   @Test
-  public void testTokenWithoutOptions() {
+  public void testTokenWithoutOptions() throws IOException {
     assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getName())));
     assertFalse(output.get().contains(ParameterException.class.getName()));
   }
 
   @Ignore
   @Test
-  public void testTokenAndOption() {
+  public void testTokenAndOption() throws IOException {
     assertTrue(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l", "password=foo")));
   }
 
   @Ignore
   @Test
-  public void testTokenAndOptionAndPassword() {
+  public void testTokenAndOptionAndPassword() throws IOException {
     assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-l", "password=foo", "-p", "bar")));
     assertTrue(output.get().contains(ParameterException.class.getName()));
   }
