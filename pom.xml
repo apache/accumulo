@@ -854,8 +854,8 @@
                 <checkSignatureRule implementation="org.codehaus.mojo.animal_sniffer.enforcer.CheckSignatureRule">
                   <signature>
                     <groupId>org.codehaus.mojo.signature</groupId>
-                    <artifactId>java16</artifactId>
-                    <version>1.1</version>
+                    <artifactId>java17</artifactId>
+                    <version>1.0</version>
                   </signature>
                 </checkSignatureRule>
               </rules>
