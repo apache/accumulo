@@ -166,23 +166,6 @@
     </dependency>
   </dependencies>
   <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <configuration>
-            <excludes>
-              <exclude>bin-LICENSE</exclude>
-              <exclude>bin-NOTICE</exclude>
-              <exclude>nbproject/**</exclude>
-              <exclude>nb-configuration.xml</exclude>
-              <exclude>nbactions.xml</exclude>
-            </excludes>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

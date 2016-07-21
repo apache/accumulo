@@ -201,119 +201,116 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-----
+**********
 
 APACHE ACCUMULO SUBCOMPONENTS:
 
 The Apache Accumulo project contains subcomponents with separate copyright
 notices and license terms. Your use of the source code for the these
-subcomponents is subject to the terms and conditions of the following
-licenses.
+subcomponents is subject to the terms and conditions of the following licenses.
 
-----
+**********
 
-This product bundles software from the European Commission project OneLab
-(http://www.one-lab.org),
+This product includes software from the European Commission project OneLab:
 
 * BloomFilter.java
 * DynamicBloomFilter.java
 * Filter.java
 
-Copyright (c) 2005, European Commission project OneLab under contract 034819
-available under the following BSD 3-Clause style license:
+    Copyright (c) 2005, European Commission project OneLab under contract 034819
+    (http://www.one-lab.org)
 
- * Redistribution and use in source and binary forms, with or
- * without modification, are permitted provided that the following
- * conditions are met:
- *  - Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *  - Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the distribution.
- *  - Neither the name of the University Catholique de Louvain - UCL
- *    nor the names of its contributors may be used to endorse or
- *    promote products derived from this software without specific prior
- *    written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+    All rights reserved.
+    Redistribution and use in source and binary forms, with or
+    without modification, are permitted provided that the following
+    conditions are met:
+     - Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+     - Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the distribution.
+     - Neither the name of the University Catholique de Louvain - UCL
+       nor the names of its contributors may be used to endorse or
+       promote products derived from this software without specific prior
+       written permission.
 
-----
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 
-This product bundles JQuery
+**********
 
- * Copyright 2011, John Resig
- * Dual licensed under the MIT or GPL Version 2 licenses.
- * http://jquery.org/license
- *
- * Includes Sizzle.js
- * http://sizzlejs.com/
- * Copyright 2011, The Dojo Foundation
- * Released under the MIT, BSD, and GPL Licenses.
+This product includes JQuery:
 
-Distributed under the MIT License:
+    Copyright 2011, John Resig
+    Dual licensed under the MIT or GPL Version 2 licenses.
+    http://jquery.org/license
 
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
+    Includes Sizzle.js
+    http://sizzlejs.com/
+    Copyright 2011, The Dojo Foundation
+    Released under the MIT, BSD, and GPL Licenses.
 
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
+    Distributed under the MIT License:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following
+    conditions:
 
-----
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
 
-This product bundles Flot, For details, see
-  server/monitor/src/main/resources/web/flot/
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE.
 
-Copyright (c) 2007-2009 IOLA and Ole Laursen
+**********
 
-Available under the MIT License (see above)
+This product includes Flot:
 
-Flot bundles additional works:
+    Copyright (c) 2007-2009 IOLA and Ole Laursen
 
-jquery.pie.js
-* Created by Brian Medendorp, June 2009
-* Updated November 2009 with contributions from: btburnett3, Anthony Aragues and Xavi Ivars
+    Available under the MIT License (see above)
 
-jquery.flot.resize.js
-* Inline dependency:
- * jQuery resize event - v1.1 - 3/14/2010
- * http://benalman.com/projects/jquery-resize-plugin/
- *
- * Copyright (c) 2010 "Cowboy" Ben Alman
- * Dual licensed under the MIT and GPL licenses.
- * http://benalman.com/about/license/
+    Flot bundles additional works:
 
-distributed under the MIT license (see above)
+    jquery.pie.js
+    * Created by Brian Medendorp, June 2009
+    * Updated November 2009 with contributions from: btburnett3, Anthony Aragues and Xavi Ivars
 
-----
+    jquery.flot.resize.js
+    * Inline dependency:
+     * jQuery resize event - v1.1 - 3/14/2010
+     * http://benalman.com/projects/jquery-resize-plugin/
+     *
+     * Copyright (c) 2010 "Cowboy" Ben Alman
+     * Dual licensed under the MIT and GPL licenses.
+     * http://benalman.com/about/license/
 
-This product bundles jline, which is available under the following
-"3-clause BSD" license:
+    distributed under the MIT license (see above)
+
+**********
+
+This product includes jline:
 
     The BSD License
 
@@ -350,10 +347,9 @@ This product bundles jline, which is available under the following
     IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
     OF THE POSSIBILITY OF SUCH DAMAGE.
 
-----
+**********
 
-This product bundles Apache Commons Math3 which is available with the following
-additional license information:
+This product includes Apache Commons Math3:
 
     APACHE COMMONS MATH DERIVATIVE WORKS:
 
@@ -586,10 +582,9 @@ additional license information:
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     ===============================================================================
 
-----
+**********
 
-This product bundles Protocol Buffers, which is available under the following
-"3-clause BSD" license:
+This product includes Protocol Buffers:
 
     Copyright 2014, Google Inc. All rights reserved.
 
@@ -626,10 +621,9 @@ This product bundles Protocol Buffers, which is available under the following
     standalone and requires a support library to be linked with it. This
     support library is itself covered by the above license.
 
-----
+**********
 
-This distribution of this product bundles slf4j, which is available under the
-following MIT license:
+This product includes slf4j:
 
     Copyright (c) 2004-2013 QOS.ch
     All rights reserved.
@@ -653,10 +647,9 @@ following MIT license:
     OF CONTRACT, TORT OR OTHERWISE,  ARISING FROM, OUT OF OR IN CONNECTION
     WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-----
+**********
 
-The binary distribution of the product bundles javax.servlet-api, which is
-available under the CDDL 1.0 license (http://servlet-spec.java.net).
+This product includes javax.servlet-api (http://servlet-spec.java.net):
 
   COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0
 
@@ -986,4 +979,4 @@ available under the CDDL 1.0 license (http://servlet-spec.java.net).
      of the State of California, with venue lying in Santa Clara County,
      California.
 
-------
+**********
