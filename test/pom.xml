@@ -183,9 +183,6 @@
             <excludes>
               <exclude>system/bench/lib/*splits</exclude>
               <exclude>system/continuous/*.txt</exclude>
-              <exclude>nbproject/**</exclude>
-              <exclude>nb-configuration.xml</exclude>
-              <exclude>nbactions.xml</exclude>
             </excludes>
           </configuration>
         </plugin>
