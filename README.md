@@ -58,16 +58,14 @@ Building
 Accumulo uses [Maven] to compile, [test], and package its source.  The
 following command will build the binary tar.gz from source.  Note, these
 instructions will not work for the Accumulo binary distribution as it does not
-include source.
+include source.  If you just want to build without waiting for the tests to
+run, add `-DskipTests`.
 
-    mvn package -P assemble
+    mvn package
 
 This command produces a file at the following location.
 
-    assemble/target/accumulo-X.Y.Z-SNAPSHOT-bin.tar.gz
-
-This will not include documentation, adding the `-P docs` option to the maven
-command will build documentation.
+    assemble/target/accumulo-<version>-bin.tar.gz
 
 API
 ---

@@ -727,7 +727,7 @@
           <!-- overridden version from ASF-17 parent pom -->
           <version>2.5.3</version>
           <configuration>
-            <arguments>-P !autoformat,thrift,assemble,docs,sunny -Dtimeout.factor=2 ${extraReleaseArgs}</arguments>
+            <arguments>-P !autoformat,thrift,sunny -Dtimeout.factor=2 ${extraReleaseArgs}</arguments>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
