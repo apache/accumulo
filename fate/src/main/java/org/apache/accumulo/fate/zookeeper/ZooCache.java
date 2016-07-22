@@ -63,6 +63,14 @@ public class ZooCache {
 
   private final ZooReader zReader;
 
+  /**
+   * Returns a ZooKeeper session. Calls should be made within run of ZooRunnable after caches are checked. This will be performed at each retry of the run
+   * method. Calls to {@link #getZooKeeper()} should be made, ideally, after cache checks since other threads may have succeeded when updating the cache. Doing
+   * this will ensure that we don't pay the cost of retrieving a ZooKeeper session on each retry until we've ensured the caches aren't populated for a given
+   * node.
+   *
+   * @return ZooKeeper session.
+   */
   private ZooKeeper getZooKeeper() {
     return zReader.getZooKeeper();
   }
@@ -156,20 +164,30 @@ public class ZooCache {
 
   private abstract class ZooRunnable<T> {
     /**
-     * Runs an operation against ZooKeeper, automatically retrying in the face of KeeperExceptions
+     * Runs an operation against ZooKeeper. Retries are performed by the retry method when KeeperExceptions occur.
+     *
+     * Changes were made in ACCUMULO-4388 so that the run method no longer accepts Zookeeper as an argument, and instead relies on the ZooRunnable
+     * implementation to call {@link #getZooKeeper()}. Performing the call to retrieving a ZooKeeper Session after caches are checked has the benefit of
+     * limiting ZK connections and blocking as a result of obtaining these sessions.
+     *
+     * @return T the result of the runnable
      */
-    abstract T run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException;
+    abstract T run() throws KeeperException, InterruptedException;
 
+    /**
+     * Retry will attempt to call the run method. Run should make a call to {@link #getZooKeeper()} after checks to cached information are made. This change,
+     * per ACCUMULO-4388 ensures that we don't create a ZooKeeper session when information is cached, and access to ZooKeeper is unnecessary.
+     *
+     * @return result of the runnable access success ( i.e. no exceptions ).
+     */
     public T retry() {
 
       int sleepTime = 100;
 
       while (true) {
 
-        ZooKeeper zooKeeper = getZooKeeper();
-
         try {
-          return run(zooKeeper);
+          return run();
         } catch (KeeperException e) {
           final Code code = e.code();
           if (code == Code.NONODE) {
@@ -212,7 +230,7 @@ public class ZooCache {
     ZooRunnable<List<String>> zr = new ZooRunnable<List<String>>() {
 
       @Override
-      public List<String> run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException {
+      public List<String> run() throws KeeperException, InterruptedException {
         try {
           cacheReadLock.lock();
           if (childrenCache.containsKey(zPath)) {
@@ -227,6 +245,9 @@ public class ZooCache {
           if (childrenCache.containsKey(zPath)) {
             return childrenCache.get(zPath);
           }
+
+          final ZooKeeper zooKeeper = getZooKeeper();
+
           List<String> children = zooKeeper.getChildren(zPath, watcher);
           childrenCache.put(zPath, children);
           return children;
@@ -274,7 +295,7 @@ public class ZooCache {
     ZooRunnable<byte[]> zr = new ZooRunnable<byte[]>() {
 
       @Override
-      public byte[] run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException {
+      public byte[] run() throws KeeperException, InterruptedException {
         Stat stat = null;
         cacheReadLock.lock();
         try {
@@ -294,6 +315,7 @@ public class ZooCache {
          */
         cacheWriteLock.lock();
         try {
+          final ZooKeeper zooKeeper = getZooKeeper();
           stat = zooKeeper.exists(zPath, watcher);
           byte[] data = null;
           if (stat == null) {
