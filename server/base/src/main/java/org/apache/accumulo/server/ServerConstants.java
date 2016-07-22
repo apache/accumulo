@@ -47,13 +47,17 @@ public class ServerConstants {
   public static final Integer WIRE_VERSION = 3;
 
   /**
+   * version (8) reflects changes to RFile index (ACCUMULO-1124) in version 1.8.0
+   */
+  public static final int SHORTEN_RFILE_KEYS = 8;
+  /**
    * version (7) also reflects the addition of a replication table
    */
   public static final int MOVE_TO_REPLICATION_TABLE = 7;
   /**
    * this is the current data version
    */
-  public static final int DATA_VERSION = MOVE_TO_REPLICATION_TABLE;
+  public static final int DATA_VERSION = SHORTEN_RFILE_KEYS;
   /**
    * version (6) reflects the addition of a separate root table (ACCUMULO-1481) in version 1.6.0
    */
@@ -68,7 +72,7 @@ public class ServerConstants {
   public static final int LOGGING_TO_HDFS = 4;
   public static final BitSet CAN_UPGRADE = new BitSet();
   static {
-    for (int i : new int[] {DATA_VERSION, MOVE_TO_ROOT_TABLE, MOVE_DELETE_MARKERS, LOGGING_TO_HDFS}) {
+    for (int i : new int[] {DATA_VERSION, MOVE_TO_REPLICATION_TABLE, MOVE_TO_ROOT_TABLE}) {
       CAN_UPGRADE.set(i);
     }
   }
