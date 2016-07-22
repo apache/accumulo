@@ -61,7 +61,7 @@ public class MasterTime extends TimerTask {
   /**
    * How long has this cluster had a Master?
    *
-   * @returns Approximate total duration this cluster has had a Master, in milliseconds.
+   * @return Approximate total duration this cluster has had a Master, in milliseconds.
    */
   public synchronized long getTime() {
     return MILLISECONDS.convert(System.nanoTime() + skewAmount, NANOSECONDS);
