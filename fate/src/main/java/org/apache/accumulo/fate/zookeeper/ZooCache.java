@@ -63,6 +63,14 @@ public class ZooCache {
 
   private final ZooReader zReader;
 
+  /**
+   * Returns a ZooKeeper session. Calls should be made within {@link ZooRunnable#run()} of ZooRunnable after caches are checked. This will be performed at each
+   * {@link ZooRunnable#retry()} of the {@link ZooRunnable#run()} method. Calls to {@link #getZooKeeper()} should be made, ideally, after cache checks since
+   * other threads may have succeeded when updating the cache. Doing this will ensure that we don't pay the cost of retrieving a ZooKeeper session on each
+   * {@link ZooRunnable#retry()} until we've ensured the caches aren't populated for a given node.
+   *
+   * @return ZooKeeper session.
+   */
   private ZooKeeper getZooKeeper() {
     return zReader.getZooKeeper();
   }
@@ -155,10 +163,23 @@ public class ZooCache {
 
   private abstract class ZooRunnable<T> {
     /**
-     * Runs an operation against ZooKeeper, automatically retrying in the face of KeeperExceptions
+     * Runs an operation against ZooKeeper. Retries are performed by the {@link #retry()} method when KeeperExceptions occur.
+     *
+     * Changes were made in ACCUMULO-4388 so that the {@link #run()} method no longer accepts ZooKeeper as an argument, and instead relies on the ZooRunnable
+     * implementation to call {@link ZooCache#getZooKeeper()}. Performing the call to retrieving a ZooKeeper Session after caches are checked has the benefit of
+     * limiting ZK connections and blocking as a result of obtaining these sessions.
+     *
+     * @return T the result of the runnable
      */
     abstract T run() throws KeeperException, InterruptedException;
 
+    /**
+     * Retry will attempt to call the {@link #run()} method. The {@link #run()} method should make a call to {@link ZooCache#getZooKeeper()} after checks to
+     * cached information are made. This change, per ACCUMULO-4388, ensures that we don't create a ZooKeeper session when information is cached, and access to
+     * ZooKeeper is unnecessary.
+     *
+     * @return result of the runnable access success ( i.e. no exceptions ).
+     */
     public T retry() {
 
       int sleepTime = 100;
