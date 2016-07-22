@@ -468,10 +468,10 @@ public class CachableBlockFile {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T getIndex(Class<T> clazz) {
       T bi = null;
       synchronized (cb) {
-        @SuppressWarnings("unchecked")
         SoftReference<T> softRef = (SoftReference<T>) cb.getIndex();
         if (softRef != null)
           bi = softRef.get();

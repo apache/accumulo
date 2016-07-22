@@ -54,7 +54,7 @@ public class TablesCommand extends Command {
     tables = Maps.filterKeys(tables, tableName -> namespace == null || Tables.qualify(tableName).getFirst().equals(namespace));
 
     final boolean sortByTableId = cl.hasOption(sortByTableIdOption.getOpt());
-    tables = new TreeMap<>((sortByTableId ? MapUtils.invertMap(tables) : tables));
+    tables = new TreeMap<String,String>((sortByTableId ? MapUtils.invertMap(tables) : tables));
 
     Iterator<String> it = Iterators.transform(tables.entrySet().iterator(), entry -> {
       String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());
