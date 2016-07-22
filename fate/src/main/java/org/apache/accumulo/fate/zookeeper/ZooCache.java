@@ -157,7 +157,7 @@ public class ZooCache {
     /**
      * Runs an operation against ZooKeeper, automatically retrying in the face of KeeperExceptions
      */
-    abstract T run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException;
+    abstract T run() throws KeeperException, InterruptedException;
 
     public T retry() {
 
@@ -165,10 +165,8 @@ public class ZooCache {
 
       while (true) {
 
-        ZooKeeper zooKeeper = getZooKeeper();
-
         try {
-          return run(zooKeeper);
+          return run();
         } catch (KeeperException e) {
           final Code code = e.code();
           if (code == Code.NONODE) {
@@ -210,7 +208,7 @@ public class ZooCache {
     ZooRunnable<List<String>> zr = new ZooRunnable<List<String>>() {
 
       @Override
-      public List<String> run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException {
+      public List<String> run() throws KeeperException, InterruptedException {
         try {
           cacheReadLock.lock();
           if (childrenCache.containsKey(zPath)) {
@@ -225,6 +223,9 @@ public class ZooCache {
           if (childrenCache.containsKey(zPath)) {
             return childrenCache.get(zPath);
           }
+
+          final ZooKeeper zooKeeper = getZooKeeper();
+
           List<String> children = zooKeeper.getChildren(zPath, watcher);
           childrenCache.put(zPath, children);
           return children;
@@ -272,7 +273,7 @@ public class ZooCache {
     ZooRunnable<byte[]> zr = new ZooRunnable<byte[]>() {
 
       @Override
-      public byte[] run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException {
+      public byte[] run() throws KeeperException, InterruptedException {
         Stat stat = null;
         cacheReadLock.lock();
         try {
@@ -292,6 +293,7 @@ public class ZooCache {
          */
         cacheWriteLock.lock();
         try {
+          final ZooKeeper zooKeeper = getZooKeeper();
           stat = zooKeeper.exists(zPath, watcher);
           byte[] data = null;
           if (stat == null) {
