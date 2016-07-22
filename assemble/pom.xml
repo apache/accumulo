@@ -34,139 +34,180 @@
     <dependency>
       <groupId>com.beust</groupId>
       <artifactId>jcommander</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>jline</groupId>
       <artifactId>jline</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-docs</artifactId>
+      <classifier>user-manual</classifier>
+      <type>html</type>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-examples-simple</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-fate</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-gc</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-master</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-minicluster</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-monitor</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-native</artifactId>
       <type>tar.gz</type>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-proxy</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-server-base</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-shell</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-test</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-trace</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-tracer</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-tserver</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-vfs2</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.htrace</groupId>
       <artifactId>htrace-core</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.thrift</groupId>
       <artifactId>libthrift</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-http</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-io</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-security</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-server</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-servlet</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-util</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
+      <optional>true</optional>
     </dependency>
   </dependencies>
   <build>
@@ -219,11 +260,47 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>directory-assembly</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <finalName>${project.build.finalName}</finalName>
+              <outputDirectory>${DEV_ACCUMULO_HOME}</outputDirectory>
+              <formats>
+                <format>dir</format>
+              </formats>
+              <descriptors>
+                <descriptor>src/main/assemblies/dev-directory.xml</descriptor>
+              </descriptors>
+            </configuration>
+          </execution>
+          <execution>
+            <id>binary-assembly</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <descriptors>
+                <descriptor>src/main/assemblies/binary-release.xml</descriptor>
+              </descriptors>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <profiles>
     <profile>
-      <id>accumulo-release</id>
+      <!-- attach source release when it is created by the apache-release profile -->
+      <id>apache-release</id>
       <build>
         <plugins>
           <plugin>
@@ -249,78 +326,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-    <profile>
-      <id>assemble</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>binary-assembly</id>
-                <goals>
-                  <goal>single</goal>
-                </goals>
-                <phase>package</phase>
-                <configuration>
-                  <descriptors>
-                    <descriptor>src/main/assemblies/binary-release.xml</descriptor>
-                  </descriptors>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>make-accumulo-home</id>
-      <activation>
-        <!-- always activate, unless explicitly de-activated -->
-        <file>
-          <exists>pom.xml</exists>
-        </file>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>directory-assembly</id>
-                <goals>
-                  <goal>single</goal>
-                </goals>
-                <phase>package</phase>
-                <configuration>
-                  <finalName>${project.build.finalName}</finalName>
-                  <outputDirectory>${DEV_ACCUMULO_HOME}</outputDirectory>
-                  <formats>
-                    <format>dir</format>
-                  </formats>
-                  <descriptors>
-                    <descriptor>src/main/assemblies/dev-directory.xml</descriptor>
-                  </descriptors>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>docs</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.accumulo</groupId>
-          <artifactId>accumulo-docs</artifactId>
-          <classifier>user-manual</classifier>
-          <type>html</type>
-        </dependency>
-      </dependencies>
     </profile>
   </profiles>
 </project>
