@@ -277,7 +277,7 @@ if [[ $1 == '--create-release-candidate' ]]; then
 elif [[ $1 == '--test' ]]; then
   cacheGPG
   # build a tag, but with tests
-  runOrFail mvn clean install -P apache-release,thrift,assemble,docs,accumulo-release
+  runOrFail mvn clean install -P apache-release,accumulo-release,thrift
 elif [[ $1 == '--create-email' ]]; then
   shift
   createEmail "$@"
