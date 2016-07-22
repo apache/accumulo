@@ -40,7 +40,7 @@ public class Main {
 
       Class<?> vfsClassLoader = AccumuloClassLoader.getClassLoader().loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
 
-      ClassLoader cl = (ClassLoader) vfsClassLoader.getMethod("getClassLoader", new Class[] {}).invoke(null, new Object[] {});
+      ClassLoader cl = (ClassLoader) vfsClassLoader.getMethod("getClassLoader", new Class<?>[] {}).invoke(null, new Object[] {});
 
       Class<?> runTMP = null;
 
@@ -70,7 +70,7 @@ public class Main {
       } else if (args[0].equals("minicluster")) {
         runTMP = cl.loadClass("org.apache.accumulo.minicluster.MiniAccumuloRunner");
       } else if (args[0].equals("classpath")) {
-        vfsClassLoader.getMethod("printClassPath", new Class[] {}).invoke(vfsClassLoader, new Object[] {});
+        vfsClassLoader.getMethod("printClassPath", new Class<?>[] {}).invoke(vfsClassLoader, new Object[] {});
         return;
       } else if (args[0].equals("version")) {
         runTMP = cl.loadClass("org.apache.accumulo.core.Constants");

@@ -153,7 +153,7 @@ public class DistributedWorkQueue {
 
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService) throws KeeperException, InterruptedException {
 
-    threadPool = (ThreadPoolExecutor) executorService;
+    threadPool = executorService;
 
     zoo.mkdirs(path);
     zoo.mkdirs(path + "/" + LOCKS_NODE);

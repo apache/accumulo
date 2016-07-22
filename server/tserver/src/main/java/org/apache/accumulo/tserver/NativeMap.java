@@ -275,7 +275,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     @SuppressWarnings("unchecked")
     ConcurrentIterator(Key key) {
       // start off with a small read ahead
-      nextEntries = new Entry[1];
+      nextEntries = (Entry<Key,Value>[]) new Entry<?,?>[1];
 
       rlock.lock();
       try {
@@ -299,7 +299,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       // as we keep filling, increase the read ahead buffer
       if (nextEntries.length < MAX_READ_AHEAD_ENTRIES)
-        nextEntries = new Entry[Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES)];
+        nextEntries = (Entry<Key,Value>[]) new Entry<?,?>[Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES)];
 
       while (source.hasNext() && end < nextEntries.length) {
         Entry<Key,Value> ne = source.next();

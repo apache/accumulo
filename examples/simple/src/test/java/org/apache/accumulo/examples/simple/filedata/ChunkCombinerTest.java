@@ -83,7 +83,7 @@ public class ChunkCombinerTest extends TestCase {
           entry = null;
           continue;
         }
-        if (range.afterEndKey((Key) entry.getKey()))
+        if (range.afterEndKey(entry.getKey()))
           entry = null;
         break;
       }

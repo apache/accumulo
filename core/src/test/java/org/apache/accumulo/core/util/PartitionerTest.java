@@ -39,7 +39,7 @@ public class PartitionerTest {
   public void test1() {
 
     @SuppressWarnings("unchecked")
-    Map<ByteSequence,MutableLong>[] groups = new Map[2];
+    Map<ByteSequence,MutableLong>[] groups = (Map<ByteSequence,MutableLong>[]) new Map<?,?>[2];
 
     groups[0] = new HashMap<ByteSequence,MutableLong>();
     groups[0].put(new ArrayByteSequence("cf1"), new MutableLong(1));
@@ -71,7 +71,7 @@ public class PartitionerTest {
 
     List<Mutation> mutations = Arrays.asList(m1, m2, m3, m4, m5);
     @SuppressWarnings("unchecked")
-    List<Mutation>[] partitioned = new List[3];
+    List<Mutation>[] partitioned = (List<Mutation>[]) new List<?>[3];
 
     for (int i = 0; i < partitioned.length; i++) {
       partitioned[i] = new ArrayList<Mutation>();

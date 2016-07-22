@@ -28,7 +28,7 @@ import org.apache.log4j.Logger;
 
 class NamespaceCleanUp extends MasterRepo {
 
-  final private static Logger log = Logger.getLogger(CleanUp.class);
+  final private static Logger log = Logger.getLogger(NamespaceCleanUp.class);
 
   private static final long serialVersionUID = 1L;
 
@@ -63,7 +63,7 @@ class NamespaceCleanUp extends MasterRepo {
 
     Utils.unreserveNamespace(namespaceId, id, true);
 
-    Logger.getLogger(CleanUp.class).debug("Deleted namespace " + namespaceId);
+    log.debug("Deleted namespace " + namespaceId);
 
     return null;
   }

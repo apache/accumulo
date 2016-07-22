@@ -274,9 +274,9 @@ public class InMemoryMap {
 
     @SuppressWarnings("unchecked")
     LocalityGroupMap(Map<String,Set<ByteSequence>> groups, boolean useNativeMap) {
-      this.groupFams = new Map[groups.size()];
+      this.groupFams = (Map<ByteSequence,MutableLong>[]) new Map<?,?>[groups.size()];
       this.maps = new SimpleMap[groups.size() + 1];
-      this.partitioned = new List[groups.size() + 1];
+      this.partitioned = (List<Mutation>[]) new List<?>[groups.size() + 1];
       this.nonDefaultColumnFamilies = new HashSet<ByteSequence>();
 
       for (int i = 0; i < maps.length; i++) {
