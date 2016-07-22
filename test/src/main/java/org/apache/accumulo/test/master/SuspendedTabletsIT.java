@@ -286,7 +286,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     public int hostedCount = 0;
     public int assignedCount = 0;
     public int suspendedCount = 0;
-    public int unassignedCount = 0;
 
     private TabletLocations() {}
 
@@ -340,7 +339,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
           } else if (tls.future != null) {
             ++assignedCount;
           } else {
-            unassignedCount += 1;
+            // unassigned case
           }
         }
       }
