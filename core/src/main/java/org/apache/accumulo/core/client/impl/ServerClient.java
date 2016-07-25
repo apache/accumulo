@@ -58,9 +58,9 @@ public class ServerClient {
     }
   }
 
-  public static void execute(ClientContext context, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  public static void executeVoid(ClientContext context, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
-      executeRaw(context, exec);
+      executeRawVoid(context, exec);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (AccumuloException e) {
@@ -89,7 +89,7 @@ public class ServerClient {
     }
   }
 
-  public static void executeRaw(ClientContext context, ClientExec<ClientService.Client> exec) throws Exception {
+  public static void executeRawVoid(ClientContext context, ClientExec<ClientService.Client> exec) throws Exception {
     while (true) {
       ClientService.Client client = null;
       String server = null;

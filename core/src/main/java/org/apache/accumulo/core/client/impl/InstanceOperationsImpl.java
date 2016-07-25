@@ -66,7 +66,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
-    MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
+    MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
         client.setSystemProperty(Tracer.traceInfo(), context.rpcCreds(), property, value);
@@ -77,7 +77,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException {
     checkArgument(property != null, "property is null");
-    MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
+    MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
         client.removeSystemProperty(Tracer.traceInfo(), context.rpcCreds(), property);
@@ -210,7 +210,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void waitForBalance() throws AccumuloException {
     try {
-      MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
+      MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
         @Override
         public void execute(MasterClientService.Client client) throws Exception {
           client.waitForBalance(Tracer.traceInfo());

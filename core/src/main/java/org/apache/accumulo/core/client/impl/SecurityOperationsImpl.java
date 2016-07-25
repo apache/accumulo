@@ -48,9 +48,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
   private final ClientContext context;
 
-  private void execute(ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+  private void executeVoid(ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
-      ServerClient.executeRaw(context, exec);
+      ServerClient.executeRawVoid(context, exec);
     } catch (ThriftTableOperationException ttoe) {
       // recast missing table
       if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
@@ -99,7 +99,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     if (null == context.getSaslParams()) {
       checkArgument(password != null, "password is null");
     }
-    execute(new ClientExec<ClientService.Client>() {
+    executeVoid(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
         if (null == context.getSaslParams()) {
@@ -114,7 +114,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   @Override
   public void dropLocalUser(final String principal) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
-    execute(new ClientExec<ClientService.Client>() {
+    executeVoid(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
         client.dropLocalUser(Tracer.traceInfo(), context.rpcCreds(), principal);
@@ -140,7 +140,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(token != null, "token is null");
     final Credentials toChange = new Credentials(principal, token);
-    execute(new ClientExec<ClientService.Client>() {
+    executeVoid(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
         client.changeLocalUserPassword(Tracer.traceInfo(), context.rpcCreds(), principal, ByteBuffer.wrap(token.getPassword()));
@@ -155,7 +155,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void changeUserAuthorizations(final String principal, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
     checkArgument(authorizations != null, "authorizations is null");
-    execute(new ClientExec<ClientService.Client>() {
+    executeVoid(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
         client.changeAuthorizations(Tracer.traceInfo(), context.rpcCreds(), principal, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
@@ -224,7 +224,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void grantSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
     checkArgument(permission != null, "permission is null");
-    execute(new ClientExec<ClientService.Client>() {
+    executeVoid(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
         client.grantSystemPermission(Tracer.traceInfo(), context.rpcCreds(), principal, permission.getId());
@@ -239,7 +239,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(table != null, "table is null");
     checkArgument(permission != null, "permission is null");
     try {
-      execute(new ClientExec<ClientService.Client>() {
+      executeVoid(new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client client) throws Exception {
           client.grantTablePermission(Tracer.traceInfo(), context.rpcCreds(), principal, table, permission.getId());
@@ -259,7 +259,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(namespace != null, "namespace is null");
     checkArgument(permission != null, "permission is null");
-    execute(new ClientExec<ClientService.Client>() {
+    executeVoid(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
         client.grantNamespacePermission(Tracer.traceInfo(), context.rpcCreds(), principal, namespace, permission.getId());
@@ -271,7 +271,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void revokeSystemPermission(final String principal, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
     checkArgument(permission != null, "permission is null");
-    execute(new ClientExec<ClientService.Client>() {
+    executeVoid(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
         client.revokeSystemPermission(Tracer.traceInfo(), context.rpcCreds(), principal, permission.getId());
@@ -286,7 +286,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(table != null, "table is null");
     checkArgument(permission != null, "permission is null");
     try {
-      execute(new ClientExec<ClientService.Client>() {
+      executeVoid(new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client client) throws Exception {
           client.revokeTablePermission(Tracer.traceInfo(), context.rpcCreds(), principal, table, permission.getId());
@@ -306,7 +306,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(namespace != null, "namespace is null");
     checkArgument(permission != null, "permission is null");
-    execute(new ClientExec<ClientService.Client>() {
+    executeVoid(new ClientExec<ClientService.Client>() {
       @Override
       public void execute(ClientService.Client client) throws Exception {
         client.revokeNamespacePermission(Tracer.traceInfo(), context.rpcCreds(), principal, namespace, permission.getId());

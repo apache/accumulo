@@ -62,7 +62,7 @@ public class ConnectorImpl extends Connector {
     // Skip fail fast for system services; string literal for class name, to avoid dependency on server jar
     final String tokenClassName = context.getCredentials().getToken().getClass().getName();
     if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
-      ServerClient.execute(context, new ClientExec<ClientService.Client>() {
+      ServerClient.executeVoid(context, new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client iface) throws Exception {
           if (!iface.authenticate(Tracer.traceInfo(), context.rpcCreds()))
