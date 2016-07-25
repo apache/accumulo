@@ -1282,6 +1282,10 @@
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
       </properties>
+    </profile>
+    <profile>
+      <!-- set proper source assembly name with apache-release and don't attach here -->
+      <id>apache-release</id>
       <build>
         <pluginManagement>
           <plugins>
