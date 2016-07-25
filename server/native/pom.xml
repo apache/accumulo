@@ -77,6 +77,21 @@
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
           <execution>
+            <id>assemble-native-directory</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <attach>false</attach>
+              <appendAssemblyId>false</appendAssemblyId>
+              <finalName>${project.build.finalName}</finalName>
+              <descriptors>
+                <descriptor>src/main/assemblies/native-dir.xml</descriptor>
+              </descriptors>
+            </configuration>
+          </execution>
+          <execution>
             <id>assemble-native-tarball</id>
             <goals>
               <goal>single</goal>

@@ -26,10 +26,6 @@
   <packaging>pom</packaging>
   <name>Apache Accumulo</name>
   <description>Apache Accumulo packages.</description>
-  <properties>
-    <DEV_ACCUMULO_HOME>${project.build.directory}</DEV_ACCUMULO_HOME>
-    <accumulo-top>..</accumulo-top>
-  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>
@@ -264,23 +260,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
-          <execution>
-            <id>directory-assembly</id>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <phase>package</phase>
-            <configuration>
-              <finalName>${project.build.finalName}</finalName>
-              <outputDirectory>${DEV_ACCUMULO_HOME}</outputDirectory>
-              <formats>
-                <format>dir</format>
-              </formats>
-              <descriptors>
-                <descriptor>src/main/assemblies/dev-directory.xml</descriptor>
-              </descriptors>
-            </configuration>
-          </execution>
           <execution>
             <id>binary-assembly</id>
             <goals>
