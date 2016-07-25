@@ -322,13 +322,10 @@ abstract class TabletGroupWatcher extends Daemon {
               case SUSPENDED:
                 // Request a move to UNASSIGNED, so as to allow balancing to continue.
                 suspendedToGoneServers.add(tls);
-                // Fall through to unassigned to cancel migrations.
+                cancelOfflineTableMigrations(tls);
+                break;
               case UNASSIGNED:
-                TServerInstance dest = this.master.migrations.get(tls.extent);
-                TableState tableState = TableManager.getInstance().getTableState(tls.extent.getTableId());
-                if (dest != null && tableState == TableState.OFFLINE) {
-                  this.master.migrations.remove(tls.extent);
-                }
+                cancelOfflineTableMigrations(tls);
                 break;
               case ASSIGNED_TO_DEAD_SERVER:
                 assignedToDeadServers.add(tls);
@@ -398,6 +395,14 @@ abstract class TabletGroupWatcher extends Daemon {
           }
         }
       }
+    }
+  }
+
+  private void cancelOfflineTableMigrations(TabletLocationState tls) {
+    TServerInstance dest = this.master.migrations.get(tls.extent);
+    TableState tableState = TableManager.getInstance().getTableState(tls.extent.getTableId());
+    if (dest != null && tableState == TableState.OFFLINE) {
+      this.master.migrations.remove(tls.extent);
     }
   }
 
