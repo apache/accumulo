@@ -417,7 +417,10 @@ public class CachableBlockFile {
         _bc.close();
 
       if (fin != null) {
-        fin.close();
+        // synchronize on the FSDataInputStream to ensure thread safety with the BoundedRangeFileInputStream
+        synchronized (fin) {
+          fin.close();
+        }
       }
     }
 
