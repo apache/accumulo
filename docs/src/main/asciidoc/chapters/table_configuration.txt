@@ -454,6 +454,28 @@ table. In 1.4 the ability to compact a range of a table was added. To use this
 feature specify start and stop rows for the compact command. This will only
 compact tablets that overlap the given row range.
 
+==== Compaction Strategies
+
+The default behavior of major compactions is defined in the class DefaultCompactionStrategy. 
+This behavior can be changed by overriding the following property with a fully qualified class name:
+
+  table.majc.compaction.strategy
+
+Custom compaction strategies can have additional properties that are specified following the prefix property:
+
+  table.majc.compaction.strategy.opts.*
+
+Accumulo provides a few classes that can be used as an alternative compaction strategy. These classes are located in the 
+org.apache.accumulo.tserver.compaction.* package. EverythingCompactionStrategy will simply compact all files. This is the 
+strategy used by the user "compact" command. SizeLimitCompactionStrategy compacts files no bigger than the limit set in the
+property table.majc.compaction.strategy.opts.sizeLimit. 
+
+TwoTierCompactionStrategy is a hybrid compaction strategy that supports two types of compression. If the total size of 
+files being compacted is larger than table.majc.compaction.strategy.opts.file.large.compress.threshold than a larger 
+compression type will be used. The larger compression type is specified in table.majc.compaction.strategy.opts.file.large.compress.type. 
+Otherwise, the configured table compression will be used. To use this strategy with minor compactions set table.file.compress.type=snappy 
+and set a different compress type in table.majc.compaction.strategy.opts.file.large.compress.type for larger files.
+
 === Pre-splitting tables
 
 Accumulo will balance and distribute tables across servers. Before a
