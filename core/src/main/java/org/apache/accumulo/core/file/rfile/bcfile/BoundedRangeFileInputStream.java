@@ -62,12 +62,15 @@ class BoundedRangeFileInputStream extends InputStream {
 
   @Override
   public int available() throws IOException {
-    int avail = in.available();
-    if (pos + avail > end) {
-      avail = (int) (end - pos);
-    }
+    final FSDataInputStream inLocal = in;
+    synchronized (inLocal) {
+      int avail = inLocal.available();
+      if (pos + avail > end) {
+        avail = (int) (end - pos);
+      }
 
-    return avail;
+      return avail;
+    }
   }
 
   @Override
