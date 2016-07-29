@@ -26,21 +26,23 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
 
 /**
- * A hybrid compaction strategy that supports two types of compression. If total size of files being compacted is less than
- * <tt>table.custom.file.small.compress.threshold</tt> than the faster compression type will be used. The faster compression type is specified in
- * <tt>table.custom.file.small.compress.type</tt>. Otherwise, the normal table compression will be used.
+ * A hybrid compaction strategy that supports two types of compression. If total size of files being compacted is larger than
+ * <tt>table.custom.file.large.compress.threshold</tt> than the larger compression type will be used. The larger compression type is specified in
+ * <tt>table.custom.file.large.compress.type</tt>. Otherwise, the configured table compression will be used.
  *
+ * NOTE: To use this strategy with Minor Compactions set <tt>table.file.compress.type=snappy</tt> and set a different compress type in
+ * <tt>table.custom.file.large.compress.type</tt> for larger files.
  */
 public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
 
   /**
-   * Threshold memory in bytes. Files smaller than this threshold will use <tt>table.custom.file.small.compress.type</tt> for compression
+   * Threshold memory in bytes. Files larger than this threshold will use <tt>table.custom.file.large.compress.type</tt> for compression
    */
-  public static final String TABLE_SMALL_FILE_COMPRESSION_THRESHOLD = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "file.small.compress.threshold";
+  public static final String TABLE_LARGE_FILE_COMPRESSION_THRESHOLD = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "file.large.compress.threshold";
   /**
-   * Type of compression to use if small threshold is surpassed. One of "gz","lzo","snappy", or "none"
+   * Type of compression to use if large threshold is surpassed. One of "gz","lzo","snappy", or "none"
    */
-  public static final String TABLE_SMALL_FILE_COMPRESSION_TYPE = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "file.small.compress.type";
+  public static final String TABLE_LARGE_FILE_COMPRESSION_TYPE = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "file.large.compress.type";
 
   /**
    * Helper method to check for required table properties.
@@ -76,17 +78,17 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
     Map<String,String> tableProperties = request.getTableProperties();
     verifyRequiredProperties(tableProperties);
 
-    String smallFileCompressionType = tableProperties.get(TABLE_SMALL_FILE_COMPRESSION_TYPE);
-    String threshold = tableProperties.get(TABLE_SMALL_FILE_COMPRESSION_THRESHOLD);
-    verifyRequiredProperties(smallFileCompressionType, threshold);
-    Long smallFileCompressionThreshold = AccumuloConfiguration.getMemoryInBytes(threshold);
+    String largeFileCompressionType = tableProperties.get(TABLE_LARGE_FILE_COMPRESSION_TYPE);
+    String threshold = tableProperties.get(TABLE_LARGE_FILE_COMPRESSION_THRESHOLD);
+    verifyRequiredProperties(largeFileCompressionType, threshold);
+    Long largeFileCompressionThreshold = AccumuloConfiguration.getMemoryInBytes(threshold);
 
     long totalSize = 0;
     for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
       totalSize += entry.getValue().getSize();
     }
-    if (totalSize < smallFileCompressionThreshold) {
-      plan.writeParameters.setCompressType(smallFileCompressionType);
+    if (totalSize > largeFileCompressionThreshold) {
+      plan.writeParameters.setCompressType(largeFileCompressionType);
     }
     return plan;
   }

@@ -34,7 +34,7 @@ import org.junit.Test;
  * Tests org.apache.accumulo.tserver.compaction.TwoTierCompactionStrategy
  */
 public class TwoTierCompactionStrategyTest {
-  private String smallCompressionType = "snappy";
+  private String largeCompressionType = "gz";
   private TwoTierCompactionStrategy ttcs = null;
   private MajorCompactionRequest mcr = null;
   private AccumuloConfiguration conf = null;
@@ -51,33 +51,18 @@ public class TwoTierCompactionStrategyTest {
 
   private AccumuloConfiguration createProperTableConfiguration() {
     ConfigurationCopy result = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
-    result.set(TwoTierCompactionStrategy.TABLE_SMALL_FILE_COMPRESSION_TYPE, smallCompressionType);
-    result.set(TwoTierCompactionStrategy.TABLE_SMALL_FILE_COMPRESSION_THRESHOLD, "500M");
+    result.set(TwoTierCompactionStrategy.TABLE_LARGE_FILE_COMPRESSION_TYPE, largeCompressionType);
+    result.set(TwoTierCompactionStrategy.TABLE_LARGE_FILE_COMPRESSION_THRESHOLD, "500M");
     return result;
   }
 
   @Before
   public void setup() {
     ttcs = new TwoTierCompactionStrategy();
-
   }
 
   @Test
   public void testDefaultCompaction() throws IOException {
-    conf = createProperTableConfiguration();
-    KeyExtent ke = new KeyExtent("0", null, null);
-    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null, conf);
-    Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G");
-    mcr.setFiles(fileMap);
-
-    Assert.assertTrue(ttcs.shouldCompact(mcr));
-    Assert.assertEquals(fileMap.keySet(), new HashSet<>(ttcs.getCompactionPlan(mcr).inputFiles));
-    Assert.assertEquals(4, mcr.getFiles().size());
-    Assert.assertEquals(null, ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
-  }
-
-  @Test
-  public void testSmallCompaction() throws IOException {
     conf = createProperTableConfiguration();
     KeyExtent ke = new KeyExtent("0", null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null, conf);
@@ -88,7 +73,22 @@ public class TwoTierCompactionStrategyTest {
     Assert.assertTrue(ttcs.shouldCompact(mcr));
     Assert.assertEquals(fileMap.keySet(), new HashSet<>(ttcs.getCompactionPlan(mcr).inputFiles));
     Assert.assertEquals(8, mcr.getFiles().size());
-    Assert.assertEquals(smallCompressionType, ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
+    Assert.assertEquals(null, ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
+  }
+
+  @Test
+  public void testLargeCompaction() throws IOException {
+    conf = createProperTableConfiguration();
+    KeyExtent ke = new KeyExtent("0", null, null);
+    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null, conf);
+    Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G");
+
+    mcr.setFiles(fileMap);
+
+    Assert.assertTrue(ttcs.shouldCompact(mcr));
+    Assert.assertEquals(fileMap.keySet(), new HashSet<>(ttcs.getCompactionPlan(mcr).inputFiles));
+    Assert.assertEquals(4, mcr.getFiles().size());
+    Assert.assertEquals(largeCompressionType, ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
   }
 
   @Test
