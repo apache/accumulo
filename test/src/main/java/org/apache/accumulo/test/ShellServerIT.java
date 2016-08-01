@@ -686,7 +686,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // addauths
     ts.exec("createtable " + table + " -evc");
     boolean success = false;
-    for (int i = 0; i < 9 && !success; i++) {
+    // Rely on the timeout rule in AccumuloIT
+    while (!success) {
       try {
         ts.exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
           @Override
@@ -699,32 +700,21 @@ public class ShellServerIT extends SharedMiniClusterBase {
             }
           }
         });
+        success = true;
       } catch (AssertionError e) {
-        Thread.sleep(200);
+        Thread.sleep(500);
       }
-    }
-    if (!success) {
-      ts.exec("insert a b c d -l foo", false, "does not have authorization", true, new ErrorMessageCallback() {
-        @Override
-        public String getErrorMessage() {
-          try {
-            Connector c = getConnector();
-            return "Current auths for root are: " + c.securityOperations().getUserAuthorizations("root").toString();
-          } catch (Exception e) {
-            return "Could not check authorizations";
-          }
-        }
-      });
     }
     ts.exec("addauths -s foo,bar", true);
     boolean passed = false;
-    for (int i = 0; i < 50 && !passed; i++) {
+    // Rely on the timeout rule in AccumuloIT
+    while (!passed) {
       try {
         ts.exec("getauths", true, "foo", true);
         ts.exec("getauths", true, "bar", true);
         passed = true;
       } catch (AssertionError | Exception e) {
-        sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
     }
     assertTrue("Could not successfully see updated authoriations", passed);
