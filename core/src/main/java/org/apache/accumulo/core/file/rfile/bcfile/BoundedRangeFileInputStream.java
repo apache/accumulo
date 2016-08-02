@@ -60,17 +60,15 @@ class BoundedRangeFileInputStream extends InputStream {
     this.mark = -1;
   }
 
+  private void check() throws IOException {
+    if (in == null) {
+      throw new IOException("Stream closed");
+    }
+  }
+
   @Override
   public int available() throws IOException {
-    final FSDataInputStream inLocal = in;
-    synchronized (inLocal) {
-      int avail = inLocal.available();
-      if (pos + avail > end) {
-        avail = (int) (end - pos);
-      }
-
-      return avail;
-    }
+    return (int) (end - pos);
   }
 
   @Override
@@ -97,7 +95,9 @@ class BoundedRangeFileInputStream extends InputStream {
       return -1;
     Integer ret = 0;
     final FSDataInputStream inLocal = in;
+    check(); // ensuring inLocal is not null
     synchronized (inLocal) {
+      check(); // ensuring in is not null in which case we were closed which would be followed by someone else reusing the decompressor
       inLocal.seek(pos);
       try {
         ret = AccessController.doPrivileged(new PrivilegedExceptionAction<Integer>() {
@@ -149,9 +149,13 @@ class BoundedRangeFileInputStream extends InputStream {
 
   @Override
   public void close() {
-    // Invalidate the state of the stream.
-    in = null;
-    pos = end;
-    mark = -1;
+    final FSDataInputStream inLocal = in;
+    if (inLocal != null) {
+      // synchronize on the FSDataInputStream to ensure we block closing if in the read method
+      synchronized (inLocal) {
+        // Invalidate the state of the stream.
+        in = null;
+      }
+    }
   }
 }
