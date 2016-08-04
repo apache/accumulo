@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
  */
 class BoundedRangeFileInputStream extends InputStream {
 
+  private volatile boolean closed = false;
   private FSDataInputStream in;
   private long pos;
   private long end;
@@ -58,12 +59,6 @@ class BoundedRangeFileInputStream extends InputStream {
     this.pos = offset;
     this.end = offset + length;
     this.mark = -1;
-  }
-
-  private void check() throws IOException {
-    if (in == null) {
-      throw new IOException("Stream closed");
-    }
   }
 
   @Override
@@ -94,17 +89,18 @@ class BoundedRangeFileInputStream extends InputStream {
     if (n == 0)
       return -1;
     Integer ret = 0;
-    final FSDataInputStream inLocal = in;
-    check(); // ensuring inLocal is not null
-    synchronized (inLocal) {
-      check(); // ensuring in is not null in which case we were closed which would be followed by someone else reusing the decompressor
-      inLocal.seek(pos);
+    synchronized (in) {
+      // ensuring we are not closed which would be followed by someone else reusing the decompressor
+      if (closed) {
+        throw new IOException("Stream closed");
+      }
+      in.seek(pos);
       try {
         ret = AccessController.doPrivileged(new PrivilegedExceptionAction<Integer>() {
           @Override
           public Integer run() throws IOException {
             int ret = 0;
-            ret = inLocal.read(b, off, n);
+            ret = in.read(b, off, n);
             return ret;
           }
         });
@@ -149,13 +145,10 @@ class BoundedRangeFileInputStream extends InputStream {
 
   @Override
   public void close() {
-    final FSDataInputStream inLocal = in;
-    if (inLocal != null) {
-      // synchronize on the FSDataInputStream to ensure we block closing if in the read method
-      synchronized (inLocal) {
-        // Invalidate the state of the stream.
-        in = null;
-      }
+    // synchronize on the FSDataInputStream to ensure we are blocked if in the read method
+    synchronized (in) {
+      // Invalidate the state of the stream.
+      closed = true;
     }
   }
 }
