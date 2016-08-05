@@ -779,6 +779,8 @@ public class TabletServer extends AbstractServer {
     SimpleTimer.getInstance(aconf).schedule(new BulkImportCacheCleaner(this),
         CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS);
 
+    SimpleTimer.getInstance(aconf).schedule(new CompressionUpdater(aconf), 10000, 30000);
+
     HostAndPort masterHost;
     while (!serverStopRequested) {
       // send all of the pending messages
