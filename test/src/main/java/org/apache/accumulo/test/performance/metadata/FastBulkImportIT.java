@@ -51,7 +51,7 @@ public class FastBulkImportIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 60;
+    return 120;
   }
 
   @Override
