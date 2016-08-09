@@ -708,6 +708,8 @@ public class MetadataTableUtil {
   }
 
   private static Scanner createCloneScanner(String tableName, String tableId, Connector conn) throws TableNotFoundException {
+    if (tableId.equals(MetadataTable.ID))
+      tableName = RootTable.NAME;
     Scanner mscanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
     mscanner.fetchColumnFamily(DataFileColumnFamily.NAME);

@@ -49,8 +49,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
@@ -58,8 +59,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletStateChangeIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -68,21 +67,11 @@ import com.google.common.collect.Sets;
  * Test to ensure that the {@link TabletStateChangeIterator} properly skips over tablet information in the metadata table when there is no work to be done on
  * the tablet (see ACCUMULO-3580)
  */
-public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
+public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   @Override
   public int defaultTimeoutSeconds() {
-    return 2 * 60;
-  }
-
-  @BeforeClass
-  public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
-  }
-
-  @AfterClass
-  public static void teardown() throws Exception {
-    SharedMiniClusterBase.stopMiniCluster();
+    return 3 * 60;
   }
 
   @Test
@@ -102,6 +91,9 @@ public class TabletStateChangeIteratorIT extends SharedMiniClusterBase {
     cloneMetadataTable(cloned);
 
     State state = new State();
+    while (findTabletsNeedingAttention(cloned, state) > 0) {
+      UtilWaitThread.sleep(500);
+    }
     assertEquals("No tables should need attention", 0, findTabletsNeedingAttention(cloned, state));
 
     // test the assigned case (no location)
