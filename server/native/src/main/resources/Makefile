@@ -23,10 +23,10 @@ USERFLAGS=$(shell env | grep "^USERFLAGS=" | cut -d= -f2)
 ifeq ($(shell uname),Linux)
 	JAVA_HOME=$(shell env | grep "^JAVA_HOME=" | cut -d= -f2)
 	ifeq ($(strip $(JAVA_HOME)),)
-		JAVA_HOME=$(shell dirname $$(dirname $$(readlink -ef $$(which javah))))
+		JAVA_HOME=$(shell dirname "$$(dirname "$$(readlink -e "$$(which javah)")")")
 	endif
 	NATIVE_LIB := libaccumulo.so
-	CXXFLAGS=-g -fPIC -shared -O3 -Wall -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -Ijavah $(USERFLAGS)
+	CXXFLAGS=-g -fPIC -shared -O3 -Wall -I'$(JAVA_HOME)'/include -I'$(JAVA_HOME)'/include/linux -Ijavah $(USERFLAGS)
 endif
 
 ifeq ($(shell uname),Darwin)
@@ -38,10 +38,12 @@ ifeq ($(shell uname),Darwin)
 ifneq (,$(findstring 10.9,$(shell sw_vers -productVersion)))
 	MAVERICKFLAGS=-stdlib=libstdc++
 endif
-	CXXFLAGS=-dynamiclib -undefined dynamic_lookup -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin -Ijavah $(USERFLAGS) $(MAVERICK_FLAGS)
+	CXXFLAGS=-dynamiclib -undefined dynamic_lookup -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers -I'$(JAVA_HOME)'/include -I'$(JAVA_HOME)'/include/darwin -Ijavah $(USERFLAGS) $(MAVERICK_FLAGS)
 endif
 
-ifeq (,$(wildcard $(JAVA_HOME)/bin/javah))
+# escape space and parens in path for wildcard
+JAVA_HOME_ESCAPED=$(shell echo '$(JAVA_HOME)' | sed 's/ /\\ /g' | sed 's/\([()]\)/\\\1/g')
+ifeq (,$(wildcard $(JAVA_HOME_ESCAPED)/bin/javah))
 $(error "JAVA_HOME does not point to a JDK. Exiting...")
 endif
 
@@ -53,11 +55,12 @@ $(NATIVE_LIB) : $(SRCS) $(HDRS)
 test : $(NATIVE_LIB) testJavaHome runTests
 
 testJavaHome :
-	@echo JAVA_HOME is $(JAVA_HOME)
+	@echo 'JAVA_HOME is $(JAVA_HOME)'
 
-runTests : $(NATIVE_LIB) $(TESTSRCS)
-	$(CXX) -g -Wall -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/include/darwin -InativeMap -o $@ $(TESTSRCS) $(NATIVE_LIB) $(MAVERICK_FLAGS)
+runTests : $(NATIVE_LIB) $(TESTSRCS) $(OUTPUT_DIR)
+	$(CXX) -g -Wall -I/System/Library/Frameworks/JavaVM.framework/Headers -I'$(JAVA_HOME)'/include -I'$(JAVA_HOME)'/include/linux -I'$(JAVA_HOME)'/include/darwin -InativeMap -o $@ $(TESTSRCS) $(NATIVE_LIB) $(MAVERICK_FLAGS)
 	LD_LIBRARY_PATH=./ ./$@ 20 20 20 20 20 20 20 20 true
+	if [ ! -z "$(OUTPUT_DIR)" ]; then cp '$(NATIVE_LIB)' "$(OUTPUT_DIR)"; fi
 
 clean :
-	rm -f $(NATIVE_LIB) runTests
+	rm -f '$(NATIVE_LIB)' runTests
