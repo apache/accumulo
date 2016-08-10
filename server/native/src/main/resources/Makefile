@@ -20,6 +20,10 @@ CXX=g++
 MAVERICKFLAGS=
 USERFLAGS=$(shell env | grep "^USERFLAGS=" | cut -d= -f2)
 
+ifneq (,$(OUTPUT_DIR))
+	OUTPUT_DIR_ESCAPED=$(shell echo '$(OUTPUT_DIR)' | sed 's/ /\\ /g' | sed 's/\([()]\)/\\\1/g')
+endif
+
 ifeq ($(shell uname),Linux)
 	JAVA_HOME=$(shell env | grep "^JAVA_HOME=" | cut -d= -f2)
 	ifeq ($(strip $(JAVA_HOME)),)
@@ -57,7 +61,7 @@ test : $(NATIVE_LIB) testJavaHome runTests
 testJavaHome :
 	@echo 'JAVA_HOME is $(JAVA_HOME)'
 
-runTests : $(NATIVE_LIB) $(TESTSRCS) $(OUTPUT_DIR)
+runTests : $(NATIVE_LIB) $(TESTSRCS) $(OUTPUT_DIR_ESCAPED)
 	$(CXX) -g -Wall -I/System/Library/Frameworks/JavaVM.framework/Headers -I'$(JAVA_HOME)'/include -I'$(JAVA_HOME)'/include/linux -I'$(JAVA_HOME)'/include/darwin -InativeMap -o $@ $(TESTSRCS) $(NATIVE_LIB) $(MAVERICK_FLAGS)
 	LD_LIBRARY_PATH=./ ./$@ 20 20 20 20 20 20 20 20 true
 	if [ ! -z "$(OUTPUT_DIR)" ]; then cp '$(NATIVE_LIB)' "$(OUTPUT_DIR)"; fi
