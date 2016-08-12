@@ -42,6 +42,8 @@ currentBranch() { local b; b=$(git symbolic-ref -q HEAD) && echo "${b##refs/head
 
 cacheGPG() {
   # make sure gpg agent has key cached
+  # first clear cache, to reset timeouts (best attempt)
+  { hash gpg-connect-agent && gpg-connect-agent reloadagent /bye; } &>/dev/null
   # TODO prompt for key instead of using default?
   local TESTFILE; TESTFILE=$(mktemp --tmpdir "${USER}-gpgTestFile-XXXXXXXX.txt")
   [[ -r $TESTFILE ]] && "$gpgCommand" --sign "${TESTFILE}" && rm -f "${TESTFILE}" "${TESTFILE}.gpg"
