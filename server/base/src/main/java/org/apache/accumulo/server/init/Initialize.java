@@ -575,8 +575,8 @@ public class Initialize implements KeywordExecutable {
       if (opts.clearInstanceName) {
         exists = false;
         break;
-      } else if (zoo.exists(instanceNamePath)) {
-        exists = true;
+        // ACCUMULO-4401 setting exists=false is just as important as setting it to true
+      } else if (exists = zoo.exists(instanceNamePath)) {
         String decision = getConsoleReader().readLine("Instance name \"" + instanceName + "\" exists. Delete existing entry from zookeeper? [Y/N] : ");
         if (decision == null)
           System.exit(0);
