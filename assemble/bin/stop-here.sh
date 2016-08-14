@@ -31,24 +31,23 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 . "$bin"/config.sh
 
-ACCUMULO="$ACCUMULO_HOME/lib/accumulo-start.jar"
-
 # Determine hostname without errors to user
-HOSTNAME=$(hostname -a 2> /dev/null | head -1)
-[[ -z ${HOSTNAME} ]] && HOSTNAME=$(hostname)
+HOSTS_TO_CHECK=($(hostname -a 2> /dev/null | head -1) $(hostname -f))
 
 if egrep -q localhost\|127.0.0.1 "$ACCUMULO_CONF_DIR/slaves"; then
    "$bin/accumulo" admin stop localhost
 else
-   for host in "$(hostname -a 2> /dev/null)" "$(hostname)"; do
-      if grep -q ${host} $ACCUMULO_CONF_DIR/slaves; then
+   for host in "${HOSTS_TO_CHECK[@]}"; do
+      if grep -q "$host" "$ACCUMULO_CONF_DIR"/slaves; then
          "${bin}/accumulo" admin stop "$host"
       fi
    done
 fi
 
-for signal in TERM KILL; do
-   for svc in tserver gc master monitor tracer; do
-      $ACCUMULO_HOME/bin/stop-server.sh $HOSTNAME "$ACCUMULO_HOME/lib/accumulo-start.jar" $svc $signal
+for HOSTNAME in "${HOSTS_TO_CHECK[@]}"; do
+   for signal in TERM KILL; do
+      for svc in tserver gc master monitor tracer; do
+         "$ACCUMULO_HOME"/bin/stop-server.sh "$HOSTNAME" "$ACCUMULO_HOME/lib/accumulo-start.jar" $svc $signal
+      done
    done
 done
