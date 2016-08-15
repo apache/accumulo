@@ -199,6 +199,8 @@ public enum Property {
       "The length of time that delegation tokens and secret keys are valid"),
   GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL("general.delegation.token.update.interval", "1d", PropertyType.TIMEDURATION,
       "The length of time between generation of new secret keys"),
+  GENERAL_MAX_SCANNER_RETRY_PERIOD("general.max.scanner.retry.period", "5s", PropertyType.TIMEDURATION,
+      "The maximum amount of time that a Scanner should wait before retrying a failed RPC"),
 
   // properties that are specific to master server behavior
   MASTER_PREFIX("master.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the master server"),
