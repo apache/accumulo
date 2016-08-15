@@ -138,8 +138,15 @@ else
          fi
       fi
 
+      OUTFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_${t}_${LOGHOST}.out"
+      ERRFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_${t}_${LOGHOST}.err"
+
+      # Rotate the .out and .err files
+      rotate_log "$OUTFILE" ${ACCUMULO_NUM_OUT_FILES}
+      rotate_log "$ERRFILE" ${ACCUMULO_NUM_OUT_FILES}
+
       # Fork the process, store the pid
-      nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out" 2>"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err" < /dev/null &
+      nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"$OUTFILE" 2>"$ERRFILE" < /dev/null &
       echo $! > ${PID_FILE}
 
    done
