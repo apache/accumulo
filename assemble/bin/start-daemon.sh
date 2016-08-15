@@ -103,6 +103,9 @@ if [[ "$SERVICE" != "tserver" || $NUM_TSERVERS -eq 1 ]]; then
    fi
    echo "Starting $SERVICE on $HOST"
 
+   OUTFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_1_${LOGHOST}.out"
+   ERRFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_1_${LOGHOST}.err"
+
    # Fork the process, store the pid
    nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"$OUTFILE" 2>"$ERRFILE" < /dev/null &
    echo $! > ${PID_FILE}
@@ -138,8 +141,11 @@ else
          fi
       fi
 
+      OUTFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_${t}_${LOGHOST}.out"
+      ERRFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_${t}_${LOGHOST}.err"
+
       # Fork the process, store the pid
-      nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out" 2>"${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err" < /dev/null &
+      nohup ${NUMA_CMD} "$COMMAND" "${SERVICE}" --address "${ADDRESS}" >"$OUTFILE" 2>"$ERRFILE" < /dev/null &
       echo $! > ${PID_FILE}
 
    done
