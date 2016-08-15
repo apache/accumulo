@@ -138,8 +138,10 @@ else
          fi
       fi
 
-      OUTFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_${t}_${LOGHOST}.out"
-      ERRFILE="${ACCUMULO_LOG_DIR}/${SERVICE}_${t}_${LOGHOST}.err"
+      # We want the files to be consistently named with the log files
+      # server_identifier_hostname.{out,err}, e.g. tserver_2_fqdn.out
+      OUTFILE="${ACCUMULO_LOG_DIR}/${S}_${t}_${LOGHOST}.out"
+      ERRFILE="${ACCUMULO_LOG_DIR}/${S}_${t}_${LOGHOST}.err"
 
       # Rotate the .out and .err files
       rotate_log "$OUTFILE" ${ACCUMULO_NUM_OUT_FILES}

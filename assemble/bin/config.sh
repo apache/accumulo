@@ -118,11 +118,15 @@ else
   export NUMA_CMD=""
 fi
 
-# NUMA sanity checks
-if [[ -z $NUM_TSERVERS ]]; then
-   echo "NUM_TSERVERS is missing in accumulo-env.sh, please check your configuration."
+NUM_TSERVERS=${NUM_TSERVERS:-1}
+
+# Validate that NUM_TSERVERS is a positive integer
+if ! [[ $NUM_TSERVERS =~ ^[0-9]+$ ]]; then
+   echo "NUM_TSERVERS, when defined in accumulo-env.sh, should be a positive number, is '$NUM_TSERVERS'"
    exit 1
 fi
+
+# NUMA sanity checks
 if [[ $NUM_TSERVERS -eq 1 && -n $TSERVER_NUMA_OPTIONS ]]; then
    echo "TSERVER_NUMA_OPTIONS declared when NUM_TSERVERS is 1, use ACCUMULO_NUMACTL_OPTIONS instead"
    exit 1
