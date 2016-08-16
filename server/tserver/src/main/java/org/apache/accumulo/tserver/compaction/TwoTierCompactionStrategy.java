@@ -19,11 +19,14 @@ package org.apache.accumulo.tserver.compaction;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 /**
  * A hybrid compaction strategy that supports two types of compression. If total size of files being compacted is larger than
@@ -61,6 +64,18 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
     }
   }
 
+  /**
+   * Calculates the total size of input files in the compaction plan
+   */
+  private Long calculateTotalSize(MajorCompactionRequest request, CompactionPlan plan) {
+    long totalSize = 0;
+    Map<FileRef,DataFileValue> allFiles = request.getFiles();
+    for (FileRef fileRef : plan.inputFiles) {
+      totalSize += allFiles.get(fileRef).getSize();
+    }
+    return totalSize;
+  }
+
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) {
     return super.shouldCompact(request);
@@ -82,11 +97,8 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
     String threshold = tableProperties.get(TABLE_LARGE_FILE_COMPRESSION_THRESHOLD);
     verifyRequiredProperties(largeFileCompressionType, threshold);
     Long largeFileCompressionThreshold = AccumuloConfiguration.getMemoryInBytes(threshold);
+    Long totalSize = calculateTotalSize(request, plan);
 
-    long totalSize = 0;
-    for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
-      totalSize += entry.getValue().getSize();
-    }
     if (totalSize > largeFileCompressionThreshold) {
       plan.writeParameters.setCompressType(largeFileCompressionType);
     }
