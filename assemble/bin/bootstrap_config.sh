@@ -390,11 +390,11 @@ fi
 if [[ ${TYPE} == native ]]; then
   if [[ $(uname) == Linux ]]; then
     if [[ -z $HADOOP_PREFIX ]]; then
-      echo "HADOOP_PREFIX not set cannot automatically configure LD_LIBRARY_PATH"
+      echo "WARNING: HADOOP_PREFIX not set, cannot automatically configure LD_LIBRARY_PATH to include Hadoop native libraries"
     else
       NATIVE_LIB=$(readlink -ef $(dirname $(for x in $(find $HADOOP_PREFIX -name libhadoop.so); do ld $x 2>/dev/null && echo $x && break; done) 2>>/dev/null) 2>>/dev/null)
       if [[ -z $NATIVE_LIB ]]; then
-        echo -e "Native libraries could not be found for your sytem in: $HADOOP_PREFIX"
+        echo -e "WARNING: The Hadoop native libraries could not be found for your sytem in: $HADOOP_PREFIX"
       else
         sed "/# Should the monitor/ i export LD_LIBRARY_PATH=${NATIVE_LIB}:\${LD_LIBRARY_PATH}" ${CONF_DIR}/$ACCUMULO_ENV > temp
         mv temp "${CONF_DIR}/$ACCUMULO_ENV"
@@ -402,6 +402,6 @@ if [[ ${TYPE} == native ]]; then
       fi
     fi
   fi
-  echo -e "Please remember to compile the native libraries using the bin/build_native_library.sh script and to set the LD_LIBRARY_PATH variable in the ${CONF_DIR}/accumulo-env.sh script if needed."
+  echo -e "Please remember to compile the Accumulo native libraries using the bin/build_native_library.sh script and to set the LD_LIBRARY_PATH variable in the ${CONF_DIR}/accumulo-env.sh script if needed."
 fi
 echo "Setup complete"
