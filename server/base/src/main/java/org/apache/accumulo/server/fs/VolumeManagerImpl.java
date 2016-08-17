@@ -248,12 +248,6 @@ public class VolumeManagerImpl implements VolumeManager {
               return candidateVolume;
             }
           }
-
-          // For the same reason as we can have multiple Volumes within a single filesystem
-          // we could also not find a matching one. We should still provide a Volume with the
-          // correct FileSystem even though we don't know what the proper base dir is
-          // e.g. Files on volumes that are now removed
-          log.debug("Found candidate Volumes for Path but none of the Volumes are valid for the candidates: " + path);
         } else {
           log.debug("Could not determine volume for Path: " + path);
         }
