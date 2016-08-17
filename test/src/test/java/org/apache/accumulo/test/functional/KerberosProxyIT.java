@@ -149,28 +149,8 @@ public class KerberosProxyIT extends AccumuloIT {
     mac.start();
     MiniAccumuloConfigImpl cfg = mac.getConfig();
 
-    // Proxy configuration
-    proxyPort = PortUtils.getRandomFreePort();
-    File proxyPropertiesFile = new File(cfg.getConfDir(), "proxy.properties");
-    Properties proxyProperties = new Properties();
-    proxyProperties.setProperty("useMockInstance", "false");
-    proxyProperties.setProperty("useMiniAccumulo", "false");
-    proxyProperties.setProperty("protocolFactory", TCompactProtocol.Factory.class.getName());
-    proxyProperties.setProperty("tokenClass", KerberosToken.class.getName());
-    proxyProperties.setProperty("port", Integer.toString(proxyPort));
-    proxyProperties.setProperty("maxFrameSize", "16M");
-    proxyProperties.setProperty("instance", mac.getInstanceName());
-    proxyProperties.setProperty("zookeepers", mac.getZooKeepers());
-    proxyProperties.setProperty("thriftServerType", "sasl");
-    proxyProperties.setProperty("kerberosPrincipal", proxyPrincipal);
-    proxyProperties.setProperty("kerberosKeytab", proxyKeytab.getCanonicalPath());
-
-    // Write out the proxy.properties file
-    FileWriter writer = new FileWriter(proxyPropertiesFile);
-    proxyProperties.store(writer, "Configuration for Accumulo proxy");
-    writer.close();
-
-    proxyProcess = mac.exec(Proxy.class, "-p", proxyPropertiesFile.getCanonicalPath());
+    // Generate Proxy configuration and start the proxy
+    proxyProcess = startProxy(cfg);
 
     // Enabled kerberos auth
     Configuration conf = new Configuration(false);
@@ -179,8 +159,8 @@ public class KerberosProxyIT extends AccumuloIT {
 
     boolean success = false;
     ClusterUser rootUser = kdc.getRootUser();
-    for (int i = 0; i < 10 && !success; i++) {
-
+    // Rely on the junit timeout rule
+    while (!success) {
       UserGroupInformation ugi;
       try {
         UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
@@ -207,6 +187,7 @@ public class KerberosProxyIT extends AccumuloIT {
         if (null != cause && cause instanceof ConnectException) {
           log.info("Proxy not yet up, waiting");
           Thread.sleep(3000);
+          proxyProcess = checkProxyAndRestart(proxyProcess, cfg);
           continue;
         }
       } finally {
@@ -217,6 +198,84 @@ public class KerberosProxyIT extends AccumuloIT {
     }
 
     assertTrue("Failed to connect to the proxy repeatedly", success);
+  }
+
+  /**
+   * Starts the thrift proxy using the given MAConfig.
+   *
+   * @param cfg
+   *          configuration for MAC
+   * @return Process for the thrift proxy
+   */
+  private Process startProxy(MiniAccumuloConfigImpl cfg) throws IOException {
+    File proxyPropertiesFile = generateNewProxyConfiguration(cfg);
+    return mac.exec(Proxy.class, "-p", proxyPropertiesFile.getCanonicalPath());
+  }
+
+  /**
+   * Generates a proxy configuration file for the MAC instance. Implicitly updates {@link #proxyPort} when choosing the port the proxy will listen on.
+   *
+   * @param cfg
+   *          The MAC configuration
+   * @return The proxy's configuration file
+   */
+  private File generateNewProxyConfiguration(MiniAccumuloConfigImpl cfg) throws IOException {
+    // Chooses a new port for the proxy as side-effect
+    proxyPort = PortUtils.getRandomFreePort();
+
+    // Proxy configuration
+    File proxyPropertiesFile = new File(cfg.getConfDir(), "proxy.properties");
+    if (proxyPropertiesFile.exists()) {
+      assertTrue("Failed to delete proxy.properties file", proxyPropertiesFile.delete());
+    }
+    Properties proxyProperties = new Properties();
+    proxyProperties.setProperty("useMockInstance", "false");
+    proxyProperties.setProperty("useMiniAccumulo", "false");
+    proxyProperties.setProperty("protocolFactory", TCompactProtocol.Factory.class.getName());
+    proxyProperties.setProperty("tokenClass", KerberosToken.class.getName());
+    proxyProperties.setProperty("port", Integer.toString(proxyPort));
+    proxyProperties.setProperty("maxFrameSize", "16M");
+    proxyProperties.setProperty("instance", mac.getInstanceName());
+    proxyProperties.setProperty("zookeepers", mac.getZooKeepers());
+    proxyProperties.setProperty("thriftServerType", "sasl");
+    proxyProperties.setProperty("kerberosPrincipal", proxyPrincipal);
+    proxyProperties.setProperty("kerberosKeytab", proxyKeytab.getCanonicalPath());
+
+    // Write out the proxy.properties file
+    FileWriter writer = new FileWriter(proxyPropertiesFile);
+    proxyProperties.store(writer, "Configuration for Accumulo proxy");
+    writer.close();
+
+    log.info("Created configuration for proxy listening on {}", proxyPort);
+
+    return proxyPropertiesFile;
+  }
+
+  /**
+   * Restarts the thrift proxy if the previous instance is no longer running. If the proxy is still running, this method does nothing.
+   *
+   * @param proxy
+   *          The thrift proxy process
+   * @param cfg
+   *          The MAC configuration
+   * @return The process for the Proxy, either the previous instance or a new instance.
+   */
+  private Process checkProxyAndRestart(Process proxy, MiniAccumuloConfigImpl cfg) throws IOException {
+    try {
+      // Get the return code
+      proxy.exitValue();
+    } catch (IllegalThreadStateException e) {
+      log.info("Proxy is still running");
+      // OK, process is still running, don't restart
+      return proxy;
+    }
+
+    log.info("Restarting proxy because it is no longer alive");
+
+    // We got a return code which means the proxy exited. We'll assume this is because it failed
+    // to bind the port due to the known race condition between choosing a port and having the
+    // proxy bind it.
+    return startProxy(cfg);
   }
 
   @After
