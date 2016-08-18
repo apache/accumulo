@@ -116,7 +116,7 @@ public class ChangeSecret {
     }
   }
 
-  private static void rewriteZooKeeperInstance(final Instance inst, String newInstanceId, String oldPass, String newPass) throws Exception {
+  private static void rewriteZooKeeperInstance(final Instance inst, final String newInstanceId, String oldPass, String newPass) throws Exception {
     final ZooReaderWriter orig = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPass);
     final IZooReaderWriter new_ = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), newPass);
 
