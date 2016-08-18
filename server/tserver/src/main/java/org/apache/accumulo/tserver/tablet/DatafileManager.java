@@ -58,15 +58,17 @@ class DatafileManager {
   // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
   private final Map<FileRef,DataFileValue> datafileSizes = Collections.synchronizedMap(new TreeMap<FileRef,DataFileValue>());
   private final Tablet tablet;
+  private final Long maxMergingMinorCompactionFileSize;
 
   // ensure we only have one reader/writer of our bulk file notes at at time
   private final Object bulkFileImportLock = new Object();
 
-  DatafileManager(Tablet tablet, SortedMap<FileRef,DataFileValue> datafileSizes) {
+  DatafileManager(Tablet tablet, SortedMap<FileRef,DataFileValue> datafileSizes, Long maxMergCompFileSize) {
     for (Entry<FileRef,DataFileValue> datafiles : datafileSizes.entrySet()) {
       this.datafileSizes.put(datafiles.getKey(), datafiles.getValue());
     }
     this.tablet = tablet;
+    this.maxMergingMinorCompactionFileSize = maxMergCompFileSize;
   }
 
   private FileRef mergingMinorCompactionFile = null;
@@ -296,11 +298,11 @@ class DatafileManager {
     if (datafileSizes.size() >= maxFiles) {
       // find the smallest file
 
-      long min = Long.MAX_VALUE;
+      long min = maxMergingMinorCompactionFileSize;
       FileRef minName = null;
 
       for (Entry<FileRef,DataFileValue> entry : datafileSizes.entrySet()) {
-        if (entry.getValue().getSize() < min && !majorCompactingFiles.contains(entry.getKey())) {
+        if (entry.getValue().getSize() <= min && !majorCompactingFiles.contains(entry.getKey())) {
           min = entry.getValue().getSize();
           minName = entry.getKey();
         }

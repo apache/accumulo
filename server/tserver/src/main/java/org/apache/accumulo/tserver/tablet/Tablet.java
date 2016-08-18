@@ -484,7 +484,8 @@ public class Tablet implements TabletCommitter {
 
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
-    datafileManager = new DatafileManager(this, datafiles);
+    Long maxFileSize = AccumuloConfiguration.getMemoryInBytes(tableConfiguration.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE));
+    datafileManager = new DatafileManager(this, datafiles, maxFileSize);
 
     computeNumEntries();
 
