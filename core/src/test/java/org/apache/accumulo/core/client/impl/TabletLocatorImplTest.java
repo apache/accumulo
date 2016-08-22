@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.client.impl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletLocationObtainer;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -83,6 +85,7 @@ public class TabletLocatorImplTest {
     return objs;
   }
 
+  @SuppressWarnings("unchecked")
   static Map<String,Map<KeyExtent,List<Range>>> createExpectedBinnings(Object... data) {
 
     Map<String,Map<KeyExtent,List<Range>>> expBinnedRanges = new HashMap<>();
@@ -97,7 +100,6 @@ public class TabletLocatorImplTest {
 
       for (int j = 0; j < binData.length; j += 2) {
         KeyExtent ke = (KeyExtent) binData[j];
-        @SuppressWarnings("unchecked")
         List<Range> ranges = (List<Range>) binData[j + 1];
 
         binnedKE.put(ke, ranges);
@@ -435,6 +437,36 @@ public class TabletLocatorImplTest {
 
     public void setRootTabletLocation(String rtl) {
       this.rtl = rtl;
+    }
+
+    @Override
+    @Deprecated
+    public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    @Deprecated
+    public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    @Override
+    public AccumuloConfiguration getConfiguration() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    @Deprecated
+    public void setConfiguration(AccumuloConfiguration conf) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    @Deprecated
+    public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
     }
 
     @Override

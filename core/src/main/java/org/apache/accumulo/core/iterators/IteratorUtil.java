@@ -70,6 +70,17 @@ public class IteratorUtil {
    */
   public static enum IteratorScope {
     majc, minc, scan;
+
+    /**
+     * Fetch the correct configuration key prefix for the given scope. Throws an IllegalArgumentException if no property exists for the given scope.
+     *
+     * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable. The method was deprecated to
+     *             discourage its use.
+     */
+    @Deprecated
+    public static Property getProperty(IteratorScope scope) {
+      return IteratorUtil.getProperty(scope);
+    }
   }
 
   public static class IterInfoComparator implements Comparator<IterInfo>, Serializable {

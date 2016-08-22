@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.master.balancer;
 
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -78,6 +79,34 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     public int getZooKeepersSessionTimeOut() {
       return 30;
     }
+
+    @Deprecated
+    @Override
+    public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    @Override
+    public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    @Override
+    public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    @Override
+    public AccumuloConfiguration getConfiguration() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    @Override
+    public void setConfiguration(AccumuloConfiguration conf) {}
 
     @Override
     public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {

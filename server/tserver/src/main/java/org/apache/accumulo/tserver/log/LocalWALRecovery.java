@@ -48,6 +48,7 @@ import com.google.common.annotations.VisibleForTesting;
 /**
  * This class will attempt to rewrite any local WALs to HDFS.
  */
+@SuppressWarnings("deprecation")
 public class LocalWALRecovery implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(LocalWALRecovery.class);
 
@@ -153,8 +154,8 @@ public class LocalWALRecovery implements Runnable {
           Path localWal = new Path(file.toURI());
           FileSystem localFs = FileSystem.getLocal(fs.getConf());
 
-          Reader reader = new SequenceFile.Reader(localFs.getConf(), SequenceFile.Reader.file(localWal.makeQualified(localWal.toUri(),
-              localFs.getWorkingDirectory())));
+          Reader reader = new SequenceFile.Reader(localFs, localWal, localFs.getConf());
+          // Reader reader = new SequenceFile.Reader(localFs.getConf(), SequenceFile.Reader.file(localWal));
           Path tmp = new Path(options.destination + "/" + name + ".copy");
           FSDataOutputStream writer = fs.create(tmp);
           while (reader.next(key, value)) {

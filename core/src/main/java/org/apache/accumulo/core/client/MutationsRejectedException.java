@@ -23,11 +23,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.data.impl.TabletIdImpl;
 
 /**
  * Communicate the failed mutations of a BatchWriter back to the client.
@@ -40,6 +43,61 @@ public class MutationsRejectedException extends AccumuloException {
   private Map<TabletId,Set<SecurityErrorCode>> af;
   private Collection<String> es;
   private int unknownErrors;
+
+  private static <K,V,L> Map<L,V> transformKeys(Map<K,V> map, Function<K,L> keyFunction) {
+    HashMap<L,V> ret = new HashMap<>();
+    for (Entry<K,V> entry : map.entrySet()) {
+      ret.put(keyFunction.apply(entry.getKey()), entry.getValue());
+    }
+
+    return ret;
+  }
+
+  /**
+   * @param cvsList
+   *          list of constraint violations
+   * @param hashMap
+   *          authorization failures
+   * @param serverSideErrors
+   *          server side errors
+   * @param unknownErrors
+   *          number of unknown errors
+   *
+   * @deprecated since 1.6.0, see {@link #MutationsRejectedException(Instance, List, Map, Collection, int, Throwable)}
+   */
+  @Deprecated
+  public MutationsRejectedException(List<ConstraintViolationSummary> cvsList, HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap,
+      Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
+    super("# constraint violations : " + cvsList.size() + "  security codes: " + hashMap.values() + "  # server errors " + serverSideErrors.size()
+        + " # exceptions " + unknownErrors, cause);
+    this.cvsl = cvsList;
+    this.af = transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD);
+    this.es = serverSideErrors;
+    this.unknownErrors = unknownErrors;
+  }
+
+  /**
+   * @param cvsList
+   *          list of constraint violations
+   * @param hashMap
+   *          authorization failures
+   * @param serverSideErrors
+   *          server side errors
+   * @param unknownErrors
+   *          number of unknown errors
+   *
+   * @deprecated since 1.7.0 see {@link #MutationsRejectedException(Instance, List, Map, Collection, int, Throwable)}
+   */
+  @Deprecated
+  public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
+      HashMap<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
+    super("# constraint violations : " + cvsList.size() + "  security codes: " + format(transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD), instance)
+        + "  # server errors " + serverSideErrors.size() + " # exceptions " + unknownErrors, cause);
+    this.cvsl = cvsList;
+    this.af = transformKeys(hashMap, TabletIdImpl.KE_2_TID_OLD);
+    this.es = serverSideErrors;
+    this.unknownErrors = unknownErrors;
+  }
 
   /**
    *
@@ -85,6 +143,25 @@ public class MutationsRejectedException extends AccumuloException {
    */
   public List<ConstraintViolationSummary> getConstraintViolationSummaries() {
     return cvsl;
+  }
+
+  /**
+   * @return the internal list of authorization failures
+   * @deprecated since 1.5, see {@link #getAuthorizationFailuresMap()}
+   */
+  @Deprecated
+  public List<org.apache.accumulo.core.data.KeyExtent> getAuthorizationFailures() {
+    return af.keySet().stream().map(TabletIdImpl.TID_2_KE_OLD).collect(Collectors.toList());
+  }
+
+  /**
+   * @return the internal mapping of keyextent mappings to SecurityErrorCode
+   * @since 1.5.0
+   * @deprecated since 1.7.0 see {@link #getSecurityErrorCodes()}
+   */
+  @Deprecated
+  public Map<org.apache.accumulo.core.data.KeyExtent,Set<SecurityErrorCode>> getAuthorizationFailuresMap() {
+    return transformKeys(af, TabletIdImpl.TID_2_KE_OLD);
   }
 
   /**

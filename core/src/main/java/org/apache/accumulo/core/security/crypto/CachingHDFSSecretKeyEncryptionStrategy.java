@@ -41,8 +41,6 @@ import org.slf4j.LoggerFactory;
  */
 public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
 
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
   private static final Logger log = LoggerFactory.getLogger(CachingHDFSSecretKeyEncryptionStrategy.class);
   private SecretKeyCache secretKeyCache = new SecretKeyCache();
 
@@ -175,16 +173,17 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     }
 
+    @SuppressWarnings("deprecation")
     private String getFullPathToKey(CryptoModuleParameters params) {
       String pathToKeyName = params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey());
-      String instanceDirectory = params.getAllOptions().get(INSTANCE_DFS_DIR.getKey());
+      String instanceDirectory = params.getAllOptions().get(Property.INSTANCE_DFS_DIR.getKey());
 
       if (pathToKeyName == null) {
         pathToKeyName = Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getDefaultValue();
       }
 
       if (instanceDirectory == null) {
-        instanceDirectory = INSTANCE_DFS_DIR.getDefaultValue();
+        instanceDirectory = Property.INSTANCE_DFS_DIR.getDefaultValue();
       }
 
       if (!pathToKeyName.startsWith("/")) {

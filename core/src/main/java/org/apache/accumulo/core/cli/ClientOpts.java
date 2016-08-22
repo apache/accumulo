@@ -45,6 +45,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.hadoop.conf.Configuration;
@@ -162,6 +163,9 @@ public class ClientOpts extends Help {
   @Parameter(names = "--debug", description = "turn on TRACE-level log messages")
   public boolean debug = false;
 
+  @Parameter(names = {"-fake", "--mock"}, description = "Use a mock Instance")
+  public boolean mock = false;
+
   @Parameter(names = "--site-file", description = "Read the given accumulo site file to find the accumulo instance")
   public String siteFile = null;
 
@@ -255,6 +259,8 @@ public class ClientOpts extends Help {
   synchronized public Instance getInstance() {
     if (cachedInstance != null)
       return cachedInstance;
+    if (mock)
+      return cachedInstance = DeprecationUtil.makeMockInstance(instance);
     return cachedInstance = new ZooKeeperInstance(this.getClientConfiguration());
   }
 

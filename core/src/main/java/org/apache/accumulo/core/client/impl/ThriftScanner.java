@@ -214,7 +214,7 @@ public class ThriftScanner {
     return (long) (Math.min(millis * 2, maxSleep) * (.9 + Math.random() / 5));
   }
 
-  public static List<KeyValue> scan(ClientContext context, ScanState scanState, long timeOut) throws ScanTimedOutException, AccumuloException,
+  public static List<KeyValue> scan(ClientContext context, ScanState scanState, int timeOut) throws ScanTimedOutException, AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     TabletLocation loc = null;
     Instance instance = context.getInstance();

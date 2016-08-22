@@ -241,6 +241,10 @@ public class ShellOptionsJC {
     return debugEnabled;
   }
 
+  public boolean isFake() {
+    return fake;
+  }
+
   public boolean isHelpEnabled() {
     return helpEnabled;
   }

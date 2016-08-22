@@ -258,7 +258,7 @@ public class FilterTest {
     Text colf = new Text("a");
     Text colq = new Text("b");
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
     IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901l);
     ColumnAgeOffFilter.setNegate(is, true);
@@ -299,7 +299,7 @@ public class FilterTest {
     Text colf = new Text("negate");
     Text colq = new Text("b");
     Value dv = new Value();
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
     IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate"), 901l);
     long ts = System.currentTimeMillis();

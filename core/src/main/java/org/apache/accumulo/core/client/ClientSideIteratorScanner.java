@@ -65,6 +65,21 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
   private SamplerConfiguration iteratorSamplerConfig;
 
+  /**
+   * @deprecated since 1.7.0 was never intended for public use. However this could have been used by anything extending this class.
+   */
+  @Deprecated
+  public class ScannerTranslator extends ScannerTranslatorImpl {
+    public ScannerTranslator(Scanner scanner) {
+      super(scanner, scanner.getSamplerConfiguration());
+    }
+
+    @Override
+    public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
+      return new ScannerTranslator(scanner);
+    }
+  }
+
   private class ClientSideIteratorEnvironment implements IteratorEnvironment {
 
     private SamplerConfiguration samplerConfig;
@@ -267,6 +282,24 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public Authorizations getAuthorizations() {
     return smi.scanner.getAuthorizations();
+  }
+
+  @Deprecated
+  @Override
+  public void setTimeOut(int timeOut) {
+    if (timeOut == Integer.MAX_VALUE)
+      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+    else
+      setTimeout(timeOut, TimeUnit.SECONDS);
+  }
+
+  @Deprecated
+  @Override
+  public int getTimeOut() {
+    long timeout = getTimeout(TimeUnit.SECONDS);
+    if (timeout >= Integer.MAX_VALUE)
+      return Integer.MAX_VALUE;
+    return (int) timeout;
   }
 
   @Override

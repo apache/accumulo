@@ -380,11 +380,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    * @param config
    *          initial configuration
    */
+  @SuppressWarnings("deprecation")
   public MiniAccumuloClusterImpl(MiniAccumuloConfigImpl config) throws IOException {
-    @SuppressWarnings("deprecation")
-    Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
-    @SuppressWarnings("deprecation")
-    Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
+
     this.config = config.initialize();
 
     mkdirs(config.getConfDir());
@@ -429,8 +427,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       writeConfig(hdfsFile, conf);
 
       Map<String,String> siteConfig = config.getSiteConfig();
-      siteConfig.put(INSTANCE_DFS_URI.getKey(), dfsUri);
-      siteConfig.put(INSTANCE_DFS_DIR.getKey(), "/accumulo");
+      siteConfig.put(Property.INSTANCE_DFS_URI.getKey(), dfsUri);
+      siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
       config.setSiteConfig(siteConfig);
     } else if (config.useExistingInstance()) {
       dfsUri = CachedConfiguration.getInstance().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);

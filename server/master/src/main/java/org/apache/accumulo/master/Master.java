@@ -343,7 +343,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           zoo.putPersistentData(zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_CANCEL_ID, zero, NodeExistsPolicy.SKIP);
         }
 
-        String zpath = zooRoot + Constants.ZCONFIG + "/tserver.wal.sync.method";
+        @SuppressWarnings("deprecation")
+        String zpath = zooRoot + Constants.ZCONFIG + "/" + Property.TSERV_WAL_SYNC_METHOD.getKey();
         // is the entire instance set to use flushing vs sync?
         boolean flushDefault = false;
         try {
@@ -357,7 +358,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         for (String id : zoo.getChildren(zooRoot + Constants.ZTABLES)) {
           log.debug("Converting table " + id + " WALog setting to Durability");
           try {
-            String path = zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/table.walog.enabled";
+            @SuppressWarnings("deprecation")
+            String path = zooRoot + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + Property.TABLE_WALOG_ENABLED.getKey();
             byte[] data = zoo.getData(path, null);
             boolean useWAL = Boolean.parseBoolean(new String(data, UTF_8));
             zoo.recursiveDelete(path, NodeMissingPolicy.FAIL);

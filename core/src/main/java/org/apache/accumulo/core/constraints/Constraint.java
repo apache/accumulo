@@ -21,6 +21,7 @@ import java.util.List;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.security.AuthorizationContainer;
+import org.apache.accumulo.core.security.Authorizations;
 
 /**
  * Constraint objects are used to determine if mutations will be applied to a table.
@@ -56,6 +57,15 @@ public interface Constraint {
      * @return user
      */
     String getUser();
+
+    /**
+     * Gets the authorizations in the environment.
+     *
+     * @return authorizations
+     * @deprecated Use {@link #getAuthorizationsContainer()} instead.
+     */
+    @Deprecated
+    Authorizations getAuthorizations();
 
     /**
      * Gets the authorizations in the environment.

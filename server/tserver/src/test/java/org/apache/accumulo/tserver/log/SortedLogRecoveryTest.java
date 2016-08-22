@@ -138,7 +138,8 @@ public class SortedLogRecoveryTest {
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
         String path = workdir + "/" + entry.getKey();
         FileSystem ns = fs.getVolumeByPath(new Path(path)).getFileSystem();
-        Writer map = new MapFile.Writer(ns.getConf(), new Path(path + "/log1"), Writer.keyClass(LogFileKey.class), Writer.valueClass(LogFileValue.class));
+        @SuppressWarnings("deprecation")
+        Writer map = new MapFile.Writer(ns.getConf(), ns, path + "/log1", LogFileKey.class, LogFileValue.class);
         for (KeyValue lfe : entry.getValue()) {
           map.append(lfe.key, lfe.value);
         }

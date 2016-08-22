@@ -238,6 +238,24 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, readaheadThreshold, bufferFactory);
   }
 
+  @Deprecated
+  @Override
+  public void setTimeOut(int timeOut) {
+    if (timeOut == Integer.MAX_VALUE)
+      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+    else
+      setTimeout(timeOut, TimeUnit.SECONDS);
+  }
+
+  @Deprecated
+  @Override
+  public int getTimeOut() {
+    long timeout = getTimeout(TimeUnit.SECONDS);
+    if (timeout >= Integer.MAX_VALUE)
+      return Integer.MAX_VALUE;
+    return (int) timeout;
+  }
+
   @Override
   public void setRange(Range range) {
     this.range = range;

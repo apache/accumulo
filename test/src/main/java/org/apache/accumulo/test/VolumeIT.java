@@ -82,11 +82,6 @@ import org.junit.Test;
 
 public class VolumeIT extends ConfigurableMacBase {
 
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
-
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value(new byte[] {});
   private File volDirBase;
@@ -97,6 +92,7 @@ public class VolumeIT extends ConfigurableMacBase {
     return 5 * 60;
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     File baseDir = cfg.getDir();
@@ -108,8 +104,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // Run MAC on two locations in the local file system
     URI v1Uri = v1.toUri();
-    cfg.setProperty(INSTANCE_DFS_DIR, v1Uri.getPath());
-    cfg.setProperty(INSTANCE_DFS_URI, v1Uri.getScheme() + v1Uri.getHost());
+    cfg.setProperty(Property.INSTANCE_DFS_DIR, v1Uri.getPath());
+    cfg.setProperty(Property.INSTANCE_DFS_URI, v1Uri.getScheme() + v1Uri.getHost());
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString());
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
 

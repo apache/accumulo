@@ -31,11 +31,6 @@ import org.apache.hadoop.fs.Path;
 
 public class VolumeConfiguration {
 
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
-
   public static Volume getVolume(String path, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     requireNonNull(path);
 
@@ -49,7 +44,8 @@ public class VolumeConfiguration {
   }
 
   public static Volume getDefaultVolume(Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    String uri = acuconf.get(INSTANCE_DFS_URI);
+    @SuppressWarnings("deprecation")
+    String uri = acuconf.get(Property.INSTANCE_DFS_URI);
 
     // By default pull from INSTANCE_DFS_URI, falling back to the Hadoop defined
     // default filesystem (fs.defaultFS or the deprecated fs.default.name)
@@ -64,14 +60,12 @@ public class VolumeConfiguration {
   }
 
   /**
-   * This method gets the old configured base directory, using the URI and DIR. It will not longer be needed when we no longer support upgrading from non-volume
-   * based Accumulo config
-   *
-   * @see #getVolumeUris(AccumuloConfiguration,Configuration)
+   * @see org.apache.accumulo.core.volume.VolumeConfiguration#getVolumeUris(AccumuloConfiguration,Configuration)
    */
-  private static String getConfiguredBaseDir(AccumuloConfiguration conf, Configuration hadoopConfig) {
-    String singleNamespace = conf.get(INSTANCE_DFS_DIR);
-    String dfsUri = conf.get(INSTANCE_DFS_URI);
+  @Deprecated
+  public static String getConfiguredBaseDir(AccumuloConfiguration conf, Configuration hadoopConfig) {
+    String singleNamespace = conf.get(Property.INSTANCE_DFS_DIR);
+    String dfsUri = conf.get(Property.INSTANCE_DFS_URI);
     String baseDir;
 
     if (dfsUri == null || dfsUri.isEmpty()) {
@@ -82,7 +76,7 @@ public class VolumeConfiguration {
       }
     } else {
       if (!dfsUri.contains(":"))
-        throw new IllegalArgumentException("Expected fully qualified URI for " + INSTANCE_DFS_URI.getKey() + " got " + dfsUri);
+        throw new IllegalArgumentException("Expected fully qualified URI for " + Property.INSTANCE_DFS_URI.getKey() + " got " + dfsUri);
       baseDir = dfsUri + singleNamespace;
     }
     return baseDir;
@@ -146,9 +140,10 @@ public class VolumeConfiguration {
    *          A FileSystem to write to
    * @return A Volume instance writing to the given FileSystem in the default path
    */
+  @SuppressWarnings("deprecation")
   public static <T extends FileSystem> Volume create(T fs, AccumuloConfiguration acuconf) {
-    String dfsDir = acuconf.get(INSTANCE_DFS_DIR);
-    return new VolumeImpl(fs, null == dfsDir ? INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
+    String dfsDir = acuconf.get(Property.INSTANCE_DFS_DIR);
+    return new VolumeImpl(fs, null == dfsDir ? Property.INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
   }
 
   public static <T extends FileSystem> Volume create(T fs, String basePath) {

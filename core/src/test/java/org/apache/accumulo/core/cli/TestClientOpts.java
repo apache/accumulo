@@ -50,10 +50,6 @@ import org.junit.rules.TestName;
 import com.beust.jcommander.JCommander;
 
 public class TestClientOpts {
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
 
   @Rule
   public TemporaryFolder tmpDir = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
@@ -137,6 +133,7 @@ public class TestClientOpts {
     args.getInstance();
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testInstanceDir() throws IOException {
     File instanceId = tmpDir.newFolder("instance_id");
@@ -149,8 +146,9 @@ public class TestClientOpts {
     FileWriter fileWriter = new FileWriter(siteXml);
     fileWriter.append("<configuration>\n");
 
-    fileWriter.append("<property><name>" + INSTANCE_DFS_DIR.getKey() + "</name><value>" + tmpDir.getRoot().getAbsolutePath() + "</value></property>\n");
-    fileWriter.append("<property><name>" + INSTANCE_DFS_URI.getKey() + "</name><value>file://</value></property>\n");
+    fileWriter
+        .append("<property><name>" + Property.INSTANCE_DFS_DIR.getKey() + "</name><value>" + tmpDir.getRoot().getAbsolutePath() + "</value></property>\n");
+    fileWriter.append("<property><name>" + Property.INSTANCE_DFS_URI.getKey() + "</name><value>file://</value></property>\n");
     fileWriter.append("<property><name>" + ClientProperty.INSTANCE_NAME + "</name><value>foo</value></property>\n");
 
     fileWriter.append("</configuration>\n");
