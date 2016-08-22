@@ -24,6 +24,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.zookeeper.KeeperException;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -61,7 +62,11 @@ public class ZooZap {
     if (opts.zapMaster) {
       String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
 
-      zapDirectory(zoo, masterLockPath, opts);
+      try {
+        zapDirectory(zoo, masterLockPath, opts);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
 
     if (opts.zapTservers) {
@@ -89,20 +94,20 @@ public class ZooZap {
 
     if (opts.zapTracers) {
       String path = Constants.ZROOT + "/" + iid + Constants.ZTRACERS;
-      zapDirectory(zoo, path, opts);
+      try {
+        zapDirectory(zoo, path, opts);
+      } catch (Exception e) {
+        // do nothing if the /tracers node does not exist.
+      }
     }
 
   }
 
-  private static void zapDirectory(IZooReaderWriter zoo, String path, Opts opts) {
-    try {
-      List<String> children = zoo.getChildren(path);
-      for (String child : children) {
-        message("Deleting " + path + "/" + child + " from zookeeper", opts);
-        zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
+  private static void zapDirectory(IZooReaderWriter zoo, String path, Opts opts) throws KeeperException, InterruptedException {
+    List<String> children = zoo.getChildren(path);
+    for (String child : children) {
+      message("Deleting " + path + "/" + child + " from zookeeper", opts);
+      zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
     }
   }
 }
