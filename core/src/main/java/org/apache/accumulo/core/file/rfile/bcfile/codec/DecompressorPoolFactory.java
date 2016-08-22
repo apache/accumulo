@@ -17,37 +17,40 @@
 package org.apache.accumulo.core.file.rfile.bcfile.codec;
 
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
-import org.apache.commons.pool.KeyedPoolableObjectFactory;
+import org.apache.commons.pool2.KeyedPooledObjectFactory;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.hadoop.io.compress.Decompressor;
 
 /**
  * Factory pattern used to create decompressors within CompressorPool
  *
  */
-public class DecompressorObjectFactory implements KeyedPoolableObjectFactory<Algorithm,Decompressor> {
+public class DecompressorPoolFactory implements KeyedPooledObjectFactory<Algorithm,Decompressor> {
 
   @Override
-  public Decompressor makeObject(Algorithm key) throws Exception {
-    return key.getCodec().createDecompressor();
+  public PooledObject<Decompressor> makeObject(Algorithm key) throws Exception {
+    return new DefaultPooledObject<Decompressor>(key.getCodec().createDecompressor());
   }
 
   @Override
-  public void destroyObject(Algorithm key, Decompressor decompressor) throws Exception {
-    decompressor.end();
+  public void destroyObject(Algorithm algorithm, PooledObject<Decompressor> pooledObject) throws Exception {
+    pooledObject.getObject().end();
   }
 
   @Override
-  public boolean validateObject(Algorithm key, Decompressor decompressor) {
-    return decompressor.finished();
+  public boolean validateObject(Algorithm algorithm, PooledObject<Decompressor> pooledObject) {
+    return pooledObject.getObject().finished();
   }
 
   @Override
-  public void activateObject(Algorithm key, Decompressor decompressor) throws Exception {
-    decompressor.reset();
+  public void activateObject(Algorithm algorithm, PooledObject<Decompressor> pooledObject) throws Exception {
+    pooledObject.getObject().reset();
   }
 
   @Override
-  public void passivateObject(Algorithm key, Decompressor decompressor) throws Exception {
-    decompressor.reset();
+  public void passivateObject(Algorithm algorithm, PooledObject<Decompressor> pooledObject) throws Exception {
+    pooledObject.getObject().reset();
   }
+
 }

@@ -21,21 +21,21 @@ import java.io.IOException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
-import org.apache.commons.pool.impl.GenericKeyedObjectPool;
+import org.apache.commons.pool2.impl.GenericKeyedObjectPool;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
-import org.apache.log4j.Logger;
-
 import com.google.common.base.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Compressor factory extension that enables object pooling using Commons Pool. The design will have a keyed compressor pool and decompressor pool. The key of
  * which will be the Algorithm itself.
  *
  */
-public class CompressorPool extends CompressorFactory {
+public class CompressorPool extends DefaultCompressorFactory {
 
-  private static final Logger LOG = Logger.getLogger(CompressorObjectFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CompressorPoolFactory.class);
 
   /**
    * Compressor pool.
@@ -51,26 +51,40 @@ public class CompressorPool extends CompressorFactory {
 
     super(acuConf);
 
-    compressorPool = new GenericKeyedObjectPool<Algorithm,Compressor>(new CompressorObjectFactory());
+    compressorPool = new GenericKeyedObjectPool<Algorithm,Compressor>(new CompressorPoolFactory());
     // ensure that the pool grows when needed
-    compressorPool.setWhenExhaustedAction(GenericKeyedObjectPool.WHEN_EXHAUSTED_GROW);
 
-    decompressorPool = new GenericKeyedObjectPool<Algorithm,Decompressor>(new DecompressorObjectFactory());
+    compressorPool.setBlockWhenExhausted(false);
+    // no limit
+    compressorPool.setMaxTotal(-1);
+    compressorPool.setMaxTotalPerKey(-1);
+    compressorPool.setTestOnReturn(false);
+
+    decompressorPool = new GenericKeyedObjectPool<Algorithm,Decompressor>(new DecompressorPoolFactory());
     // ensure that the pool grows when needed.
-    decompressorPool.setWhenExhaustedAction(GenericKeyedObjectPool.WHEN_EXHAUSTED_GROW);
-
+    decompressorPool.setBlockWhenExhausted(false);
+    // no limit
+    decompressorPool.setMaxTotal(-1);
+    decompressorPool.setMaxTotalPerKey(-1);
+    decompressorPool.setTestOnReturn(false);
     // perform the initial update.
     update(acuConf);
 
   }
 
-  public void setMaxIdle(final int size) {
+  /**
+   * Set the max idle time that the compressor and decompressor pools will hold objects.
+   *
+   * @param maxIdle
+   *          maximum idle time.
+   */
+  public void setMaxIdle(final int maxIdle) {
     // check that we are changing the value.
     // this will avoid synchronization within the pool
-    if (size != compressorPool.getMaxIdle())
-      compressorPool.setMaxIdle(size);
-    if (size != decompressorPool.getMaxIdle())
-      decompressorPool.setMaxIdle(size);
+    if (maxIdle != compressorPool.getMaxIdlePerKey())
+      compressorPool.setMaxIdlePerKey(maxIdle);
+    if (maxIdle != decompressorPool.getMaxIdlePerKey())
+      decompressorPool.setMaxIdlePerKey(maxIdle);
   }
 
   @Override
@@ -135,12 +149,12 @@ public class CompressorPool extends CompressorFactory {
     try {
       compressorPool.close();
     } catch (Exception e) {
-      LOG.error(e);
+      LOG.error("Exception while closing compressor pool", e);
     }
     try {
       decompressorPool.close();
     } catch (Exception e) {
-      LOG.error(e);
+      LOG.error("Exception while closing decompressor pool", e);
     }
 
   }
@@ -197,7 +211,7 @@ public class CompressorPool extends CompressorFactory {
   }
 
   /**
-   * Sets the idle sweep time if > 0.
+   * Sets the idle sweep time if &gt; 0.
    *
    * @param idleSweepTimeMs
    *          idle sweep time.

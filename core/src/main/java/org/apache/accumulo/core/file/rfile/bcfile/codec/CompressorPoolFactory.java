@@ -17,38 +17,40 @@
 package org.apache.accumulo.core.file.rfile.bcfile.codec;
 
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
-import org.apache.commons.pool.KeyedPoolableObjectFactory;
+import org.apache.commons.pool2.KeyedPooledObjectFactory;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.hadoop.io.compress.Compressor;
 
 /**
  * Factory pattern used to create compressors within CompressorPool
  *
  */
-public class CompressorObjectFactory implements KeyedPoolableObjectFactory<Algorithm,Compressor> {
+public class CompressorPoolFactory implements KeyedPooledObjectFactory<Algorithm,Compressor> {
 
   @Override
-  public Compressor makeObject(Algorithm key) throws Exception {
-    return key.getCodec().createCompressor();
+  public PooledObject<Compressor> makeObject(Algorithm key) throws Exception {
+    return new DefaultPooledObject<Compressor>(key.getCodec().createCompressor());
   }
 
   @Override
-  public void destroyObject(Algorithm key, Compressor compressor) throws Exception {
-    compressor.end();
+  public void destroyObject(Algorithm algorithm, PooledObject<Compressor> pooledObject) throws Exception {
+    pooledObject.getObject().end();
   }
 
   @Override
-  public boolean validateObject(Algorithm key, Compressor compressor) {
-    return compressor.finished();
+  public boolean validateObject(Algorithm algorithm, PooledObject<Compressor> pooledObject) {
+    return pooledObject.getObject().finished();
   }
 
   @Override
-  public void activateObject(Algorithm key, Compressor compressor) throws Exception {
-    compressor.reset();
+  public void activateObject(Algorithm algorithm, PooledObject<Compressor> pooledObject) throws Exception {
+    pooledObject.getObject().reset();
   }
 
   @Override
-  public void passivateObject(Algorithm key, Compressor compressor) throws Exception {
-    compressor.finish();
+  public void passivateObject(Algorithm algorithm, PooledObject<Compressor> pooledObject) throws Exception {
+    pooledObject.getObject().finish();
   }
 
 }

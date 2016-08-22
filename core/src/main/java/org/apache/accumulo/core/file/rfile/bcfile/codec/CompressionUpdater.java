@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile.codec;
 
-import jline.internal.Log;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
@@ -44,7 +42,7 @@ public class CompressionUpdater implements Runnable {
 
   public CompressionUpdater(AccumuloConfiguration acuConf) {
     this.acuConf = acuConf;
-    currentInstance = new CompressorFactory(acuConf);
+    currentInstance = new DefaultCompressorFactory(acuConf);
     Compression.setCompressionFactory(currentInstance);
   }
 
@@ -56,7 +54,7 @@ public class CompressionUpdater implements Runnable {
       try {
         tempFactory = Class.forName(compressorClass).asSubclass(CompressorFactory.class);
       } catch (ClassNotFoundException cfe) {
-        Log.warn("Could not find class " + compressorClass + " so not setting desired CompressorFactory");
+        LOG.warn("Could not find class " + compressorClass + " so not setting desired CompressorFactory");
         // do nothing
         return;
       }
@@ -66,7 +64,7 @@ public class CompressionUpdater implements Runnable {
         compressorFactoryClazz = tempFactory;
       } catch (Exception e) {
         LOG.error("Could not set compressor factory to " + compressorFactoryClazz + " defaulting to CompressorFactory", e);
-        Compression.setCompressionFactory(new CompressorFactory(acuConf));
+        Compression.setCompressionFactory(new DefaultCompressorFactory(acuConf));
       }
     } else {
       currentInstance.update(acuConf);

@@ -28,8 +28,10 @@ import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.file.rfile.bcfile.codec.CompressorFactory;
+import org.apache.accumulo.core.file.rfile.bcfile.codec.DefaultCompressorFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionInputStream;
@@ -537,19 +539,19 @@ public final class Compression {
     public abstract boolean isSupported();
 
     public Compressor getCompressor() throws IOException {
-      return compressorFactory.getCompressor(this);
+      return compressorFactory.get().getCompressor(this);
     }
 
     public void returnCompressor(Compressor compressor) {
-      compressorFactory.releaseCompressor(this, compressor);
+      compressorFactory.get().releaseCompressor(this, compressor);
     }
 
     public Decompressor getDecompressor() throws IOException {
-      return compressorFactory.getDecompressor(this);
+      return compressorFactory.get().getDecompressor(this);
     }
 
     public void returnDecompressor(Decompressor decompressor) {
-      compressorFactory.releaseDecompressor(this, decompressor);
+      compressorFactory.get().releaseDecompressor(this, decompressor);
     }
 
     /**
@@ -651,7 +653,7 @@ public final class Compression {
       /**
    * Default implementation will create new compressors.
    */
-  private static CompressorFactory compressorFactory = new CompressorFactory(null);
+  private static AtomicReference<CompressorFactory> compressorFactory = new AtomicReference<CompressorFactory>(new DefaultCompressorFactory(null));
 
   /**
    * Allow the compressor factory to be set within this Instance.
@@ -659,13 +661,13 @@ public final class Compression {
    * @param compFactory
    *          incoming compressor factory to be used by all Algorithms
    */
-  public static synchronized void setCompressionFactory(final CompressorFactory compFactory) {
+  public static void setCompressionFactory(final CompressorFactory compFactory) {
     Preconditions.checkNotNull(compFactory, "Compressor Factory cannot be null");
-    if (null != compressorFactory) {
-      compressorFactory.close();
+    if (null != compressorFactory.get()) {
+      compressorFactory.get().close();
     }
 
-    compressorFactory = compFactory;
+    compressorFactory.set(compFactory);
   }
 
   /**

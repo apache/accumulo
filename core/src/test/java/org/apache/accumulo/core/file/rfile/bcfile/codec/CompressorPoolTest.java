@@ -62,7 +62,7 @@ public class CompressorPoolTest {
   }
 
   @Test
-  public void testAlgoreithms() throws IOException {
+  public void testAlgorithms() throws IOException {
     CompressorPool factory = new CompressorPool(AccumuloConfiguration.getDefaultConfiguration());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
@@ -214,7 +214,7 @@ public class CompressorPoolTest {
           // stop about half way through and change the pool
           if (i == 12) {
             factory.close();
-            factory = new CompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+            factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
           }
         }
 

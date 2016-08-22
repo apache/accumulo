@@ -63,7 +63,7 @@ public class CompressorFactoryTest {
 
   @Test
   public void testAlgoreithms() throws IOException {
-    CompressorFactory factory = new CompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorFactory factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
@@ -80,7 +80,7 @@ public class CompressorFactoryTest {
 
   @Test
   public void testMultipleNotTheSameCompressors() throws IOException {
-    CompressorFactory factory = new CompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorFactory factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
@@ -106,8 +106,8 @@ public class CompressorFactoryTest {
   }
 
   @Test
-  public void testMultipleNotTheSameDeompressors() throws IOException {
-    CompressorFactory factory = new CompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+  public void testMultipleNotTheSameDecompressors() throws IOException {
+    CompressorFactory factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
 
@@ -135,7 +135,7 @@ public class CompressorFactoryTest {
   @Test
   public void returnNull() {
 
-    CompressorFactory factory = new CompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
+    CompressorFactory factory = new DefaultCompressorFactory(AccumuloConfiguration.getDefaultConfiguration());
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al) == true) {
         try {
