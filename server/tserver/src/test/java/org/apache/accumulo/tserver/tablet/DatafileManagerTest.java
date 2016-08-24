@@ -65,7 +65,7 @@ public class DatafileManagerTest {
    */
   @Test
   public void testReserveMergingMinorCompactionFile_MaxExceeded() throws IOException {
-    Long maxMergeFileSize = Long.valueOf(1000);
+    Long maxMergeFileSize = AccumuloConfiguration.getMemoryInBytes("1000B");
     SortedMap<FileRef,DataFileValue> testFiles = createFileMap("largefile", "10M", "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles, maxMergeFileSize);
@@ -81,7 +81,7 @@ public class DatafileManagerTest {
    */
   @Test
   public void testReserveMergingMinorCompactionFile_MaxFilesNotReached() throws IOException {
-    Long maxMergeFileSize = Long.valueOf(1000);
+    Long maxMergeFileSize = AccumuloConfiguration.getMemoryInBytes("1000B");
     SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M", "file3", "100M", "file4", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles, maxMergeFileSize);
@@ -97,7 +97,7 @@ public class DatafileManagerTest {
    */
   @Test
   public void testReserveMergingMinorCompactionFile() throws IOException {
-    Long maxMergeFileSize = Long.valueOf(1000);
+    Long maxMergeFileSize = AccumuloConfiguration.getMemoryInBytes("1000B");
     SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles, maxMergeFileSize);
@@ -106,6 +106,22 @@ public class DatafileManagerTest {
     EasyMock.verify(tablet, tableConf);
 
     assertEquals("smallfile", mergeFile.path().getName());
+  }
+
+  /*
+   * Test disabled max file size for merging minor compaction
+   */
+  @Test
+  public void testReserveMergingMinorCompactionFileDisabled() throws IOException {
+    Long maxMergeFileSize = AccumuloConfiguration.getMemoryInBytes("0");
+    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallishfile", "10M", "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
+
+    DatafileManager dfm = new DatafileManager(tablet, testFiles, maxMergeFileSize);
+    FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
+
+    EasyMock.verify(tablet, tableConf);
+
+    assertEquals("smallishfile", mergeFile.path().getName());
   }
 
 }

@@ -298,7 +298,11 @@ class DatafileManager {
     if (datafileSizes.size() >= maxFiles) {
       // find the smallest file
 
-      long min = maxMergingMinorCompactionFileSize;
+      long maxFileSize = Long.MAX_VALUE;
+      if (maxMergingMinorCompactionFileSize > 0) {
+        maxFileSize = maxMergingMinorCompactionFileSize;
+      }
+      long min = maxFileSize;
       FileRef minName = null;
 
       for (Entry<FileRef,DataFileValue> entry : datafileSizes.entrySet()) {
