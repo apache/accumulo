@@ -136,9 +136,9 @@ public class SimpleGarbageCollector implements Iface {
   private Instance instance;
 
   public static void main(String[] args) throws UnknownHostException, IOException {
-    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
     final String app = "gc";
     Accumulo.setupLogging(app);
+    SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
     Instance instance = HdfsZooInstance.getInstance();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());

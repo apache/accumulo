@@ -1156,13 +1156,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
   public static void main(String[] args) throws Exception {
     try {
+      final String app = "master";
+      Accumulo.setupLogging(app);
       SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
 
       ServerOpts opts = new ServerOpts();
-      final String app = "master";
       opts.parseArgs(app, args);
       String hostname = opts.getAddress();
-      Accumulo.setupLogging(app);
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfiguration conf = new ServerConfiguration(instance);
       VolumeManager fs = VolumeManagerImpl.get();

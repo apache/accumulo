@@ -292,11 +292,11 @@ public class TraceServer implements Watcher {
   }
 
   public static void main(String[] args) throws Exception {
+    final String app = "tracer";
+    Accumulo.setupLogging(app);
     SecurityUtil.serverLogin(ServerConfiguration.getSiteConfiguration());
     ServerOpts opts = new ServerOpts();
-    final String app = "tracer";
     opts.parseArgs(app, args);
-    Accumulo.setupLogging(app);
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfiguration conf = new ServerConfiguration(instance);
     VolumeManager fs = VolumeManagerImpl.get();
