@@ -66,7 +66,7 @@ public class WorkMaker {
 
   public void run() {
     if (!ReplicationTable.isOnline(conn)) {
-      log.info("Replication table is not yet online");
+      log.debug("Replication table is not yet online");
       return;
     }
 
@@ -94,7 +94,7 @@ public class WorkMaker {
         // Extract the useful bits from the status key
         ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
         ReplicationSchema.StatusSection.getTableId(entry.getKey(), tableId);
-        log.info("Processing replication status record for " + file + " on table " + tableId);
+        log.debug("Processing replication status record for " + file + " on table " + tableId);
 
         Status status;
         try {
