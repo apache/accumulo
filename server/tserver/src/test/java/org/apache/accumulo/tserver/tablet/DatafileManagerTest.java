@@ -23,6 +23,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -56,8 +57,6 @@ public class DatafileManagerTest {
     EasyMock.expect(tablet.getExtent()).andReturn(extent);
     EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
     EasyMock.expect(tableConf.getMaxFilesPerTablet()).andReturn(5);
-
-    EasyMock.replay(tablet, tableConf);
   }
 
   /*
@@ -65,10 +64,14 @@ public class DatafileManagerTest {
    */
   @Test
   public void testReserveMergingMinorCompactionFile_MaxExceeded() throws IOException {
-    Long maxMergeFileSize = AccumuloConfiguration.getMemoryInBytes("1000B");
+    String maxMergeFileSize = "1000B";
+    EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
+    EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE)).andReturn(maxMergeFileSize);
+    EasyMock.replay(tablet, tableConf);
+
     SortedMap<FileRef,DataFileValue> testFiles = createFileMap("largefile", "10M", "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
-    DatafileManager dfm = new DatafileManager(tablet, testFiles, maxMergeFileSize);
+    DatafileManager dfm = new DatafileManager(tablet, testFiles);
     FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
@@ -81,10 +84,11 @@ public class DatafileManagerTest {
    */
   @Test
   public void testReserveMergingMinorCompactionFile_MaxFilesNotReached() throws IOException {
-    Long maxMergeFileSize = AccumuloConfiguration.getMemoryInBytes("1000B");
+    EasyMock.replay(tablet, tableConf);
+
     SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M", "file3", "100M", "file4", "100M");
 
-    DatafileManager dfm = new DatafileManager(tablet, testFiles, maxMergeFileSize);
+    DatafileManager dfm = new DatafileManager(tablet, testFiles);
     FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
@@ -97,10 +101,14 @@ public class DatafileManagerTest {
    */
   @Test
   public void testReserveMergingMinorCompactionFile() throws IOException {
-    Long maxMergeFileSize = AccumuloConfiguration.getMemoryInBytes("1000B");
+    String maxMergeFileSize = "1000B";
+    EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
+    EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE)).andReturn(maxMergeFileSize);
+    EasyMock.replay(tablet, tableConf);
+
     SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
-    DatafileManager dfm = new DatafileManager(tablet, testFiles, maxMergeFileSize);
+    DatafileManager dfm = new DatafileManager(tablet, testFiles);
     FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
@@ -113,10 +121,14 @@ public class DatafileManagerTest {
    */
   @Test
   public void testReserveMergingMinorCompactionFileDisabled() throws IOException {
-    Long maxMergeFileSize = AccumuloConfiguration.getMemoryInBytes("0");
+    String maxMergeFileSize = "0";
+    EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
+    EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE)).andReturn(maxMergeFileSize);
+    EasyMock.replay(tablet, tableConf);
+
     SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallishfile", "10M", "file2", "100M", "file3", "100M", "file4", "100M", "file5", "100M");
 
-    DatafileManager dfm = new DatafileManager(tablet, testFiles, maxMergeFileSize);
+    DatafileManager dfm = new DatafileManager(tablet, testFiles);
     FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();
 
     EasyMock.verify(tablet, tableConf);
