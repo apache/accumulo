@@ -61,7 +61,6 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.htrace.Span;
 import org.apache.thrift.TByteArrayOutputStream;
 import org.apache.thrift.TException;
@@ -334,17 +333,7 @@ public class TraceServer implements Watcher {
           return;
 
         log.info("Attempting to login as {} with {}", principalConfig, keyTab);
-        if (SecurityUtil.login(principalConfig, keyTab)) {
-          try {
-            // This spawns a thread to periodically renew the logged in (trace) user
-            UserGroupInformation.getLoginUser();
-            return;
-          } catch (IOException io) {
-            log.error("Error starting up renewal thread. This shouldn't be happening.", io);
-          }
-        }
-
-        throw new RuntimeException("Failed to perform Kerberos login for " + principalConfig + " using  " + keyTab);
+        SecurityUtil.serverLogin(acuConf, keyTab, principalConfig);
       }
     } catch (IOException | ClassNotFoundException exception) {
       final String msg = String.format("Failed to retrieve trace user token information based on property %1s.", Property.TRACE_TOKEN_TYPE);
