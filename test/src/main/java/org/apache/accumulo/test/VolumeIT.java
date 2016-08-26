@@ -67,6 +67,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -77,6 +78,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -429,16 +431,30 @@ public class VolumeIT extends ConfigurableMacBase {
       Assert.fail("Unexpected volume " + path);
     }
 
-    Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
-    WalStateManager wals = new WalStateManager(i, zk);
-    outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
-      for (Path path : paths) {
-        if (entry.getKey().toString().startsWith(path.toString())) {
-          continue outer;
+    // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
+    retry: while (true) {
+      Instance i = conn.getInstance();
+      ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+      WalStateManager wals = new WalStateManager(i, zk);
+      try {
+        outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
+          for (Path path : paths) {
+            if (entry.getKey().toString().startsWith(path.toString())) {
+              continue outer;
+            }
+          }
+          log.warn("Unexpected volume " + entry.getKey() + " (" + entry.getValue() + ")");
+          continue retry;
         }
+      } catch (WalMarkerException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof NoNodeException) {
+          // ignore WALs being cleaned up
+          continue retry;
+        }
+        throw e;
       }
-      Assert.fail("Unexpected volume " + entry.getKey());
+      break;
     }
 
     // if a volume is chosen randomly for each tablet, then the probability that a volume will not be chosen for any tablet is ((num_volumes -
