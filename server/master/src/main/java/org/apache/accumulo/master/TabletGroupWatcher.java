@@ -181,8 +181,8 @@ abstract class TabletGroupWatcher extends Daemon {
         SortedMap<TServerInstance,TabletServerStatus> destinations = new TreeMap<>(currentTServers);
         destinations.keySet().removeAll(this.master.serversToShutdown);
 
-        List<Assignment> assignments = new ArrayList<Assignment>();
-        List<Assignment> assigned = new ArrayList<Assignment>();
+        List<Assignment> assignments = new ArrayList<>();
+        List<Assignment> assigned = new ArrayList<>();
         List<TabletLocationState> assignedToDeadServers = new ArrayList<>();
         List<TabletLocationState> suspendedToGoneServers = new ArrayList<>();
         Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();

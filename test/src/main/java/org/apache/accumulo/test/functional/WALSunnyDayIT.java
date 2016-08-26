@@ -238,7 +238,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     }
 
     fail("Unable to get the correct number of WALs, expected " + expectedCount + " but got " + wals.toString());
-    return new HashMap<String,Boolean>();
+    return new HashMap<>();
   }
 
   private int getWaitFactor() {
