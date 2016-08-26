@@ -235,26 +235,6 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-jar-plugin</artifactId>
-          <executions>
-            <execution>
-              <id>create-iterator-test-jar</id>
-              <goals>
-                <goal>test-jar</goal>
-              </goals>
-              <phase>pre-integration-test</phase>
-              <configuration>
-                <finalName>TestIterators</finalName>
-                <classifier />
-                <includes>
-                  <include>org/apache/accumulo/test/functional/ValueReversingIterator.class</include>
-                </includes>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -274,6 +254,26 @@
                 <argument>-c</argument>
                 <argument>! find src/test/java -name '*IT.java' -exec echo '[ERROR] {} should be in src/main/java' \; | grep 'src/test/java'</argument>
               </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>create-iterator-test-jar</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <attach>false</attach>
+              <finalName>TestJar</finalName>
+              <descriptors>
+                <descriptor>src/main/test-jars/Iterators.xml</descriptor>
+              </descriptors>
             </configuration>
           </execution>
         </executions>
