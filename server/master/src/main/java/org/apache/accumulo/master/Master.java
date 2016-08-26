@@ -1419,13 +1419,13 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   public static void main(String[] args) throws Exception {
     try {
+      final String app = "master";
+      Accumulo.setupLogging(app);
       SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
       ServerOpts opts = new ServerOpts();
-      final String app = "master";
       opts.parseArgs(app, args);
       String hostname = opts.getAddress();
-      Accumulo.setupLogging(app);
       ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
       Accumulo.init(fs, conf, app);
