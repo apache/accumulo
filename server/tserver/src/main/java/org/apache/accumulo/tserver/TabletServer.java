@@ -2908,12 +2908,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   public static void main(String[] args) throws IOException {
     try {
+      final String app = "tserver";
+      Accumulo.setupLogging(app);
       SecurityUtil.serverLogin(SiteConfiguration.getInstance());
       ServerOpts opts = new ServerOpts();
-      final String app = "tserver";
       opts.parseArgs(app, args);
       String hostname = opts.getAddress();
-      Accumulo.setupLogging(app);
       ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
       Accumulo.init(fs, conf, app);

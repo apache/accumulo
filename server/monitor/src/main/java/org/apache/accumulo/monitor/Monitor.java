@@ -420,14 +420,14 @@ public class Monitor {
   }
 
   public static void main(String[] args) throws Exception {
+    final String app = "monitor";
+    Accumulo.setupLogging(app);
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
     ServerOpts opts = new ServerOpts();
-    final String app = "monitor";
     opts.parseArgs(app, args);
     String hostname = opts.getAddress();
 
-    Accumulo.setupLogging(app);
     VolumeManager fs = VolumeManagerImpl.get();
     instance = HdfsZooInstance.getInstance();
     config = new ServerConfigurationFactory(instance);
