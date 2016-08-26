@@ -133,6 +133,27 @@ but for different instances, the correct version is terminated. `HADOOP_CONF_DIR
 files to construct the FileSystem object for the cluster can be constructed (e.g. core-site.xml and hdfs-site.xml),
 which is typically required to interact with HDFS.
 
+## MapReduce job for Integration tests
+
+[ACCUMULO-3871][6] (re)introduced the ability to parallelize the execution of the Integration Test suite by the use
+of MapReduce/YARN. When a YARN cluster is available, this can drastically reduce the amount of time to run all tests.
+
+To run the tests, you first need a list of the tests. A simple way to get a list, is to scan the accumulo-test jar file for them.
+
+`jar -tf lib/accumulo-test.jar | grep IT.class | tr / . | sed -e 's/.class$//' >accumulo-integration-tests.txt`
+
+Then, put the list of files into HDFS:
+
+`hdfs dfs -mkdir /tmp`
+`hdfs dfs -put accumulo-integration-tests.txt /tmp/tests`
+
+Finally, launch the job, providing the list of tests to run and a location to store the test results. Optionally, a built
+native library shared object can be provided to the Mapper's classpath to enable MiniAccumuloCluster to use the native maps
+instead of the Java-based implementation. (Note that the below paths are the JAR and shared object are based on an installation.
+These files do exist in the build tree, but at different locations)
+
+`yarn jar lib/accumulo-test.jar org.apache.accumulo.test.mrit.IntegrationtestMapReduce -libjars lib/native/libaccumulo.so /tmp/accumulo-integration-tests.txt /tmp/accumulo-integration-test-results`
+
 # Manual Distributed Testing
 
 Apache Accumulo also contains a number of tests which are suitable for running against large clusters for hours to days
@@ -144,4 +165,4 @@ at a time, for example the [Continuous Ingest][1] and [Randomwalk test][2] suite
 [3]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
 [4]: http://maven.apache.org/surefire/maven-surefire-plugin/
 [5]: http://maven.apache.org/surefire/maven-failsafe-plugin/
-
+[6]: https://issues.apache.org/jira/browse/ACCUMULO-3871
