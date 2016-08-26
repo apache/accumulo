@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -58,6 +59,7 @@ class DatafileManager {
   // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
   private final Map<FileRef,DataFileValue> datafileSizes = Collections.synchronizedMap(new TreeMap<FileRef,DataFileValue>());
   private final Tablet tablet;
+  private Long maxMergingMinorCompactionFileSize;
 
   // ensure we only have one reader/writer of our bulk file notes at at time
   private final Object bulkFileImportLock = new Object();
@@ -296,11 +298,16 @@ class DatafileManager {
     if (datafileSizes.size() >= maxFiles) {
       // find the smallest file
 
-      long min = Long.MAX_VALUE;
+      long maxFileSize = Long.MAX_VALUE;
+      maxMergingMinorCompactionFileSize = AccumuloConfiguration.getMemoryInBytes(tablet.getTableConfiguration().get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE));
+      if (maxMergingMinorCompactionFileSize > 0) {
+        maxFileSize = maxMergingMinorCompactionFileSize;
+      }
+      long min = maxFileSize;
       FileRef minName = null;
 
       for (Entry<FileRef,DataFileValue> entry : datafileSizes.entrySet()) {
-        if (entry.getValue().getSize() < min && !majorCompactingFiles.contains(entry.getKey())) {
+        if (entry.getValue().getSize() <= min && !majorCompactingFiles.contains(entry.getKey())) {
           min = entry.getValue().getSize();
           minName = entry.getKey();
         }
