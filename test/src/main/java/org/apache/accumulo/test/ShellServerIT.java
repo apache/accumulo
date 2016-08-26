@@ -64,8 +64,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -1790,22 +1790,24 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private static final String FAKE_CONTEXT = "FAKE";
-  private static final String FAKE_CONTEXT_CLASSPATH = "file:///tmp/ShellServerIT-iterators.jar";
+  private static final String FAKE_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir") + "/target/" + ShellServerIT.class.getSimpleName()
+      + "-fake-iterators.jar";
   private static final String REAL_CONTEXT = "REAL";
-  private static final String REAL_CONTEXT_CLASSPATH = "file:///tmp/TestIterators-tests.jar";
+  private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir") + "/target/" + ShellServerIT.class.getSimpleName()
+      + "-real-iterators.jar";
 
   private void setupRealContextPath() throws Exception {
-    // Copy the TestIterators jar to tmp
+    // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
-    Path jarPath = new Path(targetDir, "TestIterators-tests.jar");
+    Path jarPath = new Path(targetDir, "TestJar-Iterators.jar");
     Path dstPath = new Path(REAL_CONTEXT_CLASSPATH);
     FileSystem fs = SharedMiniClusterBase.getCluster().getFileSystem();
     fs.copyFromLocalFile(jarPath, dstPath);
   }
 
   private void setupFakeContextPath() throws Exception {
-    // Copy the TestIterators jar to tmp
+    // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
     Path classesDir = new Path(targetDir, "classes");

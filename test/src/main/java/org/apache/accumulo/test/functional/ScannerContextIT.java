@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -52,7 +53,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
   private static final String CONTEXT = ScannerContextIT.class.getSimpleName();
   private static final String CONTEXT_PROPERTY = Property.VFS_CONTEXT_CLASSPATH_PROPERTY + CONTEXT;
-  private static final String CONTEXT_DIR = "file:///tmp";
+  private static final String CONTEXT_DIR = "file://" + System.getProperty("user.dir") + "/target";
   private static final String CONTEXT_CLASSPATH = CONTEXT_DIR + "/Test.jar";
   private static int ITERATIONS = 10;
   private static final long WAIT = 7000;
@@ -71,20 +72,24 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     fs = FileSystem.get(CachedConfiguration.getInstance());
   }
 
-  @Test
-  public void test() throws Exception {
-    // Copy the TestIterators jar to tmp
+  private Path copyTestIteratorsJarToTmp() throws IOException {
+    // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
-    Path jarPath = new Path(targetDir, "TestIterators-tests.jar");
+    Path jarPath = new Path(targetDir, "TestJar-Iterators.jar");
     Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
     fs.copyFromLocalFile(jarPath, dstPath);
     // Sleep to ensure jar change gets picked up
     UtilWaitThread.sleep(WAIT);
+    return dstPath;
+  }
 
+  @Test
+  public void test() throws Exception {
+    Path dstPath = copyTestIteratorsJarToTmp();
     try {
       Connector c = getConnector();
-      // Set the classloader context property on the table to point to the TestIterators jar file.
+      // Set the classloader context property on the table to point to the test iterators jar file.
       c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
       // Insert rows with the word "Test" in the value.
@@ -101,7 +106,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       scanCheck(c, tableName, null, null, "Test");
       batchCheck(c, tableName, null, null, "Test");
 
-      // This iterator is in the TestIterators jar file
+      // This iterator is in the test iterators jar file
       IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
 
       // Check that ValueReversingIterator is not already on the classpath by not setting the context. This should fail.
@@ -129,22 +134,14 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
   @Test
   public void testScanContextOverridesTableContext() throws Exception {
-    // Copy the TestIterators jar to tmp
-    Path baseDir = new Path(System.getProperty("user.dir"));
-    Path targetDir = new Path(baseDir, "target");
-    Path jarPath = new Path(targetDir, "TestIterators-tests.jar");
-    Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
-    fs.copyFromLocalFile(jarPath, dstPath);
-    // Sleep to ensure jar change gets picked up
-    UtilWaitThread.sleep(WAIT);
-
+    Path dstPath = copyTestIteratorsJarToTmp();
     try {
       Connector c = getConnector();
       // Create two contexts FOO and ScanContextIT. The FOO context will point to a classpath
-      // that contains nothing. The ScanContextIT context will point to the TestIterators.jar
+      // that contains nothing. The ScanContextIT context will point to the test iterators jar
       String tableContext = "FOO";
       String tableContextProperty = Property.VFS_CONTEXT_CLASSPATH_PROPERTY + tableContext;
-      String tableContextDir = "file:///tmp";
+      String tableContextDir = "file://" + System.getProperty("user.dir") + "/target";
       String tableContextClasspath = tableContextDir + "/TestFoo.jar";
       // Define both contexts
       c.instanceOperations().setProperty(tableContextProperty, tableContextClasspath);
@@ -163,7 +160,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       bw.close();
       scanCheck(c, tableName, null, null, "Test");
       batchCheck(c, tableName, null, null, "Test");
-      // This iterator is in the TestIterators jar file
+      // This iterator is in the test iterators jar file
       IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
 
       // Check that ValueReversingIterator is not already on the classpath by not setting the context. This should fail.
@@ -192,18 +189,10 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
   @Test
   public void testOneScannerDoesntInterfereWithAnother() throws Exception {
-    // Copy the TestIterators jar to tmp
-    Path baseDir = new Path(System.getProperty("user.dir"));
-    Path targetDir = new Path(baseDir, "target");
-    Path jarPath = new Path(targetDir, "TestIterators-tests.jar");
-    Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
-    fs.copyFromLocalFile(jarPath, dstPath);
-    // Sleep to ensure jar change gets picked up
-    UtilWaitThread.sleep(WAIT);
-
+    Path dstPath = copyTestIteratorsJarToTmp();
     try {
       Connector c = getConnector();
-      // Set the classloader context property on the table to point to the TestIterators jar file.
+      // Set the classloader context property on the table to point to the test iterators jar file.
       c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
       // Insert rows with the word "Test" in the value.
@@ -247,18 +236,10 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
   @Test
   public void testClearContext() throws Exception {
-    // Copy the TestIterators jar to tmp
-    Path baseDir = new Path(System.getProperty("user.dir"));
-    Path targetDir = new Path(baseDir, "target");
-    Path jarPath = new Path(targetDir, "TestIterators-tests.jar");
-    Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
-    fs.copyFromLocalFile(jarPath, dstPath);
-    // Sleep to ensure jar change gets picked up
-    UtilWaitThread.sleep(WAIT);
-
+    Path dstPath = copyTestIteratorsJarToTmp();
     try {
       Connector c = getConnector();
-      // Set the classloader context property on the table to point to the TestIterators jar file.
+      // Set the classloader context property on the table to point to the test iterators jar file.
       c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
       // Insert rows with the word "Test" in the value.
