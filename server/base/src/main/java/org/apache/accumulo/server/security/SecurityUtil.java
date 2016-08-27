@@ -40,17 +40,31 @@ public class SecurityUtil {
    * {@link #login(String, String)}
    */
   public static void serverLogin(AccumuloConfiguration acuConf) {
-    String keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
+    serverLogin(acuConf, acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB), acuConf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+  }
+
+  /**
+   * Performs a Kerberos login using the given Kerberos principal and keytab if they are non-null and positive length Strings. This method automaticallys spawns
+   * a thread to renew the given ticket upon successful login using {@link Property#GENERAL_KERBEROS_RENEWAL_PERIOD} as the renewal period. This method does
+   * nothing if either {@code keyTab} or {@code principal} are null or of zero length.
+   *
+   * @param acuConf
+   *          The Accumulo configuration
+   * @param keyTab
+   *          The path to the Kerberos keytab file
+   * @param principal
+   *          The Kerberos principal
+   */
+  public static void serverLogin(AccumuloConfiguration acuConf, String keyTab, String principal) {
     if (keyTab == null || keyTab.length() == 0)
+      return;
+
+    if (principal == null || principal.length() == 0)
       return;
 
     usingKerberos = true;
 
-    String principalConfig = acuConf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
-    if (principalConfig == null || principalConfig.length() == 0)
-      return;
-
-    if (login(principalConfig, keyTab)) {
+    if (login(principal, keyTab)) {
       try {
         startTicketRenewalThread(UserGroupInformation.getCurrentUser(), acuConf.getTimeInMillis(Property.GENERAL_KERBEROS_RENEWAL_PERIOD));
         return;
@@ -59,7 +73,7 @@ public class SecurityUtil {
       }
     }
 
-    throw new RuntimeException("Failed to perform Kerberos login for " + principalConfig + " using  " + keyTab);
+    throw new RuntimeException("Failed to perform Kerberos login for " + principal + " using  " + keyTab);
   }
 
   /**
@@ -70,7 +84,7 @@ public class SecurityUtil {
    *          replaced by the systems host name.
    * @return true if login succeeded, otherwise false
    */
-  public static boolean login(String principalConfig, String keyTabPath) {
+  static boolean login(String principalConfig, String keyTabPath) {
     try {
       String principalName = getServerPrincipal(principalConfig);
       if (keyTabPath != null && principalName != null && keyTabPath.length() != 0 && principalName.length() != 0) {

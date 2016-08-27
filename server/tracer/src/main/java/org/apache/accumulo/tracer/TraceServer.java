@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -60,7 +61,6 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.htrace.Span;
 import org.apache.thrift.TByteArrayOutputStream;
 import org.apache.thrift.TException;
@@ -320,30 +320,40 @@ public class TraceServer implements Watcher {
   }
 
   private static void loginTracer(AccumuloConfiguration acuConf) {
-    Map<String,String> loginMap = acuConf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
-    String keyTab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
-    if (keyTab == null || keyTab.length() == 0) {
-      keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
-    }
-    if (keyTab == null || keyTab.length() == 0)
-      return;
+    try {
+      Class<? extends AuthenticationToken> traceTokenType = AccumuloVFSClassLoader.getClassLoader().loadClass(acuConf.get(Property.TRACE_TOKEN_TYPE))
+          .asSubclass(AuthenticationToken.class);
 
-    String principalConfig = acuConf.get(Property.TRACE_USER);
-    if (principalConfig == null || principalConfig.length() == 0)
-      return;
+      if (!(KerberosToken.class.isAssignableFrom(traceTokenType))) {
+        // We're not using Kerberos to talk to Accumulo, but we might still need it for talking to HDFS/ZK for
+        // instance information.
+        log.info("Handling login under the assumption that Accumulo users are not using Kerberos.");
+        SecurityUtil.serverLogin(acuConf);
+      } else {
+        // We're using Kerberos to talk to Accumulo, so check for trace user specific auth details.
+        // We presume this same user will have the needed access for the service to interact with HDFS/ZK for
+        // instance information.
+        log.info("Handling login under the assumption that Accumulo users are using Kerberos.");
+        Map<String,String> loginMap = acuConf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+        String keyTab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
+        if (keyTab == null || keyTab.length() == 0) {
+          keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
+        }
+        if (keyTab == null || keyTab.length() == 0)
+          return;
 
-    log.info("Attempting to login as {} with {}", principalConfig, keyTab);
-    if (SecurityUtil.login(principalConfig, keyTab)) {
-      try {
-        // This spawns a thread to periodically renew the logged in (trace) user
-        UserGroupInformation.getLoginUser();
-        return;
-      } catch (IOException io) {
-        log.error("Error starting up renewal thread. This shouldn't be happening.", io);
+        String principalConfig = acuConf.get(Property.TRACE_USER);
+        if (principalConfig == null || principalConfig.length() == 0)
+          return;
+
+        log.info("Attempting to login as {} with {}", principalConfig, keyTab);
+        SecurityUtil.serverLogin(acuConf, keyTab, principalConfig);
       }
+    } catch (IOException | ClassNotFoundException exception) {
+      final String msg = String.format("Failed to retrieve trace user token information based on property %1s.", Property.TRACE_TOKEN_TYPE);
+      log.error(msg, exception);
+      throw new RuntimeException(msg, exception);
     }
-
-    throw new RuntimeException("Failed to perform Kerberos login for " + principalConfig + " using  " + keyTab);
   }
 
   public static void main(String[] args) throws Exception {
