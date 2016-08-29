@@ -19,7 +19,9 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -29,15 +31,19 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -85,6 +91,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_PORT, "0");
+    cfg.setProperty(Property.GC_WAL_DEAD_SERVER_WAIT, "1s");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
 
@@ -105,6 +112,10 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     }
 
     assertNull(getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR));
+  }
+
+  private void killMacTServer() throws ProcessNotFoundException, InterruptedException, KeeperException {
+      getCluster().killProcess(ServerType.TABLET_SERVER, getCluster().getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
   }
 
   @Test
@@ -136,6 +147,52 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     int after = countFiles();
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     assertTrue(after < before);
+  }
+
+  @Test
+  public void gcDeleteDeadTServerWAL() throws Exception {
+    // Kill GC process
+    killMacGc();
+
+    // Create table and ingest data
+    Connector c = getConnector();
+    c.tableOperations().create("test_ingest");
+    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
+    String tableId = getConnector().tableOperations().tableIdMap().get("test_ingest");
+    TestIngest.Opts opts = new TestIngest.Opts();
+    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+    vopts.rows = opts.rows = 10000;
+    vopts.cols = opts.cols = 1;
+    opts.setPrincipal("root");
+    vopts.setPrincipal("root");
+    TestIngest.ingest(c, opts, new BatchWriterOpts());
+
+    // Test WAL log has been created
+    List<String> walsBefore = getWALsForTableId(tableId);
+    Assert.assertEquals("Should be one WAL", 1, walsBefore.size());
+
+    // Flush and check for no WAL logs
+    c.tableOperations().flush("test_ingest", null, null, true);
+    List<String> walsAfter = getWALsForTableId(tableId);
+    Assert.assertEquals("Should be no WALs", 0, walsAfter.size());
+
+    // Validate WAL file still exists
+    String walFile = walsBefore.get(0).split("\\|")[0].replaceFirst("file:///", "");
+    File wf = new File(walFile);
+    Assert.assertEquals("WAL file does not exist", true, wf.exists());
+
+    // Kill TServer and give it some time to die and master to rebalance
+    killMacTServer();
+    UtilWaitThread.sleep(5000);
+
+    // Restart GC and let it run
+    Process gc = getCluster().exec(SimpleGarbageCollector.class);
+    UtilWaitThread.sleep(60000);
+
+    // Then check the log for proper events
+    String output = FunctionalTestUtils.readAll(getCluster(), SimpleGarbageCollector.class, gc);
+    assertTrue("WAL GC should have started", output.contains("Beginning garbage collection of write-ahead logs"));
+    assertTrue("WAL was not removed even though tserver was down", output.contains("Removing WAL for offline server"));
   }
 
   @Test
@@ -282,6 +339,18 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Path path = new Path(cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf");
     return Iterators.size(Arrays.asList(fs.globStatus(path)).iterator());
+  }
+
+  private List<String> getWALsForTableId(String tableId) throws TableNotFoundException, AccumuloException, AccumuloSecurityException
+  {
+    Scanner scanner = getConnector().createScanner("accumulo.metadata", Authorizations.EMPTY);
+    scanner.setRange(Range.prefix(new Text(tableId)));
+    scanner.fetchColumnFamily(new Text("log"));
+    List<String> walsList = new ArrayList<String>();
+    for (Entry<Key,Value> e : scanner) {
+      walsList.add(e.getValue().toString());
+    }
+    return walsList;
   }
 
   public static void addEntries(Connector conn, BatchWriterOpts bwOpts) throws Exception {

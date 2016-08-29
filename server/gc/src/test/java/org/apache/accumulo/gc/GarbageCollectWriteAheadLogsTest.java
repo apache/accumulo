@@ -107,6 +107,7 @@ public class GarbageCollectWriteAheadLogsTest {
   private VolumeManager volMgr;
   private GarbageCollectWriteAheadLogs gcwal;
   private long modTime;
+  private Map<HostAndPort, Long> firstSeenDead;
 
   @Rule
   public TestName testName = new TestName();
@@ -151,7 +152,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
     replay(instance, factory, siteConfig);
     AccumuloServerContext context = new AccumuloServerContext(factory);
-    gcwal = new GarbageCollectWriteAheadLogs(context, volMgr, false);
+    firstSeenDead = new HashMap<>();
+    gcwal = new GarbageCollectWriteAheadLogs(context, volMgr, false, firstSeenDead);
     modTime = System.currentTimeMillis();
   }
 
@@ -393,8 +395,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
     private List<Entry<Key,Value>> replData;
 
-    ReplicationGCWAL(AccumuloServerContext context, VolumeManager fs, boolean useTrash, List<Entry<Key,Value>> replData) throws IOException {
-      super(context, fs, useTrash);
+    ReplicationGCWAL(AccumuloServerContext context, VolumeManager fs, boolean useTrash, Map<HostAndPort, Long> firstSeenDead, List<Entry<Key,Value>> replData) throws IOException {
+      super(context, fs, useTrash, firstSeenDead);
       this.replData = replData;
     }
 
@@ -413,7 +415,7 @@ public class GarbageCollectWriteAheadLogsTest {
     LinkedList<Entry<Key,Value>> replData = new LinkedList<>();
     replData.add(Maps.immutableEntry(new Key("/wals/" + file1, StatusSection.NAME.toString(), "1"), StatusUtil.fileCreatedValue(System.currentTimeMillis())));
 
-    ReplicationGCWAL replGC = new ReplicationGCWAL(null, volMgr, false, replData);
+    ReplicationGCWAL replGC = new ReplicationGCWAL(null, volMgr, false, firstSeenDead, replData);
 
     replay(conn);
 
@@ -442,7 +444,7 @@ public class GarbageCollectWriteAheadLogsTest {
     Instance inst = new MockInstance(testName.getMethodName());
     AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(inst));
 
-    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false);
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false, firstSeenDead);
 
     long file1CreateTime = System.currentTimeMillis();
     long file2CreateTime = file1CreateTime + 50;
@@ -485,7 +487,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     Connector conn = context.getConnector();
 
-    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false);
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false, firstSeenDead);
 
     long file1CreateTime = System.currentTimeMillis();
     long file2CreateTime = file1CreateTime + 50;
@@ -534,7 +536,7 @@ public class GarbageCollectWriteAheadLogsTest {
     bw.addMutation(m);
     bw.close();
 
-    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false);
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false, firstSeenDead);
 
     Iterable<Entry<Key,Value>> data = gcWALs.getReplicationStatusForFile(conn, wal);
     Entry<Key,Value> entry = Iterables.getOnlyElement(data);
@@ -562,7 +564,7 @@ public class GarbageCollectWriteAheadLogsTest {
     bw.addMutation(m);
     bw.close();
 
-    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false);
+    GarbageCollectWriteAheadLogs gcWALs = new GarbageCollectWriteAheadLogs(context, volMgr, false, firstSeenDead);
 
     Iterable<Entry<Key,Value>> iter = gcWALs.getReplicationStatusForFile(conn, wal);
     Map<Key,Value> data = new HashMap<>();
@@ -666,8 +668,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
     private boolean holdsLockBool = false;
 
-    public GCWALPartialMock(AccumuloServerContext ctx, VolumeManager vm, boolean useTrash, boolean holdLock) throws IOException {
-      super(ctx, vm, useTrash);
+    public GCWALPartialMock(AccumuloServerContext ctx, VolumeManager vm, boolean useTrash, Map<HostAndPort, Long> firstSeenDead, boolean holdLock) throws IOException {
+      super(ctx, vm, useTrash, firstSeenDead);
       this.holdsLockBool = holdLock;
     }
 
@@ -701,7 +703,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
   private GCWALPartialMock getGCWALForRemoveFileTest(GCStatus s, final boolean locked) throws IOException {
     AccumuloServerContext ctx = new AccumuloServerContext(new ServerConfigurationFactory(new MockInstance("accumulo")));
-    return new GCWALPartialMock(ctx, VolumeManagerImpl.get(), false, locked);
+    return new GCWALPartialMock(ctx, VolumeManagerImpl.get(), false, firstSeenDead, locked);
   }
 
   private Map<String,Path> getEmptyMap() {
@@ -795,8 +797,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
   class GCWALDeadTserverCollectMock extends GarbageCollectWriteAheadLogs {
 
-    public GCWALDeadTserverCollectMock(AccumuloServerContext ctx, VolumeManager vm, boolean useTrash) throws IOException {
-      super(ctx, vm, useTrash);
+    public GCWALDeadTserverCollectMock(AccumuloServerContext ctx, VolumeManager vm, boolean useTrash, Map<HostAndPort, Long> firstSeenDead) throws IOException {
+      super(ctx, vm, useTrash, firstSeenDead);
     }
 
     @Override
@@ -846,7 +848,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     try {
       VolumeManager vm = VolumeManagerImpl.getLocal(walDir.toString());
-      GarbageCollectWriteAheadLogs gcwal2 = new GCWALDeadTserverCollectMock(ctx, vm, false);
+      GarbageCollectWriteAheadLogs gcwal2 = new GCWALDeadTserverCollectMock(ctx, vm, false, firstSeenDead);
       GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
       gcwal2.collect(status);
