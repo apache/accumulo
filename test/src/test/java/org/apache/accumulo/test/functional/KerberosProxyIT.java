@@ -56,6 +56,7 @@ import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.server.util.PortUtils;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -71,6 +72,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +80,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Tests impersonation of clients by the proxy over SASL
  */
+@Category(MiniClusterOnlyTest.class)
 public class KerberosProxyIT extends AccumuloIT {
   private static final Logger log = LoggerFactory.getLogger(KerberosProxyIT.class);
 

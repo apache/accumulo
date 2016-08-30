@@ -43,6 +43,7 @@ import org.apache.accumulo.harness.conf.AccumuloMiniClusterConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.categories.AnyClusterTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -52,12 +53,14 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * General Integration-Test base class that provides access to an Accumulo instance for testing. This instance could be MAC or a standalone instance.
  */
+@Category(AnyClusterTest.class)
 public abstract class AccumuloClusterIT extends AccumuloIT implements MiniClusterConfigurationCallback, ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterIT.class);
   private static final String TRUE = Boolean.toString(true);

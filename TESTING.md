@@ -47,23 +47,27 @@ but are checking for regressions that were previously seen in the codebase. Thes
 resources, at least another gigabyte of memory over what Maven itself requires. As such, it's recommended to have at
 least 3-4GB of free memory and 10GB of free disk space.
 
-## Accumulo for testing
+## Test Categories
 
-The primary reason these tests take so much longer than the unit tests is that most are using an Accumulo instance to
-perform the test. It's a necessary evil; however, there are things we can do to improve this.
+Accumulo uses JUnit Category annotations to categorize certain integration tests based on their runtime requirements.
+Presently there are three different categories:
 
-## MiniAccumuloCluster
+### MiniAccumuloCluster (`MiniClusterOnlyTest`)
 
-By default, these tests will use a MiniAccumuloCluster which is a multi-process "implementation" of Accumulo, managed
-through Java interfaces. This MiniAccumuloCluster has the ability to use the local filesystem or Apache Hadoop's
+These tests use MiniAccumuloCluster (MAC) which is a multi-process "implementation" of Accumulo, managed
+through Java APIs. This MiniAccumuloCluster has the ability to use the local filesystem or Apache Hadoop's
 MiniDFSCluster, as well as starting one to many tablet servers. MiniAccumuloCluster tends to be a very useful tool in
 that it can automatically provide a workable instance that mimics how an actual deployment functions.
 
 The downside of using MiniAccumuloCluster is that a significant portion of each test is now devoted to starting and
 stopping the MiniAccumuloCluster.  While this is a surefire way to isolate tests from interferring with one another, it
-increases the actual runtime of the test by, on average, 10x.
+increases the actual runtime of the test by, on average, 10x. Some times the tests require the use of MAC because the
+test is being destructive or some special environment setup (e.g. Kerberos).
 
-## Standalone Cluster
+By default, these tests are run during the `integration-test` lifecycle phase using `mvn verify`. These tests can
+also be run at the `test` lifecycle phase using `mvn package -Pminicluster-unit-tests`.
+
+### Standalone Cluster (`AnyClusterTest`)
 
 An alternative to the MiniAccumuloCluster for testing, a standalone Accumulo cluster can also be configured for use by
 most tests. This requires a manual step of building and deploying the Accumulo cluster by hand. The build can then be
@@ -75,7 +79,9 @@ Use of a standalone cluster can be enabled using system properties on the Maven 
 providing a Java properties file on the Maven command line. The use of a properties file is recommended since it is
 typically a fixed file per standalone cluster you want to run the tests against.
 
-### Configuration
+These tests will always run during the `integration-test` lifecycle phase using `mvn verify`.
+
+## Configuration for Standalone clusters
 
 The following properties can be used to configure a standalone cluster:
 
@@ -128,4 +134,3 @@ at a time, for example the [Continuous Ingest][1] and [Randomwalk test][2] suite
 [3]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
 [4]: http://maven.apache.org/surefire/maven-surefire-plugin/
 [5]: http://maven.apache.org/surefire/maven-failsafe-plugin/
-

@@ -115,6 +115,10 @@
     <url>https://builds.apache.org/view/A-D/view/Accumulo/</url>
   </ciManagement>
   <properties>
+    <accumulo.anyClusterTests>org.apache.accumulo.test.categories.AnyClusterTest</accumulo.anyClusterTests>
+    <accumulo.integrationTestsExcludedGroups />
+    <accumulo.integrationTestsGroups>${accumulo.anyClusterTests},${accumulo.miniclusterTests}</accumulo.integrationTestsGroups>
+    <accumulo.miniclusterTests>org.apache.accumulo.test.categories.MiniClusterOnlyTest</accumulo.miniclusterTests>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
@@ -240,7 +244,7 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.11</version>
+        <version>4.12</version>
       </dependency>
       <dependency>
         <groupId>log4j</groupId>
@@ -1006,6 +1010,10 @@
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
+            <configuration>
+              <excludeGroups>${accumulo.integrationTestsExcludedGroups}</excludeGroups>
+              <groups>${accumulo.integrationTestsGroups}</groups>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1398,6 +1406,20 @@
           </plugins>
         </pluginManagement>
       </build>
+    </profile>
+    <profile>
+      <id>only-minicluster-tests</id>
+      <properties>
+        <accumulo.integrationTestsExcludedGroups>${accumulo.anyClusterTests}</accumulo.integrationTestsExcludedGroups>
+        <accumulo.integrationTestsGroups>${accumulo.miniclusterTests}</accumulo.integrationTestsGroups>
+      </properties>
+    </profile>
+    <profile>
+      <id>standalone-capable-tests</id>
+      <properties>
+        <accumulo.integrationTestsExcludedGroups>${accumulo.miniclusterTests}</accumulo.integrationTestsExcludedGroups>
+        <accumulo.integrationTestsGroups>${accumulo.anyClusterTests}</accumulo.integrationTestsGroups>
+      </properties>
     </profile>
   </profiles>
 </project>
