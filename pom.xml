@@ -1414,5 +1414,12 @@
         <accumulo.integrationTestsGroups>${accumulo.miniclusterTests}</accumulo.integrationTestsGroups>
       </properties>
     </profile>
+    <profile>
+      <id>standalone-capable-tests</id>
+      <properties>
+        <accumulo.integrationTestsExcludedGroups>${accumulo.miniclusterTests}</accumulo.integrationTestsExcludedGroups>
+        <accumulo.integrationTestsGroups>${accumulo.anyClusterTests}</accumulo.integrationTestsGroups>
+      </properties>
+    </profile>
   </profiles>
 </project>
