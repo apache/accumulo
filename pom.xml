@@ -116,10 +116,11 @@
   </ciManagement>
   <properties>
     <accumulo.anyClusterTests>org.apache.accumulo.test.categories.AnyClusterTest</accumulo.anyClusterTests>
+    <accumulo.integrationTestsExcludedGroups />
+    <accumulo.integrationTestsGroups>${accumulo.anyClusterTests},${accumulo.miniclusterTests}</accumulo.integrationTestsGroups>
     <accumulo.miniclusterTests>org.apache.accumulo.test.categories.MiniClusterOnlyTest</accumulo.miniclusterTests>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
-    <accumulo.skipMiniClusterInFailsafe>false</accumulo.skipMiniClusterInFailsafe>
     <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.50</bouncycastle.version>
@@ -1004,25 +1005,14 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <executions>
           <execution>
-            <id>run-minicluster-integration-tests</id>
+            <id>run-integration-tests</id>
             <goals>
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
             <configuration>
-              <skip>${accumulo.skipMiniClusterInFailsafe}</skip>
-              <groups>${accumulo.miniclusterTests}</groups>
-            </configuration>
-          </execution>
-          <execution>
-            <!-- Run only the anyCluster tests -->
-            <id>run-anyCluster-integration-tests</id>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-            <configuration>
-              <groups>${accumulo.anyClusterTests}</groups>
+              <excludeGroups>${accumulo.integrationTestsExcludedGroups}</excludeGroups>
+              <groups>${accumulo.integrationTestsGroups}</groups>
             </configuration>
           </execution>
         </executions>
@@ -1416,6 +1406,13 @@
           </plugins>
         </pluginManagement>
       </build>
+    </profile>
+    <profile>
+      <id>only-minicluster-tests</id>
+      <properties>
+        <accumulo.integrationTestsExcludedGroups>${accumulo.anyClusterTests}</accumulo.integrationTestsExcludedGroups>
+        <accumulo.integrationTestsGroups>${accumulo.miniclusterTests}</accumulo.integrationTestsGroups>
+      </properties>
     </profile>
   </profiles>
 </project>
