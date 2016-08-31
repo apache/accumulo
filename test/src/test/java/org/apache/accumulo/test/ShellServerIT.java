@@ -39,8 +39,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
@@ -66,6 +64,8 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTest;
+import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.configuration.ConfigurationException;
@@ -84,12 +84,16 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
+import jline.console.ConsoleReader;
+
+@Category({MiniClusterOnlyTest.class, SunnyDayTests.class})
 public class ShellServerIT extends SharedMiniClusterIT {
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();

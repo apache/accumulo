@@ -89,15 +89,19 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.categories.AnyClusterTest;
+import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
+@Category({AnyClusterTest.class, SunnyDayTests.class})
 public class ReadWriteIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(ReadWriteIT.class);
 

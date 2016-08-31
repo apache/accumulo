@@ -50,7 +50,18 @@ least 3-4GB of free memory and 10GB of free disk space.
 ## Test Categories
 
 Accumulo uses JUnit Category annotations to categorize certain integration tests based on their runtime requirements.
-Presently there are three different categories:
+Presently there are several different categories:
+
+### SunnyDay (`SunnyDayTests`)
+
+This test category represents a minimal set of tests chosen to verify the basic
+functionality of Accumulo. These would typically be run prior to submitting a
+patch or pull request, or fixing a bug, to quickly ensure no basic functions
+were broken by the change.
+
+These tests will run by default during the `integration-test` lifecycle phase using `mvn verify`.
+To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.SunnyDayTests`
+To execute everything except these tests, use `mvn verify -Dfailsafe.excludedGroups=org.apache.accumulo.test.categories.SunnyDayTests`
 
 ### MiniAccumuloCluster (`MiniClusterOnlyTest`)
 

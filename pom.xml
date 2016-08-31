@@ -1320,7 +1320,7 @@
       <!-- Minimal testing profile. (a.k.a. SunnyDay) -->
       <id>sunny</id>
       <properties>
-        <it.test>ReadWriteIT,SimpleProxyIT,ExamplesIT,ShellServerIT</it.test>
+        <failsafe.groups>org.apache.accumulo.test.categories.SunnyDayTests</failsafe.groups>
       </properties>
     </profile>
     <!-- profile for our default Hadoop build
