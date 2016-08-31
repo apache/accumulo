@@ -77,12 +77,14 @@ public class GarbageCollectWriteAheadLogsTest {
   private VolumeManager volMgr;
   private GarbageCollectWriteAheadLogs gcwal;
   private long modTime;
+  private Map<HostAndPort,Long> firstSeenDead;
 
   @Before
   public void setUp() throws Exception {
     instance = createMock(Instance.class);
     volMgr = createMock(VolumeManager.class);
-    gcwal = new GarbageCollectWriteAheadLogs(instance, volMgr, false);
+    firstSeenDead = new HashMap<>();
+    gcwal = new GarbageCollectWriteAheadLogs(instance, volMgr, false, firstSeenDead);
     modTime = System.currentTimeMillis();
   }
 
@@ -344,8 +346,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
     private boolean holdsLockBool = false;
 
-    public GCWALPartialMock(Instance i, VolumeManager vm, boolean useTrash, boolean holdLock) throws IOException {
-      super(i, vm, useTrash);
+    public GCWALPartialMock(Instance i, VolumeManager vm, boolean useTrash, Map<HostAndPort,Long> firstSeenDead, boolean holdLock) throws IOException {
+      super(i, vm, useTrash, firstSeenDead);
       this.holdsLockBool = holdLock;
     }
 
@@ -378,7 +380,7 @@ public class GarbageCollectWriteAheadLogsTest {
   }
 
   private GCWALPartialMock getGCWALForRemoveFileTest(GCStatus s, final boolean locked) throws IOException {
-    return new GCWALPartialMock(new MockInstance("accumulo"), VolumeManagerImpl.get(), false, locked);
+    return new GCWALPartialMock(new MockInstance("accumulo"), VolumeManagerImpl.get(), false, firstSeenDead, locked);
   }
 
   private Map<String,Path> getEmptyMap() {
@@ -472,8 +474,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
   class GCWALDeadTserverCollectMock extends GarbageCollectWriteAheadLogs {
 
-    public GCWALDeadTserverCollectMock(Instance i, VolumeManager vm, boolean useTrash) throws IOException {
-      super(i, vm, useTrash);
+    public GCWALDeadTserverCollectMock(Instance i, VolumeManager vm, boolean useTrash, Map<HostAndPort,Long> firstSeenDead) throws IOException {
+      super(ctx, vm, useTrash, firstSeenDead);
     }
 
     @Override
@@ -522,7 +524,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     try {
       VolumeManager vm = VolumeManagerImpl.getLocal(walDir.toString());
-      GarbageCollectWriteAheadLogs gcwal2 = new GCWALDeadTserverCollectMock(i, vm, false);
+      GarbageCollectWriteAheadLogs gcwal2 = new GCWALDeadTserverCollectMock(i, vm, false, firstSeenDead);
       GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
       gcwal2.collect(status);

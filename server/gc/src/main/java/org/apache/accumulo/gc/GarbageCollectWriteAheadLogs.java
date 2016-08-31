@@ -64,7 +64,7 @@ public class GarbageCollectWriteAheadLogs {
 
   private final Instance instance;
   private final VolumeManager fs;
-  private final Map<HostAndPort,Long> firstSeenDead = new HashMap<HostAndPort,Long>();
+  private final Map<HostAndPort,Long> firstSeenDead;
 
   private boolean useTrash;
 
@@ -77,11 +77,14 @@ public class GarbageCollectWriteAheadLogs {
    *          volume manager to use
    * @param useTrash
    *          true to move files to trash rather than delete them
+   * @param firstSeenDead
+   *          mutable map of a host to when it was first seen dead
    */
-  GarbageCollectWriteAheadLogs(Instance instance, VolumeManager fs, boolean useTrash) throws IOException {
+  GarbageCollectWriteAheadLogs(Instance instance, VolumeManager fs, boolean useTrash, Map<HostAndPort,Long> firstSeenDead) throws IOException {
     this.instance = instance;
     this.fs = fs;
     this.useTrash = useTrash;
+    this.firstSeenDead = firstSeenDead;
   }
 
   /**
