@@ -41,6 +41,7 @@ nav: nav_people
 | username    | name                | organization                                                      | timezone              |
 |-------------|---------------------|-------------------------------------------------------------------|-----------------------|
 |             | Aaron Glahe         | [Data Tactics][DATATACT]                                          | [ET][ET]              |
+|             | Adam J Shook        | [Datacatessen][DATACATESS]                                        | [ET][ET]              |
 |             | Al Krinker          |                                                                   | [ET][ET]              |
 |             | Alex Moundalexis    | [Cloudera][CLOUDERA]                                              | [ET][ET]              |
 |             | Andrew George Wells | [ClearEdgeIT][CLEAREDGE]                                          | [ET][ET]              |
@@ -130,6 +131,7 @@ nav: nav_people
 [CLEAREDGE]: http://clearedgeit.com
 [CLOUDERA]: http://www.cloudera.com
 [DATATACT]: http://www.data-tactics.com
+[DATACATESS]: https://datacatessen.com/
 [ENDGAME]: http://www.endgame.com
 [FLYWHEEL]: http://flywheeldata.com
 [HORTONWORKS]: http://hortonworks.com
