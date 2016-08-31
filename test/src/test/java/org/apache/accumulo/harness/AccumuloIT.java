@@ -19,6 +19,7 @@ package org.apache.accumulo.harness;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
@@ -92,7 +93,7 @@ public class AccumuloIT {
     } catch (NumberFormatException exception) {
       log.warn("Could not parse timeout.factor, defaulting to no timeout.");
     }
-    return new Timeout(waitLonger * defaultTimeoutSeconds() * 1000);
+    return new Timeout(waitLonger * defaultTimeoutSeconds(), TimeUnit.SECONDS);
   }
 
   /**

@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -79,7 +80,7 @@ public class CyclicReplicationIT {
       log.warn("Could not parse timeout.factor, not scaling timeout");
     }
 
-    return new Timeout(scalingFactor * 5 * 60 * 1000);
+    return new Timeout(scalingFactor * 5, TimeUnit.MINUTES);
   }
 
   @Rule
