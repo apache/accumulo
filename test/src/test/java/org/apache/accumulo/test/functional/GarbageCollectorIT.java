@@ -100,9 +100,9 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private void killMacGc() throws ProcessNotFoundException, InterruptedException, KeeperException {
+  private void killMacGc() throws ProcessNotFoundException, InterruptedException, KeeperException, IOException {
     // kill gc started by MAC
-    getCluster().killProcess(ServerType.GARBAGE_COLLECTOR, getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
+    getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
     // delete lock in zookeeper if there, this will allow next GC to start quickly
     String path = ZooUtil.getRoot(new ZooKeeperInstance(getCluster().getClientConfig())) + Constants.ZGC_LOCK;
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
@@ -113,10 +113,6 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     }
 
     assertNull(getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR));
-  }
-
-  private void killMacTServer() throws ProcessNotFoundException, InterruptedException, KeeperException {
-      getCluster().killProcess(ServerType.TABLET_SERVER, getCluster().getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
   }
 
   @Test
@@ -169,29 +165,25 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     // Test WAL log has been created
     List<String> walsBefore = getWALsForTableId(tableId);
     Assert.assertEquals("Should be one WAL", 1, walsBefore.size());
-
-    // Flush and check for no WAL logs
-    c.tableOperations().flush("test_ingest", null, null, true);
-    List<String> walsAfter = getWALsForTableId(tableId);
-    Assert.assertEquals("Should be no WALs", 0, walsAfter.size());
+    final File walToBeDeleted = new File(walsBefore.get(0).split("\\|")[0].replaceFirst("file:///", ""));
 
     // Validate WAL file still exists
-    String walFile = walsBefore.get(0).split("\\|")[0].replaceFirst("file:///", "");
-    File wf = new File(walFile);
-    Assert.assertEquals("WAL file does not exist", true, wf.exists());
+    Assert.assertEquals("WAL file does not exist", true, walToBeDeleted.exists());
 
-    // Kill TServer and give it some time to die and master to rebalance
-    killMacTServer();
+    // Kill TServers and give it some time to die
+    getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
     UtilWaitThread.sleep(5000);
+    // Restart them or the GC won't ever be able to run a cycle
+    getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
     // Restart GC and let it run
-    Process gc = getCluster().exec(SimpleGarbageCollector.class);
-    UtilWaitThread.sleep(60000);
+    getCluster().getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
 
-    // Then check the log for proper events
-    String output = FunctionalTestUtils.readAll(getCluster(), SimpleGarbageCollector.class, gc);
-    assertTrue("WAL GC should have started", output.contains("Beginning garbage collection of write-ahead logs"));
-    assertTrue("WAL was not removed even though tserver was down", output.contains("Removing WAL for offline server"));
+    log.info("Waiting for garbage collector to delete the WAL {}", walToBeDeleted);
+    while (walToBeDeleted.exists()) {
+      // Wait for the file to be deleted
+      Thread.sleep(2000);
+    }
   }
 
   @Test
