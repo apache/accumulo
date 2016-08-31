@@ -116,6 +116,10 @@
     <url>https://builds.apache.org/view/A-D/view/Accumulo/</url>
   </ciManagement>
   <properties>
+    <accumulo.anyClusterTests>org.apache.accumulo.test.categories.AnyClusterTest</accumulo.anyClusterTests>
+    <accumulo.it.excludedGroups>${accumulo.performanceTests</accumulo.it.excludedGroups>
+    <accumulo.it.groups>${accumulo.anyClusterTests},${accumulo.miniclusterTests}</accumulo.it.groups>
+    <accumulo.miniclusterTests>org.apache.accumulo.test.categories.MiniClusterOnlyTest</accumulo.miniclusterTests>
     <!-- Interface used to separate tests with JUnit category -->
     <accumulo.performanceTests>org.apache.accumulo.test.PerformanceTest</accumulo.performanceTests>
     <!-- used for filtering the java source with the current version -->
@@ -1033,7 +1037,8 @@
               <goal>verify</goal>
             </goals>
             <configuration>
-              <excludedGroups>${accumulo.performanceTests}</excludedGroups>
+              <excludeGroups>${accumulo.it.excludedGroups}</excludeGroups>
+              <groups>${accumulo.it.groups}</groups>
             </configuration>
           </execution>
         </executions>
@@ -1417,6 +1422,20 @@
           </plugins>
         </pluginManagement>
       </build>
+    </profile>
+    <profile>
+      <id>only-minicluster-tests</id>
+      <properties>
+        <accumulo.it.excludedGroups>${accumulo.anyClusterTests}</accumulo.it.excludedGroups>
+        <accumulo.it.groups>${accumulo.miniclusterTests}</accumulo.it.groups>
+      </properties>
+    </profile>
+    <profile>
+      <id>standalone-capable-tests</id>
+      <properties>
+        <accumulo.it.excludedGroups>${accumulo.miniclusterTests}</accumulo.it.excludedGroups>
+        <accumulo.it.groups>${accumulo.anyClusterTests}</accumulo.it.groups>
+      </properties>
     </profile>
   </profiles>
 </project>

@@ -42,6 +42,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTest;
 import org.apache.accumulo.test.functional.KerberosIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -55,6 +56,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +65,7 @@ import com.google.common.collect.Iterators;
 /**
  * Ensure that replication occurs using keytabs instead of password (not to mention SASL)
  */
+@Category(MiniClusterOnlyTest.class)
 public class KerberosReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
 
