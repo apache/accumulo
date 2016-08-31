@@ -200,9 +200,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     jvmArgs2.add("-Xmx" + config.getDefaultMemory());
     if (jvmArgs != null)
       jvmArgs2.addAll(jvmArgs);
-    Process proc = _exec(clazz, jvmArgs2, args);
-    cleanup.add(proc);
-    return proc;
+    return _exec(clazz, jvmArgs2, args);
   }
 
   private boolean containsSiteFile(File f) {
@@ -337,6 +335,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     lw = new LogWriter(process.getInputStream(), new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
     logWriters.add(lw);
     lw.start();
+
+    cleanup.add(process);
 
     return process;
   }
