@@ -115,10 +115,6 @@
     <url>https://builds.apache.org/view/A-D/view/Accumulo/</url>
   </ciManagement>
   <properties>
-    <accumulo.anyClusterTests>org.apache.accumulo.test.categories.AnyClusterTest</accumulo.anyClusterTests>
-    <accumulo.it.excludedGroups />
-    <accumulo.it.groups>${accumulo.anyClusterTests},${accumulo.miniclusterTests}</accumulo.it.groups>
-    <accumulo.miniclusterTests>org.apache.accumulo.test.categories.MiniClusterOnlyTest</accumulo.miniclusterTests>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
@@ -128,6 +124,8 @@
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- extra release args for testing -->
     <extraReleaseArgs />
+    <failsafe.excludedGroups />
+    <failsafe.groups />
     <!-- findbugs-maven-plugin won't work on jdk8 or later; set to 3.0.0 or newer -->
     <findbugs.version>3.0.3</findbugs.version>
     <!-- surefire/failsafe plugin option -->
@@ -151,7 +149,9 @@
     <!-- overwritten in hadoop profiles -->
     <slf4j.version>1.7.5</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
+    <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
+    <surefire.groups />
     <!-- Thrift version -->
     <thrift.version>0.9.1</thrift.version>
     <!-- ZooKeeper version -->
@@ -685,6 +685,8 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
+            <excludedGroups>${surefire.excludedGroups}</excludedGroups>
+            <groups>${surefire.groups}</groups>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
@@ -695,6 +697,8 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
+            <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
+            <groups>${failsafe.groups}</groups>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
@@ -1010,10 +1014,6 @@
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
-            <configuration>
-              <excludeGroups>${accumulo.it.excludedGroups}</excludeGroups>
-              <groups>${accumulo.it.groups}</groups>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1406,20 +1406,6 @@
           </plugins>
         </pluginManagement>
       </build>
-    </profile>
-    <profile>
-      <id>only-minicluster-tests</id>
-      <properties>
-        <accumulo.it.excludedGroups>${accumulo.anyClusterTests}</accumulo.it.excludedGroups>
-        <accumulo.it.groups>${accumulo.miniclusterTests}</accumulo.it.groups>
-      </properties>
-    </profile>
-    <profile>
-      <id>standalone-capable-tests</id>
-      <properties>
-        <accumulo.it.excludedGroups>${accumulo.miniclusterTests}</accumulo.it.excludedGroups>
-        <accumulo.it.groups>${accumulo.anyClusterTests}</accumulo.it.groups>
-      </properties>
     </profile>
   </profiles>
 </project>

@@ -64,8 +64,8 @@ stopping the MiniAccumuloCluster.  While this is a surefire way to isolate tests
 increases the actual runtime of the test by, on average, 10x. Some times the tests require the use of MAC because the
 test is being destructive or some special environment setup (e.g. Kerberos).
 
-By default, these tests are run during the `integration-test` lifecycle phase using `mvn verify`. These tests can
-also be run at the `test` lifecycle phase using `mvn package -Pminicluster-unit-tests`.
+These tests will run by default during the `integration-test` lifecycle phase using `mvn verify`.
+To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.MiniClusterOnlyTest`
 
 ### Standalone Cluster (`AnyClusterTest`)
 
@@ -79,7 +79,8 @@ Use of a standalone cluster can be enabled using system properties on the Maven 
 providing a Java properties file on the Maven command line. The use of a properties file is recommended since it is
 typically a fixed file per standalone cluster you want to run the tests against.
 
-These tests will always run during the `integration-test` lifecycle phase using `mvn verify`.
+These tests will run by default during the `integration-test` lifecycle phase using `mvn verify`.
+To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.AnyClusterTest`
 
 ## Configuration for Standalone clusters
 
