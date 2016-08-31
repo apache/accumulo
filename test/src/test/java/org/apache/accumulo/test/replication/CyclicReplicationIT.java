@@ -49,6 +49,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.ConfigurableMacIT;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
@@ -58,6 +59,7 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 import org.slf4j.Logger;
@@ -65,9 +67,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-/**
- *
- */
+@Category(MiniClusterOnlyTests.class)
 public class CyclicReplicationIT {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
 

@@ -87,7 +87,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.test.TestIngest;
-import org.apache.accumulo.test.categories.AnyClusterTest;
+import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.conf.Configuration;
@@ -106,7 +106,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
-@Category({AnyClusterTest.class, SunnyDayTests.class})
+@Category({StandaloneCapableClusterTests.class, SunnyDayTests.class})
 public class ExamplesIT extends AccumuloClusterIT {
   private static final Logger log = LoggerFactory.getLogger(ExamplesIT.class);
   private static final BatchWriterOpts bwOpts = new BatchWriterOpts();

@@ -40,7 +40,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ZooKeeperBindException;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTest;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * General Integration-Test base class that provides access to a {@link MiniAccumuloCluster} for testing. Tests using these typically do very disruptive things
  * to the instance, and require specific configuration. Most tests don't need this level of control and should extend {@link AccumuloClusterIT} instead.
  */
-@Category(MiniClusterOnlyTest.class)
+@Category(MiniClusterOnlyTests.class)
 public class ConfigurableMacIT extends AccumuloIT {
   public static final Logger log = LoggerFactory.getLogger(ConfigurableMacIT.class);
 

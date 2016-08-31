@@ -63,7 +63,7 @@ These tests will run by default during the `integration-test` lifecycle phase us
 To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.SunnyDayTests`
 To execute everything except these tests, use `mvn verify -Dfailsafe.excludedGroups=org.apache.accumulo.test.categories.SunnyDayTests`
 
-### MiniAccumuloCluster (`MiniClusterOnlyTest`)
+### MiniAccumuloCluster (`MiniClusterOnlyTests`)
 
 These tests use MiniAccumuloCluster (MAC) which is a multi-process "implementation" of Accumulo, managed
 through Java APIs. This MiniAccumuloCluster has the ability to use the local filesystem or Apache Hadoop's
@@ -76,9 +76,10 @@ increases the actual runtime of the test by, on average, 10x. Some times the tes
 test is being destructive or some special environment setup (e.g. Kerberos).
 
 These tests will run by default during the `integration-test` lifecycle phase using `mvn verify`.
-To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.MiniClusterOnlyTest`
+To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.MiniClusterOnlyTests`
+To execute everything except these tests, use `mvn verify -Dfailsafe.excludedGroups=org.apache.accumulo.test.categories.MiniClusterOnlyTests`
 
-### Standalone Cluster (`AnyClusterTest`)
+### Standalone Cluster (`StandaloneCapableClusterTests`)
 
 An alternative to the MiniAccumuloCluster for testing, a standalone Accumulo cluster can also be configured for use by
 most tests. This requires a manual step of building and deploying the Accumulo cluster by hand. The build can then be
@@ -91,7 +92,8 @@ providing a Java properties file on the Maven command line. The use of a propert
 typically a fixed file per standalone cluster you want to run the tests against.
 
 These tests will run by default during the `integration-test` lifecycle phase using `mvn verify`.
-To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.AnyClusterTest`
+To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests`
+To execute everything except these tests, use `mvn verify -Dfailsafe.excludedGroups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests`
 
 ## Configuration for Standalone clusters
 

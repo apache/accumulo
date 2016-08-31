@@ -39,7 +39,7 @@ import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTest;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -50,7 +50,7 @@ import org.junit.experimental.categories.Category;
 
 import com.google.common.collect.Iterators;
 
-@Category(MiniClusterOnlyTest.class)
+@Category(MiniClusterOnlyTests.class)
 public class TableIT extends AccumuloClusterIT {
 
   @Override

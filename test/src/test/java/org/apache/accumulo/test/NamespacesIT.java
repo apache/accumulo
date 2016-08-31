@@ -77,7 +77,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTest;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Assume;
@@ -87,7 +87,7 @@ import org.junit.experimental.categories.Category;
 
 // Testing default namespace configuration with inheritance requires altering the system state and restoring it back to normal
 // Punt on this for now and just let it use a minicluster.
-@Category(MiniClusterOnlyTest.class)
+@Category(MiniClusterOnlyTests.class)
 public class NamespacesIT extends AccumuloClusterIT {
 
   private Connector c;

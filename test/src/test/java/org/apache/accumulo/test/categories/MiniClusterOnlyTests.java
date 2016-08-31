@@ -19,6 +19,4 @@ package org.apache.accumulo.test.categories;
 /**
  * Interface to be used with JUnit Category annotation to denote that the IntegrationTest requires the use of a MiniAccumuloCluster.
  */
-public interface MiniClusterOnlyTest {
-
-}
+public interface MiniClusterOnlyTests {}

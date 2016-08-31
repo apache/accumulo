@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTest;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * a method annotated with the {@link org.junit.BeforeClass} JUnit annotation and {@link #stopMiniCluster()} in a method annotated with the
  * {@link org.junit.AfterClass} JUnit annotation.
  */
-@Category(MiniClusterOnlyTest.class)
+@Category(MiniClusterOnlyTests.class)
 public abstract class SharedMiniClusterIT extends AccumuloIT implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterIT.class);
   public static final String TRUE = Boolean.toString(true);
