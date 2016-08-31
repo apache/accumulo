@@ -19,6 +19,7 @@ package org.apache.accumulo.gc;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -530,6 +531,9 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
     ProbabilitySampler sampler = new ProbabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
+    // Map of tserver -> timestamp, used by the GCWriteAheadLogs to track state of when a tablet server went down
+    final Map<HostAndPort, Long> firstSeenDead = new HashMap<>();
+
     while (true) {
       Trace.on("gc", sampler);
 
@@ -574,7 +578,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs, isUsingTrash());
+        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs, isUsingTrash(), firstSeenDead);
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
