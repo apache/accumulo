@@ -23,6 +23,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.log4j.Logger;
 
 /**
  * A hybrid compaction strategy that supports two types of compression. If total size of files being compacted is larger than
@@ -33,7 +34,7 @@ import org.apache.accumulo.server.fs.FileRef;
  * <tt>table.custom.file.large.compress.type</tt> for larger files.
  */
 public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
-
+  private final Logger log = Logger.getLogger(TwoTierCompactionStrategy.class);
   /**
    * Threshold memory in bytes. Files larger than this threshold will use <tt>table.custom.file.large.compress.type</tt> for compression
    */
@@ -55,7 +56,8 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
   public void verifyRequiredProperties(Object... objectsToVerify) throws IllegalArgumentException {
     for (Object obj : objectsToVerify) {
       if (obj == null) {
-        throw new IllegalArgumentException("Missing required Table properties for " + this.getClass().getName());
+        throw new IllegalArgumentException("Missing required Table properties (" + TABLE_LARGE_FILE_COMPRESSION_TYPE + " and/or "
+            + TABLE_LARGE_FILE_COMPRESSION_THRESHOLD + ") for " + this.getClass().getName());
       }
     }
   }
@@ -96,6 +98,10 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
     Long totalSize = calculateTotalSize(request, plan);
 
     if (totalSize > largeFileCompressionThreshold) {
+      if (log.isDebugEnabled()) {
+        log.debug("Changed compressType to " + largeFileCompressionType + ": totalSize(" + totalSize + ") was greater than threshold "
+            + largeFileCompressionThreshold);
+      }
       plan.writeParameters.setCompressType(largeFileCompressionType);
     }
     return plan;
