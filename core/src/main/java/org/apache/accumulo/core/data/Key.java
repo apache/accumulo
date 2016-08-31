@@ -185,6 +185,44 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
+   * Creates a key.
+   *
+   * @param row
+   *          bytes containing row ID
+   * @param rOff
+   *          offset into row where key's row ID begins (inclusive)
+   * @param rLen
+   *          length of row ID in row
+   * @param cf
+   *          bytes containing column family
+   * @param cfOff
+   *          offset into cf where key's column family begins (inclusive)
+   * @param cfLen
+   *          length of column family in cf
+   * @param cq
+   *          bytes containing column qualifier
+   * @param cqOff
+   *          offset into cq where key's column qualifier begins (inclusive)
+   * @param cqLen
+   *          length of column qualifier in cq
+   * @param cv
+   *          bytes containing column visibility
+   * @param cvOff
+   *          offset into cv where key's column visibility begins (inclusive)
+   * @param cvLen
+   *          length of column visibility in cv
+   * @param ts
+   *          timestamp
+   * @param deleted
+   *          delete marker
+   * @param copy
+   *          if true, forces copy of byte array values into key
+   */
+  public Key(byte row[], int rOff, int rLen, byte cf[], int cfOff, int cfLen, byte cq[], int cqOff, int cqLen, byte cv[], int cvOff, int cvLen, long ts, boolean deleted, boolean copy) {
+    init(row, rOff, rLen, cf, cfOff, cfLen, cq, cqOff, cqLen, cv, cvOff, cvLen, ts, deleted, copy);
+  }
+
+  /**
    * Creates a key. The delete marker defaults to false. This constructor creates a copy of each specified array. If you don't want to create a copy of the
    * arrays, you should call {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)} instead.
    *
