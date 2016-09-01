@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.categories;
 
 /**
  * Annotate integration tests which test performance-related aspects of Accumulo or are sensitive to timings and hardware capabilities.
@@ -22,6 +22,4 @@ package org.apache.accumulo.test;
  * Intended to be used with the JUnit Category annotation on integration test classes. The Category annotation should be placed at the class-level. Test class
  * names should still be suffixed with 'IT' as the rest of the integration tests.
  */
-public interface PerformanceTest {
-
-}
+public interface PerformanceTests {}

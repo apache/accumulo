@@ -35,8 +35,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.accumulo.test.categories.PerformanceTests;
 import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
-import org.apache.accumulo.test.PerformanceTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.BeforeClass;
@@ -47,7 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
-@Category(PerformanceTest.class)
+@Category({MiniClusterOnlyTests.class, PerformanceTests.class})
 public class DurabilityIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(DurabilityIT.class);
 

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
@@ -35,6 +36,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.accumulo.test.categories.PerformanceTests;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.mrit.IntegrationTestMapReduce;
 import org.apache.hadoop.conf.Configuration;
@@ -43,10 +46,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
 // ACCUMULO-2952
-@Category(PerformanceTest.class)
+@Category({MiniClusterOnlyTests.class, PerformanceTests.class})
 public class BalanceFasterIT extends ConfigurableMacBase {
 
   @Override

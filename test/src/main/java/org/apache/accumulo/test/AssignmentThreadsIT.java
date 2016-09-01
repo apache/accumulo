@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
@@ -26,16 +27,16 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.accumulo.test.categories.PerformanceTests;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
 // ACCUMULO-1177
-@Category(PerformanceTest.class)
+@Category({MiniClusterOnlyTests.class, PerformanceTests.class})
 public class AssignmentThreadsIT extends ConfigurableMacBase {
 
   @Override

@@ -95,22 +95,16 @@ These tests will run by default during the `integration-test` lifecycle phase us
 To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests`
 To execute everything except these tests, use `mvn verify -Dfailsafe.excludedGroups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests`
 
-### Performance tests
+### Performance Tests (`PerformanceTests`)
 
-Performance tests refer to a small subset of integration tests which are not activated by default. These tests allow
-developers to write tests which specifically exercise expected performance which may be dependent on the available
-resources of the host machine. Normal integration tests should be capable of running anywhere with a lower-bound on
-available memory.
+This category of tests refer to integration tests written specifically to
+exercise expected performance, which may be dependent on the available
+resources of the host machine. Normal integration tests should be capable of
+running anywhere with a lower-bound on available memory.
 
-These tests are designated using the JUnit Category annotation with the `PerformanceTest` interface in the
-accumulo-test module. See the `PerformanceTest` interface for more information on how to use this to write your
-own performance test.
-
-To invoke the performance tests, activate the `performanceTests` Maven profile in addition to the integration-test
-or verify Maven lifecycle. For example `mvn verify -PperformanceTests` would invoke all of the integration tests:
-both normal integration tests and the performance tests. There is presently no way to invoke only the performance
-tests without the rest of the integration tests.
-
+These tests will run by default during the `integration-test` lifecycle phase using `mvn verify`.
+To execute only these tests, use `mvn verify -Dfailsafe.groups=org.apache.accumulo.test.categories.PerformanceTests`
+To execute everything except these tests, use `mvn verify -Dfailsafe.excludedGroups=org.apache.accumulo.test.categories.PerformanceTests`
 
 ## Configuration for Standalone clusters
 
