@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.test;
 
-import com.google.common.collect.ImmutableSet;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -39,19 +41,21 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MemKey;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Integration Test for https://issues.apache.org/jira/browse/ACCUMULO-4148
@@ -68,6 +72,7 @@ import org.slf4j.LoggerFactory;
  * This test has to be an IT in accumulo-test, because libaccumulo is built in 'integration-test' phase of accumulo-native, which currently runs right before
  * accumulo-test. The tests for DefaultMap could move to a unit test in tserver, but they are here for convenience of viewing both at the same time.
  */
+@Category(SunnyDayTests.class)
 public class InMemoryMapIT {
 
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);
