@@ -158,10 +158,10 @@ APP=$1
 INSTANCE=""
 # Avoid setting a pointless system property
 INSTANCE_OPT=""
-if [[ "$1" =~ .*-.* ]]; then
-  APP="$(echo $1 | cut -d'-' -f1)"
+if [[ "$1" =~ ^tserver-[1-9][0-9]*$ ]]; then
+  APP="$(echo "$1" | cut -d'-' -f1)"
   # Appending the trailing underscore to make single-tserver deploys look how they did
-  INSTANCE="$(echo $1 | cut -d'-' -f2)_"
+  INSTANCE="$(echo "$1" | cut -d'-' -f2)_"
 
   #Rewrite the input arguments
   set -- "$APP" "${@:2}"
