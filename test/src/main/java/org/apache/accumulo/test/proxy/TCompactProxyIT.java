@@ -17,12 +17,13 @@
 package org.apache.accumulo.test.proxy;
 
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.junit.BeforeClass;
+import org.junit.experimental.categories.Category;
 
-/**
- *
- */
+@Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 public class TCompactProxyIT extends SimpleProxyBase {
 
   @BeforeClass

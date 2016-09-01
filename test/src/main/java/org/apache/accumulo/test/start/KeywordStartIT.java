@@ -57,14 +57,17 @@ import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.accumulo.tracer.TracerExecutable;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Category(SunnyDayTests.class)
 public class KeywordStartIT {
 
   private final Logger log = LoggerFactory.getLogger(getClass());

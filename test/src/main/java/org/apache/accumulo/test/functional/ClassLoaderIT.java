@@ -42,7 +42,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTest;
+import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.hamcrest.CoreMatchers;
@@ -53,7 +53,7 @@ import org.junit.experimental.categories.Category;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
-@Category(MiniClusterOnlyTest.class)
+@Category(MiniClusterOnlyTests.class)
 public class ClassLoaderIT extends AccumuloClusterHarness {
 
   private static final long ZOOKEEPER_PROPAGATION_TIME = 10 * 1000;
