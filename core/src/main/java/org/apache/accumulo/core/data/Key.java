@@ -51,6 +51,26 @@ public class Key implements WritableComparable<Key>, Cloneable {
   protected long timestamp;
   protected boolean deleted;
 
+  /**
+   * Create a {@link Key} builder.
+   *
+   * @param copyBytes
+   *          if the bytes of the {@link Key} components should be copied
+   * @return the builder at the {@link KeyBuilder.RowStep}
+   */
+  public static KeyBuilder.RowStep builder(boolean copyBytes) {
+    return new KeyBuilder.AbstractKeyBuilder(copyBytes);
+  }
+
+  /**
+   * Create a {@link Key} builder. Copy bytes defaults to true.
+   *
+   * @return the builder at the {@link KeyBuilder.RowStep}
+   */
+  public static KeyBuilder.RowStep builder() {
+    return new KeyBuilder.AbstractKeyBuilder(true);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (o instanceof Key)
@@ -60,7 +80,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   private static final byte EMPTY_BYTES[] = new byte[0];
 
-  private byte[] copyIfNeeded(byte ba[], int off, int len, boolean copyData) {
+  static byte[] copyIfNeeded(byte ba[], int off, int len, boolean copyData) {
     if (len == 0)
       return EMPTY_BYTES;
 
@@ -182,44 +202,6 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public Key(byte row[], int rOff, int rLen, byte cf[], int cfOff, int cfLen, byte cq[], int cqOff, int cqLen, byte cv[], int cvOff, int cvLen, long ts) {
     init(row, rOff, rLen, cf, cfOff, cfLen, cq, cqOff, cqLen, cv, cvOff, cvLen, ts, false, true);
-  }
-
-  /**
-   * Creates a key.
-   *
-   * @param row
-   *          bytes containing row ID
-   * @param rOff
-   *          offset into row where key's row ID begins (inclusive)
-   * @param rLen
-   *          length of row ID in row
-   * @param cf
-   *          bytes containing column family
-   * @param cfOff
-   *          offset into cf where key's column family begins (inclusive)
-   * @param cfLen
-   *          length of column family in cf
-   * @param cq
-   *          bytes containing column qualifier
-   * @param cqOff
-   *          offset into cq where key's column qualifier begins (inclusive)
-   * @param cqLen
-   *          length of column qualifier in cq
-   * @param cv
-   *          bytes containing column visibility
-   * @param cvOff
-   *          offset into cv where key's column visibility begins (inclusive)
-   * @param cvLen
-   *          length of column visibility in cv
-   * @param ts
-   *          timestamp
-   * @param deleted
-   *          delete marker
-   * @param copy
-   *          if true, forces copy of byte array values into key
-   */
-  public Key(byte row[], int rOff, int rLen, byte cf[], int cfOff, int cfLen, byte cq[], int cqOff, int cqLen, byte cv[], int cvOff, int cvLen, long ts, boolean deleted, boolean copy) {
-    init(row, rOff, rLen, cf, cfOff, cfLen, cq, cqOff, cqLen, cv, cvOff, cvLen, ts, deleted, copy);
   }
 
   /**

@@ -20,11 +20,11 @@ package org.apache.accumulo.core.data;
 import org.apache.hadoop.io.Text;
 
 /**
- * A builder used to build <code>Key</code>s by defining their components.
+ * A builder used to build {@link Key}s by defining their components.
  *
  * The rules are:
  * <ul>
- *   <li>All components of the <code>Key</code> are optional except the row</li>
+ *   <li>All components of the {@link Key} are optional except the row</li>
  *   <li>Components not explicitly set default to empty byte array except the timestamp which
  *   defaults to <code>Long.MAX_VALUE</code></li>
  *   <li>The column qualifier can only be set if the column family has been set first</li>
@@ -40,239 +40,261 @@ import org.apache.hadoop.io.Text;
  */
 public class KeyBuilder {
 
-  public interface Build<T> {
+  public interface Build {
 
     /**
-     * Build a <code>Key</code> from this builder.
-     *
-     * @param copyBytes
-     *          if the byte arrays should be copied or not. If not, byte arrays will be reused in the resultant <code>Key</code>
-     * @return
-     *          the <code>Key</code> built from this builder
-     */
-    Key build(boolean copyBytes);
-
-    /**
-     * Build a <code>Key</code> from this builder. copyBytes defaults to true.
+     * Build a {@link Key} from this builder. copyBytes defaults to true.
      *
      * @return
-     *          the <code>Key</code> built from this builder
+     *          the {@link Key} built from this builder
      */
     Key build();
 
     /**
-     * Change the timestamp of the <code>Key</code> created.
+     * Change the timestamp of the {@link Key} created.
      *
      * @param timestamp
-     *          the timestamp to use for the <code>Key</code>
+     *          the timestamp to use for the {@link Key}
      * @return this builder
      */
-    Build<T> timestamp(long timestamp);
+    Build timestamp(long timestamp);
 
     /**
-     * Set the deleted marker of the <code>Key</code> to the parameter.
+     * Set the deleted marker of the {@link Key} to the parameter.
      *
      * @param deleted
-     *          if the <code>Key</code> should be marked as deleted or not
+     *          if the {@link Key} should be marked as deleted or not
      * @return this builder
      */
-    Build<T> deleted(boolean deleted);
+    Build deleted(boolean deleted);
   }
 
-  public interface ColumnFamilyStep<T> extends ColumnVisibilityStep<T> {
+  public interface RowStep extends Build {
 
     /**
-     * Set the column family of the <code>Key</code> that this builder will build to the parameter.
+     * Set the row of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnFamily
-     *          the column family to use for the <code>Key</code>
+     * @param row
+     *          the row to use for the key
      * @return this builder
      */
-    ColumnQualifierStep<T> columnFamily(final T columnFamily);
+    ColumnFamilyStep row(final Text row);
 
     /**
-     * Set the column family, qualifier and visibility of the <code>Key</code> that this builder will build to the parameter.
+     * Set the row of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param row
+     *          the row to use for the key
+     * @return this builder
+     */
+    ColumnFamilyStep row(final byte[] row);
+
+    /**
+     * Set the row of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param row
+     *          the row to use for the key
+     * @return this builder
+     */
+    ColumnFamilyStep row(final CharSequence row);
+  }
+
+  public interface ColumnFamilyStep extends ColumnVisibilityStep {
+
+    /**
+     * Set the column family of the {@link Key} that this builder will build to the parameter.
      *
      * @param columnFamily
-     *          the column family to use for the <code>Key</code>
+     *          the column family to use for the {@link Key}
+     * @return this builder
+     */
+    ColumnQualifierStep family(final byte[] columnFamily);
+
+    /**
+     * Set the column family of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnFamily
+     *          the column family to use for the {@link Key}
+     * @return this builder
+     */
+    ColumnQualifierStep family(final Text columnFamily);
+
+    /**
+     * Set the column family of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnFamily
+     *          the column family to use for the {@link Key}
+     * @return this builder
+     */
+    ColumnQualifierStep family(final CharSequence columnFamily);
+  }
+
+  public interface ColumnQualifierStep extends ColumnVisibilityStep {
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
      * @param columnQualifier
-     *          the column qualifier to use for the <code>Key</code>
+     *          the column qualifier to use for the {@link Key}
+     * @return this builder
+     */
+    ColumnVisibilityStep qualifier(final byte[] columnQualifier);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnQualifier
+     *          the column qualifier to use for the {@link Key}
+     * @return this builder
+     */
+    ColumnVisibilityStep qualifier(final Text columnQualifier);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnQualifier
+     *          the column qualifier to use for the {@link Key}
+     * @return this builder
+     */
+    ColumnVisibilityStep qualifier(final CharSequence columnQualifier);
+  }
+
+  public interface ColumnVisibilityStep extends Build {
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
      * @param columnVisibility
-     *          the column visibility to use for the <code>Key</code>
+     *          the column visibility to use for the {@link Key}
      * @return this builder
      */
-    Build<T> column(final T columnFamily, final T columnQualifier, final T columnVisibility);
+    Build visibility(final byte[] columnVisibility);
 
     /**
-     * Set the column family and the qualifier of the <code>Key</code> that this builder will build to the parameter.
-     *
-     * @param columnFamily
-     *          the column family to use for the <code>Key</code>
-     * @param columnQualifier
-     *          the column qualifier to use for the <code>Key</code>
-     * @return this builder
-     */
-    ColumnVisibilityStep<T> column(final T columnFamily, final T columnQualifier);
-  }
-
-  public interface ColumnQualifierStep<T> extends ColumnVisibilityStep<T> {
-
-    /**
-     * Set the column qualifier of the <code>Key</code> that this builder will build to the parameter.
-     *
-     * @param columnQualifier
-     *          the column qualifier to use for the <code>Key</code>
-     * @return this builder
-     */
-    ColumnVisibilityStep<T> columnQualifier(final T columnQualifier);
-  }
-
-  public interface ColumnVisibilityStep<T> extends Build<T> {
-    /**
-     * Set the column qualifier of the <code>Key</code> that this builder will build to the parameter.
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
      * @param columnVisibility
-     *          the column visibility to use for the <code>Key</code>
+     *          the column visibility to use for the {@link Key}
      * @return this builder
      */
-    Build<T> columnVisibility(final T columnVisibility);
+    Build visibility(final Text columnVisibility);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnVisibility
+     *          the column visibility to use for the {@link Key}
+     * @return this builder
+     */
+    Build visibility(final CharSequence columnVisibility);
   }
 
-  private static abstract class AbstractKeyBuilder<T> implements ColumnFamilyStep<T>, ColumnQualifierStep<T>,
-      ColumnVisibilityStep<T> {
+  static class AbstractKeyBuilder implements RowStep, ColumnFamilyStep, ColumnQualifierStep,
+      ColumnVisibilityStep {
 
     protected static final byte EMPTY_BYTES[] = new byte[0];
 
-    protected T row = null;
-    protected T columnFamily = null;
-    protected T columnQualifier = null;
-    protected T columnVisibility = null;
-    protected long timestamp = Long.MAX_VALUE;
-    protected boolean deleted = false;
+    private final boolean copyBytes;
+    private byte[] row = EMPTY_BYTES;
+    private byte[] family = EMPTY_BYTES;
+    private byte[] qualifier = EMPTY_BYTES;
+    private byte[] visibility = EMPTY_BYTES;
+    private long timestamp = Long.MAX_VALUE;
+    private boolean deleted = false;
 
-    final public ColumnFamilyStep<T> row(final T row) {
-      this.row = row;
+    AbstractKeyBuilder(boolean copyBytes) {
+      this.copyBytes = copyBytes;
+    }
+
+    private byte[] copyBytesIfNeeded(final byte[] bytes) {
+      return Key.copyIfNeeded(bytes, 0, bytes.length, this.copyBytes);
+    }
+
+    private byte[] copyBytesIfNeeded(Text text) {
+      return Key.copyIfNeeded(text.getBytes(), 0, text.getLength(), this.copyBytes);
+    }
+
+    public ColumnFamilyStep row(final byte[] row) {
+      this.row = copyBytesIfNeeded(row);
+      return this;
+    }
+
+    public ColumnFamilyStep row(final Text row) {
+      this.row = copyBytesIfNeeded(row);
+      return this;
+    }
+
+    public ColumnFamilyStep row(final CharSequence row) {
+      return row(new Text(row.toString()));
+    }
+
+    @Override
+    public ColumnQualifierStep family(final byte[] family) {
+      this.family = copyBytesIfNeeded(family);
+      return this;
+    }
+
+
+    @Override
+    public ColumnQualifierStep family(Text family) {
+      this.family = copyBytesIfNeeded(family);
       return this;
     }
 
     @Override
-    final public ColumnQualifierStep<T> columnFamily(final T columnFamily) {
-      this.columnFamily = columnFamily;
+    public ColumnQualifierStep family(CharSequence family) {
+      return family(new Text(family.toString()));
+    }
+
+    @Override
+    public ColumnVisibilityStep qualifier(byte[] qualifier) {
+      this.qualifier = copyBytesIfNeeded(qualifier);
       return this;
     }
 
     @Override
-    final public ColumnVisibilityStep<T> columnQualifier(final T columnQualifier) {
-      this.columnQualifier = columnQualifier;
+    public ColumnVisibilityStep qualifier(Text qualifier) {
+      this.qualifier = copyBytesIfNeeded(qualifier);
       return this;
     }
 
     @Override
-    final public Build<T> columnVisibility(final T columnVisibility) {
-      this.columnVisibility = columnVisibility;
+    public ColumnVisibilityStep qualifier(CharSequence qualifier) {
+      return qualifier(new Text(qualifier.toString()));
+    }
+
+    @Override
+    public Build visibility(byte[] visibility) {
+      this.visibility = copyBytesIfNeeded(visibility);
       return this;
     }
 
     @Override
-    final public Build<T> timestamp(long timestamp) {
+    public Build visibility(Text visibility) {
+      this.visibility = copyBytesIfNeeded(visibility);
+      return this;
+    }
+
+    @Override
+    public Build visibility(CharSequence visibility) {
+      return visibility(new Text(visibility.toString()));
+    }
+
+    @Override
+    final public Build timestamp(long timestamp) {
       this.timestamp = timestamp;
       return this;
     }
 
     @Override
-    public Build<T> deleted(boolean deleted) {
+    public Build deleted(boolean deleted) {
       this.deleted = deleted;
       return this;
     }
 
     @Override
     public Key build() {
-      return this.build(true);
+      return new Key(this.row, this.family, this.qualifier, this.visibility, this.timestamp, this.deleted, false);
     }
-
-    @Override
-    public Build<T> column(final T columnFamily, final T columnQualifier, final T columnVisibility) {
-      return this.columnFamily(columnFamily).columnQualifier(columnQualifier).columnVisibility(columnVisibility);
-    }
-
-    @Override
-    public ColumnVisibilityStep<T> column(final T columnFamily, final T columnQualifier) {
-      return this.columnFamily(columnFamily).columnQualifier(columnQualifier);
-    }
-  }
-
-  private static class TextKeyBuilder extends AbstractKeyBuilder<Text> {
-
-    private final Text EMPTY_TEXT = new Text();
-
-    @Override
-    public Key build(boolean copyBytes) {
-      Text columnFamily = (this.columnFamily == null) ? EMPTY_TEXT : this.columnFamily;
-      Text columnQualifier = (this.columnQualifier == null) ? EMPTY_TEXT : this.columnQualifier;
-      Text columnVisibility = (this.columnVisibility == null) ? EMPTY_TEXT : this.columnVisibility;
-      return new Key(row.getBytes(), 0, row.getLength(), columnFamily.getBytes(), 0, columnFamily.getLength(),
-          columnQualifier.getBytes(), 0, columnQualifier.getLength(), columnVisibility.getBytes(), 0,
-          columnVisibility.getLength(), timestamp, deleted, copyBytes);
-    }
-  }
-
-  private static class ByteArrayKeyBuilder extends AbstractKeyBuilder<byte[]> {
-
-    @Override
-    public Key build(boolean copyBytes) {
-      byte[] columnFamily = (this.columnFamily == null) ? EMPTY_BYTES : this.columnFamily;
-      byte[] columnQualifier = (this.columnQualifier == null) ? EMPTY_BYTES : this.columnQualifier;
-      byte[] columnVisibility = (this.columnVisibility == null) ? EMPTY_BYTES : this.columnVisibility;
-      return new Key(row, columnFamily, columnQualifier, columnVisibility, timestamp, deleted, copyBytes);
-    }
-  }
-
-  private static class CharSequenceKeyBuilder extends AbstractKeyBuilder<CharSequence> {
-
-    private final Text EMPTY_TEXT = new Text();
-
-    @Override
-    public Key build(boolean copyBytes) {
-      Text rowText = new Text(row.toString());
-      Text columnFamilyText = (this.columnFamily == null) ? EMPTY_TEXT : new Text(this.columnFamily.toString());
-      Text columnQualifierText = (this.columnQualifier == null) ? EMPTY_TEXT : new Text(this.columnQualifier.toString());
-      Text columnVisibilityText = (this.columnVisibility == null) ? EMPTY_TEXT : new Text(this.columnVisibility.toString());
-      return new Key(rowText.getBytes(), 0, rowText.getLength(), columnFamilyText.getBytes(), 0,
-          columnFamilyText.getLength(), columnQualifierText.getBytes(), 0, columnQualifierText.getLength(),
-          columnVisibilityText.getBytes(), 0, columnVisibilityText.getLength(), timestamp, deleted, copyBytes);
-    }
-  }
-
-  /**
-   * Set the row of the <code>Key</code> that this builder will build to the parameter.
-   *
-   * @param row
-   *          the row to use for the key
-   * @return this builder
-   */
-  public static ColumnFamilyStep<Text> row(final Text row) {
-    return new TextKeyBuilder().row(row);
-  }
-
-  /**
-   * Set the row of the <code>Key</code> that this builder will build to the parameter.
-   *
-   * @param row
-   *          the row to use for the key
-   * @return this builder
-   */
-  public static ColumnFamilyStep<byte[]> row(final byte[] row) {
-    return new ByteArrayKeyBuilder().row(row);
-  }
-
-  /**
-   * Set the row of the <code>Key</code> that this builder will build to the parameter.
-   *
-   * @param row
-   *          the row to use for the key
-   * @return this builder
-   */
-  public static ColumnFamilyStep<CharSequence> row( final CharSequence row) {
-    return new CharSequenceKeyBuilder().row(row);
   }
 }

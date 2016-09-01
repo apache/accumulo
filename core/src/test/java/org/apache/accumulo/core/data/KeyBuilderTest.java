@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.data;
 
 import org.apache.hadoop.io.Text;
@@ -19,221 +35,248 @@ public class KeyBuilderTest {
 
   @Test
   public void testKeyBuildingFromRow() {
-    Key keyBuilt  = KeyBuilder.row("foo").build();
+    Key keyBuilt  = Key.builder().row("foo").build();
     Key keyExpected = new Key("foo");
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamily() {
-    Key keyBuilt = KeyBuilder.row("foo").columnFamily("bar").build();
+    Key keyBuilt = Key.builder().row("foo").family("bar").build();
     Key keyExpected = new Key("foo", "bar");
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifier() {
-    Key keyBuilt = KeyBuilder.row("foo").columnFamily("bar").columnQualifier("baz").build();
+    Key keyBuilt = Key.builder().row("foo").family("bar").qualifier("baz").build();
     Key keyExpected = new Key("foo", "bar", "baz");
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierVisibility() {
-    Key keyBuilt  = KeyBuilder.row("foo").columnFamily("bar").columnQualifier("baz").columnVisibility("v").build();
+    Key keyBuilt = Key.builder().row("foo").family("bar").qualifier("baz").visibility("v").build();
     Key keyExpected = new Key("foo", "bar", "baz", "v");
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierVisibilityTimestamp() {
-    Key keyBuilt = KeyBuilder.row("foo").columnFamily("bar").columnQualifier("baz").columnVisibility("v").timestamp(1L).build();
+    Key keyBuilt = Key.builder().row("foo").family("bar").qualifier("baz").visibility("v").timestamp(1L).build();
     Key keyExpected = new Key("foo", "bar", "baz", "v", 1L);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierVisibilityTimestampDeleted() {
     Key keyBuilt =
-        KeyBuilder
+        Key.builder()
             .row("foo")
-            .columnFamily("bar")
-            .columnQualifier("baz")
-            .columnVisibility("v")
+            .family("bar")
+            .qualifier("baz")
+            .visibility("v")
             .timestamp(10L)
             .deleted(true)
             .build();
     Key keyExpected = new Key("foo", "bar", "baz", "v", 10L);
     keyExpected.setDeleted(true);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowVisibility() {
-    Key keyBuilt = KeyBuilder.row("foo").columnVisibility("v").build();
+    Key keyBuilt = Key.builder().row("foo").visibility("v").build();
     Key keyExpected = new Key("foo", "", "", "v");
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyVisibility() {
-    Key keyBuilt = KeyBuilder.row("foo").columnFamily("bar").columnVisibility("v").build();
+    Key keyBuilt = Key.builder().row("foo").family("bar").visibility("v").build();
     Key keyExpected = new Key("foo", "bar", "", "v");
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void textKeyBuildingFromRowTimestamp() {
-    Key keyBuilt = KeyBuilder.row("foo").timestamp(3L).build();
+    Key keyBuilt = Key.builder().row("foo").timestamp(3L).build();
     Key keyExpected = new Key("foo");
     keyExpected.setTimestamp(3L);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowBytes() {
-    Key keyBuilt  = KeyBuilder.row(rowBytes).build();
+    Key keyBuilt  = Key.builder().row(rowBytes).build();
     Key keyExpected = new Key(rowBytes, EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES, Long.MAX_VALUE);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyBytes() {
-    Key keyBuilt = KeyBuilder.row(rowBytes).columnFamily(familyBytes).build();
+    Key keyBuilt = Key.builder().row(rowBytes).family(familyBytes).build();
     Key keyExpected = new Key(rowBytes, familyBytes, EMPTY_BYTES, EMPTY_BYTES, Long.MAX_VALUE);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierBytes() {
-    Key keyBuilt = KeyBuilder.row(rowBytes).columnFamily(familyBytes).columnQualifier(qualifierBytes).build();
+    Key keyBuilt = Key.builder().row(rowBytes).family(familyBytes).qualifier(qualifierBytes).build();
     Key keyExpected = new Key(rowBytes, familyBytes, qualifierBytes, EMPTY_BYTES, Long.MAX_VALUE);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierVisibilityBytes() {
-    Key keyBuilt  = KeyBuilder.row(rowBytes).columnFamily(familyBytes).columnQualifier(qualifierBytes).columnVisibility(visibilityBytes).build();
+    Key keyBuilt  = Key.builder().row(rowBytes).family(familyBytes).qualifier(qualifierBytes).visibility(visibilityBytes).build();
     Key keyExpected = new Key(rowBytes, familyBytes, qualifierBytes, visibilityBytes, Long.MAX_VALUE);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierVisibilityTimestampBytes() {
-    Key keyBuilt = KeyBuilder.row(rowBytes).columnFamily(familyBytes).columnQualifier(qualifierBytes).columnVisibility(visibilityBytes).timestamp(1L).build();
+    Key keyBuilt = Key.builder().row(rowBytes).family(familyBytes).qualifier(qualifierBytes).visibility(visibilityBytes).timestamp(1L).build();
     Key keyExpected = new Key(rowBytes, familyBytes, qualifierBytes, visibilityBytes, 1L);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierVisibilityTimestampDeletedBytes() {
     Key keyBuilt =
-        KeyBuilder
+        Key.builder()
             .row(rowBytes)
-            .columnFamily(familyBytes)
-            .columnQualifier(qualifierBytes)
-            .columnVisibility(visibilityBytes)
+            .family(familyBytes)
+            .qualifier(qualifierBytes)
+            .visibility(visibilityBytes)
             .timestamp(10L)
             .deleted(true)
             .build();
     Key keyExpected = new Key(rowBytes, familyBytes, qualifierBytes, visibilityBytes, 10L);
     keyExpected.setDeleted(true);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowVisibilityBytes() {
-    Key keyBuilt = KeyBuilder.row(rowBytes).columnVisibility(visibilityBytes).build();
+    Key keyBuilt = Key.builder().row(rowBytes).visibility(visibilityBytes).build();
     Key keyExpected = new Key(rowBytes, EMPTY_BYTES, EMPTY_BYTES, visibilityBytes, Long.MAX_VALUE);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyVisibilityBytes() {
-    Key keyBuilt = KeyBuilder.row(rowBytes).columnFamily(familyBytes).columnVisibility(visibilityBytes).build();
+    Key keyBuilt = Key.builder().row(rowBytes).family(familyBytes).visibility(visibilityBytes).build();
     Key keyExpected = new Key(rowBytes, familyBytes, EMPTY_BYTES, visibilityBytes, Long.MAX_VALUE);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void textKeyBuildingFromRowTimestampBytes() {
-    Key keyBuilt = KeyBuilder.row(rowBytes).timestamp(3L).build();
+    Key keyBuilt = Key.builder().row(rowBytes).timestamp(3L).build();
     Key keyExpected = new Key(rowBytes, EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES, Long.MAX_VALUE);
     keyExpected.setTimestamp(3L);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowText() {
-    Key keyBuilt  = KeyBuilder.row(rowText).build();
+    Key keyBuilt  = Key.builder().row(rowText).build();
     Key keyExpected = new Key(rowText);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyText() {
-    Key keyBuilt = KeyBuilder.row(rowText).columnFamily(familyText).build();
+    Key keyBuilt = Key.builder().row(rowText).family(familyText).build();
     Key keyExpected = new Key(rowText, familyText);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierText() {
-    Key keyBuilt = KeyBuilder.row(rowText).columnFamily(familyText).columnQualifier(qualifierText).build();
+    Key keyBuilt = Key.builder().row(rowText).family(familyText).qualifier(qualifierText).build();
     Key keyExpected = new Key(rowText, familyText, qualifierText);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierVisibilityText() {
-    Key keyBuilt  = KeyBuilder.row(rowText).columnFamily(familyText).columnQualifier(qualifierText).columnVisibility(visibilityText).build();
+    Key keyBuilt  = Key.builder().row(rowText).family(familyText).qualifier(qualifierText).visibility(visibilityText).build();
     Key keyExpected = new Key(rowText, familyText, qualifierText, visibilityText);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierVisibilityTimestampText() {
-    Key keyBuilt = KeyBuilder.row(rowText).columnFamily(familyText).columnQualifier(qualifierText).columnVisibility(visibilityText).timestamp(1L).build();
+    Key keyBuilt = Key.builder().row(rowText).family(familyText).qualifier(qualifierText).visibility(visibilityText).timestamp(1L).build();
     Key keyExpected = new Key(rowText, familyText, qualifierText, visibilityText, 1L);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyQualifierVisibilityTimestampDeletedText() {
     Key keyBuilt =
-        KeyBuilder
+        Key.builder()
             .row(rowText)
-            .columnFamily(familyText)
-            .columnQualifier(qualifierText)
-            .columnVisibility(visibilityText)
+            .family(familyText)
+            .qualifier(qualifierText)
+            .visibility(visibilityText)
             .timestamp(10L)
             .deleted(true)
             .build();
     Key keyExpected = new Key(rowText, familyText, qualifierText, visibilityText, 10L);
     keyExpected.setDeleted(true);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowVisibilityText() {
-    Key keyBuilt = KeyBuilder.row(rowText).columnVisibility(visibilityText).build();
+    Key keyBuilt = Key.builder().row(rowText).visibility(visibilityText).build();
     Key keyExpected = new Key(rowText, new Text(), new Text(), visibilityText);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
   public void testKeyBuildingFromRowFamilyVisibilityText() {
-    Key keyBuilt = KeyBuilder.row(rowText).columnFamily(familyText).columnVisibility(visibilityText).build();
+    Key keyBuilt = Key.builder().row(rowText).family(familyText).visibility(visibilityText).build();
     Key keyExpected = new Key(rowText, familyText, new Text(), visibilityText);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
   @Test
-  public void textKeyBuildingFromRowTimestampText() {
-    Key keyBuilt = KeyBuilder.row(rowText).timestamp(3L).build();
+  public void testKeyBuildingFromRowTimestampText() {
+    Key keyBuilt = Key.builder().row(rowText).timestamp(3L).build();
     Key keyExpected = new Key(rowText);
     keyExpected.setTimestamp(3L);
-    assertEquals(keyBuilt, keyExpected);
+    assertEquals(keyExpected, keyBuilt);
   }
 
+  @Test
+  public void testKeyBuildingReusingBytes() {
+    byte[] reuse = new byte[] { 1, 2, 3 };
+    KeyBuilder.Build keyBuilder = Key.builder(false).row(reuse);
+    Key keyBuilt = keyBuilder.build();
+    assertEquals(reuse, keyBuilt.getRowBytes());
+  }
+
+  @Test
+  public void testKeyBuildingCopyBytes() {
+    byte[] reuse = new byte[] { 1, 2, 3 };
+    KeyBuilder.Build keyBuilder = Key.builder(true).row(reuse);
+    Key keyBuilt = keyBuilder.build();
+    assertNotEquals(reuse, keyBuilt.getRowBytes());
+    KeyBuilder.Build keyBuilder2 = Key.builder().row(reuse);
+    Key keyBuilt2 = keyBuilder.build();
+    assertNotEquals(reuse, keyBuilt2.getRowBytes());
+  }
+
+  @Test
+  public void testKeyHeterogeneous() {
+    Key keyBuilt = Key.builder().row(rowText).family(familyBytes).qualifier("foo").build();
+    Text fooText = new Text("foo");
+    Key keyExpected = new Key(rowText.getBytes(), 0, rowText.getLength(), familyBytes, 0, familyBytes.length,
+        fooText.getBytes(), 0, fooText.getLength(), EMPTY_BYTES, 0, 0, Long.MAX_VALUE);
+    assertEquals(keyExpected, keyBuilt);
+  }
 }
