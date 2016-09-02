@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.data;
 
 
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -32,14 +33,18 @@ import org.apache.hadoop.io.Text;
  * </ul>
  *
  * The builder supports three types of components: <code>byte[]</code>, <code>Text</code> and <code>CharSequence</code>.
+ * <code>CharSequence</code>s must be UTF-8 encoded.
  *
  * The builder is mutable and not thread safe.
  *
  * @see org.apache.accumulo.core.data.Key
- * @since 1.8
+ * @since 1.9
  */
 public class KeyBuilder {
 
+  /**
+   * @since 1.9
+   */
   public interface Build {
 
     /**
@@ -69,6 +74,9 @@ public class KeyBuilder {
     Build deleted(boolean deleted);
   }
 
+  /**
+   * @since 1.9
+   */
   public interface RowStep extends Build {
 
     /**
@@ -94,11 +102,27 @@ public class KeyBuilder {
      *
      * @param row
      *          the row to use for the key
+     * @param offset
+     *          the offset within the array of the first byte to be read; must be non-negative and no larger than row.length
+     * @param length
+     *          the number of bytes to be read from the given array; must be non-negative and no larger than row.length - offset
+     * @return this builder
+     */
+    ColumnFamilyStep row(final byte[] row, int offset, int length);
+
+    /**
+     * Set the row of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param row
+     *          the row to use for the key. The encoding must be UTF-8
      * @return this builder
      */
     ColumnFamilyStep row(final CharSequence row);
   }
 
+  /**
+   * @since 1.9
+   */
   public interface ColumnFamilyStep extends ColumnVisibilityStep {
 
     /**
@@ -115,9 +139,13 @@ public class KeyBuilder {
      *
      * @param columnFamily
      *          the column family to use for the {@link Key}
+     * @param offset
+     *          the offset within the array of the first byte to be read; must be non-negative and no larger than row.length
+     * @param length
+     *          the number of bytes to be read from the given array; must be non-negative and no larger than row.length - offset
      * @return this builder
      */
-    ColumnQualifierStep family(final Text columnFamily);
+    ColumnQualifierStep family(final byte[] columnFamily, int offset, int length);
 
     /**
      * Set the column family of the {@link Key} that this builder will build to the parameter.
@@ -126,9 +154,21 @@ public class KeyBuilder {
      *          the column family to use for the {@link Key}
      * @return this builder
      */
+    ColumnQualifierStep family(final Text columnFamily);
+
+    /**
+     * Set the column family of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnFamily
+     *          the column family to use for the {@link Key}. The encoding must be UTF-8
+     * @return this builder
+     */
     ColumnQualifierStep family(final CharSequence columnFamily);
   }
 
+  /**
+   * @since 1.9
+   */
   public interface ColumnQualifierStep extends ColumnVisibilityStep {
 
     /**
@@ -145,9 +185,13 @@ public class KeyBuilder {
      *
      * @param columnQualifier
      *          the column qualifier to use for the {@link Key}
+     * @param offset
+     *          the offset within the array of the first byte to be read; must be non-negative and no larger than row.length
+     * @param length
+     *          the number of bytes to be read from the given array; must be non-negative and no larger than row.length - offset
      * @return this builder
      */
-    ColumnVisibilityStep qualifier(final Text columnQualifier);
+    ColumnVisibilityStep qualifier(final byte[] columnQualifier, int offset, int length);
 
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
@@ -156,9 +200,21 @@ public class KeyBuilder {
      *          the column qualifier to use for the {@link Key}
      * @return this builder
      */
+    ColumnVisibilityStep qualifier(final Text columnQualifier);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnQualifier
+     *          the column qualifier to use for the {@link Key}. The encoding must be UTF-8
+     * @return this builder
+     */
     ColumnVisibilityStep qualifier(final CharSequence columnQualifier);
   }
 
+  /**
+   * @since 1.9
+   */
   public interface ColumnVisibilityStep extends Build {
 
     /**
@@ -175,9 +231,13 @@ public class KeyBuilder {
      *
      * @param columnVisibility
      *          the column visibility to use for the {@link Key}
+     * @param offset
+     *          the offset within the array of the first byte to be read; must be non-negative and no larger than row.length
+     * @param length
+     *          the number of bytes to be read from the given array; must be non-negative and no larger than row.length - offset
      * @return this builder
      */
-    Build visibility(final Text columnVisibility);
+    Build visibility(final byte[] columnVisibility, int offset, int length);
 
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
@@ -186,59 +246,99 @@ public class KeyBuilder {
      *          the column visibility to use for the {@link Key}
      * @return this builder
      */
+    Build visibility(final Text columnVisibility);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnVisibility
+     *          the column visibility to use for the {@link Key}. The encoding must be UTF-8
+     * @return this builder
+     */
     Build visibility(final CharSequence columnVisibility);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnVisibility
+     *          the column visibility to use for the {@link Key}
+     * @return this builder
+     */
+    Build visibility(final ColumnVisibility columnVisibility);
   }
 
-  static class AbstractKeyBuilder implements RowStep, ColumnFamilyStep, ColumnQualifierStep,
+  /**
+   * @since 1.9
+   */
+  static class KeyBuilderImpl implements RowStep, ColumnFamilyStep, ColumnQualifierStep,
       ColumnVisibilityStep {
 
     protected static final byte EMPTY_BYTES[] = new byte[0];
 
     private final boolean copyBytes;
     private byte[] row = EMPTY_BYTES;
+    private int rowOffset = 0;
+    private int rowLength = 0;
     private byte[] family = EMPTY_BYTES;
+    private int familyOffset = 0;
+    private int familyLength = 0;
     private byte[] qualifier = EMPTY_BYTES;
+    private int qualifierOffset = 0;
+    private int qualifierLength = 0;
     private byte[] visibility = EMPTY_BYTES;
+    private int visibilityOffset = 0;
+    private int visibilityLength = 0;
     private long timestamp = Long.MAX_VALUE;
     private boolean deleted = false;
 
-    AbstractKeyBuilder(boolean copyBytes) {
+    KeyBuilderImpl(boolean copyBytes) {
       this.copyBytes = copyBytes;
     }
 
-    private byte[] copyBytesIfNeeded(final byte[] bytes) {
-      return Key.copyIfNeeded(bytes, 0, bytes.length, this.copyBytes);
+    private byte[] copyBytesIfNeeded(final byte[] bytes, int offset, int length) {
+      return Key.copyIfNeeded(bytes, offset, length, this.copyBytes);
     }
 
-    private byte[] copyBytesIfNeeded(Text text) {
-      return Key.copyIfNeeded(text.getBytes(), 0, text.getLength(), this.copyBytes);
+    @Override
+    public ColumnFamilyStep row(final byte[] row, int offset, int length) {
+      this.row = copyBytesIfNeeded(row, offset, length);
+      this.rowOffset = this.copyBytes ? 0 : offset;
+      this.rowLength = this.copyBytes ? this.row.length : length;
+      return this;
     }
 
+    @Override
     public ColumnFamilyStep row(final byte[] row) {
-      this.row = copyBytesIfNeeded(row);
-      return this;
+      return row(row, 0, row.length);
     }
 
+    @Override
     public ColumnFamilyStep row(final Text row) {
-      this.row = copyBytesIfNeeded(row);
-      return this;
+      return row(row.getBytes(), 0, row.getLength());
     }
 
+    @Override
     public ColumnFamilyStep row(final CharSequence row) {
       return row(new Text(row.toString()));
     }
 
     @Override
-    public ColumnQualifierStep family(final byte[] family) {
-      this.family = copyBytesIfNeeded(family);
+    public ColumnQualifierStep family(final byte[] family, int offset, int length) {
+      this.family = copyBytesIfNeeded(family, offset, length);
+      this.familyOffset = this.copyBytes ? 0 : offset;
+      this.familyLength = this.copyBytes ? this.family.length : length;
       return this;
+    }
+
+    @Override
+    public ColumnQualifierStep family(final byte[] family) {
+      return family(family, 0, family.length);
     }
 
 
     @Override
     public ColumnQualifierStep family(Text family) {
-      this.family = copyBytesIfNeeded(family);
-      return this;
+      return family(family.getBytes(), 0, family.getLength());
     }
 
     @Override
@@ -247,15 +347,21 @@ public class KeyBuilder {
     }
 
     @Override
-    public ColumnVisibilityStep qualifier(byte[] qualifier) {
-      this.qualifier = copyBytesIfNeeded(qualifier);
+    public ColumnVisibilityStep qualifier(final byte[] qualifier, int offset, int length) {
+      this.qualifier = copyBytesIfNeeded(qualifier, offset, length);
+      this.qualifierOffset = this.copyBytes ? 0 : offset;
+      this.qualifierLength = this.copyBytes ? this.qualifier.length : length;
       return this;
     }
 
     @Override
+    public ColumnVisibilityStep qualifier(final byte[] qualifier) {
+      return qualifier(qualifier, 0, qualifier.length);
+    }
+
+    @Override
     public ColumnVisibilityStep qualifier(Text qualifier) {
-      this.qualifier = copyBytesIfNeeded(qualifier);
-      return this;
+      return qualifier(qualifier.getBytes(), 0, qualifier.getLength());
     }
 
     @Override
@@ -264,20 +370,32 @@ public class KeyBuilder {
     }
 
     @Override
-    public Build visibility(byte[] visibility) {
-      this.visibility = copyBytesIfNeeded(visibility);
+    public Build visibility(final byte[] visibility, int offset, int length) {
+      this.visibility = copyBytesIfNeeded(visibility, offset, length);
+      this.visibilityOffset = this.copyBytes ? 0 : offset;
+      this.visibilityLength = this.copyBytes ? this.visibility.length : length;
       return this;
     }
 
     @Override
+    public Build visibility(final byte[] visibility) {
+      return visibility(visibility, 0, visibility.length);
+    }
+
+    @Override
     public Build visibility(Text visibility) {
-      this.visibility = copyBytesIfNeeded(visibility);
-      return this;
+      return visibility(visibility.getBytes(), 0, visibility.getLength());
     }
 
     @Override
     public Build visibility(CharSequence visibility) {
       return visibility(new Text(visibility.toString()));
+    }
+
+    @Override
+    public Build visibility(ColumnVisibility visibility) {
+      byte[] expr = visibility.getExpression();
+      return visibility(expr, 0, expr.length);
     }
 
     @Override
@@ -294,7 +412,9 @@ public class KeyBuilder {
 
     @Override
     public Key build() {
-      return new Key(this.row, this.family, this.qualifier, this.visibility, this.timestamp, this.deleted, false);
+      return new Key(this.row, this.rowOffset, this.rowLength, this.family, this.familyOffset, this.familyLength,
+          this.qualifier, this.qualifierOffset, this.qualifierLength, this.visibility, this.visibilityOffset,
+          this.visibilityLength, this.timestamp, this.deleted, false);
     }
   }
 }

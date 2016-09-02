@@ -16,22 +16,26 @@
  */
 package org.apache.accumulo.core.data;
 
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.*;
 
 public class KeyBuilderTest {
 
   private static final byte EMPTY_BYTES[] = new byte[0];
-  byte[] rowBytes = "row".getBytes();
-  byte[] familyBytes = "family".getBytes();
-  byte[] qualifierBytes = "qualifier".getBytes();
-  byte[] visibilityBytes = "visibility".getBytes();
+  byte[] rowBytes = "row".getBytes(StandardCharsets.UTF_8);
+  byte[] familyBytes = "family".getBytes(StandardCharsets.UTF_8);
+  byte[] qualifierBytes = "qualifier".getBytes(StandardCharsets.UTF_8);
+  byte[] visibilityBytes = "visibility".getBytes(StandardCharsets.UTF_8);
   Text rowText = new Text(rowBytes);
   Text familyText = new Text(familyBytes);
   Text qualifierText = new Text(qualifierBytes);
   Text visibilityText = new Text(visibilityBytes);
+  ColumnVisibility visibilityVisibility = new ColumnVisibility(visibilityBytes);
 
   @Test
   public void testKeyBuildingFromRow() {
@@ -245,6 +249,13 @@ public class KeyBuilderTest {
   }
 
   @Test
+  public void testKeyBuildingFromRowFamilyVisibilityVisibility() {
+    Key keyBuilt = Key.builder().row(rowText).family(familyText).visibility(visibilityVisibility).build();
+    Key keyExpected = new Key(rowText, familyText, new Text(), visibilityVisibility, Long.MAX_VALUE);
+    assertEquals(keyExpected, keyBuilt);
+  }
+
+  @Test
   public void testKeyBuildingFromRowTimestampText() {
     Key keyBuilt = Key.builder().row(rowText).timestamp(3L).build();
     Key keyExpected = new Key(rowText);
@@ -266,7 +277,6 @@ public class KeyBuilderTest {
     KeyBuilder.Build keyBuilder = Key.builder(true).row(reuse);
     Key keyBuilt = keyBuilder.build();
     assertNotEquals(reuse, keyBuilt.getRowBytes());
-    KeyBuilder.Build keyBuilder2 = Key.builder().row(reuse);
     Key keyBuilt2 = keyBuilder.build();
     assertNotEquals(reuse, keyBuilt2.getRowBytes());
   }
@@ -277,6 +287,29 @@ public class KeyBuilderTest {
     Text fooText = new Text("foo");
     Key keyExpected = new Key(rowText.getBytes(), 0, rowText.getLength(), familyBytes, 0, familyBytes.length,
         fooText.getBytes(), 0, fooText.getLength(), EMPTY_BYTES, 0, 0, Long.MAX_VALUE);
+    assertEquals(keyExpected, keyBuilt);
+  }
+
+  @Test
+  public void testKeyUsingSubsetOfBytes() {
+    Key keyBuilt = Key.builder().row(rowBytes, 0, rowBytes.length -1).build();
+    Key keyExpected = new Key(rowBytes, 0, rowBytes.length - 1, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0,
+        0, Long.MAX_VALUE);
+    assertEquals(keyExpected, keyBuilt);
+  }
+
+  @Test
+  public void testKeyBuildingWithMultipleTimestamps() {
+    Key keyBuilt = Key.builder().row("r").timestamp(44).timestamp(99).build();
+    Key keyExpected = new Key("r", "", "", 99);
+    assertEquals(keyExpected, keyBuilt);
+  }
+
+  @Test
+  public void testKeyBuildingWithMultipleDeleted() {
+    Key keyBuilt = Key.builder().row("r").deleted(true).deleted(false).build();
+    Key keyExpected = new Key("r");
+    keyExpected.setDeleted(false);
     assertEquals(keyExpected, keyBuilt);
   }
 }
