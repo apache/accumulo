@@ -29,6 +29,7 @@ nav: nav_people
 | mdrob         | Mike Drob         | [Cloudera][CLOUDERA]                   | [ET][ET] |
 | medined       | David Medinets    |                                        |          |
 | mjwall        | Michael Wall      | [Objective Solutions, Inc.][OBJECTIVE] | [ET][ET] |
+| phrocker      | Marc Parisi       | [WaveStrike LLC][WAVE]                 | [ET][ET] |
 | rweeks        | Russ Weeks        | [PHEMI][PHEMI]                         | [PT][PT] |
 | shickey       | Sean Hickey       |                                        | [PT][PT] |
 | ujustgotbilld | William Slacum    | [Miner &amp; Kasch][MINERKASCH]        | [ET][ET] |
@@ -153,6 +154,7 @@ nav: nav_people
 [TERALYTICS]: http://www.teralytics.net/
 [TETRA]: http://www.tetraconcepts.com
 [UW]: http://www.uw.edu
+[WAVE]: http://www.wavestrike.com/
 
 [BST]: http://www.timeanddate.com/time/zones/bst
 [CT]: http://www.timeanddate.com/time/zones/ct
