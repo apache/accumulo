@@ -27,22 +27,25 @@ import org.apache.log4j.Logger;
 
 /**
  * A hybrid compaction strategy that supports two types of compression. If total size of files being compacted is larger than
- * <tt>table.custom.file.large.compress.threshold</tt> than the larger compression type will be used. The larger compression type is specified in
- * <tt>table.custom.file.large.compress.type</tt>. Otherwise, the configured table compression will be used.
+ * <tt>table.majc.compaction.strategy.opts.file.large.compress.threshold</tt> than the larger compression type will be used. The larger compression type is
+ * specified in <tt>table.majc.compaction.strategy.opts.file.large.compress.type</tt>. Otherwise, the configured table compression will be used.
  *
  * NOTE: To use this strategy with Minor Compactions set <tt>table.file.compress.type=snappy</tt> and set a different compress type in
- * <tt>table.custom.file.large.compress.type</tt> for larger files.
+ * <tt>table.majc.compaction.strategy.opts.file.large.compress.type</tt> for larger files.
  */
 public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
   private final Logger log = Logger.getLogger(TwoTierCompactionStrategy.class);
   /**
-   * Threshold memory in bytes. Files larger than this threshold will use <tt>table.custom.file.large.compress.type</tt> for compression
+   * Threshold memory in bytes. Files larger than this threshold will use <tt>table.majc.compaction.strategy.opts.file.large.compress.type</tt> for compression
    */
-  public static final String TABLE_LARGE_FILE_COMPRESSION_THRESHOLD = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "file.large.compress.threshold";
+  public static final String LARGE_FILE_COMPRESSION_THRESHOLD = "file.large.compress.threshold";
+  private Long largeFileCompressionThreshold;
+
   /**
    * Type of compression to use if large threshold is surpassed. One of "gz","lzo","snappy", or "none"
    */
-  public static final String TABLE_LARGE_FILE_COMPRESSION_TYPE = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "file.large.compress.type";
+  public static final String LARGE_FILE_COMPRESSION_TYPE = "file.large.compress.type";
+  private String largeFileCompressionType;
 
   /**
    * Helper method to check for required table properties.
@@ -56,8 +59,8 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
   public void verifyRequiredProperties(Object... objectsToVerify) throws IllegalArgumentException {
     for (Object obj : objectsToVerify) {
       if (obj == null) {
-        throw new IllegalArgumentException("Missing required Table properties (" + TABLE_LARGE_FILE_COMPRESSION_TYPE + " and/or "
-            + TABLE_LARGE_FILE_COMPRESSION_THRESHOLD + ") for " + this.getClass().getName());
+        throw new IllegalArgumentException("Missing required " + Property.TABLE_COMPACTION_STRATEGY_PREFIX + " (" + LARGE_FILE_COMPRESSION_TYPE + " and/or "
+            + LARGE_FILE_COMPRESSION_THRESHOLD + ") for " + this.getClass().getName());
       }
     }
   }
@@ -75,6 +78,14 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
   }
 
   @Override
+  public void init(Map<String,String> options) {
+    String threshold = options.get(LARGE_FILE_COMPRESSION_THRESHOLD);
+    largeFileCompressionType = options.get(LARGE_FILE_COMPRESSION_TYPE);
+    verifyRequiredProperties(threshold, largeFileCompressionType);
+    largeFileCompressionThreshold = AccumuloConfiguration.getMemoryInBytes(threshold);
+  }
+
+  @Override
   public boolean shouldCompact(MajorCompactionRequest request) {
     return super.shouldCompact(request);
   }
@@ -88,13 +99,6 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
   public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     CompactionPlan plan = super.getCompactionPlan(request);
     plan.writeParameters = new WriteParameters();
-    Map<String,String> tableProperties = request.getTableProperties();
-    verifyRequiredProperties(tableProperties);
-
-    String largeFileCompressionType = tableProperties.get(TABLE_LARGE_FILE_COMPRESSION_TYPE);
-    String threshold = tableProperties.get(TABLE_LARGE_FILE_COMPRESSION_THRESHOLD);
-    verifyRequiredProperties(largeFileCompressionType, threshold);
-    Long largeFileCompressionThreshold = AccumuloConfiguration.getMemoryInBytes(threshold);
     Long totalSize = calculateTotalSize(request, plan);
 
     if (totalSize > largeFileCompressionThreshold) {
