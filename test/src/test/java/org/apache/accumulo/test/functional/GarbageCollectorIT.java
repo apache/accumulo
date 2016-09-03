@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cluster.ClusterServerType;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -91,7 +92,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     settings.put(Property.GC_CYCLE_START.getKey(), "1");
     settings.put(Property.GC_CYCLE_DELAY.getKey(), "1");
     settings.put(Property.GC_PORT.getKey(), "0");
-    settings.put(Property.GC_WAL_DEAD_SERVER_WAIT, "1s");
+    settings.put(Property.GC_WAL_DEAD_SERVER_WAIT.getKey(), "1s");
     settings.put(Property.TSERV_MAXMEM.getKey(), "5K");
     settings.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     cfg.setSiteConfig(settings);
@@ -102,7 +103,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
 
   private void killMacGc() throws ProcessNotFoundException, InterruptedException, KeeperException, IOException {
     // kill gc started by MAC
-    getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
+    getCluster().getClusterControl().stop(ClusterServerType.GARBAGE_COLLECTOR);
     // delete lock in zookeeper if there, this will allow next GC to start quickly
     String path = ZooUtil.getRoot(new ZooKeeperInstance(getCluster().getClientConfig())) + Constants.ZGC_LOCK;
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
@@ -158,8 +159,8 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = opts.rows = 10000;
     vopts.cols = opts.cols = 1;
-    opts.setPrincipal("root");
-    vopts.setPrincipal("root");
+    opts.principal = "root";
+    vopts.principal = "root";
     TestIngest.ingest(c, opts, new BatchWriterOpts());
 
     // Test WAL log has been created
@@ -171,15 +172,15 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     Assert.assertEquals("WAL file does not exist", true, walToBeDeleted.exists());
 
     // Kill TServers and give it some time to die
-    getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().stop(ClusterServerType.TABLET_SERVER);
     UtilWaitThread.sleep(5000);
     // Restart them or the GC won't ever be able to run a cycle
-    getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().start(ClusterServerType.TABLET_SERVER);
 
     // Restart GC and let it run
-    getCluster().getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
+    getCluster().getClusterControl().start(ClusterServerType.GARBAGE_COLLECTOR);
 
-    log.info("Waiting for garbage collector to delete the WAL {}", walToBeDeleted);
+    log.info("Waiting for garbage collector to delete the WAL " + walToBeDeleted);
     while (walToBeDeleted.exists()) {
       // Wait for the file to be deleted
       Thread.sleep(2000);

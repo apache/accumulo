@@ -537,7 +537,7 @@ public class SimpleGarbageCollector implements Iface {
     Sampler sampler = new CountSampler(100);
 
     // Map of tserver -> timestamp, used by the GCWriteAheadLogs to track state of when a tablet server went down
-    final Map<HostAndPort,Long> firstSeenDead = new HashMap<>();
+    final Map<HostAndPort,Long> firstSeenDead = new HashMap<HostAndPort,Long>();
 
     while (true) {
       if (sampler.next())

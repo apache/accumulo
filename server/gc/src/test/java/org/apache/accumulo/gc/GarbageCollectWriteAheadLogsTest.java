@@ -83,7 +83,7 @@ public class GarbageCollectWriteAheadLogsTest {
   public void setUp() throws Exception {
     instance = createMock(Instance.class);
     volMgr = createMock(VolumeManager.class);
-    firstSeenDead = new HashMap<>();
+    firstSeenDead = new HashMap<HostAndPort,Long>();
     gcwal = new GarbageCollectWriteAheadLogs(instance, volMgr, false, firstSeenDead);
     modTime = System.currentTimeMillis();
   }
@@ -475,7 +475,7 @@ public class GarbageCollectWriteAheadLogsTest {
   class GCWALDeadTserverCollectMock extends GarbageCollectWriteAheadLogs {
 
     public GCWALDeadTserverCollectMock(Instance i, VolumeManager vm, boolean useTrash, Map<HostAndPort,Long> firstSeenDead) throws IOException {
-      super(ctx, vm, useTrash, firstSeenDead);
+      super(i, vm, useTrash, firstSeenDead);
     }
 
     @Override
