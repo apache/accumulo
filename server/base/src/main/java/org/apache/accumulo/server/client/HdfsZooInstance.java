@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -63,20 +64,19 @@ import com.google.common.base.Joiner;
  */
 public class HdfsZooInstance implements Instance {
 
+  private final AccumuloConfiguration site = SiteConfiguration.getInstance();
+
   private HdfsZooInstance() {
-    AccumuloConfiguration acuConf = SiteConfiguration.getInstance();
-    zooCache = new ZooCacheFactory().getZooCache(acuConf.get(Property.INSTANCE_ZK_HOST), (int) acuConf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+    zooCache = new ZooCacheFactory().getZooCache(site.get(Property.INSTANCE_ZK_HOST), (int) site.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
   }
 
-  private static HdfsZooInstance cachedHdfsZooInstance = null;
+  private static final HdfsZooInstance cachedHdfsZooInstance = new HdfsZooInstance();
 
-  public static synchronized Instance getInstance() {
-    if (cachedHdfsZooInstance == null)
-      cachedHdfsZooInstance = new HdfsZooInstance();
+  public static Instance getInstance() {
     return cachedHdfsZooInstance;
   }
 
-  private static ZooCache zooCache;
+  private final ZooCache zooCache;
   private static String instanceId = null;
   private static final Logger log = Logger.getLogger(HdfsZooInstance.class);
 
@@ -146,17 +146,17 @@ public class HdfsZooInstance implements Instance {
 
   @Override
   public String getZooKeepers() {
-    return SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST);
+    return site.get(Property.INSTANCE_ZK_HOST);
   }
 
   @Override
   public int getZooKeepersSessionTimeOut() {
-    return (int) SiteConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    return (int) site.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
   }
 
   @Override
   public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token), SiteConfiguration.getInstance()));
+    return new ConnectorImpl(new ClientContext(this, new Credentials(principal, token), site));
   }
 
   @Deprecated
@@ -177,18 +177,28 @@ public class HdfsZooInstance implements Instance {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
 
-  private AccumuloConfiguration conf = null;
+  private final AtomicReference<AccumuloConfiguration> conf = new AtomicReference<>();
 
   @Deprecated
   @Override
   public AccumuloConfiguration getConfiguration() {
-    return conf = conf == null ? new ServerConfigurationFactory(this).getConfiguration() : conf;
+    AccumuloConfiguration conf = this.conf.get();
+    if (conf == null) {
+      // conf hasn't been set before, get an instance
+      conf = new ServerConfigurationFactory(this).getConfiguration();
+      // if the shared variable is still null, we're done.
+      if (!(this.conf.compareAndSet(null, conf))) {
+        // if it wasn't null, then we need to return the value that won.
+        conf = this.conf.get();
+      }
+    }
+    return conf;
   }
 
   @Override
   @Deprecated
   public void setConfiguration(AccumuloConfiguration conf) {
-    this.conf = conf;
+    this.conf.set(conf);
   }
 
   public static void main(String[] args) {

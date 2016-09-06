@@ -803,6 +803,13 @@ public enum Property {
         || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey());
   }
 
+  /**
+   * Properties we check the value of within the TabletServer request handling or maintenance processing loops.
+   */
+  public static final EnumSet<Property> HOT_PATH_PROPERTIES = EnumSet.of(Property.TSERV_CLIENT_TIMEOUT, Property.TSERV_TOTAL_MUTATION_QUEUE_MAX,
+      Property.TSERV_ARCHIVE_WALOGS, Property.GC_TRASH_IGNORE, Property.TSERV_MAJC_DELAY, Property.TABLE_MINC_LOGS_MAX, Property.TSERV_MAJC_MAXCONCURRENT,
+      Property.REPLICATION_WORKER_THREADS, Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT, Property.TABLE_CLASSPATH);
+
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
       Property.TSERV_SCAN_MAX_OPENFILES, Property.MASTER_CLIENTPORT, Property.GC_PORT);
 
