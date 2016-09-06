@@ -20,8 +20,8 @@ This tutorial uses the following Java classes, which can be found in org.apache.
 
  * DefaultCompactionStrategy.java - determines which files to compact based on table.compaction.major.ratio and table.file.max
  * EverythingCompactionStrategy.java - compacts all files
- * SizeLimitCompactionStrategy.java - compacts files no bigger than table.compacations.major.strategy.opts.sizeLimit
- * TwoTierCompactionStrategy.java - uses default compression for smaller files and table.custom.file.large.compress.type for larger files
+ * SizeLimitCompactionStrategy.java - compacts files no bigger than table.majc.compaction.strategy.opts.sizeLimit
+ * TwoTierCompactionStrategy.java - uses default compression for smaller files and table.majc.compaction.strategy.opts.file.large.compress.type for larger files
 
 This is an example of how to configure a compaction strategy. By default Accumulo will always use the DefaultCompactionStrategy, unless 
 these steps are taken to change the configuration.  Use the strategy and settings that best fits your Accumulo setup.
