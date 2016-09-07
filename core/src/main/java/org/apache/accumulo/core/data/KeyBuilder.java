@@ -20,6 +20,13 @@ package org.apache.accumulo.core.data;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CodingErrorAction;
+
 /**
  * A builder used to build {@link Key}s by defining their components.
  *
@@ -309,6 +316,16 @@ public class KeyBuilder {
       return Key.copyIfNeeded(bytes, offset, length, this.copyBytes);
     }
 
+    private byte[] encodeCharSequence(CharSequence chars) {
+      CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder().onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT);
+      try {
+        return encoder.encode(CharBuffer.wrap(chars)).array();
+      } catch (CharacterCodingException ex) {
+        throw new RuntimeException("KeyBuilder supports only CharSequences encoded in UTF-8", ex);
+      }
+    }
+
     @Override
     public ColumnFamilyStep row(final byte[] row, int offset, int length) {
       this.row = copyBytesIfNeeded(row, offset, length);
@@ -329,7 +346,7 @@ public class KeyBuilder {
 
     @Override
     public ColumnFamilyStep row(final CharSequence row) {
-      return row(new Text(row.toString()));
+      return row(encodeCharSequence(row));
     }
 
     @Override
@@ -353,7 +370,7 @@ public class KeyBuilder {
 
     @Override
     public ColumnQualifierStep family(CharSequence family) {
-      return family(new Text(family.toString()));
+      return family(encodeCharSequence(family));
     }
 
     @Override
@@ -376,7 +393,7 @@ public class KeyBuilder {
 
     @Override
     public ColumnVisibilityStep qualifier(CharSequence qualifier) {
-      return qualifier(new Text(qualifier.toString()));
+      return qualifier(encodeCharSequence(qualifier));
     }
 
     @Override
@@ -399,7 +416,7 @@ public class KeyBuilder {
 
     @Override
     public Build visibility(CharSequence visibility) {
-      return visibility(new Text(visibility.toString()));
+      return visibility(encodeCharSequence(visibility));
     }
 
     @Override
