@@ -38,12 +38,12 @@ import org.apache.hadoop.io.Text;
  * The builder is mutable and not thread safe.
  *
  * @see org.apache.accumulo.core.data.Key
- * @since 1.9
+ * @since 2.0
  */
 public class KeyBuilder {
 
   /**
-   * @since 1.9
+   * @since 2.0
    */
   public interface Build {
 
@@ -75,7 +75,7 @@ public class KeyBuilder {
   }
 
   /**
-   * @since 1.9
+   * @since 2.0
    */
   public interface RowStep extends Build {
 
@@ -121,7 +121,7 @@ public class KeyBuilder {
   }
 
   /**
-   * @since 1.9
+   * @since 2.0
    */
   public interface ColumnFamilyStep extends ColumnVisibilityStep {
 
@@ -167,7 +167,7 @@ public class KeyBuilder {
   }
 
   /**
-   * @since 1.9
+   * @since 2.0
    */
   public interface ColumnQualifierStep extends ColumnVisibilityStep {
 
@@ -213,7 +213,7 @@ public class KeyBuilder {
   }
 
   /**
-   * @since 1.9
+   * @since 2.0
    */
   public interface ColumnVisibilityStep extends Build {
 
@@ -268,7 +268,7 @@ public class KeyBuilder {
   }
 
   /**
-   * @since 1.9
+   * @since 2.0
    */
   static class KeyBuilderImpl implements RowStep, ColumnFamilyStep, ColumnQualifierStep,
       ColumnVisibilityStep {
