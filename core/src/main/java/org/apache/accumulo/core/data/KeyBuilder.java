@@ -48,7 +48,7 @@ public class KeyBuilder {
   public interface Build {
 
     /**
-     * Build a {@link Key} from this builder. copyBytes defaults to true.
+     * Build a {@link Key} from this builder.
      *
      * @return
      *          the {@link Key} built from this builder
