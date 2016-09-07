@@ -43,28 +43,28 @@
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2016-06-20</created>
+        <created>2016-06-22</created>
         <revision>1.7.2</revision>
       </Version>
     </release>
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2016-02-25</created>
+        <created>2016-02-26</created>
         <revision>1.7.1</revision>
       </Version>
     </release>
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2015-05-19</created>
+        <created>2015-05-18</created>
         <revision>1.7.0</revision>
       </Version>
     </release>
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2016-02-16</created>
+        <created>2016-02-17</created>
         <revision>1.6.5</revision>
       </Version>
     </release>
@@ -92,21 +92,21 @@
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2014-09-24</created>
+        <created>2014-09-25</created>
         <revision>1.6.1</revision>
       </Version>
     </release>
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2014-05-06</created>
+        <created>2014-05-02</created>
         <revision>1.6.0</revision>
       </Version>
     </release>
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2015-09-20</created>
+        <created>2015-09-21</created>
         <revision>1.5.4</revision>
       </Version>
     </release>
@@ -120,29 +120,78 @@
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2014-09-22</created>
+        <created>2014-09-19</created>
         <revision>1.5.2</revision>
       </Version>
     </release>
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2014-02-27</created>
+        <created>2014-03-06</created>
         <revision>1.5.1</revision>
       </Version>
     </release>
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2014-04-03</created>
+        <created>2013-05-25</created>
+        <revision>1.5.0</revision>
+      </Version>
+    </release>
+    <release>
+      <Version>
+        <name>Apache Accumulo</name>
+        <created>2014-04-04</created>
         <revision>1.4.5</revision>
       </Version>
     </release>
     <release>
       <Version>
         <name>Apache Accumulo</name>
-        <created>2012-07-09</created>
+        <created>2013-08-23</created>
+        <revision>1.4.4</revision>
+      </Version>
+    </release>
+    <release>
+      <Version>
+        <name>Apache Accumulo</name>
+        <created>2013-03-18</created>
+        <revision>1.4.3</revision>
+      </Version>
+    </release>
+    <release>
+      <Version>
+        <name>Apache Accumulo</name>
+        <created>2012-11-15</created>
+        <revision>1.4.2</revision>
+      </Version>
+    </release>
+    <release>
+      <Version>
+        <name>Apache Accumulo</name>
+        <created>2012-07-03</created>
+        <revision>1.4.1</revision>
+      </Version>
+    </release>
+    <release>
+      <Version>
+        <name>Apache Accumulo</name>
+        <created>2012-03-30</created>
+        <revision>1.4.0</revision>
+      </Version>
+    </release>
+    <release>
+      <Version>
+        <name>Apache Accumulo</name>
+        <created>2012-07-06</created>
         <revision>1.3.6</revision>
+      </Version>
+    </release>
+    <release>
+      <Version>
+        <name>Apache Accumulo</name>
+        <created>2011-12-16</created>
+        <revision>1.3.5-incubating</revision>
       </Version>
     </release>
     <repository>
