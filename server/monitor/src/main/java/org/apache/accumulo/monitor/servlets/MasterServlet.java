@@ -122,19 +122,19 @@ public class MasterServlet extends BasicServlet {
       }
 
       int guessHighLoad = ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors();
-      List<String> slaves = new ArrayList<>();
+      List<String> tservers = new ArrayList<>();
       for (TabletServerStatus up : Monitor.getMmi().tServerInfo) {
-        slaves.add(up.name);
+        tservers.add(up.name);
       }
       for (DeadServer down : Monitor.getMmi().deadTabletServers) {
-        slaves.add(down.server);
+        tservers.add(down.server);
       }
       List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
 
       Table masterStatus = new Table("masterStatus", "Master&nbsp;Status");
       masterStatus.addSortableColumn("Master", new StringType<String>(), "The hostname of the master server");
-      masterStatus.addSortableColumn("#&nbsp;Online<br />Tablet&nbsp;Servers", new PreciseNumberType((int) (slaves.size() * 0.8 + 1.0), slaves.size(),
-          (int) (slaves.size() * 0.6 + 1.0), slaves.size()), "Number of tablet servers currently available");
+      masterStatus.addSortableColumn("#&nbsp;Online<br />Tablet&nbsp;Servers", new PreciseNumberType((int) (tservers.size() * 0.8 + 1.0), tservers.size(),
+          (int) (tservers.size() * 0.6 + 1.0), tservers.size()), "Number of tablet servers currently available");
       masterStatus.addSortableColumn("#&nbsp;Total<br />Tablet&nbsp;Servers", new PreciseNumberType(), "The total number of tablet servers configured");
       masterStatus.addSortableColumn("Last&nbsp;GC", null, "The last time files were cleaned-up from HDFS.");
       masterStatus.addSortableColumn("#&nbsp;Tablets", new NumberType<>(0, Integer.MAX_VALUE, 2, Integer.MAX_VALUE), null);
@@ -152,7 +152,7 @@ public class MasterServlet extends BasicServlet {
       TableRow row = masterStatus.prepareRow();
       row.add(masters.size() == 0 ? "<div class='error'>Down</div>" : AddressUtil.parseAddress(masters.get(0), false).getHostText());
       row.add(Monitor.getMmi().tServerInfo.size());
-      row.add(slaves.size());
+      row.add(tservers.size());
       row.add("<a href='/gc'>" + gcStatus + "</a>");
       row.add(Monitor.getTotalTabletCount());
       row.add(Monitor.getMmi().unassignedTablets);

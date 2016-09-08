@@ -59,7 +59,7 @@ fi
 
 ${bin}/start-server.sh $MONITOR monitor 
 
-if [ "$1" != "--notSlaves" ]; then
+if [ "$1" != "--notTservers" ]; then
    ${bin}/tup.sh
 fi
 

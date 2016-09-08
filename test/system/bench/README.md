@@ -40,9 +40,9 @@ The Benchmarks
 
 Values in a 3-tuple are the slow,medium,fast speeds at which you can run the benchmarks.
 
-* CloudStone1: Test the speed at which we can check that accumulo is up and we can reach all the slaves. Lower is better.  
-* CloudStone2: Ingest 10000,100000,1000000 rows of values 50 bytes on every slave.  Higher is better.  
-* CloudStone3: Ingest 1000,5000,10000 rows of values 1024,8192,65535 bytes on every slave.  Higher is better.  
+* CloudStone1: Test the speed at which we can check that accumulo is up and we can reach all the tservers. Lower is better.  
+* CloudStone2: Ingest 10000,100000,1000000 rows of values 50 bytes on every tserver.  Higher is better.  
+* CloudStone3: Ingest 1000,5000,10000 rows of values 1024,8192,65535 bytes on every tserver.  Higher is better.  
 * CloudStone4 (TeraSort): Ingests 10000,10000000,10000000000 rows. Lower score is better.  
 * CloudStone5: Creates 100,500,1000 tables named TestTableX and then deletes them. Lower is better.  
 * CloudStone6: Creates a table with 400, 800, 1000 splits.  Lower is better.  

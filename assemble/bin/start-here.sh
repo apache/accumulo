@@ -42,7 +42,7 @@ fi
 
 HOSTS="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $IP"
 for host in $HOSTS; do
-   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/slaves"; then
+   if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/tservers"; then
       "${bin}/start-server.sh" "$host" tserver
       break
    fi

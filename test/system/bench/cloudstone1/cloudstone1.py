@@ -19,14 +19,14 @@ import time
 
 from lib import cloudshell
 from lib.Benchmark import Benchmark
-from lib.slaves import runAll
+from lib.tservers import runAll
 from lib.path import accumulo
 
 class CloudStone1(Benchmark):
 
     def shortDescription(self):
         return 'Test the speed at which we can check that accumulo is up '\
-               'and we can reach all the slaves. Lower is better.'
+               'and we can reach all the tservers. Lower is better.'
 
     def runTest(self):
         code, out, err = cloudshell.run(self.username, self.password, 'table accumulo.metadata\nscan\n')

@@ -27,12 +27,12 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 . "$bin"/config.sh
 
-SLAVES=$ACCUMULO_CONF_DIR/slaves
+TSERVERS=$ACCUMULO_CONF_DIR/tservers
 
 echo -n "Starting tablet servers ..."
 
 count=1
-for server in $(egrep -v '(^#|^\s*$)' "${SLAVES}"); do
+for server in $(egrep -v '(^#|^\s*$)' "${TSERVERS}"); do
    echo -n "."
    ${bin}/start-server.sh $server tserver &
    if (( ++count % 72 == 0 )) ;

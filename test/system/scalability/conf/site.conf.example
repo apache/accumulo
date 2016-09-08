@@ -22,6 +22,6 @@ USER=root
 # password
 PASSWORD=secret
 # used to determine which nodes to run tests on
-SLAVES=/accumulo/conf/slaves
+TSERVERS=/accumulo/conf/tservers
 # sets the number of nodes for each test case
 TEST_CASES=1,2,4,8,16

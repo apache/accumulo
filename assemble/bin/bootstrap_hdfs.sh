@@ -60,13 +60,13 @@ if [[ $? != 0 ]]; then
 fi
 
 #
-# Replicate to all slaves to avoid network contention on startup
+# Replicate to all tservers to avoid network contention on startup
 #
-SLAVES=$ACCUMULO_CONF_DIR/slaves
-NUM_SLAVES=$(egrep -v '(^#|^\s*$)' "$SLAVES" | wc -l)
+TSERVERS=$ACCUMULO_CONF_DIR/tservers
+NUM_TSERVERS=$(egrep -v '(^#|^\s*$)' "$TSERVERS" | wc -l)
 
 #let each datanode service around 50 clients
-REP=$(( NUM_SLAVES / 50 ))
+REP=$(( NUM_TSERVERS / 50 ))
 (( REP < 3 )) && REP=3
 
 #
@@ -84,7 +84,7 @@ REP=$(( NUM_SLAVES / 50 ))
 "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar"  > /dev/null
-for f in $(grep -v '^#' "$ACCUMULO_CONF_DIR/slaves")
+for f in $(grep -v '^#' "$ACCUMULO_CONF_DIR/tservers")
 do
   rsync -ra --delete "$ACCUMULO_HOME" $(dirname "$ACCUMULO_HOME")
 done

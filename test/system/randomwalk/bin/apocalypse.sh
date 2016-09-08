@@ -44,6 +44,6 @@ if [[ -z $HADOOP_PREFIX ]] ; then
 fi
 
 echo 'killing all accumulo processes'
-pssh -h "$ACCUMULO_HOME/conf/slaves" "pkill -9 -f app=[tmg].*org.apache.accumulo.start " < /dev/null
+pssh -h "$ACCUMULO_HOME/conf/tservers" "pkill -9 -f app=[tmg].*org.apache.accumulo.start " < /dev/null
 pssh -h "$ACCUMULO_HOME/conf/masters" "pkill -9 -f app=[tmg].*org.apache.accumulo.start " < /dev/null
 exit 0

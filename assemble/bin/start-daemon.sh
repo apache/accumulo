@@ -64,7 +64,7 @@ else
 fi
 SERVICE=$2
 
-SLAVES=$(wc -l < "${ACCUMULO_CONF_DIR}/slaves")
+TSERVERS=$(wc -l < "${ACCUMULO_CONF_DIR}/tservers")
 
 # When the hostname provided is the alias/shortname, try to use the FQDN to make
 # sure we send the right address to the Accumulo process.
@@ -158,9 +158,9 @@ fi
 # Check the max open files limit and selectively warn
 MAX_FILES_OPEN=$(ulimit -n)
 
-if [[ -n $MAX_FILES_OPEN && -n $SLAVES ]] ; then
+if [[ -n $MAX_FILES_OPEN && -n $TSERVERS ]] ; then
    MAX_FILES_RECOMMENDED=${MAX_FILES_RECOMMENDED:-32768}
-   if (( SLAVES > 10 )) && (( MAX_FILES_OPEN < MAX_FILES_RECOMMENDED ))
+   if (( TSERVERS > 10 )) && (( MAX_FILES_OPEN < MAX_FILES_RECOMMENDED ))
    then
       echo "WARN : Max open files on $HOST is $MAX_FILES_OPEN, recommend $MAX_FILES_RECOMMENDED" >&2
    fi

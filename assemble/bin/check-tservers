@@ -41,10 +41,10 @@ TIMEOUT = 5
 WRITABLE = []
 #WRITABLE = ['/srv/hdfs1', '/srv/hdfs2', '/srv/hdfs3']
 
-def ssh(slave, *args):
-    'execute a command on a remote slave and return the Popen handle'
-    handle = subprocess.Popen( ('ssh', '-o', 'StrictHostKeyChecking=no', '-q', '-A', '-n', slave) + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    handle.slave = slave
+def ssh(tserver, *args):
+    'execute a command on a remote tserver and return the Popen handle'
+    handle = subprocess.Popen( ('ssh', '-o', 'StrictHostKeyChecking=no', '-q', '-A', '-n', tserver) + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    handle.tserver = tserver
     handle.finished = False
     handle.out = ''
     return handle
@@ -76,84 +76,84 @@ def wait(handles, seconds):
        os.kill(handle.pid, signal.SIGKILL)
        handle.poll()
 
-def runAll(slaves, *cmd):
-    'Run the given command on all the slaves, returns Popen handles'
+def runAll(tservers, *cmd):
+    'Run the given command on all the tservers, returns Popen handles'
     handles = []
-    for slave in slaves:
-        handles.append(ssh(slave, *cmd))
+    for tserver in tservers:
+        handles.append(ssh(tserver, *cmd))
     wait(handles, TIMEOUT)
     return handles
 
-def checkIdentity(slaves):
-    'Ensure the login identity is consistent across the slaves'
-    handles = runAll(slaves, 'id', '-u', '-n')
+def checkIdentity(tservers):
+    'Ensure the login identity is consistent across the tservers'
+    handles = runAll(tservers, 'id', '-u', '-n')
     bad = set()
     myIdentity = os.popen('id -u -n').read().strip()
     for h in handles:
         if not h.finished or h.returncode != 0:
-            print '#', 'cannot look at identity on', h.slave
-            bad.add(h.slave)
+            print '#', 'cannot look at identity on', h.tserver
+            bad.add(h.tserver)
         else:
             identity = h.out.strip()
             if identity != myIdentity:
-                print '#', h.slave, 'inconsistent identity', identity
-                bad.add(h.slave)
+                print '#', h.tserver, 'inconsistent identity', identity
+                bad.add(h.tserver)
     return bad
 
-def checkMemory(slaves):
-    'Run free on all slaves and look for weird results'
-    handles = runAll(slaves, 'free')
+def checkMemory(tservers):
+    'Run free on all tservers and look for weird results'
+    handles = runAll(tservers, 'free')
     bad = set()
     mem = {}
     swap = {}
     for h in handles:
         if not h.finished or h.returncode != 0:
-            print '#', 'cannot look at memory on', h.slave
-            bad.add(h.slave)
+            print '#', 'cannot look at memory on', h.tserver
+            bad.add(h.tserver)
         else:
             if h.out.find('Swap:') < 0:
-               print '#',h.slave,'has no swap'
-               bad.add(h.slave)
+               print '#',h.tserver,'has no swap'
+               bad.add(h.tserver)
                continue
             lines = h.out.split('\n')
             for line in lines:
                if line.startswith('Mem:'):
-                  mem.setdefault(line.split()[1],set()).add(h.slave)
+                  mem.setdefault(line.split()[1],set()).add(h.tserver)
                if line.startswith('Swap:'):
-                  swap.setdefault(line.split()[1],set()).add(h.slave)
+                  swap.setdefault(line.split()[1],set()).add(h.tserver)
     # order memory sizes by most common
     mems = sorted([(len(v), k, v) for k, v in mem.items()], reverse=True)
     mostCommon = float(mems[0][1])
-    for _, size, slaves in mems[1:]:
+    for _, size, tservers in mems[1:]:
         fract = abs(mostCommon - float(size)) / mostCommon
         if fract > 0.05:
-            print '#',', '.join(slaves), ': unusual memory size', size
-            bad.update(slaves)
+            print '#',', '.join(tservers), ': unusual memory size', size
+            bad.update(tservers)
     swaps = sorted([(len(v), k, v) for k, v in swap.items()], reverse=True)
     mostCommon = float(mems[0][1])
-    for _, size, slaves in swaps[1:]:
+    for _, size, tservers in swaps[1:]:
         fract = abs(mostCommon - float(size) / mostCommon)
         if fract > 0.05:
-            print '#',', '.join(slaves), ': unusual swap size', size
-            bad.update(slaves)
+            print '#',', '.join(tservers), ': unusual swap size', size
+            bad.update(tservers)
     return bad
 
-def checkWritable(slaves):
+def checkWritable(tservers):
     'Touch all the directories that should be writable by this user return any nodes that fail'
     if not WRITABLE:
        print '# WRITABLE value not configured, not checking partitions'
        return []
-    handles = runAll(slaves, 'touch', *WRITABLE)
+    handles = runAll(tservers, 'touch', *WRITABLE)
     bad = set()
     for h in handles:
         if not h.finished or h.returncode != 0:
-           bad.add(h.slave)
-           print '#', h.slave, 'some drives are not writable'
+           bad.add(h.tserver)
+           print '#', h.tserver, 'some drives are not writable'
     return bad
 
-def checkMounts(slaves):
+def checkMounts(tservers):
     'Check the file systems that are mounted and report any that are unusual'
-    handles = runAll(slaves, 'mount')
+    handles = runAll(tservers, 'mount')
     mounts = {}
     finished = set()
     bad = set()
@@ -165,11 +165,11 @@ def checkMounts(slaves):
                 if words[4] == 'nfs': continue
                 if words[0].find(':/') >= 0: continue
                 mount = words[2]
-                mounts.setdefault(mount, set()).add(handle.slave)
-            finished.add(handle.slave)
+                mounts.setdefault(mount, set()).add(handle.tserver)
+            finished.add(handle.tserver)
         else:
-            bad.add(handle.slave)
-            print '#', handle.slave, 'did not finish'
+            bad.add(handle.tserver)
+            print '#', handle.tserver, 'did not finish'
     for m in sorted(mounts.keys()):
         diff = finished - mounts[m]
         if diff:
@@ -179,21 +179,21 @@ def checkMounts(slaves):
 
 def main(argv):
     if len(argv) < 1:
-        sys.stderr.write('Usage: check_slaves slaves\n')
+        sys.stderr.write('Usage: check_tservers tservers\n')
         sys.exit(1)
     sys.stdin.close()
-    slaves = set()
-    for slave in open(argv[0]):
-        hashPos = slave.find('#')
+    tservers = set()
+    for tserver in open(argv[0]):
+        hashPos = tserver.find('#')
         if hashPos >= 0:
-           slave = slave[:hashPos]
-        slave = slave.strip()
-        if not slave: continue
-        slaves.add(slave)
+           tserver = tserver[:hashPos]
+        tserver = tserver.strip()
+        if not tserver: continue
+        tservers.add(tserver)
     bad = set()
     for test in checkIdentity, checkMemory, checkMounts, checkWritable:
-        bad.update(test(slaves - bad))
-    for slave in sorted(slaves - bad):
-        print slave
+        bad.update(test(tservers - bad))
+    for tserver in sorted(tservers - bad):
+        print tserver
 
 main(sys.argv[1:])

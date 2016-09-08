@@ -120,7 +120,7 @@
   At a minimum the general.vfs.classpath property must be set. After this is set in the configuration, the bin/bootstrap_hdfs.sh can be
   run to move the jars into the required locations. All other properties are optional. This example demonstrates using hdfs, other
   protocols supported by the Apache Commons VFS software can be used but are not demonstrated here. If the accumulo-site.xml changes
-  after initial configuration, you will want to copy the file to all of the slave hosts. 
+  after initial configuration, you will want to copy the file to all of the tserver hosts. 
   -->
   <property>
     <name>general.vfs.classpaths</name>

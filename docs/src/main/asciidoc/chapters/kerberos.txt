@@ -203,7 +203,7 @@ new secrets reduces the likelihood of cryptographic attacks.
 Although it should be a prerequisite, it is ever important that you have DNS properly
 configured for your nodes and that Accumulo is configured to use the FQDN. It
 is extremely important to use the FQDN in each of the "hosts" files for each
-Accumulo process: +masters+, +monitors+, +slaves+, +tracers+, and +gc+.
+Accumulo process: +masters+, +monitors+, +tservers+, +tracers+, and +gc+.
 
 Normally, no changes are needed in +accumulo-env.sh+ to enable Kerberos. Typically, the +krb5.conf+
 is installed on the local machine in +/etc/+, and the Java library implementations will look
@@ -558,5 +558,5 @@ Caused by: org.apache.thrift.transport.TTransportException: Peer indicated failu
 on, is extremely important when negotiating an SASL connection. This problem commonly arises when the Accumulo
 servers are not configured to listen on the address denoted by their FQDN.
 
-The values in the Accumulo "hosts" files (In +$ACCUMULO_CONF_DIR+: +masters+, +monitors+, +slaves+, +tracers+,
+The values in the Accumulo "hosts" files (In +$ACCUMULO_CONF_DIR+: +masters+, +monitors+, +tservers+, +tracers+,
 and +gc+) should match the instance componentof the Kerberos server principal (e.g. +host+ in +accumulo/host\@EXAMPLE.COM+).

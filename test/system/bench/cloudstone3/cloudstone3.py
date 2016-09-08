@@ -20,7 +20,7 @@ from lib import cloudshell
 from lib.IngestBenchmark import IngestBenchmark
 
 class CloudStone3(IngestBenchmark):
-    "TestIngest one thousand chunky records on each slave"
+    "TestIngest one thousand chunky records on each tserver"
 
     _size = 65535
     _count = 10000

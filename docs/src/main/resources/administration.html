@@ -30,8 +30,8 @@ the accumulo software to each machine in the cloud that you wish to run on. The 
 in the same directory on each machine and configured identically (or at least similarly... see the configuration
 sections for more details). Select one machine to be your bootstrap machine, the one that you will start accumulo
 with. Note that you must have passphrase-less ssh access to each machine from your bootstrap machine. On this machine,
-create a conf/masters and conf/slaves file. In the masters file, type the hostname of the machine you wish to run the master on (probably localhost).
-In the slaves file, type the hostnames, separated by newlines of each machine you wish to participate in accumulo as a tablet server. If you neglect
+create a conf/masters and conf/tservers file. In the masters file, type the hostname of the machine you wish to run the master on (probably localhost).
+In the tservers file, type the hostnames, separated by newlines of each machine you wish to participate in accumulo as a tablet server. If you neglect
 to create these files, the startup scripts will assume you are trying to run on localhost only, and will instantiate a single-node instance only.
 It is probably a good idea to back up these files, or distribute them to the other nodes as well, so that you can easily boot up accumulo
 from another machine, if necessary. You can also make create a <code>conf/accumulo-env.sh</code> file if you want to configure any custom environment variables.
@@ -55,7 +55,7 @@ forcibly shut down after 5 seconds.
 
 <h3>Adding a Node</h3>
 
-<p>Update your <code>$ACCUMULO_HOME/conf/slaves</code> (or <code>$ACCUMULO_CONF_DIR/slaves</code>) file to account for the addition; at a minimum this needs to be on the host(s) being added, but in practice it's good to ensure consistent configuration across all nodes.</p>
+<p>Update your <code>$ACCUMULO_HOME/conf/tservers</code> (or <code>$ACCUMULO_CONF_DIR/tservers</code>) file to account for the addition; at a minimum this needs to be on the host(s) being added, but in practice it's good to ensure consistent configuration across all nodes.</p>
 
 <pre>
 $ACCUMULO_HOME/bin/accumulo admin start &lt;host(s)&gt; {&lt;host&gt; ...}
@@ -75,7 +75,7 @@ $ACCUMULO_HOME/bin/accumulo admin stop &lt;host(s)&gt; {&lt;host&gt; ...}
 
 <p>Alternatively, you can ssh to each of the hosts you want to remove and run <code>$ACCUMULO_HOME/bin/stop-here.sh</code>.</p>
 
-<p>Be sure to update your <code>$ACCUMULO_HOME/conf/slaves</code> (or <code>$ACCUMULO_CONF_DIR/slaves</code>) file to account for the removal of these hosts. Bear in mind that the monitor will not re-read the slaves file automatically, so it will report the decomissioned servers as down; it's recommended that you restart the monitor so that the node list is up to date.</p>
+<p>Be sure to update your <code>$ACCUMULO_HOME/conf/tservers</code> (or <code>$ACCUMULO_CONF_DIR/tservers</code>) file to account for the removal of these hosts. Bear in mind that the monitor will not re-read the tservers file automatically, so it will report the decomissioned servers as down; it's recommended that you restart the monitor so that the node list is up to date.</p>
 
 <h3>Configuration</h3>
 <p>Accumulo configuration information is stored in a xml file and ZooKeeper. System wide
@@ -101,9 +101,9 @@ settings, for example, for a table while accumulo is running.
 <ul>
  <li> On larger clusters, run the namenode, secondary namenode, jobtracker, accumulo master, and zookeepers on dedicated nodes. On a smaller cluster you may want to run all master processes on one node. When doing this ensure that the max total memory that could be used by all master processes does not exceed system memory. Swapping on your single master node would not be good.
  <li> Accumulo 1.2 and earlier rely on zookeeper but do not use it heavily. On a large cluster setting up 3 or 5 zookeepers should be plenty. Since there is no performance gain when running more zookeepers, fault tolerance is the only benefit.
- <li> On slave nodes ensure the memory used by all slave processes is less than system memory. For example the following slave node config could use up to 38G of RAM : tablet server 3G, logger 1G, data node 2G, up to 10 mappers each using 2G, and up 6 reducers each using 2G. If the slave nodes only have 32G, then using 38G will result in swapping which could cause tablet server to lose their lock in zookeeper and die. Even if swapping does not cause tablet servers to die, it will kill performance.
+ <li> On worker nodes ensure the memory used by all worker processes is less than system memory. For example the following worker node config could use up to 38G of RAM : tablet server 3G, logger 1G, data node 2G, up to 10 mappers each using 2G, and up 6 reducers each using 2G. If the worker nodes only have 32G, then using 38G will result in swapping which could cause tablet server to lose their lock in zookeeper and die. Even if swapping does not cause tablet servers to die, it will kill performance.
  <li>Accumulo and map reduce will work with less memory, but it has an impact. Accumulo will minor compact more frequently when it has less map memory, resulting in more major compactions. The minor and major compactions both use CPU and HDFS I/O. The same goes for map reduce, the less memory you give it, the more it has to sort and spill. Try to minimize spilling and compactions as much as possible without causing swapping.
- <li>Accumulo writes data to disk before it sorts it in memory. This allows data that was in memory when a tablet server crashes to be recovered. Each slave node needs a local directory to write this data to. Ensure the file system holding this directory has at least 100G free on all nodes. Also, if this directory is in a filesystem used by map reduce or hdfs they may effect each others performance.
+ <li>Accumulo writes data to disk before it sorts it in memory. This allows data that was in memory when a tablet server crashes to be recovered. Each worker node needs a local directory to write this data to. Ensure the file system holding this directory has at least 100G free on all nodes. Also, if this directory is in a filesystem used by map reduce or hdfs they may effect each others performance.
 </ul>
 
 <p>There are a few settings that determine how much memory accumulo tablet

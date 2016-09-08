@@ -28,11 +28,11 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 . "$bin"/config.sh
 
 HADOOP_CMD=$HADOOP_PREFIX/bin/hadoop
-SLAVES=$ACCUMULO_CONF_DIR/slaves
-SLAVE_HOSTS=$(egrep -v '(^#|^\s*$)' "${SLAVES}")
+TSERVERS=$ACCUMULO_CONF_DIR/tservers
+TSERVER_HOSTS=$(egrep -v '(^#|^\s*$)' "${TSERVERS}")
 
 echo "Stopping unresponsive tablet servers (if any)..."
-for server in ${SLAVE_HOSTS}; do
+for server in ${TSERVER_HOSTS}; do
    # only start if there's not one already running
    $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/lib/accumulo-start.jar" tserver TERM & 
 done
@@ -40,7 +40,7 @@ done
 sleep 10
 
 echo "Stopping unresponsive tablet servers hard (if any)..."
-for server in ${SLAVE_HOSTS}; do
+for server in ${TSERVER_HOSTS}; do
    # only start if there's not one already running
    $ACCUMULO_HOME/bin/stop-server.sh $server "$ACCUMULO_HOME/lib/accumulo-start.jar" tserver KILL & 
 done

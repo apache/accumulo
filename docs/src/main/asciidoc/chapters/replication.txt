@@ -248,7 +248,7 @@ in replication together. In this example, we will use the names provided in the 
 </property>
 ----
 
-==== conf/masters and conf/slaves
+==== conf/masters and conf/tservers
 
 Be *sure* to use non-local IP addresses. Other nodes need to connect to it and using localhost will likely result in
 a local node talking to another local node.
