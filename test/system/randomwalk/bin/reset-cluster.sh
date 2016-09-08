@@ -53,7 +53,7 @@ if [[ -z $1 ]] ; then
 fi
 
 echo 'killing accumulo'
-pssh -h "$ACCUMULO_CONF_DIR/slaves" "pkill -f org.apache.accumulo.start" < /dev/null
+pssh -h "$ACCUMULO_CONF_DIR/tservers" "pkill -f org.apache.accumulo.start" < /dev/null
 pkill -f org.apache.accumulo.start
 pkill -f agitator.pl
 
@@ -68,10 +68,10 @@ rm -f "$ACCUMULO_HOME/test/system/continuous/logs/*"
 rm -f ~/rwlogs/*
 
 echo 'removing old code'
-pssh -h "$ACCUMULO_CONF_DIR/slaves" "rm -rf $ACCUMULO_HOME" < /dev/null
+pssh -h "$ACCUMULO_CONF_DIR/tservers" "rm -rf $ACCUMULO_HOME" < /dev/null
 
 echo 'pushing new code'
-prsync -r -h "$ACCUMULO_CONF_DIR/slaves" "$ACCUMULO_HOME" /opt/dev
+prsync -r -h "$ACCUMULO_CONF_DIR/tservers" "$ACCUMULO_HOME" /opt/dev
 
 echo 'removing /accumulo dir'
 "$HADOOP_PREFIX/bin/hadoop" fs -rmr /accumulo

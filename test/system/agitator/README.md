@@ -25,7 +25,7 @@ Configure the agitator using the example agitator.ini file provided.
 
 Create a list of hosts to be agitated:
 
-	$ cp ../../../conf/slaves hosts
+	$ cp ../../../conf/tservers hosts
 	$ echo master >> hosts
 	$ echo namenode >> hosts
 

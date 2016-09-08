@@ -52,7 +52,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   private static final String SUDO_CMD = "sudo";
   private static final String START_SERVER_SCRIPT = "start-server.sh", ACCUMULO_SCRIPT = "accumulo", TOOL_SCRIPT = "tool.sh";
-  private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc", TSERVER_HOSTS_FILE = "slaves", TRACER_HOSTS_FILE = "tracers",
+  private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc", TSERVER_HOSTS_FILE = "tservers", TRACER_HOSTS_FILE = "tracers",
       MONITOR_HOSTS_FILE = "monitor";
   private static final String ACCUMULO_CONF_DIR = "ACCUMULO_CONF_DIR=";
 

@@ -25,9 +25,9 @@
 #  MONITOR            Machine to run monitor daemon on. Used by start-here.sh script
 #
 # Iff ACCUMULO_VERIFY_ONLY is not set, this script will
-#   * Check for standalone mode (lack of masters and slaves files)
+#   * Check for standalone mode (lack of masters and tservers files)
 #     - Do appropriate set up
-#   * Ensure the presense of local role files (masters, slaves, gc, tracers)
+#   * Ensure the presense of local role files (masters, tservers, gc, tracers)
 #
 # Values always set by script.
 #  SSH                Default ssh parameters used to start daemons

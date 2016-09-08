@@ -51,13 +51,13 @@ def runTest(testName, siteConfig, testDir, numNodes, fdata):
     log('Stopping accumulo')
     syscall('$ACCUMULO_HOME/bin/stop-all.sh')
  
-    log('Creating slaves file for this test')
-    slavesPath = siteConfig.get('SLAVES')
+    log('Creating tservers file for this test')
+    tserversPath = siteConfig.get('TSERVERS')
     nodesPath = testDir+'/nodes/%d' % numNodes
-    syscall('head -n %d %s > %s' % (numNodes,slavesPath,nodesPath))
+    syscall('head -n %d %s > %s' % (numNodes,tserversPath,nodesPath))
 
-    log('Copying slaves file to accumulo config')
-    syscall('cp '+nodesPath+' $ACCUMULO_CONF_DIR/slaves');
+    log('Copying tservers file to accumulo config')
+    syscall('cp '+nodesPath+' $ACCUMULO_CONF_DIR/tservers');
 
     log('Removing /accumulo directory in HDFS')
     syscall("hadoop fs -rmr /accumulo")
@@ -210,8 +210,8 @@ def main():
     syscall('hadoop fs -copyFromLocal ./conf /accumulo-scale/conf')
 
     siteConfig = JavaConfig('conf/site.conf');
-    slavesPath = siteConfig.get('SLAVES')
-    maxNodes = file_len(slavesPath)
+    tserversPath = siteConfig.get('TSERVERS')
+    maxNodes = file_len(tserversPath)
 
     fdata = open('%s/scale.dat' % testDir, 'w')
     fdata.write('Tservs\tClients\tMin\tAvg\tMed\tMax\tEntries\tMB\n')
@@ -219,7 +219,7 @@ def main():
     for numNodes in siteConfig.get('TEST_CASES').split(','):
         log('Running %s test with %s nodes' % (testName, numNodes))
         if int(numNodes) > maxNodes:
-            logging.error('Skipping %r test case as slaves file %r contains only %r nodes', numNodes, slavesPath, maxNodes)
+            logging.error('Skipping %r test case as tservers file %r contains only %r nodes', numNodes, tserversPath, maxNodes)
             continue
         runTest(testName, siteConfig, testDir, int(numNodes), fdata)
         sys.stdout.flush()

@@ -122,7 +122,7 @@ insufficient memory.
 
 Note that you will be specifying the Java heap space in accumulo-env.sh. You should
 make sure that the total heap space used for the Accumulo tserver and the Hadoop
-DataNode and TaskTracker is less than the available memory on each slave node in
+DataNode and TaskTracker is less than the available memory on each worker node in
 the cluster. On large clusters, it is recommended that the Accumulo master, Hadoop
 NameNode, secondary NameNode, and Hadoop JobTracker all be run on separate
 machines to allow them to use more heap space. If you are running these on the
@@ -195,7 +195,7 @@ performance to the write-ahead log file which will slow ingest.
 On the machine that will serve as the Accumulo master:
 
 . Write the IP address or domain name of the Accumulo Master to the +$ACCUMULO_HOME/conf/masters+ file.
-. Write the IP addresses or domain name of the machines that will be TabletServers in +$ACCUMULO_HOME/conf/slaves+, one per line.
+. Write the IP addresses or domain name of the machines that will be TabletServers in +$ACCUMULO_HOME/conf/tservers+, one per line.
 
 Note that if using domain names rather than IP addresses, DNS must be configured
 properly for all machines participating in the cluster. DNS can be a confusing source
@@ -245,7 +245,7 @@ extra jars from being unintentionally loaded into Accumulo processes.
 ==== Hostnames in configuration files
 
 Accumulo has a number of configuration files which can contain references to other hosts in your
-network. All of the "host" configuration files for Accumulo (+gc+, +masters+, +slaves+, +monitor+,
+network. All of the "host" configuration files for Accumulo (+gc+, +masters+, +tservers+, +monitor+,
 +tracers+) as well as +instance.volumes+ in accumulo-site.xml must contain some host reference.
 
 While IP address, short hostnames, or fully qualified domain names (FQDN) are all technically valid, it
@@ -261,9 +261,9 @@ Accumulo identifies +localhost:8020+ as a different HDFS instance than +127.0.0.
 
 ==== Deploy Configuration
 
-Copy the masters, slaves, accumulo-env.sh, and if necessary, accumulo-site.xml
+Copy the masters, tservers, accumulo-env.sh, and if necessary, accumulo-site.xml
 from the +$ACCUMULO_HOME/conf/+ directory on the master to all the machines
-specified in the slaves file.
+specified in the tservers file.
 
 ==== Sensitive Configuration Values
 
@@ -428,7 +428,7 @@ take some time for particular configurations.
 
 ==== Adding a Node
 
-Update your +$ACCUMULO_HOME/conf/slaves+ (or +$ACCUMULO_CONF_DIR/slaves+) file to account for the addition.
+Update your +$ACCUMULO_HOME/conf/tservers+ (or +$ACCUMULO_CONF_DIR/tservers+) file to account for the addition.
 
   $ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
 
@@ -451,9 +451,9 @@ Alternatively, you can ssh to each of the hosts you want to remove and run:
 
   $ACCUMULO_HOME/bin/stop-here.sh
 
-Be sure to update your +$ACCUMULO_HOME/conf/slaves+ (or +$ACCUMULO_CONF_DIR/slaves+) file to
+Be sure to update your +$ACCUMULO_HOME/conf/tservers+ (or +$ACCUMULO_CONF_DIR/tservers+) file to
 account for the removal of these hosts. Bear in mind that the monitor will not re-read the
-slaves file automatically, so it will report the decomissioned servers as down; it's
+tservers file automatically, so it will report the decomissioned servers as down; it's
 recommended that you restart the monitor so that the node list is up to date.
 
 ==== Restarting process on a node
@@ -463,7 +463,7 @@ to the +start-all.sh+ and +stop-all.sh+ scripts, Accumulo contains scripts to st
 on a node and start/stop a given process on a node.
 
 +start-here.sh+ and +stop-here.sh+ will start/stop all Accumulo processes on the current node. The
-necessary processes to start/stop are determined via the "hosts" files (e.g. slaves, masters, etc).
+necessary processes to start/stop are determined via the "hosts" files (e.g. tservers, masters, etc).
 These scripts expect no arguments.
 
 +start-server.sh+ can also be useful in starting a given process on a host.
@@ -472,7 +472,7 @@ you specified in hosts file (if you specified FQDN in the masters file, use the 
 the shortname). The second argument is the name of the process to start (e.g. master, tserver).
 
 The steps described to decomission a node can also be used (without removal of the host
-from the +$ACCUMULO_HOME/conf/slaves+ file) to gracefully stop a node. This will
+from the +$ACCUMULO_HOME/conf/tservers+ file) to gracefully stop a node. This will
 ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
 when the tablets are re-hosted.
 

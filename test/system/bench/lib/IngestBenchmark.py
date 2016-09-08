@@ -18,13 +18,13 @@ import unittest
 
 from lib import cloudshell
 from lib.Benchmark import Benchmark
-from lib.slaves import runEach, slaveNames
+from lib.tservers import runEach, tserverNames
 from lib.path import accumulo, accumuloJar
 from lib.util import sleep
 from lib.options import log
 
 class IngestBenchmark(Benchmark):
-    "TestIngest records on each slave"
+    "TestIngest records on each tserver"
     
     rows = 1000000
 
@@ -56,7 +56,7 @@ class IngestBenchmark(Benchmark):
 
     def runTest(self):
         commands = {}
-        for i, s in enumerate(slaveNames()):
+        for i, s in enumerate(tserverNames()):
             commands[s] = '%s %s -u %s -p %s --size %d --random %d --rows %d --start %d --cols %d' % (
                 accumulo('bin', 'accumulo'),
                 'org.apache.accumulo.test.TestIngest',
@@ -68,12 +68,12 @@ class IngestBenchmark(Benchmark):
                 1)
         results = runEach(commands)
         codes = {}
-        for slave, (code, out, err) in results.items():
+        for tserver, (code, out, err) in results.items():
             codes.setdefault(code, [])
-            codes[code].append(slave)
-        for code, slaves in codes.items():
+            codes[code].append(tserver)
+        for code, tservers in codes.items():
             if code != 0:
-                self.assertEqual(code, 0, "Bad exit code (%d) from slaves %r" % (code, slaves))
+                self.assertEqual(code, 0, "Bad exit code (%d) from tservers %r" % (code, tservers))
 
     def score(self):
         if self.finished:
@@ -81,7 +81,7 @@ class IngestBenchmark(Benchmark):
         return 0.
     
     def shortDescription(self):
-        return 'Ingest %d rows of values %d bytes on every slave.  '\
+        return 'Ingest %d rows of values %d bytes on every tserver.  '\
                'Higher is better.' % (self.count(), self.size())
 
     def setSpeed(self, speed):

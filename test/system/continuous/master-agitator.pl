@@ -84,7 +84,7 @@ while(1){
 	$t = strftime "%Y%m%d %H:%M:%S", localtime;
 	print STDERR "$t Running start-all\n";
 
-	$cmd = "$ACCUMULO_HOME/bin/start-all.sh --notSlaves";
+	$cmd = "$ACCUMULO_HOME/bin/start-all.sh --notTservers";
 	print "$t $cmd\n";
 	system($cmd);
 }

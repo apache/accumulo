@@ -19,7 +19,7 @@ import subprocess
 
 from lib import cloudshell, runner, path
 from lib.Benchmark import Benchmark
-from lib.slaves import runEach, slaveNames
+from lib.tservers import runEach, tserverNames
 from lib.path import accumulo, accumuloJar
 from lib.util import sleep
 from lib.options import log

@@ -34,11 +34,11 @@ bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # Determine hostname without errors to user
 HOSTS_TO_CHECK=($(hostname -a 2> /dev/null | head -1) $(hostname -f))
 
-if egrep -q localhost\|127.0.0.1 "$ACCUMULO_CONF_DIR/slaves"; then
+if egrep -q localhost\|127.0.0.1 "$ACCUMULO_CONF_DIR/tservers"; then
    "$bin/accumulo" admin stop localhost
 else
    for host in "${HOSTS_TO_CHECK[@]}"; do
-      if grep -q "$host" "$ACCUMULO_CONF_DIR"/slaves; then
+      if grep -q "$host" "$ACCUMULO_CONF_DIR"/tservers; then
          "${bin}/accumulo" admin stop "$host"
       fi
    done

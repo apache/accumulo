@@ -21,7 +21,7 @@ Apache Accumulo Scalability Tests
 The scalability test framework needs to be configured for your Accumulo
 instance by performing the following steps.
 
-WARNING: Each scalability test rewrites your `conf/slaves` file and reinitializes
+WARNING: Each scalability test rewrites your `conf/tservers` file and reinitializes
 your Accumulo instance. Do not run these tests on a cluster holding essential
 data.
 

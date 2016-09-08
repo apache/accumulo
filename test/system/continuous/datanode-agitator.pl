@@ -80,21 +80,21 @@ if($minKill > $maxKill){
   die("minKill > maxKill $minKill > $maxKill");
 }
 
-@slavesRaw = `cat $ACCUMULO_CONF_DIR/slaves`;
-chomp(@slavesRaw);
+@tserversRaw = `cat $ACCUMULO_CONF_DIR/tservers`;
+chomp(@tserversRaw);
 
-for $slave (@slavesRaw){
-  if($slave eq "" || substr($slave,0,1) eq "#"){
+for $tserver (@tserversRaw){
+  if($tserver eq "" || substr($tserver,0,1) eq "#"){
     next;
   }
 
-  push(@slaves, $slave);
+  push(@tservers, $tserver);
 }
 
 
-if(scalar(@slaves) < $maxKill){
-  print STDERR "WARN setting maxKill to ".scalar(@slaves)."\n";
-  $maxKill = scalar(@slaves);
+if(scalar(@tservers) < $maxKill){
+  print STDERR "WARN setting maxKill to ".scalar(@tservers)."\n";
+  $maxKill = scalar(@tservers);
 }
 
 if ($minKill > $maxKill){
@@ -110,8 +110,8 @@ while(1){
 
   for($i = 0; $i < $numToKill; $i++){
     while($server eq "" || $killed{$server} != undef){
-      $index = int(rand(scalar(@slaves)));
-      $server = $slaves[$index];
+      $index = int(rand(scalar(@tservers)));
+      $server = $tservers[$index];
     }
 
     $killed{$server} = 1;

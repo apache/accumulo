@@ -23,20 +23,20 @@ import subprocess
 from lib.path import accumuloConf
 from lib.options import log
 
-def slaveNames():
-    return [s.strip() for s in open(accumuloConf('slaves'))]
+def tserverNames():
+    return [s.strip() for s in open(accumuloConf('tservers'))]
 
 def runEach(commandMap):
     result = {}
     handles = []
-    for slave, command in commandMap.items():
-        log.debug("ssh: %s: %s", slave, command)
-        handle = subprocess.Popen(['ssh',slave] + [command],
+    for tserver, command in commandMap.items():
+        log.debug("ssh: %s: %s", tserver, command)
+        handle = subprocess.Popen(['ssh',tserver] + [command],
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE)
         for h in handle.stdout, handle.stderr:
             fcntl.fcntl(h, fcntl.F_SETFL, os.O_NDELAY)
-        handle.slave = slave
+        handle.tserver = tserver
         handle.command = command
         handle.start = time.time()
         handles.append(handle)
@@ -71,19 +71,19 @@ def runEach(commandMap):
             else:
                 result[handle][1] += data
             if handle.stdout == None and handle.stderr == None:
-                log.debug("Slave %s finished in %.2f",
-                          handle.slave,
+                log.debug("Tserver %s finished in %.2f",
+                          handle.tserver,
                           time.time() - handle.start)
                 handle.wait()
         if not rd:
-            log.debug("Waiting on %d slaves (%s...)",
+            log.debug("Waiting on %d tservers (%s...)",
                       len(handlesLeft),
-                      ', '.join([h.slave for h in handlesLeft])[:50])
-    return dict([(h.slave, (h.returncode, out, err))
+                      ', '.join([h.tserver for h in handlesLeft])[:50])
+    return dict([(h.tserver, (h.returncode, out, err))
                  for h, (out, err) in result.items()])
 
 def runAll(command):
-    slaves = slaveNames()
-    log.debug("Running %s on %s..", command, ', '.join(slaves)[:50])
-    return runEach(dict([(s, command) for s in slaves]))
+    tservers = tserverNames()
+    log.debug("Running %s on %s..", command, ', '.join(tservers)[:50])
+    return runEach(dict([(s, command) for s in tservers]))
 

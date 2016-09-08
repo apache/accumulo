@@ -52,9 +52,9 @@ enum BulkImportState {
    INITIAL
    # master moves the files into the accumulo area
    MOVING
-   # slave tserver examines the index of the file
+   # tserver examines the index of the file
    PROCESSING
-   # slave tserver assigns the file to tablets
+   # tserver assigns the file to tablets
    ASSIGNING
    # tserver incorporates file into tablet
    LOADING

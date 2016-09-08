@@ -112,7 +112,7 @@ list of node names.  Must change from localhost.
  * `conf/gc`      : Accumulo garbage collector.  Must specify one node.  Can
                     specify a few for fault tolerance.
  * `conf/monitor` : Node where Accumulo monitoring web server is run.
- * `conf/slaves`  : Accumulo worker processes.   List all of the nodes where
+ * `conf/tservers`: Accumulo worker processes.   List all of the nodes where
                     tablet servers should run in this file.
  * `conf/tracers` : Optional capability. Can specify zero or more nodes. 
 
