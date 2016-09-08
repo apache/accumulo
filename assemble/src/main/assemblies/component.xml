@@ -133,16 +133,6 @@
       </excludes>
     </fileSet>
     <fileSet>
-      <!-- preserve old behavior of extra copy in conf -->
-      <directory>conf/templates</directory>
-      <outputDirectory>conf</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>accumulo.policy.example</include>
-      </includes>
-    </fileSet>
-    <fileSet>
       <directory>target/example-configs</directory>
       <outputDirectory>conf/examples</outputDirectory>
       <directoryMode>0755</directoryMode>
