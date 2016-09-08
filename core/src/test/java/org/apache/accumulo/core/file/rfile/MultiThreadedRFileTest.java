@@ -49,7 +49,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,15 +60,11 @@ import static org.junit.Assert.assertTrue;
 
 public class MultiThreadedRFileTest {
 
+  private static final Logger LOG = Logger.getLogger(MultiThreadedRFileTest.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-
-  static {
-    Logger.getLogger(org.apache.hadoop.io.compress.CodecPool.class).setLevel(Level.OFF);
-    Logger.getLogger(org.apache.hadoop.util.NativeCodeLoader.class).setLevel(Level.OFF);
-  }
 
   private static void checkIndex(Reader reader) throws IOException {
     FileSKVIterator indexIter = reader.getIndex();
@@ -269,8 +264,8 @@ public class MultiThreadedRFileTest {
     }
 
     for (String message : messages.keySet()) {
-      System.out.println(messages.get(message) + ": " + message);
-      System.out.println(stackTrace.get(message));
+      LOG.error(messages.get(message) + ": " + message);
+      LOG.error(stackTrace.get(message));
     }
 
     assertTrue(threadExceptions.isEmpty());

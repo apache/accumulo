@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 class BoundedRangeFileInputStream extends InputStream {
 
   private volatile boolean closed = false;
-  private FSDataInputStream in;
+  private final FSDataInputStream in;
   private long pos;
   private long end;
   private long mark;
@@ -145,10 +145,14 @@ class BoundedRangeFileInputStream extends InputStream {
 
   @Override
   public void close() {
-    // synchronize on the FSDataInputStream to ensure we are blocked if in the read method
-    synchronized (in) {
-      // Invalidate the state of the stream.
-      closed = true;
+    // Synchronize on the FSDataInputStream to ensure we are blocked if in the read method:
+    // Once this close completes, the underlying decompression stream may be returned to
+    // the pool and subsequently used. Turns out this is a problem if currently using it to read.
+    if (!closed) {
+      synchronized (in) {
+        // Invalidate the state of the stream.
+        closed = true;
+      }
     }
   }
 }
