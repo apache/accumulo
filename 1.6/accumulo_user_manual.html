@@ -4911,7 +4911,7 @@ the new volumes. This is expected and can usually be ignored.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_multi_volume_installations">13. Multi-Volume Installations</h2>
+<h2 id="_multi_volume_installations">14. Multi-Volume Installations</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>This is an advanced configuration setting for very large clusters
@@ -4994,10 +4994,10 @@ NameNode.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_troubleshooting">14. Troubleshooting</h2>
+<h2 id="_troubleshooting">15. Troubleshooting</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_logs">14.1. Logs</h3>
+<h3 id="_logs">15.1. Logs</h3>
 <div class="paragraph">
 <p><strong>Q</strong>: The tablet server does not seem to be running!? What happened?</p>
 </div>
@@ -5025,7 +5025,7 @@ options, files or permissions, messages will be left in these files.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_monitor_2">14.2. Monitor</h3>
+<h3 id="_monitor_2">15.2. Monitor</h3>
 <div class="paragraph">
 <p><strong>Q</strong>: Accumulo is not working, what&#8217;s wrong?</p>
 </div>
@@ -5083,7 +5083,7 @@ master is down.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_hdfs">14.3. HDFS</h3>
+<h3 id="_hdfs">15.3. HDFS</h3>
 <div class="paragraph">
 <p>Accumulo reads and writes to the Hadoop Distributed File System.
 Accumulo needs this file system available at all times for normal operations.</p>
@@ -5131,7 +5131,7 @@ system issues on those nodes.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_zookeeper">14.4. Zookeeper</h3>
+<h3 id="_zookeeper">15.4. Zookeeper</h3>
 <div class="paragraph">
 <p><strong>Q</strong>: <code>accumulo init</code> is hanging.  It says something about talking to zookeeper.</p>
 </div>
@@ -5213,7 +5213,7 @@ already.</p>
 zookeeper.</p>
 </div>
 <div class="sect3">
-<h4 id="_keeping_the_tablet_server_lock">14.4.1. Keeping the tablet server lock</h4>
+<h4 id="_keeping_the_tablet_server_lock">15.4.1. Keeping the tablet server lock</h4>
 <div class="paragraph">
 <p><strong>Q</strong>: My tablet server lost its lock.  Why?</p>
 </div>
@@ -5298,7 +5298,7 @@ messages to zookeeper.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_tools">14.5. Tools</h3>
+<h3 id="_tools">15.5. Tools</h3>
 <div class="paragraph">
 <p>The accumulo script can be used to run classes from the command line.
 This section shows how a few of the utilities work, but there are many
@@ -5532,7 +5532,7 @@ INFO : Using ZooKeepers localhost:2181
 </div>
 </div>
 <div class="sect2">
-<h3 id="metadata">14.6. System Metadata Tables</h3>
+<h3 id="metadata">15.6. System Metadata Tables</h3>
 <div class="paragraph">
 <p>Accumulo tracks information about tables in metadata tables. The metadata for
 most tables is contained within the metadata table in the accumulo namespace,
@@ -5679,7 +5679,7 @@ so it has no prev-row (or end row).</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_simple_system_recovery">14.7. Simple System Recovery</h3>
+<h3 id="_simple_system_recovery">15.7. Simple System Recovery</h3>
 <div class="paragraph">
 <p><strong>Q</strong>: One of my Accumulo processes died. How do I bring it back?</p>
 </div>
@@ -5726,9 +5726,9 @@ processes should be stable on the order of months and not require frequent resta
 </div>
 </div>
 <div class="sect2">
-<h3 id="_advanced_system_recovery">14.8. Advanced System Recovery</h3>
+<h3 id="_advanced_system_recovery">15.8. Advanced System Recovery</h3>
 <div class="sect3">
-<h4 id="_hdfs_failure">14.8.1. HDFS Failure</h4>
+<h4 id="_hdfs_failure">15.8.1. HDFS Failure</h4>
 <div class="paragraph">
 <p><strong>Q</strong>: I had disasterous HDFS failure.  After bringing everything back up, several tablets refuse to go online.</p>
 </div>
@@ -5913,7 +5913,7 @@ resolved. Rebuild the metadata table if the corrupt files are metadata files.</p
 </div>
 </div>
 <div class="sect3">
-<h4 id="zookeeper_failure">14.8.2. ZooKeeper Failure</h4>
+<h4 id="zookeeper_failure">15.8.2. ZooKeeper Failure</h4>
 <div class="paragraph">
 <p><strong>Q</strong>: I lost my ZooKeeper quorum (hardware failure), but HDFS is still intact. How can I recover my Accumulo instance?</p>
 </div>
@@ -5985,7 +5985,7 @@ omission of new data.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_upgrade_issues">14.9. Upgrade Issues</h3>
+<h3 id="_upgrade_issues">15.9. Upgrade Issues</h3>
 <div class="paragraph">
 <p><strong>Q</strong>: I upgrade from 1.4 to 1.5 to 1.6 but still have some WAL files on local disk. Do I have any way
 to recover them?</p>
@@ -6003,7 +6003,7 @@ invoked as follows:</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_file_naming_conventions">14.10. File Naming Conventions</h3>
+<h3 id="_file_naming_conventions">15.10. File Naming Conventions</h3>
 <div class="paragraph">
 <p><strong>Q</strong>: Why are files named like they are? Why do some start with <code>C</code> and others with <code>F</code>?</p>
 </div>
@@ -6056,10 +6056,10 @@ is struggling to keep up with ingest vs the compaction strategy which reduces th
 </div>
 </div>
 <div class="sect1">
-<h2 id="configuration">15. Appendix A: Configuration Management</h2>
+<h2 id="configuration">16. Appendix A: Configuration Management</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_configuration_overview">15.1. Configuration Overview</h3>
+<h3 id="_configuration_overview">16.1. Configuration Overview</h3>
 <div class="paragraph">
 <p>All accumulo properties have a default value in the source code.  Properties can also be set
 in accumulo-site.xml and in zookeeper on per-table or system-wide basis.  If properties are set in more than one location,
@@ -6067,7 +6067,7 @@ accumulo will choose the property with the highest precedence.  This order of pr
 below (from highest to lowest):</p>
 </div>
 <div class="sect3">
-<h4 id="_zookeeper_table_properties">15.1.1. Zookeeper table properties</h4>
+<h4 id="_zookeeper_table_properties">16.1.1. Zookeeper table properties</h4>
 <div class="paragraph">
 <p>Table properties are applied to the entire cluster when set in zookeeper using the accumulo API or shell.  While table properties take precedent over system properties, both will override properties set in accumulo-site.xml</p>
 </div>
@@ -6081,7 +6081,7 @@ below (from highest to lowest):</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_zookeeper_system_properties">15.1.2. Zookeeper system properties</h4>
+<h4 id="_zookeeper_system_properties">16.1.2. Zookeeper system properties</h4>
 <div class="paragraph">
 <p>System properties are applied to the entire cluster when set in zookeeper using the accumulo API or shell.  System properties consist of all properties with a <code>yes</code> in the <em>Zookeeper Mutable</em> column in the table below.  They are set with the following shell command:</p>
 </div>
@@ -6098,7 +6098,7 @@ below (from highest to lowest):</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_accumulo_site_xml">15.1.3. accumulo-site.xml</h4>
+<h4 id="_accumulo_site_xml">16.1.3. accumulo-site.xml</h4>
 <div class="paragraph">
 <p>Accumulo processes (master, tserver, etc) read their local accumulo-site.xml on start up.  Therefore, changes made to accumulo-site.xml must rsynced across the cluster and processes must be restarted to apply changes.</p>
 </div>
@@ -6107,7 +6107,7 @@ below (from highest to lowest):</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_default_values">15.1.4. Default Values</h4>
+<h4 id="_default_values">16.1.4. Default Values</h4>
 <div class="paragraph">
 <p>All properties have a default value in the source code.  This value has the lowest precedence and is overriden if set in accumulo-site.xml or zookeeper.</p>
 </div>
@@ -6117,7 +6117,7 @@ below (from highest to lowest):</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_configuration_in_the_shell">15.2. Configuration in the Shell</h3>
+<h3 id="_configuration_in_the_shell">16.2. Configuration in the Shell</h3>
 <div class="paragraph">
 <p>The <code>config</code> command in the shell allows you to view the current system configuration.  You can also use the <code>-t</code> option to view a table&#8217;s configuration as below:</p>
 </div>
@@ -6160,13 +6160,13 @@ default  | table.failures.ignore ..................... | false</pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_available_properties">15.3. Available Properties</h3>
+<h3 id="_available_properties">16.3. Available Properties</h3>
 <div class="paragraph">
 <p>Jump to:
 <a href="#RPC_PREFIX">rpc.*</a> | <a href="#INSTANCE_PREFIX">instance.*</a> | <a href="#GENERAL_PREFIX">general.*</a> | <a href="#MASTER_PREFIX">master.*</a> | <a href="#TSERV_PREFIX">tserver.*</a> | <a href="#LOGGER_PREFIX">logger.*</a> | <a href="#GC_PREFIX">gc.*</a> | <a href="#MONITOR_PREFIX">monitor.*</a> | <a href="#TRACE_PREFIX">trace.*</a> | <a href="#TRACE_TOKEN_PROPERTY_PREFIX">trace.token.property.*</a> | <a href="#TABLE_PREFIX">table.*</a> | <a href="#TABLE_CONSTRAINT_PREFIX">table.constraint.*</a> | <a href="#TABLE_ITERATOR_PREFIX">table.iterator.*</a> | <a href="#TABLE_LOCALITY_GROUP_PREFIX">table.group.*</a> | <a href="#TABLE_COMPACTION_STRATEGY_PREFIX">table.majc.compaction.strategy.opts.*</a> | <a href="#VFS_CONTEXT_CLASSPATH_PROPERTY">general.vfs.context.classpath.*</a></p>
 </div>
 <div class="sect3">
-<h4 id="RPC_PREFIX">15.3.1. rpc.*</h4>
+<h4 id="RPC_PREFIX">16.3.1. rpc.*</h4>
 <div class="paragraph">
 <p>Properties in this category related to the configuration of SSL keys for RPC. See also instance.ssl.enabled</p>
 </div>
@@ -6249,7 +6249,7 @@ default  | table.failures.ignore ..................... | false</pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="INSTANCE_PREFIX">15.3.2. instance.*</h4>
+<h4 id="INSTANCE_PREFIX">16.3.2. instance.*</h4>
 <div class="paragraph">
 <p>Properties in this category must be consistent throughout a cloud. This is enforced and servers won&#8217;t be able to communicate if these differ.</p>
 </div>
@@ -6387,7 +6387,7 @@ default  | table.failures.ignore ..................... | false</pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="GENERAL_PREFIX">15.3.3. general.*</h4>
+<h4 id="GENERAL_PREFIX">16.3.3. general.*</h4>
 <div class="paragraph">
 <p>Properties in this category affect the behavior of accumulo overall, but do not have to be consistent throughout a cloud.</p>
 </div>
@@ -6511,7 +6511,7 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 </div>
 </div>
 <div class="sect3">
-<h4 id="MASTER_PREFIX">15.3.4. master.*</h4>
+<h4 id="MASTER_PREFIX">16.3.4. master.*</h4>
 <div class="paragraph">
 <p>Properties in this category affect the behavior of the master server</p>
 </div>
@@ -6660,7 +6660,7 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 </div>
 </div>
 <div class="sect3">
-<h4 id="TSERV_PREFIX">15.3.5. tserver.*</h4>
+<h4 id="TSERV_PREFIX">16.3.5. tserver.*</h4>
 <div class="paragraph">
 <p>Properties in this category affect the behavior of the tablet servers</p>
 </div>
@@ -7117,7 +7117,7 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 </div>
 </div>
 <div class="sect3">
-<h4 id="LOGGER_PREFIX">15.3.6. logger.*</h4>
+<h4 id="LOGGER_PREFIX">16.3.6. logger.*</h4>
 <div class="paragraph">
 <p>Properties in this category affect the behavior of the write-ahead logger servers</p>
 </div>
@@ -7134,7 +7134,7 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 </div>
 </div>
 <div class="sect3">
-<h4 id="GC_PREFIX">15.3.7. gc.*</h4>
+<h4 id="GC_PREFIX">16.3.7. gc.*</h4>
 <div class="paragraph">
 <p>Properties in this category affect the behavior of the accumulo garbage collector.</p>
 </div>
@@ -7195,7 +7195,7 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 </div>
 </div>
 <div class="sect3">
-<h4 id="MONITOR_PREFIX">15.3.8. monitor.*</h4>
+<h4 id="MONITOR_PREFIX">16.3.8. monitor.*</h4>
 <div class="paragraph">
 <p>Properties in this category affect the behavior of the monitor web server.</p>
 </div>
@@ -7267,7 +7267,7 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 </div>
 </div>
 <div class="sect3">
-<h4 id="TRACE_PREFIX">15.3.9. trace.*</h4>
+<h4 id="TRACE_PREFIX">16.3.9. trace.*</h4>
 <div class="paragraph">
 <p>Properties in this category affect the behavior of distributed tracing.</p>
 </div>
@@ -7328,13 +7328,13 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 </div>
 </div>
 <div class="sect3">
-<h4 id="TRACE_TOKEN_PROPERTY_PREFIX">15.3.10. trace.token.property.*</h4>
+<h4 id="TRACE_TOKEN_PROPERTY_PREFIX">16.3.10. trace.token.property.*</h4>
 <div class="paragraph">
 <p>The prefix used to create a token for storing distributed traces. For each propetry required by trace.token.type, place this prefix in front of it.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="TABLE_PREFIX">15.3.11. table.*</h4>
+<h4 id="TABLE_PREFIX">16.3.11. table.*</h4>
 <div class="paragraph">
 <p>Properties in this category affect tablet server treatment of tablets, but can be configured on a per-table basis. Setting these properties in the site file will override the default globally for all tables and not any specific table. However, both the default and the global setting can be overridden per table using the table operations API or in the shell, which sets the overridden value in zookeeper. Restarting accumulo tablet servers after setting these properties in the site file will cause the global setting to take effect. However, you must use the API or the shell to change properties in zookeeper that are set on a table.</p>
 </div>
@@ -7672,7 +7672,7 @@ CAUTION: If a particular key has an empty security label AND its table&#8217;s d
 </div>
 </div>
 <div class="sect3">
-<h4 id="TABLE_CONSTRAINT_PREFIX">15.3.12. table.constraint.*</h4>
+<h4 id="TABLE_CONSTRAINT_PREFIX">16.3.12. table.constraint.*</h4>
 <div class="paragraph">
 <p>Properties in this category are per-table properties that add constraints to a table. These properties start with the category prefix, followed by a number, and their values correspond to a fully qualified Java class that implements the Constraint interface.
 For example:
@@ -7682,7 +7682,7 @@ table.constraint.2 = my.package.constraints.MySecondConstraint</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="TABLE_ITERATOR_PREFIX">15.3.13. table.iterator.*</h4>
+<h4 id="TABLE_ITERATOR_PREFIX">16.3.13. table.iterator.*</h4>
 <div class="paragraph">
 <p>Properties in this category specify iterators that are applied at various stages (scopes) of interaction with a table. These properties start with the category prefix, followed by a scope (minc, majc, scan, etc.), followed by a period, followed by a name, as in table.iterator.scan.vers, or table.iterator.scan.custom. The values for these properties are a number indicating the ordering in which it is applied, and a class name such as:
  table.iterator.scan.vers = 10,org.apache.accumulo.core.iterators.VersioningIterator
@@ -7691,7 +7691,7 @@ For example, table.iterator.minc.vers.opt.maxVersions = 3</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="TABLE_LOCALITY_GROUP_PREFIX">15.3.14. table.group.*</h4>
+<h4 id="TABLE_LOCALITY_GROUP_PREFIX">16.3.14. table.group.*</h4>
 <div class="paragraph">
 <p>Properties in this category are per-table properties that define locality groups in a table. These properties start with the category prefix, followed by a name, followed by a period, and followed by a property for that group.
 For example table.group.group1=x,y,z sets the column families for a group called group1. Once configured, group1 can be enabled by adding it to the list of groups in the table.groups.enabled property.
@@ -7699,22 +7699,22 @@ Additional group options may be specified for a named group by setting table.gro
 </div>
 </div>
 <div class="sect3">
-<h4 id="TABLE_COMPACTION_STRATEGY_PREFIX">15.3.15. table.majc.compaction.strategy.opts.*</h4>
+<h4 id="TABLE_COMPACTION_STRATEGY_PREFIX">16.3.15. table.majc.compaction.strategy.opts.*</h4>
 <div class="paragraph">
 <p>Properties in this category are used to configure the compaction strategy.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="VFS_CONTEXT_CLASSPATH_PROPERTY">15.3.16. general.vfs.context.classpath.*</h4>
+<h4 id="VFS_CONTEXT_CLASSPATH_PROPERTY">16.3.16. general.vfs.context.classpath.*</h4>
 <div class="paragraph">
 <p>Properties in this category are define a classpath. These properties start  with the category prefix, followed by a context name. The value is a comma seperated list of URIs. Supports full regex on filename alone. For example, general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar. You can enable post delegation for a context, which will load classes from the context first instead of the parent first. Do this by setting general.vfs.context.classpath.&lt;name&gt;.delegation=post, where &lt;name&gt; is your context nameIf delegation is not specified, it defaults to loading from parent classloader first.</p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_property_types">15.4. Property Types</h3>
+<h3 id="_property_types">16.4. Property Types</h3>
 <div class="sect3">
-<h4 id="_duration">15.4.1. duration</h4>
+<h4 id="_duration">16.4.1. duration</h4>
 <div class="paragraph">
 <p>A non-negative integer optionally followed by a unit of time (whitespace disallowed), as in 30s.
 If no unit of time is specified, seconds are assumed. Valid units are <em>ms</em>, <em>s</em>, <em>m</em>, <em>h</em> for milliseconds, seconds, minutes, and hours.
@@ -7724,13 +7724,13 @@ Unless otherwise stated, the max value for the duration represented in milliseco
 </div>
 </div>
 <div class="sect3">
-<h4 id="_date_time">15.4.2. date/time</h4>
+<h4 id="_date_time">16.4.2. date/time</h4>
 <div class="paragraph">
 <p>A date/time string in the format: YYYYMMDDhhmmssTTT where TTT is the 3 character time zone</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_memory">15.4.3. memory</h4>
+<h4 id="_memory">16.4.3. memory</h4>
 <div class="paragraph">
 <p>A positive integer optionally followed by a unit of memory (whitespace disallowed), as in 2G.
 If no unit is specified, bytes are assumed. Valid units are <em>B</em>, <em>K</em>, <em>M</em>, <em>G</em>, for bytes, kilobytes, megabytes, and gigabytes.
@@ -7740,7 +7740,7 @@ Unless otherwise stated, the max value for the memory represented in bytes is 92
 </div>
 </div>
 <div class="sect3">
-<h4 id="_host_list">15.4.4. host list</h4>
+<h4 id="_host_list">16.4.4. host list</h4>
 <div class="paragraph">
 <p>A comma-separated list of hostnames or ip addresses, with optional port numbers.
 Examples of valid host lists are <em>localhost:2000,www.example.com,10.10.1.1:500</em> and <em>localhost</em>.
@@ -7748,19 +7748,19 @@ Examples of invalid host lists are <em>', ':1000</em>, and <em>localhost:80000</
 </div>
 </div>
 <div class="sect3">
-<h4 id="_port">15.4.5. port</h4>
+<h4 id="_port">16.4.5. port</h4>
 <div class="paragraph">
 <p>An positive integer in the range 1024-65535, not already in use or specified elsewhere in the configuration</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_count">15.4.6. count</h4>
+<h4 id="_count">16.4.6. count</h4>
 <div class="paragraph">
 <p>A non-negative integer in the range of 0-2147483647</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_fraction_percentage">15.4.7. fraction/percentage</h4>
+<h4 id="_fraction_percentage">16.4.7. fraction/percentage</h4>
 <div class="paragraph">
 <p>A floating point number that represents either a fraction or, if suffixed with the <em>%</em> character, a percentage.
 Examples of valid fractions/percentages are <em>10</em>, <em>1000%</em>, <em>0.05</em>, <em>5%</em>, <em>0.2%</em>, <em>0.0005</em>.
@@ -7768,38 +7768,38 @@ Examples of invalid fractions/percentages are <em>', '10 percent</em>, <em>Hulk 
 </div>
 </div>
 <div class="sect3">
-<h4 id="_path">15.4.8. path</h4>
+<h4 id="_path">16.4.8. path</h4>
 <div class="paragraph">
 <p>A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property. The following environment variables will be substituted: [ACCUMULO_HOME, ACCUMULO_CONF_DIR]</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_absolute_path">15.4.9. absolute path</h4>
+<h4 id="_absolute_path">16.4.9. absolute path</h4>
 <div class="paragraph">
 <p>An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_java_class">15.4.10. java class</h4>
+<h4 id="_java_class">16.4.10. java class</h4>
 <div class="paragraph">
 <p>A fully qualified java class name representing a class on the classpath.
 An example is <em>java.lang.String</em>, rather than <em>String</em></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_string">15.4.11. string</h4>
+<h4 id="_string">16.4.11. string</h4>
 <div class="paragraph">
 <p>An arbitrary string of characters whose format is unspecified and interpreted based on the context of the property to which it applies.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_boolean">15.4.12. boolean</h4>
+<h4 id="_boolean">16.4.12. boolean</h4>
 <div class="paragraph">
 <p>Has a value of either <em>true</em> or <em>false</em></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_uri">15.4.13. uri</h4>
+<h4 id="_uri">16.4.13. uri</h4>
 <div class="paragraph">
 <p>A valid URI</p>
 </div>
