@@ -85,6 +85,19 @@ elif [[ -z $ACCUMULO_TEST ]] ; then
    exit 1
 fi
 
+if [[ -f $ACCUMULO_CONF_DIR/slaves ]]; then
+  echo "ERROR: A 'slaves' file was found in $ACCUMULO_CONF_DIR/"
+  echo "Accumulo now reads tablet server hosts from 'tservers' and requires that the 'slaves' file not be present to reduce confusion."
+  echo "Please rename the 'slaves' file to 'tservers' or remove it if both exist."
+  exit 1
+fi
+
+if [[ ! -f $ACCUMULO_CONF_DIR/tservers ]]; then
+  echo "ERROR: A 'tservers' file was not found at $ACCUMULO_CONF_DIR/tservers"
+  echo "Please make sure it exists and is configured with tablet server hosts."
+  exit 1
+fi
+
 [[ -z $ACCUMULO_LOG_DIR ]] && ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
 [[ -z $ACCUMULO_VERIFY_ONLY ]] && mkdir -p $ACCUMULO_LOG_DIR 2>/dev/null
 
