@@ -452,13 +452,6 @@ public class Monitor implements HighlyAvailableService {
   private static long START_TIME;
 
   public void run(String hostname) {
-    try {
-      getMonitorLock();
-    } catch (Exception e) {
-      log.error("Failed to get Monitor ZooKeeper lock");
-      throw new RuntimeException(e);
-    }
-
     Monitor.START_TIME = System.currentTimeMillis();
     int ports[] = config.getConfiguration().getPort(Property.MONITOR_PORT);
     for (int port : ports) {
@@ -492,6 +485,13 @@ public class Monitor implements HighlyAvailableService {
     }
     if (!server.isRunning()) {
       throw new RuntimeException("Unable to start embedded web server on ports: " + Arrays.toString(ports));
+    }
+
+    try {
+      getMonitorLock();
+    } catch (Exception e) {
+      log.error("Failed to get Monitor ZooKeeper lock");
+      throw new RuntimeException(e);
     }
 
     try {
@@ -845,7 +845,9 @@ public class Monitor implements HighlyAvailableService {
 
   @Override
   public boolean isActiveService() {
-    // TODO Auto-generated method stub
+    if (null != monitorLock && monitorLock.isLocked()) {
+      return true;
+    }
     return false;
   }
 }
