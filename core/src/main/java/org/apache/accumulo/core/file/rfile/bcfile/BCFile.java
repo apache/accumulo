@@ -615,6 +615,7 @@ public final class BCFile {
       private Decompressor decompressor;
       private final BlockRegion region;
       private final InputStream in;
+      private volatile boolean closed;
 
       public <InputStreamType extends InputStream & Seekable> RBlockState(Algorithm compressionAlgo, InputStreamType fsin, BlockRegion region,
           Configuration conf, CryptoModule cryptoModule, Version bcFileVersion, CryptoModuleParameters cryptoParams) throws IOException {
@@ -652,6 +653,7 @@ public final class BCFile {
           compressAlgo.returnDecompressor(decompressor);
           throw e;
         }
+        closed = false;
       }
 
       /**
@@ -672,11 +674,21 @@ public final class BCFile {
       }
 
       public void finish() throws IOException {
-        try {
-          in.close();
-        } finally {
-          compressAlgo.returnDecompressor(decompressor);
-          decompressor = null;
+        synchronized (in) {
+          if (!closed) {
+            try {
+              in.close();
+            } finally {
+              closed = true;
+              if (decompressor != null) {
+                try {
+                  compressAlgo.returnDecompressor(decompressor);
+                } finally {
+                  decompressor = null;
+                }
+              }
+            }
+          }
         }
       }
     }
