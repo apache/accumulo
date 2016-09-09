@@ -113,6 +113,9 @@ import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+// Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
+// the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
+// using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AccumuloServerContext implements Iface {
   private static final Text EMPTY_TEXT = new Text();
 

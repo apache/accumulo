@@ -44,6 +44,8 @@ public class OperationServlet extends BasicServlet {
 
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    // Verify that this is the active Monitor instance
+    checkIfActive();
     String redir = null;
     List<Cookie> cookiesToSet = Collections.emptyList();
     try {

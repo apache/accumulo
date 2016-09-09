@@ -81,6 +81,7 @@ import org.apache.accumulo.monitor.servlets.trace.ShowTrace;
 import org.apache.accumulo.monitor.servlets.trace.Summary;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -104,7 +105,7 @@ import com.google.common.net.HostAndPort;
 /**
  * Serve master statistics with an embedded web server.
  */
-public class Monitor {
+public class Monitor implements HighlyAvailableService {
   private static final Logger log = LoggerFactory.getLogger(Monitor.class);
 
   private static final int REFRESH_TIME = 5;
@@ -117,6 +118,7 @@ public class Monitor {
   private static long totalHoldTime = 0;
   private static long totalLookups = 0;
   private static int totalTables = 0;
+  public static HighlyAvailableService HA_SERVICE_INSTANCE = null;
 
   private static class MaxList<T> extends LinkedList<Pair<Long,T>> {
     private static final long serialVersionUID = 1L;
@@ -436,6 +438,9 @@ public class Monitor {
     log.info("Instance " + instance.getInstanceID());
     Accumulo.init(fs, config, app);
     Monitor monitor = new Monitor();
+    // Servlets need access to limit requests when the monitor is not active, but Servlets are instantiated
+    // via reflection. Expose the service this way instead.
+    Monitor.HA_SERVICE_INSTANCE = monitor;
     DistributedTrace.enable(hostname, app, config.getConfiguration());
     try {
       monitor.run(hostname);
@@ -836,5 +841,11 @@ public class Monitor {
 
   public static AccumuloServerContext getContext() {
     return context;
+  }
+
+  @Override
+  public boolean isActiveService() {
+    // TODO Auto-generated method stub
+    return false;
   }
 }

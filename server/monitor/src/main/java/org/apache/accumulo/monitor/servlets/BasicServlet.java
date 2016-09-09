@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
+import org.apache.accumulo.server.rpc.NotActiveServiceException;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -51,8 +52,18 @@ abstract public class BasicServlet extends HttpServlet {
 
   abstract protected String getTitle(HttpServletRequest req);
 
+  public void checkIfActive() throws IOException {
+    // If the HighlyAvailableService is not initialized or it's not the active service, throw an exception
+    // to prevent processing of the servlet.
+    if (null == Monitor.HA_SERVICE_INSTANCE || !Monitor.HA_SERVICE_INSTANCE.isActiveService()) {
+      throw new IOException("This is not the active Monitor", new NotActiveServiceException());
+    }
+  }
+
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    // Verify that this is the active Monitor instance
+    checkIfActive();
     StringBuilder sb = new StringBuilder();
     try {
       Monitor.fetchData();

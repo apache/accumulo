@@ -179,6 +179,8 @@ public class ShellServlet extends BasicServlet {
 
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    // Verify that this is the active Monitor instance
+    checkIfActive();
     final HttpSession session = req.getSession(true);
     String user = (String) session.getAttribute("user");
     if (user == null || !userShells().containsKey(session.getId())) {

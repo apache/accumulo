@@ -83,6 +83,8 @@ public class DefaultServlet extends BasicServlet {
 
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    // Verify that this is the active Monitor instance
+    checkIfActive();
     if (req.getRequestURI().startsWith("/web"))
       getResource(req, resp);
     else if (req.getRequestURI().startsWith("/monitor"))
