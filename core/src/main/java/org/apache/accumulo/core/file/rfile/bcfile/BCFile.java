@@ -674,19 +674,17 @@ public final class BCFile {
       }
 
       public void finish() throws IOException {
-        if (!closed) {
-          synchronized (in) {
-            if (!closed) {
-              try {
-                in.close();
-              } finally {
-                closed = true;
-                if (decompressor != null) {
-                  try {
-                    compressAlgo.returnDecompressor(decompressor);
-                  } finally {
-                    decompressor = null;
-                  }
+        synchronized (in) {
+          if (!closed) {
+            try {
+              in.close();
+            } finally {
+              closed = true;
+              if (decompressor != null) {
+                try {
+                  compressAlgo.returnDecompressor(decompressor);
+                } finally {
+                  decompressor = null;
                 }
               }
             }
