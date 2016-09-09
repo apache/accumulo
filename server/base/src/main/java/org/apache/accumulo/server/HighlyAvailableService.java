@@ -24,7 +24,7 @@ public interface HighlyAvailableService {
 
   /**
    * Is this service instance currently the active instance for the Accumulo cluster.
-   * 
+   *
    * @return True if the service is the active service, false otherwise.
    */
   boolean isActiveService();
