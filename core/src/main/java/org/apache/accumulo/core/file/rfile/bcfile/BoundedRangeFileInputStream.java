@@ -31,7 +31,8 @@ import org.apache.hadoop.fs.FSDataInputStream;
  */
 class BoundedRangeFileInputStream extends InputStream {
 
-  private FSDataInputStream in;
+  private volatile boolean closed = false;
+  private final FSDataInputStream in;
   private long pos;
   private long end;
   private long mark;
@@ -62,12 +63,7 @@ class BoundedRangeFileInputStream extends InputStream {
 
   @Override
   public int available() throws IOException {
-    int avail = in.available();
-    if (pos + avail > end) {
-      avail = (int) (end - pos);
-    }
-
-    return avail;
+    return (int) (end - pos);
   }
 
   @Override
@@ -93,15 +89,18 @@ class BoundedRangeFileInputStream extends InputStream {
     if (n == 0)
       return -1;
     Integer ret = 0;
-    final FSDataInputStream inLocal = in;
-    synchronized (inLocal) {
-      inLocal.seek(pos);
+    synchronized (in) {
+      // ensuring we are not closed which would be followed by someone else reusing the decompressor
+      if (closed) {
+        throw new IOException("Stream closed");
+      }
+      in.seek(pos);
       try {
         ret = AccessController.doPrivileged(new PrivilegedExceptionAction<Integer>() {
           @Override
           public Integer run() throws IOException {
             int ret = 0;
-            ret = inLocal.read(b, off, n);
+            ret = in.read(b, off, n);
             return ret;
           }
         });
@@ -146,9 +145,14 @@ class BoundedRangeFileInputStream extends InputStream {
 
   @Override
   public void close() {
-    // Invalidate the state of the stream.
-    in = null;
-    pos = end;
-    mark = -1;
+    // Synchronize on the FSDataInputStream to ensure we are blocked if in the read method:
+    // Once this close completes, the underlying decompression stream may be returned to
+    // the pool and subsequently used. Turns out this is a problem if currently using it to read.
+    if (!closed) {
+      synchronized (in) {
+        // Invalidate the state of the stream.
+        closed = true;
+      }
+    }
   }
 }
