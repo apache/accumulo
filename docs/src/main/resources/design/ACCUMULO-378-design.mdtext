@@ -36,28 +36,28 @@ however, this is not sufficient for multiple reasons with the biggest reason bei
 Background
 ----------
 
-Apache HBase has had master-master replication, cyclic replication and multi-slave replication since 0.92. This
+Apache HBase has had master-master replication, cyclic replication and multi-peer replication since 0.92. This
 satisfies a wide range of cross-site replication strategies. Master-master replication lets us have two systems which
 both replicate to each other. Both systems can service new writes and will update their “view” of a table from one
 another. Cyclic replication allows us to have cycles in our replication graph. This is a generalization of the
 master-master strategy in which we may have ultimately have a system which replicates to a system that it receives data
 from. A system with three masters, A, B and C, which replicate in a row (A to B, B to C and C to A) is an example of
 this. More complicated examples of this can be envisioned when dealing with multiple replicas inside one geographic
-region or data center. Multi-slave replication is a relatively simple in that a single master system will replicate to
-multiple slaves instead of just one.
+region or data center. Multi-peer replication is a relatively simple in that a single master system will replicate to
+multiple peers instead of just one.
 
 
 While these are relatively different to one another, I believe most can be satisfied through a single, master-push,
       replication implementation. Although, the proposed data structure should also be capable of supporting a
-      slave-pull strategy.
+      peer-pull strategy.
 
 
 Implementation
 --------------
 
-As a first implementation, I will prototype a single master with multiple slave replication strategy. This should grant
+As a first implementation, I will prototype a single master with multiple peer replication strategy. This should grant
 us the most flexibility and the most functionality. The general implementation should be capable of application to the
-other replication structures (master-master and cyclic-replication). I’ll outline a simple master-slave replication use
+other replication structures (master-master and cyclic-replication). I’ll outline a simple master-peer replication use
 case, followed by application of this approach to replication cycles and master-master replication. This approach does
 not consider conditional mutations.
 
@@ -65,19 +65,19 @@ not consider conditional mutations.
 ### Replication Framework
 
 In an attempt to be as clear as possible, I’ll use the following terminology when explaining the implementation: master
-will refer to the “master” Accumulo cluster (the system accepting new writes), slave will refer to the “slave” Accumulo
+will refer to the “master” Accumulo cluster (the system accepting new writes), peer will refer to the “peer” Accumulo
 cluster (the system which does not receive new data through the Accumulo client API, but only from master through
-        replication). The design results in an eventual consistency model of replication which will allow for slaves to
+        replication). The design results in an eventual consistency model of replication which will allow for peers to
 be offline and the online master to still process new updates.
 
 
 In the simplest notion, when a new file is created by master, we want to ensure that this file is also sent to the
-slave. In practice, this new file can either be an RFile that was bulk-imported to master or this can be a write-ahead
+peer. In practice, this new file can either be an RFile that was bulk-imported to master or this can be a write-ahead
 log (WAL) file. The bulk-imported RFile is the easy case, but the WAL case merits additional explanation. While data is
 being written to Accumulo is it written to a sorted, in-memory map and an append-only WAL file. While the in-memory map
 provides a very useful interface for the TabletServer to use for scans and compactions, it is difficult to extract new
 updates at the RFile level. As such, this proposed implementation uses the WAL as the transport “file format”[a]. While
-it is noted that in sending a WAL to multiple slaves, each slave will need to reprocess each WAL to make Mutations to
+it is noted that in sending a WAL to multiple peers, each peer will need to reprocess each WAL to make Mutations to
 apply whereas they could likely be transformed once, that is left as a future optimization.
 
 
@@ -88,7 +88,7 @@ co-location within each source tablet in the Accumulo metadata table which means
 caused by placing this data in the metadata table is entirely removed.
 
 
-In every replication graph, which consists of master(s) and slave(s), each system should have a unique identifier. It is
+In every replication graph, which consists of master(s) and peer(s), each system should have a unique identifier. It is
 desirable to be able to uniquely identify each system, and each system should have knowledge of the other systems
 participating.
 
@@ -124,23 +124,23 @@ also want to write an entry for the REPL column[b]. In both cases, the chunk’s
 qualifier. The Value can contain some serialized data structure to track cluster replication provenance and offset
 values. Each row (tablet) in the !METADATA table will contain zero to many REPL columns. As such, the garbage collector
 needs to be modified to not delete these files on the master’s HDFS instance until these files are replicated (copied to
-        the slave).
+        the peer).
 
 
 #### Choose local TabletServer to perform replication
 
 
 The Accumulo Master can have a thread that scans the replication table to look for chunks to replicate. When it finds
-some, choose a TabletServer to perform the replication to all slaves. The master should use a FATE operation to manage
+some, choose a TabletServer to perform the replication to all peers. The master should use a FATE operation to manage
 the state machine of this replication process. The expected principles, such as exponential backoff on network errors,
-    should be followed. When all slaves have reported successfully receiving the file, the master can remove the REPL
+    should be followed. When all peers have reported successfully receiving the file, the master can remove the REPL
     column for the given chunk. 
 
 
-On the slave, before beginning transfer, the slave should ascertain a new local, unique filename to use for the remote
+On the peer, before beginning transfer, the peer should ascertain a new local, unique filename to use for the remote
 file. When the transfer is complete, the file should be treated like log recovery and brought into the appropriate
-Tablet. If the slave is also a master (replicating to other nodes), the replicated data should create a new REPL column
-in the slave’s table to repeat the replication process, adding in its cluster identifier to the provenance list.
+Tablet. If the peer is also a master (replicating to other nodes), the replicated data should create a new REPL column
+in the peer’s table to repeat the replication process, adding in its cluster identifier to the provenance list.
 Otherwise, the file can be a candidate for deletion by the garbage collection.
 
 
@@ -152,9 +152,9 @@ This helps reduce the complexity of dealing with locality later on. If the HDFS 
 #### Recurse
 
 
-In our simple master and slave replication scheme, we are done after the new updates are made available on slave. As
-aforementioned, it is relatively easy to “schedule” replication of a new file on slave because we just repeat the same
-process that master did to replicate to slave in the first place.
+In our simple master and peer replication scheme, we are done after the new updates are made available on peer. As
+aforementioned, it is relatively easy to “schedule” replication of a new file on peer because we just repeat the same
+process that master did to replicate to peer in the first place.
 
 
 ### Master cluster replication “bookkeeping”
@@ -222,7 +222,7 @@ some the end of a range of data that still needs replication, return a range of 
 not yet been replicated. For example, if keyvalues up to offset 100 in a WAL have already been
 replicated and keyvalues up to offset 300 are marked as needing replication, this method should
 return [101,300]. Ranges of data replicated, and data needing replication must always be
-disjoint and contiguous to ensure that data is replayed in the correct order on the slave.
+disjoint and contiguous to ensure that data is replayed in the correct order on the peer.
 
 
 The use of a Combiner is used to create a basic notion of “addition” and “subtraction”. We cannot use deletes to manage
@@ -230,7 +230,7 @@ this without creating a custom iterator, which would not be desirable since it w
 accumulo.metadata table. Avoiding deletions exception on cleanup is also desired to avoid handling “tombstone’ing”
 future version of a Key. The addition operation is when new data is appended to the WAL which signifies new data to be
 replicated. This equates to an addition to replication_needed_offset. The subtraction operation is when data from the
-WAL has be successfully replicated to the slave for this *~repl* record. This is implemented as an addition to the
+WAL has be successfully replicated to the peer for this *~repl* record. This is implemented as an addition to the
 replication_finished_offset.
 
 
@@ -317,8 +317,8 @@ tablets, and columns in *~repl* row for the file.
        else
            for each file in “snapshot” of *repl* columns:
            make mutation for *~repl*_file
-           for each slave cluster in configuration:
-               if file should be replicated on slave:
+           for each peer cluster in configuration:
+               if file should be replicated on peer:
                    add column for clusterid:remote_tableID -> RS
 
 
@@ -326,10 +326,10 @@ Combiner should be set on all columns in *~repl* prefix rowspace and the *repl* 
 described procedure without actual replication occurring to aggregate data that needs replication.  Configuration
 
 
-Replication can be configured on a per-locality-group, replicated that locality group to one or more slaves. Given that
+Replication can be configured on a per-locality-group, replicated that locality group to one or more peers. Given that
 we have dynamic column families, trying to track per-column-family replication would be unnecessarily difficult.
 Configuration requires new configuration variables that need to be introduced to support the necessary information. Each
-slave is defined with a name and the zookeeper quorum of the remote cluster to locate the active Accumulo Master. The
+peer is defined with a name and the zookeeper quorum of the remote cluster to locate the active Accumulo Master. The
 API should ease configuration on replication across all locality groups. Replication cannot be configured on the root or
 metadata table.
 
@@ -351,7 +351,7 @@ Shell commands can also be created to make this configuration easier.
 definecluster cluster_name zookeeper_quorum
 
 
-e.g.  definecluster slave slaveZK1:2181,slaveZK2:2181,slaveZK3:2181
+e.g.  definecluster peer peerZK1:2181,peerZK2:2181,peerZK3:2181
 
 
 
@@ -359,7 +359,7 @@ e.g.  definecluster slave slaveZK1:2181,slaveZK2:2181,slaveZK3:2181
 deletecluster cluster_name zookeeper_quorum
 
 
-e.g.  deletecluster slave slaveZK1:2181,slaveZK2:2181,slaveZK3:2181
+e.g.  deletecluster peer peerZK1:2181,peerZK2:2181,peerZK3:2181
 
 
 
@@ -367,7 +367,7 @@ e.g.  deletecluster slave slaveZK1:2181,slaveZK2:2181,slaveZK3:2181
 enablereplication -t table (-lg loc_group | --all-loc-groups) cluster_name
 
 
-e.g. enablereplication -t foo -lg cf1 slave1 enablereplication -t foo -all-loc-groups slave1
+e.g. enablereplication -t foo -lg cf1 peer1 enablereplication -t foo -all-loc-groups peer1
 
 
 
@@ -377,10 +377,10 @@ e.g. enablereplication -t foo -lg cf1 slave1 enablereplication -t foo -all-loc-g
 disablereplication -t table (-lg loc_group | --all-loc-groups) cluster_name
 
 
-e.g. disablereplication -t foo -lg cf1 slave1 disablereplication -t foo -all-loc-groups slave1
+e.g. disablereplication -t foo -lg cf1 peer1 disablereplication -t foo -all-loc-groups peer1
 
 
-For slaves, we likely do not want to allow users to perform writes against the cluster. Thus, they should be read-only.
+For peers, we likely do not want to allow users to perform writes against the cluster. Thus, they should be read-only.
 This likely requires custom configuration and some ZK state to not accept regular API connections. Should be
 exposed/controllable by the shell, too.  Common Questions
 
@@ -398,7 +398,7 @@ When replication is enabled on a table, all new data will be replicated. This im
 this as the existing importtable and exporttable already provide support to do this.
 
 
-*When I update a table property on the master, will it propagate to the slave?*
+*When I update a table property on the master, will it propagate to the peer?*
 
 
 There are both arguments for and against this. We likely want to revisit this later as a configuration parameter that
@@ -438,15 +438,15 @@ Goals
 1. Master-Slave configuration that doesn’t exclude future master-master work Per locality-group replication configuration
 2. Shell administration of replication Accumulo Monitor integration/insight to replication status State machines for
 3. lifecycle of chunks Versionable (read-as protobuf) datastructure to track chunk metadata Thrift for RPC Replication
-4. does not require “closed” files (can send incremental updates to slaves) Ability to replicate “live inserts” and “bulk
+4. does not require “closed” files (can send incremental updates to peers) Ability to replicate “live inserts” and “bulk
 5. imports” Provide replication interface with Accumulo->Accumulo implementation Do not rely on active Accumulo Master to
 6. perform replication (send or receive) -- delegate to a TabletServer Use FATE where applicable Gracefully handle
-7. offline slaves Implement read-only variant Master/TabletServer[e]
+7. offline peers Implement read-only variant Master/TabletServer[e]
 
 
 Non-Goals
 1. Replicate on smaller granularity than locality group (not individual colfams/colquals or based on visibilities)
-2. Wire security between master and slave
+2. Wire security between master and peer
 3. Support replication of encrypted data[f]
 4. Replication of existing data (use importtable & exporttable)
 5. Enforce replication of table configuration
