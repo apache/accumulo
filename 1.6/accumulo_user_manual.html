@@ -4279,9 +4279,10 @@ locate the native maps shared library by setting <code>LD_LIBRARY_PATH</code> (o
 <h4 id="_administration_configuration">13.5.3. Configuration</h4>
 <div class="paragraph">
 <p>As mentioned, Accumulo will use the native libraries if they are found in the expected
-location and if it is not configured to ignore them. Using the native maps over JVM
-Maps nets a noticable improvement in ingest rates; however, certain configuration
-variables are important to modify when increasing the size of the native map.</p>
+location and <code>tserver.memory.maps.native.enabled</code> is set to <code>true</code> (which is the default).
+Using the native maps over JVM Maps nets a noticable improvement in ingest rates; however,
+certain configuration variables are important to modify when increasing the size of the
+native map.</p>
 </div>
 
 <div class="paragraph">
@@ -4298,7 +4299,9 @@ minor compacted. <code>tserver.walog.max.size</code> is the maximum size of a wr
 of the write-ahead log maximum size and minor compaction threshold for log files:</p>
 </div>
 
-<pre>(table.compaction.minor.logs.threshold * tserver.walog.max.size >= tserver.memory.maps.max)</pre>
+<div class="paragraph">
+<p><pre>(table.compaction.minor.logs.threshold * tserver.walog.max.size >= tserver.memory.maps.max)</pre></p>
+</div>
 
 <div class="paragraph">
 <p>This formula ensures that minor compactions won't be automatically triggered before the native
