@@ -435,7 +435,7 @@ these ideas off of (too many to enumerate).
 
 
 Goals
-1. Master-Slave configuration that doesn’t exclude future master-master work Per locality-group replication configuration
+1. Master-Peer configuration that doesn’t exclude future master-master work Per locality-group replication configuration
 2. Shell administration of replication Accumulo Monitor integration/insight to replication status State machines for
 3. lifecycle of chunks Versionable (read-as protobuf) datastructure to track chunk metadata Thrift for RPC Replication
 4. does not require “closed” files (can send incremental updates to peers) Ability to replicate “live inserts” and “bulk
