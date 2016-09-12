@@ -95,6 +95,7 @@ import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -126,6 +127,7 @@ import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.RpcWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
+import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -169,7 +171,7 @@ import com.google.common.collect.Iterables;
  *
  * The master will also coordinate log recoveries and reports general status.
  */
-public class Master extends AccumuloServerContext implements LiveTServerSet.Listener, TableObserver, CurrentState {
+public class Master extends AccumuloServerContext implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
 
   final static Logger log = LoggerFactory.getLogger(Master.class);
 
@@ -1132,6 +1134,37 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   public void run() throws IOException, InterruptedException, KeeperException {
     final String zroot = ZooUtil.getRoot(getInstance());
 
+    // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health when a hot-standby
+    //
+    // Start the Master's Client service
+    clientHandler = new MasterClientServiceHandler(this);
+    // Ensure that calls before the master gets the lock fail
+    Iface haProxy = HighlyAvailableServiceWrapper.service(clientHandler, this);
+    Iface rpcProxy = RpcWrapper.service(clientHandler, new Processor<Iface>(haProxy));
+    final Processor<Iface> processor;
+    if (ThriftServerType.SASL == getThriftServerType()) {
+      Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(), getConfiguration());
+      processor = new Processor<>(tcredsProxy);
+    } else {
+      processor = new Processor<>(rpcProxy);
+    }
+    ServerAddress sa = TServerUtils.startServer(this, hostname, Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
+        Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+    clientService = sa.server;
+    log.info("Started Master client service at {}", sa.address);
+
+    // Start the replication coordinator which assigns tservers to service replication requests
+    MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
+    ReplicationCoordinator.Iface haReplicationProxy = HighlyAvailableServiceWrapper.service(impl, this);
+    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<>(RpcWrapper.service(
+        impl, new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(haReplicationProxy)));
+    ServerAddress replAddress = TServerUtils.startServer(this, hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
+        "Master Replication Coordinator", "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
+        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+
+    log.info("Started replication coordinator service at " + replAddress.address);
+
+    // block until we can obtain the ZK lock for the master
     getMasterLock(zroot + Constants.ZMASTER_LOCK);
 
     recoveryManager = new RecoveryManager(this);
@@ -1235,18 +1268,6 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
-    clientHandler = new MasterClientServiceHandler(this);
-    Iface rpcProxy = RpcWrapper.service(clientHandler, new Processor<Iface>(clientHandler));
-    final Processor<Iface> processor;
-    if (ThriftServerType.SASL == getThriftServerType()) {
-      Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(), getConfiguration());
-      processor = new Processor<>(tcredsProxy);
-    } else {
-      processor = new Processor<>(rpcProxy);
-    }
-    ServerAddress sa = TServerUtils.startServer(this, hostname, Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
-        Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
-    clientService = sa.server;
     String address = sa.address.toString();
     log.info("Setting master lock data to " + address);
     masterLock.replaceLockData(address.getBytes());
@@ -1267,16 +1288,6 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       throw new RuntimeException(e);
     }
     replicationWorkAssigner.start();
-
-    // Start the replication coordinator which assigns tservers to service replication requests
-    MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
-    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<>(RpcWrapper.service(
-        impl, new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl)));
-    ServerAddress replAddress = TServerUtils.startServer(this, hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
-        "Master Replication Coordinator", "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
-        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
-
-    log.info("Started replication coordinator service at " + replAddress.address);
 
     // Advertise that port we used so peers don't have to be told what it is
     ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
@@ -1679,5 +1690,13 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
    */
   public Long getSteadyTime() {
     return timeKeeper.getTime();
+  }
+
+  @Override
+  public boolean isActiveService() {
+    if (null != masterLock) {
+      return masterLock.isLocked();
+    }
+    return false;
   }
 }
