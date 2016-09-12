@@ -43,6 +43,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 abstract public class BasicServlet extends HttpServlet {
+  public static final String STANDBY_MONITOR_MESSAGE = "This is not the active Monitor";
 
   private static final long serialVersionUID = 1L;
   protected static final Logger log = Logger.getLogger(BasicServlet.class);
@@ -56,7 +57,7 @@ abstract public class BasicServlet extends HttpServlet {
     // If the HighlyAvailableService is not initialized or it's not the active service, throw an exception
     // to prevent processing of the servlet.
     if (null == Monitor.HA_SERVICE_INSTANCE || !Monitor.HA_SERVICE_INSTANCE.isActiveService()) {
-      throw new IOException("This is not the active Monitor", new NotActiveServiceException());
+      throw new IOException(STANDBY_MONITOR_MESSAGE, new NotActiveServiceException());
     }
   }
 
