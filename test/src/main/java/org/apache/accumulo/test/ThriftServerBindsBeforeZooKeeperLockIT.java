@@ -94,7 +94,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             final int responseCode = cnxn.getResponseCode();
             final String errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
             // This is our "assertion", but we want to re-check it if it's not what we expect
-            if (500 == responseCode && null != errorText && errorText.contains(BasicServlet.STANDBY_MONITOR_MESSAGE)) {
+            if (HttpURLConnection.HTTP_UNAVAILABLE == responseCode && null != errorText && errorText.contains(BasicServlet.STANDBY_MONITOR_MESSAGE)) {
               return;
             }
             LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'", responseCode, errorText);
