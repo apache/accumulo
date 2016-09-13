@@ -31,6 +31,7 @@ import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
+import org.apache.commons.httpclient.util.HttpURLConnection;
 import org.apache.log4j.Logger;
 
 public class OperationServlet extends BasicServlet {
@@ -44,6 +45,11 @@ public class OperationServlet extends BasicServlet {
 
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    // Verify that this is the active Monitor instance
+    if (!isActiveMonitor()) {
+      resp.sendError(HttpURLConnection.HTTP_UNAVAILABLE, STANDBY_MONITOR_MESSAGE);
+      return;
+    }
     String redir = null;
     List<Cookie> cookiesToSet = Collections.emptyList();
     try {
