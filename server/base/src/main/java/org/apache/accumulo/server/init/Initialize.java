@@ -38,6 +38,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.impl.Namespaces;
@@ -238,7 +239,7 @@ public class Initialize implements KeywordExecutable {
       c.println();
       c.println();
       c.println("You can change the instance secret in accumulo by using:");
-      c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName() + " oldPassword newPassword.");
+      c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
       c.println("You will also need to edit your secret in your configuration file by adding the property instance.secret to your conf/accumulo-site.xml. "
           + "Without this accumulo will not operate correctly");
     }
@@ -728,8 +729,10 @@ public class Initialize implements KeywordExecutable {
   static class Opts extends Help {
     @Parameter(names = "--add-volumes", description = "Initialize any uninitialized volumes listed in instance.volumes")
     boolean addVolumes = false;
-    @Parameter(names = "--reset-security", description = "just update the security information")
+    @Parameter(names = "--reset-security", description = "just update the security information, will prompt")
     boolean resetSecurity = false;
+    @Parameter(names = {"-f", "--force"}, description = "force reset of the security information without prompting")
+    boolean forceResetSecurity = false;
     @Parameter(names = "--clear-instance-name", description = "delete any existing instance name without prompting")
     boolean clearInstanceName = false;
     @Parameter(names = "--instance-name", description = "the instance name, if not provided, will prompt")
@@ -760,8 +763,19 @@ public class Initialize implements KeywordExecutable {
       VolumeManager fs = VolumeManagerImpl.get(acuConf);
 
       if (opts.resetSecurity) {
-        AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+        log.info("Resetting security on accumulo.");
+        Instance instance = HdfsZooInstance.getInstance();
+        AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(instance));
         if (isInitialized(fs)) {
+          if (!opts.forceResetSecurity) {
+            ConsoleReader c = getConsoleReader();
+            String userEnteredName = c.readLine("WARNING: This will remove all users from Accumulo! If you wish to proceed enter the instance name: ");
+            if (userEnteredName != null && !instance.getInstanceName().equals(userEnteredName)) {
+              log.error("Aborted reset security: Instance name did not match current instance.");
+              return;
+            }
+          }
+
           final String rootUser = getRootUserName(opts);
           opts.rootpass = getRootPassword(opts, rootUser);
           initSecurity(context, opts, HdfsZooInstance.getInstance().getInstanceID(), rootUser);
