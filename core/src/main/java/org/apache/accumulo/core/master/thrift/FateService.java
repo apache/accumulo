@@ -55,13 +55,13 @@ public class FateService {
 
   public interface Iface {
 
-    public long beginFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public long beginFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public void executeFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, FateOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
+    public void executeFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, FateOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public String waitForFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException;
+    public String waitForFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public void finishFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void finishFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
   }
 
@@ -97,7 +97,7 @@ public class FateService {
       super(iprot, oprot);
     }
 
-    public long beginFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public long beginFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       send_beginFateOperation(tinfo, credentials);
       return recv_beginFateOperation();
@@ -111,7 +111,7 @@ public class FateService {
       sendBase("beginFateOperation", args);
     }
 
-    public long recv_beginFateOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public long recv_beginFateOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       beginFateOperation_result result = new beginFateOperation_result();
       receiveBase(result, "beginFateOperation");
@@ -121,10 +121,13 @@ public class FateService {
       if (result.sec != null) {
         throw result.sec;
       }
+      if (result.tnase != null) {
+        throw result.tnase;
+      }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "beginFateOperation failed: unknown result");
     }
 
-    public void executeFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, FateOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public void executeFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid, FateOperation op, List<ByteBuffer> arguments, Map<String,String> options, boolean autoClean) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       send_executeFateOperation(tinfo, credentials, opid, op, arguments, options, autoClean);
       recv_executeFateOperation();
@@ -143,7 +146,7 @@ public class FateService {
       sendBase("executeFateOperation", args);
     }
 
-    public void recv_executeFateOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public void recv_executeFateOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       executeFateOperation_result result = new executeFateOperation_result();
       receiveBase(result, "executeFateOperation");
@@ -153,10 +156,13 @@ public class FateService {
       if (result.tope != null) {
         throw result.tope;
       }
+      if (result.tnase != null) {
+        throw result.tnase;
+      }
       return;
     }
 
-    public String waitForFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public String waitForFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       send_waitForFateOperation(tinfo, credentials, opid);
       return recv_waitForFateOperation();
@@ -171,7 +177,7 @@ public class FateService {
       sendBase("waitForFateOperation", args);
     }
 
-    public String recv_waitForFateOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException
+    public String recv_waitForFateOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       waitForFateOperation_result result = new waitForFateOperation_result();
       receiveBase(result, "waitForFateOperation");
@@ -184,10 +190,13 @@ public class FateService {
       if (result.tope != null) {
         throw result.tope;
       }
+      if (result.tnase != null) {
+        throw result.tnase;
+      }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "waitForFateOperation failed: unknown result");
     }
 
-    public void finishFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void finishFateOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, long opid) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       send_finishFateOperation(tinfo, credentials, opid);
       recv_finishFateOperation();
@@ -202,12 +211,15 @@ public class FateService {
       sendBase("finishFateOperation", args);
     }
 
-    public void recv_finishFateOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void recv_finishFateOperation() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
       finishFateOperation_result result = new finishFateOperation_result();
       receiveBase(result, "finishFateOperation");
       if (result.sec != null) {
         throw result.sec;
+      }
+      if (result.tnase != null) {
+        throw result.tnase;
       }
       return;
     }
@@ -255,7 +267,7 @@ public class FateService {
         prot.writeMessageEnd();
       }
 
-      public long getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public long getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -305,7 +317,7 @@ public class FateService {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException {
+      public void getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -343,7 +355,7 @@ public class FateService {
         prot.writeMessageEnd();
       }
 
-      public String getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.thrift.TException {
+      public String getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -381,7 +393,7 @@ public class FateService {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public void getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -431,6 +443,8 @@ public class FateService {
           result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
+        } catch (org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase) {
+          result.tnase = tnase;
         }
         return result;
       }
@@ -457,6 +471,8 @@ public class FateService {
           result.sec = sec;
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
           result.tope = tope;
+        } catch (org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase) {
+          result.tnase = tnase;
         }
         return result;
       }
@@ -483,6 +499,8 @@ public class FateService {
           result.sec = sec;
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope) {
           result.tope = tope;
+        } catch (org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase) {
+          result.tnase = tnase;
         }
         return result;
       }
@@ -507,6 +525,8 @@ public class FateService {
           iface.finishFateOperation(args.tinfo, args.credentials, args.opid);
         } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
+        } catch (org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase) {
+          result.tnase = tnase;
         }
         return result;
       }
@@ -563,6 +583,11 @@ public class FateService {
             if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) {
                         result.sec = (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) e;
                         result.setSecIsSet(true);
+                        msg = result;
+            }
+            else             if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException) {
+                        result.tnase = (org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException) e;
+                        result.setTnaseIsSet(true);
                         msg = result;
             }
              else 
@@ -624,6 +649,11 @@ public class FateService {
             else             if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException) {
                         result.tope = (org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException) e;
                         result.setTopeIsSet(true);
+                        msg = result;
+            }
+            else             if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException) {
+                        result.tnase = (org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException) e;
+                        result.setTnaseIsSet(true);
                         msg = result;
             }
              else 
@@ -688,6 +718,11 @@ public class FateService {
                         result.setTopeIsSet(true);
                         msg = result;
             }
+            else             if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException) {
+                        result.tnase = (org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException) e;
+                        result.setTnaseIsSet(true);
+                        msg = result;
+            }
              else 
             {
               msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
@@ -742,6 +777,11 @@ public class FateService {
             if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) {
                         result.sec = (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) e;
                         result.setSecIsSet(true);
+                        msg = result;
+            }
+            else             if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException) {
+                        result.tnase = (org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException) e;
+                        result.setTnaseIsSet(true);
                         msg = result;
             }
              else 
@@ -1252,6 +1292,7 @@ public class FateService {
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.I64, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -1261,11 +1302,13 @@ public class FateService {
 
     public long success; // required
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
+    public org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
+      SEC((short)1, "sec"),
+      TNASE((short)2, "tnase");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -1284,6 +1327,8 @@ public class FateService {
             return SUCCESS;
           case 1: // SEC
             return SEC;
+          case 2: // TNASE
+            return TNASE;
           default:
             return null;
         }
@@ -1333,6 +1378,8 @@ public class FateService {
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginFateOperation_result.class, metaDataMap);
     }
@@ -1342,12 +1389,14 @@ public class FateService {
 
     public beginFateOperation_result(
       long success,
-      org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec)
+      org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec,
+      org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase)
     {
       this();
       this.success = success;
       setSuccessIsSet(true);
       this.sec = sec;
+      this.tnase = tnase;
     }
 
     /**
@@ -1358,6 +1407,9 @@ public class FateService {
       this.success = other.success;
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
+      }
+      if (other.isSetTnase()) {
+        this.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
     }
 
@@ -1370,6 +1422,7 @@ public class FateService {
       setSuccessIsSet(false);
       this.success = 0;
       this.sec = null;
+      this.tnase = null;
     }
 
     public long getSuccess() {
@@ -1419,6 +1472,30 @@ public class FateService {
       }
     }
 
+    public org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException getTnase() {
+      return this.tnase;
+    }
+
+    public beginFateOperation_result setTnase(org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase) {
+      this.tnase = tnase;
+      return this;
+    }
+
+    public void unsetTnase() {
+      this.tnase = null;
+    }
+
+    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
+    public boolean isSetTnase() {
+      return this.tnase != null;
+    }
+
+    public void setTnaseIsSet(boolean value) {
+      if (!value) {
+        this.tnase = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SUCCESS:
@@ -1437,6 +1514,14 @@ public class FateService {
         }
         break;
 
+      case TNASE:
+        if (value == null) {
+          unsetTnase();
+        } else {
+          setTnase((org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException)value);
+        }
+        break;
+
       }
     }
 
@@ -1447,6 +1532,9 @@ public class FateService {
 
       case SEC:
         return getSec();
+
+      case TNASE:
+        return getTnase();
 
       }
       throw new IllegalStateException();
@@ -1463,6 +1551,8 @@ public class FateService {
         return isSetSuccess();
       case SEC:
         return isSetSec();
+      case TNASE:
+        return isSetTnase();
       }
       throw new IllegalStateException();
     }
@@ -1498,6 +1588,15 @@ public class FateService {
           return false;
       }
 
+      boolean this_present_tnase = true && this.isSetTnase();
+      boolean that_present_tnase = true && that.isSetTnase();
+      if (this_present_tnase || that_present_tnase) {
+        if (!(this_present_tnase && that_present_tnase))
+          return false;
+        if (!this.tnase.equals(that.tnase))
+          return false;
+      }
+
       return true;
     }
 
@@ -1514,6 +1613,11 @@ public class FateService {
       list.add(present_sec);
       if (present_sec)
         list.add(sec);
+
+      boolean present_tnase = true && (isSetTnase());
+      list.add(present_tnase);
+      if (present_tnase)
+        list.add(tnase);
 
       return list.hashCode();
     }
@@ -1542,6 +1646,16 @@ public class FateService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTnase()).compareTo(other.isSetTnase());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTnase()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -1575,6 +1689,14 @@ public class FateService {
         sb.append("null");
       } else {
         sb.append(this.sec);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tnase:");
+      if (this.tnase == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -1639,6 +1761,15 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 2: // TNASE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException();
+                struct.tnase.read(iprot);
+                struct.setTnaseIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -1662,6 +1793,11 @@ public class FateService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tnase != null) {
+          oprot.writeFieldBegin(TNASE_FIELD_DESC);
+          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -1688,19 +1824,25 @@ public class FateService {
         if (struct.isSetSec()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTnase()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSuccess()) {
           oprot.writeI64(struct.success);
         }
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
+        if (struct.isSetTnase()) {
+          struct.tnase.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, beginFateOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(2);
+        BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.success = iprot.readI64();
           struct.setSuccessIsSet(true);
@@ -1709,6 +1851,11 @@ public class FateService {
           struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException();
+          struct.tnase.read(iprot);
+          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -2830,6 +2977,7 @@ public class FateService {
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -2839,11 +2987,13 @@ public class FateService {
 
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
     public org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope; // required
+    public org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
-      TOPE((short)2, "tope");
+      TOPE((short)2, "tope"),
+      TNASE((short)3, "tnase");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -2862,6 +3012,8 @@ public class FateService {
             return SEC;
           case 2: // TOPE
             return TOPE;
+          case 3: // TNASE
+            return TNASE;
           default:
             return null;
         }
@@ -2909,6 +3061,8 @@ public class FateService {
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(executeFateOperation_result.class, metaDataMap);
     }
@@ -2918,11 +3072,13 @@ public class FateService {
 
     public executeFateOperation_result(
       org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope)
+      org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope,
+      org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase)
     {
       this();
       this.sec = sec;
       this.tope = tope;
+      this.tnase = tnase;
     }
 
     /**
@@ -2935,6 +3091,9 @@ public class FateService {
       if (other.isSetTope()) {
         this.tope = new org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException(other.tope);
       }
+      if (other.isSetTnase()) {
+        this.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException(other.tnase);
+      }
     }
 
     public executeFateOperation_result deepCopy() {
@@ -2945,6 +3104,7 @@ public class FateService {
     public void clear() {
       this.sec = null;
       this.tope = null;
+      this.tnase = null;
     }
 
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException getSec() {
@@ -2995,6 +3155,30 @@ public class FateService {
       }
     }
 
+    public org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException getTnase() {
+      return this.tnase;
+    }
+
+    public executeFateOperation_result setTnase(org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase) {
+      this.tnase = tnase;
+      return this;
+    }
+
+    public void unsetTnase() {
+      this.tnase = null;
+    }
+
+    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
+    public boolean isSetTnase() {
+      return this.tnase != null;
+    }
+
+    public void setTnaseIsSet(boolean value) {
+      if (!value) {
+        this.tnase = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SEC:
@@ -3013,6 +3197,14 @@ public class FateService {
         }
         break;
 
+      case TNASE:
+        if (value == null) {
+          unsetTnase();
+        } else {
+          setTnase((org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException)value);
+        }
+        break;
+
       }
     }
 
@@ -3023,6 +3215,9 @@ public class FateService {
 
       case TOPE:
         return getTope();
+
+      case TNASE:
+        return getTnase();
 
       }
       throw new IllegalStateException();
@@ -3039,6 +3234,8 @@ public class FateService {
         return isSetSec();
       case TOPE:
         return isSetTope();
+      case TNASE:
+        return isSetTnase();
       }
       throw new IllegalStateException();
     }
@@ -3074,6 +3271,15 @@ public class FateService {
           return false;
       }
 
+      boolean this_present_tnase = true && this.isSetTnase();
+      boolean that_present_tnase = true && that.isSetTnase();
+      if (this_present_tnase || that_present_tnase) {
+        if (!(this_present_tnase && that_present_tnase))
+          return false;
+        if (!this.tnase.equals(that.tnase))
+          return false;
+      }
+
       return true;
     }
 
@@ -3090,6 +3296,11 @@ public class FateService {
       list.add(present_tope);
       if (present_tope)
         list.add(tope);
+
+      boolean present_tnase = true && (isSetTnase());
+      list.add(present_tnase);
+      if (present_tnase)
+        list.add(tnase);
 
       return list.hashCode();
     }
@@ -3118,6 +3329,16 @@ public class FateService {
       }
       if (isSetTope()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tope, other.tope);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTnase()).compareTo(other.isSetTnase());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTnase()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -3155,6 +3376,14 @@ public class FateService {
         sb.append("null");
       } else {
         sb.append(this.tope);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tnase:");
+      if (this.tnase == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -3218,6 +3447,15 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 3: // TNASE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException();
+                struct.tnase.read(iprot);
+                struct.setTnaseIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -3241,6 +3479,11 @@ public class FateService {
         if (struct.tope != null) {
           oprot.writeFieldBegin(TOPE_FIELD_DESC);
           struct.tope.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tnase != null) {
+          oprot.writeFieldBegin(TNASE_FIELD_DESC);
+          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -3267,19 +3510,25 @@ public class FateService {
         if (struct.isSetTope()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetTnase()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
         if (struct.isSetTope()) {
           struct.tope.write(oprot);
         }
+        if (struct.isSetTnase()) {
+          struct.tnase.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, executeFateOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(2);
+        BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
@@ -3289,6 +3538,11 @@ public class FateService {
           struct.tope = new org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException();
           struct.tope.read(iprot);
           struct.setTopeIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException();
+          struct.tnase.read(iprot);
+          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -3880,6 +4134,7 @@ public class FateService {
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRING, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -3890,12 +4145,14 @@ public class FateService {
     public String success; // required
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
     public org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope; // required
+    public org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
       SEC((short)1, "sec"),
-      TOPE((short)2, "tope");
+      TOPE((short)2, "tope"),
+      TNASE((short)3, "tnase");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -3916,6 +4173,8 @@ public class FateService {
             return SEC;
           case 2: // TOPE
             return TOPE;
+          case 3: // TNASE
+            return TNASE;
           default:
             return null;
         }
@@ -3965,6 +4224,8 @@ public class FateService {
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(waitForFateOperation_result.class, metaDataMap);
     }
@@ -3975,12 +4236,14 @@ public class FateService {
     public waitForFateOperation_result(
       String success,
       org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope)
+      org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException tope,
+      org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase)
     {
       this();
       this.success = success;
       this.sec = sec;
       this.tope = tope;
+      this.tnase = tnase;
     }
 
     /**
@@ -3996,6 +4259,9 @@ public class FateService {
       if (other.isSetTope()) {
         this.tope = new org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException(other.tope);
       }
+      if (other.isSetTnase()) {
+        this.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException(other.tnase);
+      }
     }
 
     public waitForFateOperation_result deepCopy() {
@@ -4007,6 +4273,7 @@ public class FateService {
       this.success = null;
       this.sec = null;
       this.tope = null;
+      this.tnase = null;
     }
 
     public String getSuccess() {
@@ -4081,6 +4348,30 @@ public class FateService {
       }
     }
 
+    public org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException getTnase() {
+      return this.tnase;
+    }
+
+    public waitForFateOperation_result setTnase(org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase) {
+      this.tnase = tnase;
+      return this;
+    }
+
+    public void unsetTnase() {
+      this.tnase = null;
+    }
+
+    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
+    public boolean isSetTnase() {
+      return this.tnase != null;
+    }
+
+    public void setTnaseIsSet(boolean value) {
+      if (!value) {
+        this.tnase = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SUCCESS:
@@ -4107,6 +4398,14 @@ public class FateService {
         }
         break;
 
+      case TNASE:
+        if (value == null) {
+          unsetTnase();
+        } else {
+          setTnase((org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException)value);
+        }
+        break;
+
       }
     }
 
@@ -4120,6 +4419,9 @@ public class FateService {
 
       case TOPE:
         return getTope();
+
+      case TNASE:
+        return getTnase();
 
       }
       throw new IllegalStateException();
@@ -4138,6 +4440,8 @@ public class FateService {
         return isSetSec();
       case TOPE:
         return isSetTope();
+      case TNASE:
+        return isSetTnase();
       }
       throw new IllegalStateException();
     }
@@ -4182,6 +4486,15 @@ public class FateService {
           return false;
       }
 
+      boolean this_present_tnase = true && this.isSetTnase();
+      boolean that_present_tnase = true && that.isSetTnase();
+      if (this_present_tnase || that_present_tnase) {
+        if (!(this_present_tnase && that_present_tnase))
+          return false;
+        if (!this.tnase.equals(that.tnase))
+          return false;
+      }
+
       return true;
     }
 
@@ -4203,6 +4516,11 @@ public class FateService {
       list.add(present_tope);
       if (present_tope)
         list.add(tope);
+
+      boolean present_tnase = true && (isSetTnase());
+      list.add(present_tnase);
+      if (present_tnase)
+        list.add(tnase);
 
       return list.hashCode();
     }
@@ -4241,6 +4559,16 @@ public class FateService {
       }
       if (isSetTope()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tope, other.tope);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTnase()).compareTo(other.isSetTnase());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTnase()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4286,6 +4614,14 @@ public class FateService {
         sb.append("null");
       } else {
         sb.append(this.tope);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tnase:");
+      if (this.tnase == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -4357,6 +4693,15 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 3: // TNASE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException();
+                struct.tnase.read(iprot);
+                struct.setTnaseIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -4387,6 +4732,11 @@ public class FateService {
           struct.tope.write(oprot);
           oprot.writeFieldEnd();
         }
+        if (struct.tnase != null) {
+          oprot.writeFieldBegin(TNASE_FIELD_DESC);
+          struct.tnase.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -4414,7 +4764,10 @@ public class FateService {
         if (struct.isSetTope()) {
           optionals.set(2);
         }
-        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetTnase()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
         if (struct.isSetSuccess()) {
           oprot.writeString(struct.success);
         }
@@ -4424,12 +4777,15 @@ public class FateService {
         if (struct.isSetTope()) {
           struct.tope.write(oprot);
         }
+        if (struct.isSetTnase()) {
+          struct.tnase.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, waitForFateOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(3);
+        BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
           struct.success = iprot.readString();
           struct.setSuccessIsSet(true);
@@ -4443,6 +4799,11 @@ public class FateService {
           struct.tope = new org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException();
           struct.tope.read(iprot);
           struct.setTopeIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException();
+          struct.tnase.read(iprot);
+          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -5032,6 +5393,7 @@ public class FateService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("finishFateOperation_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -5040,10 +5402,12 @@ public class FateService {
     }
 
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
+    public org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec");
+      SEC((short)1, "sec"),
+      TNASE((short)2, "tnase");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -5060,6 +5424,8 @@ public class FateService {
         switch(fieldId) {
           case 1: // SEC
             return SEC;
+          case 2: // TNASE
+            return TNASE;
           default:
             return null;
         }
@@ -5105,6 +5471,8 @@ public class FateService {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(finishFateOperation_result.class, metaDataMap);
     }
@@ -5113,10 +5481,12 @@ public class FateService {
     }
 
     public finishFateOperation_result(
-      org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec)
+      org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec,
+      org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase)
     {
       this();
       this.sec = sec;
+      this.tnase = tnase;
     }
 
     /**
@@ -5125,6 +5495,9 @@ public class FateService {
     public finishFateOperation_result(finishFateOperation_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
+      }
+      if (other.isSetTnase()) {
+        this.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
     }
 
@@ -5135,6 +5508,7 @@ public class FateService {
     @Override
     public void clear() {
       this.sec = null;
+      this.tnase = null;
     }
 
     public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException getSec() {
@@ -5161,6 +5535,30 @@ public class FateService {
       }
     }
 
+    public org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException getTnase() {
+      return this.tnase;
+    }
+
+    public finishFateOperation_result setTnase(org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException tnase) {
+      this.tnase = tnase;
+      return this;
+    }
+
+    public void unsetTnase() {
+      this.tnase = null;
+    }
+
+    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
+    public boolean isSetTnase() {
+      return this.tnase != null;
+    }
+
+    public void setTnaseIsSet(boolean value) {
+      if (!value) {
+        this.tnase = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case SEC:
@@ -5171,6 +5569,14 @@ public class FateService {
         }
         break;
 
+      case TNASE:
+        if (value == null) {
+          unsetTnase();
+        } else {
+          setTnase((org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException)value);
+        }
+        break;
+
       }
     }
 
@@ -5178,6 +5584,9 @@ public class FateService {
       switch (field) {
       case SEC:
         return getSec();
+
+      case TNASE:
+        return getTnase();
 
       }
       throw new IllegalStateException();
@@ -5192,6 +5601,8 @@ public class FateService {
       switch (field) {
       case SEC:
         return isSetSec();
+      case TNASE:
+        return isSetTnase();
       }
       throw new IllegalStateException();
     }
@@ -5218,6 +5629,15 @@ public class FateService {
           return false;
       }
 
+      boolean this_present_tnase = true && this.isSetTnase();
+      boolean that_present_tnase = true && that.isSetTnase();
+      if (this_present_tnase || that_present_tnase) {
+        if (!(this_present_tnase && that_present_tnase))
+          return false;
+        if (!this.tnase.equals(that.tnase))
+          return false;
+      }
+
       return true;
     }
 
@@ -5229,6 +5649,11 @@ public class FateService {
       list.add(present_sec);
       if (present_sec)
         list.add(sec);
+
+      boolean present_tnase = true && (isSetTnase());
+      list.add(present_tnase);
+      if (present_tnase)
+        list.add(tnase);
 
       return list.hashCode();
     }
@@ -5247,6 +5672,16 @@ public class FateService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetTnase()).compareTo(other.isSetTnase());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTnase()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5276,6 +5711,14 @@ public class FateService {
         sb.append("null");
       } else {
         sb.append(this.sec);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tnase:");
+      if (this.tnase == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -5330,6 +5773,15 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 2: // TNASE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException();
+                struct.tnase.read(iprot);
+                struct.setTnaseIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -5348,6 +5800,11 @@ public class FateService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tnase != null) {
+          oprot.writeFieldBegin(TNASE_FIELD_DESC);
+          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -5371,20 +5828,31 @@ public class FateService {
         if (struct.isSetSec()) {
           optionals.set(0);
         }
-        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetTnase()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
+        }
+        if (struct.isSetTnase()) {
+          struct.tnase.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, finishFateOperation_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(1);
+        BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.tnase = new org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException();
+          struct.tnase.read(iprot);
+          struct.setTnaseIsSet(true);
         }
       }
     }

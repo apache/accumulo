@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -112,6 +113,10 @@ public class MasterClient {
           default:
             throw new AccumuloException(e);
         }
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        log.debug("Contacted a Master which is no longer active, retrying");
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
@@ -145,6 +150,9 @@ public class MasterClient {
           default:
             throw new AccumuloException(e);
         }
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        log.debug("Contacted a Master which is no longer active, re-creating the connection to the active Master");
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {

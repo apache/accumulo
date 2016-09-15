@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -1140,7 +1141,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     clientHandler = new MasterClientServiceHandler(this);
     // Ensure that calls before the master gets the lock fail
     Iface haProxy = HighlyAvailableServiceWrapper.service(clientHandler, this);
-    Iface rpcProxy = RpcWrapper.service(clientHandler, new Processor<Iface>(haProxy));
+    Iface rpcProxy = RpcWrapper.service(haProxy, new Processor<Iface>(clientHandler));
     final Processor<Iface> processor;
     if (ThriftServerType.SASL == getThriftServerType()) {
       Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(), getConfiguration());
@@ -1692,11 +1693,14 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     return timeKeeper.getTime();
   }
 
+  private final Random r = new Random();
+
   @Override
   public boolean isActiveService() {
-    if (null != masterLock) {
-      return masterLock.isLocked();
-    }
-    return false;
+    return r.nextInt(2) == 0;
+    // if (null != masterLock) {
+    // return masterLock.isLocked();
+    // }
+    // return false;
   }
 }

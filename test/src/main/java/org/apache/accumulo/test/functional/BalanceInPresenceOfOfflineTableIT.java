@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -35,6 +38,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -151,17 +155,24 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
       MasterClientService.Iface client = null;
       MasterMonitorInfo stats = null;
-      try {
-        Instance instance = new ZooKeeperInstance(cluster.getClientConfig());
-        client = MasterClient.getConnectionWithRetry(new ClientContext(instance, creds, cluster.getClientConfig()));
-        stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(instance));
-      } catch (ThriftSecurityException exception) {
-        throw new AccumuloSecurityException(exception);
-      } catch (TException exception) {
-        throw new AccumuloException(exception);
-      } finally {
-        if (client != null) {
-          MasterClient.close(client);
+      Instance instance = new ZooKeeperInstance(cluster.getClientConfig());
+      while (true) {
+        try {
+          client = MasterClient.getConnectionWithRetry(new ClientContext(instance, creds, cluster.getClientConfig()));
+          stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(instance));
+          break;
+        } catch (ThriftSecurityException exception) {
+          throw new AccumuloSecurityException(exception);
+        } catch (ThriftNotActiveServiceException e) {
+          // Let it loop, fetching a new location
+          log.debug("Contacted a Master which is no longer active, retrying");
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        } catch (TException exception) {
+          throw new AccumuloException(exception);
+        } finally {
+          if (client != null) {
+            MasterClient.close(client);
+          }
         }
       }
 

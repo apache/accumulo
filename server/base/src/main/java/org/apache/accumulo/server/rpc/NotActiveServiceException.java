@@ -19,7 +19,7 @@ package org.apache.accumulo.server.rpc;
 /**
  * An {@link Exception} which denotes that the service which was invoked is not the active instance for that service in the Accumulo cluster.
  */
-public class NotActiveServiceException extends Exception {
+public class NotActiveServiceException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 

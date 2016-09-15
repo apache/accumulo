@@ -94,6 +94,10 @@ exception ThriftTableOperationException {
   5:string description
 }
 
+exception ThriftNotActiveServiceException {
+
+}
+
 struct TDiskUsage {
   1:list<string> tables
   2:i64 usage

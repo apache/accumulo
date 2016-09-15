@@ -17,16 +17,22 @@
 package org.apache.accumulo.server.rpc;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Objects;
 
+import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.server.HighlyAvailableService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An {@link InvocationHandler} which checks to see if a {@link HighlyAvailableService} is the current active instance of that service, throwing
  * {@link NotActiveServiceException} when it is not the current active instance.
  */
 public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHandler {
+  private static final Logger LOG = LoggerFactory.getLogger(HighlyAvailableServiceInvocationHandler.class);
 
   private final I instance;
   private final HighlyAvailableService service;
@@ -40,9 +46,14 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     // If the service is not active, throw an exception
     if (!service.isActiveService()) {
-      throw new NotActiveServiceException();
+      LOG.trace("Denying access to RPC service");
+      throw new ThriftNotActiveServiceException();
     }
-    // Otherwise, call the real method
-    return method.invoke(instance, args);
+    try {
+      // Otherwise, call the real method
+      return method.invoke(instance, args);
+    } catch (InvocationTargetException ex) {
+      throw ex.getCause();
+    }
   }
 }

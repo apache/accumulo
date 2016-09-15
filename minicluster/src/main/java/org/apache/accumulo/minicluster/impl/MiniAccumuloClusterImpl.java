@@ -65,6 +65,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -797,22 +798,26 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    */
   public MasterMonitorInfo getMasterMonitorInfo() throws AccumuloException, AccumuloSecurityException {
     MasterClientService.Iface client = null;
-    MasterMonitorInfo stats = null;
-    try {
-      Instance instance = new ZooKeeperInstance(getClientConfig());
-      ClientContext context = new ClientContext(instance, new Credentials("root", new PasswordToken("unchecked")), getClientConfig());
-      client = MasterClient.getConnectionWithRetry(context);
-      stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
-    } catch (ThriftSecurityException exception) {
-      throw new AccumuloSecurityException(exception);
-    } catch (TException exception) {
-      throw new AccumuloException(exception);
-    } finally {
-      if (client != null) {
-        MasterClient.close(client);
+    while (true) {
+      try {
+        Instance instance = new ZooKeeperInstance(getClientConfig());
+        ClientContext context = new ClientContext(instance, new Credentials("root", new PasswordToken("unchecked")), getClientConfig());
+        client = MasterClient.getConnectionWithRetry(context);
+        return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+      } catch (ThriftSecurityException exception) {
+        throw new AccumuloSecurityException(exception);
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        log.debug("Contacted a Master which is no longer active, retrying");
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      } catch (TException exception) {
+        throw new AccumuloException(exception);
+      } finally {
+        if (client != null) {
+          MasterClient.close(client);
+        }
       }
     }
-    return stats;
   }
 
   public synchronized MiniDFSCluster getMiniDfs() {
