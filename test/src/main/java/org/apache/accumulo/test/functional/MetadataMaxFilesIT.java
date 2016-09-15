@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
@@ -96,6 +97,10 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         client = MasterClient.getConnectionWithRetry(context);
         log.info("Fetching stats");
         stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        continue;
       } finally {
         if (client != null)
           MasterClient.close(client);

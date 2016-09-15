@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -25,11 +26,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -104,12 +107,19 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
       MasterClientService.Iface client = null;
-      try {
-        client = MasterClient.getConnectionWithRetry(context);
-        stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
-      } finally {
-        if (client != null)
-          MasterClient.close(client);
+      while (true) {
+        try {
+          client = MasterClient.getConnectionWithRetry(context);
+          stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+          break;
+        } catch (ThriftNotActiveServiceException e) {
+          // Let it loop, fetching a new location
+          log.debug("Contacted a Master which is no longer active, retrying");
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        } finally {
+          if (client != null)
+            MasterClient.close(client);
+        }
       }
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {

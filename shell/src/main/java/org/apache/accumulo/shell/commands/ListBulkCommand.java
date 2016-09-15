@@ -16,11 +16,15 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.trace.Tracer;
@@ -48,13 +52,19 @@ public class ListBulkCommand extends Command {
 
     MasterMonitorInfo stats;
     MasterClientService.Iface client = null;
-    try {
-      AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(shellState.getInstance()));
-      client = MasterClient.getConnectionWithRetry(context);
-      stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
-    } finally {
-      if (client != null)
-        MasterClient.close(client);
+    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(shellState.getInstance()));
+    while (true) {
+      try {
+        client = MasterClient.getConnectionWithRetry(context);
+        stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+        break;
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      } finally {
+        if (client != null)
+          MasterClient.close(client);
+      }
     }
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());

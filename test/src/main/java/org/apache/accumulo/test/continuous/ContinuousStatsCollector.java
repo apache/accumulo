@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -30,6 +33,7 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -136,37 +140,42 @@ public class ContinuousStatsCollector {
     private String getACUStats() throws Exception {
 
       MasterClientService.Iface client = null;
-      try {
-        ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.getPrincipal(), opts.getToken()), new ServerConfigurationFactory(
-            opts.getInstance()).getConfiguration());
-        client = MasterClient.getConnectionWithRetry(context);
-        MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+      while (true) {
+        try {
+          ClientContext context = new ClientContext(opts.getInstance(), new Credentials(opts.getPrincipal(), opts.getToken()), new ServerConfigurationFactory(
+              opts.getInstance()).getConfiguration());
+          client = MasterClient.getConnectionWithRetry(context);
+          MasterMonitorInfo stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
 
-        TableInfo all = new TableInfo();
-        Map<String,TableInfo> tableSummaries = new HashMap<>();
+          TableInfo all = new TableInfo();
+          Map<String,TableInfo> tableSummaries = new HashMap<>();
 
-        for (TabletServerStatus server : stats.tServerInfo) {
-          for (Entry<String,TableInfo> info : server.tableMap.entrySet()) {
-            TableInfo tableSummary = tableSummaries.get(info.getKey());
-            if (tableSummary == null) {
-              tableSummary = new TableInfo();
-              tableSummaries.put(info.getKey(), tableSummary);
+          for (TabletServerStatus server : stats.tServerInfo) {
+            for (Entry<String,TableInfo> info : server.tableMap.entrySet()) {
+              TableInfo tableSummary = tableSummaries.get(info.getKey());
+              if (tableSummary == null) {
+                tableSummary = new TableInfo();
+                tableSummaries.put(info.getKey(), tableSummary);
+              }
+              TableInfoUtil.add(tableSummary, info.getValue());
+              TableInfoUtil.add(all, info.getValue());
             }
-            TableInfoUtil.add(tableSummary, info.getValue());
-            TableInfoUtil.add(all, info.getValue());
           }
+
+          TableInfo ti = tableSummaries.get(tableId);
+
+          return "" + stats.tServerInfo.size() + " " + all.recs + " " + (long) all.ingestRate + " " + (long) all.queryRate + " " + ti.recs + " "
+              + ti.recsInMemory + " " + (long) ti.ingestRate + " " + (long) ti.queryRate + " " + ti.tablets + " " + ti.onlineTablets;
+
+        } catch (ThriftNotActiveServiceException e) {
+          // Let it loop, fetching a new location
+          log.debug("Contacted a Master which is no longer active, retrying");
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        } finally {
+          if (client != null)
+            MasterClient.close(client);
         }
-
-        TableInfo ti = tableSummaries.get(tableId);
-
-        return "" + stats.tServerInfo.size() + " " + all.recs + " " + (long) all.ingestRate + " " + (long) all.queryRate + " " + ti.recs + " "
-            + ti.recsInMemory + " " + (long) ti.ingestRate + " " + (long) ti.queryRate + " " + ti.tablets + " " + ti.onlineTablets;
-
-      } finally {
-        if (client != null)
-          MasterClient.close(client);
       }
-
     }
 
   }

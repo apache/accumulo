@@ -76,6 +76,7 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
+import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -233,6 +234,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        log.debug("Contacted a Master which is no longer active, retrying");
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         MasterClient.close(client);
       }
@@ -247,9 +252,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
       try {
         client = MasterClient.getConnectionWithRetry(context);
         client.executeFateOperation(Tracer.traceInfo(), context.rpcCreds(), opid, op, args, opts, autoCleanUp);
-        break;
+        return;
       } catch (TTransportException tte) {
         log.debug("Failed to call executeFateOperation(), retrying ... ", tte);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        log.debug("Contacted a Master which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         MasterClient.close(client);
@@ -266,6 +275,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        log.debug("Contacted a Master which is no longer active, retrying");
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         MasterClient.close(client);
       }
@@ -281,6 +294,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
         break;
       } catch (TTransportException tte) {
         log.debug("Failed to call finishFateOperation(), retrying ... ", tte);
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      } catch (ThriftNotActiveServiceException e) {
+        // Let it loop, fetching a new location
+        log.debug("Contacted a Master which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         MasterClient.close(client);
@@ -808,6 +825,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        } catch (ThriftNotActiveServiceException e) {
+          // Let it loop, fetching a new location
+          log.debug("Contacted a Master which is no longer active, retrying");
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
           MasterClient.close(client);
         }
@@ -822,6 +843,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        } catch (ThriftNotActiveServiceException e) {
+          // Let it loop, fetching a new location
+          log.debug("Contacted a Master which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
           MasterClient.close(client);

@@ -160,47 +160,47 @@ enum FateOperation {
 
 service FateService {
   // register a fate operation by reserving an opid
-  i64 beginFateOperation(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
+  i64 beginFateOperation(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase)
   // initiate execution of the fate operation; set autoClean to true if not waiting for completion
-  void executeFateOperation(7:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid, 3:FateOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  void executeFateOperation(7:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid, 3:FateOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope, 3:client.ThriftNotActiveServiceException tnase)
   // wait for completion of the operation and get the returned exception, if any
-  string waitForFateOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  string waitForFateOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope, 3:client.ThriftNotActiveServiceException tnase)
   // clean up fate operation if autoClean was not set, after waiting
-  void finishFateOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec)
+  void finishFateOperation(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:i64 opid) throws (1:client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase)
 }
 
 service MasterClientService extends FateService {
 
   // table management methods
-  i64 initiateFlush(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-  void waitForFlush(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 6:binary startRow, 7:binary endRow, 3:i64 flushID, 4:i64 maxLoops) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  i64 initiateFlush(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope, 3:client.ThriftNotActiveServiceException tnase)
+  void waitForFlush(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 6:binary startRow, 7:binary endRow, 3:i64 flushID, 4:i64 maxLoops) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope, 3:client.ThriftNotActiveServiceException tnase)
 
-  void setTableProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property, 4:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-  void removeTableProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  void setTableProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property, 4:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope, 3:client.ThriftNotActiveServiceException tnase)
+  void removeTableProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tableName, 3:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope, 3:client.ThriftNotActiveServiceException tnase)
 
-  void setNamespaceProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string ns, 3:string property, 4:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
-  void removeNamespaceProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string ns, 3:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  void setNamespaceProperty(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string ns, 3:string property, 4:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope, 3:client.ThriftNotActiveServiceException tnase)
+  void removeNamespaceProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string ns, 3:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope, 3:client.ThriftNotActiveServiceException tnase)
 
   // system management methods
-  void setMasterGoalState(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:MasterGoalState state) throws (1:client.ThriftSecurityException sec);
-  void shutdown(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:bool stopTabletServers) throws (1:client.ThriftSecurityException sec)
-  void shutdownTabletServer(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tabletServer, 4:bool force) throws (1: client.ThriftSecurityException sec)
-  void setSystemProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property, 3:string value) throws (1:client.ThriftSecurityException sec)
-  void removeSystemProperty(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property) throws (1:client.ThriftSecurityException sec)
+  void setMasterGoalState(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:MasterGoalState state) throws (1:client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase);
+  void shutdown(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:bool stopTabletServers) throws (1:client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase)
+  void shutdownTabletServer(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string tabletServer, 4:bool force) throws (1: client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase)
+  void setSystemProperty(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property, 3:string value) throws (1:client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase)
+  void removeSystemProperty(3:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string property) throws (1:client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase)
 
   // system monitoring methods
-  MasterMonitorInfo getMasterStats(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
-  void waitForBalance(1:trace.TInfo tinfo) 
+  MasterMonitorInfo getMasterStats(2:trace.TInfo tinfo, 1:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase)
+  void waitForBalance(1:trace.TInfo tinfo) throws (1:client.ThriftNotActiveServiceException tnase)
 
   // tablet server reporting
   oneway void reportSplitExtent(4:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletSplit split)
   oneway void reportTabletStatus(5:trace.TInfo tinfo, 1:security.TCredentials credentials, 2:string serverName, 3:TabletLoadState status, 4:data.TKeyExtent tablet)
 
-  list<string> getActiveTservers(1:trace.TInfo tinfo, 2:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec)
+  list<string> getActiveTservers(1:trace.TInfo tinfo, 2:security.TCredentials credentials) throws (1:client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase)
 
   // Delegation token request
-  security.TDelegationToken getDelegationToken(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:security.TDelegationTokenConfig cfg) throws (1:client.ThriftSecurityException sec)
+  security.TDelegationToken getDelegationToken(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:security.TDelegationTokenConfig cfg) throws (1:client.ThriftSecurityException sec, 2:client.ThriftNotActiveServiceException tnase)
 
   // Determine when all provided logs are replicated
-  bool drainReplicationTable(1:trace.TInfo tfino, 2:security.TCredentials credentials, 3:string tableName, 4:set<string> logsToWatch)
+  bool drainReplicationTable(1:trace.TInfo tfino, 2:security.TCredentials credentials, 3:string tableName, 4:set<string> logsToWatch) throws (1:client.ThriftNotActiveServiceException tnase)
 }
