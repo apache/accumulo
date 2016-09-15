@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * An {@link InvocationHandler} which checks to see if a {@link HighlyAvailableService} is the current active instance of that service, throwing
- * {@link NotActiveServiceException} when it is not the current active instance.
+ * {@link ThriftNotActiveServiceException} when it is not the current active instance.
  */
 public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHandler {
   private static final Logger LOG = LoggerFactory.getLogger(HighlyAvailableServiceInvocationHandler.class);
