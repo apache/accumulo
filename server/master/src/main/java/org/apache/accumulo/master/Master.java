@@ -1697,10 +1697,9 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   @Override
   public boolean isActiveService() {
-    return r.nextInt(2) == 0;
-    // if (null != masterLock) {
-    // return masterLock.isLocked();
-    // }
-    // return false;
+    if (null != masterLock) {
+    return masterLock.isLocked();
+    }
+    return false;
   }
 }

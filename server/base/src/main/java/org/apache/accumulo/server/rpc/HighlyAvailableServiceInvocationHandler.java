@@ -46,7 +46,7 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     // If the service is not active, throw an exception
     if (!service.isActiveService()) {
-      LOG.trace("Denying access to RPC service");
+      LOG.trace("Denying access to RPC service as this instance is not the active instance.");
       throw new ThriftNotActiveServiceException();
     }
     try {
