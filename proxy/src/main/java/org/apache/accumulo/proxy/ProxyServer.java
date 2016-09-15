@@ -337,7 +337,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
   private void handleException(Exception ex) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
-      logger.info("Foo", ex);
       throw ex;
     } catch (AccumuloException e) {
       throw new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());

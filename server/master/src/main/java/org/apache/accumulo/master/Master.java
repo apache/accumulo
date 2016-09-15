@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -1692,8 +1691,6 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   public Long getSteadyTime() {
     return timeKeeper.getTime();
   }
-
-  private final Random r = new Random();
 
   @Override
   public boolean isActiveService() {
