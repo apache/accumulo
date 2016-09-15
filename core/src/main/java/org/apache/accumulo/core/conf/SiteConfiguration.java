@@ -17,6 +17,8 @@
 package org.apache.accumulo.core.conf;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
@@ -44,12 +46,31 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static SiteConfiguration instance = null;
 
   private static Configuration xmlConfig;
+  private final Map<String,String> staticConfigs;
 
   /**
    * Not for consumers. Call {@link SiteConfiguration#getInstance(AccumuloConfiguration)} instead
    */
   SiteConfiguration(AccumuloConfiguration parent) {
     this.parent = parent;
+    /*
+     * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop Configuration object
+     */
+    final Configuration conf = getXmlConfig();
+    Map<String,String> temp = new HashMap<>((int) (Math.ceil(conf.size() / 0.75f)), 0.75f);
+    for (Entry<String,String> entry : conf) {
+      temp.put(entry.getKey(), entry.getValue());
+    }
+    /*
+     * If any of the configs used in hot codepaths are unset here, set a null so that we'll default to the parent config without contending for the Hadoop
+     * Configuration object
+     */
+    for (Property hotConfig : Property.HOT_PATH_PROPERTIES) {
+      if (!(temp.containsKey(hotConfig.getKey()))) {
+        temp.put(hotConfig.getKey(), null);
+      }
+    }
+    staticConfigs = Collections.unmodifiableMap(temp);
   }
 
   /**
@@ -105,7 +126,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
       }
     }
 
-    String value = getXmlConfig().get(key);
+    /* Check the available-on-load configs and fall-back to the possibly-update Configuration object. */
+    String value = staticConfigs.containsKey(key) ? staticConfigs.get(key) : getXmlConfig().get(key);
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
