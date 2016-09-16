@@ -55,7 +55,9 @@ public class ConnectorImpl extends Connector {
   private ReplicationOperations replicationops = null;
 
   public ConnectorImpl(final ClientContext context) throws AccumuloException, AccumuloSecurityException {
-    checkArgument(context != null, "context is null");
+    checkArgument(context != null, "Context is null");
+    checkArgument(context.getCredentials() != null, "Credentials are null");
+    checkArgument(context.getCredentials().getToken() != null, "Authentication token is null");
     if (context.getCredentials().getToken().isDestroyed())
       throw new AccumuloSecurityException(context.getCredentials().getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED);
 
