@@ -47,6 +47,7 @@ nav: nav_people
 |             | Alex Moundalexis    | [Cloudera][CLOUDERA]                                              | [ET][ET]              |
 |             | Andrew George Wells | [ClearEdgeIT][CLEAREDGE]                                          | [ET][ET]              |
 |             | Arshak Navruzyan    | [Argyle Data][ARGYLE]                                             |                       |
+|             | Ben Manes           |                                                                   | [PT][PT]              |
 |             | Bob Thorman         | [AT&amp;T][ATT]                                                   |                       |
 |             | Chris Bennight      |                                                                   |                       |
 |             | Chris McCubbin      | [sqrrl][SQRRL]                                                    | [ET][ET]              |
