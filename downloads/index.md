@@ -123,15 +123,15 @@ For convenience, [MD5][MD5SUM_17] and [SHA1][SHA1SUM_17] hashes are also availab
 * [Examples][EXAMPLES_17]
 * [Javadoc][JAVADOC_17]
 
-### 1.6.5
+### 1.6.6
 
-The most recent 1.6.x release of Apache Accumulo&trade; is version 1.6.5. See the [release notes][REL_NOTES_16] and [CHANGES][CHANGES_16].
+The most recent 1.6.x release of Apache Accumulo&trade; is version 1.6.6. See the [release notes][REL_NOTES_16] and [CHANGES][CHANGES_16].
 
 For convenience, [MD5][MD5SUM_16] and [SHA1][SHA1SUM_16] hashes are also available.
 
 {: .table }
-| **Generic Binaries** | [accumulo-1.6.5-bin.tar.gz][BIN_16] | [ASC][ASC_BIN_16] |
-| **Source**           | [accumulo-1.6.5-src.tar.gz][SRC_16] | [ASC][ASC_SRC_16] |
+| **Generic Binaries** | [accumulo-1.6.6-bin.tar.gz][BIN_16] | [ASC][ASC_BIN_16] |
+| **Source**           | [accumulo-1.6.6-src.tar.gz][SRC_16] | [ASC][ASC_SRC_16] |
 
 #### 1.6 Documentation
 * [README][README_16]
@@ -149,8 +149,8 @@ Older releases can be found in the [archives][ARCHIVES].
 [GPG_KEYS]: https://www.apache.org/dist/accumulo/KEYS "KEYS"
 [ARCHIVES]: https://archive.apache.org/dist/accumulo
 
-[ASC_BIN_16]: https://www.apache.org/dist/accumulo/1.6.5/accumulo-1.6.5-bin.tar.gz.asc
-[ASC_SRC_16]: https://www.apache.org/dist/accumulo/1.6.5/accumulo-1.6.5-src.tar.gz.asc
+[ASC_BIN_16]: https://www.apache.org/dist/accumulo/1.6.6/accumulo-1.6.6-bin.tar.gz.asc
+[ASC_SRC_16]: https://www.apache.org/dist/accumulo/1.6.6/accumulo-1.6.6-src.tar.gz.asc
 
 [ASC_BIN_17]: https://www.apache.org/dist/accumulo/1.7.2/accumulo-1.7.2-bin.tar.gz.asc
 [ASC_SRC_17]: https://www.apache.org/dist/accumulo/1.7.2/accumulo-1.7.2-src.tar.gz.asc
@@ -158,10 +158,10 @@ Older releases can be found in the [archives][ARCHIVES].
 [ASC_BIN_18]: https://www.apache.org/dist/accumulo/1.8.0/accumulo-1.8.0-bin.tar.gz.asc
 [ASC_SRC_18]: https://www.apache.org/dist/accumulo/1.8.0/accumulo-1.8.0-src.tar.gz.asc
 
-[BIN_16]: https://www.apache.org/dyn/closer.lua/accumulo/1.6.5/accumulo-1.6.5-bin.tar.gz
-{: .download_external link-suffix="/accumulo/1.6.5/accumulo-1.6.5-bin.tar.gz" id="/downloads/accumulo-1.6.5-bin.tar.gz" }
-[SRC_16]: https://www.apache.org/dyn/closer.lua/accumulo/1.6.5/accumulo-1.6.5-src.tar.gz
-{: .download_external link-suffix="/accumulo/1.6.5/accumulo-1.6.5-src.tar.gz" id="/downloads/accumulo-1.6.5-src.tar.gz" }
+[BIN_16]: https://www.apache.org/dyn/closer.lua/accumulo/1.6.6/accumulo-1.6.6-bin.tar.gz
+{: .download_external link-suffix="/accumulo/1.6.6/accumulo-1.6.6-bin.tar.gz" id="/downloads/accumulo-1.6.6-bin.tar.gz" }
+[SRC_16]: https://www.apache.org/dyn/closer.lua/accumulo/1.6.6/accumulo-1.6.6-src.tar.gz
+{: .download_external link-suffix="/accumulo/1.6.6/accumulo-1.6.6-src.tar.gz" id="/downloads/accumulo-1.6.6-src.tar.gz" }
 
 [BIN_17]: https://www.apache.org/dyn/closer.lua/accumulo/1.7.2/accumulo-1.7.2-bin.tar.gz
 {: .download_external link-suffix="/accumulo/1.7.2/accumulo-1.7.2-bin.tar.gz" id="/downloads/accumulo-1.7.2-bin.tar.gz" }
@@ -173,7 +173,7 @@ Older releases can be found in the [archives][ARCHIVES].
 [SRC_18]: https://www.apache.org/dyn/closer.lua/accumulo/1.8.0/accumulo-1.8.0-src.tar.gz
 {: .download_external link-suffix="/accumulo/1.8.0/accumulo-1.8.0-src.tar.gz" id="/downloads/accumulo-1.8.0-src.tar.gz" }
 
-[README_16]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=README;hb=rel/1.6.5
+[README_16]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=README;hb=rel/1.6.6
 {: .download_external id="/1.6/README" }
 [README_17]: https://github.com/apache/accumulo/blob/rel/1.7.2/README.md
 {: .download_external id="/1.7/README" }
@@ -187,7 +187,7 @@ Older releases can be found in the [archives][ARCHIVES].
 [JAVADOC_18]: {{ site.baseurl }}/1.8/apidocs/
 {: .download_external id="/1.8/apidocs/" }
 
-[MANUAL_PDF_16]: https://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-docs/1.6.5/accumulo-docs-1.6.5-user-manual.pdf
+[MANUAL_PDF_16]: https://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-docs/1.6.6/accumulo-docs-1.6.6-user-manual.pdf
 {: .download_external id="/1.6/accumulo_user_manual.pdf" }
 [MANUAL_HTML_16]: {{ site.baseurl }}/1.6/accumulo_user_manual "1.6 user manual"
 [MANUAL_HTML_17]: {{ site.baseurl }}/1.7/accumulo_user_manual "1.7 user manual"
@@ -197,18 +197,18 @@ Older releases can be found in the [archives][ARCHIVES].
 [EXAMPLES_17]: {{ site.baseurl }}/1.7/examples "1.7 examples"
 [EXAMPLES_18]: {{ site.baseurl }}/1.8/examples "1.8 examples"
 
-[CHANGES_16]: https://issues.apache.org/jira/browse/ACCUMULO/fixforversion/12333674 "1.6.5 CHANGES"
+[CHANGES_16]: https://issues.apache.org/jira/browse/ACCUMULO/fixforversion/12334846 "1.6.6 CHANGES"
 [CHANGES_17]: https://issues.apache.org/jira/browse/ACCUMULO/fixforversion/12333776 "1.7.2 CHANGES"
 [CHANGES_18]: https://issues.apache.org/jira/browse/ACCUMULO/fixforversion/12329879 "1.8.0 CHANGES"
 
-[REL_NOTES_16]: {{ site.baseurl }}/release_notes/1.6.5 "1.6.5 Release Notes"
+[REL_NOTES_16]: {{ site.baseurl }}/release_notes/1.6.6 "1.6.6 Release Notes"
 [REL_NOTES_17]: {{ site.baseurl }}/release_notes/1.7.2 "1.7.2 Release Notes"
 [REL_NOTES_18]: {{ site.baseurl }}/release_notes/1.8.0 "1.8.0 Release Notes"
 
-[MD5SUM_16]: https://www.apache.org/dist/accumulo/1.6.5/MD5SUM "1.6.5 MD5 file hashes"
+[MD5SUM_16]: https://www.apache.org/dist/accumulo/1.6.6/MD5SUM "1.6.6 MD5 file hashes"
 [MD5SUM_17]: https://www.apache.org/dist/accumulo/1.7.2/MD5SUM "1.7.2 MD5 file hashes"
 [MD5SUM_18]: https://www.apache.org/dist/accumulo/1.8.0/MD5SUM "1.8.0 MD5 file hashes"
 
-[SHA1SUM_16]: https://www.apache.org/dist/accumulo/1.6.5/SHA1SUM "1.6.5 SHA1 file hashes"
+[SHA1SUM_16]: https://www.apache.org/dist/accumulo/1.6.6/SHA1SUM "1.6.6 SHA1 file hashes"
 [SHA1SUM_17]: https://www.apache.org/dist/accumulo/1.7.2/SHA1SUM "1.7.2 SHA1 file hashes"
 [SHA1SUM_18]: https://www.apache.org/dist/accumulo/1.8.0/SHA1SUM "1.8.0 SHA1 file hashes"

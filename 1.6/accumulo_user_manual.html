@@ -763,6 +763,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li><a href="#_tserver_wal_replication">tserver.wal.replication</a></li>
 <li><a href="#_tserver_wal_sync">tserver.wal.sync</a></li>
 <li><a href="#_tserver_walog_max_size">tserver.walog.max.size</a></li>
+<li><a href="#_tserver_walog_max_age">tserver.walog.max.age</a></li>
 <li><a href="#_tserver_workq_threads">tserver.workq.threads</a></li>
 </ul>
 </li>
@@ -780,6 +781,8 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li><a href="#_gc_port_client">gc.port.client</a></li>
 <li><a href="#_gc_threads_delete">gc.threads.delete</a></li>
 <li><a href="#_gc_trash_ignore">gc.trash.ignore</a></li>
+<li><a href="#_gc_file_archive">gc.file.archive</a></li>
+<li><a href="#_gc_wal_dead_server_wait">gc.wal.dead.server.wait</a></li>
 </ul>
 </li>
 <li><a href="#MONITOR_PREFIX">16.3.8. monitor.*</a></li>
@@ -6303,7 +6306,7 @@ default  | table.failures.ignore ..................... | false</pre>
 <div class="sect4">
 <h5 id="_instance_secret">instance.secret</h5>
 <div class="paragraph">
-<p>A secret unique to a given instance that all servers must know in order to communicate with one another. Change it before initialization. To change it later use ./bin/accumulo accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd],  and then update conf/accumulo-site.xml everywhere.</p>
+<p>A secret unique to a given instance that all servers must know in order to communicate with one another. It should be changed prior to the initialization of Accumulo. To change after Accumulo has been initialized, use the ChangeSecret tool and then update conf/accumulo-site.xml everywhere. Before using the ChangeSecret tool, make sure Accumulo is not running and you are logged in as the user that controls Accumulo files in HDFS. To use the ChangeSecret tool, run the command: <code>./bin/accumulo org.apache.accumulo.server.util.ChangeSecret</code></p>
 </div>
 <div class="paragraph">
 <p><em>Type:</em> STRING<br>
@@ -7108,6 +7111,17 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 </div>
 </div>
 <div class="sect4">
+<h5 id="_tserver_walog_max_age">tserver.walog.max.age</h5>
+<div class="paragraph">
+<p>The maximum age for each write-ahead log.</p>
+</div>
+<div class="paragraph">
+<p><em>Type:</em> TIMEDURATION<br>
+<em>Zookeeper Mutable:</em> yes<br>
+<em>Default Value:</em> <code>24h</code></p>
+</div>
+</div>
+<div class="sect4">
 <h5 id="_tserver_workq_threads">tserver.workq.threads</h5>
 <div class="paragraph">
 <p>The number of threads for the distributed work queue. These threads are used for copying failed bulk files.</p>
@@ -7194,6 +7208,28 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 <p><em>Type:</em> BOOLEAN<br>
 <em>Zookeeper Mutable:</em> yes<br>
 <em>Default Value:</em> <code>false</code></p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_gc_file_archive">gc.file.archive</h5>
+<div class="paragraph">
+<p>Archive any files/directories instead of moving to the HDFS trash or deleting</p>
+</div>
+<div class="paragraph">
+<p><em>Type:</em> BOOLEAN<br>
+<em>Zookeeper Mutable:</em> yes<br>
+<em>Default Value:</em> <code>false</code></p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_gc_wal_dead_server_wait">gc.wal.dead.server.wait</h5>
+<div class="paragraph">
+<p>Archive any files/directories instead of moving to the HDFS trash or deleting</p>
+</div>
+<div class="paragraph">
+<p><em>Type:</em> TIMEDURATION<br>
+<em>Zookeeper Mutable:</em> yes<br>
+<em>Default Value:</em> <code>1h</code></p>
 </div>
 </div>
 </div>
