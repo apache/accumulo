@@ -102,7 +102,7 @@ public class ClientOpts extends Help {
      */
     public static Password promptUser() throws IOException {
       if (System.console() == null) {
-        return null;
+        throw new IOException("Attempted to prompt user on the console when System.console = null");
       }
       ConsoleReader reader = new ConsoleReader();
       String enteredPass = reader.readLine("Enter password: ", '*');
@@ -171,11 +171,7 @@ public class ClientOpts extends Help {
         throw new RuntimeException(e);
       }
     }
-    if (pass != null) {
-      return new PasswordToken(pass.value);
-    }
-
-    return null;
+    return new PasswordToken(pass.value);
   }
 
   @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
