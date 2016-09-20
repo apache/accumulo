@@ -79,7 +79,7 @@ var mirrorsCallback = function(json) {
 };
 
 // get mirrors when page is ready
-var mirrorURL = "http://accumulo.apache.org/mirrors.cgi"; // http[s]://accumulo.apache.org/mirrors.cgi
+var mirrorURL = window.location.protocol + "//accumulo.apache.org/mirrors.cgi"; // http[s]://accumulo.apache.org/mirrors.cgi
 $(function() { $.getJSON(mirrorURL + "?as_json", mirrorsCallback); });
 
 </script>
