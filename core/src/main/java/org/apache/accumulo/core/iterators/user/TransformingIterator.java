@@ -302,6 +302,11 @@ abstract public class TransformingIterator extends WrappingIterator implements O
       throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void close() {
+      source.close();
+    }
+
   }
 
   /**

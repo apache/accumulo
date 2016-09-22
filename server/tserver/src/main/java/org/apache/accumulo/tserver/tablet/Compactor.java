@@ -328,6 +328,8 @@ public class Compactor implements Callable<CompactionStats> {
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span span = Trace.start("compact");
+    Long statsCount = Long.valueOf(0);
+
     try {
       long entriesCompacted = 0;
       List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(lgName, readers);
@@ -335,12 +337,6 @@ public class Compactor implements Callable<CompactionStats> {
       if (imm != null) {
         iters.add(imm.compactionIterator());
       }
-
-      CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()), entriesRead);
-      DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
-      ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
-
-      // if(env.getIteratorScope() )
 
       TabletIteratorEnvironment iterEnv;
       if (env.getIteratorScope() == IteratorScope.majc)
@@ -350,19 +346,23 @@ public class Compactor implements Callable<CompactionStats> {
       else
         throw new IllegalArgumentException();
 
-      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(env.getIteratorScope(), cfsi, extent, acuTableConf,
-          iterators, iterEnv));
-
-      itr.seek(extent.toDataRange(), columnFamilies, inclusive);
-
-      if (!inclusive) {
-        mfw.startDefaultLocalityGroup();
-      } else {
-        mfw.startNewLocalityGroup(lgName, columnFamilies);
-      }
-
       Span write = Trace.start("write");
-      try {
+
+      MultiIterator mitr = new MultiIterator(iters, extent.toDataRange());
+      CountingIterator citr = new CountingIterator(mitr, entriesRead);
+      DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
+      ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
+      try (SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(env.getIteratorScope(), cfsi, extent, acuTableConf,
+          iterators, iterEnv))) {
+
+        itr.seek(extent.toDataRange(), columnFamilies, inclusive);
+
+        if (!inclusive) {
+          mfw.startDefaultLocalityGroup();
+        } else {
+          mfw.startNewLocalityGroup(lgName, columnFamilies);
+        }
+
         while (itr.hasTop() && env.isCompactionEnabled()) {
           mfw.append(itr.getTopKey(), itr.getTopValue());
           itr.next();
@@ -373,6 +373,7 @@ public class Compactor implements Callable<CompactionStats> {
             entriesWritten.addAndGet(1024);
           }
         }
+        statsCount = citr.getCount();
 
         if (itr.hasTop() && !env.isCompactionEnabled()) {
           // cancel major compaction operation
@@ -388,9 +389,8 @@ public class Compactor implements Callable<CompactionStats> {
           }
           throw new CompactionCanceledException();
         }
-
       } finally {
-        CompactionStats lgMajcStats = new CompactionStats(citr.getCount(), entriesCompacted);
+        CompactionStats lgMajcStats = new CompactionStats(statsCount, entriesCompacted);
         majCStats.add(lgMajcStats);
         write.stop();
       }

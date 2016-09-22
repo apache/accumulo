@@ -284,4 +284,9 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   public static void setMaxColumns(IteratorSetting is, int maxColumns) {
     is.addOption(MAX_COLUMNS, Integer.toString(maxColumns));
   }
+
+  @Override
+  public void close() {
+    source.close();
+  }
 }

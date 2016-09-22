@@ -32,8 +32,8 @@ public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {
 
   FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig);
 
-  void closeDeepCopies() throws IOException;
+  void closeDeepCopies();
 
   @Override
-  void close() throws IOException;
+  void close();
 }

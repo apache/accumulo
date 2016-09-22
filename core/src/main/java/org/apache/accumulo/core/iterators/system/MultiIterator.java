@@ -112,4 +112,10 @@ public class MultiIterator extends HeapIterator {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  public void close() {
+    // do nothing to prevent closing of resources that may be reused
+  }
+
 }

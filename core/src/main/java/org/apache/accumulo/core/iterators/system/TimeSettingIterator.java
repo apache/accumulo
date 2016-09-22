@@ -89,4 +89,9 @@ public class TimeSettingIterator implements InterruptibleIterator {
     return source.getTopValue();
   }
 
+  @Override
+  public void close() {
+    source.close();
+  }
+
 }

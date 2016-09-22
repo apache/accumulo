@@ -177,4 +177,9 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
 
   }
 
+  @Override
+  public void close() {
+    source.close();
+  }
+
 }

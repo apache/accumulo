@@ -711,7 +711,7 @@ public class InMemoryMap {
           try {
             if (mds.reader != null)
               mds.reader.close();
-          } catch (IOException e) {
+          } catch (RuntimeException e) {
             log.warn("{}", e.getMessage(), e);
           }
         }

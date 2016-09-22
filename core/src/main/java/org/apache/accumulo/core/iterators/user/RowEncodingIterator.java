@@ -19,10 +19,10 @@ package org.apache.accumulo.core.iterators.user;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
-import java.util.HashMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -206,6 +206,11 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
 
     sourceIter.seek(range, columnFamilies, inclusive);
     prepKeys();
+  }
+
+  @Override
+  public void close() {
+    sourceIter.close();
   }
 
 }

@@ -18,6 +18,7 @@ package org.apache.accumulo.core.iterators.system;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -46,7 +47,7 @@ public class SequenceFileIterator implements FileSKVIterator {
   }
 
   @Override
-  public void closeDeepCopies() throws IOException {
+  public void closeDeepCopies() {
     throw new UnsupportedOperationException();
   }
 
@@ -104,8 +105,12 @@ public class SequenceFileIterator implements FileSKVIterator {
   }
 
   @Override
-  public void close() throws IOException {
-    reader.close();
+  public void close() {
+    try {
+      reader.close();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   @Override

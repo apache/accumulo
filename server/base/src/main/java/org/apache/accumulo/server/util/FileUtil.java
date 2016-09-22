@@ -163,7 +163,7 @@ public class FileUtil {
         try {
           if (reader != null)
             reader.close();
-        } catch (IOException e) {
+        } catch (RuntimeException e) {
           log.error("{}", e.getMessage(), e);
         }
 
@@ -171,14 +171,14 @@ public class FileUtil {
           try {
             if (r != null)
               ((FileSKVIterator) r).close();
-          } catch (IOException e) {
+          } catch (RuntimeException e) {
             // continue closing
             log.error("{}", e.getMessage(), e);
           }
 
         try {
           writer.close();
-        } catch (IOException e) {
+        } catch (RuntimeException e) {
           log.error("{}", e.getMessage(), e);
           throw e;
         }
@@ -371,7 +371,7 @@ public class FileUtil {
       try {
         if (r != null)
           r.close();
-      } catch (IOException e) {
+      } catch (RuntimeException e) {
         // okay, try to close the rest anyway
         log.error("{}", e.getMessage(), e);
       }
@@ -418,7 +418,7 @@ public class FileUtil {
         try {
           if (reader != null)
             reader.close();
-        } catch (IOException e) {
+        } catch (RuntimeException e) {
           log.error("{}", e.getMessage(), e);
         }
       }
@@ -457,7 +457,7 @@ public class FileUtil {
         if (reader != null) {
           try {
             reader.close();
-          } catch (IOException ioe) {
+          } catch (RuntimeException ioe) {
             log.warn("failed to close " + mapfile, ioe);
           }
         }
@@ -494,7 +494,7 @@ public class FileUtil {
         try {
           if (reader != null)
             reader.close();
-        } catch (IOException e) {
+        } catch (RuntimeException e) {
           log.error("{}", e.getMessage(), e);
         }
       }
@@ -541,7 +541,7 @@ public class FileUtil {
       try {
         if (index != null)
           index.close();
-      } catch (IOException e) {
+      } catch (RuntimeException e) {
         // continue with next file
         log.error("{}", e.getMessage(), e);
       }
