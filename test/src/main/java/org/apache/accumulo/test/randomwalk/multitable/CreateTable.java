@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.randomwalk.multitable;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.TreeSet;
 
@@ -55,7 +55,7 @@ public class CreateTable extends Test {
       conn.tableOperations().addSplits(tableName, splits);
       log.debug("created " + splits.size() + " splits on " + tableName);
       @SuppressWarnings("unchecked")
-      ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
+      List<String> tables = (List<String>) state.get("tableList");
       tables.add(tableName);
     } catch (TableExistsException e) {
       log.warn("Failed to create " + tableName + " as it already exists");
