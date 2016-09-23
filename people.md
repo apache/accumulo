@@ -24,6 +24,7 @@ nav: nav_people
 | drew          | Drew Farris       | [Booz Allen Hamilton][BOOZ]            | [ET][ET] |
 | ecn           | Eric Newton       | [SW Complete Inc.][SWC]                | [ET][ET] |
 | elserj        | Josh Elser        | [Hortonworks][HORTONWORKS]             | [ET][ET] |
+| etcoleman     | Ed Coleman        |                                        | [ET][ET] |
 | jtrost        | Jason Trost       | [Endgame][ENDGAME]                     |          |
 | kturner       | Keith Turner      | [Peterson Technologies][PETERSON]      | [ET][ET] |
 | mdrob         | Mike Drob         | [Cloudera][CLOUDERA]                   | [ET][ET] |
@@ -57,7 +58,6 @@ nav: nav_people
 |             | David M. Lyle       |                                                                   |                       |
 |             | David Protzman      |                                                                   |                       |
 |             | Dennis Patrone      | [The Johns Hopkins University Applied Physics Laboratory][JHUAPL] | [ET][ET]              |
-| etcoleman   | Ed Coleman          |                                                                   | [ET][ET]              |
 |             | Ed Kohlwey          | [Booz Allen Hamilton][BOOZ]                                       |                       |
 | edwardyoon  | Edward Yoon         |                                                                   |                       |
 |             | Eugene Cheipesh     |                                                                   |                       |
