@@ -121,10 +121,10 @@ cluster, this is a table ID. In this example, we want to enable replication on
 +my_table+ and configure our peer +accumulo_peer+ as a target, sending
 the data to the table with an ID of +2+ in +accumulo_peer+.
 
-\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
+----
 root@accumulo_primary> config -t my_table -s table.replication=true
-root@accumulo_primary> config -t my_table -s table.replication.target.acccumulo_peer=2
-\end{verbatim}\endgroup
+root@accumulo_primary> config -t my_table -s table.replication.target.accumulo_peer=2
+----
 
 To replicate a single table on the primary to multiple peers, the second command
 in the above shell snippet can be issued, for each peer and remote identifier pair.
