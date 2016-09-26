@@ -17,7 +17,8 @@
 package org.apache.accumulo.test.randomwalk.multitable;
 
 import java.net.InetAddress;
-import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -38,7 +39,7 @@ public class MultiTableFixture extends Fixture {
     state.set("nextId", Integer.valueOf(0));
     state.set("numWrites", Long.valueOf(0));
     state.set("totalWrites", Long.valueOf(0));
-    state.set("tableList", new ArrayList<String>());
+    state.set("tableList", new CopyOnWriteArrayList<String>());
   }
 
   @Override
@@ -59,7 +60,7 @@ public class MultiTableFixture extends Fixture {
     Connector conn = env.getConnector();
 
     @SuppressWarnings("unchecked")
-    ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
+    List<String> tables = (List<String>) state.get("tableList");
 
     for (String tableName : tables) {
       try {

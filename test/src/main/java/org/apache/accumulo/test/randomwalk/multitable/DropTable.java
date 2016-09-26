@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.randomwalk.multitable;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
@@ -31,7 +31,7 @@ public class DropTable extends Test {
   public void visit(State state, Environment env, Properties props) throws Exception {
 
     @SuppressWarnings("unchecked")
-    ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
+    List<String> tables = (List<String>) state.get("tableList");
 
     // don't drop a table if we only have one table or less
     if (tables.size() <= 1) {
