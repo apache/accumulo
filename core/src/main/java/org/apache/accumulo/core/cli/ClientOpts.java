@@ -58,8 +58,6 @@ import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Predicate;
 
-import jline.console.ConsoleReader;
-
 public class ClientOpts extends Help {
 
   public static class TimeConverter implements IStringConverter<Long> {
@@ -93,20 +91,6 @@ public class ClientOpts extends Help {
     @Override
     public String toString() {
       return new String(value, UTF_8);
-    }
-
-    /**
-     * Prompts user for a password
-     *
-     * @return user entered Password object, null if no console exists
-     */
-    public static Password promptUser() throws IOException {
-      if (System.console() == null) {
-        throw new IOException("Attempted to prompt user on the console when System.console = null");
-      }
-      ConsoleReader reader = new ConsoleReader();
-      String enteredPass = reader.readLine("Enter password: ", '*');
-      return new Password(enteredPass);
     }
   }
 
@@ -158,20 +142,13 @@ public class ClientOpts extends Help {
       }
     }
 
-    // other token types should have resolved by this point, so return PasswordToken
-    Password pass = null;
-    if (securePassword != null) {
-      pass = securePassword;
-    } else if (password != null) {
-      pass = password;
-    } else {
-      try {
-        pass = Password.promptUser();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    return new PasswordToken(pass.value);
+    if (securePassword != null)
+      return new PasswordToken(securePassword.value);
+
+    if (password != null)
+      return new PasswordToken(password.value);
+
+    return null;
   }
 
   @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")

@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExec;
+import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -208,7 +209,18 @@ public class Admin implements KeywordExecutable {
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
 
     try {
-      ClientContext context = new AccumuloServerContext(confFactory);
+      ClientContext context;
+      if (opts.getToken() == null) {
+        context = new AccumuloServerContext(confFactory);
+      } else {
+        final Credentials userCreds = new Credentials(opts.getPrincipal(), opts.getToken());
+        context = new AccumuloServerContext(confFactory) {
+          @Override
+          public synchronized Credentials getCredentials() {
+            return userCreds;
+          }
+        };
+      }
 
       int rc = 0;
 

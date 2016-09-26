@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.security.auth.DestroyFailedException;
 
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
@@ -65,19 +66,14 @@ public class TestClientOpts {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     BatchScannerOpts bsOpts = new BatchScannerOpts();
     try {
-      args.getPrincipal();
+      assertNull(args.getPrincipal());
       fail("Expected to receive exception fetching non-existent principal");
-    } catch (RuntimeException e) {
+    } catch (AccumuloSecurityException e) {
       // Pass -- no explicit principal and no token to infer a principal from
     }
 
     assertNull(args.getSecurePassword());
-    try {
-      args.getToken();
-      fail("Expected to receive exception fetching non-existent token");
-    } catch (RuntimeException e) {
-      // pass - no console to prompt user for password
-    }
+    assertNull(args.getToken());
     assertEquals(Long.valueOf(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
     assertEquals(Long.valueOf(cfg.getTimeout(TimeUnit.MILLISECONDS)), bwOpts.batchTimeout);
     assertEquals(Long.valueOf(cfg.getMaxMemory()), bwOpts.batchMemory);
