@@ -19,7 +19,7 @@ package org.apache.accumulo.test.randomwalk.multitable;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.security.MessageDigest;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
@@ -40,7 +40,7 @@ public class Write extends Test {
   public void visit(State state, Environment env, Properties props) throws Exception {
 
     @SuppressWarnings("unchecked")
-    ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
+    List<String> tables = (List<String>) state.get("tableList");
 
     if (tables.isEmpty()) {
       log.debug("No tables to ingest into");
