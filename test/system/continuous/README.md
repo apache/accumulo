@@ -47,6 +47,11 @@ The following scripts start and stop batch walkers.
 > $ start-batchwalkers.sh  
 > $ stop-batchwalkers.sh
 
+And the following scripts start and stop scanners.
+
+> $ start-scanners.sh
+> $ stop-scanners.sh
+
 In addition to placing continuous load, the following scripts start and stop a
 service that continually collect statistics about accumulo and HDFS.
 
