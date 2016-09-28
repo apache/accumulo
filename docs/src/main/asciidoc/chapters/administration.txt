@@ -430,9 +430,7 @@ take some time for particular configurations.
 
 Update your +$ACCUMULO_HOME/conf/tservers+ (or +$ACCUMULO_CONF_DIR/tservers+) file to account for the addition.
 
-  $ACCUMULO_HOME/bin/accumulo admin start <host(s)> {<host> ...}
-
-Alternatively, you can ssh to each of the hosts you want to add and run:
+Next, ssh to each of the hosts you want to add and run:
 
   $ACCUMULO_HOME/bin/start-here.sh
 
