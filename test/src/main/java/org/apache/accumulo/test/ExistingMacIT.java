@@ -55,8 +55,6 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
 public class ExistingMacIT extends ConfigurableMacBase {
   @Override
   public int defaultTimeoutSeconds() {
