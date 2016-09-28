@@ -66,14 +66,17 @@ running multiple distinct Accumulo instances (or any other process which tries t
 same default ports) on the same hardware.
 
 === Installation
-Choose a directory for the Accumulo installation. This directory will be referenced
-by the environment variable +$ACCUMULO_HOME+. Run the following:
 
-  $ tar xzf accumulo-1.6.0-bin.tar.gz    # unpack to subdirectory
-  $ mv accumulo-1.6.0 $ACCUMULO_HOME # move to desired location
+Download a binary distribution of Accumulo and install it to a directory on a disk with
+sufficient space:
 
-Repeat this step at each machine within the cluster. Usually all machines have the
-same +$ACCUMULO_HOME+.
+  cd <install directory>
+  tar xzf accumulo-X.Y.Z-bin.tar.gz   # Replace 'X.Y.Z' with your Accumulo version
+  cd accumulo-X.Y.Z
+
+Repeat this step on each machine in your cluster. Typically, the same +<install directory>+
+is chosen for all machines in the cluster. When you configure Accumulo, the +$ACCUMULO_HOME+
+environment variable should be set to +/path/to/<install directory>/accumulo-X.Y.Z+.
 
 === Dependencies
 Accumulo requires HDFS and ZooKeeper to be configured and running
