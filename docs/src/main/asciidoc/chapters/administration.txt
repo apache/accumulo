@@ -286,7 +286,7 @@ when the Configuration object for accumulo-site.xml is accessed.
 
 One of the implementations provided in Hadoop-2.6.0 is a Java KeyStore CredentialProvider.
 Each entry in the KeyStore is the Accumulo Property key name. For example, to store the
-\texttt{instance.secret}, the following command can be used:
+`instance.secret`, the following command can be used:
 
   hadoop credential create instance.secret --provider jceks://file/etc/accumulo/conf/accumulo.jceks
 
@@ -323,7 +323,7 @@ The client configuration file is a subset of the information stored in accumulo-
 meant only for consumption by clients of Accumulo. By default, Accumulo checks a number
 of locations for a client configuration by default:
 
-* +${ACCUMULO_CONF_DIR}/client.conf+
+* +\${ACCUMULO_CONF_DIR}/client.conf+
 * +/etc/accumulo/client.conf+
 * +/etc/accumulo/conf/client.conf+
 * +~/.accumulo/config+

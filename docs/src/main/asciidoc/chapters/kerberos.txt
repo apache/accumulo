@@ -559,4 +559,4 @@ on, is extremely important when negotiating an SASL connection. This problem com
 servers are not configured to listen on the address denoted by their FQDN.
 
 The values in the Accumulo "hosts" files (In +$ACCUMULO_CONF_DIR+: +masters+, +monitors+, +slaves+, +tracers+,
-and +gc+) should match the instance componentof the Kerberos server principal (e.g. +host+ in +accumulo/host\@EXAMPLE.COM+).
+and +gc+) should match the instance componentof the Kerberos server principal (e.g. +host+ in +accumulo/host@EXAMPLE.COM+).
