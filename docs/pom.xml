@@ -47,9 +47,15 @@
             <phase>compile</phase>
             <configuration>
               <outputDirectory>${project.build.directory}/asciidoc</outputDirectory>
+              <escapeString>\</escapeString>
+              <useDefaultDelimiters>false</useDefaultDelimiters>
+              <delimiters>
+                <delimiter>${*}</delimiter>
+              </delimiters>
               <resources>
                 <resource>
                   <directory>src/main/asciidoc</directory>
+                  <filtering>true</filtering>
                 </resource>
               </resources>
             </configuration>
