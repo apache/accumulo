@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.2">
 <meta name="author" content="Apache Accumulo Project">
-<title>Apache Accumulo User Manual Version 1.8</title>
+<title>Apache Accumulo® User Manual Version 1.8</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -415,7 +415,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="book toc2 toc-left">
 <div id="header">
-<h1>Apache Accumulo User Manual Version 1.8</h1>
+<h1>Apache Accumulo® User Manual Version 1.8</h1>
 <div class="details">
 <span id="author" class="author">Apache Accumulo Project</span><br>
 <span id="email" class="email"><a href="mailto:dev@accumulo.apache.org">dev@accumulo.apache.org</a></span><br>
@@ -1651,7 +1651,7 @@ Connector conn = inst.getConnector("user", new PasswordToken("passwd"));</code><
 </div>
 </div>
 <div class="paragraph">
-<p>The PasswordToken is the most common implementation of an \texttt{AuthenticationToken}.
+<p>The PasswordToken is the most common implementation of an <code>AuthenticationToken</code>.
 This general interface allow authentication as an Accumulo user to come from
 a variety of sources or means. The CredentialProviderToken leverages the Hadoop
 CredentialProviders (new in Hadoop 2.6).</p>
@@ -4910,11 +4910,11 @@ cluster, this is a table ID. In this example, we want to enable replication on
 <code>my_table</code> and configure our peer <code>accumulo_peer</code> as a target, sending
 the data to the table with an ID of <code>2</code> in <code>accumulo_peer</code>.</p>
 </div>
-<div class="paragraph">
-<p>\begingroup\fontsize{8pt}{8pt}\selectfont\begin{verbatim}
-root@accumulo_primary&gt; config -t my_table -s table.replication=true
-root@accumulo_primary&gt; config -t my_table -s table.replication.target.acccumulo_peer=2
-\end{verbatim}\endgroup</p>
+<div class="listingblock">
+<div class="content">
+<pre>root@accumulo_primary&gt; config -t my_table -s table.replication=true
+root@accumulo_primary&gt; config -t my_table -s table.replication.target.accumulo_peer=2</pre>
+</div>
 </div>
 <div class="paragraph">
 <p>To replicate a single table on the primary to multiple peers, the second command
@@ -6249,7 +6249,7 @@ servers are not configured to listen on the address denoted by their FQDN.</p>
 </div>
 <div class="paragraph">
 <p>The values in the Accumulo "hosts" files (In <code>$ACCUMULO_CONF_DIR</code>: <code>masters</code>, <code>monitors</code>, <code>slaves</code>, <code>tracers</code>,
-and <code>gc</code>) should match the instance componentof the Kerberos server principal (e.g. <code>host</code> in <code>accumulo/host\@EXAMPLE.COM</code>).</p>
+and <code>gc</code>) should match the instance componentof the Kerberos server principal (e.g. <code>host</code> in <code>accumulo/host@EXAMPLE.COM</code>).</p>
 </div>
 </div>
 </div>
@@ -6471,18 +6471,20 @@ at the low end of the range to, and including, the high end of the range.</p>
 <div class="sect2">
 <h3 id="_installation">18.3. Installation</h3>
 <div class="paragraph">
-<p>Choose a directory for the Accumulo installation. This directory will be referenced
-by the environment variable <code>$ACCUMULO_HOME</code>. Run the following:</p>
+<p>Download a binary distribution of Accumulo and install it to a directory on a disk with
+sufficient space:</p>
 </div>
 <div class="literalblock">
 <div class="content">
-<pre>$ tar xzf accumulo-1.6.0-bin.tar.gz    # unpack to subdirectory
-$ mv accumulo-1.6.0 $ACCUMULO_HOME # move to desired location</pre>
+<pre>cd &lt;install directory&gt;
+tar xzf accumulo-X.Y.Z-bin.tar.gz   # Replace 'X.Y.Z' with your Accumulo version
+cd accumulo-X.Y.Z</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Repeat this step at each machine within the cluster. Usually all machines have the
-same <code>$ACCUMULO_HOME</code>.</p>
+<p>Repeat this step on each machine in your cluster. Typically, the same <code>&lt;install directory&gt;</code>
+is chosen for all machines in the cluster. When you configure Accumulo, the <code>$ACCUMULO_HOME</code>
+environment variable should be set to <code>/path/to/&lt;install directory&gt;/accumulo-X.Y.Z</code>.</p>
 </div>
 </div>
 <div class="sect2">
@@ -6769,7 +6771,7 @@ when the Configuration object for accumulo-site.xml is accessed.</p>
 <div class="paragraph">
 <p>One of the implementations provided in Hadoop-2.6.0 is a Java KeyStore CredentialProvider.
 Each entry in the KeyStore is the Accumulo Property key name. For example, to store the
-\texttt{instance.secret}, the following command can be used:</p>
+<code>instance.secret</code>, the following command can be used:</p>
 </div>
 <div class="literalblock">
 <div class="content">
@@ -6964,13 +6966,8 @@ take some time for particular configurations.</p>
 <div class="paragraph">
 <p>Update your <code>$ACCUMULO_HOME/conf/slaves</code> (or <code>$ACCUMULO_CONF_DIR/slaves</code>) file to account for the addition.</p>
 </div>
-<div class="literalblock">
-<div class="content">
-<pre>$ACCUMULO_HOME/bin/accumulo admin start &lt;host(s)&gt; {&lt;host&gt; ...}</pre>
-</div>
-</div>
 <div class="paragraph">
-<p>Alternatively, you can ssh to each of the hosts you want to add and run:</p>
+<p>Next, ssh to each of the hosts you want to add and run:</p>
 </div>
 <div class="literalblock">
 <div class="content">
@@ -9541,7 +9538,7 @@ default  | table.failures.ignore ..................... | false</pre>
 <div class="sect4">
 <h5 id="_instance_secret">instance.secret</h5>
 <div class="paragraph">
-<p>A secret unique to a given instance that all servers must know in order to communicate with one another. Change it before initialization. To change it later use ./bin/accumulo accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd],  and then update conf/accumulo-site.xml everywhere.</p>
+<p>A secret unique to a given instance that all servers must know in order to communicate with one another.It should be changed prior to the initialization of Accumulo. To change it after Accumulo has been initialized, use the ChangeSecret tool and then update conf/accumulo-site.xml everywhere. Before using the ChangeSecret tool, make sure Accumulo is not running and you are logged in as the user that controls Accumulo files in HDFS.  To use the ChangeSecret tool, run the command: ./bin/accumulo org.apache.accumulo.server.util.ChangeSecret</p>
 </div>
 <div class="paragraph">
 <p><em>Type:</em> STRING<br>
@@ -11835,7 +11832,7 @@ An example is <em>java.lang.String</em>, rather than <em>String</em></p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-09-02 16:52:08 +00:00
+Last updated 2016-09-29 16:41:28 -04:00
 </div>
 </div>
 </body>
