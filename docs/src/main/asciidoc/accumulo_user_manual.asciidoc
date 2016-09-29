@@ -13,15 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-Apache Accumulo User Manual Version 2.0
+Apache Accumulo® User Manual Version ${parsedVersion.majorVersion}.${parsedVersion.minorVersion}
 =======================================
 :author: Apache Accumulo Project
 :email: dev@accumulo.apache.org
 :toc2:
 :toclevels: 4
-:toc-title: Apache Accumulo 2.0
+:toc-title: Apache Accumulo ${parsedVersion.majorVersion}.${parsedVersion.minorVersion}
 :numbered:
-:website: http://accumulo.apache.org/
+:website: https://accumulo.apache.org/
 
 image::accumulo-logo.png[]
 

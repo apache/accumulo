@@ -57,7 +57,7 @@ Instance inst = new ZooKeeperInstance(instanceName, zooServers);
 Connector conn = inst.getConnector("user", new PasswordToken("passwd"));
 ----
 
-The PasswordToken is the most common implementation of an \texttt{AuthenticationToken}.
+The PasswordToken is the most common implementation of an `AuthenticationToken`.
 This general interface allow authentication as an Accumulo user to come from
 a variety of sources or means. The CredentialProviderToken leverages the Hadoop
 CredentialProviders (new in Hadoop 2.6).

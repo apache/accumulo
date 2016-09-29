@@ -94,4 +94,4 @@ features of Apache Accumulo.
                        Also shows user permissions.
 
 
-[1]: /1.5/user_manual/Accumulo_Shell.html#User_Administration
+[1]: https://accumulo.apache.org/1.5/accumulo_user_manual#_user_administration
