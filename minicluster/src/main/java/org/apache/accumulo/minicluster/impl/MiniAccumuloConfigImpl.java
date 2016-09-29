@@ -133,7 +133,6 @@ public class MiniAccumuloConfigImpl {
         // TODO ACCUMULO-XXXX replace usage of instance.dfs.{dir,uri} with instance.volumes
         setInstanceLocation();
         mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
-        mergeProp(Property.LOGGER_DIR.getKey(), walogDir.getAbsolutePath());
         mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "password", getRootPassword());
       }
 
