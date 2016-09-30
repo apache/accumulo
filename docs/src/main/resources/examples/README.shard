@@ -36,7 +36,6 @@ After creating the tables, index some files. The following command indexes all o
 
 The following command queries the index to find all files containing 'foo' and 'bar'.
 
-    $ cd $ACCUMULO_HOME
     $ ./bin/accumulo org.apache.accumulo.examples.simple.shard.Query -i instance -z zookeepers -t shard -u username -p password foo bar
     /local/username/workspace/accumulo/src/core/src/test/java/accumulo/core/security/ColumnVisibilityTest.java
     /local/username/workspace/accumulo/src/core/src/test/java/accumulo/core/client/mock/MockConnectorTest.java

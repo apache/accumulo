@@ -21,14 +21,22 @@ process=$1
 
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-   SOURCE="$(readlink "$SOURCE")"
-   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  libexec="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$libexec/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+libexec="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # Stop: Resolve Script Directory
 
-. "${bin}"/config.sh
+source "${libexec}"/load-env.sh
+
+# Setting for watcher
+UNEXPECTED_TIMESPAN=${UNEXPECTED_TIMESPAN:-3600}
+UNEXPECTED_RETRIES=${UNEXPECTED_RETRIES:-2}
+OOM_TIMESPAN=${OOM_TIMESPAN-3600}
+OOM_RETRIES=${OOM_RETRIES-5}
+ZKLOCK_TIMESPAN=${ZKLOCK_TIMESPAN-600}
+ZKLOCK_RETRIES=${ZKLOCK_RETRIES-5}
 
 CLEAN_EXIT="Clean Exit"
 UNEXPECTED_EXCEPTION="Unexpected exception"
@@ -39,7 +47,7 @@ UNKNOWN_ERROR="Unknown error"
 ERRFILE=${ACCUMULO_LOG_DIR}/${process}_${LOGHOST}.err
 OUTFILE=${ACCUMULO_LOG_DIR}/${process}_${LOGHOST}.out
 DEBUGLOG=${ACCUMULO_LOG_DIR}/${process}_$(hostname).debug.log
-export COMMAND="${bin}/accumulo \"\$@\""
+COMMAND="${ACCUMULO_BIN_DIR}/accumulo \"\$@\""
 
 logger -s "starting process $process at $(date)"
 stopRunning=""

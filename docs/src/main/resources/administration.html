@@ -23,7 +23,8 @@
 
 <h1>Apache Accumulo Documentation : Administration</h1>
 
-<h3>Starting accumulo for the first time</h3>
+
+<h3>Configure Accumulo</h3>
 
 <p>For the most part, accumulo is ready to go out of the box. To start it, first you must distribute and install
 the accumulo software to each machine in the cloud that you wish to run on. The software should be installed
@@ -36,32 +37,49 @@ to create these files, the startup scripts will assume you are trying to run on 
 It is probably a good idea to back up these files, or distribute them to the other nodes as well, so that you can easily boot up accumulo
 from another machine, if necessary. You can also make create a <code>conf/accumulo-env.sh</code> file if you want to configure any custom environment variables.
 
-<p>Once properly configured, you can initialize or prepare an instance of accumulo by running: <code>bin/accumulo&nbsp;init</code><br />
+<h3>Initializing Accumulo</h3>
+
+<p>Once properly configured, you can initialize or prepare an instance of Accumulo by running the following command:
+
+<pre>
+accumulo init
+</pre>
+
 Follow the prompts and you are ready to go. This step only prepares accumulo to run, it does not start up accumulo.
 
 <h3>Starting accumulo</h3>
 
-<p>Once you have configured accumulo to your liking, and distributed the appropriate configuration to each machine, you can start accumulo with
-bin/start-all.sh. If at any time, you wish to bring accumulo servers online after one or more have been shutdown, you can run bin/start-all.sh again.
-This step will only start services that are not already running. Be aware that if you run this command on more than one machine, you may unintentionally
-start an extra copy of the garbage collector service and the monitoring service, since each of these will run on the server on which you run this script.
+<p>Once you have configured Accumulo to your liking, and distributed the appropriate configuration to each machine, you can start accumulo with the following command:
+
+<pre>
+accumulo-cluster start
+</pre>
+
+<p>If at any time, you wish to bring accumulo servers online after one or more have been shutdown, you can run the command again. This step will only start services
+that are not already running. Be aware that if you run this command on more than one machine, you may unintentionally start an extra copy of the garbage collector
+service and the monitoring service, since each of these will run on the server on which you run this script.
 
 <h3>Stopping accumulo</h3>
 
-<p>Similar to the start-all.sh script, we provide a bin/stop-all.sh script to shut down accumulo. This will prompt for the root password so that it can
-ask the master to shut down the tablet servers gracefully. If the tablet servers do not respond, or the master takes too long, you can force a shutdown by hitting Ctrl-C
-at the password prompt, and waiting 15 seconds for the script to force a shutdown. Normally, once the shutdown happens gracefully, unresponsive tablet servers are
-forcibly shut down after 5 seconds.
+<p>When you want to stop Accumulo, run the following command:</p>
+
+<pre>
+accumulo-cluster stop
+</pre>
+
+<p>This will prompt for the root password so that it can ask the master to shut down the tablet servers gracefully. If the tablet servers do not respond, or the master
+takes too long, you can force a shutdown by hitting Ctrl-C at the password prompt, and waiting 15 seconds for the script to force a shutdown. Normally, once the shutdown
+happens gracefully, unresponsive tablet servers are forcibly shut down after 5 seconds.
 
 <h3>Adding a Node</h3>
 
-<p>Update your <code>$ACCUMULO_HOME/conf/tservers</code> (or <code>$ACCUMULO_CONF_DIR/tservers</code>) file to account for the addition; at a minimum this needs to be on the host(s) being added, but in practice it's good to ensure consistent configuration across all nodes.</p>
+<p>Update your <code>conf/tservers</code> file to account for the addition; at a minimum this needs to be on the host(s) being added, but in practice it's good to ensure consistent configuration across all nodes.</p>
 
 <pre>
-$ACCUMULO_HOME/bin/accumulo admin start &lt;host(s)&gt; {&lt;host&gt; ...}
+accumulo admin start &lt;host(s)&gt; {&lt;host&gt; ...}
 </pre>
 
-<p>Alternatively, you can ssh to each of the hosts you want to add and run <code>$ACCUMULO_HOME/bin/start-here.sh</code>.</p>
+<p>Alternatively, you can ssh to each of the hosts you want to add and run <code>accumulo-service tserver start</code>.</p>
 
 <p>Make sure the host in question has the new configuration, or else the tablet server won't start.</p>
 
@@ -70,12 +88,12 @@ $ACCUMULO_HOME/bin/accumulo admin start &lt;host(s)&gt; {&lt;host&gt; ...}
 <p>If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet server. Accumulo will automatically rebalance the tablets across the available tablet servers.</p>
 
 <pre>
-$ACCUMULO_HOME/bin/accumulo admin stop &lt;host(s)&gt; {&lt;host&gt; ...}
+bin/accumulo admin stop &lt;host(s)&gt; {&lt;host&gt; ...}
 </pre>
 
-<p>Alternatively, you can ssh to each of the hosts you want to remove and run <code>$ACCUMULO_HOME/bin/stop-here.sh</code>.</p>
+<p>Alternatively, you can ssh to each of the hosts you want to remove and run <code>bin/accumulo-service tserver stop</code>.</p>
 
-<p>Be sure to update your <code>$ACCUMULO_HOME/conf/tservers</code> (or <code>$ACCUMULO_CONF_DIR/tservers</code>) file to account for the removal of these hosts. Bear in mind that the monitor will not re-read the tservers file automatically, so it will report the decomissioned servers as down; it's recommended that you restart the monitor so that the node list is up to date.</p>
+<p>Be sure to update your <code>conf/tservers</code> file to account for the removal of these hosts. Bear in mind that the monitor will not re-read the tservers file automatically, so it will report the decomissioned servers as down; it's recommended that you restart the monitor so that the node list is up to date.</p>
 
 <h3>Configuration</h3>
 <p>Accumulo configuration information is stored in a xml file and ZooKeeper. System wide

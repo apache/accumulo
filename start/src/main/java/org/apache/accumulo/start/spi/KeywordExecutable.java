@@ -37,11 +37,21 @@ import java.util.ServiceLoader;
 public interface KeywordExecutable {
 
   /**
-   * Provides access to the service's keyword.
-   *
-   * @return the keyword which identifies this service
+   * @return Keyword which identifies this service
    */
   String keyword();
+
+  /**
+   * @return Usage for service
+   */
+  default String usage() {
+    return keyword();
+  }
+
+  /**
+   * @return Description of service
+   */
+  String description();
 
   /**
    * Execute the item with the given arguments.

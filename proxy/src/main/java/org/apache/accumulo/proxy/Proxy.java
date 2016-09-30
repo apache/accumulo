@@ -113,6 +113,11 @@ public class Proxy implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Start Accumulo proxy";
+  }
+
+  @Override
   public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(Proxy.class.getName(), args);

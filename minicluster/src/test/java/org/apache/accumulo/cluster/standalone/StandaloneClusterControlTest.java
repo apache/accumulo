@@ -46,7 +46,7 @@ public class StandaloneClusterControlTest {
 
   @Test
   public void mapreduceLaunchesLocally() throws Exception {
-    final String toolPath = "/usr/lib/accumulo/bin/tool.sh";
+    final String toolPath = "/usr/lib/accumulo/lib/scripts/tool.sh";
     final String jar = "/home/user/my_project.jar";
     final Class<?> clz = Object.class;
     final String myClass = clz.getName();

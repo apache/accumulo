@@ -30,6 +30,11 @@ public class MiniClusterExecutable implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Start Accumulo minicluster";
+  }
+
+  @Override
   public void execute(final String[] args) throws Exception {
     MiniAccumuloRunner.main(args);
   }

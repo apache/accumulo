@@ -33,6 +33,11 @@ public class Info implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Print Accumulo cluster info";
+  }
+
+  @Override
   public void execute(final String[] args) throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
     System.out.println("monitor: " + MonitorUtil.getLocation(instance));

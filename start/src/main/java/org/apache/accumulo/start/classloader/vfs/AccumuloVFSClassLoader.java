@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
  * SystemClassLoader that loads JVM classes
  *       ^
  *       |
- * AccumuloClassLoader loads jars from locations in general.classpaths. Usually the URLs for HADOOP_HOME, ZOOKEEPER_HOME, ACCUMULO_HOME and their associated directories
+ * AccumuloClassLoader loads jars from locations in general.classpaths. Usually the URLs for HADOOP_HOME, ZOOKEEPER_HOME, ACCUMULO_HOME/lib and their associated directories
  *       ^
  *       |
  * VFSClassLoader that loads jars from locations in general.vfs.classpaths.  Can be used to load accumulo jar from HDFS

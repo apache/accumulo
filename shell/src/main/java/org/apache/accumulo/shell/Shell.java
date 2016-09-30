@@ -584,6 +584,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Run Accumulo shell";
+  }
+
+  @Override
   public void execute(final String[] args) throws IOException {
     try {
       if (!config(args)) {

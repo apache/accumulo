@@ -15,173 +15,186 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Start: Resolve Script Directory
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-   SOURCE="$(readlink "${SOURCE}")"
-   [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-done
-bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-script=$( basename "${SOURCE}" )
-# Stop: Resolve Script Directory
+function build_native() {
+  native_tarball="$basedir/lib/accumulo-native.tar.gz"
+  final_native_target="$basedir/lib/native"
 
-. "${bin}"/config.sh
-
-START_JAR="${ACCUMULO_HOME}/lib/accumulo-start.jar"
-
-#
-# Resolve a program to its installation directory
-#
-locationByProgram()
-{
-   RESULT=$( which "$1" )
-   if [[ "$?" != 0 && -z "${RESULT}" ]]; then
-      echo "Cannot find '$1' and '$2' is not set in $ACCUMULO_CONF_DIR/accumulo-env.sh"
+  if [[ ! -f $native_tarball ]]; then
+      echo "Could not find native code artifact: ${native_tarball}";
       exit 1
-   fi
-   while [ -h "${RESULT}" ]; do # resolve $RESULT until the file is no longer a symlink
-      DIR="$( cd -P "$( dirname "$RESULT" )" && pwd )"
-      RESULT="$(readlink "${RESULT}")"
-      [[ "${RESULT}" != /* ]] && RESULT="${DIR}/${RESULT}" # if $RESULT was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-   done
-   # find the relative home directory, accounting for an extra bin directory
-   RESULT=$(dirname "$(dirname "${RESULT}")")
-   echo "Auto-set ${2} to '${RESULT}'.  To suppress this message, set ${2} in conf/accumulo-env.sh"
-   eval "${2}=${RESULT}"
+  fi
+
+  # Make the destination for the native library
+  mkdir -p "${final_native_target}" || exit 1
+
+  # Make a directory for us to unpack the native source into
+  TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXX) || exit 1
+
+  # Unpack the tarball to our temp directory
+  if ! tar xf "${native_tarball}" -C "${TMP_DIR}"
+  then
+      echo "Failed to unpack native tarball to ${TMP_DIR}"
+      exit 1
+  fi
+
+  # Move to the first (only) directory in our unpacked tarball
+  native_dir=$(find "${TMP_DIR}" -maxdepth 1 -mindepth 1 -type d)
+
+  cd "${native_dir}" || exit 1
+
+  # Make the native library
+  export USERFLAGS="$@"
+  if ! make
+  then
+      echo "Make failed!"
+      exit 1
+  fi
+
+  # "install" the artifact
+  cp libaccumulo.* "${final_native_target}" || exit 1
+
+  # Clean up our temp directory
+  rm -rf "${TMP_DIR}"
+
+  echo "Successfully installed native library"
 }
 
-test -z "${JAVA_HOME}"      && locationByProgram java JAVA_HOME
-test -z "${HADOOP_PREFIX}"  && locationByProgram hadoop HADOOP_PREFIX
-test -z "${ZOOKEEPER_HOME}" && locationByProgram zkCli.sh ZOOKEEPER_HOME
+function main() {
 
-DEFAULT_GENERAL_JAVA_OPTS=""
+  # Start: Resolve Script Directory
+  SOURCE="${BASH_SOURCE[0]}"
+  while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
+     bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+     SOURCE="$(readlink "${SOURCE}")"
+     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  done
+  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+  basedir=$( cd -P "${bin}"/.. && pwd )
+  # Stop: Resolve Script Directory
 
-#
-# ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
-# It also holds the JAR run with the jar command and, if possible, any items in the JAR manifest's Class-Path.
-#
-if [ "$1" = "-add" ] ; then
-    export ACCUMULO_XTRAJARS="$2"
-    shift 2
-else
-    export ACCUMULO_XTRAJARS=""
-fi
-if [ "$1" = "jar" -a -f "$2" ] ; then
-    if [[ $2 =~ ^/ ]]; then
-      jardir="$(dirname "$2")"
-      jarfile="$2"
-    else
-      jardir="$(pwd)"
-      jarfile="${jardir}/${2}"
-    fi
-    if jar tf "$jarfile" | grep -q META-INF/MANIFEST.MF ; then
-      cp="$(unzip -p "$jarfile" META-INF/MANIFEST.MF | grep ^Class-Path: | sed 's/^Class-Path: *//')"
-      if [[ -n "$cp" ]] ; then
-         for j in $cp; do
-            if [[ "$j" != "Class-Path:" ]] ; then
-               ACCUMULO_XTRAJARS="${jardir}/${j},$ACCUMULO_XTRAJARS"
-            fi
-         done
+  if [[ "$1" == "create-config" ]]; then
+    "$basedir/libexec/config.sh" "${@:2}"
+    exit 0
+  elif [[ "$1" == "build-native" ]]; then
+    build_native ${*:2}
+    exit 0
+  fi
+
+  source "$basedir"/libexec/load-env.sh
+
+  # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
+  # It also holds the JAR run with the jar command and, if possible, any items in the JAR manifest's Class-Path.
+  if [[ "$1" = "-add" ]]; then
+      export ACCUMULO_XTRAJARS="$2"
+      shift 2
+  else
+      export ACCUMULO_XTRAJARS=""
+  fi
+  if [[ "$1" = "jar" && -f "$2" ]]; then
+      if [[ $2 =~ ^/ ]]; then
+        jardir="$(dirname "$2")"
+        jarfile="$2"
+      else
+        jardir="$(pwd)"
+        jarfile="${jardir}/${2}"
       fi
+      if jar tf "$jarfile" | grep -q META-INF/MANIFEST.MF ; then
+        cp="$(unzip -p "$jarfile" META-INF/MANIFEST.MF | grep ^Class-Path: | sed 's/^Class-Path: *//')"
+        if [[ -n "$cp" ]] ; then
+           for j in $cp; do
+              if [[ "$j" != "Class-Path:" ]] ; then
+                 ACCUMULO_XTRAJARS="${jardir}/${j},$ACCUMULO_XTRAJARS"
+              fi
+           done
+        fi
+      fi
+      ACCUMULO_XTRAJARS="${jarfile},$ACCUMULO_XTRAJARS"
+  fi
+
+  # Set up -D switches for JAAS and Kerberos if files exist
+  if [[ -f ${ACCUMULO_JAAS_CONF} ]]; then
+    ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.auth.login.config=${ACCUMULO_JAAS_CONF}"
+  fi
+  if [[ -f ${ACCUMULO_KRB5_CONF} ]]; then
+    ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.krb5.conf=${ACCUMULO_KRB5_CONF}"
+  fi
+
+  # Add appropriate options for process type
+  case "$1" in
+  master)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MASTER_OPTS}" ;;
+  gc)      export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_GC_OPTS}" ;;
+  tserver*) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}" ;;
+  monitor) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MONITOR_OPTS}" ;;
+  shell)   export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_SHELL_OPTS}" ;;
+  *)       export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}" ;;
+  esac
+
+  LOG4J_JAR=$(find -H "${HADOOP_PREFIX}/lib" "${HADOOP_PREFIX}"/share/hadoop/common/lib -name 'log4j*.jar' -print 2>/dev/null | head -1)
+  SLF4J_JARS="${ACCUMULO_LIB_DIR}/slf4j-api.jar:${ACCUMULO_LIB_DIR}/slf4j-log4j12.jar"
+
+  # The `find` command could fail for environmental reasons or bad configuration
+  # Avoid trying to run Accumulo when we can't find the jar
+  if [[ -z "${LOG4J_JAR}" && -z "${CLASSPATH}" ]]; then
+     echo "Could not locate Log4j jar in Hadoop installation at ${HADOOP_PREFIX}"
+     exit 1
+  fi
+
+  if [[ ! " gc master monitor tserver tracer " =~ " $1 " ]]; then
+    if [[ -f ${ACCUMULO_CONF_DIR}/log4j.properties ]]; then
+      export ACCUMULO_OPTS="${ACCUMULO_OPTS} -Dlog4j.configuration=file:${ACCUMULO_CONF_DIR}/log4j.properties"
+    else
+      export ACCUMULO_OPTS="${ACCUMULO_OPTS} -Dlog4j.configuration=file:${ACCUMULO_CONF_DIR}/examples/log4j.properties"
     fi
-    ACCUMULO_XTRAJARS="${jarfile},$ACCUMULO_XTRAJARS"
-fi
+  fi
 
-#
-# Set up -D switches for JAAS and Kerberos if env variables set
-#
-if [[ ! -z ${ACCUMULO_JAAS_CONF} ]]; then
-  ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.auth.login.config=${ACCUMULO_JAAS_CONF}"
-fi
+  CLASSPATH="${ACCUMULO_LIB_DIR}/accumulo-start.jar:${ACCUMULO_CONF_DIR}:${SLF4J_JARS}:${LOG4J_JAR}:${CLASSPATH}"
 
-if [[ ! -z ${ACCUMULO_KRB5_CONF} ]]; then
-  ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.krb5.conf=${ACCUMULO_KRB5_CONF}"
-fi
+  # This is default for hadoop 2.x;
+  #   for another distribution, specify (DY)LD_LIBRARY_PATH
+  #   explicitly in ${ACCUMULO_CONF_DIR}/accumulo-env.sh
+  #   usually something like:
+  #     ${HADOOP_PREFIX}/lib/native/${PLATFORM}
+  if [ -e "${HADOOP_PREFIX}/lib/native/libhadoop.so" ]; then
+     LIB_PATH="${HADOOP_PREFIX}/lib/native"
+     LD_LIBRARY_PATH="${LIB_PATH}:${LD_LIBRARY_PATH}"     # For Linux
+     DYLD_LIBRARY_PATH="${LIB_PATH}:${DYLD_LIBRARY_PATH}" # For Mac
+  fi
 
-#
-# Add appropriate options for process type
-#
-case "$1" in
-master)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MASTER_OPTS}" ;;
-gc)      export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_GC_OPTS}" ;;
-tserver*) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}" ;;
-monitor) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MONITOR_OPTS}" ;;
-shell)   export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_SHELL_OPTS}" ;;
-*)       export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}" ;;
-esac
+  # Export the variables just in case they are not exported
+  # This makes them available to java
+  export JAVA_HOME HADOOP_PREFIX ZOOKEEPER_HOME LD_LIBRARY_PATH DYLD_LIBRARY_PATH
 
-XML_FILES="${ACCUMULO_CONF_DIR}"
-LOG4J_JAR=$(find -H "${HADOOP_PREFIX}/lib" "${HADOOP_PREFIX}"/share/hadoop/common/lib -name 'log4j*.jar' -print 2>/dev/null | head -1)
-SLF4J_JARS="${ACCUMULO_HOME}/lib/slf4j-api.jar:${ACCUMULO_HOME}/lib/slf4j-log4j12.jar"
+  # Strip the instance from $1
+  APP=$1
+  # Avoid setting an instance unless it's necessary to ensure consistency in filenames
+  INSTANCE=""
+  # Avoid setting a pointless system property
+  INSTANCE_OPT=""
+  if [[ "$1" =~ ^tserver-[1-9][0-9]*$ ]]; then
+    APP="$(echo "$1" | cut -d'-' -f1)"
+    # Appending the trailing underscore to make single-tserver deploys look how they did
+    INSTANCE="$(echo "$1" | cut -d'-' -f2)_"
 
-# The `find` command could fail for environmental reasons or bad configuration
-# Avoid trying to run Accumulo when we can't find the jar
-if [ -z "${LOG4J_JAR}" -a -z "${CLASSPATH}" ]; then
-   echo "Could not locate Log4j jar in Hadoop installation at ${HADOOP_PREFIX}"
-   exit 1
-fi
+    #Rewrite the input arguments
+    set -- "$APP" "${@:2}"
 
-CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}:${CLASSPATH}"
+    # The extra system property we'll pass to the java cmd
+    INSTANCE_OPT="-Daccumulo.service.instance=${INSTANCE}"
+  fi
 
-if [ -z "${JAVA_HOME}" -o ! -d "${JAVA_HOME}" ]; then
-   echo "JAVA_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
-   exit 1
-fi
-if [ -z "${HADOOP_PREFIX}" -o ! -d "${HADOOP_PREFIX}" ]; then
-   echo "HADOOP_PREFIX is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
-   exit 1
-fi
-if [ -z "${ZOOKEEPER_HOME}" -o ! -d "${ZOOKEEPER_HOME}" ]; then
-   echo "ZOOKEEPER_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
-   exit 1
-fi
+  # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
+  JAVA="${JAVA_HOME}/bin/java"
+  exec "$JAVA" "-Dapp=$1" \
+     $INSTANCE_OPT \
+     "${ACCUMULO_OPTS_ARRAY[@]}" \
+     -classpath "${CLASSPATH}" \
+     -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" \
+     -XX:-OmitStackTraceInFastThrow \
+     -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl \
+     -Dhadoop.home.dir="${HADOOP_PREFIX}" \
+     -Dzookeeper.home.dir="${ZOOKEEPER_HOME}" \
+     org.apache.accumulo.start.Main \
+     "$@"
+}
 
-# This is default for hadoop 2.x;
-#   for another distribution, specify (DY)LD_LIBRARY_PATH
-#   explicitly in ${ACCUMULO_HOME}/conf/accumulo-env.sh
-#   usually something like:
-#     ${HADOOP_PREFIX}/lib/native/${PLATFORM}
-if [ -e "${HADOOP_PREFIX}/lib/native/libhadoop.so" ]; then
-   LIB_PATH="${HADOOP_PREFIX}/lib/native"
-   LD_LIBRARY_PATH="${LIB_PATH}:${LD_LIBRARY_PATH}"     # For Linux
-   DYLD_LIBRARY_PATH="${LIB_PATH}:${DYLD_LIBRARY_PATH}" # For Mac
-fi
-
-# Export the variables just in case they are not exported
-# This makes them available to java
-export JAVA_HOME HADOOP_PREFIX ZOOKEEPER_HOME LD_LIBRARY_PATH DYLD_LIBRARY_PATH
-
-# Strip the instance from $1
-APP=$1
-# Avoid setting an instance unless it's necessary to ensure consistency in filenames
-INSTANCE=""
-# Avoid setting a pointless system property
-INSTANCE_OPT=""
-if [[ "$1" =~ ^tserver-[1-9][0-9]*$ ]]; then
-  APP="$(echo "$1" | cut -d'-' -f1)"
-  # Appending the trailing underscore to make single-tserver deploys look how they did
-  INSTANCE="$(echo "$1" | cut -d'-' -f2)_"
-
-  #Rewrite the input arguments
-  set -- "$APP" "${@:2}"
-
-  # The extra system property we'll pass to the java cmd
-  INSTANCE_OPT="-Daccumulo.service.instance=${INSTANCE}"
-fi
-
-#
-# app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
-JAVA="${JAVA_HOME}/bin/java"
-exec "$JAVA" "-Dapp=$1" \
-   $INSTANCE_OPT \
-   $ACCUMULO_OPTS \
-   -classpath "${CLASSPATH}" \
-   -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" \
-   -XX:-OmitStackTraceInFastThrow \
-   -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl \
-   -Dorg.apache.accumulo.core.home.dir="${ACCUMULO_HOME}" \
-   -Dhadoop.home.dir="${HADOOP_PREFIX}" \
-   -Dzookeeper.home.dir="${ZOOKEEPER_HOME}" \
-   org.apache.accumulo.start.Main \
-   "$@"
+main "$@"

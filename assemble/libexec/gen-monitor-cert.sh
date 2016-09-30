@@ -18,21 +18,21 @@
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
+   libexec=$( cd -P "$( dirname "$SOURCE" )" && pwd )
    SOURCE=$(readlink "$SOURCE")
-   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+   [[ $SOURCE != /* ]] && SOURCE="$libexec/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin=$( cd -P "$( dirname "$SOURCE" )" && pwd )
+libexec=$( cd -P "$( dirname "$SOURCE" )" && pwd )
 # Stop: Resolve Script Directory
 
-. "$bin"/config.sh
+source "$libexec"/load-env.sh
 
 ALIAS="default"
 KEYPASS=$(LC_CTYPE=C tr -dc '#-~' < /dev/urandom | tr -d '<>&' | head -c 20)
 STOREPASS=$(LC_CTYPE=C tr -dc '#-~' < /dev/urandom | tr -d '<>&' | head -c 20)
-KEYSTOREPATH="$ACCUMULO_HOME/conf/keystore.jks"
-TRUSTSTOREPATH="$ACCUMULO_HOME/conf/cacerts.jks"
-CERTPATH="$ACCUMULO_HOME/conf/server.cer"
+KEYSTOREPATH="$ACCUMULO_CONF_DIR/keystore.jks"
+TRUSTSTOREPATH="$ACCUMULO_CONF_DIR/conf/cacerts.jks"
+CERTPATH="$ACCUMULO_CONF_DIR/server.cer"
 
 if [[ -e "$KEYSTOREPATH" ]]; then
    rm -i "$KEYSTOREPATH"

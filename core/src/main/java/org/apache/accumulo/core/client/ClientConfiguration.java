@@ -200,8 +200,8 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   /**
    * Attempts to load a configuration file from the system. Uses the "ACCUMULO_CLIENT_CONF_PATH" environment variable, split on File.pathSeparator, for a list
-   * of target files. If not set, uses the following in this order- ~/.accumulo/config $ACCUMULO_CONF_DIR/client.conf -OR- $ACCUMULO_HOME/conf/client.conf
-   * (depending on whether $ACCUMULO_CONF_DIR is set) /etc/accumulo/client.conf
+   * of target files. If not set, uses the following in this order- ~/.accumulo/config $ACCUMULO_CONF_DIR/client.conf -OR- /etc/accumulo/client.conf -OR-
+   * /etc/accumulo/conf/client.conf
    *
    * A client configuration will then be read from each location using PropertiesConfiguration to construct a configuration. That means the latest item will be
    * the one in the configuration.
@@ -270,14 +270,13 @@ public class ClientConfiguration extends CompositeConfiguration {
     } else {
       // if $ACCUMULO_CLIENT_CONF_PATH env isn't set, priority from top to bottom is:
       // ~/.accumulo/config
-      // $ACCUMULO_CONF_DIR/client.conf -OR- $ACCUMULO_HOME/conf/client.conf (depending on whether $ACCUMULO_CONF_DIR is set)
+      // $ACCUMULO_CONF_DIR/client.conf
       // /etc/accumulo/client.conf
+      // /etc/accumulo/conf/client.conf
       clientConfPaths = new LinkedList<>();
       clientConfPaths.add(System.getProperty("user.home") + File.separator + USER_ACCUMULO_DIR_NAME + File.separator + USER_CONF_FILENAME);
       if (System.getenv("ACCUMULO_CONF_DIR") != null) {
         clientConfPaths.add(System.getenv("ACCUMULO_CONF_DIR") + File.separator + GLOBAL_CONF_FILENAME);
-      } else if (System.getenv("ACCUMULO_HOME") != null) {
-        clientConfPaths.add(System.getenv("ACCUMULO_HOME") + File.separator + "conf" + File.separator + GLOBAL_CONF_FILENAME);
       }
       clientConfPaths.add("/etc/accumulo/" + GLOBAL_CONF_FILENAME);
       clientConfPaths.add("/etc/accumulo/conf/" + GLOBAL_CONF_FILENAME);

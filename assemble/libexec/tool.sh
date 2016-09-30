@@ -17,15 +17,15 @@
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [[ -h "$SOURCE" ]]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-   SOURCE="$(readlink "$SOURCE")"
-   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+   libexec=$( cd -P "$( dirname "$SOURCE" )" && pwd )
+   SOURCE=$(readlink "$SOURCE")
+   [[ $SOURCE != /* ]] && SOURCE="$libexec/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+libexec=$( cd -P "$( dirname "$SOURCE" )" && pwd )
 # Stop: Resolve Script Directory
 
-. "$bin"/config.sh
+source "$libexec"/load-env.sh
 
 if [[ -z "$HADOOP_PREFIX" ]] ; then
    echo "HADOOP_PREFIX is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
@@ -43,7 +43,7 @@ if [[ $(eval $ZOOKEEPER_CMD | wc -l) -ne 1 ]] ; then
 fi
 ZOOKEEPER_LIB=$(eval $ZOOKEEPER_CMD)
 
-LIB="$ACCUMULO_HOME/lib"
+LIB="$ACCUMULO_LIB_DIR"
 CORE_LIB="$LIB/accumulo-core.jar"
 FATE_LIB="$LIB/accumulo-fate.jar"
 THRIFT_LIB="$LIB/libthrift.jar"

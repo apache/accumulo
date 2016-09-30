@@ -18,7 +18,7 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
 
 Before running any of the examples, the following steps must be performed.
 
-1. Install and run Accumulo via the instructions found in $ACCUMULO_HOME/README.
+1. Install and run Accumulo via the instructions found in INSTALL.md.
    Remember the instance name. It will be referred to as "instance" throughout
    the examples. A comma-separated list of zookeeper servers will be referred
    to as "zookeepers".
@@ -31,7 +31,7 @@ In all commands, you will need to replace "instance", "zookeepers",
 "username", and "password" with the values you set for your Accumulo instance.
 
 Commands intended to be run in bash are prefixed by '$'. These are always
-assumed to be run from the $ACCUMULO_HOME directory.
+assumed to be run the from the root of your Accumulo installation.
 
 Commands intended to be run in the Accumulo shell are prefixed by '>'.
 

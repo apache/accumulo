@@ -17,7 +17,7 @@
 
 function usage {
   cat <<EOF
-Usage: bootstrap_config.sh [-options]
+Usage: config.sh [-options]
 where options include (long options not available on all platforms):
     -d, --dir        Alternate directory to setup config files
     -s, --size       Supported sizes: '1GB' '2GB' '3GB' '512MB'
@@ -33,20 +33,16 @@ EOF
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-  bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  libexec="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
   SOURCE="$(readlink "$SOURCE")"
-  [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  [[ $SOURCE != /* ]] && SOURCE="$libexec/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-
+libexec="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+basedir=$( cd -P "${libexec}"/.. && pwd )
 # Stop: Resolve Script Directory
 
-#
-# Resolve accumulo home for bootstrapping
-#
-ACCUMULO_HOME=$( cd -P ${bin}/.. && pwd )
-TEMPLATE_CONF_DIR="${ACCUMULO_HOME}/conf/templates"
-CONF_DIR="${ACCUMULO_HOME}/conf"
+TEMPLATE_CONF_DIR="${libexec}/templates"
+CONF_DIR="${ACCUMULO_CONF_DIR:-$basedir/conf}"
 ACCUMULO_SITE=accumulo-site.xml
 ACCUMULO_ENV=accumulo-env.sh
 
@@ -297,8 +293,13 @@ if [[ ! -z "${BASE_DIR}" ]]; then
   MAVEN_PROJ_BASEDIR="\n  <property>\n    <name>general.maven.project.basedir</name>\n    <value>${BASE_DIR}</value>\n  </property>\n"
 fi
 
-#Configure accumulo-env.sh
 mkdir -p "${CONF_DIR}" && cp ${TEMPLATE_CONF_DIR}/* ${CONF_DIR}/
+
+if [[ -f "${CONF_DIR}/examples/client.conf" ]]; then
+  cp ${CONF_DIR}/examples/client.conf ${CONF_DIR}/
+fi
+
+#Configure accumulo-env.sh
 sed -e "s/\${tServerHigh_tServerLow}/${!TSERVER}/" \
     -e "s/\${masterHigh_masterLow}/${!MASTER}/" \
     -e "s/\${monitorHigh_monitorLow}/${!MONITOR}/" \

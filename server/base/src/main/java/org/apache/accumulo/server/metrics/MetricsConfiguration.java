@@ -148,11 +148,10 @@ public class MetricsConfiguration {
   }
 
   private void loadConfiguration() {
-    // Check to see if ACCUMULO_HOME environment variable is set.
-    String ACUHOME = getEnvironmentConfiguration().getString("ACCUMULO_CONF_DIR");
-    if (null != ACUHOME) {
+    String accumuloConfDir = getEnvironmentConfiguration().getString("ACCUMULO_CONF_DIR");
+    if (null != accumuloConfDir) {
       // Try to load the metrics properties file
-      File mFile = new File(ACUHOME, metricsFileName);
+      File mFile = new File(accumuloConfDir, metricsFileName);
       if (mFile.exists()) {
         if (log.isDebugEnabled())
           log.debug("Loading config file: " + mFile.getAbsolutePath());

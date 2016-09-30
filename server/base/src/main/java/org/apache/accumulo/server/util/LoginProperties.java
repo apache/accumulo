@@ -41,6 +41,11 @@ public class LoginProperties implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Print Accumulo login info";
+  }
+
+  @Override
   public void execute(String[] args) throws Exception {
     AccumuloConfiguration config = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getConfiguration();
     Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader().loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))

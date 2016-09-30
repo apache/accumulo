@@ -266,14 +266,14 @@ prompted for a password you can just hit return, since it won't be used.
 3. Start the Accumulo cluster
 
 ----
-$ ${ACCUMULO_HOME}/bin/stop-all.sh
+$ accumulo-cluster stop
 ...
 $ ACCUMULO_CONF_DIR=/path/to/server/conf/ accumulo init --reset-security
 Running against secured HDFS
 Principal (user) to grant administrative privileges to : acculumo_admin@EXAMPLE.COM
 Enter initial password for accumulo_admin@EXAMPLE.COM (this may not be applicable for your security setup):
 Confirm initial password for accumulo_admin@EXAMPLE.COM:
-$ ${ACCUMULO_HOME}/bin/start-all.sh
+$ accumulo-cluster start
 ...
 $
 ----
@@ -402,7 +402,7 @@ Valid starting       Expires              Service principal
 
 The second thing clients need to do is to set up their client configuration file. By
 default, this file is stored in +~/.accumulo/config+, +$ACCUMULO_CONF_DIR/client.conf+ or
-+$ACCUMULO_HOME/conf/client.conf+. Accumulo utilities also allow you to provide your own
++$ACCUMULO_CONF_DIR/client.conf+. Accumulo utilities also allow you to provide your own
 copy of this file in any location using the +--config-file+ command line option.
 
 Three items need to be set to enable access to Accumulo:

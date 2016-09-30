@@ -199,6 +199,11 @@ public class KeywordStartIT {
     }
 
     @Override
+    public String description() {
+      return kw;
+    }
+
+    @Override
     public void execute(String[] args) throws Exception {}
 
   }

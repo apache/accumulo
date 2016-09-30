@@ -49,7 +49,7 @@ data using a Merkle tree.
     Ingests the configured amount of random data into the source
     table.
 
-4. Run stop-all.sh && start-all.sh on the source instance
+4. Run 'accumulo-cluster stop' && 'accumulo-cluster start' on the source instance
 
     A tabletserver in the source instance is likely to still be referencing
     a WAL for a presently online tablet which will prevent that

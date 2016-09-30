@@ -50,6 +50,11 @@ public class ZooKeeperMain implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Start Apache Zookeeper instance";
+  }
+
+  @Override
   public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);

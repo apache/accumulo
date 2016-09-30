@@ -127,9 +127,8 @@ security and column fetching are implemented using Iterators.
 Some useful Iterators are provided with Accumulo and can be found in the
 *+org.apache.accumulo.core.iterators.user+* package.
 In each case, any custom Iterators must be included in Accumulo's classpath,
-typically by including a jar in +$ACCUMULO_HOME/lib+ or
-+$ACCUMULO_HOME/lib/ext+, although the VFS classloader allows for
-classpath manipulation using a variety of schemes including URLs and HDFS URIs.
+typically by including a jar in +lib/+ or +lib/ext/+, although the VFS classloader
+allows for classpath manipulation using a variety of schemes including URLs and HDFS URIs.
 
 ==== Setting Iterators via the Shell
 

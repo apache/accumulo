@@ -15,8 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-Installing Accumulo
-===================
+# Installing Accumulo
 
 This document covers installing Accumulo on single and multi-node environments.
 Either [download][1] or [build][2] a binary distribution of Accumulo from
@@ -26,33 +25,41 @@ source code.  Unpack as follows.
     tar xzf <some dir>/accumulo-X.Y.Z-bin.tar.gz
     cd accumulo-X.Y.Z
 
+There are three scripts in the the `bin/` directory that are used to manage Accumulo:
+
+1. `accumulo` - Runs Accumulo command-line tools and starts Accumulo processes
+2. `accumulo-service` - Runs Accumulo processes as services
+3. `accumulo-cluster` - Manages Accumulo cluster on a single node or several nodes
+
+These scripts will be used in the remaining instructions to configure and run Accumulo.
+For convenience, consider adding `accumulo-X.Y.Z/bin/` to your shell's path.
+
+## Configuring
+
 Accumulo has some optional native code that improves its performance and
-stability.  Before configuring Accumulo attempt to build this native code
+stability. Before configuring Accumulo, attempt to build this native code
 with the following command.
 
-    ./bin/build_native_library.sh
+    accumulo build-native
 
-If the command fails, its ok to continue with setup and resolve the issue
-later.
+If the command fails, its OK to continue with setup and resolve the issue later.
 
+Run the command below to create configuration for Accumulo in `conf/`:
 
-Configuring
------------
+    accumulo create-config
 
-The Accumulo conf directory needs to be populated with initial config files.
-The following script is provided to assist with this.  Run the script and
-answer the questions.  When the script ask about memory-map type, choose Native
-if the build native script was successful.  Otherwise choose Java.
+The script will ask you questions about your set up. Below are some suggestions:
 
-    ./bin/bootstrap_config.sh
+* When the script asks about memory-map type, choose Native if the build native script 
+  was successful. Otherwise, choose Java.
+* The script will prompt for memory usage. Please note that the footprints are
+  only for the Accumulo system processes, so ample space should be left for other
+  processes like Hadoop, Zookeeper, and the Accumulo client code.  If Accumulo
+  worker processes are swapped out and unresponsive, they may be killed.
 
-The script will prompt for memory usage.   Please note that the footprints are
-only for the Accumulo system processes, so ample space should be left for other
-processes like hadoop, zookeeper, and the accumulo client code.  If Accumulo
-worker processes are swapped out and unresponsive, they may be killed.
-
-After this script runs, the conf directory should be populated and now a few
-edits are needed.
+After the `create-config` command is run, the `conf/` directory will contain
+`accumulo-env.sh`, `accumulo-site.xml`, and few a additional files. These files require
+a few edits before starting Accumulo.
 
 ### Secret
 
@@ -83,13 +90,12 @@ classpath` to print out info about where Accumulo is finding jars.  If the
 settings mentioned above are correct, then inspect `general.classpaths` in
 `conf/accumulo-site.xml`.
 
-Initialization
---------------
+## Initialization
 
 Accumulo needs to initialize the locations where it stores data in Zookeeper
 and HDFS.  The following command will do this.
 
-    ./bin/accumulo init
+    accumulo init
 
 The initialization command will prompt for the following information.
 
@@ -99,13 +105,43 @@ The initialization command will prompt for the following information.
    prompts for its password.  This information will be needed to later connect
    to Accumulo.
 
-Multiple Nodes
---------------
+## Run Accumulo
 
-Skip this section if running Accumulo on a single node.  Accumulo has
-coordinating, monitoring, and worker processes that run on specified nodes in
-the cluster.  The following files should be populated with a newline separated
-list of node names.  Must change from localhost.
+There are several methods for running Accumulo:
+
+1. Run individual Accumulo services using `accumulo-service`. Useful if you are
+   using a cluster management tool (i.e Ansible, Salt, etc) or init.d scripts to
+   start Accumulo.
+
+2. Run an Accumulo cluster on one or more nodes using `accumulo-cluster` (which
+   uses `accumulo-service` to run servcies). Useful for local development and
+   testing or if you are not using a cluster management tool in production.
+
+Each method above has instructions below.
+
+### Run Accumulo services
+
+Start Accumulo services (tserver, master, monitor, etc) using command below:
+
+    accumulo-service tserver start
+
+### Run an Accumulo cluster
+
+Before using the `accumulo-cluster` script, additional configuration files need
+to be created. Use the command below to create them:
+
+    accumulo-cluster create-config
+
+This creates five files (`masters`, `gc`, `monitor`, `tservers`, & `tracers`)
+in the `conf/` directory that contain the node names where Accumulo services
+are run on your cluster. By default, all files are configured to `localhost`. If
+you are running a single-node Accumulo cluster, theses files do not need to be
+changed and the next section should be skipped.
+
+#### Multi-node configuration
+
+If you are running an Accumulo cluster on multiple nodes, the following files
+should be configured with a newline seperated list of node names:
 
  * `conf/masters` : Accumulo primary coordinating process.  Must specify one
                     node.  Can specify a few for fault tolerance.
@@ -118,37 +154,36 @@ list of node names.  Must change from localhost.
 
 The Accumulo, Hadoop, and Zookeeper software should be present at the same
 location on every node.  Also the files in the `conf` directory must be copied
-to every node.  There are many ways to replicate the software and
-configuration, two possible tools that can help replicate software and/or
-config are [pdcp][5] and [prsync][6].
+to every node. There are many ways to replicate the software and configuration,
+two possible tools that can help replicate software and/or config are [pdcp][5]
+and [prsync][6].
 
-Starting Accumulo
------------------
+The `accumulo-cluster` script uses ssh to start processes on remote nodes. Before
+attempting to start Accumulo, [passwordless ssh][7] must be setup on the cluster.
 
-The Accumulo scripts use ssh to start processes on remote nodes.  Before
-attempting to start Accumulo, [passwordless ssh][7] must be setup on the
-cluster.
+#### Start cluster
 
 After configuring and initializing Accumulo, use the following command to start
-it.
+the cluster:
 
-    ./bin/start-all.sh
+    accumulo-cluster start
 
-First steps
------------
+## First steps
 
-Once the `start-all.sh` script completes, use the following command to run the
-Accumulo shell.
+Once you have started Accumulo, use the following command to run the Accumulo shell:
 
-    ./bin/accumulo shell -u root
+    accumulo shell -u root
 
 Use your web browser to connect the Accumulo monitor page on port 9995.
 
     http://<hostname in conf/monitor>:9995/
 
-When finished, use the following command to stop Accumulo.
+## Stopping Accumulo
 
-    ./bin/stop-all.sh
+When finished, use the following commands to stop Accumulo:
+
+* Stop Accumulo service: `accumulo-service tserver stop`
+* Stop Accumulo cluster: `accumulo-cluster stop`
 
 [1]: http://accumulo.apache.org/
 [2]: README.md#building-

@@ -20,7 +20,7 @@ use POSIX qw(strftime);
 use Cwd qw();
 
 if(scalar(@ARGV) != 2){
-	print "Usage : master-agitator.pl <sleep before kill in minutes> <sleep before start-all in minutes>\n";
+	print "Usage : master-agitator.pl <sleep before kill in minutes> <sleep before start in minutes>\n";
 	exit(1);
 }
 
@@ -84,7 +84,7 @@ while(1){
 	$t = strftime "%Y%m%d %H:%M:%S", localtime;
 	print STDERR "$t Running start-all\n";
 
-	$cmd = "$ACCUMULO_HOME/bin/start-all.sh --notTservers";
+	$cmd = "pssh -h $ACCUMULO_CONF_DIR/masters \"$ACCUMULO_HOME/bin/accumulo-service master start\" < /dev/null";
 	print "$t $cmd\n";
 	system($cmd);
 }

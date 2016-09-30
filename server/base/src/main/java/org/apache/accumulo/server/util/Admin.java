@@ -159,6 +159,11 @@ public class Admin implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Execute administrative commands";
+  }
+
+  @Override
   public void execute(final String[] args) {
     boolean everything;
 

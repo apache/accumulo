@@ -23,7 +23,7 @@
    Metrics log directory
 -->
   <logging>
-    <dir>${ACCUMULO_HOME}/metrics</dir>
+    <dir>${ACCUMULO_LOG_DIR}/metrics</dir>
   </logging>
 <!--
  Enable/Disable metrics accumulation on the different servers and their components

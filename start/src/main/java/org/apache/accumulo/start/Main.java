@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -69,6 +70,10 @@ public class Main {
       }
 
       if (args.length == 0) {
+        printUsage();
+        System.exit(1);
+      }
+      if (args[0].equals("-h") || args[0].equals("-help") || args[0].equals("--help")) {
         printUsage();
         System.exit(1);
       }
@@ -131,7 +136,8 @@ public class Main {
     try {
       classWithMain = getClassLoader().loadClass(className);
     } catch (ClassNotFoundException cnfe) {
-      System.out.println("Classname " + className + " not found.  Please make sure you use the wholly qualified package name.");
+      System.out.println("Invalid argument: Java <main class> '" + className + "' was not found.  Please use the wholly qualified package name.");
+      printUsage();
       System.exit(1);
     }
     execMainClass(classWithMain, args);
@@ -194,20 +200,29 @@ public class Main {
     System.exit(1);
   }
 
+  public static void printCommand(KeywordExecutable ke) {
+    System.out.printf("  %-30s %s\n", ke.usage(), ke.description());
+  }
+
   public static void printUsage() {
-    TreeSet<String> keywords = new TreeSet<>(getExecutables(getClassLoader()).keySet());
+    Map<String,KeywordExecutable> executableMap = new TreeMap<>(getExecutables(getClassLoader()));
 
-    // jar is a special case, because it has arguments
-    keywords.remove("jar");
-    keywords.add("jar <jar> [<main class>] args");
-
-    String prefix = "";
-    String kwString = "";
-    for (String kw : keywords) {
-      kwString += prefix + kw;
-      prefix = " | ";
+    System.out.println("\nUsage: accumulo <command> (<argument> ...)\n\nCore Commands:");
+    System.out.println("  create-config                  Create Accumulo configuration");
+    System.out.println("  build-native                   Build Accumulo native libraries");
+    for (String cmd : Arrays.asList("init", "shell", "classpath", "version", "admin", "info", "help", "jar")) {
+      printCommand(executableMap.remove(cmd));
     }
-    System.out.println("accumulo " + kwString + " | <accumulo class> args");
+    System.out.println("  <main class> args              Run Java <main class> located on Accumulo classpath");
+    System.out.println("\nProcess Commands:");
+    for (String cmd : Arrays.asList("gc", "master", "monitor", "minicluster", "proxy", "tserver", "tracer", "zookeeper")) {
+      printCommand(executableMap.remove(cmd));
+    }
+    System.out.println("\nAdvanced Commands:");
+    for (Map.Entry<String,KeywordExecutable> entry : executableMap.entrySet()) {
+      printCommand(entry.getValue());
+    }
+    System.out.println();
   }
 
   public static synchronized Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {

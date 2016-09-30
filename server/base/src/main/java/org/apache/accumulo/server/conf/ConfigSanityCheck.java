@@ -34,6 +34,11 @@ public class ConfigSanityCheck implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Checks server config";
+  }
+
+  @Override
   public void execute(String[] args) throws Exception {
     main(args);
   }

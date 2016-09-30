@@ -54,7 +54,7 @@ fi
 
 echo "==== Starting Current ==="
 
-"$CURR/bin/start-all.sh"
+"$CURR/bin/accumulo-cluster start"
 "$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 echo "compact -t test_ingest -w" | $CURR/bin/accumulo shell -u root -p secret
 "$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 400000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
@@ -65,13 +65,13 @@ echo "compact -t test_ingest -w" | $CURR/bin/accumulo shell -u root -p secret
 echo "compact -t test_ingest -w" | $CURR/bin/accumulo shell -u root -p secret
 "$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 
-"$CURR/bin/stop-all.sh"
-"$CURR/bin/start-all.sh"
+"$CURR/bin/accumulo-cluster stop"
+"$CURR/bin/accumulo-cluster start"
 
 "$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 
 pkill -9 -f accumulo.start
-"$CURR/bin/start-all.sh"
+"$CURR/bin/accumulo-cluster start"
 
 "$CURR/bin/accumulo" org.apache.accumulo.test.VerifyIngest --size 50 --timestamp 2 --random 57 --rows 500000 --start 0 --cols 1 -i $INSTANCE -u root -p secret
 

@@ -29,6 +29,11 @@ public class MonitorExecutable implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Start Accumulo monitor";
+  }
+
+  @Override
   public void execute(final String[] args) throws Exception {
     Monitor.main(args);
   }

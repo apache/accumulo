@@ -29,6 +29,11 @@ public class TracerExecutable implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Start Accumulo tracer";
+  }
+
+  @Override
   public void execute(final String[] args) throws Exception {
     TraceServer.main(args);
   }

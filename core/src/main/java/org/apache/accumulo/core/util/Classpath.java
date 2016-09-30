@@ -29,6 +29,11 @@ public class Classpath implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Print Accumulo classpath";
+  }
+
+  @Override
   public void execute(final String[] args) throws Exception {
     Main.getVFSClassLoader().getMethod("printClassPath").invoke(Main.getVFSClassLoader());
   }

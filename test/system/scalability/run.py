@@ -49,7 +49,7 @@ def file_len(fname):
 def runTest(testName, siteConfig, testDir, numNodes, fdata):
    
     log('Stopping accumulo')
-    syscall('$ACCUMULO_HOME/bin/stop-all.sh')
+    syscall('$ACCUMULO_HOME/bin/accumulo-cluster stop')
  
     log('Creating tservers file for this test')
     tserversPath = siteConfig.get('TSERVERS')
@@ -68,7 +68,7 @@ def runTest(testName, siteConfig, testDir, numNodes, fdata):
     syscall('printf "%s\nY\n%s\n%s\n" | $ACCUMULO_HOME/bin/accumulo init' % (instance, passwd, passwd))
 
     log('Starting new Accumulo instance')
-    syscall('$ACCUMULO_HOME/bin/start-all.sh')
+    syscall('$ACCUMULO_HOME/bin/accumulo-cluster start')
 
     sleepTime = 30
     if numNodes > 120:
@@ -177,7 +177,7 @@ def main():
         raise 'ACCUMULO_HOME needs to be set!'
 
     if not os.getenv('ACCUMULO_CONF_DIR'):
-        os.environ['ACCUMULO_CONF_DIR'] = os.path.join(os.getenv('ACCUMULO_HOME'), 'conf')
+        raise 'ACCUMULO_CONF_DIR needs to be set!'
 
     if not os.getenv('HADOOP_HOME'):
 		raise 'HADOOP_HOME needs to be set!'

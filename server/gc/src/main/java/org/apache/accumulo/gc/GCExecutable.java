@@ -30,6 +30,11 @@ public class GCExecutable implements KeywordExecutable {
   }
 
   @Override
+  public String description() {
+    return "Start Accumulo garbage collector";
+  }
+
+  @Override
   public void execute(final String[] args) throws IOException {
     SimpleGarbageCollector.main(args);
   }

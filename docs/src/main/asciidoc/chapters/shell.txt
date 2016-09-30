@@ -20,7 +20,7 @@ configuration settings.
 
 The shell can be started by the following command:
 
-  $ACCUMULO_HOME/bin/accumulo shell -u [username]
+  accumulo shell -u [username]
 
 The shell will prompt for the corresponding password to the username specified
 and then display the following prompt:

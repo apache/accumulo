@@ -23,7 +23,7 @@ Accumulo is a distributed system.  It is supposed to run on remote
 equipment, across hundreds of computers.  Each program that runs on
 these remote computers writes down events as they occur, into a local
 file. By default, this is defined in
-+$ACCUMULO_HOME/conf/accumule-env.sh+ as +ACCUMULO_LOG_DIR+.
++$ACCUMULO_CONF_DIR/accumule-env.sh+ as +ACCUMULO_LOG_DIR+.
 
 *A*: Look in the +$ACCUMULO_LOG_DIR/tserver*.log+ file.  Specifically, check the end of the file.
 
@@ -125,7 +125,7 @@ It is important to see the word +CONNECTED+!  If you only see
 +CONNECTING+ you will need to diagnose zookeeper errors.
 
 *A*: Check to make sure that zookeeper is up, and that
-+$ACCUMULO_HOME/conf/accumulo-site.xml+ has been pointed to
++$ACCUMULO_CONF_DIR/accumulo-site.xml+ has been pointed to
 your zookeeper server(s).
 
 *Q*: Zookeeper is running, but it does not say +CONNECTED+
@@ -294,7 +294,7 @@ There's a class that will examine an accumulo storage file and print
 out basic metadata.
 
 ----
-$ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo /accumulo/tables/1/default_tablet/A000000n.rf
+$ accumulo org.apache.accumulo.core.file.rfile.PrintInfo /accumulo/tables/1/default_tablet/A000000n.rf
 2013-07-16 08:17:14,778 [util.NativeCodeLoader] INFO : Loaded the native-hadoop library
 Locality group         : <DEFAULT>
         Start block          : 0
@@ -322,7 +322,7 @@ Meta block     : RFile.index
 
 When trying to diagnose problems related to key size, the +PrintInfo+ tool can provide a histogram of the individual key sizes:
 
-    $ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo --histogram /accumulo/tables/1/default_tablet/A000000n.rf
+    $ accumulo org.apache.accumulo.core.file.rfile.PrintInfo --histogram /accumulo/tables/1/default_tablet/A000000n.rf
     ...
     Up to size      count      %-age
              10 :        222  28.23%
@@ -338,7 +338,7 @@ When trying to diagnose problems related to key size, the +PrintInfo+ tool can p
 
 Likewise, +PrintInfo+ will dump the key-value pairs and show you the contents of the RFile:
 
-    $ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo --dump /accumulo/tables/1/default_tablet/A000000n.rf
+    $ accumulo org.apache.accumulo.core.file.rfile.PrintInfo --dump /accumulo/tables/1/default_tablet/A000000n.rf
     row columnFamily:columnQualifier [visibility] timestamp deleteFlag -> Value
     ...
 
@@ -356,21 +356,21 @@ does not provide the normal access controls in Accumulo.
 
 If you would like to backup, or otherwise examine the contents of Zookeeper, there are commands to dump and load to/from XML.
 
-    $ ./bin/accumulo org.apache.accumulo.server.util.DumpZookeeper --root /accumulo >dump.xml
-    $ ./bin/accumulo org.apache.accumulo.server.util.RestoreZookeeper --overwrite < dump.xml
+    $ accumulo org.apache.accumulo.server.util.DumpZookeeper --root /accumulo >dump.xml
+    $ accumulo org.apache.accumulo.server.util.RestoreZookeeper --overwrite < dump.xml
 
 *Q*: How can I get the information in the monitor page for my cluster monitoring system?
 
 *A*: Use GetMasterStats:
 
-    $ ./bin/accumulo org.apache.accumulo.test.GetMasterStats | grep Load
+    $ accumulo org.apache.accumulo.test.GetMasterStats | grep Load
      OS Load Average: 0.27
 
 *Q*: The monitor page is showing an offline tablet.  How can I find out which tablet it is?
 
 *A*: Use FindOfflineTablets:
 
-    $ ./bin/accumulo org.apache.accumulo.server.util.FindOfflineTablets
+    $ accumulo org.apache.accumulo.server.util.FindOfflineTablets
     2<<@(null,null,localhost:9997) is UNASSIGNED  #walogs:2
 
 Here's what the output means:
@@ -397,7 +397,7 @@ logs to be sorted for efficient recovery.
 *A*: +CheckForMetadataProblems+ will verify the start/end of
 every tablet matches, and the start and stop for the table is empty:
 
-    $ ./bin/accumulo org.apache.accumulo.server.util.CheckForMetadataProblems -u root --password
+    $ accumulo org.apache.accumulo.server.util.CheckForMetadataProblems -u root --password
     Enter the connection password:
     All is well for table !0
     All is well for table 1
@@ -408,7 +408,7 @@ every tablet matches, and the start and stop for the table is empty:
 that the file exists in HDFS.  Optionally, it will remove the
 reference:
 
-    $ ./bin/accumulo org.apache.accumulo.server.util.RemoveEntriesForMissingFiles -u root --password
+    $ accumulo org.apache.accumulo.server.util.RemoveEntriesForMissingFiles -u root --password
     Enter the connection password:
     2013-07-16 13:10:57,293 [util.RemoveEntriesForMissingFiles] INFO : File /accumulo/tables/2/default_tablet/F0000005.rf
      is missing
@@ -418,7 +418,7 @@ reference:
 
 *A*: Use CleanZookeeper:
 
-    $ ./bin/accumulo org.apache.accumulo.server.util.CleanZookeeper
+    $ accumulo org.apache.accumulo.server.util.CleanZookeeper
 
 This command will not delete the instance pointed to by the local +conf/accumulo-site.xml+ file.
 
@@ -426,23 +426,23 @@ This command will not delete the instance pointed to by the local +conf/accumulo
 
 *A*: Use the admin command:
 
-    $ ./bin/accumulo admin stop hostname:9997
+    $ accumulo admin stop hostname:9997
     2013-07-16 13:15:38,403 [util.Admin] INFO : Stopping server 12.34.56.78:9997
 
 *Q*: I cannot login to a tablet server host, and the tablet server will not shut down.  How can I kill the server?
 
 *A*: Sometimes you can kill a "stuck" tablet server by deleting its lock in zookeeper:
 
-    $ ./bin/accumulo org.apache.accumulo.server.util.TabletServerLocks --list
+    $ accumulo org.apache.accumulo.server.util.TabletServerLocks --list
                       127.0.0.1:9997 TSERV_CLIENT=127.0.0.1:9997
-    $ ./bin/accumulo org.apache.accumulo.server.util.TabletServerLocks -delete 127.0.0.1:9997
-    $ ./bin/accumulo org.apache.accumulo.server.util.TabletServerLocks -list
+    $ accumulo org.apache.accumulo.server.util.TabletServerLocks -delete 127.0.0.1:9997
+    $ accumulo org.apache.accumulo.server.util.TabletServerLocks -list
                       127.0.0.1:9997             null
 
 You can find the master and instance id for any accumulo instances using the same zookeeper instance:
 
 ----
-$ ./bin/accumulo org.apache.accumulo.server.util.ListInstances
+$ accumulo org.apache.accumulo.server.util.ListInstances
 INFO : Using ZooKeepers localhost:2181
 
  Instance Name       | Instance ID                          | Master
@@ -565,26 +565,16 @@ Besides these columns, you may see:
 
 *Q*: One of my Accumulo processes died. How do I bring it back?
 
-The easiest way to bring all services online for an Accumulo instance is to run the +start-all.sh+ script.
+The easiest way to bring all services online for an Accumulo instance is to run the +accumulo-cluster+ script.
 
-    $ bin/start-all.sh
+    $ accumulo-cluster start
 
 This process will check the process listing, using +jps+ on each host before attempting to restart a service on the given host.
 Typically, this check is sufficient except in the face of a hung/zombie process. For large clusters, it may be
-undesirable to ssh to every node in the cluster to ensure that all hosts are running the appropriate processes and +start-here.sh+ may be of use.
+undesirable to ssh to every node in the cluster to ensure that all hosts are running the appropriate processes and +accumulo-service+ may be of use.
 
     $ ssh host_with_dead_process
-    $ bin/start-here.sh
-
-+start-here.sh+ should be invoked on the host which is missing a given process. Like start-all.sh, it will start all
-necessary processes that are not currently running, but only on the current host and not cluster-wide. Tools such as +pssh+ or
-+pdsh+ can be used to automate this process.
-
-+start-server.sh+ can also be used to start a process on a given host; however, it is not generally recommended for
-users to issue this directly as the +start-all.sh+ and +start-here.sh+ scripts provide the same functionality with
-more automation and are less prone to user error.
-
-*A*: Use +start-all.sh+ or +start-here.sh+.
+    $ accumulo-service tserver start
 
 *Q*: My process died again. Should I restart it via +cron+ or tools like +supervisord+?
 
@@ -592,7 +582,6 @@ more automation and are less prone to user error.
 misconfiguration of Accumulo or over-saturation of resources. Blind automation of any service restart inside of Accumulo
 is generally an undesirable situation as it is indicative of a problem that is being masked and ignored. Accumulo
 processes should be stable on the order of months and not require frequent restart.
-
 
 ### Advanced System Recovery
 
@@ -614,7 +603,7 @@ lost.
 
 *A*: Use +accumulo admin checkTablets+
 
-    $ bin/accumulo admin checkTablets
+    $ accumulo admin checkTablets
 
 *Q*: I lost three data nodes, and I'm missing blocks in a WAL.  I don't care about data loss, how
 can I get those tablets online?
@@ -784,7 +773,7 @@ omission of new data.
 will default to using the directory specified by +logger.dir.walog+ in your configuration, or can be
 overriden by using the +--local-wal-directories+ option on the tool. It can be invoked as follows:
 
-    $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.tserver.log.LocalWALRecovery
+  accumulo org.apache.accumulo.tserver.log.LocalWALRecovery
 
 ### File Naming Conventions
 

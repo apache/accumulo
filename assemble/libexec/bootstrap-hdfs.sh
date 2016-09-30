@@ -18,14 +18,14 @@
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-   SOURCE="$(readlink "$SOURCE")"
-   [[ $SOURCE != /* ]] && SOURCE="$bin/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  libexec=$( cd -P "$( dirname "$SOURCE" )" && pwd )
+  SOURCE=$(readlink "$SOURCE")
+  [[ $SOURCE != /* ]] && SOURCE="$libexec/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+libexec=$( cd -P "$( dirname "$SOURCE" )" && pwd )
 # Stop: Resolve Script Directory
 
-. "$bin"/config.sh
+source "$libexec"/load-env.sh
 
 #
 # Find the system context directory in HDFS
@@ -72,17 +72,17 @@ REP=$(( NUM_TSERVERS / 50 ))
 #
 # Copy all jars in lib to the system context directory
 #
-"$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$ACCUMULO_HOME"/lib/*.jar "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$ACCUMULO_LIB_DIR/*.jar "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -setrep -R $REP "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 
 #
 # We need some of the jars in lib, copy them back out and remove them from the system context dir
 #
-"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar" "$ACCUMULO_LIB_DIR/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar"  > /dev/null
-"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar" "$ACCUMULO_LIB_DIR/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
-"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar" "$ACCUMULO_LIB_DIR/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar"  > /dev/null
 for f in $(grep -v '^#' "$ACCUMULO_CONF_DIR/tservers")
 do

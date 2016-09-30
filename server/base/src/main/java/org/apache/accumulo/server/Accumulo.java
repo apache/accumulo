@@ -124,8 +124,10 @@ public class Accumulo {
       return explicitConfigFile;
     }
     String[] configFiles = {String.format("%s/%s_logger.xml", confDir, application), String.format("%s/%s_logger.properties", confDir, application),
-        String.format("%s/generic_logger.xml", confDir), String.format("%s/generic_logger.properties", confDir)};
-    String defaultConfigFile = configFiles[2]; // generic_logger.xml
+        String.format("%s/examples/%s_logger.xml", confDir, application), String.format("%s/examples/%s_logger.properties", confDir, application),
+        String.format("%s/generic_logger.xml", confDir), String.format("%s/generic_logger.properties", confDir),
+        String.format("%s/examples/generic_logger.xml", confDir), String.format("%s/examples/generic_logger.properties", confDir),};
+    String defaultConfigFile = String.format("%s/examples/generic_logger.xml", confDir);
     for (String f : configFiles) {
       if (new File(f).exists()) {
         return f;
@@ -137,10 +139,9 @@ public class Accumulo {
   public static void setupLogging(String application) throws UnknownHostException {
     System.setProperty("org.apache.accumulo.core.application", application);
 
-    if (System.getenv("ACCUMULO_LOG_DIR") != null)
+    if (System.getenv("ACCUMULO_LOG_DIR") != null) {
       System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_LOG_DIR"));
-    else
-      System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_HOME") + "/logs/");
+    }
 
     String localhost = InetAddress.getLocalHost().getHostName();
     System.setProperty("org.apache.accumulo.core.ip.localhost.hostname", localhost);

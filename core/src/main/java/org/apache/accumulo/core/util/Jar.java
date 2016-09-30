@@ -26,9 +26,19 @@ import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
 public class Jar implements KeywordExecutable {
+
   @Override
   public String keyword() {
     return "jar";
+  }
+
+  public String usage() {
+    return "jar <jar> [<main class>] args";
+  }
+
+  @Override
+  public String description() {
+    return "Run Java <main class> in <jar> using Accumulo classpath";
   }
 
   @Override

@@ -71,10 +71,10 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     // Check standard directories
     List<File> directories = new ArrayList<>(Arrays.asList(new File[] {new File("/usr/lib64"), new File("/usr/lib")}));
     // Check in ACCUMULO_HOME location, too
-    String envAccumuloHome = System.getenv("ACCUMULO_HOME");
-    if (envAccumuloHome != null) {
-      directories.add(new File(envAccumuloHome + "/lib/native"));
-      directories.add(new File(envAccumuloHome + "/lib/native/map")); // old location, just in case somebody puts it here
+    String accumuloHome = System.getenv("ACCUMULO_HOME");
+    if (accumuloHome != null) {
+      directories.add(new File(accumuloHome + "/lib/native"));
+      directories.add(new File(accumuloHome + "/lib/native/map")); // old location, just in case somebody puts it here
     }
     // Attempt to load from these directories, using standard names
     loadNativeLib(directories);

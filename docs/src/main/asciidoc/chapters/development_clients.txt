@@ -42,7 +42,7 @@ In fact, you can use the +--fake+ option to the Accumulo shell and interact with
 MockAccumulo:
 
 ----
-$ ./bin/accumulo shell --fake -u root -p ''
+$ accumulo shell --fake -u root -p ''
 
 Shell - Apache Accumulo Interactive Shell
 -

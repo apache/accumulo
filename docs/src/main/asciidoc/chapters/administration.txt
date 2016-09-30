@@ -78,10 +78,28 @@ sufficient space:
   cd accumulo-X.Y.Z
 
 Repeat this step on each machine in your cluster. Typically, the same +<install directory>+
-is chosen for all machines in the cluster. When you configure Accumulo, the +$ACCUMULO_HOME+
-environment variable should be set to +/path/to/<install directory>/accumulo-X.Y.Z+.
+is chosen for all machines in the cluster.
+
+There are three scripts in the the `bin/` directory that are used to manage Accumulo:
+
+1. `accumulo` - Runs Accumulo command-line tools and starts Accumulo processes
+2. `accumulo-service` - Runs Accumulo processes as services
+3. `accumulo-cluster` - Manages Accumulo cluster on a single node or several nodes
+
+These scripts will be used in the remaining instructions to configure and run Accumulo.
+
+Add the following to your `~/.bashrc` if you want to be able to execute these scripts
+from any directory:
+
+  export PATH=/path/to/accumulo-X.Y.Z/bin:$PATH
+
+Source your `~/.bashrc` for the changes to take effect and verify:
+
+  source ~/.bashrc
+  which accumulo
 
 === Dependencies
+
 Accumulo requires HDFS and ZooKeeper to be configured and running
 before starting. Password-less SSH should be configured between at least the
 Accumulo master and TabletServer machines. It is also a good idea to run Network
@@ -91,7 +109,7 @@ sync, which can cause problems with automatically timestamped data.
 === Configuration
 
 Accumulo is configured by editing several Shell and XML files found in
-+$ACCUMULO_HOME/conf+. The structure closely resembles Hadoop's configuration
++$ACCUMULO_CONF_DIR+. The structure closely resembles Hadoop's configuration
 files.
 
 Logging is primarily controlled using the log4j configuration files,
@@ -107,7 +125,6 @@ rather than all the logs that it receives from other server types.
 Accumulo needs to know where to find the software it depends on. Edit accumulo-env.sh
 and specify the following:
 
-. Enter the location of the installation directory of Accumulo for +$ACCUMULO_HOME+
 . Enter your system's Java home for +$JAVA_HOME+
 . Enter the location of Hadoop for +$HADOOP_PREFIX+
 . Choose a location for Accumulo logs and enter it for +$ACCUMULO_LOG_DIR+
@@ -145,23 +162,22 @@ in the JVM by causing it to pause much less frequently.
 ===== Building
 
 32-bit and 64-bit Linux and Mac OS X versions of the native map can be built
-from the Accumulo bin package by executing
-+$ACCUMULO_HOME/bin/build_native_library.sh+. If your system's
+from the Accumulo bin package by executing +accumulo build-native+. If your system's
 default compiler options are insufficient, you can add additional compiler
 options to the command line, such as options for the architecture. These will be
 passed to the Makefile in the environment variable +USERFLAGS+.
 
 Examples:
 
-. +$ACCUMULO_HOME/bin/build_native_library.sh+
-. +$ACCUMULO_HOME/bin/build_native_library.sh -m32+
+  accumulo build-native
+  accumulo build-native -m32
 
 After building the native map from the source, you will find the artifact in
-+$ACCUMULO_HOME/lib/native+. Upon starting up, the tablet server will look
++lib/native+. Upon starting up, the tablet server will look
 in this directory for the map library. If the file is renamed or moved from its
 target directory, the tablet server may not be able to find it. The system can
 also locate the native maps shared library by setting +LD_LIBRARY_PATH+
-(or +DYLD_LIBRARY_PATH+ on Mac OS X) in +$ACCUMULO_HOME/conf/accumulo-env.sh+.
+(or +DYLD_LIBRARY_PATH+ on Mac OS X) in +$ACCUMULO_CONF_DIR/accumulo-env.sh+.
 
 ===== Native Maps Configuration
 
@@ -197,8 +213,8 @@ performance to the write-ahead log file which will slow ingest.
 
 On the machine that will serve as the Accumulo master:
 
-. Write the IP address or domain name of the Accumulo Master to the +$ACCUMULO_HOME/conf/masters+ file.
-. Write the IP addresses or domain name of the machines that will be TabletServers in +$ACCUMULO_HOME/conf/tservers+, one per line.
+. Write the IP address or domain name of the Accumulo Master to the +$ACCUMULO_CONF_DIR/masters+ file.
+. Write the IP addresses or domain name of the machines that will be TabletServers in +$ACCUMULO_CONF_DIR/tservers+, one per line.
 
 Note that if using domain names rather than IP addresses, DNS must be configured
 properly for all machines participating in the cluster. DNS can be a confusing source
@@ -206,7 +222,7 @@ of errors.
 
 ==== Accumulo Settings
 Specify appropriate values for the following settings in
-+$ACCUMULO_HOME/conf/accumulo-site.xml+ :
++$ACCUMULO_CONF_DIR/accumulo-site.xml+ :
 
 [source,xml]
 <property>
@@ -265,7 +281,7 @@ Accumulo identifies +localhost:8020+ as a different HDFS instance than +127.0.0.
 ==== Deploy Configuration
 
 Copy the masters, tservers, accumulo-env.sh, and if necessary, accumulo-site.xml
-from the +$ACCUMULO_HOME/conf/+ directory on the master to all the machines
+from the +$ACCUMULO_CONF_DIR/+ directory on the master to all the machines
 specified in the tservers file.
 
 ==== Sensitive Configuration Values
@@ -401,7 +417,7 @@ data across the cluster. HDFS is required to be configured and running before
 Accumulo can be initialized.
 
 Once HDFS is started, initialization can be performed by executing
-+$ACCUMULO_HOME/bin/accumulo init+ . This script will prompt for a name
++accumulo init+ . This script will prompt for a name
 for this instance of Accumulo. The instance name is used to identify a set of tables
 and instance-specific settings. The script will then write some information into
 HDFS so Accumulo can start properly.
@@ -417,7 +433,7 @@ Make sure Hadoop is configured on all of the machines in the cluster, including
 access to a shared HDFS instance. Make sure HDFS and ZooKeeper are running.
 Make sure ZooKeeper is configured and running on at least one machine in the
 cluster.
-Start Accumulo using the +bin/start-all.sh+ script.
+Start Accumulo using +accumulo-cluster start+.
 
 To verify that Accumulo is running, check the Status page as described in
 <<monitoring>>. In addition, the Shell can provide some information about the status of
@@ -425,57 +441,48 @@ tables via reading the metadata tables.
 
 ==== Stopping Accumulo
 
-To shutdown cleanly, run +bin/stop-all.sh+ and the master will orchestrate the
+To shutdown cleanly, run +accumulo-cluster stop+ and the master will orchestrate the
 shutdown of all the tablet servers. Shutdown waits for all minor compactions to finish, so it may
 take some time for particular configurations.
 
-==== Adding a Node
+==== Adding a Tablet Server
 
-Update your +$ACCUMULO_HOME/conf/tservers+ (or +$ACCUMULO_CONF_DIR/tservers+) file to account for the addition.
+Update your +$ACCUMULO_CONF_DIR/tservers+ file to account for the addition.
 
 Next, ssh to each of the hosts you want to add and run:
 
-  $ACCUMULO_HOME/bin/start-here.sh
+  accumulo-service tserver start
 
 Make sure the host in question has the new configuration, or else the tablet
 server won't start; at a minimum this needs to be on the host(s) being added,
 but in practice it's good to ensure consistent configuration across all nodes.
 
-==== Decomissioning a Node
+==== Decomissioning a Tablet Server
 
 If you need to take a node out of operation, you can trigger a graceful shutdown of a tablet
 server. Accumulo will automatically rebalance the tablets across the available tablet servers.
 
-  $ACCUMULO_HOME/bin/accumulo admin stop <host(s)> {<host> ...}
+  accumulo admin stop <host(s)> {<host> ...}
 
 Alternatively, you can ssh to each of the hosts you want to remove and run:
 
-  $ACCUMULO_HOME/bin/stop-here.sh
+  accumulo-service tserver stop
 
-Be sure to update your +$ACCUMULO_HOME/conf/tservers+ (or +$ACCUMULO_CONF_DIR/tservers+) file to
+Be sure to update your +$ACCUMULO_CONF_DIR/tservers+ file to
 account for the removal of these hosts. Bear in mind that the monitor will not re-read the
 tservers file automatically, so it will report the decomissioned servers as down; it's
 recommended that you restart the monitor so that the node list is up to date.
 
+The steps described to decomission a node can also be used (without removal of the host
+from the +$ACCUMULO_CONF_DIR/tservers+ file) to gracefully stop a node. This will
+ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
+when the tablets are re-hosted.
+
 ==== Restarting process on a node
 
 Occasionally, it might be necessary to restart the processes on a specific node. In addition
-to the +start-all.sh+ and +stop-all.sh+ scripts, Accumulo contains scripts to start/stop all processes
-on a node and start/stop a given process on a node.
-
-+start-here.sh+ and +stop-here.sh+ will start/stop all Accumulo processes on the current node. The
-necessary processes to start/stop are determined via the "hosts" files (e.g. tservers, masters, etc).
-These scripts expect no arguments.
-
-+start-server.sh+ can also be useful in starting a given process on a host.
-The first argument to the process is the hostname of the machine. Use the same host that
-you specified in hosts file (if you specified FQDN in the masters file, use the FQDN, not
-the shortname). The second argument is the name of the process to start (e.g. master, tserver).
-
-The steps described to decomission a node can also be used (without removal of the host
-from the +$ACCUMULO_HOME/conf/tservers+ file) to gracefully stop a node. This will
-ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
-when the tablets are re-hosted.
+to the +accumulo-cluster+ script, Accumulo has a +accumulo-service+ script that
+can be use to start/stop processes on a node.
 
 ===== A note on rolling restarts
 
@@ -559,9 +566,10 @@ SSL may be enabled for the monitor page by setting the following properties in t
   monitor.ssl.trustStore
   monitor.ssl.trustStorePassword
 
-If the Accumulo conf directory has been configured (in particular the +accumulo-env.sh+ file must be set up), the +generate_monitor_certificate.sh+ script in the Accumulo +bin+ directory can be used to create the keystore and truststore files with random passwords.
-The script will print out the properties that need to be added to the +accumulo-site.xml+ file.
-The stores can also be generated manually with the Java +keytool+ command, whose usage can be seen in the +generate_monitor_certificate.sh+ script.
+If the Accumulo conf directory has been configured (in particular the +accumulo-env.sh+ file must be set up), the +gen-monitor-cert.sh+
+script in the Accumulo +lib/scripts+ directory can be used to create the keystore and truststore files with random passwords. The script
+will print out the properties that need to be added to the +accumulo-site.xml+ file. The stores can also be generated manually with the
+Java +keytool+ command, whose usage can be seen in the +gen-monitor-cert.sh+ script.
 
 If desired, the SSL ciphers allowed for connections can be controlled via the following properties in +accumulo-site.xml+:
 
@@ -625,7 +633,7 @@ http://research.google.com/pubs/pub36356.html[Google's Dapper].
 
 ==== Tracers
 To collect traces, Accumulo needs at least one server listed in
- +$ACCUMULO_HOME/conf/tracers+. The server collects traces
+ +$ACCUMULO_CONF_DIR/tracers+. The server collects traces
 from clients and writes them to the +trace+ table. The Accumulo
 user that the tracer connects to Accumulo with can be configured with
 the following properties
@@ -713,11 +721,11 @@ in addition to the Accumulo's default ZooTraceClient, and they serve as a templa
 for adding any SpanReceiver to Accumulo:
 
 1. Add the Jar containing the ZipkinSpanReceiver class file to the
-+$ACCUMULO_HOME/lib/+.  It is critical that the Jar is placed in
++lib/+ directory.  It is critical that the Jar is placed in
 +lib/+ and NOT in +lib/ext/+ so that the new SpanReceiver class
 is visible to the same class loader of htrace-core.
 
-2. Add the following to +$ACCUMULO_HOME/conf/accumulo-site.xml+:
+2. Add the following to +$ACCUMULO_CONF_DIR/accumulo-site.xml+:
 
   <property>
     <name>trace.span.receivers</name>
@@ -903,13 +911,11 @@ Start time entries take the following form:
   "start":startTime "id":traceId        []    spanBinaryEncoding
   start:14f3828a351 id:63b318de80de96d1 []    %18;%09;...
 
-The following classes may be run from $ACCUMULO_HOME while Accumulo is running
-to provide insight into trace statistics. These require
-accumulo-trace-VERSION.jar to be provided on the Accumulo classpath
-(+$ACCUMULO_HOME/lib/ext+ is fine).
+The following classes may be run while Accumulo is running to provide insight into trace statistics. These require
+accumulo-trace-VERSION.jar to be provided on the Accumulo classpath (+lib/ext+ is fine).
 
-  $ bin/accumulo org.apache.accumulo.tracer.TraceTableStats -u username -p password -i instancename
-  $ bin/accumulo org.apache.accumulo.tracer.TraceDump -u username -p password -i instancename -r
+  $ accumulo org.apache.accumulo.tracer.TraceTableStats -u username -p password -i instancename
+  $ accumulo org.apache.accumulo.tracer.TraceDump -u username -p password -i instancename -r
 
 ==== Tracing from the Shell
 You can enable tracing for operations run from the shell by using the
@@ -987,7 +993,7 @@ throwing an exception.
 The following steps will allow a non-HA instance to be migrated to an HA instance. Consider an HDFS URL
 +hdfs://namenode.example.com:8020+ which is going to be moved to +hdfs://nameservice1+.
 
-Before moving HDFS over to the HA namenode, use +$ACCUMULO_HOME/bin/accumulo admin volumes+ to confirm
+Before moving HDFS over to the HA namenode, use +accumulo admin volumes+ to confirm
 that the only volume displayed is the volume from the current namenode's HDFS URL.
 
     Listing volumes referenced in zookeeper
@@ -1004,7 +1010,7 @@ that the only volume displayed is the volume from the current namenode's HDFS UR
 
 After verifying the current volume is correct, shut down the cluster and transition HDFS to the HA nameservice.
 
-Edit +$ACCUMULO_HOME/conf/accumulo-site.xml+ to notify accumulo that a volume is being replaced. First,
+Edit +$ACCUMULO_CONF_DIR/accumulo-site.xml+ to notify accumulo that a volume is being replaced. First,
 add the new nameservice volume to the +instance.volumes+ property. Next, add the
 +instance.volumes.replacements+ property in the form of +old new+. It's important to not include
 the volume that's being replaced in +instance.volumes+, otherwise it's possible accumulo could continue
@@ -1021,8 +1027,8 @@ to write to the volume.
   <value>hdfs://namenode.example.com:8020/accumulo hdfs://nameservice1/accumulo</value>
 </property>
 
-Run +$ACCUMULO_HOME/bin/accumulo init --add-volumes+ and start up the accumulo cluster. Verify that the
-new nameservice volume shows up with +$ACCUMULO_HOME/bin/accumulo admin volumes+.
+Run +accumulo init --add-volumes+ and start up the accumulo cluster. Verify that the
+new nameservice volume shows up with +accumulo admin volumes+.
 
 
     Listing volumes referenced in zookeeper

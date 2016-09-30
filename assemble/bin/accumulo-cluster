@@ -1,0 +1,101 @@
+#! /usr/bin/env bash
+
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+function print_usage {
+  cat <<EOF
+Usage: accumulo-cluster <command> (<argument> ...)
+
+Commands:
+  create-config   Creates cluster config
+  start           Starts Accumulo cluster
+  stop            Stops Accumulo cluster
+
+EOF
+  exit 1
+}
+
+function invalid_args {
+  echo -e "Invalid arguments: $1\n"
+  print_usage
+  exit 1
+}
+
+function verify_dir {
+  if [[ ! -d $1 ]]; then
+    echo "Directory does not exist: $1"
+    exit 1
+  fi
+}
+
+function verify_file {
+  if [[ ! -f $1 ]]; then
+    echo "File does not exist: $1"
+    exit 1
+  fi
+}
+
+function copy_file {
+  verify_file "$1"
+  verify_dir "$2"
+  if ! cp "$1" "$2"
+  then
+    echo "Failed to copy file '$1' to '$2'"
+    exit 1
+  fi
+}
+
+function main() {
+
+  if [[ -z $1 ]]; then
+    invalid_args "<command> cannot be empty"
+  fi
+
+  # Resolve base directory
+  SOURCE="${BASH_SOURCE[0]}"
+  while [ -h "${SOURCE}" ]; do
+     bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+     SOURCE="$(readlink "${SOURCE}")"
+     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
+  done
+  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+  basedir=$( cd -P "${bin}"/.. && pwd )
+
+  source "$basedir"/libexec/load-env.sh
+
+  verify_file "${ACCUMULO_LIBEXEC_DIR}/cluster.sh"
+
+  case "$1" in
+    create-config)
+      copy_file "${ACCUMULO_CONF_DIR}/examples/gc" "${ACCUMULO_CONF_DIR}"
+      copy_file "${ACCUMULO_CONF_DIR}/examples/masters" "${ACCUMULO_CONF_DIR}"
+      copy_file "${ACCUMULO_CONF_DIR}/examples/monitor" "${ACCUMULO_CONF_DIR}"
+      copy_file "${ACCUMULO_CONF_DIR}/examples/tservers" "${ACCUMULO_CONF_DIR}"
+      copy_file "${ACCUMULO_CONF_DIR}/examples/tracers" "${ACCUMULO_CONF_DIR}"
+      ;;
+    start)
+      "${ACCUMULO_LIBEXEC_DIR}"/cluster.sh start-all
+      ;;
+    stop)
+      "${ACCUMULO_LIBEXEC_DIR}"/cluster.sh stop-all
+      ;;
+    *)
+      invalid_args "'$1' is an invalid <command>"
+      ;;
+  esac
+}
+
+main "$@"
