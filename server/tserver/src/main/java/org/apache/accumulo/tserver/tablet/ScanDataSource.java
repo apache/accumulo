@@ -74,32 +74,26 @@ class ScanDataSource implements DataSource {
 
   ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, AtomicBoolean interruptFlag, SamplerConfiguration samplerConfig, long batchTimeOut, String context) {
-    this.tablet = tablet;
-    expectedDeletionCount = tablet.getDataSourceDeletions();
-    this.options = new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false, samplerConfig, batchTimeOut, context);
-    this.interruptFlag = interruptFlag;
-    this.loadIters = true;
-    log.debug("new scan data source, tablet: {}, options: {}, interruptFlag: {}, loadIterators: {}", this.tablet, this.options, this.interruptFlag,
-        this.loadIters);
+    this(tablet, tablet.getDataSourceDeletions(), new ScanOptions(-1, authorizations, defaultLabels, columnSet, ssiList, ssio, interruptFlag, false,
+        samplerConfig, batchTimeOut, context), interruptFlag, true);
   }
 
   ScanDataSource(Tablet tablet, ScanOptions options) {
-    this.tablet = tablet;
-    expectedDeletionCount = tablet.getDataSourceDeletions();
-    this.options = options;
-    this.interruptFlag = options.getInterruptFlag();
-    this.loadIters = true;
-    log.debug("new scan data source, tablet: {}, options: {}, interruptFlag: {}, loadIterators: {}", this.tablet, this.options, this.interruptFlag,
-        this.loadIters);
+    this(tablet, tablet.getDataSourceDeletions(), options, options.getInterruptFlag(), true);
   }
 
   ScanDataSource(Tablet tablet, Authorizations authorizations, byte[] defaultLabels, AtomicBoolean iFlag) {
+    this(tablet, tablet.getDataSourceDeletions(), new ScanOptions(-1, authorizations, defaultLabels, EMPTY_COLS, null, null, iFlag, false, null, -1, null),
+        iFlag, false);
+  }
+
+  ScanDataSource(Tablet tablet, long expectedDeletionCount, ScanOptions options, AtomicBoolean interruptFlag, boolean loadIters) {
     this.tablet = tablet;
-    expectedDeletionCount = tablet.getDataSourceDeletions();
-    this.options = new ScanOptions(-1, authorizations, defaultLabels, EMPTY_COLS, null, null, iFlag, false, null, -1, null);
-    this.interruptFlag = iFlag;
-    this.loadIters = false;
-    log.debug("new scan data source, tablet: {}, options: {}, interruptFlag: {}, loadIterators: {}", this.tablet, this.options, this.interruptFlag,
+    this.expectedDeletionCount = expectedDeletionCount;
+    this.options = options;
+    this.interruptFlag = interruptFlag;
+    this.loadIters = loadIters;
+    log.trace("new scan data source, tablet: {}, options: {}, interruptFlag: {}, loadIterators: {}", this.tablet, this.options, this.interruptFlag,
         this.loadIters);
   }
 
