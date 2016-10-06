@@ -83,6 +83,9 @@ abstract class Basic extends BasicServlet {
     Map<String,String> loginMap = conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     // May be null
     String keytab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
+    if (keytab == null || keytab.length() == 0) {
+      keytab = conf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
+    }
 
     if (saslEnabled && null != keytab) {
       principal = SecurityUtil.getServerPrincipal(conf.get(Property.TRACE_USER));
