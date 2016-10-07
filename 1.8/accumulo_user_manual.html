@@ -700,7 +700,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_generate_principal_and_keytab">Generate Principal and Keytab</a></li>
 <li><a href="#_server_configuration_2">Server Configuration</a></li>
 <li><a href="#_kerberosauthenticator">KerberosAuthenticator</a></li>
-<li><a href="#_accumulo_initialization">Accumulo Initialization</a></li>
+<li><a href="#_administrative_user">Administrative User</a></li>
 <li><a href="#_verifying_secure_access">Verifying secure access</a></li>
 <li><a href="#_impersonation">Impersonation</a></li>
 <li><a href="#_delegation_tokens_2">Delegation Tokens</a></li>
@@ -710,6 +710,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel4">
 <li><a href="#_create_client_principal">Create client principal</a></li>
 <li><a href="#_configuration_3">Configuration</a></li>
+<li><a href="#_verifying_administrative_access">Verifying Administrative Access</a></li>
 <li><a href="#_delegationtokens_with_mapreduce">DelegationTokens with MapReduce</a></li>
 </ul>
 </li>
@@ -5686,6 +5687,11 @@ numerous guidelines already exist on the subject of configuring Hadoop and ZooKe
 use with Kerberos and won&#8217;t be covered here. It is assumed that you have functional
 Hadoop and ZooKeeper already installed.</p>
 </div>
+<div class="paragraph">
+<p>Note that on an existing cluster the server side changes will require a full cluster shutdown and restart. You should
+wait to restart the TraceServers until after you&#8217;ve completed the rest of the cluster set up and provisioned
+a trace user with appropriate permissions.</p>
+</div>
 <div class="sect3">
 <h4 id="_servers">16.4.1. Servers</h4>
 <div class="paragraph">
@@ -5809,6 +5815,12 @@ keytab/principal to serialize traces. Like non-Kerberized instances, the table m
 to the trace.user. The same <code>_HOST</code> replacement is performed on this value, substituted the FQDN for <code>_HOST</code>.</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">trace.token.property.keytab</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">You can optionally specify the path to a keytab file for the principal given in the <code>trace.user</code> property. If you don&#8217;t
+set this path, it will default to the value given in <code>general.kerberos.principal</code>.</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">general.delegation.token.lifetime</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">7d</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The length of time that the server-side secret used to create delegation tokens is valid. After a server-side secret
@@ -5863,7 +5875,7 @@ to granting Authorizations and Permissions to new users.</p>
 </div>
 </div>
 <div class="sect4">
-<h5 id="_accumulo_initialization">Accumulo Initialization</h5>
+<h5 id="_administrative_user">Administrative User</h5>
 <div class="paragraph">
 <p>Out of the box (without Kerberos enabled), Accumulo has a single user with administrative permissions "root".
 This users is used to "bootstrap" other users, creating less-privileged users for applications using
@@ -5876,6 +5888,40 @@ because it is very unlikely to have Kerberos credentials for a principal named <
 enabled, Accumulo will prompt for the name of a user to grant the same permissions as what the <code>root</code>
 user would normally have. The name of the Accumulo user to grant administrative permissions to can
 also be given by the <code>-u</code> or <code>--user</code> options.</p>
+</div>
+<div class="paragraph">
+<p>If you are enabling Kerberos on an existing cluster, you will need to reinitialize the security system in
+order to replace the existing "root" user with one that can be used with Kerberos. These steps should be
+completed after you have done the previously described configuration changes and will require access to
+a complete <code>accumulo-site.xml</code>, including the instance secret. Note that this process will delete all
+existing users in the system; you will need to reassign user permissions based on Kerberos principals.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Ensure Accumulo is not running.</p>
+</li>
+<li>
+<p>Given the path to a <code>accumulo-site.xml</code> with the instance secret, run the security reset tool. If you are
+prompted for a password you can just hit return, since it won&#8217;t be used.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ ACCUMULO_CONF_DIR=/path/to/server/conf/ accumulo init --reset-security
+Running against secured HDFS
+Principal (user) to grant administrative privileges to : acculumo_admin@EXAMPLE.COM
+Enter initial password for accumulo_admin@EXAMPLE.COM (this may not be applicable for your security setup):
+Confirm initial password for accumulo_admin@EXAMPLE.COM:</pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Start the Accumulo cluster</p>
+</li>
+</ol>
 </div>
 </div>
 <div class="sect4">
@@ -6026,7 +6072,7 @@ Valid starting       Expires              Service principal
 <h5 id="_configuration_3">Configuration</h5>
 <div class="paragraph">
 <p>The second thing clients need to do is to set up their client configuration file. By
-default, this file is stored in <code>~/.accumulo/conf</code>, <code>$ACCUMULO_CONF_DIR/client.conf</code> or
+default, this file is stored in <code>~/.accumulo/config</code>, <code>$ACCUMULO_CONF_DIR/client.conf</code> or
 <code>$ACCUMULO_HOME/conf/client.conf</code>. Accumulo utilities also allow you to provide your own
 copy of this file in any location using the <code>--config-file</code> command line option.</p>
 </div>
@@ -6039,13 +6085,56 @@ copy of this file in any location using the <code>--config-file</code> command l
 <p><code>instance.rpc.sasl.enabled</code>=<em>true</em></p>
 </li>
 <li>
+<p><code>rpc.sasl.qop</code>=<em>auth</em></p>
+</li>
+<li>
 <p><code>kerberos.server.primary</code>=<em>accumulo</em></p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>The second and third properties <strong>must</strong> match the configuration of the accumulo servers; this is
+<p>Each of these properties <strong>must</strong> match the configuration of the accumulo servers; this is
 required to set up the SASL transport.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_verifying_administrative_access">Verifying Administrative Access</h5>
+<div class="paragraph">
+<p>At this point you should have enough configured on the server and client side to interact with
+the system. You should verify that the administrative user you chose earlier can successfully
+interact with the sytem.</p>
+</div>
+<div class="paragraph">
+<p>While this example logs in via <code>kinit</code> with a password, any login method that caches Kerberos tickets
+should work.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ kinit accumulo_admin@EXAMPLE.COM
+Password for accumulo_admin@EXAMPLE.COM: ******************************
+$ accumulo shell
+
+Shell - Apache Accumulo Interactive Shell
+-
+- version: 1.7.2
+- instance name: MYACCUMULO
+- instance id: 483b9038-889f-4b2d-b72b-dfa2bb5dbd07
+-
+- type 'help' for a list of available commands
+-
+accumulo_admin@EXAMPLE.COM@MYACCUMULO&gt; userpermissions
+System permissions: System.GRANT, System.CREATE_TABLE, System.DROP_TABLE, System.ALTER_TABLE, System.CREATE_USER, System.DROP_USER, System.ALTER_USER, System.SYSTEM, System.CREATE_NAMESPACE, System.DROP_NAMESPACE, System.ALTER_NAMESPACE, System.OBTAIN_DELEGATION_TOKEN
+
+Namespace permissions (accumulo): Namespace.READ, Namespace.ALTER_TABLE
+
+Table permissions (accumulo.metadata): Table.READ, Table.ALTER_TABLE
+Table permissions (accumulo.replication): Table.READ
+Table permissions (accumulo.root): Table.READ, Table.ALTER_TABLE
+
+accumulo_admin@EXAMPLE.COM@MYACCUMULO&gt; quit
+$ kdestroy
+$</pre>
+</div>
 </div>
 </div>
 <div class="sect4">
@@ -6250,6 +6339,44 @@ servers are not configured to listen on the address denoted by their FQDN.</p>
 <div class="paragraph">
 <p>The values in the Accumulo "hosts" files (In <code>$ACCUMULO_CONF_DIR</code>: <code>masters</code>, <code>monitors</code>, <code>slaves</code>, <code>tracers</code>,
 and <code>gc</code>) should match the instance componentof the Kerberos server principal (e.g. <code>host</code> in <code>accumulo/host@EXAMPLE.COM</code>).</p>
+</div>
+<div class="paragraph">
+<p><strong>Q</strong>: After configuring my system for Kerberos, server processes come up normally and I can interact with the system. However,
+when I attempt to use the "Recent Traces" page on the Monitor UI I get a stacktrace similar to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>                                                                         java.lang.AssertionError: AuthenticationToken should not be null
+                                                                   at org.apache.accumulo.monitor.servlets.trace.Basic.getScanner(Basic.java:139)
+                                                                  at org.apache.accumulo.monitor.servlets.trace.Summary.pageBody(Summary.java:164)
+                                                                  at org.apache.accumulo.monitor.servlets.BasicServlet.doGet(BasicServlet.java:63)
+                                                                           at javax.servlet.http.HttpServlet.service(HttpServlet.java:687)
+                                                                           at javax.servlet.http.HttpServlet.service(HttpServlet.java:790)
+                                                                      at org.eclipse.jetty.servlet.ServletHolder.handle(ServletHolder.java:738)
+                                                                    at org.eclipse.jetty.servlet.ServletHandler.doHandle(ServletHandler.java:551)
+                                                                  at org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:143)
+                                                                   at org.eclipse.jetty.security.SecurityHandler.handle(SecurityHandler.java:568)
+                                                                at org.eclipse.jetty.server.session.SessionHandler.doHandle(SessionHandler.java:221)
+                                                                at org.eclipse.jetty.server.handler.ContextHandler.doHandle(ContextHandler.java:1111)
+                                                                    at org.eclipse.jetty.servlet.ServletHandler.doScope(ServletHandler.java:478)
+                                                                 at org.eclipse.jetty.server.session.SessionHandler.doScope(SessionHandler.java:183)
+                                                                at org.eclipse.jetty.server.handler.ContextHandler.doScope(ContextHandler.java:1045)
+                                                                  at org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:141)
+                                                                  at org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:97)
+                                                                             at org.eclipse.jetty.server.Server.handle(Server.java:462)
+                                                                        at org.eclipse.jetty.server.HttpChannel.handle(HttpChannel.java:279)
+                                                                   at org.eclipse.jetty.server.HttpConnection.onFillable(HttpConnection.java:232)
+                                                                    at org.eclipse.jetty.io.AbstractConnection$2.run(AbstractConnection.java:534)
+                                                                 at org.eclipse.jetty.util.thread.QueuedThreadPool.runJob(QueuedThreadPool.java:607)
+                                                                 at org.eclipse.jetty.util.thread.QueuedThreadPool$3.run(QueuedThreadPool.java:536)
+                                                                                      at java.lang.Thread.run(Thread.java:745)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>A</strong>: This indicates that the Monitor has not been able to successfully log in a client-side user to read from the <code>trace</code> table. Accumulo allows the TraceServer to rely on the property <code>general.kerberos.keytab</code> as a fallback when logging in the trace user if the <code>trace.token.property.keytab</code> property isn&#8217;t defined. Some earlier versions of Accumulo did not do this same fallback for the Monitor&#8217;s use of the trace user. The end result is that if you configure <code>general.kerberos.keytab</code> and not <code>trace.token.property.keytab</code> you will end up with a system that properly logs trace information but can&#8217;t view it.</p>
+</div>
+<div class="paragraph">
+<p>Ensure you have set <code>trace.token.property.keytab</code> to point to a keytab for the principal defined in <code>trace.user</code> in the <code>accumulo-site.xml</code> file for the Monitor, since that should work in all versions of Accumulo.</p>
 </div>
 </div>
 </div>
@@ -11832,7 +11959,7 @@ An example is <em>java.lang.String</em>, rather than <em>String</em></p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-09-29 16:41:28 -04:00
+Last updated 2016-10-07 01:14:08 -05:00
 </div>
 </div>
 </body>
