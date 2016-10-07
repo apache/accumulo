@@ -102,6 +102,10 @@ numerous guidelines already exist on the subject of configuring Hadoop and ZooKe
 use with Kerberos and won't be covered here. It is assumed that you have functional
 Hadoop and ZooKeeper already installed.
 
+Note that on an existing cluster the server side changes will require a full cluster shutdown and restart. You should
+wait to restart the TraceServers until after you've completed the rest of the cluster set up and provisioned
+a trace user with appropriate permissions.
+
 ==== Servers
 
 The first step is to obtain a Kerberos identity for the Accumulo server processes.
@@ -190,6 +194,10 @@ creating a SystemToken from the provided keytab and principal, we can still use 
 keytab/principal to serialize traces. Like non-Kerberized instances, the table must be created and permissions granted
 to the trace.user. The same +_HOST+ replacement is performed on this value, substituted the FQDN for +_HOST+.
 
+|trace.token.property.keytab             ||
+You can optionally specify the path to a keytab file for the principal given in the +trace.user+ property. If you don't
+set this path, it will default to the value given in +general.kerberos.principal+.
+
 |general.delegation.token.lifetime       |7d |
 The length of time that the server-side secret used to create delegation tokens is valid. After a server-side secret
 expires, a delegation token created with that secret is no longer valid.
@@ -233,7 +241,7 @@ The KDC is still the authoritative entity for user management. The previously me
 are provided as they simplify management of users within Accumulo, especially with respect
 to granting Authorizations and Permissions to new users.
 
-===== Accumulo Initialization
+===== Administrative User
 
 Out of the box (without Kerberos enabled), Accumulo has a single user with administrative permissions "root".
 This users is used to "bootstrap" other users, creating less-privileged users for applications using
@@ -245,6 +253,24 @@ because it is very unlikely to have Kerberos credentials for a principal named `
 enabled, Accumulo will prompt for the name of a user to grant the same permissions as what the `root`
 user would normally have. The name of the Accumulo user to grant administrative permissions to can
 also be given by the `-u` or `--user` options.
+
+If you are enabling Kerberos on an existing cluster, you will need to reinitialize the security system in
+order to replace the existing "root" user with one that can be used with Kerberos. These steps should be
+completed after you have done the previously described configuration changes and will require access to
+a complete +accumulo-site.xml+, including the instance secret. Note that this process will delete all
+existing users in the system; you will need to reassign user permissions based on Kerberos principals.
+
+1. Ensure Accumulo is not running.
+2. Given the path to a +accumulo-site.xml+ with the instance secret, run the security reset tool. If you are
+prompted for a password you can just hit return, since it won't be used.
+----
+$ ACCUMULO_CONF_DIR=/path/to/server/conf/ accumulo init --reset-security
+Running against secured HDFS
+Principal (user) to grant administrative privileges to : acculumo_admin@EXAMPLE.COM
+Enter initial password for accumulo_admin@EXAMPLE.COM (this may not be applicable for your security setup):
+Confirm initial password for accumulo_admin@EXAMPLE.COM:
+----
+3. Start the Accumulo cluster
 
 ===== Verifying secure access
 
@@ -369,17 +395,54 @@ Valid starting       Expires              Service principal
 ===== Configuration
 
 The second thing clients need to do is to set up their client configuration file. By
-default, this file is stored in +~/.accumulo/conf+, +$ACCUMULO_CONF_DIR/client.conf+ or
+default, this file is stored in +~/.accumulo/config+, +$ACCUMULO_CONF_DIR/client.conf+ or
 +$ACCUMULO_HOME/conf/client.conf+. Accumulo utilities also allow you to provide your own
 copy of this file in any location using the +--config-file+ command line option.
 
 Three items need to be set to enable access to Accumulo:
 
 * +instance.rpc.sasl.enabled+=_true_
+* +rpc.sasl.qop+=_auth_
 * +kerberos.server.primary+=_accumulo_
 
-The second and third properties *must* match the configuration of the accumulo servers; this is
+Each of these properties *must* match the configuration of the accumulo servers; this is
 required to set up the SASL transport.
+
+===== Verifying Administrative Access
+
+At this point you should have enough configured on the server and client side to interact with
+the system. You should verify that the administrative user you chose earlier can successfully
+interact with the sytem.
+
+While this example logs in via +kinit+ with a password, any login method that caches Kerberos tickets
+should work.
+
+----
+$ kinit accumulo_admin@EXAMPLE.COM
+Password for accumulo_admin@EXAMPLE.COM: ******************************
+$ accumulo shell
+
+Shell - Apache Accumulo Interactive Shell
+-
+- version: 1.7.2
+- instance name: MYACCUMULO
+- instance id: 483b9038-889f-4b2d-b72b-dfa2bb5dbd07
+-
+- type 'help' for a list of available commands
+-
+accumulo_admin@EXAMPLE.COM@MYACCUMULO> userpermissions
+System permissions: System.GRANT, System.CREATE_TABLE, System.DROP_TABLE, System.ALTER_TABLE, System.CREATE_USER, System.DROP_USER, System.ALTER_USER, System.SYSTEM, System.CREATE_NAMESPACE, System.DROP_NAMESPACE, System.ALTER_NAMESPACE, System.OBTAIN_DELEGATION_TOKEN
+
+Namespace permissions (accumulo): Namespace.READ, Namespace.ALTER_TABLE
+
+Table permissions (accumulo.metadata): Table.READ, Table.ALTER_TABLE
+Table permissions (accumulo.replication): Table.READ
+Table permissions (accumulo.root): Table.READ, Table.ALTER_TABLE
+
+accumulo_admin@EXAMPLE.COM@MYACCUMULO> quit
+$ kdestroy
+$
+----
 
 ===== DelegationTokens with MapReduce
 
@@ -560,3 +623,38 @@ servers are not configured to listen on the address denoted by their FQDN.
 
 The values in the Accumulo "hosts" files (In +$ACCUMULO_CONF_DIR+: +masters+, +monitors+, +slaves+, +tracers+,
 and +gc+) should match the instance componentof the Kerberos server principal (e.g. +host+ in +accumulo/host@EXAMPLE.COM+).
+
+*Q*: After configuring my system for Kerberos, server processes come up normally and I can interact with the system. However,
+when I attempt to use the "Recent Traces" page on the Monitor UI I get a stacktrace similar to:
+
+----
+                                                                         java.lang.AssertionError: AuthenticationToken should not be null
+                                                                   at org.apache.accumulo.monitor.servlets.trace.Basic.getScanner(Basic.java:139)
+                                                                  at org.apache.accumulo.monitor.servlets.trace.Summary.pageBody(Summary.java:164)
+                                                                  at org.apache.accumulo.monitor.servlets.BasicServlet.doGet(BasicServlet.java:63)
+                                                                           at javax.servlet.http.HttpServlet.service(HttpServlet.java:687)
+                                                                           at javax.servlet.http.HttpServlet.service(HttpServlet.java:790)
+                                                                      at org.eclipse.jetty.servlet.ServletHolder.handle(ServletHolder.java:738)
+                                                                    at org.eclipse.jetty.servlet.ServletHandler.doHandle(ServletHandler.java:551)
+                                                                  at org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:143)
+                                                                   at org.eclipse.jetty.security.SecurityHandler.handle(SecurityHandler.java:568)
+                                                                at org.eclipse.jetty.server.session.SessionHandler.doHandle(SessionHandler.java:221)
+                                                                at org.eclipse.jetty.server.handler.ContextHandler.doHandle(ContextHandler.java:1111)
+                                                                    at org.eclipse.jetty.servlet.ServletHandler.doScope(ServletHandler.java:478)
+                                                                 at org.eclipse.jetty.server.session.SessionHandler.doScope(SessionHandler.java:183)
+                                                                at org.eclipse.jetty.server.handler.ContextHandler.doScope(ContextHandler.java:1045)
+                                                                  at org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:141)
+                                                                  at org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:97)
+                                                                             at org.eclipse.jetty.server.Server.handle(Server.java:462)
+                                                                        at org.eclipse.jetty.server.HttpChannel.handle(HttpChannel.java:279)
+                                                                   at org.eclipse.jetty.server.HttpConnection.onFillable(HttpConnection.java:232)
+                                                                    at org.eclipse.jetty.io.AbstractConnection$2.run(AbstractConnection.java:534)
+                                                                 at org.eclipse.jetty.util.thread.QueuedThreadPool.runJob(QueuedThreadPool.java:607)
+                                                                 at org.eclipse.jetty.util.thread.QueuedThreadPool$3.run(QueuedThreadPool.java:536)
+                                                                                      at java.lang.Thread.run(Thread.java:745)
+
+----
+
+*A*: This indicates that the Monitor has not been able to successfully log in a client-side user to read from the +trace+ table. Accumulo allows the TraceServer to rely on the property +general.kerberos.keytab+ as a fallback when logging in the trace user if the +trace.token.property.keytab+ property isn't defined. Some earlier versions of Accumulo did not do this same fallback for the Monitor's use of the trace user. The end result is that if you configure +general.kerberos.keytab+ and not +trace.token.property.keytab+ you will end up with a system that properly logs trace information but can't view it.
+
+Ensure you have set +trace.token.property.keytab+ to point to a keytab for the principal defined in +trace.user+ in the +accumulo-site.xml+ file for the Monitor, since that should work in all versions of Accumulo.
