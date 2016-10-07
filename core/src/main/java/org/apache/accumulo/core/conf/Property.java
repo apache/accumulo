@@ -361,13 +361,6 @@ public enum Property {
   TSERV_SLOW_FLUSH_MILLIS("tserver.slow.flush.time", "100ms", PropertyType.TIMEDURATION,
       "If a flush to the write-ahead log takes longer than this period of time, debugging information will written, and may result in a log rollover."),
 
-  // properties that are specific to logger server behavior
-  LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
-  LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH, "This property is only needed if Accumulo was upgraded from a 1.4 or earlier version. "
-      + "In the upgrade to 1.5 this property is used to copy any earlier write ahead logs into DFS. "
-      + "In 1.6+, this property is used by the LocalWALRecovery utility in the event that something went wrong with that earlier upgrade. "
-      + "It is possible to specify a comma-separated list of directories."),
-
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the accumulo garbage collector."),
   GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION, "Time to wait before attempting to garbage collect any old files."),
@@ -856,10 +849,10 @@ public enum Property {
    */
   public static boolean isValidZooPropertyKey(String key) {
     // white list prefixes
-    return key.startsWith(Property.TABLE_PREFIX.getKey()) || key.startsWith(Property.TSERV_PREFIX.getKey()) || key.startsWith(Property.LOGGER_PREFIX.getKey())
-        || key.startsWith(Property.MASTER_PREFIX.getKey()) || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.") || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
-        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(REPLICATION_PREFIX.getKey());
+    return key.startsWith(Property.TABLE_PREFIX.getKey()) || key.startsWith(Property.TSERV_PREFIX.getKey()) || key.startsWith(Property.MASTER_PREFIX.getKey())
+        || key.startsWith(Property.GC_PREFIX.getKey()) || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.")
+        || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey()) || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey())
+        || key.startsWith(REPLICATION_PREFIX.getKey());
   }
 
   /**

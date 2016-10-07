@@ -780,7 +780,7 @@ omission of new data.
 
 *Q*: I upgraded from 1.4 to 1.5 to 1.6 but still have some WAL files on local disk. Do I have any way to recover them?
 
-*A*: Yes, you can recover them by running the LocalWALRecovery utility on each node that needs recovery performed. The utility
+*A*: Yes, you can recover them by running the LocalWALRecovery utility (not available in 1.8 and later) on each node that needs recovery performed. The utility
 will default to using the directory specified by +logger.dir.walog+ in your configuration, or can be
 overriden by using the +--local-wal-directories+ option on the tool. It can be invoked as follows:
 
