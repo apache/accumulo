@@ -43,6 +43,6 @@ public class HighlyAvailableServiceWrapper {
   }
 
   protected <T> HighlyAvailableServiceInvocationHandler<T> getInvocationHandler(final T instance, final HighlyAvailableService service) {
-    return new HighlyAvailableServiceInvocationHandler<T>(instance, service);
+    return new HighlyAvailableServiceInvocationHandler<>(instance, service);
   }
 }

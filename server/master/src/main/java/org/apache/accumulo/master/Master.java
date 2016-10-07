@@ -1157,7 +1157,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy = HighlyAvailableServiceWrapper.service(impl, this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<>(RpcWrapper.service(
-        impl, new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(haReplicationProxy)));
+        impl, new ReplicationCoordinator.Processor<>(haReplicationProxy)));
     ServerAddress replAddress = TServerUtils.startServer(this, hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
         "Master Replication Coordinator", "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
         Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
