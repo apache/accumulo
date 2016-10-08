@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Random;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -57,8 +55,8 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
       SortedKeyValueIterator<Key,Value> copy2 = copy1.deepCopy(new SimpleIteratorEnvironment());
 
       Range seekRange = testInput.getRange();
-      Set<ByteSequence> seekColumnFamilies = Collections.<ByteSequence> emptySet();
-      boolean seekInclusive = false;
+      Collection<ByteSequence> seekColumnFamilies = testInput.getFamilies();
+      boolean seekInclusive = testInput.isInclusive();
 
       skvi.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
       copy1.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
@@ -72,7 +70,7 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
     }
   }
 
-  TreeMap<Key,Value> consumeMany(Collection<SortedKeyValueIterator<Key,Value>> iterators, Range range, Set<ByteSequence> seekColumnFamilies,
+  TreeMap<Key,Value> consumeMany(Collection<SortedKeyValueIterator<Key,Value>> iterators, Range range, Collection<ByteSequence> seekColumnFamilies,
       boolean seekInclusive) throws IOException {
     TreeMap<Key,Value> data = new TreeMap<>();
     // All of the copies should have consistent results from concurrent use
@@ -149,6 +147,9 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
     }
 
     // Copy the value
+    if (null == topValue) {
+      throw new IllegalStateException("Should always find a non-null Value from the iterator being tested.");
+    }
     return new Value(topValue);
   }
 

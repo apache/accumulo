@@ -17,10 +17,8 @@
 package org.apache.accumulo.iteratortest.testcases;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -44,7 +42,7 @@ public class DeepCopyTestCase extends OutputVerifyingTestCase {
 
       SortedKeyValueIterator<Key,Value> copy = skvi.deepCopy(new SimpleIteratorEnvironment());
 
-      copy.seek(testInput.getRange(), Collections.<ByteSequence> emptySet(), false);
+      copy.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());
       return new IteratorTestOutput(consume(copy));
     } catch (IOException e) {
       return new IteratorTestOutput(e);

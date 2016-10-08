@@ -17,11 +17,9 @@
 package org.apache.accumulo.iteratortest.testcases;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Random;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -51,7 +49,7 @@ public class MultipleHasTopCalls extends OutputVerifyingTestCase {
 
     try {
       skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
-      skvi.seek(testInput.getRange(), Collections.<ByteSequence> emptySet(), false);
+      skvi.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());
       return new IteratorTestOutput(consume(skvi));
     } catch (IOException e) {
       return new IteratorTestOutput(e);
