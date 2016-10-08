@@ -72,7 +72,7 @@ public class IteratorTestRunner {
     for (IteratorTestCase testCase : testCases) {
       log.info("Invoking {} on {}", testCase.getClass().getName(), testInput.getIteratorClass().getName());
 
-      IteratorTestOutput actualOutput = null;
+      IteratorTestOutput actualOutput;
 
       try {
         actualOutput = testCase.test(testInput);

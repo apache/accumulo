@@ -17,7 +17,7 @@
 package org.apache.accumulo.iteratortest.testcases;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -57,7 +57,7 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
 
     try {
       skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
-      skvi.seek(testInput.getRange(), Collections.<ByteSequence> emptySet(), false);
+      skvi.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());
       return new IteratorTestOutput(consume(skvi, testInput));
     } catch (IOException e) {
       return new IteratorTestOutput(e);
@@ -67,6 +67,8 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
   TreeMap<Key,Value> consume(SortedKeyValueIterator<Key,Value> skvi, IteratorTestInput testInput) throws IOException {
     final TreeMap<Key,Value> data = new TreeMap<>();
     final Range origRange = testInput.getRange();
+    final Collection<ByteSequence> origFamilies = testInput.getFamilies();
+    final boolean origInclusive = testInput.isInclusive();
     int reseekCount = random.nextInt(RESEEK_INTERVAL);
 
     int i = 0;
@@ -89,12 +91,12 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
 
         skvi.init(sourceCopy, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
 
-        // The new range, resume where we left off (non-inclusive)
+        // The new range, resume where we left off (non-inclusive), with same families filter
         final Range newRange = new Range(reSeekStartKey, false, origRange.getEndKey(), origRange.isEndKeyInclusive());
         log.debug("Re-seeking to {}", newRange);
 
         // Seek there
-        skvi.seek(newRange, Collections.<ByteSequence> emptySet(), false);
+        skvi.seek(newRange, origFamilies, origInclusive);
       } else {
         // Every other time, it's a simple call to next()
         skvi.next();
