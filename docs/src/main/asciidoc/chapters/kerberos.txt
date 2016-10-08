@@ -263,14 +263,20 @@ existing users in the system; you will need to reassign user permissions based o
 1. Ensure Accumulo is not running.
 2. Given the path to a +accumulo-site.xml+ with the instance secret, run the security reset tool. If you are
 prompted for a password you can just hit return, since it won't be used.
+3. Start the Accumulo cluster
+
 ----
+$ ${ACCUMULO_HOME}/bin/stop-all.sh
+...
 $ ACCUMULO_CONF_DIR=/path/to/server/conf/ accumulo init --reset-security
 Running against secured HDFS
 Principal (user) to grant administrative privileges to : acculumo_admin@EXAMPLE.COM
 Enter initial password for accumulo_admin@EXAMPLE.COM (this may not be applicable for your security setup):
 Confirm initial password for accumulo_admin@EXAMPLE.COM:
+$ ${ACCUMULO_HOME}/bin/start-all.sh
+...
+$
 ----
-3. Start the Accumulo cluster
 
 ===== Verifying secure access
 
