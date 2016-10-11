@@ -583,7 +583,6 @@
             <failOnError>true</failOnError>
             <includeTests>true</includeTests>
             <maxRank>16</maxRank>
-            <excludeFilterFile>src/main/findbugs/exclude-filter.xml</excludeFilterFile>
           </configuration>
         </plugin>
         <plugin>
@@ -1382,6 +1381,17 @@
           </plugins>
         </pluginManagement>
       </build>
+    </profile>
+    <profile>
+      <id>add-findbugs-excludes</id>
+      <activation>
+        <file>
+          <exists>src/main/findbugs/exclude-filter.xml</exists>
+        </file>
+      </activation>
+      <properties>
+        <findbugs.excludeFilterFile>src/main/findbugs/exclude-filter.xml</findbugs.excludeFilterFile>
+      </properties>
     </profile>
   </profiles>
 </project>
