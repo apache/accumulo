@@ -81,7 +81,10 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
 
       try {
-        cipher.init(encryptionMode, new SecretKeySpec(keyEncryptionKey, params.getAlgorithmName()));
+    	if (keyEncryptionKey.length > 0)
+    	{
+            cipher.init(encryptionMode, new SecretKeySpec(keyEncryptionKey, params.getAlgorithmName()));
+    	}
       } catch (InvalidKeyException e) {
         log.error("{}", e.getMessage(), e);
         throw new RuntimeException(e);
