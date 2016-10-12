@@ -87,7 +87,7 @@ public class CollectTabletStats {
   static class CollectOptions extends ClientOnRequiredTable {
     @Parameter(names = "--iterations", description = "number of iterations")
     int iterations = 3;
-    @Parameter(names = "-t", description = "number of threads")
+    @Parameter(names = "--numThreads", description = "number of threads")
     int numThreads = 1;
     @Parameter(names = "-f", description = "select far tablets, default is to use local tablets")
     boolean selectFarTablets = false;
