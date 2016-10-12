@@ -141,6 +141,13 @@ public class InMemoryMapTest {
 
   }
 
+  static void aeNoNext(SortedKeyValueIterator<Key,Value> dc, String row, String column, int ts, String val) throws IOException {
+    assertTrue(dc.hasTop());
+    assertEquals(nk(row, column, ts), dc.getTopKey());
+    assertEquals(new Value(val.getBytes()), dc.getTopValue());
+
+  }
+
   static Set<ByteSequence> newCFSet(String... cfs) {
     HashSet<ByteSequence> cfSet = new HashSet<>();
     for (String cf : cfs) {
@@ -242,6 +249,25 @@ public class InMemoryMapTest {
     ski1.seek(new Range(nk("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
     ae(ski1, "r1", "foo:cq1", 3, "bar2");
     ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    assertFalse(ski1.hasTop());
+
+    ski1.close();
+  }
+
+  @Test
+  public void testDecodeValueModification() throws Exception {
+    // This test case is the fix for ACCUMULO-4483
+    InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
+
+    mutate(imm, "r1", "foo:cq1", 3, "");
+    MemoryIterator ski1 = imm.skvIterator(null);
+
+    imm.delete(0);
+
+    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    aeNoNext(ski1, "r1", "foo:cq1", 3, "");
+    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ae(ski1, "r1", "foo:cq1", 3, "");
     assertFalse(ski1.hasTop());
 
     ski1.close();
