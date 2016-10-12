@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import java.security.SecurityPermission;
 import java.util.Arrays;
 import java.util.List;
 
@@ -35,8 +34,6 @@ import org.slf4j.LoggerFactory;
 public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   private static final Logger log = LoggerFactory.getLogger(ZooReaderWriter.class);
 
-  private static SecurityPermission ZOOWRITER_PERMISSION = new SecurityPermission("zookeeperWriterPermission");
-
   private static ZooReaderWriter instance = null;
   private final String scheme;
   private final byte[] auth;
@@ -44,10 +41,6 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
 
   @Override
   public ZooKeeper getZooKeeper() {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(ZOOWRITER_PERMISSION);
-    }
     return getSession(keepers, timeout, scheme, auth);
   }
 

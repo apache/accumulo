@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.security.SecurityPermission;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -73,18 +72,12 @@ public class Namespaces {
     }
   };
 
-  private static SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
-
   public static final String DEFAULT_NAMESPACE_ID = "+default";
   public static final String DEFAULT_NAMESPACE = "";
   public static final String ACCUMULO_NAMESPACE_ID = "+accumulo";
   public static final String ACCUMULO_NAMESPACE = "accumulo";
 
   private static ZooCache getZooCache(Instance instance) {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(TABLES_PERMISSION);
-    }
     return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
 

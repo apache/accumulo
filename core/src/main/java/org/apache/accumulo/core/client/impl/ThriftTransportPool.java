@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.security.SecurityPermission;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +42,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
 public class ThriftTransportPool {
-  private static SecurityPermission TRANSPORT_POOL_PERMISSION = new SecurityPermission("transportPoolPermission");
 
   private static final Random random = new Random();
   private long killTime = 1000 * 3;
@@ -593,11 +591,6 @@ public class ThriftTransportPool {
   private static final AtomicBoolean daemonStarted = new AtomicBoolean(false);
 
   public static ThriftTransportPool getInstance() {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(TRANSPORT_POOL_PERMISSION);
-    }
-
     if (daemonStarted.compareAndSet(false, true)) {
       CountDownLatch closerExitLatch = new CountDownLatch(1);
       new Daemon(new Closer(instance, closerExitLatch), "Thrift Connection Pool Checker").start();

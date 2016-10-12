@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.security.SecurityPermission;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,15 +52,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       if (!tableParentConfigs.containsKey(iid)) {
         tableParentConfigs.put(iid, new HashMap<String,NamespaceConfiguration>());
       }
-    }
-  }
-
-  private static final SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
-  private static final SecurityManager SM = System.getSecurityManager();
-
-  private static void checkPermissions() {
-    if (SM != null) {
-      SM.checkPermission(CONFIGURATION_PERMISSION);
     }
   }
 
@@ -119,7 +109,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
-      checkPermissions();
       siteConfig = SiteConfiguration.getInstance(getDefaultConfiguration());
     }
     return siteConfig;
@@ -127,7 +116,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   public synchronized DefaultConfiguration getDefaultConfiguration() {
     if (defaultConfig == null) {
-      checkPermissions();
       defaultConfig = DefaultConfiguration.getInstance();
     }
     return defaultConfig;
@@ -136,7 +124,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public synchronized AccumuloConfiguration getConfiguration() {
     if (systemConfig == null) {
-      checkPermissions();
       systemConfig = new ZooConfigurationFactory().getInstance(instance, zcf, getSiteConfiguration());
     }
     return systemConfig;
@@ -144,7 +131,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   @Override
   public TableConfiguration getTableConfiguration(String tableId) {
-    checkPermissions();
     TableConfiguration conf;
     synchronized (tableConfigs) {
       conf = tableConfigs.get(instanceID).get(tableId);
@@ -181,7 +167,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   }
 
   public NamespaceConfiguration getNamespaceConfigurationForTable(String tableId) {
-    checkPermissions();
     NamespaceConfiguration conf;
     synchronized (tableParentConfigs) {
       conf = tableParentConfigs.get(instanceID).get(tableId);
@@ -201,7 +186,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   @Override
   public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
-    checkPermissions();
     NamespaceConfiguration conf;
     // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.

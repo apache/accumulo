@@ -23,7 +23,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecurityPermission;
 import java.util.Base64;
 import java.util.Map.Entry;
 
@@ -46,8 +45,6 @@ import org.apache.hadoop.io.Writable;
  */
 public final class SystemCredentials extends Credentials {
 
-  private static final SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission("systemCredentialsPermission");
-
   private static final String SYSTEM_PRINCIPAL = "!SYSTEM";
 
   private final TCredentials AS_THRIFT;
@@ -57,15 +54,7 @@ public final class SystemCredentials extends Credentials {
     AS_THRIFT = super.toThrift(instance);
   }
 
-  private static void check_permission() {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
-    }
-  }
-
   public static SystemCredentials get(Instance instance) {
-    check_permission();
     String principal = SYSTEM_PRINCIPAL;
     AccumuloConfiguration conf = SiteConfiguration.getInstance();
     if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {

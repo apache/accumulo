@@ -19,7 +19,6 @@ package org.apache.accumulo.core.client.impl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.security.SecurityPermission;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,14 +44,9 @@ public class Tables {
 
   public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
 
-  private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
   private static final AtomicLong cacheResetCount = new AtomicLong(0);
 
   private static ZooCache getZooCache(Instance instance) {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(TABLES_PERMISSION);
-    }
     return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
 

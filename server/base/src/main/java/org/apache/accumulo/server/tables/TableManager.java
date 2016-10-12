@@ -18,7 +18,6 @@ package org.apache.accumulo.server.tables;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.security.SecurityPermission;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TableManager {
-  private static SecurityPermission TABLE_MANAGER_PERMISSION = new SecurityPermission("tableManagerPermission");
 
   private static final Logger log = LoggerFactory.getLogger(TableManager.class);
   private static final Set<TableObserver> observers = Collections.synchronizedSet(new HashSet<TableObserver>());
@@ -91,10 +89,6 @@ public class TableManager {
   }
 
   public synchronized static TableManager getInstance() {
-    SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-      sm.checkPermission(TABLE_MANAGER_PERMISSION);
-    }
     if (tableManager == null)
       tableManager = new TableManager();
     return tableManager;
