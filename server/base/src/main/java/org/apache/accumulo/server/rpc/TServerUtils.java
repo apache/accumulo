@@ -260,6 +260,7 @@ public class TServerUtils {
 
     if (address.getPort() == 0) {
       address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
+      log.info("Blocking Server bound on {}", address);
     }
 
     return new ServerAddress(server, address);
@@ -372,6 +373,7 @@ public class TServerUtils {
 
     if (address.getPort() == 0) {
       address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
+      log.info("SSL Thread Pool Server bound on {}", address);
     }
 
     ThreadPoolExecutor pool = createSelfResizingThreadPool(serverName, numThreads, numSimpleTimerThreads, timeBetweenThreadChecks);
