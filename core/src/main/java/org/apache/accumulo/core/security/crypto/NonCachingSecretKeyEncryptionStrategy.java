@@ -127,8 +127,6 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
 	        in.close();
 	    }
 	  }
-    }
-   
   }
 
   @SuppressWarnings("deprecation")
