@@ -116,18 +116,19 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
 	        }
 	
 	      }
-	
-	    } finally {
+      }
+      else
+      {
+      	log.error("{}", "Error:bytesRead does not match EncryptionkeyLength");
+          throw new IllegalArgumentException("Error:bytesRead does not match EncryptionkeyLength");
+      }
+	} finally {
 	      if (in != null) {
 	        in.close();
-	      }
 	    }
+	  }
     }
-    else
-    {
-    	log.error("{}", "Error:bytesRead does not match EncryptionkeyLength");
-        throw new IllegalArgumentException("Error:bytesRead does not match EncryptionkeyLength");
-    }
+   
   }
 
   @SuppressWarnings("deprecation")
