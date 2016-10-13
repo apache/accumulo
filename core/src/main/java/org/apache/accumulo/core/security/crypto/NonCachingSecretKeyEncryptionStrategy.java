@@ -76,49 +76,57 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
 
       int keyEncryptionKeyLength = in.readInt();
       byte[] keyEncryptionKey = new byte[keyEncryptionKeyLength];
-      in.read(keyEncryptionKey);
+      int bytesRead = in.read(keyEncryptionKey);
 
       Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
 
-      try {
-        cipher.init(encryptionMode, new SecretKeySpec(keyEncryptionKey, params.getAlgorithmName()));
-      } catch (InvalidKeyException e) {
-        log.error("{}", e.getMessage(), e);
-        throw new RuntimeException(e);
+      //check if the number of bytes read into the array is the same as the value of the length field,
+      if (bytesRead == keyEncryptionKeyLength)
+      {
+	      try {
+	            cipher.init(encryptionMode, new SecretKeySpec(keyEncryptionKey, params.getAlgorithmName()));
+	      } catch (InvalidKeyException e) {
+	        log.error("{}", e.getMessage(), e);
+	        throw new RuntimeException(e);
+	      }
+	
+	      if (Cipher.UNWRAP_MODE == encryptionMode) {
+	        try {
+	          Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
+	          params.setPlaintextKey(plaintextKey.getEncoded());
+	        } catch (InvalidKeyException e) {
+	          log.error("{}", e.getMessage(), e);
+	          throw new RuntimeException(e);
+	        } catch (NoSuchAlgorithmException e) {
+	          log.error("{}", e.getMessage(), e);
+	          throw new RuntimeException(e);
+	        }
+	      } else {
+	        Key plaintextKey = new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName());
+	        try {
+	          byte[] encryptedSecretKey = cipher.wrap(plaintextKey);
+	          params.setEncryptedKey(encryptedSecretKey);
+	          params.setOpaqueKeyEncryptionKeyID(pathToKeyName);
+	        } catch (InvalidKeyException e) {
+	          log.error("{}", e.getMessage(), e);
+	          throw new RuntimeException(e);
+	        } catch (IllegalBlockSizeException e) {
+	          log.error("{}", e.getMessage(), e);
+	          throw new RuntimeException(e);
+	        }
+	
+	      }
       }
-
-      if (Cipher.UNWRAP_MODE == encryptionMode) {
-        try {
-          Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
-          params.setPlaintextKey(plaintextKey.getEncoded());
-        } catch (InvalidKeyException e) {
-          log.error("{}", e.getMessage(), e);
-          throw new RuntimeException(e);
-        } catch (NoSuchAlgorithmException e) {
-          log.error("{}", e.getMessage(), e);
-          throw new RuntimeException(e);
-        }
-      } else {
-        Key plaintextKey = new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName());
-        try {
-          byte[] encryptedSecretKey = cipher.wrap(plaintextKey);
-          params.setEncryptedKey(encryptedSecretKey);
-          params.setOpaqueKeyEncryptionKeyID(pathToKeyName);
-        } catch (InvalidKeyException e) {
-          log.error("{}", e.getMessage(), e);
-          throw new RuntimeException(e);
-        } catch (IllegalBlockSizeException e) {
-          log.error("{}", e.getMessage(), e);
-          throw new RuntimeException(e);
-        }
-
+      else
+      {
+      	log.error("{}", "Error:bytesRead does not match EncryptionkeyLength");
+          throw new IllegalArgumentException("Error:bytesRead does not match EncryptionkeyLength");
       }
-
-    } finally {
-      if (in != null) {
-        in.close();
-      }
-    }
+	} finally {
+	      if (in != null) {
+	        in.close();
+	    }
+	  }
   }
 
   @SuppressWarnings("deprecation")
