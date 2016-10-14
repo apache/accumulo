@@ -40,6 +40,10 @@ an Accumulo cluster via Accumulo's Apache Thrift proxy server. [Documentation](h
 Graphulo is a Java library for Apache Accumulo which delivers server-side sparse matrix math primitives that
 enable higher-level graph algorithms and analytics. [Code](https://github.com/Accla/graphulo).
 
+#### Accumulo Connector for Presto
+
+[Presto](https://prestodb.io/) is an open source distributed SQL query engine for running interactive analytic queries against data sources of all sizes, ranging from gigabytes to petabytes.  Through the use of the new Accumulo connector for Presto, users are able to execute traditional SQL queries against new and existing tables in Accumulo.  For more information, see the [Accumulo Connector](https://prestodb.io/docs/current/connector/accumulo.html) documentation.
+
 ## Github
 
 [Github](https://github.com/search?q=accumulo&type=Repositories) also contains many projects that use/reference Accumulo
