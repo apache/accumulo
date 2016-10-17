@@ -61,7 +61,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
-class RFileScanner extends ScannerOptions implements Scanner {
+public class RFileScanner extends ScannerOptions implements Scanner {
 
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Range EMPTY_RANGE = new Range();
@@ -92,7 +92,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   // By providing a cache to the RFile code it forces each block to be read into memory. When a
   // block is accessed the entire thing is read into memory immediately allocating and deallocating
   // a decompressor. If the user does not read all data, no decompressors are left allocated.
-  private static class NoopCache implements BlockCache {
+  public static class NoopCache implements BlockCache {
     @Override
     public CacheEntry cacheBlock(String blockName, byte[] buf, boolean inMemory) {
       return null;

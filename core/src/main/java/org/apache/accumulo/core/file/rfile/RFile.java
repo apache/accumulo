@@ -37,6 +37,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.Sampler;
@@ -60,6 +61,8 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
+import org.apache.accumulo.core.file.rfile.histogram.HashMapVisibilityHistogram;
+import org.apache.accumulo.core.file.rfile.histogram.VisibilityHistogram;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -68,9 +71,11 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +92,7 @@ public class RFile {
 
   private static final int RINDEX_MAGIC = 0x20637474;
 
+  static final int RINDEX_VER_9 = 9; // Added visibility histogram.
   static final int RINDEX_VER_8 = 8; // Added sample storage. There is a sample locality group for each locality group. Sample are built using a Sampler and
                                      // sampler configuration. The Sampler and its configuration are stored in RFile. Persisting the method of producing the
                                      // sample allows a user of RFile to determine if the sample is useful.
@@ -374,7 +380,42 @@ public class RFile {
     }
   }
 
-  private static class LocalityGroupWriter {
+  private static class VisibilityHistogramLocalityGroupWriter {
+    private final HashMap<Text,AtomicLong> histogram;
+    private final LocalityGroupWriter lgr;
+
+    private ThreadLocal<Text> buffer = new ThreadLocal<Text>() {
+      @Override public Text initialValue() {
+        return new Text();
+      }
+    };
+
+    public VisibilityHistogramLocalityGroupWriter(LocalityGroupWriter lgr) {
+      this.lgr = lgr;
+      this.histogram = new HashMap<>(); 
+    }
+
+    public void append(Key key, Value value) throws IOException {
+      Text _text = buffer.get();
+      key.getColumnFamily(_text);
+      AtomicLong count = histogram.get(_text);
+      if (null == count) {
+        count = new AtomicLong(0);
+        // Make a copy of the buffer since we want to reuse `_text`
+        Text copy = new Text(_text);
+        histogram.put(copy, count);
+      }
+      count.incrementAndGet();
+    }
+
+    public void close() throws IOException {
+      
+    }
+  }
+
+  
+
+  public static class LocalityGroupWriter {
 
     private BlockFileWriter fileWriter;
     private ABlockWriter blockWriter;
@@ -395,13 +436,16 @@ public class RFile {
     private SummaryStatistics keyLenStats = new SummaryStatistics();
     private double avergageKeySize = 0;
 
+    private VisibilityHistogram visibilityHistogram;
+
     LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, long maxBlockSize, LocalityGroupMetadata currentLocalityGroup,
-        SampleLocalityGroupWriter sample) {
+        SampleLocalityGroupWriter sample, VisibilityHistogram visibilityHistogram) {
       this.fileWriter = fileWriter;
       this.blockSize = blockSize;
       this.maxBlockSize = maxBlockSize;
       this.currentLocalityGroup = currentLocalityGroup;
       this.sample = sample;
+      this.visibilityHistogram = visibilityHistogram;
     }
 
     private boolean isGiantKey(Key k) {
@@ -423,6 +467,10 @@ public class RFile {
 
       if (sample != null) {
         sample.append(key, value);
+      }
+
+      if (visibilityHistogram != null) {
+        visibilityHistogram.increment(key);
       }
 
       if (blockWriter == null) {
@@ -478,6 +526,10 @@ public class RFile {
     public void close() throws IOException {
       if (blockWriter != null) {
         closeBlock(lastKeyInBlock, true);
+//
+//        if (visibilityHistogram != null) {
+//          visibilityHistogram.serialize(blockWriter);
+//        }
       }
 
       if (sample != null) {
@@ -515,11 +567,17 @@ public class RFile {
     private SamplerConfigurationImpl samplerConfig;
     private Sampler sampler;
 
+    private VisibilityHistogram visibilityHistogram;
+
     public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
-      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
+      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null, null);
     }
 
     public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize, SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {
+      this(bfw, blockSize, indexBlockSize, samplerConfig, sampler, null);
+    }
+
+    public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize, SamplerConfigurationImpl samplerConfig, Sampler sampler, VisibilityHistogram visibilityHistogram) throws IOException {
       this.blockSize = blockSize;
       this.maxBlockSize = (long) (blockSize * MAX_BLOCK_MULTIPLIER);
       this.indexBlockSize = indexBlockSize;
@@ -527,6 +585,7 @@ public class RFile {
       previousColumnFamilies = new HashSet<>();
       this.samplerConfig = samplerConfig;
       this.sampler = sampler;
+      this.visibilityHistogram = visibilityHistogram;
     }
 
     @Override
@@ -541,7 +600,7 @@ public class RFile {
       ABlockWriter mba = fileWriter.prepareMetaBlock("RFile.index");
 
       mba.writeInt(RINDEX_MAGIC);
-      mba.writeInt(RINDEX_VER_8);
+      mba.writeInt(RINDEX_VER_9);
 
       if (currentLocalityGroup != null) {
         localityGroups.add(currentLocalityGroup);
@@ -564,6 +623,13 @@ public class RFile {
         }
 
         samplerConfig.write(mba);
+      }
+
+      if (visibilityHistogram == null) {
+        mba.writeBoolean(false);
+      } else {
+        mba.writeBoolean(true);
+        visibilityHistogram.serialize(mba);
       }
 
       mba.close();
@@ -638,9 +704,10 @@ public class RFile {
 
       SampleLocalityGroupWriter sampleWriter = null;
       if (sampler != null) {
-        sampleWriter = new SampleLocalityGroupWriter(new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, sampleLocalityGroup, null), sampler);
+        sampleWriter = new SampleLocalityGroupWriter(new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, sampleLocalityGroup, null, visibilityHistogram), sampler);
       }
-      lgWriter = new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, currentLocalityGroup, sampleWriter);
+      
+      lgWriter = new LocalityGroupWriter(fileWriter, blockSize, maxBlockSize, currentLocalityGroup, sampleWriter, visibilityHistogram);
     }
 
     @Override
@@ -670,7 +737,7 @@ public class RFile {
     }
   }
 
-  private static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
+  public static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
 
     private BlockFileReader reader;
     private MultiLevelIndex.Reader index;
@@ -1050,6 +1117,8 @@ public class RFile {
     private LocalityGroupReader readers[];
     private LocalityGroupReader sampleReaders[];
 
+    private VisibilityHistogram visibilityHistogram;
+
     private HashSet<ByteSequence> nonDefaultColumnFamilies;
 
     private List<Reader> deepCopies;
@@ -1072,7 +1141,7 @@ public class RFile {
 
         if (magic != RINDEX_MAGIC)
           throw new IOException("Did not see expected magic number, saw " + magic);
-        if (ver != RINDEX_VER_8 && ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
+        if (ver != RINDEX_VER_9 && ver != RINDEX_VER_8 && ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
           throw new IOException("Did not see expected version, saw " + ver);
 
         int size = mb.readInt();
@@ -1090,7 +1159,7 @@ public class RFile {
 
         readers = currentReaders;
 
-        if (ver == RINDEX_VER_8 && mb.readBoolean()) {
+        if (ver >= RINDEX_VER_8 && mb.readBoolean()) {
           sampleReaders = new LocalityGroupReader[size];
 
           for (int i = 0; i < size; i++) {
@@ -1105,6 +1174,11 @@ public class RFile {
         } else {
           sampleReaders = null;
           samplerConfig = null;
+        }
+
+        visibilityHistogram = new HashMapVisibilityHistogram();
+        if (ver >= RINDEX_VER_9 && mb.readBoolean()) {
+          visibilityHistogram.deserialize(mb);
         }
 
       } finally {
@@ -1360,6 +1434,10 @@ public class RFile {
       }
 
       return null;
+    }
+
+    public VisibilityHistogram getVisibilityHistogram() {
+      return visibilityHistogram;
     }
 
     // only visible for printinfo

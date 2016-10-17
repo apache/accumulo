@@ -30,6 +30,8 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.rfile.histogram.HashMapVisibilityHistogram;
+import org.apache.accumulo.core.file.rfile.histogram.VisibilityHistogram;
 import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
@@ -76,6 +78,10 @@ public class RFileOperations extends FileOperations {
     return reader;
   }
 
+  VisibilityHistogram newVisibilityHistogram(AccumuloConfiguration acuconf) {
+    return new HashMapVisibilityHistogram();
+  }
+
   @Override
   protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
 
@@ -90,6 +96,8 @@ public class RFileOperations extends FileOperations {
     if (samplerConfig != null) {
       sampler = SamplerFactory.newSampler(samplerConfig, acuconf);
     }
+
+    final VisibilityHistogram visibilityHistogram = newVisibilityHistogram(acuconf);
 
     String compression = options.getCompression();
     compression = compression == null ? options.getTableConfiguration().get(Property.TABLE_FILE_COMPRESSION_TYPE) : compression;
@@ -121,7 +129,7 @@ public class RFileOperations extends FileOperations {
     CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(new RateLimitedOutputStream(outputStream, options.getRateLimiter()), compression, conf,
         acuconf);
 
-    RFile.Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
+    RFile.Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler, visibilityHistogram);
     return writer;
   }
 }
