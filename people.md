@@ -84,6 +84,7 @@ nav: nav_people
 |             | Jonathan Park       | [sqrrl][SQRRL]                                                    | [ET][ET]              |
 |             | Kevin Faro          | [Tetra Concepts LLC][TETRA]                                       | [ET][ET]              |
 |             | Laura Peaslee       | [Objective Solutions, Inc.][OBJECTIVE]                            | [ET][ET]              |
+|             | Luis Tavarez        |                                                                   | [ET][ET]              |
 |             | Luke Brassard       | [sqrrl][SQRRL]                                                    | [ET][ET]              |
 |             | Mario Pastorelli    | [Teralytics AG][TERALYTICS]                                       | [CEST][CEST]          |
 |             | Matt Dailey         |                                                                   |                       |
