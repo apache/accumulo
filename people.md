@@ -58,6 +58,7 @@ nav: nav_people
 |             | David M. Lyle       |                                                                   |                       |
 |             | David Protzman      |                                                                   |                       |
 |             | Dennis Patrone      | [The Johns Hopkins University Applied Physics Laboratory][JHUAPL] | [ET][ET]              |
+| dimaspivak  | Dima Spivak         | [Cloudera][CLOUDERA]                                              |                       |
 |             | Ed Kohlwey          | [Booz Allen Hamilton][BOOZ]                                       |                       |
 | edwardyoon  | Edward Yoon         |                                                                   |                       |
 |             | Eugene Cheipesh     |                                                                   |                       |
