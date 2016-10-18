@@ -211,8 +211,8 @@ abstract public class BasicServlet extends HttpServlet {
       sb.append("<a href='/shell'>Shell</a><hr />\n");
     sb.append("<div class='smalltext'>[<a href='").append("/op?action=refresh&value=").append(refresh < 1 ? "5" : "-1");
     sb.append("&redir=").append(currentPage(req)).append("'>");
-    sb.append(refresh < 1 ? "en" : "dis").append("able&nbsp;auto-refresh</a>]</div>\n");
-    sb.append("<div class='smalltext'><a href='https://accumulo.apache.org/' target='_blank'>Apache Accumulo</a></div>\n");
+    sb.append(refresh < 1 ? "en" : "dis").append("able&nbsp;auto-refresh</a>]</div><hr />\n");
+    sb.append("<div class='smalltext'><a href='https://accumulo.apache.org/' target='_blank'>Apache&nbsp;Accumulo</a></div>\n");
     sb.append("</div>\n"); // end <div id='nav'>
 
     sb.append("<div id='main'");
