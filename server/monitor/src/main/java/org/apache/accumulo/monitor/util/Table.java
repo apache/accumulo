@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.util;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.SortedMap;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -33,6 +34,8 @@ public class Table {
   private ArrayList<TableColumn<?>> columns;
   private ArrayList<TableRow> rows;
   private boolean hasBegunAddingRows = false;
+
+  private SortedMap<String,String> namespaces;
 
   public Table(String tableName, String caption) {
     this(tableName, caption, null);
@@ -179,6 +182,13 @@ public class Table {
     }
     if (showLegend && numLegends > 0)
       sb.append("</dl></div>\n");
+
+    if (namespaces != null) {
+      sb.append("<div class='left show'><dl>\n");
+      doDropdownMenu(sb, namespaces);
+      sb.append("</dl></div>\n");
+    }
+
     sb.append("</caption>\n");
     sb.append("<tr>");
     boolean first = true;
@@ -227,4 +237,16 @@ public class Table {
     sb.append("</tr>\n");
   }
 
+  private static void doDropdownMenu(StringBuilder sb, SortedMap<String,String> namespaces) {
+    sb.append("<select>\n");
+    sb.append("<option value='All'>All</option>\n");
+    for (String key : namespaces.keySet()) {
+      sb.append("<option value=\"").append(key).append("\">").append(key).append("</option>\n");
+    }
+    sb.append("</select>\n");
+  }
+
+  public void setNamespaces(SortedMap<String,String> namespaces) {
+    this.namespaces = namespaces;
+  }
 }

@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -138,6 +139,9 @@ public class TablesServlet extends BasicServlet {
       row.add(tableInfo);
       tableList.addRow(row);
     }
+
+    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
+    tableList.setNamespaces(namespaces);
 
     tableList.generate(req, sb);
   }
