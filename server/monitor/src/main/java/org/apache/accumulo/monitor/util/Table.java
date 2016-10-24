@@ -182,11 +182,55 @@ public class Table {
     }
     if (showLegend && numLegends > 0)
       sb.append("</dl></div>\n");
+    ArrayList<TableRow> newRows = new ArrayList<>();
 
     if (namespaces != null) {
+
+      String namespace = BasicServlet.getCookieValue(req, "namespaceDropdown." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "."
+          + "selected");
+      if (namespace != null) {
+        sb.append("<p>Selected&nbsp;is&nbsp;").append(namespace).append("</p>");
+        
+        // Once this is implemented on the TablesServlet, delete it from here
+
+        for (TableRow row : rows) {
+          boolean first = true;
+          for (int i = 0; i < row.size(); ++i) {
+            if (first) {
+              try {
+                String tableNameStr = columns.get(i).getCellType().format(row.get(i));
+                if (namespace.equals("All")) {
+
+                  newRows.add(row);
+                } else {
+                  if (tableNameStr.contains(".")) {
+
+                    if (tableNameStr.contains(namespace + ".")) {
+
+                      newRows.add(row);
+                    }
+                  } else if (namespace.equals("DEFAULT")) {
+
+                    newRows.add(row);
+                  }
+
+                }
+              } catch (Exception ex) {
+                throw new RuntimeException("Unable to process column " + i, ex);
+              }
+              first = false;
+            }
+          }
+        }
+
+      } else {
+        newRows = rows;
+      }
       sb.append("<div class='left show'><dl>\n");
-      doDropdownMenu(sb, namespaces);
+      doDropdownMenu(redir, page, tableName, sb, namespaces);
       sb.append("</dl></div>\n");
+    } else {
+      newRows = rows;
     }
 
     sb.append("</caption>\n");
@@ -199,13 +243,13 @@ public class Table {
     }
     sb.append("</tr>\n");
     // don't sort if no columns are sortable or if there aren't enough rows
-    if (rows.size() > 1 && sortCol > -1) {
-      Collections.sort(rows, TableRow.getComparator(sortCol, columns.get(sortCol).getCellType()));
+    if (newRows.size() > 1 && sortCol > -1) {
+      Collections.sort(newRows, TableRow.getComparator(sortCol, columns.get(sortCol).getCellType()));
       if (!sortAscending)
-        Collections.reverse(rows);
+        Collections.reverse(newRows);
     }
     boolean highlight = true;
-    for (TableRow row : rows) {
+    for (TableRow row : newRows) {
       for (int i = 0; i < row.size(); ++i) {
         try {
           row.set(i, columns.get(i).getCellType().format(row.get(i)));
@@ -216,7 +260,7 @@ public class Table {
       row(sb, highlight, columns, row);
       highlight = !highlight;
     }
-    if (rows.isEmpty())
+    if (newRows.isEmpty())
       sb.append("<tr><td class='center' colspan='").append(columns.size()).append("'><i>Empty</i></td></tr>\n");
     sb.append("</table>\n</div>\n\n");
   }
@@ -237,13 +281,20 @@ public class Table {
     sb.append("</tr>\n");
   }
 
-  private static void doDropdownMenu(StringBuilder sb, SortedMap<String,String> namespaces) {
-    sb.append("<select>\n");
-    sb.append("<option value='All'>All</option>\n");
+  private static void doDropdownMenu(String redir, String page, String tableName, StringBuilder sb, SortedMap<String,String> namespaces) {
+
+    String namespaceUrl = String.format("/op?action=namespace&redir=%s&page=%s&table=%s&selected=", redir, page, tableName);
+
+    sb.append("<ul>\n");
+    sb.append("<li><a href=\"").append(namespaceUrl).append("All\">All</a></li>");
     for (String key : namespaces.keySet()) {
-      sb.append("<option value=\"").append(key).append("\">").append(key).append("</option>\n");
+      if (key.equals("")) {
+        sb.append("<li><a href=\"").append(namespaceUrl).append("DEFAULT\">DEFAULT</a></li>");
+      } else {
+        sb.append("<li><a href=\"").append(namespaceUrl).append(key).append("\">").append(key).append("</a></li>");
+      }
     }
-    sb.append("</select>\n");
+    sb.append("</ul>\n");
   }
 
   public void setNamespaces(SortedMap<String,String> namespaces) {

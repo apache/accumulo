@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -116,8 +117,13 @@ public class TablesServlet extends BasicServlet {
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
 
+    //String namespace = BasicServlet.getCookieValue(req, "namespaceDropdown." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "." + "selected");
+    
+    //Tables.getNameToIdMap(Monitor.getContext().getInstance()).entrySet().stream().filter(matchesNamespace("accumulo")).forEach(tableName_tableId -> { String tableName = tableName_tableId.getKey();
+    // Change this from here
     for (Entry<String,String> tableName_tableId : Tables.getNameToIdMap(Monitor.getContext().getInstance()).entrySet()) {
       String tableName = tableName_tableId.getKey();
+      // to here
       String tableId = tableName_tableId.getValue();
       TableInfo tableInfo = tableStats.get(tableName);
       Double holdTime = compactingByTable.get(tableId);
@@ -138,6 +144,7 @@ public class TablesServlet extends BasicServlet {
       row.add(tableInfo);
       row.add(tableInfo);
       tableList.addRow(row);
+    //});
     }
 
     SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
@@ -145,8 +152,16 @@ public class TablesServlet extends BasicServlet {
 
     tableList.generate(req, sb);
   }
+  
+	private static Predicate<Entry<String, String>> matchesNamespace(String namespace) {
+		return new Predicate<Entry<String,String>>() {
+			public boolean test(Entry<String,String> t) {
+				return t.getKey().startsWith(namespace + ".");
+			};
+		};
+	}
 
-  private void doTableDetails(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap, String tableId) {
+	private void doTableDetails(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap, String tableId) {
     String displayName = Tables.getPrintableTableNameFromId(tidToNameMap, tableId);
     Instance instance = Monitor.getContext().getInstance();
     TreeSet<String> locs = new TreeSet<>();
