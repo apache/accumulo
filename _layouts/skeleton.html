@@ -21,17 +21,16 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="{{ site.baseurl }}/css/bootstrap.min.css" rel="stylesheet">
-<link href="{{ site.baseurl }}/css/bootstrap-theme.min.css" rel="stylesheet">
-<link href="{{ site.baseurl }}/css/dataTables.bootstrap.css" rel="stylesheet">
 <link href="{{ site.baseurl }}/css/accumulo.css" rel="stylesheet" type="text/css">
 <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/jqc-1.12.3/dt-1.10.12/datatables.min.css"/>
 
 <title>{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</title>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 <script src="{{ site.baseurl }}/js/bootstrap.min.js"></script>
-<script src="{{ site.baseurl }}/js/jquery.dataTables.min.js"></script>
-<script src="{{ site.baseurl }}/js/dataTables.bootstrap.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/v/bs-3.3.6/jqc-1.12.3/dt-1.10.12/datatables.min.js"></script>
+
 <script>
   // show location of canonical site if not currently on the canonical site
   $(function() {

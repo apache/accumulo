@@ -15,37 +15,67 @@
 * limitations under the License.
 */
 
+h1 {
+  font-size: 34px;
+}
+
+h2 {
+  font-size: 28px;
+}
+
+h3 {
+  font-size: 22px;
+}
+
+h4 {
+  font-size: 18px;
+}
+
+h5 {
+  font-size: 16px;
+}
+
+h6 {
+  font-size: 15px;
+}
+
+body {
+  font-size: 14px;
+}
+
+code {
+  background-color: #f5f5f5;
+  color: #555;
+}
+
 #nav-logo {
     padding-top: 10px;
     padding-bottom: 10px;
 }
 
-body {
-    /* for fixed top navbar */
-    padding-top: 70px;
-    font-size: 14px;
-}
-
-.nav-link {
-    padding-top: 20px;
-    font-size: 16px;
-}
-
 .nav-link, li.dropdown {
-    padding-top: 10px;
-    font-size: 16px;
+  padding-top: 5px;
 }
 
 ul.nav li.dropdown:hover > ul.dropdown-menu {
-    /* so nav submenus open on hover */
-    display: block;
-}
-#sidebar {
-    font-size: 14px;
+  /* so nav submenus open on hover */
+  display: block;
 }
 
 #home-description {
-    font-size: 16px;
+    font-size: 17px;
+}
+
+#sidebar {
+  font-size: 15px;
+}
+
+.latest-news-item {
+  margin-bottom: 5px;
+}
+
+.latest-news-item span {
+  font-size: 12px;
 }
 
 #sociallinks td {
@@ -93,6 +123,7 @@ footer > p {
     margin-left: auto;
     margin-right: auto;
 }
+
 #asf-logo {
     float: left;
 }
@@ -116,8 +147,7 @@ footer > p {
 }
 
 #accumulo-summit-logo img {
-    margin-left: auto;
-    margin-right: auto;
+    height: 40px
 }
 
 code {
@@ -152,8 +182,8 @@ h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before, 
   visibility: hidden;
 }
 
-/* Makes navbar collapse at larger width (917px) */
-@media (max-width: 971px) {
+/* Makes navbar collapse at larger width (1185px) */
+@media (max-width: 1185px) {
     .navbar-header {
         float: none;
     }

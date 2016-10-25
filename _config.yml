@@ -18,6 +18,7 @@ github_username:  apache/accumulo
 repository: apache/accumulo
 exclude: [vendor]
 latest_minor_release: 1.8
+num_home_posts: 5
 
 # Build settings
 markdown: kramdown
@@ -29,6 +30,12 @@ defaults:
       type: "pages"
     values:
       layout: "skeleton"
-
+  -
+    scope:
+      path: "_posts/blog"
+      type: "posts"
+    values:
+      layout: "post"
+      category: "blog"
 whitelist: [jekyll-redirect-from]
 gems: [jekyll-redirect-from]

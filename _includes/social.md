@@ -2,9 +2,8 @@
 {: .table #sociallinks }
 | ![Twitter][1]{:style="height: 1em"}          | [@ApacheAccumulo][TWITTER]                |
 | ![Linked in][2]                              | [Apache Accumulo Professionals][LINKEDIN] |
-| ![GitHub][3]{:style="height: 1em"}           | [apache / accumulo][GITHUB]               |
+| ![GitHub][3]{:style="height: 1em"}           | [Apache Accumulo on GitHub][GITHUB]               |
 | <span class="glyphicon glyphicon-comment" /> | [#accumulo @ freenode][IRC]               |
-| ![Blog][4]{:width="16"}                      | [Apache Accumulo Blog][BLOG]              |
 
 [1]: {{ site.baseurl }}/images/Twitter_logo_blue.png
 [2]: {{ site.baseurl }}/images/InBug-16px_0.png
@@ -14,4 +13,3 @@
 [LINKEDIN]: https://www.linkedin.com/groups/Apache-Accumulo-Professionals-4554913
 [GITHUB]: https://github.com/apache/accumulo
 [IRC]: irc://chat.freenode.net/accumulo
-[BLOG]: https://blogs.apache.org/accumulo
