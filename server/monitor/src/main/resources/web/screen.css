@@ -390,3 +390,40 @@ pre.logevent {
     text-align: left;
     color: red;
 }
+
+#filters {
+    overflow-y: scroll;
+    height: 100%;
+    width: 200px;
+    float: left;
+}
+
+#tables {
+    overflow-y: scroll;
+    height: 100%;
+    margin-left: 205px;
+}
+
+#namespaces {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    background-color: #FFF;
+}
+
+#namespaces li a {
+    display: block;
+    color: black;
+    text-align: center;
+    padding: 14px 16px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+#namespaces li a:hover:not(.active) {
+    background-color: #eee;
+}
+
+.active {
+    background-color: #cef4b5;
+}

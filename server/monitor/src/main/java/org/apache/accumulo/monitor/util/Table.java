@@ -146,7 +146,24 @@ public class Table {
       showLegend = showStr != null && Boolean.parseBoolean(showStr);
     }
 
-    sb.append("<div>\n");
+    String redir = BasicServlet.currentPage(req);
+
+    if (namespaces != null) {
+      sb.append("<div id=\"filters\">\n");
+      String namespace = BasicServlet.getCookieValue(req, "namespaceDropdown." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "."
+          + "selected");
+      if (namespace == null) {
+        namespace = "*";
+      }
+      sb.append("<div class='left show'><dl>\n");
+      doDropdownMenu(redir, page, tableName, sb, namespaces, namespace);
+      sb.append("</dl></div>\n");
+      sb.append("</div>\n");
+      sb.append("<div id=\"tables\">\n");
+    } else {
+      sb.append("<div>\n");
+    }
+
     sb.append("<a name='").append(tableName).append("'>&nbsp;</a>\n");
     sb.append("<table id='").append(tableName).append("' class='sortable'>\n");
     sb.append("<caption");
@@ -158,7 +175,6 @@ public class Table {
     if (subcaption != null && !subcaption.isEmpty())
       sb.append("<span class='table-subcaption'>").append(subcaption).append("</span><br />\n");
 
-    String redir = BasicServlet.currentPage(req);
     if (numLegends > 0) {
       String legendUrl = String.format("/op?action=toggleLegend&redir=%s&page=%s&table=%s&show=%s", redir, page, tableName, !showLegend);
       sb.append("<a href='").append(legendUrl).append("'>").append(showLegend ? "Hide" : "Show").append("&nbsp;Legend</a>\n");
@@ -182,56 +198,6 @@ public class Table {
     }
     if (showLegend && numLegends > 0)
       sb.append("</dl></div>\n");
-    ArrayList<TableRow> newRows = new ArrayList<>();
-
-    if (namespaces != null) {
-
-      String namespace = BasicServlet.getCookieValue(req, "namespaceDropdown." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "."
-          + "selected");
-      if (namespace != null) {
-        sb.append("<p>Selected&nbsp;is&nbsp;").append(namespace).append("</p>");
-        
-        // Once this is implemented on the TablesServlet, delete it from here
-
-        for (TableRow row : rows) {
-          boolean first = true;
-          for (int i = 0; i < row.size(); ++i) {
-            if (first) {
-              try {
-                String tableNameStr = columns.get(i).getCellType().format(row.get(i));
-                if (namespace.equals("All")) {
-
-                  newRows.add(row);
-                } else {
-                  if (tableNameStr.contains(".")) {
-
-                    if (tableNameStr.contains(namespace + ".")) {
-
-                      newRows.add(row);
-                    }
-                  } else if (namespace.equals("DEFAULT")) {
-
-                    newRows.add(row);
-                  }
-
-                }
-              } catch (Exception ex) {
-                throw new RuntimeException("Unable to process column " + i, ex);
-              }
-              first = false;
-            }
-          }
-        }
-
-      } else {
-        newRows = rows;
-      }
-      sb.append("<div class='left show'><dl>\n");
-      doDropdownMenu(redir, page, tableName, sb, namespaces);
-      sb.append("</dl></div>\n");
-    } else {
-      newRows = rows;
-    }
 
     sb.append("</caption>\n");
     sb.append("<tr>");
@@ -243,13 +209,13 @@ public class Table {
     }
     sb.append("</tr>\n");
     // don't sort if no columns are sortable or if there aren't enough rows
-    if (newRows.size() > 1 && sortCol > -1) {
-      Collections.sort(newRows, TableRow.getComparator(sortCol, columns.get(sortCol).getCellType()));
+    if (rows.size() > 1 && sortCol > -1) {
+      Collections.sort(rows, TableRow.getComparator(sortCol, columns.get(sortCol).getCellType()));
       if (!sortAscending)
-        Collections.reverse(newRows);
+        Collections.reverse(rows);
     }
     boolean highlight = true;
-    for (TableRow row : newRows) {
+    for (TableRow row : rows) {
       for (int i = 0; i < row.size(); ++i) {
         try {
           row.set(i, columns.get(i).getCellType().format(row.get(i)));
@@ -260,7 +226,7 @@ public class Table {
       row(sb, highlight, columns, row);
       highlight = !highlight;
     }
-    if (newRows.isEmpty())
+    if (rows.isEmpty())
       sb.append("<tr><td class='center' colspan='").append(columns.size()).append("'><i>Empty</i></td></tr>\n");
     sb.append("</table>\n</div>\n\n");
   }
@@ -281,20 +247,22 @@ public class Table {
     sb.append("</tr>\n");
   }
 
-  private static void doDropdownMenu(String redir, String page, String tableName, StringBuilder sb, SortedMap<String,String> namespaces) {
+  private static void doDropdownMenu(String redir, String page, String tableName, StringBuilder sb, SortedMap<String,String> namespaces, String namespace) {
 
     String namespaceUrl = String.format("/op?action=namespace&redir=%s&page=%s&table=%s&selected=", redir, page, tableName);
 
-    sb.append("<ul>\n");
-    sb.append("<li><a href=\"").append(namespaceUrl).append("All\">All</a></li>");
+    sb.append("<ul id=\"namespaces\">\n");
+    sb.append("<li><a ").append(namespace.equals("*") ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl).append("*\">*</a></li>");
     for (String key : namespaces.keySet()) {
       if (key.equals("")) {
-        sb.append("<li><a href=\"").append(namespaceUrl).append("DEFAULT\">DEFAULT</a></li>");
+        sb.append("<li><a ").append(namespace.equals("-") ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl).append("-\">-</a></li>");
       } else {
-        sb.append("<li><a href=\"").append(namespaceUrl).append(key).append("\">").append(key).append("</a></li>");
+        sb.append("<li><a ").append(namespace.equals(key) ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl).append(key).append("\">")
+            .append(key).append("</a></li>");
       }
     }
     sb.append("</ul>\n");
+
   }
 
   public void setNamespaces(SortedMap<String,String> namespaces) {
