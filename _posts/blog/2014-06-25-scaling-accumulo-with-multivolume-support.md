@@ -4,7 +4,7 @@ date: 2014-06-25 17:00:00 +0000
 author: Dave Marion & Eric Newton
 ---
 
-Originally posted at [https://blogs.apache.org/accumulo/](https://blogs.apache.org/accumulo/)
+Originally posted at [https://blogs.apache.org/accumulo/entry/scaling_accumulo_with_multi_volume](https://blogs.apache.org/accumulo/entry/scaling_accumulo_with_multi_volume)
 
 MapReduce is a commonly used approach to querying or analyzing large amounts of data. Typically MapReduce jobs are created using using some set of files in HDFS to produce a result. When new files come in, they get added to the set, and the job gets run again. A common Accumulo approach to this scenario is to load all of the data into a single instance of Accumulo.
 

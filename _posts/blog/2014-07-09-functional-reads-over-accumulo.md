@@ -4,7 +4,7 @@ date: 2014-07-09 17:00:00 +0000
 author: Josh Elser
 ---
 
-Originally posted at [https://blogs.apache.org/accumulo/](https://blogs.apache.org/accumulo/)
+Originally posted at [https://blogs.apache.org/accumulo/entry/thinking_about_reads_over_accumulo](https://blogs.apache.org/accumulo/entry/thinking_about_reads_over_accumulo)
 
 Table structure is a common area of discussion between all types of Accumulo users. In the relational database realm, there was often a straightforward way that most users could agree upon that would be ideal to store and query some dataset. Data was identified by its schema, some fixed set of columns where each value within that column had some given characteristic. One of the big pushes behind the "NoSQL" movement was a growing pain in representing evolving data within a static schema. Applications like Accumulo removed that notion for a more flexible layout where the columns vary per row, but this flexibility often sparks debates about how data is "best" stored that often ends without a clear-cut winner.
 

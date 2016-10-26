@@ -4,7 +4,7 @@ date: 2015-03-20 17:00:00 +0000
 author: Keith Turner
 ---
 
-Originally posted at [https://blogs.apache.org/accumulo/](https://blogs.apache.org/accumulo/)
+Originally posted at [https://blogs.apache.org/accumulo/entry/balancing_groups_of_tablets](https://blogs.apache.org/accumulo/entry/balancing_groups_of_tablets)
 
 Accumulo has a pluggable tablet balancer that decides where tablets should be placed. Accumulo's default configuration spreads each tables tablets evenly and randomly across the tablet servers. Each table can configure a custom balancer that does something different.
 

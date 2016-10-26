@@ -4,7 +4,7 @@ date: 2014-05-27 17:00:00 +0000
 author: Josh Elser
 ---
 
-Originally posted at [https://blogs.apache.org/accumulo/](https://blogs.apache.org/accumulo/)
+Originally posted at [https://blogs.apache.org/accumulo/entry/getting_started_with_apache_accumulo](https://blogs.apache.org/accumulo/entry/getting_started_with_apache_accumulo)
 
 On May 12th, 2014, the Apache Accumulo project happily announced version 1.6.0 to the community. This is a new major release for the project which contains many numerous new features and fixes. For the full list of notable changes, I'd recommend that you check out the release notes that were published alongside the release itself. For this post, I'd like to cover some of the changes that have been made at the installation level that are a change for users who are already familiar with the project.
 

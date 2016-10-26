@@ -4,7 +4,7 @@ date: 2014-05-03 17:00:00 +0000
 author: Dave Marion
 ---
 
-Originally posted at [https://blogs.apache.org/accumulo/](https://blogs.apache.org/accumulo/)
+Originally posted at [https://blogs.apache.org/accumulo/entry/the_accumulo_classloader](https://blogs.apache.org/accumulo/entry/the_accumulo_classloader)
 
 The Accumulo classloader is an integral part of the software. The classloader is created before each of the services (master, tserver, gc, etc) are started and it is set as the classloader for that service. The classloader was rewritten in version 1.5 and this article will explain the new behavior.
 

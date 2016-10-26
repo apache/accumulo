@@ -4,7 +4,7 @@ date: 2015-04-06 17:00:00 +0000
 author: Josh Elser
 ---
 
-Originally posted at [https://blogs.apache.org/accumulo/](https://blogs.apache.org/accumulo/)
+Originally posted at [https://blogs.apache.org/accumulo/entry/data_center_replication](https://blogs.apache.org/accumulo/entry/data_center_replication)
 
 Traditionally, Apache Accumulo can only operate within the confines of a single physical location. The primary reason for this restriction is that Accumulo relies heavily on Apache ZooKeeper for distributed lock management and some distributed state. Due to the consistent nature of ZooKeeper and its protocol, it doesn't handle wide-area networks (WAN) well. As such, Accumulo suffers the same problems operating over a WAN.
 

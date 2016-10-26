@@ -4,7 +4,7 @@ date: 2014-09-02 17:00:00 +0000
 author: Josh Elser
 ---
 
-Originally posted at [https://blogs.apache.org/accumulo/](https://blogs.apache.org/accumulo/)
+Originally posted at [https://blogs.apache.org/accumulo/entry/generating_keystores_for_configuring_accumulo](https://blogs.apache.org/accumulo/entry/generating_keystores_for_configuring_accumulo)
 
 One of the major features added in Accumulo 1.6.0 was the ability to configure Accumulo so that the Thrift communications will run over SSL. [Apache Thrift][thrift] is the remote procedure call library that is leverage for both intra-server communication and client communication with Accumulo. Issuing these calls over a secure socket ensures that unwanted actors cannot inspect the traffic sent across the wire. Given the sometimes sensitive nature of data stored in Accumulo and the authentication details for users, ensuring that no prying eyes have access to these communications is critical.
 
