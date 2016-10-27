@@ -32,19 +32,6 @@ $( document ).ready(function() {
   }
 });
 
-var createSection = function(name, items, divider) {
-  var section = '';
-  if (divider == undefined) { divider = true; }
-  if (divider) {
-    section += '<li class="divider" <="" li=""> </li>';
-  }
-  section += '<li class="dropdown-header">' + name + '</li>';
-  for (var i = 0; i < items.length; i++) {
-    section += '<li><a href="#">' + items[i] + '</a></li>';
-  }
-  return section;
-};
-
 var updateLinks = function(mirror) {
   $('a[link-suffix]').each(function(i, obj) {
     $(obj).attr('href', mirror.replace(/\/+$/, "") + $(obj).attr('link-suffix'));
@@ -52,27 +39,33 @@ var updateLinks = function(mirror) {
 };
 
 var mirrorsCallback = function(json) {
-  var mirrorSelection = $("#mirror_selection");
-  var htmlContent =  '<span class="help-block">Select a mirror:</span>' +
-    '<div class="btn-group">' +
-      '<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">' +
-        '<span data-bind="label">' + json.preferred + '</span>&nbsp;<span class="caret">' +
-      '</button>' +
-      '<ul class="dropdown-menu">';
+  var htmlContent = '<div class="row"><div class="col-md-3"><h5>Select an Apache download mirror:</h5></div>' +
+    '<div class="col-md-5"><select class="form-control" id="apache-mirror-select">';
+  htmlContent += '<optgroup label="Preferred Mirror (based on location)">';
+  htmlContent += '<option selected="selected">' + json.preferred + '</option>';
+  htmlContent += '</optgroup>';
+  htmlContent += '<optgroup label="HTTP Mirrors">';
+  for (var i = 0; i < json.http.length; i++) {
+    htmlContent += '<option>' + json.http[i] + '</option>';
+  }
+  htmlContent += '</optgroup>';
+  htmlContent += '<optgroup label="FTP Mirrors">';
+  for (var i = 0; i < json.ftp.length; i++) {
+    htmlContent += '<option>' + json.ftp[i] + '</option>';
+  }
+  htmlContent += '</optgroup>';
+  htmlContent += '<optgroup label="Backup Mirrors">';
+  for (var i = 0; i < json.backup.length; i++) {
+    htmlContent += '<option>' + json.backup[i] + '</option>';
+  }
+  htmlContent += '</optgroup>';
+  htmlContent += '</select></div></div>';
 
-  htmlContent += createSection("Preferred Mirror (based on location)", [ json.preferred ], false);
-  htmlContent += createSection("HTTP Mirrors", json.http);
-  htmlContent += createSection("FTP Mirrors", json.ftp);
-  htmlContent += createSection("Backup Mirrors", json.backup);
+  $("#mirror_selection").html(htmlContent);
 
-  htmlContent += '</ul></div>';
-  mirrorSelection.html(htmlContent);
-
-  $("#mirror_selection a").click(function(event) {
-      var target=$(event.target);
-      var mirror=target.text();
-      updateLinks(mirror);
-      target.closest('.btn-group').find('[data-bind="label"]').text(mirror).end();
+  $( "#apache-mirror-select" ).change(function() {
+    var mirror = $("#apache-mirror-select option:selected").text();
+    updateLinks(mirror);
   });
 
   updateLinks(json.preferred);
