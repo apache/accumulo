@@ -27,7 +27,7 @@ legal_notice: Apache Accumulo, Accumulo, Apache Hadoop, Apache Thrift, Apache, t
         </div>
         {% endfor %}
         <div id="news-archive-link">
-         <p>View all posts in the <a href="{{ site.baseurl }}/news/">news archive</a></p>
+         <p>View all posts in the <a href="{{ site.baseurl }}/news">news archive</a></p>
         </div>
       </div>
     </div>
