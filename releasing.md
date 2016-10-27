@@ -1,6 +1,5 @@
 ---
 title: Making a Release
-nav: nav_releasing
 ---
 
 This is a guide for the creation of a release of Apache Accumulo. 

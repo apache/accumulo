@@ -1,6 +1,5 @@
 ---
 title: Release Guide
-nav: nav_govreleasing
 ---
 
 ## Versioning

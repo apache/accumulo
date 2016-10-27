@@ -45,11 +45,6 @@ code {
   padding-top: 5px;
 }
 
-ul.nav li.dropdown:hover > ul.dropdown-menu {
-  /* so nav submenus open on hover */
-  display: block;
-}
-
 #home-description {
     font-size: 17px;
 }
@@ -169,7 +164,6 @@ h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before, 
   height: 80px;
   visibility: hidden;
 }
-
 
 /* Makes navbar collapse at larger width (1185px) */
 @media (max-width: 1185px) {

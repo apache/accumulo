@@ -1,6 +1,5 @@
 ---
 title: Related Links
-nav: nav_papers
 ---
 
 ## Papers and Presentations

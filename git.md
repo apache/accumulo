@@ -1,6 +1,5 @@
 ---
 title: Git
-nav: nav_git
 ---
 
 [Git](https://git-scm.com) is an open source, distributed version control system

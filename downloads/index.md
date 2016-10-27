@@ -1,6 +1,5 @@
 ---
 title: Downloads
-nav: nav_downloads
 ---
 
 <script type="text/javascript">

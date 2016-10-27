@@ -1,6 +1,5 @@
 ---
 title: Contrib Projects
-nav: nav_contrib
 ---
 
 Apache Accumulo is a complex distributed system. In order to minimize that

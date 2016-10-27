@@ -1,6 +1,5 @@
 ---
 title: Screenshots
-nav: nav_screenshots
 ---
 
 <div class="row">

@@ -14,8 +14,6 @@ description: > # this means to ignore newlines until "baseurl:"
 baseurl: "/accumulo" # the subpath of your site, e.g. /blog
 url: "https://accumulo.apache.org" # the base hostname & protocol for your site
 twitter_username: ApacheAccumulo
-github_username:  apache/accumulo
-repository: apache/accumulo
 exclude: [vendor]
 latest_minor_release: 1.8
 num_home_posts: 5
@@ -29,7 +27,7 @@ defaults:
       path: ""
       type: "pages"
     values:
-      layout: "skeleton"
+      layout: "default"
   -
     scope:
       path: "_posts/blog"

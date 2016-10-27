@@ -1,6 +1,5 @@
 ---
 title: Glossary
-nav: nav_glossary
 ---
 
 

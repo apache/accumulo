@@ -1,6 +1,5 @@
 ---
 title: Using Review Board
-nav: nav_rb
 ---
 
 The Apache Software Foundation provides an [instance][rbinstance] of

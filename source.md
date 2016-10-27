@@ -1,7 +1,6 @@
 ---
 title: Source Code and Developers Guide
 skiph1fortitle: true
-nav: nav_source
 ---
 
 <div class="panel panel-default pull-right">

@@ -1,6 +1,5 @@
 ---
 title: Related Projects
-nav: nav_projects
 ---
 
 The Apache Accumulo community is happy to promote and encourage use of Accumulo in ways that are novel and reusable

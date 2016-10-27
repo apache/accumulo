@@ -1,6 +1,5 @@
 ---
 title: Release Notes
-nav: nav_rn
 ---
 
 Apache Accumulo generates release notes for the benefit of users which summarize the important and notable changes that

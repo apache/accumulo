@@ -1,6 +1,5 @@
 ---
 title: Lazy Consensus
-nav: nav_lazyconsensus
 ---
 
 The concept of "Lazy Consensus" is very important in our project. Lazy

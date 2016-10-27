@@ -1,6 +1,5 @@
 ---
 title: Consensus Building
-nav: nav_consensusbuilding
 ---
 
 In some cases there is no obvious path to take, or you might be a new community, 

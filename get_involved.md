@@ -1,6 +1,5 @@
 ---
 title: Get Involved
-nav: nav_getinvolved
 ---
 
 You don't need to be a software developer to contribute to 

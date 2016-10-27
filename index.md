@@ -1,7 +1,6 @@
 ---
 title: Apache Accumulo
 skiph1fortitle: true
-nav: nav_index
 legal_notice: Apache Accumulo, Accumulo, Apache Hadoop, Apache Thrift, Apache, the Apache feather logo, and the Accumulo project logo are trademarks of the [Apache Software Foundation](https://www.apache.org).
 ---
 <div class="row">
@@ -17,12 +16,12 @@ legal_notice: Apache Accumulo, Accumulo, Apache Hadoop, Apache Thrift, Apache, t
   <div class="col-md-4" id="sidebar">
     <div class="row">
       <div class="col-sm-12 panel panel-default">
-        <h3 id="news-header">Latest News</h3>
+        <p style="font-size: 24px; margin-bottom: 0px;">Latest News</p>
         {% for post in site.posts limit:site.num_home_posts %}
         <div class="row latest-news-item">
           <div class="col-sm-12">
            <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
-           <span>{{ post.date | date: "%b %Y" }}</span>
+           <span style="font-size: 12px">{{ post.date | date: "%b %Y" }}</span>
           </div>
         </div>
         {% endfor %}

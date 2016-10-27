@@ -22,55 +22,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/paper/bootstrap.min.css" rel="stylesheet" integrity="sha384-awusxf8AUojygHf2+joICySzB780jVvQaVCAt1clU3QsyAitLGul28Qxb2r1e5g+" crossorigin="anonymous">
 <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/jqc-1.12.3/dt-1.10.12/datatables.min.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/jq-2.2.3/dt-1.10.12/datatables.min.css">
 <link href="{{ site.baseurl }}/css/accumulo.css" rel="stylesheet" type="text/css">
 
 <title>{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</title>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/v/bs-3.3.6/jqc-1.12.3/dt-1.10.12/datatables.min.js"></script>
-
-<script>
-  // show location of canonical site if not currently on the canonical site
-  $(function() {
-    var host = window.location.host;
-    if (typeof host !== 'undefined' && host !== 'accumulo.apache.org') {
-      $('#non-canonical').show();
-    }
-  });
-
-  {% if page.nav %}
-  // decorate menu with currently navigated page
-  $(function() {
-    $("#{{page.nav}}").addClass("active");
-  });
-  {% endif %}
-
-  $(function() {
-    // decorate section headers with anchors
-    return $("h2, h3, h4, h5, h6").each(function(i, el) {
-      var $el, icon, id;
-      $el = $(el);
-      id = $el.attr('id');
-      icon = '<i class="fa fa-link"></i>';
-      if (id) {
-        return $el.append($("<a />").addClass("header-link").attr("href", "#" + id).html(icon));
-      }
-    });
-  });
-
-  // configure Google Analytics
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-  if (ga.hasOwnProperty('loaded') && ga.loaded === true) {
-    ga('create', 'UA-50934829-1', 'apache.org');
-    ga('send', 'pageview');
-  }
-</script>
+<script type="text/javascript" src="https://cdn.datatables.net/v/bs/jq-2.2.3/dt-1.10.12/datatables.min.js"></script>
+{% include scripts.html %}
 </head>
 <body style="padding-top: 100px">
 

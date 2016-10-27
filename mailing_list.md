@@ -1,6 +1,5 @@
 ---
 title: Mailing Lists
-nav: nav_mailinglists
 ---
 
 All Accumulo mailing lists are in the accumulo.apache.org domain. Please note

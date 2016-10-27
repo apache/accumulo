@@ -1,6 +1,5 @@
 ---
 title: Thanks
-nav: nav_thanks
 ---
 
 First off, thanks to our parent organization, the [Apache Software Foundation][ASF] and [all who sponsor][ASF_SPONSORS] them.

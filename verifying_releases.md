@@ -1,6 +1,5 @@
 ---
 title: Verifying a Release
-nav: nav_verify_release
 ---
 
 This is a guide for the verification of a release candidate of Apache Accumulo. These steps are meant to encapsulate

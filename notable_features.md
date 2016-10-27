@@ -1,6 +1,5 @@
 ---
 title: Notable Features
-nav: nav_features
 ---
 
 {::options toc_levels="2" /}

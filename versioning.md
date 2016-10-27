@@ -1,6 +1,5 @@
 ---
 title: Versioning
-nav: nav_versioning
 ---
 
 The Apache Accumulo PMC closed a vote on 2014/12/12 which adopted [Semantic Versioning 2.0.0][1] as

@@ -1,6 +1,5 @@
 ---
 title: Examples
-nav: nav_examples_16
 ---
 
 Before running any of the examples, the following steps must be performed.

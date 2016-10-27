@@ -1,7 +1,6 @@
 ---
 title: People
 skiph1fortitle: true
-nav: nav_people
 ---
 
 ## PMC and Committers
