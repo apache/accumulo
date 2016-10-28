@@ -1,7 +1,12 @@
 ---
 layout: skeleton
 ---
-<h5>{% if page.author %}{{ page.author }} - {% endif %}{{ page.date | date_to_string }} </h5>
+<table>
+{% if page.author %}<tr><td><b>Author</b></td><td>&nbsp;&nbsp;{{ page.author }} </td></tr>{% endif %}
+<tr><td><b>Post date </b></td><td> &nbsp;&nbsp;{{ page.date | date_to_string }} </td></tr>
+{% if page.reviewers %}<tr><td><b>Reviewer(s) </b></td><td> &nbsp;&nbsp;{{ page.reviewers }} </td></tr>{% endif %}
+</table>
+<p>
 
 {{ content }}
 
