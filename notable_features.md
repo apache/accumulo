@@ -423,18 +423,18 @@ imported.
 
 ### Compact Range
 
-Compact each tablet that falls within a row range down to a single file.  
+Compact each tablet that falls within a row range down to a single file.
 
 ### Delete Range
 
 Added an operation to efficiently delete a range of rows from a table. Tablets
 that fall completely within a range are simply dropped. Tablets overlapping the
-beginning and end of the range are split, compacted, and then merged.  
+beginning and end of the range are split, compacted, and then merged.
 
 [FATE]: #fate
 [M-A-P]: {{ site.baseurl }}/release_notes/1.6.0#maven-plugin
 [CMUT]: {{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/data/ConditionalMutation
 [CWRI]: {{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/client/ConditionalWriter
-[4]: {{ site.baseurl }}/1.5/accumulo_user_manual#_writing_accumulo_clients
-[6]: {{ site.baseurl }}/1.5/accumulo_user_manual#_bulk_ingest
-[7]: {{ site.baseurl }}/1.6/accumulo_user_manual#_conditionalwriter
+[4]: {{ site.baseurl }}/1.8/accumulo_user_manual#_writing_accumulo_clients
+[6]: {{ site.baseurl }}/1.8/accumulo_user_manual#_bulk_ingest
+[7]: {{ site.baseurl }}/1.8/accumulo_user_manual#_conditionalwriter
