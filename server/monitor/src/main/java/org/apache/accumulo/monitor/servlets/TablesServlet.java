@@ -166,7 +166,7 @@ public class TablesServlet extends BasicServlet {
           return !t.getKey().contains(".");
         }
         return t.getKey().startsWith(namespace + ".");
-      };
+      }
     };
   }
 
