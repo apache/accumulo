@@ -7,17 +7,17 @@ author: Keith Turner
 ## Overview
 
 Accumulo stores recently written data in a sorted in memory map.  Before data is
-added to this map, it's written to an unsorted WAL (write ahead log).  In the
-case when a Tablet Server dies, the recently written data is recovered from the
+added to this map, it's written to an unsorted write ahead log(WAL).  In the
+case when a tablet server dies, the recently written data is recovered from the
 WAL.
 
 When data is written to Accumulo the following happens :
 
  * Client sends a batch of mutations to a tablet server
  * Tablet server does the following :
-   * Writes mutation to Tablet Servers WAL
-   * Sync or flush WAL
-   * Adds mutations to sorted in memory maps
+   * Writes mutation to tablet servers WAL
+   * Sync or flush tablet servers' WAL
+   * Adds mutations to sorted in memory map of each tablet.
    * Reports success back to client.
 
 The sync/flush step above moves data written to the WAL from memory to disk.
@@ -26,12 +26,13 @@ disk for an open file : `hsync` and `hflush`.
 
 ## HDFS Sync/Flush Details
 
-When `hflush` is called on a WAL, it does not ensure data is on disk.  It only
-ensure that data is in OS buffers on each datanode and on its way to disk.  As a
-result calls to `hflush` are very fast.  If a WAL is replicated to 3 data nodes
-then data may be lost if all three machines reboot.  If the datanode process
-dies, thats ok because it flushed to OS.  The machines have to reboot for data
-loss to occur.
+When `hflush` is called on a WAL, it does not guarantee data is on disk.  It
+only guarantees that data is in OS buffers on each datanode and on its way to disk.
+As a result calls to `hflush` are very fast.  If a WAL is replicated to 3 data
+nodes then data may be lost if all three machines reboot.  If the datanode
+process dies, then data loss will not happen because the data was in OS buffers
+waiting to be written to disk.  The machines have to reboot for data loss to
+occur.
 
 In order to avoid data loss in the event of reboot, `hsync` can be called.  This
 will ensure data is written to disk on all datanodes before returning.  When
@@ -49,8 +50,9 @@ filesystem metadata is also synced.  Depending on the local filesystem and its
 configuration, syncing the metadata may or may not take time.  In the worst
 case, we need to wait for four sync operations at the local filesystem level on
 each datanode. One thing I am not sure about, is if these sync operations occur
-in parallel on the replicas on different datanodes.  Lets hope they occur in
-parallel.  The following pointers show where sync occurs in the datanode code.
+in parallel on the replicas on different datanodes.  If anyone can answer this
+question, please let us know on the [dev list][ML]. The following pointers show
+where sync occurs in the datanode code.
 
  * [BlockReceiver.flushOrSync()][fos] calls [ReplicaOutputStreams.syncDataOut()][ros1] and [ReplicaOutputStreams.syncChecksumOut()][ros2] when `isSync` is true.
  * The methods in ReplicaOutputStreams call [FileChannel.force(true)][fcf] which
@@ -66,11 +68,11 @@ problems][160_RN_WAL].  In order to offer better performance, the option to
 configure `hflush` was [added in 1.6.1][161_RN_WAL].  The
 [tserver.wal.sync.method][16_UM_SM] configuration option was added to support
 this feature.  This was a tablet server wide option that applied to everything
-written to any table.   
+written to any table.
 
 ## Group Commit
 
-Each Accumulo Tablet Server has a single WAL.  When multiple clients send
+Each Accumulo tablet server has a single WAL.  When multiple clients send
 mutations to a tablet server at around the same time, the tablet sever may group
 all of this into a single WAL operation.  It will do this instead of writing and
 syncing or flushing each client's mutations to the WAL separately.  Doing this
@@ -81,6 +83,7 @@ increase throughput and lowers average latency for clients.
 Accumulo 1.7.0 introduced [table.durability][17_UM_TD], a new per table property
 for configuring durability.  It also stopped using the `tserver.wal.sync.method`
 property.  The `table.durability` property has the following four legal values.
+This property default to the most durable option which is `sync`.  
 
  * **none** : Do not write to WAL            
  * **log**  : Write to WAL, but do not sync  
@@ -88,18 +91,23 @@ property.  The `table.durability` property has the following four legal values.
  * **sync** : Write to WAL and call `hsync`  
 
 If multiple writes arrive at around the same time with different durability
-settings, then the group commit code will choose the most conservative
-durability.  This can cause one tables settings to slow down writes to another
-table.  
+settings, then the group commit code will choose the most durable.  This can
+cause one tables settings to slow down writes to another table.  
 
 In Accumulo 1.6, it was easy to make all writes use `hflush` because there was
 only one tserver setting.  Getting everything to use `flush` in 1.7 and later
 can be a little tricky because by default the Accumulo metadata table is set to
-use `sync`.  Executing the following command in the Accumulo shell will
-accomplish this (assuming no tables or namespaces have been specifically set to
-`sync`).  The first command sets a system wide table default for `flush`.  The
-second two commands override metadata table specific settings of `sync`.
+use `sync`. 
 
+Executing the following commands in the Accumulo shell will make everything use
+`flush` (assuming no tables or namespaces have been specifically set to `sync`).
+The first command sets a system wide setting for `flush`.  This covers any table
+that has not explicitly set `table.durability`, these tables will inherit the
+system wide setting.  When Accumulo is initialized, it explicitly sets
+`table.durability=sync` for the metadata tables, which will override any system
+level settings.  Therefore, the second two commands override metadata table
+specific settings of `sync` with `flush`.
+  
 ```
 config -s table.durability=flush
 config -t accumulo.metadata -s table.durability=flush
@@ -119,7 +127,7 @@ configured to use `hflush`.
 ## Improving the situation
 
 The more granular durability settings introduced in 1.7.0 can cause some
-unexpected problems.  [ACCUMULO-4146] suggest one possible way to solve these
+unexpected problems.  [ACCUMULO-4146] suggests one possible way to solve these
 problems with Per-durability write ahead logs.
 
 [fcf]: https://docs.oracle.com/javase/8/docs/api/java/nio/channels/FileChannel.html#force-boolean-
@@ -128,9 +136,10 @@ problems with Per-durability write ahead logs.
 [fos]: https://github.com/apache/hadoop/blob/release-2.7.1/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/server/datanode/BlockReceiver.java#L358
 [ACCUMULO-4146]: https://issues.apache.org/jira/browse/ACCUMULO-4146
 [ACCUMULO-4112]: https://issues.apache.org/jira/browse/ACCUMULO-4112
-[160_RN_WAL]: /release_notes/1.6.0#slower-writes-than-previous-accumulo-versions
-[161_RN_WAL]: /release_notes/1.6.1#write-ahead-log-sync-implementation
-[16_UM_SM]: /1.6/accumulo_user_manual#_tserver_wal_sync_method
-[17_UM_TD]: /1.7/accumulo_user_manual#_table_durability
-[172_RN_MCHS]: /release_notes/1.7.2#minor-performance-improvements
-[SD]: /1.8/apidocs/org/apache/accumulo/core/client/BatchWriterConfig.html#setDurability(org.apache.accumulo.core.client.Durability)
+[160_RN_WAL]: {{ site.baseurl }}/release_notes/1.6.0#slower-writes-than-previous-accumulo-versions
+[161_RN_WAL]: {{ site.baseurl }}/release_notes/1.6.1#write-ahead-log-sync-implementation
+[16_UM_SM]: {{ site.baseurl }}/1.6/accumulo_user_manual#_tserver_wal_sync_method
+[17_UM_TD]: {{ site.baseurl }}/1.7/accumulo_user_manual#_table_durability
+[172_RN_MCHS]: {{ site.baseurl }}/release_notes/1.7.2#minor-performance-improvements
+[SD]: {{ site.baseurl }}/1.8/apidocs/org/apache/accumulo/core/client/BatchWriterConfig.html#setDurability(org.apache.accumulo.core.client.Durability)
+[ML]: {{ site.baseurl }}/mailing_list
