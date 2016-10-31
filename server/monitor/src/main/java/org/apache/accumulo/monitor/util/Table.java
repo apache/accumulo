@@ -155,6 +155,8 @@ public class Table {
       if (namespace == null) {
         namespace = "*";
       }
+      sb.append("<div class=\"table-caption\">Namespaces</div>\n");
+      sb.append("<hr />\n");
       sb.append("<div class='left show'><dl>\n");
       doDropdownMenu(redir, page, tableName, sb, namespaces, namespace);
       sb.append("</dl></div>\n");
@@ -252,10 +254,12 @@ public class Table {
     String namespaceUrl = String.format("/op?action=namespace&redir=%s&page=%s&table=%s&selected=", redir, page, tableName);
 
     sb.append("<ul id=\"namespaces\">\n");
-    sb.append("<li><a ").append(namespace.equals("*") ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl).append("*\">*</a></li>");
+    sb.append("<li><a ").append(namespace.equals("*") ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl)
+        .append("*\">*&nbsp;(All&nbsp;Tables)</a></li>");
     for (String key : namespaces.keySet()) {
       if (key.equals("")) {
-        sb.append("<li><a ").append(namespace.equals("-") ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl).append("-\">-</a></li>");
+        sb.append("<li><a ").append(namespace.equals("-") ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl)
+            .append("-\">-&nbsp;(DEFAULT)</a></li>");
       } else {
         sb.append("<li><a ").append(namespace.equals(key) ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl).append(key).append("\">")
             .append(key).append("</a></li>");
