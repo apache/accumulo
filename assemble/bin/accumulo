@@ -43,7 +43,7 @@ function build_native() {
   cd "${native_dir}" || exit 1
 
   # Make the native library
-  export USERFLAGS="$@"
+  export USERFLAGS="$*"
   if ! make
   then
       echo "Make failed!"
@@ -76,7 +76,7 @@ function main() {
     "$basedir/libexec/config.sh" "${@:2}"
     exit 0
   elif [[ "$1" == "build-native" ]]; then
-    build_native ${*:2}
+    build_native "${@:2}"
     exit 0
   fi
 
@@ -139,7 +139,7 @@ function main() {
      exit 1
   fi
 
-  if [[ ! " gc master monitor tserver tracer " =~ " $1 " ]]; then
+  if [[ ! "$1" =~ ^(gc|master|monitor|tserver|traser)$ ]]; then
     if [[ -f ${ACCUMULO_CONF_DIR}/log4j.properties ]]; then
       export ACCUMULO_OPTS="${ACCUMULO_OPTS} -Dlog4j.configuration=file:${ACCUMULO_CONF_DIR}/log4j.properties"
     else
@@ -184,6 +184,8 @@ function main() {
 
   # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
   JAVA="${JAVA_HOME}/bin/java"
+
+  ACCUMULO_OPTS_ARRAY=(${ACCUMULO_OPTS})
   exec "$JAVA" "-Dapp=$1" \
      $INSTANCE_OPT \
      "${ACCUMULO_OPTS_ARRAY[@]}" \

@@ -34,17 +34,17 @@ SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_CONF_DIR/
 
 if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]
 then
-   echo "Your accumulo-site.xml file is not set up for the HDFS Classloader. Please add the following to your accumulo-site.xml file where ##CLASSPATH## is one of the following formats:"
-   echo "A single directory: hdfs://host:port/directory/"
-   echo "A single directory with a regex: hdfs://host:port/directory/.*.jar"
-   echo "Multiple directories: hdfs://host:port/directory/.*.jar,hdfs://host:port/directory2/"
-   echo ""
-   echo "<property>"
-   echo "   <name>general.vfs.classpaths</name>"
-   echo "   <value>##CLASSPATH##</value>"
-   echo "   <description>location of the jars for the default (system) context</description>"
-   echo "</property>"
-   exit 1
+  echo "Your accumulo-site.xml file is not set up for the HDFS Classloader. Please add the following to your accumulo-site.xml file where ##CLASSPATH## is one of the following formats:"
+  echo "A single directory: hdfs://host:port/directory/"
+  echo "A single directory with a regex: hdfs://host:port/directory/.*.jar"
+  echo "Multiple directories: hdfs://host:port/directory/.*.jar,hdfs://host:port/directory2/"
+  echo ""
+  echo "<property>"
+  echo "   <name>general.vfs.classpaths</name>"
+  echo "   <value>##CLASSPATH##</value>"
+  echo "   <description>location of the jars for the default (system) context</description>"
+  echo "</property>"
+  exit 1
 fi
 
 #
@@ -52,11 +52,11 @@ fi
 #
 "$HADOOP_PREFIX/bin/hadoop" fs -ls "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 if [[ $? != 0 ]]; then
-   "$HADOOP_PREFIX/bin/hadoop" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
-   if [[ $? != 0 ]]; then
-      echo "Unable to create classpath directory at $SYSTEM_CONTEXT_HDFS_DIR"
-      exit 1
-   fi
+  "$HADOOP_PREFIX/bin/hadoop" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
+  if [[ $? != 0 ]]; then
+    echo "Unable to create classpath directory at $SYSTEM_CONTEXT_HDFS_DIR"
+    exit 1
+  fi
 fi
 
 #
@@ -72,7 +72,7 @@ REP=$(( NUM_TSERVERS / 50 ))
 #
 # Copy all jars in lib to the system context directory
 #
-"$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$ACCUMULO_LIB_DIR/*.jar "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$ACCUMULO_LIB_DIR"/*.jar "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -setrep -R $REP "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 
 #
@@ -86,5 +86,5 @@ REP=$(( NUM_TSERVERS / 50 ))
 "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar"  > /dev/null
 for f in $(grep -v '^#' "$ACCUMULO_CONF_DIR/tservers")
 do
-  rsync -ra --delete "$ACCUMULO_HOME" $(dirname "$ACCUMULO_HOME")
+  rsync -ra --delete "$ACCUMULO_HOME" "$(dirname "$ACCUMULO_HOME")"
 done

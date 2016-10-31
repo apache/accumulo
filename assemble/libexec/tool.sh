@@ -36,12 +36,12 @@ if [[ -z "$ZOOKEEPER_HOME" ]] ; then
    exit 1
 fi
 
-ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar '
-if [[ $(eval $ZOOKEEPER_CMD | wc -l) -ne 1 ]] ; then
+ZOOKEEPER_CMD="ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar "
+if [[ $(eval "$ZOOKEEPER_CMD" | wc -l) -ne 1 ]] ; then
    echo "Not exactly one zookeeper jar in $ZOOKEEPER_HOME"
    exit 1
 fi
-ZOOKEEPER_LIB=$(eval $ZOOKEEPER_CMD)
+ZOOKEEPER_LIB=$(eval "$ZOOKEEPER_CMD")
 
 LIB="$ACCUMULO_LIB_DIR"
 CORE_LIB="$LIB/accumulo-core.jar"
@@ -88,5 +88,5 @@ fi
 #echo USERJARS=$USERJARS
 #echo CLASSNAME=$CLASSNAME
 #echo HADOOP_CLASSPATH=$HADOOP_CLASSPATH
-#echo exec "$HADOOP_PREFIX/bin/hadoop" jar "$TOOLJAR" $CLASSNAME -libjars \"$LIB_JARS\" $ARGS
-exec "$HADOOP_PREFIX/bin/hadoop" jar "$TOOLJAR" $CLASSNAME -libjars \"$LIB_JARS\" "$@"
+#echo exec "$HADOOP_PREFIX/bin/hadoop" jar "$TOOLJAR" "$CLASSNAME" -libjars \"$LIB_JARS\" $ARGS
+exec "$HADOOP_PREFIX/bin/hadoop" jar "$TOOLJAR" "$CLASSNAME" -libjars "$LIB_JARS" "$@"

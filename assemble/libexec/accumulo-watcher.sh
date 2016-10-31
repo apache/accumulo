@@ -53,7 +53,7 @@ logger -s "starting process $process at $(date)"
 stopRunning=""
 while [ -z "$stopRunning" ];
 do
-  eval $COMMAND 2> $ERRFILE
+  eval "$COMMAND" 2> "$ERRFILE"
   exit=$?
   unset cause
   if [ "$exit" -eq 0 ]; then
@@ -73,26 +73,26 @@ do
     if [ $exit -eq 1 ]; then
       source="exit code"
       cause=$UNEXPECTED_EXCEPTION
-    elif tail -n50 $OUTFILE | grep "java.lang.OutOfMemoryError:" > /dev/null; then
+    elif tail -n50 "$OUTFILE" | grep "java.lang.OutOfMemoryError:" > /dev/null; then
       source="logs"
       cause=$OOM_EXCEPTION
     elif [ "$process" = "tserver" ]; then
-      if tail -n50 $DEBUGLOG | grep "ERROR: Lost tablet server lock (reason =" > /dev/null ; then
+      if tail -n50 "$DEBUGLOG" | grep "ERROR: Lost tablet server lock (reason =" > /dev/null ; then
         source="logs"
         cause=$ZKLOCK_LOST
       fi
     elif [ "$process" = "master" ]; then
-      if tail -n50 $DEBUGLOG | grep "ERROR: Master lock in zookeeper lost (reason =" > /dev/null ; then
+      if tail -n50 "$DEBUGLOG" | grep "ERROR: Master lock in zookeeper lost (reason =" > /dev/null ; then
         source="logs"
         cause=$ZKLOCK_LOST
       fi
     elif [ "$process" = "gc" ]; then
-      if tail -n50 $DEBUGLOG | grep "FATAL: GC lock in zookeeper lost (reason =" > /dev/null ; then
+      if tail -n50 "$DEBUGLOG" | grep "FATAL: GC lock in zookeeper lost (reason =" > /dev/null ; then
         source="logs"
         cause=$ZKLOCK_LOST
       fi
     elif [ "$process" = "monitor" ]; then
-      if tail -n50 $DEBUGLOG | grep "ERROR:  Monitor lock in zookeeper lost (reason =" > /dev/null ; then
+      if tail -n50 "$DEBUGLOG" | grep "ERROR:  Monitor lock in zookeeper lost (reason =" > /dev/null ; then
         source="logs"
         cause=$ZKLOCK_LOST
       fi
@@ -103,39 +103,39 @@ do
     case $cause in
       #Unknown exit code
       "$UNKNOWN_ERROR")
-        #window doesn't matter when retries = 0
-        RETRIES=0
-        ;;
+      #window doesn't matter when retries = 0
+      RETRIES=0
+      ;;
 
-      "$UNEXPECTED_EXCEPTION")
-        WINDOW=$UNEXPECTED_TIMESPAN
-        RETRIES=$UNEXPECTED_RETRIES
-        ;;
+    "$UNEXPECTED_EXCEPTION")
+      WINDOW=$UNEXPECTED_TIMESPAN
+      RETRIES=$UNEXPECTED_RETRIES
+      ;;
 
-      "$OOM_EXCEPTION") 
-        WINDOW=$OOM_TIMESPAN
-        RETRIES=$OOM_RETRIES
-        ;;
+    "$OOM_EXCEPTION") 
+      WINDOW=$OOM_TIMESPAN
+      RETRIES=$OOM_RETRIES
+      ;;
 
-      "$ZLOCK_LOST")
-        WINDOW=$ZKLOCK_TIMESPAN
-        RETRIES=$ZKLOCK_RETRIES
-        ;;
-    esac
+    "$ZKLOCK_LOST")
+      WINDOW=$ZKLOCK_TIMESPAN
+      RETRIES=$ZKLOCK_RETRIES
+      ;;
+  esac
 
-    if [ -n "$cause" ]; then
-      stopRunning=""
-      declare -i attempts
-      attempts="`jobs | grep "reason$cause" | wc -l`+1"
-      if [ "$RETRIES" -le $attempts ]; then
-        stopRunning="$process encountered $cause in $source with exit code $exit- quitting ($attempts/$RETRIES in $WINDOW seconds)"
-        # kill all sleeps now
-        for list in `jobs | cut -b 2-2`; do kill %$list; done
-      else
-        logger -s "$process encountered $cause in $source with exit code $exit- retrying ($attempts/$RETRIES in $WINDOW seconds)"
-        eval "(sleep $WINDOW ; echo "reason$cause" >> /dev/null) &" 
-      fi
-    fi 
-  fi
+  if [ -n "$cause" ]; then
+    stopRunning=""
+    declare -i attempts
+    attempts="$(jobs | grep -c "reason$cause")+1"
+    if [ "$RETRIES" -le "$attempts" ]; then
+      stopRunning="$process encountered $cause in $source with exit code $exit- quitting ($attempts/$RETRIES in $WINDOW seconds)"
+      # kill all sleeps now
+      for list in $(jobs | cut -b 2-2); do kill %"$list"; done
+    else
+      logger -s "$process encountered $cause in $source with exit code $exit- retrying ($attempts/$RETRIES in $WINDOW seconds)"
+      eval "(sleep $WINDOW ; echo 'reason$cause' >> /dev/null) &" 
+    fi
+  fi 
+fi
 done
-logger -s $stopRunning
+logger -s "$stopRunning"

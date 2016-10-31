@@ -57,7 +57,7 @@ KERBEROS=
 if [[ $(uname -s) == "Linux" ]]; then
   args=$(getopt -o "b:d:s:njokv:h" -l "basedir:,dir:,size:,native,jvm,overwrite,kerberos,version:,help" -q -- "$@")
 else # Darwin, BSD
-  args=$(getopt b:d:s:njokv:h $*)
+  args=$(getopt b:d:s:njokv:h "$@")
 fi
 
 #Bad arguments
@@ -65,7 +65,7 @@ if [[ $? != 0 ]]; then
   usage 1>&2
   exit 1
 fi
-eval set -- $args
+eval set -- "${args[@]}"
 
 for i
 do
@@ -99,8 +99,8 @@ do
       exit 0
       shift;;
     --)
-    shift
-    break;;
+      shift
+      break;;
   esac
 done
 
@@ -293,97 +293,97 @@ if [[ ! -z "${BASE_DIR}" ]]; then
   MAVEN_PROJ_BASEDIR="\n  <property>\n    <name>general.maven.project.basedir</name>\n    <value>${BASE_DIR}</value>\n  </property>\n"
 fi
 
-mkdir -p "${CONF_DIR}" && cp ${TEMPLATE_CONF_DIR}/* ${CONF_DIR}/
+mkdir -p "${CONF_DIR}" && cp "${TEMPLATE_CONF_DIR}"/* "${CONF_DIR}"/
 
 if [[ -f "${CONF_DIR}/examples/client.conf" ]]; then
-  cp ${CONF_DIR}/examples/client.conf ${CONF_DIR}/
+  cp "${CONF_DIR}"/examples/client.conf "${CONF_DIR}"/
 fi
 
 #Configure accumulo-env.sh
 sed -e "s/\${tServerHigh_tServerLow}/${!TSERVER}/" \
-    -e "s/\${masterHigh_masterLow}/${!MASTER}/" \
-    -e "s/\${monitorHigh_monitorLow}/${!MONITOR}/" \
-    -e "s/\${gcHigh_gcLow}/${!GC}/" \
-    -e "s/\${shellHigh_shellLow}/${!SHELL}/" \
-    -e "s/\${otherHigh_otherLow}/${!OTHER}/" \
-    ${TEMPLATE_CONF_DIR}/$ACCUMULO_ENV > ${CONF_DIR}/$ACCUMULO_ENV
+  -e "s/\${masterHigh_masterLow}/${!MASTER}/" \
+  -e "s/\${monitorHigh_monitorLow}/${!MONITOR}/" \
+  -e "s/\${gcHigh_gcLow}/${!GC}/" \
+  -e "s/\${shellHigh_shellLow}/${!SHELL}/" \
+  -e "s/\${otherHigh_otherLow}/${!OTHER}/" \
+  "${TEMPLATE_CONF_DIR}/$ACCUMULO_ENV" > "${CONF_DIR}/$ACCUMULO_ENV"
 
 #Configure accumulo-site.xml
 sed -e "s/\${memMapMax}/${!MEMORY_MAP_MAX}/" \
-    -e "s/\${nativeEnabled}/${!NATIVE}/" \
-    -e "s/\${cacheDataSize}/${!CACHE_DATA_SIZE}/" \
-    -e "s/\${cacheIndexSize}/${!CACHE_INDEX_SIZE}/" \
-    -e "s/\${sortBufferSize}/${!SORT_BUFFER_SIZE}/" \
-    -e "s/\${waLogMaxSize}/${!WAL_MAX_SIZE}/" \
-    -e "s=\${traceUser}=${TRACE_USER}=" \
-    -e "s=\${mvnProjBaseDir}=${MAVEN_PROJ_BASEDIR}=" ${TEMPLATE_CONF_DIR}/$ACCUMULO_SITE > ${CONF_DIR}/$ACCUMULO_SITE
+  -e "s/\${nativeEnabled}/${!NATIVE}/" \
+  -e "s/\${cacheDataSize}/${!CACHE_DATA_SIZE}/" \
+  -e "s/\${cacheIndexSize}/${!CACHE_INDEX_SIZE}/" \
+  -e "s/\${sortBufferSize}/${!SORT_BUFFER_SIZE}/" \
+  -e "s/\${waLogMaxSize}/${!WAL_MAX_SIZE}/" \
+  -e "s=\${traceUser}=${TRACE_USER}=" \
+  -e "s=\${mvnProjBaseDir}=${MAVEN_PROJ_BASEDIR}=" "${TEMPLATE_CONF_DIR}/$ACCUMULO_SITE" > "${CONF_DIR}/$ACCUMULO_SITE"
 
 # If we're not using kerberos, filter out the krb properties
 if [[ -z "${KERBEROS}" ]]; then
   sed -e 's/<!-- Kerberos requirements -->/<!-- Kerberos requirements --><!--/' \
-      -e 's/<!-- End Kerberos requirements -->/--><!-- End Kerberos requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End Kerberos requirements -->/--><!-- End Kerberos requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
 else
   # Make the substitutions
   sed -e "s!\${keytab}!${KEYTAB}!" \
-      -e "s!\${principal}!${PRINCIPAL}!" \
-      ${CONF_DIR}/${ACCUMULO_SITE} > temp
-  mv temp ${CONF_DIR}/${ACCUMULO_SITE}
+    -e "s!\${principal}!${PRINCIPAL}!" \
+    "${CONF_DIR}/${ACCUMULO_SITE}" > temp
+  mv temp "${CONF_DIR}/${ACCUMULO_SITE}"
 fi
 
 # Configure hadoop version
 if [[ "${HADOOP_VERSION}" == "2" ]]; then
   sed -e 's/<!-- HDP 2.0 requirements -->/<!-- HDP 2.0 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
   sed -e 's/<!-- HDP 2.2 requirements -->/<!-- HDP 2.2 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.2 requirements -->/--><!-- End HDP 2.2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End HDP 2.2 requirements -->/--><!-- End HDP 2.2 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
   sed -e 's/<!-- IOP 4.1 requirements -->/<!-- IOP 4.1 requirements --><!--/' \
-      -e 's/<!-- End IOP 4.1 requirements -->/--><!-- End IOP 4.1 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End IOP 4.1 requirements -->/--><!-- End IOP 4.1 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
 elif [[ "${HADOOP_VERSION}" == "HDP2" ]]; then
   sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements --><!--/' \
-      -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
   sed -e 's/<!-- HDP 2.2 requirements -->/<!-- HDP 2.2 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.2 requirements -->/--><!-- End HDP 2.2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End HDP 2.2 requirements -->/--><!-- End HDP 2.2 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
   sed -e 's/<!-- IOP 4.1 requirements -->/<!-- IOP 4.1 requirements --><!--/' \
-      -e 's/<!-- End IOP 4.1 requirements -->/--><!-- End IOP 4.1 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End IOP 4.1 requirements -->/--><!-- End IOP 4.1 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
 elif [[ "${HADOOP_VERSION}" == "HDP2.2" ]]; then
   sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements --><!--/' \
-      -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
   sed -e 's/<!-- HDP 2.0 requirements -->/<!-- HDP 2.0 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
   sed -e 's/<!-- IOP 4.1 requirements -->/<!-- IOP 4.1 requirements --><!--/' \
-      -e 's/<!-- End IOP 4.1 requirements -->/--><!-- End IOP 4.1 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End IOP 4.1 requirements -->/--><!-- End IOP 4.1 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
 elif [[ "${HADOOP_VERSION}" == "IOP4.1" ]]; then
   sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements --><!--/' \
-      -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
   sed -e 's/<!-- HDP 2.0 requirements -->/<!-- HDP 2.0 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
   sed -e 's/<!-- HDP 2.2 requirements -->/<!-- HDP 2.2 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.2 requirements -->/--><!-- End HDP 2.2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
+    -e 's/<!-- End HDP 2.2 requirements -->/--><!-- End HDP 2.2 requirements -->/' \
+    "${CONF_DIR}/$ACCUMULO_SITE" > temp
   mv temp "${CONF_DIR}/$ACCUMULO_SITE"
 fi
 
@@ -393,11 +393,11 @@ if [[ ${TYPE} == native ]]; then
     if [[ -z $HADOOP_PREFIX ]]; then
       echo "WARNING: HADOOP_PREFIX not set, cannot automatically configure LD_LIBRARY_PATH to include Hadoop native libraries"
     else
-      NATIVE_LIB=$(readlink -ef $(dirname $(for x in $(find $HADOOP_PREFIX -name libhadoop.so); do ld $x 2>/dev/null && echo $x && break; done) 2>>/dev/null) 2>>/dev/null)
+      NATIVE_LIB=$(readlink -ef "$(dirname "$(for x in $(find "$HADOOP_PREFIX" -name libhadoop.so); do ld "$x" 2>/dev/null && echo "$x" && break; done)" 2>>/dev/null)" 2>>/dev/null)
       if [[ -z $NATIVE_LIB ]]; then
         echo -e "WARNING: The Hadoop native libraries could not be found for your sytem in: $HADOOP_PREFIX"
       else
-        sed "/# Should the monitor/ i export LD_LIBRARY_PATH=${NATIVE_LIB}:\${LD_LIBRARY_PATH}" ${CONF_DIR}/$ACCUMULO_ENV > temp
+        sed "/# Should the monitor/ i export LD_LIBRARY_PATH=${NATIVE_LIB}:\${LD_LIBRARY_PATH}" "${CONF_DIR}/$ACCUMULO_ENV" > temp
         mv temp "${CONF_DIR}/$ACCUMULO_ENV"
         echo -e "Added ${NATIVE_LIB} to the LD_LIBRARY_PATH"
       fi

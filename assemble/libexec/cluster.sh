@@ -44,7 +44,7 @@ function get_ip() {
 
   ip_addr=$($net_cmd 2>/dev/null| grep "inet[^6]" | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
   if [[ $? != 0 ]] ; then
-     ip_addr=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
+    ip_addr=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
   fi
   echo "$ip_addr"
 }
@@ -64,13 +64,13 @@ function start_tservers() {
   echo -n "Starting tablet servers ..."
   count=1
   for server in $(egrep -v '(^#|^\s*$)' "${ACCUMULO_CONF_DIR}/tservers"); do
-     echo -n "."
-     start_service "$server" tserver &
-     if (( ++count % 72 == 0 )) ;
-     then
-        echo
-        wait
-     fi
+    echo -n "."
+    start_service "$server" tserver &
+    if (( ++count % 72 == 0 )) ;
+    then
+      echo
+      wait
+    fi
   done
   echo " done"
 }
@@ -81,20 +81,20 @@ function start_all() {
   start_service "$monitor" monitor 
 
   if [ "$1" != "--notTservers" ]; then
-     start_tservers
+    start_tservers
   fi
 
   ${accumulo_cmd} org.apache.accumulo.master.state.SetGoalState NORMAL
   for master in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters"); do
-     start_service "$master" master
+    start_service "$master" master
   done
 
   for gc in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/gc"); do
-     start_service "$gc" gc
+    start_service "$gc" gc
   done
 
   for tracer in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/tracers"); do
-     start_service "$tracer" tracer
+    start_service "$tracer" tracer
   done
 }
 
@@ -102,39 +102,39 @@ function start_here() {
 
   local_hosts="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $(get_ip)"
   for host in $local_hosts; do
-     if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/tservers"; then
-        start_service "$host" tserver
-        break
-     fi
+    if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/tservers"; then
+      start_service "$host" tserver
+      break
+    fi
   done
 
   for host in $local_hosts; do
-     if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/masters"; then
-        ${accumulo_cmd} org.apache.accumulo.master.state.SetGoalState NORMAL
-        start_service "$host" master
-        break
-     fi
+    if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/masters"; then
+      ${accumulo_cmd} org.apache.accumulo.master.state.SetGoalState NORMAL
+      start_service "$host" master
+      break
+    fi
   done
 
   for host in $local_hosts; do
-     if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/gc"; then
-        start_service "$host" gc
-        break
-     fi
+    if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/gc"; then
+      start_service "$host" gc
+      break
+    fi
   done
 
   for host in $local_hosts; do
-     if [[ $host == "$monitor" ]]; then
-        start_service "$monitor" monitor 
-        break
-     fi
+    if [[ $host == "$monitor" ]]; then
+      start_service "$monitor" monitor 
+      break
+    fi
   done
 
   for host in $local_hosts; do
-     if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/tracers"; then
-        start_service "$host" tracer 
-        break
-     fi
+    if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/tracers"; then
+      start_service "$host" tracer 
+      break
+    fi
   done
 }
 
@@ -156,16 +156,16 @@ function stop_tservers() {
 
   echo "Stopping unresponsive tablet servers (if any)..."
   for server in ${tserver_hosts}; do
-     # only start if there's not one already running
-     stop_service "$server" tserver TERM & 
+    # only start if there's not one already running
+    stop_service "$server" tserver TERM & 
   done
 
   sleep 10
 
   echo "Stopping unresponsive tablet servers hard (if any)..."
   for server in ${tserver_hosts}; do
-     # only start if there's not one already running
-     stop_service "$server" tserver KILL & 
+    # only start if there's not one already running
+    stop_service "$server" tserver KILL & 
   done
 
   echo "Cleaning tablet server entries from zookeeper"
@@ -176,32 +176,32 @@ function stop_all() {
   echo "Stopping accumulo services..."
   if ! ${accumulo_cmd} admin stopAll
   then
-     echo "Invalid password or unable to connect to the master"
-     echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
-     sleep 10
-     echo "Initiating forced shutdown in  5 seconds (Ctrl-C to abort)"
+    echo "Invalid password or unable to connect to the master"
+    echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
+    sleep 10
+    echo "Initiating forced shutdown in  5 seconds (Ctrl-C to abort)"
   else
-     echo "Accumulo shut down cleanly"
-     echo "Utilities and unresponsive servers will shut down in 5 seconds (Ctrl-C to abort)"
+    echo "Accumulo shut down cleanly"
+    echo "Utilities and unresponsive servers will shut down in 5 seconds (Ctrl-C to abort)"
   fi
 
   sleep 5
 
   #look for master and gc processes not killed by 'admin stopAll'
   for signal in TERM KILL ; do
-     for master in $(grep -v '^#' "$ACCUMULO_CONF_DIR/masters"); do
-        stop_service "$master" master $signal
-     done
+    for master in $(grep -v '^#' "$ACCUMULO_CONF_DIR/masters"); do
+      stop_service "$master" master $signal
+    done
 
-     for gc in $(grep -v '^#' "$ACCUMULO_CONF_DIR/gc"); do
-        stop_service "$gc" gc $signal
-     done
+    for gc in $(grep -v '^#' "$ACCUMULO_CONF_DIR/gc"); do
+      stop_service "$gc" gc $signal
+    done
 
-     stop_service "$monitor" monitor $signal
+    stop_service "$monitor" monitor $signal
 
-     for tracer in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/tracers"); do
-        stop_service "$tracer" tracer $signal
-     done
+    for tracer in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/tracers"); do
+      stop_service "$tracer" tracer $signal
+    done
   done
 
   # stop tserver still running
@@ -216,21 +216,21 @@ function stop_here() {
   hosts_to_check=($(hostname -a 2> /dev/null | head -1) $(hostname -f))
 
   if egrep -q localhost\|127.0.0.1 "$ACCUMULO_CONF_DIR/tservers"; then
-     ${accumulo_cmd} admin stop localhost
+    ${accumulo_cmd} admin stop localhost
   else
-     for host in "${hosts_to_check[@]}"; do
-        if grep -q "$host" "$ACCUMULO_CONF_DIR"/tservers; then
-           ${accumulo_cmd} admin stop "$host"
-        fi
-     done
+    for host in "${hosts_to_check[@]}"; do
+      if grep -q "$host" "$ACCUMULO_CONF_DIR"/tservers; then
+        ${accumulo_cmd} admin stop "$host"
+      fi
+    done
   fi
 
   for host in "${hosts_to_check[@]}"; do
-     for signal in TERM KILL; do
-        for svc in tserver gc master monitor tracer; do
-           stop_service "$host" $svc $signal
-        done
-     done
+    for signal in TERM KILL; do
+      for svc in tserver gc master monitor tracer; do
+        stop_service "$host" $svc $signal
+      done
+    done
   done
 }
 
@@ -268,7 +268,7 @@ function main() {
   if [[ -z "${monitor}" ]] ; then
     monitor=$master1
     if [[ -f "$ACCUMULO_CONF_DIR/monitor" ]]; then
-        monitor=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/monitor" | head -1)
+      monitor=$(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/monitor" | head -1)
     fi
     if [[ -z "${monitor}" ]] ; then
       echo "Could not infer a Monitor role. You need to either define \"${ACCUMULO_CONF_DIR}/monitor\"," 
