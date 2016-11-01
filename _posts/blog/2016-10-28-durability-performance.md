@@ -29,9 +29,9 @@ disk for an open file : `hsync` and `hflush`.
 When `hflush` is called on a WAL, it does not guarantee data is on disk.  It
 only guarantees that data is in OS buffers on each datanode and on its way to disk.
 As a result calls to `hflush` are very fast.  If a WAL is replicated to 3 data
-nodes then data may be lost if all three machines reboot.  If the datanode
+nodes then data may be lost if all three machines reboot or die.  If the datanode
 process dies, then data loss will not happen because the data was in OS buffers
-waiting to be written to disk.  The machines have to reboot for data loss to
+waiting to be written to disk.  The machines have to reboot or die for data loss to
 occur.
 
 In order to avoid data loss in the event of reboot, `hsync` can be called.  This
@@ -92,26 +92,54 @@ This property default to the most durable option which is `sync`.
 
 If multiple writes arrive at around the same time with different durability
 settings, then the group commit code will choose the most durable.  This can
-cause one tables settings to slow down writes to another table.  
+cause one tables settings to slow down writes to another table.  Basically, one
+table that set to `sync` can impact the entire system.
 
 In Accumulo 1.6, it was easy to make all writes use `hflush` because there was
 only one tserver setting.  Getting everything to use `flush` in 1.7 and later
 can be a little tricky because by default the Accumulo metadata table is set to
-use `sync`. 
+use `sync`.  The following shell commands show this. The first command sets
+`table.durability=flush` as a system wide default for all tables.  However, the
+metadata table is still set to `sync`, because it has a per table override for
+that setting.  This override is set when Accumulo is initialized.  To get this
+table to use `flush`, the per table override must be deleted.  After deleting
+those tables will inherit the system wide setting.
 
-Executing the following commands in the Accumulo shell will make everything use
-`flush` (assuming no tables or namespaces have been specifically set to `sync`).
-The first command sets a system wide setting for `flush`.  This covers any table
-that has not explicitly set `table.durability`, these tables will inherit the
-system wide setting.  When Accumulo is initialized, it explicitly sets
-`table.durability=sync` for the metadata tables, which will override any system
-level settings.  Therefore, the second two commands override metadata table
-specific settings of `sync` with `flush`.
-  
+```
+root@uno> config -s table.durability=flush
+root@uno> createtable foo
+root@uno foo> config -t foo -f table.durability
+-----------+---------------------+----------------------------------------------
+SCOPE      | NAME                | VALUE
+-----------+---------------------+----------------------------------------------
+default    | table.durability .. | sync
+system     |    @override ...... | flush
+-----------+---------------------+----------------------------------------------
+root@uno> config -t accumulo.metadata -f table.durability
+-----------+---------------------+----------------------------------------------
+SCOPE      | NAME                | VALUE
+-----------+---------------------+----------------------------------------------
+default    | table.durability .. | sync
+system     |    @override ...... | flush
+table      |    @override ...... | sync
+-----------+---------------------+----------------------------------------------
+root@uno> config -t accumulo.metadata -d table.durability
+root@uno> config -t accumulo.metadata -f table.durability
+-----------+---------------------+----------------------------------------------
+SCOPE      | NAME                | VALUE
+-----------+---------------------+----------------------------------------------
+default    | table.durability .. | sync
+system     |    @override ...... | flush
+-----------+---------------------+----------------------------------------------
+```
+
+In short, executing the following commands will make all writes use `flush`
+(assuming no other tables or namespaces have been specifically set to `sync`).
+
 ```
 config -s table.durability=flush
-config -t accumulo.metadata -s table.durability=flush
-config -t accumulo.root -s table.durability=flush
+config -t accumulo.metadata -d table.durability
+config -t accumulo.root -d table.durability
 ```
 
 Even with these settings adjusted, minor compactions could still force `hsync`
