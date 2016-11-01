@@ -127,7 +127,7 @@ public class Initialize implements KeywordExecutable {
   private static final String TABLE_TABLETS_TABLET_DIR = "/table_info";
 
   private static ConsoleReader reader = null;
-  private static IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+  private static IZooReaderWriter zoo = null;
 
   private static ConsoleReader getConsoleReader() throws IOException {
     if (reader == null)
@@ -745,6 +745,7 @@ public class Initialize implements KeywordExecutable {
     opts.parseArgs(Initialize.class.getName(), args);
 
     try {
+      zoo = ZooReaderWriter.getInstance();
       AccumuloConfiguration acuConf = SiteConfiguration.getInstance();
       SecurityUtil.serverLogin(acuConf);
       Configuration conf = CachedConfiguration.getInstance();

@@ -311,6 +311,13 @@ public class ShellOptionsJC {
     if (useSasl()) {
       clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
     }
+    if (!getZooKeeperInstance().isEmpty()) {
+      List<String> zkOpts = getZooKeeperInstance();
+      String instanceName = zkOpts.get(0);
+      String hosts = zkOpts.get(1);
+      clientConfig.setProperty(ClientProperty.INSTANCE_ZK_HOST, hosts);
+      clientConfig.setProperty(ClientProperty.INSTANCE_NAME, instanceName);
+    }
 
     // Automatically try to add in the proper ZK from accumulo-site for backwards compat.
     if (!clientConfig.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {

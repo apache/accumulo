@@ -60,7 +60,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
@@ -492,7 +491,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     if (instanceName == null) {
       instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
     }
-    AccumuloConfiguration conf = SiteConfiguration.getInstance(ClientContext.convertClientConfig(clientConfig));
+    AccumuloConfiguration conf = ClientContext.convertClientConfig(clientConfig);
     String keepers = getZooKeepers(keepersOption, clientConfig, conf);
     if (instanceName == null) {
       Path instanceDir = new Path(VolumeConfiguration.getVolumeUris(conf)[0], "instance_id");
