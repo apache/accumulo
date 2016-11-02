@@ -16,7 +16,7 @@ When data is written to Accumulo the following happens :
 
  * Client sends a batch of mutations to a tablet server
  * Tablet server does the following :
-   * Writes mutation to tablet servers WAL
+   * Writes mutation to tablet servers' WAL
    * Sync or flush tablet servers' WAL
    * Adds mutations to sorted in memory map of each tablet.
    * Reports success back to client.
