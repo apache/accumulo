@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+
+{% include head.html %}
+
+<body style="padding-top: 70px; height: 100%;">
+
+  {% include nav.html %}
+
+  <script>
+    $(function() {
+      var path = window.location.hash.substr(1);
+      if (path) {
+        var cur = $("#accumulo-manual-frame").attr("src");
+        $("#accumulo-manual-frame").attr("src", cur + "/#" + path);
+      }
+    });
+  </script>
+
+  <div style="height: 100%">
+  {% if page.manual_location contains 'http' %}
+    <div class="alert alert-success" style="text-align: center; margin-bottom: 0px; background: #3A3E40">The user manual is embedded below but can also be <a href="{{ page.manual_location }}">viewed on its own</a>.</div>
+    <iframe id="accumulo-manual-frame" class="manual" src="{{ page.manual_location }}"></iframe>
+    {% else %}
+    <div class="alert alert-success" style="text-align: center; margin-bottom: 0px; background: #3A3E40">The user manual is embedded below. It can also be <a href="{{ site.baseurl }}{{ page.manual_location }}">viewed on its own</a>.</div>
+    <iframe id="accumulo-manual-frame" class="manual" src="{{ site.baseurl }}{{ page.manual_location }}"></iframe>
+    {% endif %}
+  </div>
+  
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include head.html %}
+
+<body style="padding-top: 100px">
+
+  {% include nav.html %}
+
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+
+        <div id="non-canonical" style="display: none; background-color: #F0E68C; padding-left: 1em;">
+          Visit the official site at: <a href="https://accumulo.apache.org">https://accumulo.apache.org</a>
+        </div>
+        <div id="content">
+          {% unless page.skiph1fortitle %}
+          <h1 class="title">{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</h1>
+          {% endunless %}
+          {{ content }}
+        </div>
+
+        {% capture footer-include %}{% include footer.md %}{% endcapture %}{{ footer-include | markdownify }}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
