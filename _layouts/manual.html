@@ -22,7 +22,7 @@
     <div class="alert alert-success" style="text-align: center; margin-bottom: 0px; background: #3A3E40">The user manual is embedded below but can also be <a href="{{ page.manual_location }}">viewed on its own</a>.</div>
     <iframe id="accumulo-manual-frame" class="manual" src="{{ page.manual_location }}"></iframe>
     {% else %}
-    <div class="alert alert-success" style="text-align: center; margin-bottom: 0px; background: #3A3E40">The user manual is embedded below but can also be <a href="{{ site.baseurl }}{{ page.manual_location }}">viewed on its own</a>.</div>
+    <div class="alert alert-success" style="text-align: center; margin-bottom: 0px; background: #3A3E40">The user manual is embedded below. It can also be <a href="{{ site.baseurl }}{{ page.manual_location }}">viewed on its own</a>.</div>
     <iframe id="accumulo-manual-frame" class="manual" src="{{ site.baseurl }}{{ page.manual_location }}"></iframe>
     {% endif %}
   </div>
