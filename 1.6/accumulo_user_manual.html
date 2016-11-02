@@ -762,6 +762,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li><a href="#_tserver_wal_blocksize">tserver.wal.blocksize</a></li>
 <li><a href="#_tserver_wal_replication">tserver.wal.replication</a></li>
 <li><a href="#_tserver_wal_sync">tserver.wal.sync</a></li>
+<li><a href="#_tserver_wal_sync_method">tserver.wal.sync.method</a></li>
 <li><a href="#_tserver_walog_max_size">tserver.walog.max.size</a></li>
 <li><a href="#_tserver_walog_max_age">tserver.walog.max.age</a></li>
 <li><a href="#_tserver_workq_threads">tserver.workq.threads</a></li>
@@ -7097,6 +7098,17 @@ $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
 <p><em>Type:</em> BOOLEAN<br>
 <em>Zookeeper Mutable:</em> yes<br>
 <em>Default Value:</em> <code>true</code></p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_tserver_wal_sync_method">tserver.wal.sync.method</h5>
+<div class="paragraph">
+<p>The method to invoke when sync'ing WALs. HSync will provide resiliency in the face of unexpected power outages, at the cost of speed. If method is not available, the legacy 'sync' method will be used to ensure backwards compatibility with older Hadoop versions. A value of 'hflush' is the alternative to the default value of 'hsync' which will result in faster writes, but with less durability.  This property was added in Accumulo 1.6.1.</p>
+</div>
+<div class="paragraph">
+<p><em>Type:</em> STRING<br>
+<em>Zookeeper Mutable:</em> yes<br>
+<em>Default Value:</em> <code>hsync</code></p>
 </div>
 </div>
 <div class="sect4">
