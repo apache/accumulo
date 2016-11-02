@@ -1,7 +1,8 @@
 ---
 title: "Durability Performance Implications"
-date: 2016-10-28 17:00:00 +0000
+date: 2016-11-02 17:00:00 +0000
 author: Keith Turner
+reviewers: Josh Elser, Dave Marion, Christopher Tubbs
 ---
 
 ## Overview
@@ -83,7 +84,7 @@ increase throughput and lowers average latency for clients.
 Accumulo 1.7.0 introduced [table.durability][17_UM_TD], a new per table property
 for configuring durability.  It also stopped using the `tserver.wal.sync.method`
 property.  The `table.durability` property has the following four legal values.
-This property default to the most durable option which is `sync`.  
+This property defaults to the most durable option which is `sync`.
 
  * **none** : Do not write to WAL            
  * **log**  : Write to WAL, but do not sync  
@@ -93,7 +94,7 @@ This property default to the most durable option which is `sync`.
 If multiple writes arrive at around the same time with different durability
 settings, then the group commit code will choose the most durable.  This can
 cause one tables settings to slow down writes to another table.  Basically, one
-table that set to `sync` can impact the entire system.
+table that is set to `sync` can impact the entire system.
 
 In Accumulo 1.6, it was easy to make all writes use `hflush` because there was
 only one tserver setting.  Getting everything to use `flush` in 1.7 and later
@@ -103,7 +104,7 @@ use `sync`.  The following shell commands show this. The first command sets
 metadata table is still set to `sync`, because it has a per table override for
 that setting.  This override is set when Accumulo is initialized.  To get this
 table to use `flush`, the per table override must be deleted.  After deleting
-those tables will inherit the system wide setting.
+those properties, the metadata tables will inherit the system wide setting.
 
 ```
 root@uno> config -s table.durability=flush
