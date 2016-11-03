@@ -18,14 +18,15 @@
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-   libexec=$( cd -P "$( dirname "$SOURCE" )" && pwd )
+   contrib=$( cd -P "$( dirname "$SOURCE" )" && pwd )
    SOURCE=$(readlink "$SOURCE")
-   [[ $SOURCE != /* ]] && SOURCE="$libexec/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+   [[ $SOURCE != /* ]] && SOURCE="$contrib/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-libexec=$( cd -P "$( dirname "$SOURCE" )" && pwd )
+contrib=$( cd -P "$( dirname "$SOURCE" )" && pwd )
+basedir=$( cd -P "${contrib}"/.. && pwd )
 # Stop: Resolve Script Directory
 
-source "$libexec"/load-env.sh
+source "$basedir"/libexec/load-env.sh
 
 ALIAS="default"
 KEYPASS=$(LC_CTYPE=C tr -dc '#-~' < /dev/urandom | tr -d '<>&' | head -c 20)

@@ -37,18 +37,16 @@ EOF
 
 function invalid_args {
   echo -e "Invalid arguments: $1\n"
-  print_usage
+  print_usage 1>&2
   exit 1
 }
 
 function get_host {
   host="$(hostname -s)"
   if [[ -z "$host" ]]; then
-    netcmd=/sbin/ifconfig
-    [[ ! -x $netcmd ]] && netcmd='/bin/netstat -ie'
-    host=$($netcmd 2>/dev/null| grep "inet[^6]" | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
+    host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
     if [[ $? != 0 ]]; then
-      host=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
+      host=$(getent ahosts "$(hostname -f)" | grep DGRAM | cut -f 1 -d ' ')
     fi
   fi 
   echo "$host"

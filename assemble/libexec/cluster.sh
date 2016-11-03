@@ -34,17 +34,14 @@ EOF
 
 function invalid_args {
   echo -e "Invalid arguments: $1\n"
-  print_usage
+  print_usage 1>&2
   exit 1
 }
 
 function get_ip() {
-  net_cmd=/sbin/ifconfig
-  [[ ! -x $net_cmd ]] && net_cmd='/bin/netstat -ie'
-
-  ip_addr=$($net_cmd 2>/dev/null| grep "inet[^6]" | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1)
-  if [[ $? != 0 ]] ; then
-    ip_addr=$(python -c 'import socket as s; print s.gethostbyname(s.getfqdn())')
+  ip_addr=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+  if [[ $? != 0 ]]; then
+    ip_addr=$(getent ahosts "$(hostname -f)" | grep DGRAM | cut -f 1 -d ' ')
   fi
   echo "$ip_addr"
 }
@@ -84,7 +81,6 @@ function start_all() {
     start_tservers
   fi
 
-  ${accumulo_cmd} org.apache.accumulo.master.state.SetGoalState NORMAL
   for master in $(egrep -v '(^#|^\s*$)' "$ACCUMULO_CONF_DIR/masters"); do
     start_service "$master" master
   done
@@ -110,7 +106,6 @@ function start_here() {
 
   for host in $local_hosts; do
     if grep -q "^${host}\$" "$ACCUMULO_CONF_DIR/masters"; then
-      ${accumulo_cmd} org.apache.accumulo.master.state.SetGoalState NORMAL
       start_service "$host" master
       break
     fi

@@ -100,7 +100,6 @@ export ACCUMULO_LIB_DIR="${ACCUMULO_LIB_DIR:-$basedir/lib}"
 export ACCUMULO_LIBEXEC_DIR="${ACCUMULO_LIBEXEC_DIR:-$basedir/libexec}"
 export ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-$basedir/logs}"
 export ACCUMULO_PID_DIR="${ACCUMULO_PID_DIR:-$basedir/run}"
-export ACCUMULO_OPT_DIR="${ACCUMULO_OPT_DIR:-$basedir/opt}"
 
 # Make directories that may not exist
 mkdir -p "${ACCUMULO_LOG_DIR}" 2>/dev/null
@@ -118,7 +117,6 @@ verify_env_dir "ACCUMULO_LIB_DIR" "${ACCUMULO_LIB_DIR}"
 verify_env_dir "ACCUMULO_LIBEXEC_DIR" "${ACCUMULO_LIBEXEC_DIR}"
 verify_env_dir "ACCUMULO_LOG_DIR" "${ACCUMULO_LOG_DIR}"
 verify_env_dir "ACCUMULO_PID_DIR" "${ACCUMULO_PID_DIR}"
-verify_env_dir "ACCUMULO_OPT_DIR" "${ACCUMULO_OPT_DIR}"
 
 ## Verify Zookeeper installation
 ZOOKEEPER_VERSION=$(find -L "$ZOOKEEPER_HOME" -maxdepth 1 -name "zookeeper-[0-9]*.jar" | head -1)

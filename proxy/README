@@ -46,7 +46,7 @@ Accumulo 1.5 instance, or when run standalone in the Mock configuration.
 
 Run the following command.
 
- ./bin/accumulo proxy -p ./opt/proxy/proxy.properties
+ ./bin/accumulo proxy -p ./proxy/proxy.properties
 
 5. Clients
 

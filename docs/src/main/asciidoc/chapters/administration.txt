@@ -567,7 +567,7 @@ SSL may be enabled for the monitor page by setting the following properties in t
   monitor.ssl.trustStorePassword
 
 If the Accumulo conf directory has been configured (in particular the +accumulo-env.sh+ file must be set up), the +gen-monitor-cert.sh+
-script in the Accumulo +lib/scripts+ directory can be used to create the keystore and truststore files with random passwords. The script
+script in the Accumulo +contrib+ directory can be used to create the keystore and truststore files with random passwords. The script
 will print out the properties that need to be added to the +accumulo-site.xml+ file. The stores can also be generated manually with the
 Java +keytool+ command, whose usage can be seen in the +gen-monitor-cert.sh+ script.
 

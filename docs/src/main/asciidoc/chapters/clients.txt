@@ -41,7 +41,7 @@ class +com.foo.Client+ and placed that in +lib/ext+, then you could use the comm
 +accumulo com.foo.Client+ to execute your code.
 
 If you are writing map reduce job that access Accumulo, then you can use the
-+libexec/tool.sh+ script to run those jobs. See the map reduce example.
++contrib/tool.sh+ script to run those jobs. See the map reduce example.
 
 === Connecting
 
@@ -293,7 +293,7 @@ the very least, you need to supply the following properties:
   instance=test
   zookeepers=localhost:2181
 
-You can find a sample configuration file in your distribution at +opt/proxy/proxy.properties+.
+You can find a sample configuration file in your distribution at +proxy/proxy.properties+.
 
 This sample configuration file further demonstrates an ability to back the proxy server
 by MockAccumulo or the MiniAccumuloCluster.
@@ -313,7 +313,7 @@ for Thrift installed to generate client code in that language. Typically, your o
 system's package manager will be able to automatically install these for you in an expected
 location such as +/usr/lib/python/site-packages/thrift+.
 
-You can find the thrift file for generating the client at +opt/proxy/proxy.thrift+.
+You can find the thrift file for generating the client at +proxy/proxy.thrift+.
 
 After a client is generated, the port specified in the configuration properties above will be
 used to connect to the server.

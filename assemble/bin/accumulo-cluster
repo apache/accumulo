@@ -30,7 +30,7 @@ EOF
 
 function invalid_args {
   echo -e "Invalid arguments: $1\n"
-  print_usage
+  print_usage 1>&2
   exit 1
 }
 

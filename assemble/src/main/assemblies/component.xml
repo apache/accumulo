@@ -73,12 +73,20 @@
       <fileMode>0755</fileMode>
     </fileSet>
     <fileSet>
-      <directory>libexec</directory>
+      <directory>contrib</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0755</fileMode>
       <includes>
         <include>**/*.sh</include>
         <include>check-tservers</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>libexec</directory>
+      <directoryMode>0755</directoryMode>
+      <fileMode>0755</fileMode>
+      <includes>
+        <include>**/*.sh</include>
       </includes>
     </fileSet>
     <fileSet>
@@ -91,12 +99,12 @@
       </includes>  
     </fileSet>
     <fileSet>
-      <directory>../examples/simple</directory>
-      <outputDirectory>opt/examples/simple</outputDirectory>
+      <directory>../examples/simple/src/main/java/org/apache/accumulo/examples/simple/</directory>
+      <outputDirectory>docs/examples/src</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
-        <include>src/main/**</include>
+        <include>*/**</include>
       </includes>
     </fileSet>
     <fileSet>
@@ -171,7 +179,7 @@
     </fileSet>
     <fileSet>
       <directory>../test</directory>
-      <outputDirectory>opt/test</outputDirectory>
+      <outputDirectory>test</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0755</fileMode>
       <includes>
@@ -187,7 +195,7 @@
     </fileSet>
     <fileSet>
       <directory>../test</directory>
-      <outputDirectory>opt/test</outputDirectory>
+      <outputDirectory>test</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <excludes>
@@ -210,7 +218,7 @@
     <!-- Lift generated thrift proxy code into its own directory -->
     <fileSet>
       <directory>../proxy/target</directory>
-      <outputDirectory>opt/proxy/thrift</outputDirectory>
+      <outputDirectory>proxy/thrift</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
@@ -221,7 +229,7 @@
     </fileSet>
     <fileSet>
       <directory>../proxy</directory>
-      <outputDirectory>opt/proxy</outputDirectory>
+      <outputDirectory>proxy</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
@@ -231,7 +239,7 @@
     </fileSet>
     <fileSet>
       <directory>../proxy/examples</directory>
-      <outputDirectory>opt/proxy/examples</outputDirectory>
+      <outputDirectory>proxy/examples</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0755</fileMode>
       <includes>
@@ -241,7 +249,7 @@
     </fileSet>
     <fileSet>
       <directory>../proxy/examples</directory>
-      <outputDirectory>opt/proxy/examples</outputDirectory>
+      <outputDirectory>proxy/examples</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <excludes>
@@ -253,7 +261,7 @@
       <directory>../proxy/src/main/thrift</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
-      <outputDirectory>/opt/proxy/thrift</outputDirectory>
+      <outputDirectory>proxy/thrift</outputDirectory>
       <includes>
         <include>*.thrift</include>
       </includes>

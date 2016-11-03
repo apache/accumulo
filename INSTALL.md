@@ -114,7 +114,7 @@ There are several methods for running Accumulo:
    start Accumulo.
 
 2. Run an Accumulo cluster on one or more nodes using `accumulo-cluster` (which
-   uses `accumulo-service` to run servcies). Useful for local development and
+   uses `accumulo-service` to run services). Useful for local development and
    testing or if you are not using a cluster management tool in production.
 
 Each method above has instructions below.

@@ -29,7 +29,7 @@ EOF
 
 function invalid_args {
   echo -e "Invalid arguments: $1\n"
-  print_usage
+  print_usage 1>&2
   exit 1
 }
 
@@ -72,6 +72,10 @@ function start_service() {
 
   if [[ ${service} == "monitor" && ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]]; then
     address="0.0.0.0"
+  fi
+  
+  if [[ $service == "master" ]]; then
+    "$ACCUMULO_BIN_DIR/accumulo" org.apache.accumulo.master.state.SetGoalState NORMAL
   fi
 
   COMMAND="${ACCUMULO_BIN_DIR}/accumulo"

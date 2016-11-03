@@ -25,7 +25,7 @@ table reference that jar.
 
 Execute the following command in the shell.
 
-    $ hadoop fs -copyFromLocal /path/to/accumulo/opt/test/src/test/resources/FooFilter.jar /user1/lib
+    $ hadoop fs -copyFromLocal /path/to/accumulo/test/src/test/resources/FooFilter.jar /user1/lib
 
 Execute following in Accumulo shell to setup classpath context
 

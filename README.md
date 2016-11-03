@@ -39,15 +39,15 @@ Accumulo has the following documentation which is viewable on the [Accumulo webs
 using the links below:
 
 * [User Manual][man-web] - In-depth developer and administrator documentation.
-* [Examples][ex-web] - Code with corresponding README files that give step by step
+* [Accumulo Examples][ex-web] - Code with corresponding README files that give step by step
 instructions for running the example.
 
 This documentation can also be found in Accumulo distributions:
 
-* **Binary distribution** - The User Manual can be found in the `docs` directory.  The
-Examples Readmes can be found in `docs/examples`. While the source for the Examples is
-not included, the distribution has a jar with the compiled examples. This makes it easy
-to run them after following the [install] instructions.
+* **Binary distribution**
+  - User manual is located at `docs/accumulo_user_manual.html`.
+  - Accumulo Examples: READMEs and source are in `docs/examples`. The distribution also has a jar with
+    the compiled examples. This makes it easy to run them after following the [install] instructions.
 
 * **Source distribution** - The [Example Source][ex-src], [Example Readmes][rm-src], and
 [User Manual Source][man-src] are available.

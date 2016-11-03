@@ -20,5 +20,4 @@
 out=target/config.out
 
 echo 'Generating example scripts...' > $out
-libexec/config.sh -o -d target/example-configs -s 2GB -j -v 2 >> $out 2>&1
-
+bin/accumulo create-config -o -d target/example-configs -s 2GB -j -v 2 >> $out 2>&1
