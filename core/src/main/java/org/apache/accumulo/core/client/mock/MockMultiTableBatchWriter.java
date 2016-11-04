@@ -32,7 +32,7 @@ public class MockMultiTableBatchWriter implements MultiTableBatchWriter {
 
   public MockMultiTableBatchWriter(MockAccumulo acu) {
     this.acu = acu;
-    bws = new HashMap<String,MockBatchWriter>();
+    bws = new HashMap<>();
   }
 
   @Override

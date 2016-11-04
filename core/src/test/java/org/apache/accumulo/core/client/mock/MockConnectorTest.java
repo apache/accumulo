@@ -124,7 +124,7 @@ public class MockConnectorTest {
 
     Mutation good = new Mutation("good");
     good.put(asText(random.nextInt()), asText(random.nextInt()), new Value("good".getBytes()));
-    List<Mutation> mutations = new ArrayList<Mutation>();
+    List<Mutation> mutations = new ArrayList<>();
     mutations.add(good);
     mutations.add(bad);
     try {

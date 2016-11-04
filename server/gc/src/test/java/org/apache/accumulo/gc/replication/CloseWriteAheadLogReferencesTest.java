@@ -429,7 +429,7 @@ public class CloseWriteAheadLogReferencesTest {
 
     EasyMock.verify(closeWals);
 
-    Set<String> expectedWals = new HashSet<String>();
+    Set<String> expectedWals = new HashSet<>();
     for (int i = 0; i < numWals; i++) {
       expectedWals.add("/wal" + i);
     }

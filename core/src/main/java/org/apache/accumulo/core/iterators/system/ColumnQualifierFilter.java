@@ -66,8 +66,8 @@ public class ColumnQualifierFilter extends Filter {
   }
 
   public void init(Set<Column> columns) {
-    this.columnFamilies = new HashSet<ByteSequence>();
-    this.columnsQualifiers = new HashMap<ByteSequence,HashSet<ByteSequence>>();
+    this.columnFamilies = new HashSet<>();
+    this.columnsQualifiers = new HashMap<>();
 
     for (Iterator<Column> iter = columns.iterator(); iter.hasNext();) {
       Column col = iter.next();
@@ -75,7 +75,7 @@ public class ColumnQualifierFilter extends Filter {
         ArrayByteSequence cq = new ArrayByteSequence(col.columnQualifier);
         HashSet<ByteSequence> cfset = this.columnsQualifiers.get(cq);
         if (cfset == null) {
-          cfset = new HashSet<ByteSequence>();
+          cfset = new HashSet<>();
           this.columnsQualifiers.put(cq, cfset);
         }
 

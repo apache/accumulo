@@ -1340,7 +1340,7 @@ public class ShellServerIT extends SharedMiniClusterIT {
     };
     thread.start();
 
-    List<String> scans = new ArrayList<String>();
+    List<String> scans = new ArrayList<>();
     // Try to find the active scan for about 15seconds
     for (int i = 0; i < 50 && scans.isEmpty(); i++) {
       String currentScans = ts.exec("listscans", true);

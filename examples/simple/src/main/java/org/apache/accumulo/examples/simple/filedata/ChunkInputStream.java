@@ -59,7 +59,7 @@ public class ChunkInputStream extends InputStream {
     if (source != null)
       throw new IOException("setting new source without closing old one");
     this.source = in;
-    currentVis = new TreeSet<Text>();
+    currentVis = new TreeSet<>();
     count = pos = 0;
     if (!source.hasNext()) {
       log.debug("source has no next");

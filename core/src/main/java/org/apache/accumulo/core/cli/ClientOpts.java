@@ -138,7 +138,7 @@ public class ClientOpts extends Help {
 
   @DynamicParameter(names = "-l",
       description = "login properties in the format key=value. Reuse -l for each property (prompt for properties if this option is missing")
-  public Map<String,String> loginProps = new LinkedHashMap<String,String>();
+  public Map<String,String> loginProps = new LinkedHashMap<>();
 
   public AuthenticationToken getToken() {
     if (null != tokenClassName) {

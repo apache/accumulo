@@ -79,7 +79,7 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      BlockingQueue<Runnable> q = new LinkedBlockingQueue<Runnable>();
+      BlockingQueue<Runnable> q = new LinkedBlockingQueue<>();
       loadThreadPool = new ThreadPoolExecutor(0, maxLoadThreads, 60, TimeUnit.SECONDS, q, new NamingThreadFactory("bloom-loader"));
     }
 
@@ -421,13 +421,13 @@ public class BloomFilterLayer {
 
     Random r = new Random();
 
-    HashSet<Integer> valsSet = new HashSet<Integer>();
+    HashSet<Integer> valsSet = new HashSet<>();
 
     for (int i = 0; i < 100000; i++) {
       valsSet.add(r.nextInt(Integer.MAX_VALUE));
     }
 
-    ArrayList<Integer> vals = new ArrayList<Integer>(valsSet);
+    ArrayList<Integer> vals = new ArrayList<>(valsSet);
     Collections.sort(vals);
 
     ConfigurationCopy acuconf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());

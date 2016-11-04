@@ -71,7 +71,7 @@ public class TableInfoUtil {
   }
 
   public static Map<String,Double> summarizeTableStats(MasterMonitorInfo mmi) {
-    Map<String,Double> compactingByTable = new HashMap<String,Double>();
+    Map<String,Double> compactingByTable = new HashMap<>();
     if (mmi != null && mmi.tServerInfo != null) {
       for (TabletServerStatus status : mmi.tServerInfo) {
         if (status != null && status.tableMap != null) {

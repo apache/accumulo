@@ -93,7 +93,7 @@ public class VisibilityEvaluator {
    * @see #escape(byte[], boolean)
    */
   static Authorizations escape(Authorizations auths) {
-    ArrayList<byte[]> retAuths = new ArrayList<byte[]>(auths.getAuthorizations().size());
+    ArrayList<byte[]> retAuths = new ArrayList<>(auths.getAuthorizations().size());
 
     for (byte[] auth : auths.getAuthorizations())
       retAuths.add(escape(auth, false));

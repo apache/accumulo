@@ -111,7 +111,7 @@ public class CloneTest {
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     for (Entry<Key,Value> entry : scanner) {
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
@@ -151,7 +151,7 @@ public class CloneTest {
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
@@ -200,7 +200,7 @@ public class CloneTest {
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     int count = 0;
 
@@ -269,7 +269,7 @@ public class CloneTest {
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
@@ -334,7 +334,7 @@ public class CloneTest {
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(new Text("1"), null, null).toMetadataRange());
 
-    HashSet<String> files = new HashSet<String>();
+    HashSet<String> files = new HashSet<>();
 
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {

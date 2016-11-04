@@ -154,9 +154,9 @@ public class Initialize implements KeywordExecutable {
     return zoo;
   }
 
-  private static HashMap<String,String> initialMetadataConf = new HashMap<String,String>();
-  private static HashMap<String,String> initialMetadataCombinerConf = new HashMap<String,String>();
-  private static HashMap<String,String> initialReplicationTableConf = new HashMap<String,String>();
+  private static HashMap<String,String> initialMetadataConf = new HashMap<>();
+  private static HashMap<String,String> initialMetadataCombinerConf = new HashMap<>();
+  private static HashMap<String,String> initialReplicationTableConf = new HashMap<>();
 
   static {
     initialMetadataConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
@@ -692,10 +692,10 @@ public class Initialize implements KeywordExecutable {
 
     String[] volumeURIs = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
 
-    HashSet<String> initializedDirs = new HashSet<String>();
+    HashSet<String> initializedDirs = new HashSet<>();
     initializedDirs.addAll(Arrays.asList(ServerConstants.checkBaseUris(volumeURIs, true)));
 
-    HashSet<String> uinitializedDirs = new HashSet<String>();
+    HashSet<String> uinitializedDirs = new HashSet<>();
     uinitializedDirs.addAll(Arrays.asList(volumeURIs));
     uinitializedDirs.removeAll(initializedDirs);
 

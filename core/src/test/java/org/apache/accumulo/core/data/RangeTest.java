@@ -49,8 +49,8 @@ public class RangeTest extends TestCase {
   }
 
   private void check(List<Range> rl, List<Range> expected) {
-    HashSet<Range> s1 = new HashSet<Range>(rl);
-    HashSet<Range> s2 = new HashSet<Range>(expected);
+    HashSet<Range> s1 = new HashSet<>(rl);
+    HashSet<Range> s2 = new HashSet<>(expected);
 
     assertTrue("got : " + rl + " expected : " + expected, s1.equals(s2));
   }

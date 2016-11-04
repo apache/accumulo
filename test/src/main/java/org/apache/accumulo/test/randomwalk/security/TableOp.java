@@ -195,7 +195,7 @@ public class TableOp extends Test {
         break;
       case BULK_IMPORT:
         key = WalkingSecurity.get(state, env).getLastKey() + "1";
-        SortedSet<Key> keys = new TreeSet<Key>();
+        SortedSet<Key> keys = new TreeSet<>();
         for (String s : WalkingSecurity.get(state, env).getAuthsArray()) {
           Key k = new Key(key, "", "", s);
           keys.add(k);

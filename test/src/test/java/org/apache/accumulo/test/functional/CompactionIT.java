@@ -123,7 +123,7 @@ public class CompactionIT extends AccumuloClusterIT {
     final AtomicBoolean fail = new AtomicBoolean(false);
     final ClientConfiguration clientConf = cluster.getClientConfig();
     for (int count = 0; count < 5; count++) {
-      List<Thread> threads = new ArrayList<Thread>();
+      List<Thread> threads = new ArrayList<>();
       final int span = 500000 / 59;
       for (int i = 0; i < 500000; i += 500000 / 59) {
         final int finalI = i;

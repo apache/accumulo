@@ -68,7 +68,7 @@ public class AccumuloRowInputFormat extends InputFormatBase<Text,PeekingIterator
       public boolean nextKeyValue() throws IOException, InterruptedException {
         if (!rowIterator.hasNext())
           return false;
-        currentV = new PeekingIterator<Entry<Key,Value>>(rowIterator.next());
+        currentV = new PeekingIterator<>(rowIterator.next());
         numKeysRead = rowIterator.getKVCount();
         currentKey = currentV.peek().getKey();
         currentK = new Text(currentKey.getRow());

@@ -105,8 +105,8 @@ public class MetadataTableUtil {
 
   private static final Text EMPTY_TEXT = new Text();
   private static final byte[] EMPTY_BYTES = new byte[0];
-  private static Map<Credentials,Writer> root_tables = new HashMap<Credentials,Writer>();
-  private static Map<Credentials,Writer> metadata_tables = new HashMap<Credentials,Writer>();
+  private static Map<Credentials,Writer> root_tables = new HashMap<>();
+  private static Map<Credentials,Writer> metadata_tables = new HashMap<>();
   private static final Logger log = LoggerFactory.getLogger(MetadataTableUtil.class);
 
   private MetadataTableUtil() {}
@@ -249,7 +249,7 @@ public class MetadataTableUtil {
   }
 
   public static SortedMap<FileRef,DataFileValue> getDataFileSizes(KeyExtent extent, ClientContext context) throws IOException {
-    TreeMap<FileRef,DataFileValue> sizes = new TreeMap<FileRef,DataFileValue>();
+    TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
 
     Scanner mdScanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
     mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -503,8 +503,8 @@ public class MetadataTableUtil {
 
   public static Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> getFileAndLogEntries(ClientContext context, KeyExtent extent) throws KeeperException,
       InterruptedException, IOException {
-    ArrayList<LogEntry> result = new ArrayList<LogEntry>();
-    TreeMap<FileRef,DataFileValue> sizes = new TreeMap<FileRef,DataFileValue>();
+    ArrayList<LogEntry> result = new ArrayList<>();
+    TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
 
     VolumeManager fs = VolumeManagerImpl.get();
     if (extent.isRootTablet()) {
@@ -547,7 +547,7 @@ public class MetadataTableUtil {
 
   public static List<LogEntry> getLogEntries(ClientContext context, KeyExtent extent) throws IOException, KeeperException, InterruptedException {
     log.info("Scanning logging entries for " + extent);
-    ArrayList<LogEntry> result = new ArrayList<LogEntry>();
+    ArrayList<LogEntry> result = new ArrayList<>();
     if (extent.equals(RootTable.EXTENT)) {
       log.info("Getting logs for root tablet from zookeeper");
       getRootLogEntries(result);
@@ -771,7 +771,7 @@ public class MetadataTableUtil {
     while (cloneIter.hasNext()) {
       Map<Key,Value> cloneTablet = cloneIter.next();
       Text cloneEndRow = new KeyExtent(cloneTablet.keySet().iterator().next().getRow(), (Text) null).getEndRow();
-      HashSet<String> cloneFiles = new HashSet<String>();
+      HashSet<String> cloneFiles = new HashSet<>();
 
       boolean cloneSuccessful = false;
       for (Entry<Key,Value> entry : cloneTablet.entrySet()) {
@@ -784,7 +784,7 @@ public class MetadataTableUtil {
       if (!cloneSuccessful)
         getFiles(cloneFiles, cloneTablet, null);
 
-      List<Map<Key,Value>> srcTablets = new ArrayList<Map<Key,Value>>();
+      List<Map<Key,Value>> srcTablets = new ArrayList<>();
       Map<Key,Value> srcTablet = srcIter.next();
       srcTablets.add(srcTablet);
 
@@ -794,7 +794,7 @@ public class MetadataTableUtil {
       if (cmp < 0)
         throw new TabletIterator.TabletDeletedException("Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
 
-      HashSet<String> srcFiles = new HashSet<String>();
+      HashSet<String> srcFiles = new HashSet<>();
       if (!cloneSuccessful)
         getFiles(srcFiles, srcTablet, srcTableId);
 
@@ -921,7 +921,7 @@ public class MetadataTableUtil {
   }
 
   public static List<FileRef> getBulkFilesLoaded(Connector conn, KeyExtent extent, long tid) throws IOException {
-    List<FileRef> result = new ArrayList<FileRef>();
+    List<FileRef> result = new ArrayList<>();
     try {
       VolumeManager fs = VolumeManagerImpl.get();
       Scanner mscanner = new IsolatedScanner(conn.createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY));
@@ -941,7 +941,7 @@ public class MetadataTableUtil {
 
   public static Map<FileRef,Long> getBulkFilesLoaded(ClientContext context, KeyExtent extent) throws IOException {
     Text metadataRow = extent.getMetadataEntry();
-    Map<FileRef,Long> ret = new HashMap<FileRef,Long>();
+    Map<FileRef,Long> ret = new HashMap<>();
 
     VolumeManager fs = VolumeManagerImpl.get();
     Scanner scanner = new ScannerImpl(context, extent.isMeta() ? RootTable.ID : MetadataTable.ID, Authorizations.EMPTY);
@@ -1041,11 +1041,11 @@ public class MetadataTableUtil {
   }
 
   public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
-    TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<Text,SortedMap<ColumnFQ,Value>>();
+    TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<>();
 
     HashSet<ColumnFQ> colSet = null;
     if (columns != null) {
-      colSet = new HashSet<ColumnFQ>(columns);
+      colSet = new HashSet<>(columns);
     }
 
     for (Entry<Key,Value> entry : tabletKeyValues.entrySet()) {
@@ -1058,7 +1058,7 @@ public class MetadataTableUtil {
 
       SortedMap<ColumnFQ,Value> colVals = tabletEntries.get(row);
       if (colVals == null) {
-        colVals = new TreeMap<ColumnFQ,Value>();
+        colVals = new TreeMap<>();
         tabletEntries.put(row, colVals);
       }
 

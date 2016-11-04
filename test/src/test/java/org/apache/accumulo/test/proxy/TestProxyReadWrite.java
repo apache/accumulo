@@ -105,7 +105,7 @@ public class TestProxyReadWrite {
   @Test
   public void readWriteBatchOneShotWithRange() throws Exception {
     int maxInserts = 100000;
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
@@ -141,7 +141,7 @@ public class TestProxyReadWrite {
   @Test
   public void readWriteBatchOneShotWithColumnFamilyOnly() throws Exception {
     int maxInserts = 100000;
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
 
@@ -180,7 +180,7 @@ public class TestProxyReadWrite {
   @Test
   public void readWriteBatchOneShotWithFullColumn() throws Exception {
     int maxInserts = 100000;
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
 
@@ -219,7 +219,7 @@ public class TestProxyReadWrite {
   @Test
   public void readWriteBatchOneShotWithFilterIterator() throws Exception {
     int maxInserts = 10000;
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
@@ -259,7 +259,7 @@ public class TestProxyReadWrite {
   @Test
   public void readWriteOneShotWithRange() throws Exception {
     int maxInserts = 100000;
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
@@ -294,7 +294,7 @@ public class TestProxyReadWrite {
   @Test
   public void readWriteOneShotWithFilterIterator() throws Exception {
     int maxInserts = 10000;
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     String format = "%1$05d";
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
@@ -337,7 +337,7 @@ public class TestProxyReadWrite {
   // This test takes kind of a long time. Enable it if you think you may have memory issues.
   public void manyWritesAndReads() throws Exception {
     int maxInserts = 1000000;
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     String format = "%1$06d";
     String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
@@ -377,7 +377,7 @@ public class TestProxyReadWrite {
   @Test
   public void asynchReadWrite() throws Exception {
     int maxInserts = 10000;
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     String format = "%1$05d";
     String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
@@ -422,12 +422,12 @@ public class TestProxyReadWrite {
   @Test
   public void testVisibility() throws Exception {
 
-    Set<ByteBuffer> auths = new HashSet<ByteBuffer>();
+    Set<ByteBuffer> auths = new HashSet<>();
     auths.add(ByteBuffer.wrap("even".getBytes()));
     tpc.proxy().changeUserAuthorizations(userpass, "root", auths);
 
     int maxInserts = 10000;
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     String format = "%1$05d";
     String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {

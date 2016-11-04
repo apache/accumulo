@@ -68,7 +68,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   // Load native library
   static {
     // Check standard directories
-    List<File> directories = new ArrayList<File>(Arrays.asList(new File[] {new File("/usr/lib64"), new File("/usr/lib")}));
+    List<File> directories = new ArrayList<>(Arrays.asList(new File[] {new File("/usr/lib64"), new File("/usr/lib")}));
     // Check in ACCUMULO_HOME location, too
     String envAccumuloHome = System.getenv("ACCUMULO_HOME");
     if (envAccumuloHome != null) {
@@ -105,7 +105,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   public static void loadNativeLib(List<File> searchPath) {
     if (!isLoaded()) {
       List<String> names = getValidLibraryNames();
-      List<File> tryList = new ArrayList<File>(searchPath.size() * names.size());
+      List<File> tryList = new ArrayList<>(searchPath.size() * names.size());
 
       for (File p : searchPath)
         if (p.exists() && p.isDirectory())
@@ -130,7 +130,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   }
 
   private static List<String> getValidLibraryNames() {
-    ArrayList<String> names = new ArrayList<String>(3);
+    ArrayList<String> names = new ArrayList<>(3);
 
     String libname = System.mapLibraryName("accumulo");
     names.add(libname);
@@ -198,7 +198,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   private static synchronized long createNativeMap() {
 
     if (!init) {
-      allocatedNativeMaps = new HashSet<Long>();
+      allocatedNativeMaps = new HashSet<>();
 
       Runnable r = new Runnable() {
         @Override
@@ -456,7 +456,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       hasNext = nmiNext(nmiPointer, fieldsLens);
 
-      return new SimpleImmutableEntry<Key,Value>(k, v);
+      return new SimpleImmutableEntry<>(k, v);
     }
 
     @Override

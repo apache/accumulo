@@ -44,7 +44,7 @@ public class FateAdmin {
 
   static class TxOpts {
     @Parameter(description = "<txid>...", required = true)
-    List<String> txids = new ArrayList<String>();
+    List<String> txids = new ArrayList<>();
   }
 
   @Parameters(commandDescription = "Stop an existing FATE by transaction id")
@@ -60,7 +60,7 @@ public class FateAdmin {
     Help opts = new Help();
     JCommander jc = new JCommander(opts);
     jc.setProgramName(FateAdmin.class.getName());
-    LinkedHashMap<String,TxOpts> txOpts = new LinkedHashMap<String,TxOpts>(2);
+    LinkedHashMap<String,TxOpts> txOpts = new LinkedHashMap<>(2);
     txOpts.put("fail", new FailOpts());
     txOpts.put("delete", new DeleteOpts());
     for (Entry<String,TxOpts> entry : txOpts.entrySet()) {
@@ -76,13 +76,13 @@ public class FateAdmin {
     System.err
         .printf("This tool has been deprecated%nFATE administration now available within 'accumulo shell'%n$ fate fail <txid>... | delete <txid>... | print [<txid>...]%n%n");
 
-    AdminUtil<Master> admin = new AdminUtil<Master>();
+    AdminUtil<Master> admin = new AdminUtil<>();
 
     Instance instance = HdfsZooInstance.getInstance();
     String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
     String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
-    ZooStore<Master> zs = new ZooStore<Master>(path, zk);
+    ZooStore<Master> zs = new ZooStore<>(path, zk);
 
     if (jc.getParsedCommand().equals("fail")) {
       for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
@@ -98,7 +98,7 @@ public class FateAdmin {
         admin.deleteLocks(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, txid);
       }
     } else if (jc.getParsedCommand().equals("print")) {
-      admin.print(new ReadOnlyStore<Master>(zs), zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS);
+      admin.print(new ReadOnlyStore<>(zs), zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS);
     }
   }
 }

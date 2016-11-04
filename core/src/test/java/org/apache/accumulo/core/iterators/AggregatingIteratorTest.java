@@ -39,7 +39,7 @@ import org.junit.Test;
 
 public class AggregatingIteratorTest {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   /**
    * @deprecated since 1.4; visible only for testing
@@ -101,7 +101,7 @@ public class AggregatingIteratorTest {
   @Test
   public void test1() throws IOException {
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that do not aggregate
     nkv(tm1, 1, 1, 1, 1, false, "2");
@@ -162,7 +162,7 @@ public class AggregatingIteratorTest {
   @SuppressWarnings("deprecation")
   @Test
   public void test2() throws IOException {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
     nkv(tm1, 1, 1, 1, 1, false, "2");
@@ -171,7 +171,7 @@ public class AggregatingIteratorTest {
 
     AggregatingIterator ai = new AggregatingIterator();
 
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     opts.put("cf001", SummationAggregator.class.getName());
 
@@ -224,7 +224,7 @@ public class AggregatingIteratorTest {
   @Test
   public void test3() throws IOException {
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
     nkv(tm1, 1, 1, 1, 1, false, "2");
@@ -237,7 +237,7 @@ public class AggregatingIteratorTest {
 
     AggregatingIterator ai = new AggregatingIterator();
 
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     opts.put("cf001", SummationAggregator.class.getName());
 
@@ -290,7 +290,7 @@ public class AggregatingIteratorTest {
   @Test
   public void test4() throws IOException {
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that do not aggregate
     nkv(tm1, 0, 0, 1, 1, false, "7");
@@ -306,7 +306,7 @@ public class AggregatingIteratorTest {
 
     AggregatingIterator ai = new AggregatingIterator();
 
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     opts.put("cf001", SummationAggregator.class.getName());
 
@@ -367,20 +367,20 @@ public class AggregatingIteratorTest {
     // try aggregating across multiple data sets that contain
     // the exact same keys w/ different values
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     nkv(tm1, 1, 1, 1, 1, false, "2");
 
-    TreeMap<Key,Value> tm2 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm2 = new TreeMap<>();
     nkv(tm2, 1, 1, 1, 1, false, "3");
 
-    TreeMap<Key,Value> tm3 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm3 = new TreeMap<>();
     nkv(tm3, 1, 1, 1, 1, false, "4");
 
     AggregatingIterator ai = new AggregatingIterator();
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     opts.put("cf001", SummationAggregator.class.getName());
 
-    List<SortedKeyValueIterator<Key,Value>> sources = new ArrayList<SortedKeyValueIterator<Key,Value>>(3);
+    List<SortedKeyValueIterator<Key,Value>> sources = new ArrayList<>(3);
     sources.add(new SortedMapIterator(tm1));
     sources.add(new SortedMapIterator(tm2));
     sources.add(new SortedMapIterator(tm3));
@@ -397,7 +397,7 @@ public class AggregatingIteratorTest {
   @SuppressWarnings("deprecation")
   @Test
   public void test6() throws IOException {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
     nkv(tm1, 1, 1, 1, 1, false, "2");
@@ -406,7 +406,7 @@ public class AggregatingIteratorTest {
 
     AggregatingIterator ai = new AggregatingIterator();
 
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     opts.put("cf001", SummationAggregator.class.getName());
 
@@ -425,7 +425,7 @@ public class AggregatingIteratorTest {
   public void test7() throws IOException {
     // test that delete is not aggregated
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     nkv(tm1, 1, 1, 1, 2, true, "");
     nkv(tm1, 1, 1, 1, 3, false, "4");
@@ -433,7 +433,7 @@ public class AggregatingIteratorTest {
 
     AggregatingIterator ai = new AggregatingIterator();
 
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     opts.put("cf001", SummationAggregator.class.getName());
 
@@ -453,7 +453,7 @@ public class AggregatingIteratorTest {
     ai.next();
     assertFalse(ai.hasTop());
 
-    tm1 = new TreeMap<Key,Value>();
+    tm1 = new TreeMap<>();
     nkv(tm1, 1, 1, 1, 2, true, "");
     ai = new AggregatingIterator();
     ai.init(new SortedMapIterator(tm1), opts, new DefaultIteratorEnvironment());

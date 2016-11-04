@@ -92,7 +92,7 @@ public class RowFilterTest {
   }
 
   public static class RowZeroOrOneFilter extends RowFilter {
-    private static final Set<String> passRows = new HashSet<String>(Arrays.asList("0", "1"));
+    private static final Set<String> passRows = new HashSet<>(Arrays.asList("0", "1"));
 
     @Override
     public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
@@ -101,7 +101,7 @@ public class RowFilterTest {
   }
 
   public static class RowOneOrTwoFilter extends RowFilter {
-    private static final Set<String> passRows = new HashSet<String>(Arrays.asList("1", "2"));
+    private static final Set<String> passRows = new HashSet<>(Arrays.asList("1", "2"));
 
     @Override
     public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
@@ -117,7 +117,7 @@ public class RowFilterTest {
   }
 
   public List<Mutation> createMutations() {
-    List<Mutation> mutations = new LinkedList<Mutation>();
+    List<Mutation> mutations = new LinkedList<>();
     Mutation m = new Mutation("0");
     m.put("cf1", "cq1", "1");
     m.put("cf1", "cq2", "1");
@@ -166,7 +166,7 @@ public class RowFilterTest {
 
   public TreeMap<Key,Value> createKeyValues() {
     List<Mutation> mutations = createMutations();
-    TreeMap<Key,Value> keyValues = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> keyValues = new TreeMap<>();
 
     final Text cf = new Text(), cq = new Text();
     for (Mutation m : mutations) {
@@ -200,10 +200,10 @@ public class RowFilterTest {
     conn.tableOperations().attachIterator("table1", is);
 
     Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY);
-    assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
+    assertEquals(new HashSet<>(Arrays.asList("2", "3")), getRows(scanner));
 
     scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
-    assertEquals(new HashSet<String>(Arrays.asList("1", "3")), getRows(scanner));
+    assertEquals(new HashSet<>(Arrays.asList("1", "3")), getRows(scanner));
 
     scanner.clearColumns();
     scanner.fetchColumn(new Text("cf1"), new Text("cq1"));
@@ -211,11 +211,11 @@ public class RowFilterTest {
 
     scanner.setRange(new Range("0", "4"));
     scanner.clearColumns();
-    assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
+    assertEquals(new HashSet<>(Arrays.asList("2", "3")), getRows(scanner));
 
     scanner.setRange(new Range("2"));
     scanner.clearColumns();
-    assertEquals(new HashSet<String>(Arrays.asList("2")), getRows(scanner));
+    assertEquals(new HashSet<>(Arrays.asList("2")), getRows(scanner));
 
     scanner.setRange(new Range("4"));
     scanner.clearColumns();
@@ -225,7 +225,7 @@ public class RowFilterTest {
     scanner.clearColumns();
     scanner.fetchColumn(new Text("cf1"), new Text("cq2"));
     scanner.fetchColumn(new Text("cf1"), new Text("cq4"));
-    assertEquals(new HashSet<String>(Arrays.asList("4")), getRows(scanner));
+    assertEquals(new HashSet<>(Arrays.asList("4")), getRows(scanner));
 
   }
 
@@ -242,7 +242,7 @@ public class RowFilterTest {
     conn.tableOperations().attachIterator("chained_row_filters", new IteratorSetting(40, "trueFilter1", TrueFilter.class));
     conn.tableOperations().attachIterator("chained_row_filters", new IteratorSetting(41, "trueFilter2", TrueFilter.class));
     Scanner scanner = conn.createScanner("chained_row_filters", Authorizations.EMPTY);
-    assertEquals(new HashSet<String>(Arrays.asList("0", "1", "2", "3", "4")), getRows(scanner));
+    assertEquals(new HashSet<>(Arrays.asList("0", "1", "2", "3", "4")), getRows(scanner));
   }
 
   @Test
@@ -258,7 +258,7 @@ public class RowFilterTest {
     conn.tableOperations().attachIterator("filter_conjunction", new IteratorSetting(40, "rowZeroOrOne", RowZeroOrOneFilter.class));
     conn.tableOperations().attachIterator("filter_conjunction", new IteratorSetting(41, "rowOneOrTwo", RowOneOrTwoFilter.class));
     Scanner scanner = conn.createScanner("filter_conjunction", Authorizations.EMPTY);
-    assertEquals(new HashSet<String>(Arrays.asList("1")), getRows(scanner));
+    assertEquals(new HashSet<>(Arrays.asList("1")), getRows(scanner));
   }
 
   @Test
@@ -308,7 +308,7 @@ public class RowFilterTest {
   }
 
   private HashSet<String> getRows(Scanner scanner) {
-    HashSet<String> rows = new HashSet<String>();
+    HashSet<String> rows = new HashSet<>();
     for (Entry<Key,Value> entry : scanner) {
       rows.add(entry.getKey().getRow().toString());
     }

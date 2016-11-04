@@ -76,7 +76,7 @@ public class ComputeRootHash {
   protected ArrayList<MerkleTreeNode> getLeaves(Connector conn, String tableName) throws TableNotFoundException {
     // TODO make this a bit more resilient to very large merkle trees by lazily reading more data from the table when necessary
     final Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
-    final ArrayList<MerkleTreeNode> leaves = new ArrayList<MerkleTreeNode>();
+    final ArrayList<MerkleTreeNode> leaves = new ArrayList<>();
 
     for (Entry<Key,Value> entry : s) {
       Range range = RangeSerialization.toRange(entry.getKey());

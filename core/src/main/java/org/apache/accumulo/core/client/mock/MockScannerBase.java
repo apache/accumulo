@@ -54,7 +54,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
   }
 
   static HashSet<ByteSequence> createColumnBSS(Collection<Column> columns) {
-    HashSet<ByteSequence> columnSet = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> columnSet = new HashSet<>();
     for (Column c : columns) {
       columnSet.add(new ArrayByteSequence(c.getColumnFamily()));
     }
@@ -89,7 +89,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
       return false;
     }
 
-    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
 
     @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
@@ -104,7 +104,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
       if (topLevelIterators.isEmpty())
         return iter;
-      ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
+      ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
       allIters.add(iter);
       return new MultiIterator(allIters, false);
     }
@@ -113,7 +113,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
   public SortedKeyValueIterator<Key,Value> createFilter(SortedKeyValueIterator<Key,Value> inner) throws IOException {
     byte[] defaultLabels = {};
     inner = new ColumnFamilySkippingIterator(new DeletingIterator(inner, false));
-    ColumnQualifierFilter cqf = new ColumnQualifierFilter(inner, new HashSet<Column>(fetchedColumns));
+    ColumnQualifierFilter cqf = new ColumnQualifierFilter(inner, new HashSet<>(fetchedColumns));
     VisibilityFilter vf = new VisibilityFilter(cqf, auths, defaultLabels);
     AccumuloConfiguration conf = new MockConfiguration(table.settings);
     MockIteratorEnvironment iterEnv = new MockIteratorEnvironment(auths);

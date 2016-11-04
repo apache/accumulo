@@ -40,9 +40,9 @@ import org.junit.Test;
 
 public class ColumnSliceFilterTest {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
-  private static final SortedMap<Key,Value> TEST_DATA = new TreeMap<Key,Value>();
+  private static final SortedMap<Key,Value> TEST_DATA = new TreeMap<>();
   private static final Key KEY_1 = nkv(TEST_DATA, "boo1", "yup", "20080201", "dog");
   private static final Key KEY_2 = nkv(TEST_DATA, "boo1", "yap", "20080202", "cat");
   private static final Key KEY_3 = nkv(TEST_DATA, "boo2", "yap", "20080203", "hamster");

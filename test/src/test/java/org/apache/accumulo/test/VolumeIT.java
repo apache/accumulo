@@ -116,7 +116,7 @@ public class VolumeIT extends ConfigurableMacIT {
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
-    SortedSet<Text> partitions = new TreeSet<Text>();
+    SortedSet<Text> partitions = new TreeSet<>();
     // with some splits
     for (String s : "d,m,t".split(","))
       partitions.add(new Text(s));
@@ -159,7 +159,7 @@ public class VolumeIT extends ConfigurableMacIT {
 
   private void verifyData(List<String> expected, Scanner createScanner) {
 
-    List<String> actual = new ArrayList<String>();
+    List<String> actual = new ArrayList<>();
 
     for (Entry<Key,Value> entry : createScanner) {
       Key k = entry.getKey();
@@ -175,7 +175,7 @@ public class VolumeIT extends ConfigurableMacIT {
   @Test
   public void testRelativePaths() throws Exception {
 
-    List<String> expected = new ArrayList<String>();
+    List<String> expected = new ArrayList<>();
 
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
@@ -183,7 +183,7 @@ public class VolumeIT extends ConfigurableMacIT {
 
     String tableId = connector.tableOperations().tableIdMap().get(tableName);
 
-    SortedSet<Text> partitions = new TreeSet<Text>();
+    SortedSet<Text> partitions = new TreeSet<>();
     // with some splits
     for (String s : "c,g,k,p,s,v".split(","))
       partitions.add(new Text(s));
@@ -341,7 +341,7 @@ public class VolumeIT extends ConfigurableMacIT {
     cluster.start();
 
     // Make sure we can still read the tables (tableNames[0] is very likely to have a file still on v1)
-    List<String> expected = new ArrayList<String>();
+    List<String> expected = new ArrayList<>();
     for (int i = 0; i < 100; i++) {
       String row = String.format("%06d", i * 100 + 3);
       expected.add(row + ":cf1:cq1:1");
@@ -355,7 +355,7 @@ public class VolumeIT extends ConfigurableMacIT {
 
   private void writeData(String tableName, Connector conn) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
       MutationsRejectedException {
-    TreeSet<Text> splits = new TreeSet<Text>();
+    TreeSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 100; i++) {
       splits.add(new Text(String.format("%06d", i * 100)));
     }
@@ -379,7 +379,7 @@ public class VolumeIT extends ConfigurableMacIT {
 
     Connector conn = getConnector();
 
-    List<String> expected = new ArrayList<String>();
+    List<String> expected = new ArrayList<>();
     for (int i = 0; i < 100; i++) {
       String row = String.format("%06d", i * 100 + 3);
       expected.add(row + ":cf1:cq1:1");

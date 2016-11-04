@@ -72,7 +72,7 @@ public class FindMaxTest extends TestCase {
 
     Scanner scanner = conn.createScanner("foo", Authorizations.EMPTY);
 
-    ArrayList<Text> rows = new ArrayList<Text>();
+    ArrayList<Text> rows = new ArrayList<>();
 
     for (Entry<Key,Value> entry : scanner) {
       rows.add(entry.getKey().getRow());

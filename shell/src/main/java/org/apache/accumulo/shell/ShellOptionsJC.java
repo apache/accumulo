@@ -141,7 +141,7 @@ public class ShellOptionsJC {
   private AuthenticationToken authenticationToken;
 
   @DynamicParameter(names = {"-l", "--tokenProperty"}, description = "login properties in the format key=value. Reuse -l for each property")
-  private Map<String,String> tokenProperties = new TreeMap<String,String>();
+  private Map<String,String> tokenProperties = new TreeMap<>();
 
   @Parameter(names = "--disable-tab-completion", description = "disables tab completion (for less overhead when scripting)")
   private boolean tabCompletionDisabled;
@@ -169,7 +169,7 @@ public class ShellOptionsJC {
   private boolean hdfsZooInstance;
 
   @Parameter(names = {"-z", "--zooKeeperInstance"}, description = "use a zookeeper instance with the given instance name and list of zoo hosts", arity = 2)
-  private List<String> zooKeeperInstance = new ArrayList<String>();
+  private List<String> zooKeeperInstance = new ArrayList<>();
 
   @Parameter(names = {"--ssl"}, description = "use ssl to connect to accumulo")
   private boolean useSsl = false;

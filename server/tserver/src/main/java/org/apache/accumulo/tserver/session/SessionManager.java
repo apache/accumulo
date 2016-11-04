@@ -50,10 +50,10 @@ public class SessionManager {
   private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
   private final SecureRandom random = new SecureRandom();
-  private final Map<Long,Session> sessions = new HashMap<Long,Session>();
+  private final Map<Long,Session> sessions = new HashMap<>();
   private final long maxIdle;
   private final long maxUpdateIdle;
-  private final List<Session> idleSessions = new ArrayList<Session>();
+  private final List<Session> idleSessions = new ArrayList<>();
   private final Long expiredSessionMarker = Long.valueOf(-1);
   private final AccumuloConfiguration aconf;
 
@@ -169,7 +169,7 @@ public class SessionManager {
   }
 
   private void sweep(final long maxIdle, final long maxUpdateIdle) {
-    List<Session> sessionsToCleanup = new ArrayList<Session>();
+    List<Session> sessionsToCleanup = new ArrayList<>();
     synchronized (this) {
       Iterator<Session> iter = sessions.values().iterator();
       while (iter.hasNext()) {
@@ -231,8 +231,8 @@ public class SessionManager {
   }
 
   public synchronized Map<String,MapCounter<ScanRunState>> getActiveScansPerTable() {
-    Map<String,MapCounter<ScanRunState>> counts = new HashMap<String,MapCounter<ScanRunState>>();
-    Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<Entry<Long,Session>>();
+    Map<String,MapCounter<ScanRunState>> counts = new HashMap<>();
+    Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
     synchronized (idleSessions) {
       /**
@@ -270,7 +270,7 @@ public class SessionManager {
 
       MapCounter<ScanRunState> stateCounts = counts.get(tableID);
       if (stateCounts == null) {
-        stateCounts = new MapCounter<ScanRunState>();
+        stateCounts = new MapCounter<>();
         counts.put(tableID, stateCounts);
       }
 
@@ -282,9 +282,9 @@ public class SessionManager {
 
   public synchronized List<ActiveScan> getActiveScans() {
 
-    final List<ActiveScan> activeScans = new ArrayList<ActiveScan>();
+    final List<ActiveScan> activeScans = new ArrayList<>();
     final long ct = System.currentTimeMillis();
-    final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<Entry<Long,Session>>();
+    final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
     synchronized (idleSessions) {
       /**

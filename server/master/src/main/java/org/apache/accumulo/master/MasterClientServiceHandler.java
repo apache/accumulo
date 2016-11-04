@@ -146,7 +146,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
     if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0)
       throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
 
-    Set<TServerInstance> serversToFlush = new HashSet<TServerInstance>(master.tserverSet.getCurrentServers());
+    Set<TServerInstance> serversToFlush = new HashSet<>(master.tserverSet.getCurrentServers());
 
     for (long l = 0; l < maxLoops; l++) {
 
@@ -300,7 +300,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
 
     log.debug("Seeding FATE op to shutdown " + tabletServer + " with tid " + tid);
 
-    master.fate.seedTransaction(tid, new TraceRepo<Master>(new ShutdownTServer(doomed, force)), false);
+    master.fate.seedTransaction(tid, new TraceRepo<>(new ShutdownTServer(doomed, force)), false);
     master.fate.waitForCompletion(tid);
     master.fate.delete(tid);
 
@@ -463,7 +463,7 @@ class MasterClientServiceHandler extends FateServiceHandler implements MasterCli
   @Override
   public List<String> getActiveTservers(TInfo tinfo, TCredentials credentials) throws TException {
     Set<TServerInstance> tserverInstances = master.onlineTabletServers();
-    List<String> servers = new ArrayList<String>();
+    List<String> servers = new ArrayList<>();
     for (TServerInstance tserverInstance : tserverInstances) {
       servers.add(tserverInstance.getLocation().toString());
     }

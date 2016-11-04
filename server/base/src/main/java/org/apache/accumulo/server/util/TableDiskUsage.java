@@ -59,10 +59,10 @@ public class TableDiskUsage {
 
   private static final Logger log = LoggerFactory.getLogger(TableDiskUsage.class);
   private int nextInternalId = 0;
-  private Map<String,Integer> internalIds = new HashMap<String,Integer>();
-  private Map<Integer,String> externalIds = new HashMap<Integer,String>();
-  private Map<String,Integer[]> tableFiles = new HashMap<String,Integer[]>();
-  private Map<String,Long> fileSizes = new HashMap<String,Long>();
+  private Map<String,Integer> internalIds = new HashMap<>();
+  private Map<Integer,String> externalIds = new HashMap<>();
+  private Map<String,Integer[]> tableFiles = new HashMap<>();
+  private Map<String,Long> fileSizes = new HashMap<>();
 
   void addTable(String tableId) {
     if (internalIds.containsKey(tableId))
@@ -101,7 +101,7 @@ public class TableDiskUsage {
   Map<List<String>,Long> calculateUsage() {
 
     // Bitset of tables that contain a file and total usage by all files that share that usage
-    Map<List<Integer>,Long> usage = new HashMap<List<Integer>,Long>();
+    Map<List<Integer>,Long> usage = new HashMap<>();
 
     if (log.isTraceEnabled()) {
       log.trace("fileSizes " + fileSizes);
@@ -124,10 +124,10 @@ public class TableDiskUsage {
 
     }
 
-    Map<List<String>,Long> externalUsage = new HashMap<List<String>,Long>();
+    Map<List<String>,Long> externalUsage = new HashMap<>();
 
     for (Entry<List<Integer>,Long> entry : usage.entrySet()) {
-      List<String> externalKey = new ArrayList<String>();
+      List<String> externalKey = new ArrayList<>();
       List<Integer> key = entry.getKey();
       // table bitset
       for (int i = 0; i < key.size(); i++)
@@ -165,9 +165,9 @@ public class TableDiskUsage {
     for (String tableId : tableIds)
       tdu.addTable(tableId);
 
-    HashSet<String> tablesReferenced = new HashSet<String>(tableIds);
-    HashSet<String> emptyTableIds = new HashSet<String>();
-    HashSet<String> nameSpacesReferenced = new HashSet<String>();
+    HashSet<String> tablesReferenced = new HashSet<>(tableIds);
+    HashSet<String> emptyTableIds = new HashSet<>();
+    HashSet<String> nameSpacesReferenced = new HashSet<>();
 
     // For each table ID
     for (String tableId : tableIds) {
@@ -223,11 +223,11 @@ public class TableDiskUsage {
     }
 
     // Invert tableId->tableName
-    HashMap<String,String> reverseTableIdMap = new HashMap<String,String>();
+    HashMap<String,String> reverseTableIdMap = new HashMap<>();
     for (Entry<String,String> entry : conn.tableOperations().tableIdMap().entrySet())
       reverseTableIdMap.put(entry.getValue(), entry.getKey());
 
-    TreeMap<TreeSet<String>,Long> usage = new TreeMap<TreeSet<String>,Long>(new Comparator<TreeSet<String>>() {
+    TreeMap<TreeSet<String>,Long> usage = new TreeMap<>(new Comparator<TreeSet<String>>() {
 
       @Override
       public int compare(TreeSet<String> o1, TreeSet<String> o2) {
@@ -258,7 +258,7 @@ public class TableDiskUsage {
     });
 
     for (Entry<List<String>,Long> entry : tdu.calculateUsage().entrySet()) {
-      TreeSet<String> tableNames = new TreeSet<String>();
+      TreeSet<String> tableNames = new TreeSet<>();
       // Convert size shared by each table id into size shared by each table name
       for (String tableId : entry.getKey())
         tableNames.add(reverseTableIdMap.get(tableId));
@@ -268,7 +268,7 @@ public class TableDiskUsage {
     }
 
     if (!emptyTableIds.isEmpty()) {
-      TreeSet<String> emptyTables = new TreeSet<String>();
+      TreeSet<String> emptyTables = new TreeSet<>();
       for (String tableId : emptyTableIds) {
         emptyTables.add(reverseTableIdMap.get(tableId));
       }
@@ -281,7 +281,7 @@ public class TableDiskUsage {
   public static void printDiskUsage(AccumuloConfiguration acuConf, Collection<String> tables, VolumeManager fs, Connector conn, Printer printer,
       boolean humanReadable) throws TableNotFoundException, IOException {
 
-    HashSet<String> tableIds = new HashSet<String>();
+    HashSet<String> tableIds = new HashSet<>();
 
     // Get table IDs for all tables requested to be 'du'
     for (String tableName : tables) {
@@ -303,7 +303,7 @@ public class TableDiskUsage {
 
   static class Opts extends ClientOpts {
     @Parameter(description = " <table> { <table> ... } ")
-    List<String> tables = new ArrayList<String>();
+    List<String> tables = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {

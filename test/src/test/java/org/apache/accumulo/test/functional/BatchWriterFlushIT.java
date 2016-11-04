@@ -181,12 +181,12 @@ public class BatchWriterFlushIT extends AccumuloClusterIT {
     String tableName = tableNames[0];
     c.tableOperations().create(tableName);
     for (int x = 0; x < NUM_THREADS; x++) {
-      c.tableOperations().addSplits(tableName, new TreeSet<Text>(Collections.singleton(new Text(Integer.toString(x * NUM_TO_FLUSH)))));
+      c.tableOperations().addSplits(tableName, new TreeSet<>(Collections.singleton(new Text(Integer.toString(x * NUM_TO_FLUSH)))));
     }
 
     // Logger.getLogger(TabletServerBatchWriter.class).setLevel(Level.TRACE);
-    final List<Set<Mutation>> allMuts = new LinkedList<Set<Mutation>>();
-    List<Mutation> data = new ArrayList<Mutation>();
+    final List<Set<Mutation>> allMuts = new LinkedList<>();
+    List<Mutation> data = new ArrayList<>();
     for (int i = 0; i < NUM_THREADS; i++) {
       final int thread = i;
       for (int j = 0; j < NUM_TO_FLUSH; j++) {
@@ -199,7 +199,7 @@ public class BatchWriterFlushIT extends AccumuloClusterIT {
     Assert.assertEquals(NUM_THREADS * NUM_TO_FLUSH, data.size());
     Collections.shuffle(data);
     for (int n = 0; n < (NUM_THREADS * NUM_TO_FLUSH); n += NUM_TO_FLUSH) {
-      Set<Mutation> muts = new HashSet<Mutation>(data.subList(n, n + NUM_TO_FLUSH));
+      Set<Mutation> muts = new HashSet<>(data.subList(n, n + NUM_TO_FLUSH));
       allMuts.add(muts);
     }
 

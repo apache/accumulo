@@ -182,7 +182,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   final private String hostname;
   final private Object balancedNotifier = new Object();
   final LiveTServerSet tserverSet;
-  final private List<TabletGroupWatcher> watchers = new ArrayList<TabletGroupWatcher>();
+  final private List<TabletGroupWatcher> watchers = new ArrayList<>();
   final SecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers = Collections.synchronizedMap(new DefaultMap<TServerInstance,AtomicInteger>(new AtomicInteger()));
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<TServerInstance>());
@@ -375,8 +375,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         String namespaces = ZooUtil.getRoot(getInstance()) + Constants.ZNAMESPACES;
         zoo.putPersistentData(namespaces, new byte[0], NodeExistsPolicy.SKIP);
         for (Pair<String,String> namespace : Iterables.concat(
-            Collections.singleton(new Pair<String,String>(Namespaces.ACCUMULO_NAMESPACE, Namespaces.ACCUMULO_NAMESPACE_ID)),
-            Collections.singleton(new Pair<String,String>(Namespaces.DEFAULT_NAMESPACE, Namespaces.DEFAULT_NAMESPACE_ID)))) {
+            Collections.singleton(new Pair<>(Namespaces.ACCUMULO_NAMESPACE, Namespaces.ACCUMULO_NAMESPACE_ID)),
+            Collections.singleton(new Pair<>(Namespaces.DEFAULT_NAMESPACE, Namespaces.DEFAULT_NAMESPACE_ID)))) {
           String ns = namespace.getFirst();
           String id = namespace.getSecond();
           log.debug("Upgrade creating namespace \"" + ns + "\" (ID: " + id + ")");
@@ -833,7 +833,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     private void cleanupNonexistentMigrations(final Connector connector) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-      Set<KeyExtent> found = new HashSet<KeyExtent>();
+      Set<KeyExtent> found = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
         if (migrations.containsKey(extent)) {
@@ -1011,7 +1011,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
 
     private long balanceTablets() {
-      List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+      List<TabletMigration> migrationsOut = new ArrayList<>();
       long wait = tabletBalancer.balance(Collections.unmodifiableSortedMap(tserverStatus), migrationsSnapshot(), migrationsOut);
 
       for (TabletMigration m : TabletBalancer.checkMigrationSanity(tserverStatus.keySet(), migrationsOut)) {
@@ -1036,7 +1036,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation() {
     long start = System.currentTimeMillis();
-    SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
+    SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<>();
     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
     for (TServerInstance server : currentServers) {
       try {
@@ -1122,12 +1122,12 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     waitForMetadataUpgrade.await();
 
     try {
-      final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(getInstance()) + Constants.ZFATE,
+      final AgeOffStore<Master> store = new AgeOffStore<>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(getInstance()) + Constants.ZFATE,
           ZooReaderWriter.getInstance()), 1000 * 60 * 60 * 8);
 
       int threads = getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
 
-      fate = new Fate<Master>(this, store);
+      fate = new Fate<>(this, store);
       fate.startTransactionRunners(threads);
 
       SimpleTimer.getInstance(getConfiguration()).schedule(new Runnable() {
@@ -1169,9 +1169,9 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     final Processor<Iface> processor;
     if (ThriftServerType.SASL == getThriftServerType()) {
       Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(), getConfiguration());
-      processor = new Processor<Iface>(tcredsProxy);
+      processor = new Processor<>(tcredsProxy);
     } else {
-      processor = new Processor<Iface>(rpcProxy);
+      processor = new Processor<>(rpcProxy);
     }
     ServerAddress sa = TServerUtils.startServer(this, hostname, Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
         Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
@@ -1199,8 +1199,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
     // Start the replication coordinator which assigns tservers to service replication requests
     MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
-    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(
-        RpcWrapper.service(impl, new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl)));
+    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor = new ReplicationCoordinator.Processor<>(RpcWrapper.service(
+        impl, new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl)));
     ServerAddress replAddress = TServerUtils.startServer(this, hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
         "Master Replication Coordinator", "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
         Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
@@ -1382,7 +1382,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         obit.post(dead.hostPort(), cause);
     }
 
-    Set<TServerInstance> unexpected = new HashSet<TServerInstance>(deleted);
+    Set<TServerInstance> unexpected = new HashSet<>(deleted);
     unexpected.removeAll(this.serversToShutdown);
     if (unexpected.size() > 0) {
       if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
@@ -1447,7 +1447,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   @Override
   public Set<String> onlineTables() {
-    Set<String> result = new HashSet<String>();
+    Set<String> result = new HashSet<>();
     if (getMasterState() != MasterState.NORMAL) {
       if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS)
         result.add(MetadataTable.ID);
@@ -1474,7 +1474,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   @Override
   public Collection<MergeInfo> merges() {
-    List<MergeInfo> result = new ArrayList<MergeInfo>();
+    List<MergeInfo> result = new ArrayList<>();
     for (String tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
       result.add(getMergeInfo(new Text(tableId)));
     }
@@ -1530,8 +1530,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   public MasterMonitorInfo getMasterMonitorInfo() {
     final MasterMonitorInfo result = new MasterMonitorInfo();
 
-    result.tServerInfo = new ArrayList<TabletServerStatus>();
-    result.tableMap = new DefaultMap<String,TableInfo>(new TableInfo());
+    result.tServerInfo = new ArrayList<>();
+    result.tableMap = new DefaultMap<>(new TableInfo());
     for (Entry<TServerInstance,TabletServerStatus> serverEntry : tserverStatus.entrySet()) {
       final TabletServerStatus status = serverEntry.getValue();
       result.tServerInfo.add(status);
@@ -1539,7 +1539,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         TableInfoUtil.add(result.tableMap.get(entry.getKey()), entry.getValue());
       }
     }
-    result.badTServers = new HashMap<String,Byte>();
+    result.badTServers = new HashMap<>();
     synchronized (badServers) {
       for (TServerInstance bad : badServers.keySet()) {
         result.badTServers.put(bad.hostPort(), TabletServerState.UNRESPONSIVE.getId());
@@ -1548,7 +1548,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     result.state = getMasterState();
     result.goalState = getMasterGoalState();
     result.unassignedTablets = displayUnassigned();
-    result.serversShuttingDown = new HashSet<String>();
+    result.serversShuttingDown = new HashSet<>();
     synchronized (serversToShutdown) {
       for (TServerInstance server : serversToShutdown)
         result.serversShuttingDown.add(server.hostPort());
@@ -1567,7 +1567,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   @Override
   public Set<KeyExtent> migrationsSnapshot() {
-    Set<KeyExtent> migrationKeys = new HashSet<KeyExtent>();
+    Set<KeyExtent> migrationKeys = new HashSet<>();
     synchronized (migrations) {
       migrationKeys.addAll(migrations.keySet());
     }
@@ -1577,7 +1577,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   @Override
   public Set<TServerInstance> shutdownServers() {
     synchronized (serversToShutdown) {
-      return new HashSet<TServerInstance>(serversToShutdown);
+      return new HashSet<>(serversToShutdown);
     }
   }
 }

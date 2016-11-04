@@ -77,10 +77,10 @@ public class TimeBinner {
 
     String line = null;
 
-    HashMap<Long,DoubleWrapper> aggregation1 = new HashMap<Long,DoubleWrapper>();
-    HashMap<Long,DoubleWrapper> aggregation2 = new HashMap<Long,DoubleWrapper>();
-    HashMap<Long,DoubleWrapper> aggregation3 = new HashMap<Long,DoubleWrapper>();
-    HashMap<Long,DoubleWrapper> aggregation4 = new HashMap<Long,DoubleWrapper>();
+    HashMap<Long,DoubleWrapper> aggregation1 = new HashMap<>();
+    HashMap<Long,DoubleWrapper> aggregation2 = new HashMap<>();
+    HashMap<Long,DoubleWrapper> aggregation3 = new HashMap<>();
+    HashMap<Long,DoubleWrapper> aggregation4 = new HashMap<>();
 
     while ((line = in.readLine()) != null) {
 
@@ -144,7 +144,7 @@ public class TimeBinner {
       }
     }
 
-    TreeMap<Long,DoubleWrapper> sorted = new TreeMap<Long,DoubleWrapper>(aggregation1);
+    TreeMap<Long,DoubleWrapper> sorted = new TreeMap<>(aggregation1);
 
     Set<Entry<Long,DoubleWrapper>> es = sorted.entrySet();
 

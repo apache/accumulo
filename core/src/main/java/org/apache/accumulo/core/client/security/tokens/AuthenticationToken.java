@@ -129,7 +129,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
   class Properties implements Destroyable, Map<String,char[]> {
 
     private boolean destroyed = false;
-    private HashMap<String,char[]> map = new HashMap<String,char[]>();
+    private HashMap<String,char[]> map = new HashMap<>();
 
     private void checkDestroyed() {
       if (destroyed)

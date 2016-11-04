@@ -129,7 +129,7 @@ public class TestIngest {
 
     long pos = start + splitSize;
 
-    TreeSet<Text> splits = new TreeSet<Text>();
+    TreeSet<Text> splits = new TreeSet<>();
 
     while (pos < end) {
       splits.add(new Text(String.format("row_%010d", pos)));

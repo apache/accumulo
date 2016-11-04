@@ -429,7 +429,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       if (simulate)
         log.info("Simulating output only. No writes to tables will occur");
 
-      this.bws = new HashMap<Text,BatchWriter>();
+      this.bws = new HashMap<>();
 
       String tname = getDefaultTableName(context);
       this.defaultTableName = (tname == null) ? null : new Text(tname);
@@ -543,11 +543,11 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
         mtbw.close();
       } catch (MutationsRejectedException e) {
         if (e.getSecurityErrorCodes().size() >= 0) {
-          HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<String,Set<SecurityErrorCode>>();
+          HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<>();
           for (Entry<TabletId,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
             Set<SecurityErrorCode> secCodes = tables.get(ke.getKey().getTableId().toString());
             if (secCodes == null) {
-              secCodes = new HashSet<SecurityErrorCode>();
+              secCodes = new HashSet<>();
               tables.put(ke.getKey().getTableId().toString(), secCodes);
             }
             secCodes.addAll(ke.getValue());

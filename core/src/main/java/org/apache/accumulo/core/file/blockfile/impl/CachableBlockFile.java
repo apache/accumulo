@@ -464,7 +464,7 @@ public class CachableBlockFile {
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
-          cb.setIndex(new SoftReference<T>(bi));
+          cb.setIndex(new SoftReference<>(bi));
         }
       }
 

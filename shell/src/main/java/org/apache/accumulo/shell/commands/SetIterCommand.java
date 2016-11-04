@@ -64,7 +64,7 @@ public class SetIterCommand extends Command {
 
     final int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
 
-    final Map<String,String> options = new HashMap<String,String>();
+    final Map<String,String> options = new HashMap<>();
     String classname = cl.getOptionValue(classnameTypeOpt.getOpt());
     if (cl.hasOption(aggTypeOpt.getOpt())) {
       Shell.log.warn("aggregators are deprecated");
@@ -240,7 +240,7 @@ public class SetIterCommand extends Command {
       if (className.contains(".")) {
         shortClassName = className.substring(className.lastIndexOf('.') + 1);
       }
-      final Map<String,String> localOptions = new HashMap<String,String>();
+      final Map<String,String> localOptions = new HashMap<>();
       do {
         // clean up the overall options that caused things to fail
         for (String key : localOptions.keySet()) {
@@ -311,7 +311,7 @@ public class SetIterCommand extends Command {
       reader.flush();
       reader.println("Optional, configure name-value options for iterator:");
       String prompt = Shell.repeat("-", 10) + "> set option (<name> <value>, hit enter to skip): ";
-      final HashMap<String,String> localOptions = new HashMap<String,String>();
+      final HashMap<String,String> localOptions = new HashMap<>();
 
       while (true) {
         reader.flush();

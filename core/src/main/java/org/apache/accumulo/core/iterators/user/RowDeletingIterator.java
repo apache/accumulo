@@ -144,11 +144,11 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
 
     if (inclusive && !columnFamilies.contains(EMPTY)) {
-      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
+      columnFamilies = new HashSet<>(columnFamilies);
       columnFamilies.add(EMPTY);
       dropEmptyColFams = true;
     } else if (!inclusive && columnFamilies.contains(EMPTY)) {
-      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
+      columnFamilies = new HashSet<>(columnFamilies);
       columnFamilies.remove(EMPTY);
       dropEmptyColFams = true;
     } else {

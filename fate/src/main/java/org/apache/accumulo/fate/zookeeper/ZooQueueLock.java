@@ -68,7 +68,7 @@ public class ZooQueueLock implements QueueLock {
 
   @Override
   public SortedMap<Long,byte[]> getEarlierEntries(long entry) {
-    SortedMap<Long,byte[]> result = new TreeMap<Long,byte[]>();
+    SortedMap<Long,byte[]> result = new TreeMap<>();
     try {
       List<String> children = Collections.emptyList();
       try {

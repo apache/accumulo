@@ -46,14 +46,14 @@ import org.junit.Test;
  */
 public class GarbageCollectionTest {
   static class TestGCE implements GarbageCollectionEnvironment {
-    TreeSet<String> candidates = new TreeSet<String>();
-    ArrayList<String> blips = new ArrayList<String>();
-    Map<Key,Value> references = new TreeMap<Key,Value>();
-    HashSet<String> tableIds = new HashSet<String>();
+    TreeSet<String> candidates = new TreeSet<>();
+    ArrayList<String> blips = new ArrayList<>();
+    Map<Key,Value> references = new TreeMap<>();
+    HashSet<String> tableIds = new HashSet<>();
 
-    ArrayList<String> deletes = new ArrayList<String>();
-    ArrayList<String> tablesDirsToDelete = new ArrayList<String>();
-    TreeMap<String,Status> filesToReplicate = new TreeMap<String,Status>();
+    ArrayList<String> deletes = new ArrayList<>();
+    ArrayList<String> tablesDirsToDelete = new ArrayList<>();
+    TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
     @Override
     public boolean getCandidates(String continuePoint, List<String> ret) {
@@ -208,7 +208,7 @@ public class GarbageCollectionTest {
     gca.collect(gce);
     assertRemoved(gce);
 
-    List<String[]> refsToRemove = new ArrayList<String[]>();
+    List<String[]> refsToRemove = new ArrayList<>();
     refsToRemove.add(new String[] {"4", "/t0/F000.rf"});
     refsToRemove.add(new String[] {"5", "../4/t0/F000.rf"});
     refsToRemove.add(new String[] {"6", "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf"});
@@ -545,7 +545,7 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
 
-    HashSet<String> tids = new HashSet<String>();
+    HashSet<String> tids = new HashSet<>();
     tids.add("5");
     tids.add("6");
 

@@ -168,7 +168,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private boolean initialized = false;
 
-  private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<Pair<ServerType,Integer>>();
+  private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<>();
 
   private File zooCfgFile;
   private String dfsUri;
@@ -177,11 +177,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return logWriters;
   }
 
-  private List<LogWriter> logWriters = new ArrayList<MiniAccumuloClusterImpl.LogWriter>();
+  private List<LogWriter> logWriters = new ArrayList<>();
 
   private MiniAccumuloConfigImpl config;
   private MiniDFSCluster miniDFS = null;
-  private List<Process> cleanup = new ArrayList<Process>();
+  private List<Process> cleanup = new ArrayList<>();
 
   private ExecutorService executor;
 
@@ -196,7 +196,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   public Process exec(Class<?> clazz, List<String> jvmArgs, String... args) throws IOException {
-    ArrayList<String> jvmArgs2 = new ArrayList<String>(1 + (jvmArgs == null ? 0 : jvmArgs.size()));
+    ArrayList<String> jvmArgs2 = new ArrayList<>(1 + (jvmArgs == null ? 0 : jvmArgs.size()));
     jvmArgs2.add("-Xmx" + config.getDefaultMemory());
     if (jvmArgs != null)
       jvmArgs2.addAll(jvmArgs);
@@ -228,7 +228,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private String getClasspath() throws IOException {
 
     try {
-      ArrayList<ClassLoader> classloaders = new ArrayList<ClassLoader>();
+      ArrayList<ClassLoader> classloaders = new ArrayList<>();
 
       ClassLoader cl = this.getClass().getClassLoader();
 
@@ -286,7 +286,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     String className = clazz.getName();
 
-    ArrayList<String> argList = new ArrayList<String>();
+    ArrayList<String> argList = new ArrayList<>();
     argList.addAll(Arrays.asList(javaBin, "-Dproc=" + clazz.getSimpleName(), "-cp", classpath));
     argList.addAll(extraJvmOpts);
     for (Entry<String,String> sysProp : config.getSystemProperties().entrySet()) {
@@ -343,13 +343,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   Process _exec(Class<?> clazz, ServerType serverType, String... args) throws IOException {
 
-    List<String> jvmOpts = new ArrayList<String>();
+    List<String> jvmOpts = new ArrayList<>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
 
     if (config.isJDWPEnabled()) {
       Integer port = PortUtils.getRandomFreePort();
       jvmOpts.addAll(buildRemoteDebugParams(port));
-      debugPorts.add(new Pair<ServerType,Integer>(serverType, port));
+      debugPorts.add(new Pair<>(serverType, port));
     }
     return _exec(clazz, jvmOpts, args);
   }
@@ -642,7 +642,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   List<ProcessReference> references(Process... procs) {
-    List<ProcessReference> result = new ArrayList<ProcessReference>();
+    List<ProcessReference> result = new ArrayList<>();
     for (Process proc : procs) {
       result.add(new ProcessReference(proc));
     }
@@ -650,7 +650,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
-    Map<ServerType,Collection<ProcessReference>> result = new HashMap<ServerType,Collection<ProcessReference>>();
+    Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
     result.put(ServerType.MASTER, references(control.masterProcess));
     result.put(ServerType.TABLET_SERVER, references(control.tabletServerProcesses.toArray(new Process[0])));
@@ -762,7 +762,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-    FutureTask<Integer> future = new FutureTask<Integer>(new Callable<Integer>() {
+    FutureTask<Integer> future = new FutureTask<>(new Callable<Integer>() {
       @Override
       public Integer call() throws InterruptedException {
         proc.destroy();

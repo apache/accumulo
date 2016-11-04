@@ -28,9 +28,9 @@ import org.apache.accumulo.core.data.Value;
  * debugging. If used on large result sets it will likely fail.
  */
 public class StatisticsDisplayFormatter extends AggregatingFormatter {
-  private Map<String,Long> classifications = new HashMap<String,Long>();
-  private Map<String,Long> columnFamilies = new HashMap<String,Long>();
-  private Map<String,Long> columnQualifiers = new HashMap<String,Long>();
+  private Map<String,Long> classifications = new HashMap<>();
+  private Map<String,Long> columnFamilies = new HashMap<>();
+  private Map<String,Long> columnQualifiers = new HashMap<>();
   private long total = 0;
 
   @Override
@@ -71,9 +71,9 @@ public class StatisticsDisplayFormatter extends AggregatingFormatter {
 
     buf.append(total).append(" entries matched.");
     total = 0;
-    classifications = new HashMap<String,Long>();
-    columnFamilies = new HashMap<String,Long>();
-    columnQualifiers = new HashMap<String,Long>();
+    classifications = new HashMap<>();
+    columnFamilies = new HashMap<>();
+    columnQualifiers = new HashMap<>();
 
     return buf.toString();
   }

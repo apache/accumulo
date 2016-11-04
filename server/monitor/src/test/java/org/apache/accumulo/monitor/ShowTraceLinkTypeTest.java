@@ -31,7 +31,7 @@ public class ShowTraceLinkTypeTest {
 
   @Test
   public void testTraceSortingForMonitor() {
-    ArrayList<RemoteSpan> spans = new ArrayList<RemoteSpan>(10), expectedOrdering = new ArrayList<RemoteSpan>(10);
+    ArrayList<RemoteSpan> spans = new ArrayList<>(10), expectedOrdering = new ArrayList<>(10);
 
     // "Random" ordering
     spans.add(rs(55l, 75l, "desc5"));

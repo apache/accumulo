@@ -89,7 +89,7 @@ public class UserCompactionConfig implements Writable {
     }
 
     int num = in.readInt();
-    iterators = new ArrayList<IteratorSetting>(num);
+    iterators = new ArrayList<>(num);
 
     for (int i = 0; i < num; i++) {
       iterators.add(new IteratorSetting(in));

@@ -152,7 +152,7 @@ public class SortedLogRecovery {
   int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException,
       EmptyMapFileException, UnusedException {
 
-    HashSet<String> suffixes = new HashSet<String>();
+    HashSet<String> suffixes = new HashSet<>();
     for (String path : tabletFiles)
       suffixes.add(getPathSuffix(path));
 

@@ -53,7 +53,7 @@ public class BalanceFasterIT extends ConfigurableMacIT {
     String tableName = getUniqueNames(1)[0];
     Connector conn = getConnector();
     conn.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 1000; i++) {
       splits.add(new Text("" + i));
     }
@@ -64,7 +64,7 @@ public class BalanceFasterIT extends ConfigurableMacIT {
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     s.setRange(MetadataSchema.TabletsSection.getRange());
-    Map<String,Integer> counts = new HashMap<String,Integer>();
+    Map<String,Integer> counts = new HashMap<>();
     while (true) {
       int total = 0;
       counts.clear();

@@ -85,7 +85,7 @@ public class ContinuousWalk {
         return;
       }
 
-      auths = new ArrayList<Authorizations>();
+      auths = new ArrayList<>();
 
       FileSystem fs = FileSystem.get(new Configuration());
       BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(file)), UTF_8));
@@ -113,7 +113,7 @@ public class ContinuousWalk {
 
     Random r = new Random();
 
-    ArrayList<Value> values = new ArrayList<Value>();
+    ArrayList<Value> values = new ArrayList<>();
 
     while (true) {
       Scanner scanner = ContinuousUtil.createScanner(conn, clientOpts.getTableName(), opts.randomAuths.getAuths(r));

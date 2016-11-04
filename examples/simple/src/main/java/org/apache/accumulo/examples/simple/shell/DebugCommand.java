@@ -27,7 +27,7 @@ public class DebugCommand extends Command {
 
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    Set<String> lines = new TreeSet<String>();
+    Set<String> lines = new TreeSet<>();
     lines.add("This is a test");
     shellState.printLines(lines.iterator(), true);
     return 0;

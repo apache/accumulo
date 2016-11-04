@@ -60,7 +60,7 @@ public class FileRefTest {
     Assert.assertNotEquals(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0005.rf"), new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
     Assert.assertNotEquals(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf"), new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf"));
 
-    HashMap<FileRef,String> refMap = new HashMap<FileRef,String>();
+    HashMap<FileRef,String> refMap = new HashMap<>();
     refMap.put(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"), "7");
     refMap.put(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf"), "8");
 

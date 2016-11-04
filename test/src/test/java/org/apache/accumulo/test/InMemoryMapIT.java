@@ -274,7 +274,7 @@ public class InMemoryMapIT {
   private List<MemKey> getArrayOfMemKeys(InMemoryMap imm) {
     SortedKeyValueIterator<Key,Value> skvi = imm.compactionIterator();
 
-    List<MemKey> memKeys = new ArrayList<MemKey>();
+    List<MemKey> memKeys = new ArrayList<>();
     try {
       skvi.seek(new Range(), new ArrayList<ByteSequence>(), false); // everything
       while (skvi.hasTop()) {
@@ -305,7 +305,7 @@ public class InMemoryMapIT {
   }
 
   private int getUniqKVCount(List<MemKey> memKeys) {
-    List<Integer> kvCounts = new ArrayList<Integer>();
+    List<Integer> kvCounts = new ArrayList<>();
     for (MemKey m : memKeys) {
       kvCounts.add(m.getKVCount());
     }
@@ -313,7 +313,7 @@ public class InMemoryMapIT {
   }
 
   private Map<String,Set<ByteSequence>> getLocalityGroups() {
-    Map<String,Set<ByteSequence>> locgro = new HashMap<String,Set<ByteSequence>>();
+    Map<String,Set<ByteSequence>> locgro = new HashMap<>();
     locgro.put("a", newCFSet("cf", "cf2"));
     locgro.put("b", newCFSet("cf3", "cf4"));
     return locgro;
@@ -321,7 +321,7 @@ public class InMemoryMapIT {
 
   // from InMemoryMapTest
   private Set<ByteSequence> newCFSet(String... cfs) {
-    HashSet<ByteSequence> cfSet = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> cfSet = new HashSet<>();
     for (String cf : cfs) {
       cfSet.add(new ArrayByteSequence(cf));
     }

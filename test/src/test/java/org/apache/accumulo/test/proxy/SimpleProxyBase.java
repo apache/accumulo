@@ -425,7 +425,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
   public void setLocalityGroupsLoginFailure() throws Exception {
-    Map<String,Set<String>> groups = new HashMap<String,Set<String>>();
+    Map<String,Set<String>> groups = new HashMap<>();
     groups.put("group1", Collections.singleton("cf1"));
     groups.put("group2", Collections.singleton("cf2"));
     client.setLocalityGroups(badLogin, table, groups);
@@ -497,7 +497,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
   public void changeUserAuthorizationsLoginFailure() throws Exception {
-    HashSet<ByteBuffer> auths = new HashSet<ByteBuffer>(Arrays.asList(s2bb("A"), s2bb("B")));
+    HashSet<ByteBuffer> auths = new HashSet<>(Arrays.asList(s2bb("A"), s2bb("B")));
     client.changeUserAuthorizations(badLogin, "stooge", auths);
   }
 
@@ -1020,7 +1020,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     t.start();
 
     // look for the scan many times
-    List<ActiveScan> scans = new ArrayList<ActiveScan>();
+    List<ActiveScan> scans = new ArrayList<>();
     for (int i = 0; i < 100 && scans.isEmpty(); i++) {
       for (String tserver : client.getTabletServers(creds)) {
         List<ActiveScan> scansForServer = client.getActiveScans(creds, tserver);
@@ -1107,7 +1107,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     assertNotNull(desiredTableId);
 
     // try to catch it in the act
-    List<ActiveCompaction> compactions = new ArrayList<ActiveCompaction>();
+    List<ActiveCompaction> compactions = new ArrayList<>();
     for (int i = 0; i < 100 && compactions.isEmpty(); i++) {
       // Iterate over the tservers
       for (String tserver : client.getTabletServers(creds)) {
@@ -1175,12 +1175,12 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     client.createLocalUser(creds, user, password);
     // change auths
     Set<String> users = client.listLocalUsers(creds);
-    Set<String> expectedUsers = new HashSet<String>(Arrays.asList(clientPrincipal, user));
+    Set<String> expectedUsers = new HashSet<>(Arrays.asList(clientPrincipal, user));
     assertTrue("Did not find all expected users: " + expectedUsers, users.containsAll(expectedUsers));
-    HashSet<ByteBuffer> auths = new HashSet<ByteBuffer>(Arrays.asList(s2bb("A"), s2bb("B")));
+    HashSet<ByteBuffer> auths = new HashSet<>(Arrays.asList(s2bb("A"), s2bb("B")));
     client.changeUserAuthorizations(creds, user, auths);
     List<ByteBuffer> update = client.getUserAuthorizations(creds, user);
-    assertEquals(auths, new HashSet<ByteBuffer>(update));
+    assertEquals(auths, new HashSet<>(update));
 
     // change password
     if (!isKerberosEnabled()) {
@@ -1540,7 +1540,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   @Test
   public void tableMergesAndSplits() throws Exception {
     // add some splits
-    client.addSplits(creds, table, new HashSet<ByteBuffer>(Arrays.asList(s2bb("a"), s2bb("m"), s2bb("z"))));
+    client.addSplits(creds, table, new HashSet<>(Arrays.asList(s2bb("a"), s2bb("m"), s2bb("z"))));
     List<ByteBuffer> splits = client.listSplits(creds, table, 1);
     assertEquals(Arrays.asList(s2bb("m")), splits);
 
@@ -1561,7 +1561,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   @Test
   public void iteratorFunctionality() throws Exception {
     // iterators
-    HashMap<String,String> options = new HashMap<String,String>();
+    HashMap<String,String> options = new HashMap<>();
     options.put("type", "STRING");
     options.put("columns", "cf");
     IteratorSetting setting = new IteratorSetting(10, table, SummingCombiner.class.getName(), options);
@@ -1649,7 +1649,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
     // Clone the table
     client.cloneTable(creds, table, TABLE_TEST2, true, null, null);
-    Set<String> tablesToScan = new HashSet<String>();
+    Set<String> tablesToScan = new HashSet<>();
     tablesToScan.add(table);
     tablesToScan.add(TABLE_TEST2);
     tablesToScan.add("foo");
@@ -1727,7 +1727,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
   @Test
   public void localityGroups() throws Exception {
-    Map<String,Set<String>> groups = new HashMap<String,Set<String>>();
+    Map<String,Set<String>> groups = new HashMap<>();
     groups.put("group1", Collections.singleton("cf1"));
     groups.put("group2", Collections.singleton("cf2"));
     client.setLocalityGroups(creds, table, groups);
@@ -1854,7 +1854,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
     String cwid = client.createConditionalWriter(creds, table, new ConditionalWriterOptions());
 
-    Map<ByteBuffer,ConditionalUpdates> updates = new HashMap<ByteBuffer,ConditionalUpdates>();
+    Map<ByteBuffer,ConditionalUpdates> updates = new HashMap<>();
 
     updates.put(
         s2bb("00345"),
@@ -1951,7 +1951,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
 
     // following test w/ iterator setup should succeed
     Condition iterCond = newCondition("data", "count", "3");
-    Map<String,String> props = new HashMap<String,String>();
+    Map<String,String> props = new HashMap<>();
     props.put("type", "STRING");
     props.put("columns", "data:count");
     IteratorSetting is = new IteratorSetting(1, "sumc", SummingCombiner.class.getName(), props);
@@ -2237,7 +2237,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   }
 
   private Map<String,String> s2pp(String cf) {
-    Map<String,String> toRet = new TreeMap<String,String>();
+    Map<String,String> toRet = new TreeMap<>();
     toRet.put("password", cf);
     return toRet;
   }

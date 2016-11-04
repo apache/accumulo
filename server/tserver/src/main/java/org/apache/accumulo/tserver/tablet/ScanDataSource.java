@@ -164,7 +164,7 @@ class ScanDataSource implements DataSource {
 
     Collection<InterruptibleIterator> mapfiles = fileManager.openFiles(files, options.isIsolated());
 
-    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(mapfiles.size() + memIters.size());
+    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(mapfiles.size() + memIters.size());
 
     iters.addAll(mapfiles);
     iters.addAll(memIters);

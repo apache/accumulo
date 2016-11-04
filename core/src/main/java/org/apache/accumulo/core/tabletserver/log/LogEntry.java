@@ -47,7 +47,7 @@ public class LogEntry {
     this.server = le.server;
     this.filename = le.filename;
     this.tabletId = le.tabletId;
-    this.logSet = new ArrayList<String>(le.logSet);
+    this.logSet = new ArrayList<>(le.logSet);
   }
 
   @Override
@@ -83,7 +83,7 @@ public class LogEntry {
     filename = inp.readUTF();
     tabletId = inp.read();
     int count = inp.read();
-    ArrayList<String> logSet = new ArrayList<String>(count);
+    ArrayList<String> logSet = new ArrayList<>(count);
     for (int i = 0; i < count; i++)
       logSet.add(inp.readUTF());
     this.logSet = logSet;

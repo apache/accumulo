@@ -70,8 +70,8 @@ public class HostRegexTableLoadBalancerReconfigurationTest extends BaseHostRegex
         Assert.fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
       }
     }
-    Set<KeyExtent> migrations = new HashSet<KeyExtent>();
-    List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+    Set<KeyExtent> migrations = new HashSet<>();
+    List<TabletMigration> migrationsOut = new ArrayList<>();
     // Wait to trigger the out of bounds check which will call our version of getOnlineTabletsForTable
     UtilWaitThread.sleep(11000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);

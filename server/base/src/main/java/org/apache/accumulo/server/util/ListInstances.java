@@ -172,7 +172,7 @@ public class ListInstances {
 
     String instancesPath = Constants.ZROOT + Constants.ZINSTANCES;
 
-    TreeMap<String,UUID> tm = new TreeMap<String,UUID>();
+    TreeMap<String,UUID> tm = new TreeMap<>();
 
     List<String> names;
 
@@ -198,7 +198,7 @@ public class ListInstances {
   }
 
   private static TreeSet<UUID> getInstanceIDs(ZooReader zk, boolean printErrors) {
-    TreeSet<UUID> ts = new TreeSet<UUID>();
+    TreeSet<UUID> ts = new TreeSet<>();
 
     try {
       List<String> children = zk.getChildren(Constants.ZROOT);

@@ -48,7 +48,7 @@ public class GcStatusServlet extends BasicServlet {
       gcActivity.addSortableColumn("Candidates", new NumberType<Long>(), null);
       gcActivity.addSortableColumn("Deleted", new NumberType<Long>(), null);
       gcActivity.addSortableColumn("In&nbsp;Use", new NumberType<Long>(), null);
-      gcActivity.addSortableColumn("Errors", new NumberType<Long>(0l, 1l), null);
+      gcActivity.addSortableColumn("Errors", new NumberType<>(0l, 1l), null);
       gcActivity.addSortableColumn("Duration", new DurationType(), null);
 
       if (status.last.finished > 0)

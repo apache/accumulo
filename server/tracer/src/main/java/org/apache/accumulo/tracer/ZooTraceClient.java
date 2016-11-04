@@ -51,7 +51,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   String path;
   boolean pathExists = false;
   final Random random = new Random();
-  final List<String> hosts = new ArrayList<String>();
+  final List<String> hosts = new ArrayList<>();
   long retryPause = 5000l;
 
   // Visible for testing
@@ -144,7 +144,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   synchronized private void updateHosts(String path, List<String> children) {
     log.debug("Scanning trace hosts in zookeeper: " + path);
     try {
-      List<String> hosts = new ArrayList<String>();
+      List<String> hosts = new ArrayList<>();
       for (String child : children) {
         byte[] data = zoo.getData(path + "/" + child, null);
         hosts.add(new String(data, UTF_8));

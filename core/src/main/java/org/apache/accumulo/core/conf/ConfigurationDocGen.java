@@ -305,8 +305,8 @@ class ConfigurationDocGen {
 
   ConfigurationDocGen(PrintStream doc) {
     this.doc = doc;
-    this.prefixes = new ArrayList<Property>();
-    this.sortedProps = new TreeMap<String,Property>();
+    this.prefixes = new ArrayList<>();
+    this.sortedProps = new TreeMap<>();
 
     for (Property prop : Property.values()) {
       if (prop.isExperimental())

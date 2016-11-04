@@ -97,7 +97,7 @@ public class ByteUtils {
    * Splits a byte array by 0x00
    */
   public static byte[][] split(byte[] data, int dataOffset, int len) {
-    ArrayList<Integer> offsets = new ArrayList<Integer>();
+    ArrayList<Integer> offsets = new ArrayList<>();
 
     for (int i = dataOffset; i < (dataOffset + len); i++) {
       if (data[i] == 0x00) {

@@ -87,7 +87,7 @@ public class NGramIngest extends Configured implements Tool {
     if (!opts.getConnector().tableOperations().exists(opts.getTableName())) {
       log.info("Creating table " + opts.getTableName());
       opts.getConnector().tableOperations().create(opts.getTableName());
-      SortedSet<Text> splits = new TreeSet<Text>();
+      SortedSet<Text> splits = new TreeSet<>();
       String numbers[] = "1 2 3 4 5 6 7 8 9".split("\\s");
       String lower[] = "a b c d e f g h i j k l m n o p q r s t u v w x y z".split("\\s");
       String upper[] = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z".split("\\s");

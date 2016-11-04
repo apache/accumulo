@@ -137,7 +137,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     TServerInstance current = null;
     TServerInstance last = null;
     long lastTimestamp = 0;
-    List<Collection<String>> walogs = new ArrayList<Collection<String>>();
+    List<Collection<String>> walogs = new ArrayList<>();
     boolean chopped = false;
 
     for (Entry<Key,Value> entry : decodedRow.entrySet()) {

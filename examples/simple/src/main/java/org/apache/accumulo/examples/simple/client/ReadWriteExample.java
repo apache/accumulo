@@ -88,7 +88,7 @@ public class ReadWriteExample {
 
     // create table
     if (opts.createtable) {
-      SortedSet<Text> partitionKeys = new TreeSet<Text>();
+      SortedSet<Text> partitionKeys = new TreeSet<>();
       for (int i = Byte.MIN_VALUE; i < Byte.MAX_VALUE; i++)
         partitionKeys.add(new Text(new byte[] {(byte) i}));
       conn.tableOperations().create(opts.getTableName());

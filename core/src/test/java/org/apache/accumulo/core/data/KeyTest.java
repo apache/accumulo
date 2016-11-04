@@ -141,7 +141,7 @@ public class KeyTest {
 
   @Test
   public void testCompressDecompress() {
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<KeyValue> kvs = new ArrayList<>();
     kvs.add(new KeyValue(new Key(), new byte[] {}));
     kvs.add(new KeyValue(new Key("r"), new byte[] {}));
     kvs.add(new KeyValue(new Key("r", "cf"), new byte[] {}));

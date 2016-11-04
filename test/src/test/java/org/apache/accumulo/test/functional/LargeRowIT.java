@@ -107,7 +107,7 @@ public class LargeRowIT extends AccumuloClusterIT {
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
     r.setSeed(SEED + 1);
-    TreeSet<Text> splitPoints = new TreeSet<Text>();
+    TreeSet<Text> splitPoints = new TreeSet<>();
     for (int i = 0; i < NUM_PRE_SPLITS; i++) {
       r.nextBytes(rowData);
       TestIngest.toPrintableChars(rowData);

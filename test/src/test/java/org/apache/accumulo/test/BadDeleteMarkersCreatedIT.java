@@ -147,7 +147,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterIT {
     Assert.assertNotNull("Expected to find a tableId", tableId);
 
     // add some splits
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 10; i++) {
       splits.add(new Text("" + i));
     }

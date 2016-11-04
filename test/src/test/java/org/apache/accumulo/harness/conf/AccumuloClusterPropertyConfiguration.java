@@ -139,7 +139,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
         throw new IllegalArgumentException("Unknown ClusterType: " + type);
     }
 
-    Map<String,String> configuration = new HashMap<String,String>();
+    Map<String,String> configuration = new HashMap<>();
 
     Properties systemProperties = System.getProperties();
 

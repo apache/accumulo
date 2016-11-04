@@ -34,11 +34,11 @@ public class DistributedReadWriteLockTest {
   public static class MockQueueLock implements QueueLock {
 
     long next = 0L;
-    final SortedMap<Long,byte[]> locks = new TreeMap<Long,byte[]>();
+    final SortedMap<Long,byte[]> locks = new TreeMap<>();
 
     @Override
     synchronized public SortedMap<Long,byte[]> getEarlierEntries(long entry) {
-      SortedMap<Long,byte[]> result = new TreeMap<Long,byte[]>();
+      SortedMap<Long,byte[]> result = new TreeMap<>();
       result.putAll(locks.headMap(entry + 1));
       return result;
     }

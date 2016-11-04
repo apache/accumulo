@@ -45,7 +45,7 @@ public class ScannerOptions implements ScannerBase {
   protected List<IterInfo> serverSideIteratorList = Collections.emptyList();
   protected Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
 
-  protected SortedSet<Column> fetchedColumns = new TreeSet<Column>();
+  protected SortedSet<Column> fetchedColumns = new TreeSet<>();
 
   protected long timeOut = Long.MAX_VALUE;
 
@@ -61,7 +61,7 @@ public class ScannerOptions implements ScannerBase {
   public synchronized void addScanIterator(IteratorSetting si) {
     checkArgument(si != null, "si is null");
     if (serverSideIteratorList.size() == 0)
-      serverSideIteratorList = new ArrayList<IterInfo>();
+      serverSideIteratorList = new ArrayList<>();
 
     for (IterInfo ii : serverSideIteratorList) {
       if (ii.iterName.equals(si.getName()))
@@ -73,12 +73,12 @@ public class ScannerOptions implements ScannerBase {
     serverSideIteratorList.add(new IterInfo(si.getPriority(), si.getIteratorClass(), si.getName()));
 
     if (serverSideIteratorOptions.size() == 0)
-      serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
+      serverSideIteratorOptions = new HashMap<>();
 
     Map<String,String> opts = serverSideIteratorOptions.get(si.getName());
 
     if (opts == null) {
-      opts = new HashMap<String,String>();
+      opts = new HashMap<>();
       serverSideIteratorOptions.put(si.getName(), opts);
     }
     opts.putAll(si.getOptions());
@@ -107,12 +107,12 @@ public class ScannerOptions implements ScannerBase {
     checkArgument(key != null, "key is null");
     checkArgument(value != null, "value is null");
     if (serverSideIteratorOptions.size() == 0)
-      serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
+      serverSideIteratorOptions = new HashMap<>();
 
     Map<String,String> opts = serverSideIteratorOptions.get(iteratorName);
 
     if (opts == null) {
-      opts = new HashMap<String,String>();
+      opts = new HashMap<>();
       serverSideIteratorOptions.put(iteratorName, opts);
     }
     opts.put(key, value);
@@ -159,13 +159,13 @@ public class ScannerOptions implements ScannerBase {
     synchronized (dst) {
       synchronized (src) {
         dst.regexIterName = src.regexIterName;
-        dst.fetchedColumns = new TreeSet<Column>(src.fetchedColumns);
-        dst.serverSideIteratorList = new ArrayList<IterInfo>(src.serverSideIteratorList);
+        dst.fetchedColumns = new TreeSet<>(src.fetchedColumns);
+        dst.serverSideIteratorList = new ArrayList<>(src.serverSideIteratorList);
 
-        dst.serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
+        dst.serverSideIteratorOptions = new HashMap<>();
         Set<Entry<String,Map<String,String>>> es = src.serverSideIteratorOptions.entrySet();
         for (Entry<String,Map<String,String>> entry : es)
-          dst.serverSideIteratorOptions.put(entry.getKey(), new HashMap<String,String>(entry.getValue()));
+          dst.serverSideIteratorOptions.put(entry.getKey(), new HashMap<>(entry.getValue()));
       }
     }
   }

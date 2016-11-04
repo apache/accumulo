@@ -75,7 +75,7 @@ import com.google.common.primitives.Bytes;
 
 public class RFileTest {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
@@ -326,8 +326,8 @@ public class RFileTest {
 
     int val = 0;
 
-    ArrayList<Key> expectedKeys = new ArrayList<Key>(10000);
-    ArrayList<Value> expectedValues = new ArrayList<Value>(10000);
+    ArrayList<Key> expectedKeys = new ArrayList<>(10000);
+    ArrayList<Value> expectedValues = new ArrayList<>(10000);
 
     for (int row = 0; row < 4; row++) {
       String rowS = nf("r_", row);
@@ -750,7 +750,7 @@ public class RFileTest {
   }
 
   public static Set<ByteSequence> ncfs(String... colFams) {
-    HashSet<ByteSequence> cfs = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> cfs = new HashSet<>();
 
     for (String cf : colFams) {
       cfs.add(new ArrayByteSequence(cf));
@@ -1348,7 +1348,7 @@ public class RFileTest {
   }
 
   private Set<ByteSequence> t18ncfs(int... colFams) {
-    HashSet<ByteSequence> cfs = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> cfs = new HashSet<>();
     for (int i : colFams) {
       cfs.add(new ArrayByteSequence(t18ncf(i)));
     }
@@ -1365,7 +1365,7 @@ public class RFileTest {
   private void t18Verify(Set<ByteSequence> cfs, SortedKeyValueIterator<Key,Value> iter, Reader reader, HashSet<ByteSequence> allCf, int eialg, int eealg)
       throws IOException {
 
-    HashSet<ByteSequence> colFamsSeen = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> colFamsSeen = new HashSet<>();
 
     iter.seek(new Range(), cfs, true);
     assertEquals(eialg, reader.getNumLocalityGroupsSeeked());
@@ -1375,7 +1375,7 @@ public class RFileTest {
       iter.next();
     }
 
-    HashSet<ByteSequence> expected = new HashSet<ByteSequence>(allCf);
+    HashSet<ByteSequence> expected = new HashSet<>(allCf);
     expected.retainAll(cfs);
     assertEquals(expected, colFamsSeen);
 
@@ -1388,7 +1388,7 @@ public class RFileTest {
       iter.next();
     }
 
-    HashSet<ByteSequence> nonExcluded = new HashSet<ByteSequence>(allCf);
+    HashSet<ByteSequence> nonExcluded = new HashSet<>(allCf);
     nonExcluded.removeAll(cfs);
     assertEquals(nonExcluded, colFamsSeen);
   }
@@ -1401,7 +1401,7 @@ public class RFileTest {
 
     trf.openWriter(false);
 
-    HashSet<ByteSequence> allCf = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> allCf = new HashSet<>();
 
     trf.writer.startNewLocalityGroup("lg1", t18ncfs(0));
     for (int i = 0; i < 1; i++)
@@ -1771,7 +1771,7 @@ public class RFileTest {
   @Test
   public void testBigKeys() throws IOException {
     // this test ensures that big keys do not end up index
-    ArrayList<Key> keys = new ArrayList<Key>();
+    ArrayList<Key> keys = new ArrayList<>();
 
     for (int i = 0; i < 1000; i++) {
       String row = String.format("r%06d", i);

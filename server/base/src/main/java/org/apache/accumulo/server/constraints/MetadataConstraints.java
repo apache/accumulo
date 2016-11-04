@@ -64,12 +64,12 @@ public class MetadataConstraints implements Constraint {
     }
   }
 
-  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<ColumnFQ>(Arrays.asList(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
+  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<>(Arrays.asList(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
       TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
       TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN, TabletsSection.ServerColumnFamily.TIME_COLUMN, TabletsSection.ServerColumnFamily.LOCK_COLUMN,
       TabletsSection.ServerColumnFamily.FLUSH_COLUMN, TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
 
-  private static final HashSet<Text> validColumnFams = new HashSet<Text>(Arrays.asList(TabletsSection.BulkFileColumnFamily.NAME, LogColumnFamily.NAME,
+  private static final HashSet<Text> validColumnFams = new HashSet<>(Arrays.asList(TabletsSection.BulkFileColumnFamily.NAME, LogColumnFamily.NAME,
       ScanFileColumnFamily.NAME, DataFileColumnFamily.NAME, TabletsSection.CurrentLocationColumnFamily.NAME, TabletsSection.LastLocationColumnFamily.NAME,
       TabletsSection.FutureLocationColumnFamily.NAME, ChoppedColumnFamily.NAME, ClonedColumnFamily.NAME));
 
@@ -86,7 +86,7 @@ public class MetadataConstraints implements Constraint {
 
   static private ArrayList<Short> addViolation(ArrayList<Short> lst, int violation) {
     if (lst == null)
-      lst = new ArrayList<Short>();
+      lst = new ArrayList<>();
     lst.add((short) violation);
     return lst;
   }
@@ -194,8 +194,8 @@ public class MetadataConstraints implements Constraint {
           // See ACCUMULO-1230.
           boolean isLocationMutation = false;
 
-          HashSet<Text> dataFiles = new HashSet<Text>();
-          HashSet<Text> loadedFiles = new HashSet<Text>();
+          HashSet<Text> dataFiles = new HashSet<>();
+          HashSet<Text> loadedFiles = new HashSet<>();
 
           String tidString = new String(columnUpdate.getValue(), UTF_8);
           int otherTidCount = 0;

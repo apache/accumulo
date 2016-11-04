@@ -53,7 +53,7 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
     if (heap != null)
       throw new IllegalStateException("heap already exist");
 
-    heap = new PriorityQueue<SortedKeyValueIterator<Key,Value>>(maxSize == 0 ? 1 : maxSize, new SKVIComparator());
+    heap = new PriorityQueue<>(maxSize == 0 ? 1 : maxSize, new SKVIComparator());
   }
 
   @Override

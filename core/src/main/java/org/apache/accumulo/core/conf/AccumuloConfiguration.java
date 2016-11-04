@@ -117,7 +117,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @return property value
    */
   public String get(String property) {
-    Map<String,String> propMap = new HashMap<String,String>(1);
+    Map<String,String> propMap = new HashMap<>(1);
     getProperties(propMap, new MatchFilter(property));
     return propMap.get(property);
   }
@@ -150,7 +150,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   @Override
   public Iterator<Entry<String,String>> iterator() {
     Predicate<String> all = Predicates.alwaysTrue();
-    TreeMap<String,String> entries = new TreeMap<String,String>();
+    TreeMap<String,String> entries = new TreeMap<>();
     getProperties(entries, all);
     return entries.entrySet().iterator();
   }
@@ -176,7 +176,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public Map<String,String> getAllPropertiesWithPrefix(Property property) {
     checkType(property, PropertyType.PREFIX);
 
-    Map<String,String> propMap = new HashMap<String,String>();
+    Map<String,String> propMap = new HashMap<>();
     getProperties(propMap, new PrefixFilter(property.getKey()));
     return propMap;
   }

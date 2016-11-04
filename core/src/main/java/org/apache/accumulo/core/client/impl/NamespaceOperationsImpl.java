@@ -68,7 +68,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public SortedSet<String> list() {
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Fetching list of namespaces...");
-    TreeSet<String> namespaces = new TreeSet<String>(Namespaces.getNameToIdMap(context.getInstance()).keySet());
+    TreeSet<String> namespaces = new TreeSet<>(Namespaces.getNameToIdMap(context.getInstance()).keySet());
     opTimer.stop("Fetched " + namespaces.size() + " namespaces in %DURATION%");
     return namespaces;
   }
@@ -112,7 +112,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
 
     try {
       doNamespaceFateOperation(FateOperation.NAMESPACE_DELETE, args, opts, namespace);
@@ -128,7 +128,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       NamespaceExistsException {
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)), ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<String,String>();
+    Map<String,String> opts = new HashMap<>();
     doNamespaceFateOperation(FateOperation.NAMESPACE_RENAME, args, opts, oldNamespaceName);
   }
 

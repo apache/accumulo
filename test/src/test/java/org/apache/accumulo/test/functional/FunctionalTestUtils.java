@@ -71,7 +71,7 @@ public class FunctionalTestUtils {
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
 
-    HashMap<Text,Integer> tabletFileCounts = new HashMap<Text,Integer>();
+    HashMap<Text,Integer> tabletFileCounts = new HashMap<>();
 
     for (Entry<Key,Value> entry : scanner) {
 
@@ -183,7 +183,7 @@ public class FunctionalTestUtils {
   }
 
   public static SortedSet<Text> splits(String[] splits) {
-    SortedSet<Text> result = new TreeSet<Text>();
+    SortedSet<Text> result = new TreeSet<>();
     for (String split : splits)
       result.add(new Text(split));
     return result;

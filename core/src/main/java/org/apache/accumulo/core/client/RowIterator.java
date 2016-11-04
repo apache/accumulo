@@ -107,7 +107,7 @@ public class RowIterator implements Iterator<Iterator<Entry<Key,Value>>> {
    * Create an iterator from an (ordered) sequence of KeyValue pairs.
    */
   public RowIterator(Iterator<Entry<Key,Value>> iterator) {
-    this.iter = new PeekingIterator<Entry<Key,Value>>(iterator);
+    this.iter = new PeekingIterator<>(iterator);
   }
 
   /**

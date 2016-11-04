@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 public class GarbageCollectionLogger {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionLogger.class);
 
-  private final HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
+  private final HashMap<String,Long> prevGcTime = new HashMap<>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
   private static long lastMemoryCheckTime = 0;

@@ -42,8 +42,8 @@ public class WriteLotsIT extends AccumuloClusterIT {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
-    final AtomicReference<Exception> ref = new AtomicReference<Exception>();
-    List<Thread> threads = new ArrayList<Thread>();
+    final AtomicReference<Exception> ref = new AtomicReference<>();
+    List<Thread> threads = new ArrayList<>();
     final ClientConfiguration clientConfig = getCluster().getClientConfig();
     for (int i = 0; i < 10; i++) {
       final int index = i;

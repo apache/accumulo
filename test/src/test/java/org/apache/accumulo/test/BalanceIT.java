@@ -32,7 +32,7 @@ public class BalanceIT extends ConfigurableMacIT {
     Connector c = getConnector();
     System.out.println("Creating table");
     c.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 10; i++) {
       splits.add(new Text("" + i));
     }

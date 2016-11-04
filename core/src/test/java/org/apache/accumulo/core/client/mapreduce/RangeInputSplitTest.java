@@ -65,13 +65,13 @@ public class RangeInputSplitTest {
   public void testAllFieldsWritable() throws IOException {
     RangeInputSplit split = new RangeInputSplit("table", "1", new Range(new Key("a"), new Key("b")), new String[] {"localhost"});
 
-    Set<Pair<Text,Text>> fetchedColumns = new HashSet<Pair<Text,Text>>();
+    Set<Pair<Text,Text>> fetchedColumns = new HashSet<>();
 
-    fetchedColumns.add(new Pair<Text,Text>(new Text("colf1"), new Text("colq1")));
-    fetchedColumns.add(new Pair<Text,Text>(new Text("colf2"), new Text("colq2")));
+    fetchedColumns.add(new Pair<>(new Text("colf1"), new Text("colq1")));
+    fetchedColumns.add(new Pair<>(new Text("colf2"), new Text("colq2")));
 
     // Fake some iterators
-    ArrayList<IteratorSetting> iterators = new ArrayList<IteratorSetting>();
+    ArrayList<IteratorSetting> iterators = new ArrayList<>();
     IteratorSetting setting = new IteratorSetting(50, SummingCombiner.class);
     setting.addOption("foo", "bar");
     iterators.add(setting);

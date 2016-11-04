@@ -38,7 +38,7 @@ import com.google.common.base.Predicate;
 public class NamespaceConfiguration extends ObservableConfiguration {
   private static final Logger log = LoggerFactory.getLogger(NamespaceConfiguration.class);
 
-  private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<PropCacheKey,ZooCache>();
+  private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<>();
 
   private final AccumuloConfiguration parent;
   private ZooCachePropertyAccessor propCacheAccessor = null;

@@ -49,7 +49,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacIT {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    Map<String,String> siteConfig = new HashMap<String,String>();
+    Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     siteConfig.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "10");
     cfg.setSiteConfig(siteConfig);
@@ -64,7 +64,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacIT {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 1000; i++) {
       splits.add(new Text(String.format("%03d", i)));
     }

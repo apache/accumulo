@@ -121,7 +121,7 @@ public class HalfDeadTServerIT extends ConfigurableMacIT {
     String classpath = System.getProperty("java.class.path");
     classpath = new File(cluster.getConfig().getDir(), "conf") + File.pathSeparator + classpath;
     String className = TabletServer.class.getName();
-    ArrayList<String> argList = new ArrayList<String>();
+    ArrayList<String> argList = new ArrayList<>();
     argList.addAll(Arrays.asList(javaBin, "-cp", classpath));
     argList.addAll(Arrays.asList(Main.class.getName(), className));
     ProcessBuilder builder = new ProcessBuilder(argList);

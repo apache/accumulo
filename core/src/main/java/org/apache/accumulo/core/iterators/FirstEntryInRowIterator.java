@@ -132,7 +132,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   public IteratorOptions describeOptions() {
     String name = "firstEntry";
     String desc = "Only allows iteration over the first entry per row";
-    HashMap<String,String> namedOptions = new HashMap<String,String>();
+    HashMap<String,String> namedOptions = new HashMap<>();
     namedOptions.put(NUM_SCANS_STRING_NAME, "Number of scans to try before seeking [10]");
     return new IteratorOptions(name, desc, namedOptions, null);
   }

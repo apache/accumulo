@@ -95,7 +95,7 @@ public class TestProxyClient {
 
     TestProxyClient tpc = new TestProxyClient("localhost", 42424);
     String principal = "root";
-    Map<String,String> props = new TreeMap<String,String>();
+    Map<String,String> props = new TreeMap<>();
     props.put("password", "secret");
 
     System.out.println("Logging in");
@@ -126,7 +126,7 @@ public class TestProxyClient {
     Date then = new Date();
     int maxInserts = 1000000;
     String format = "%1$05d";
-    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<>();
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
       ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes(UTF_8)), ByteBuffer.wrap(("cq" + i).getBytes(UTF_8)));

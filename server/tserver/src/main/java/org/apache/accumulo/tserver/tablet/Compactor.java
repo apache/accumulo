@@ -128,7 +128,7 @@ public class Compactor implements Callable<CompactionStats> {
   protected static final Set<Compactor> runningCompactions = Collections.synchronizedSet(new HashSet<Compactor>());
 
   public static List<CompactionInfo> getRunningCompactions() {
-    ArrayList<CompactionInfo> compactions = new ArrayList<CompactionInfo>();
+    ArrayList<CompactionInfo> compactions = new ArrayList<>();
 
     synchronized (runningCompactions) {
       for (Compactor compactor : runningCompactions) {
@@ -203,7 +203,7 @@ public class Compactor implements Callable<CompactionStats> {
 
       long t1 = System.currentTimeMillis();
 
-      HashSet<ByteSequence> allColumnFamilies = new HashSet<ByteSequence>();
+      HashSet<ByteSequence> allColumnFamilies = new HashSet<>();
 
       if (mfw.supportsLocalityGroups()) {
         for (Entry<String,Set<ByteSequence>> entry : lGroups.entrySet()) {
@@ -270,7 +270,7 @@ public class Compactor implements Callable<CompactionStats> {
 
   private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(String lgName, ArrayList<FileSKVIterator> readers) throws IOException {
 
-    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(filesToCompact.size());
+    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
 
     for (FileRef mapFile : filesToCompact.keySet()) {
       try {
@@ -318,7 +318,7 @@ public class Compactor implements Callable<CompactionStats> {
 
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies, boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
       throws IOException, CompactionCanceledException {
-    ArrayList<FileSKVIterator> readers = new ArrayList<FileSKVIterator>(filesToCompact.size());
+    ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span span = Trace.start("compact");
     try {
       long entriesCompacted = 0;

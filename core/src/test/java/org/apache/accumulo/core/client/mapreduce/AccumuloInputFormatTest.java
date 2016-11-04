@@ -327,7 +327,7 @@ public class AccumuloInputFormatTest {
     String username = "user", table = "table", instance = "mapreduce_testCorrectRangeInputSplits";
     PasswordToken password = new PasswordToken("password");
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns = Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -417,12 +417,12 @@ public class AccumuloInputFormatTest {
   @Test
   public void testEmptyColumnFamily() throws IOException {
     Job job = Job.getInstance();
-    Set<Pair<Text,Text>> cols = new HashSet<Pair<Text,Text>>();
+    Set<Pair<Text,Text>> cols = new HashSet<>();
     cols.add(new Pair<Text,Text>(new Text(""), null));
-    cols.add(new Pair<Text,Text>(new Text("foo"), new Text("bar")));
-    cols.add(new Pair<Text,Text>(new Text(""), new Text("bar")));
-    cols.add(new Pair<Text,Text>(new Text(""), new Text("")));
-    cols.add(new Pair<Text,Text>(new Text("foo"), new Text("")));
+    cols.add(new Pair<>(new Text("foo"), new Text("bar")));
+    cols.add(new Pair<>(new Text(""), new Text("bar")));
+    cols.add(new Pair<>(new Text(""), new Text("")));
+    cols.add(new Pair<>(new Text("foo"), new Text("")));
     AccumuloInputFormat.fetchColumns(job, cols);
     Set<Pair<Text,Text>> setCols = AccumuloInputFormat.getFetchedColumns(job);
     assertEquals(cols, setCols);

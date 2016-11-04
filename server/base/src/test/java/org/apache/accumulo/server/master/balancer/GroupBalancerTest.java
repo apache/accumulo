@@ -84,7 +84,7 @@ public class GroupBalancerTest {
 
             @Override
             public Pair<KeyExtent,Location> apply(final Entry<KeyExtent,TServerInstance> input) {
-              return new Pair<KeyExtent,Location>(input.getKey(), new Location(input.getValue()));
+              return new Pair<>(input.getKey(), new Location(input.getValue()));
             }
           });
 

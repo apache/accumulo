@@ -78,7 +78,7 @@ public class AccumuloRowInputFormat extends InputFormatBase<Text,PeekingIterator
 
       @Override
       public PeekingIterator<Entry<Key,Value>> createValue() {
-        return new PeekingIterator<Entry<Key,Value>>();
+        return new PeekingIterator<>();
       }
     };
     recordReader.initialize(split, job);

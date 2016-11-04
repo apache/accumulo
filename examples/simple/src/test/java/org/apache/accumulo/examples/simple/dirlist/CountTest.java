@@ -82,11 +82,11 @@ public class CountTest extends TestCase {
     FileCount fc = new FileCount(opts, scanOpts, bwOpts);
     fc.run();
 
-    ArrayList<Pair<String,String>> expected = new ArrayList<Pair<String,String>>();
-    expected.add(new Pair<String,String>(QueryUtil.getRow("").toString(), "1,0,3,3"));
-    expected.add(new Pair<String,String>(QueryUtil.getRow("/local").toString(), "2,1,2,3"));
-    expected.add(new Pair<String,String>(QueryUtil.getRow("/local/user1").toString(), "0,2,0,2"));
-    expected.add(new Pair<String,String>(QueryUtil.getRow("/local/user2").toString(), "0,0,0,0"));
+    ArrayList<Pair<String,String>> expected = new ArrayList<>();
+    expected.add(new Pair<>(QueryUtil.getRow("").toString(), "1,0,3,3"));
+    expected.add(new Pair<>(QueryUtil.getRow("/local").toString(), "2,1,2,3"));
+    expected.add(new Pair<>(QueryUtil.getRow("/local/user1").toString(), "0,2,0,2"));
+    expected.add(new Pair<>(QueryUtil.getRow("/local/user2").toString(), "0,0,0,0"));
 
     int i = 0;
     for (Entry<Key,Value> e : scanner) {

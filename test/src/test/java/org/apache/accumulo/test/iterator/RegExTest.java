@@ -50,7 +50,7 @@ public class RegExTest {
     conn.tableOperations().create("ret");
     BatchWriter bw = conn.createBatchWriter("ret", new BatchWriterConfig());
 
-    ArrayList<Character> chars = new ArrayList<Character>();
+    ArrayList<Character> chars = new ArrayList<>();
     for (char c = 'a'; c <= 'z'; c++)
       chars.add(c);
 

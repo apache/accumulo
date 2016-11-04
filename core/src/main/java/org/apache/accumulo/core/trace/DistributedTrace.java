@@ -52,7 +52,7 @@ public class DistributedTrace {
   public static final String TRACER_ZK_TIMEOUT = "tracer.zookeeper.timeout";
   public static final String TRACER_ZK_PATH = "tracer.zookeeper.path";
 
-  private static final HashSet<SpanReceiver> receivers = new HashSet<SpanReceiver>();
+  private static final HashSet<SpanReceiver> receivers = new HashSet<>();
 
   /**
    * @deprecated since 1.7, use {@link DistributedTrace#enable(String, String, org.apache.accumulo.core.client.ClientConfiguration)} instead

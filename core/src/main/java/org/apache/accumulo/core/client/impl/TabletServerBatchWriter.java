@@ -151,8 +151,8 @@ public class TabletServerBatchWriter {
 
   // error handling
   private final Violations violations = new Violations();
-  private final Map<KeyExtent,Set<SecurityErrorCode>> authorizationFailures = new HashMap<KeyExtent,Set<SecurityErrorCode>>();
-  private final HashSet<String> serverSideErrors = new HashSet<String>();
+  private final Map<KeyExtent,Set<SecurityErrorCode>> authorizationFailures = new HashMap<>();
+  private final HashSet<String> serverSideErrors = new HashSet<>();
   private final FailedMutations failedMutations = new FailedMutations();
   private int unknownErrors = 0;
   private boolean somethingFailed = false;
@@ -504,7 +504,7 @@ public class TabletServerBatchWriter {
   }
 
   private void updateAuthorizationFailures(Set<KeyExtent> keySet, SecurityErrorCode code) {
-    HashMap<KeyExtent,SecurityErrorCode> map = new HashMap<KeyExtent,SecurityErrorCode>();
+    HashMap<KeyExtent,SecurityErrorCode> map = new HashMap<>();
     for (KeyExtent ke : keySet)
       map.put(ke, code);
 
@@ -515,7 +515,7 @@ public class TabletServerBatchWriter {
     if (authorizationFailures.size() > 0) {
 
       // was a table deleted?
-      HashSet<String> tableIds = new HashSet<String>();
+      HashSet<String> tableIds = new HashSet<>();
       for (KeyExtent ke : authorizationFailures.keySet())
         tableIds.add(ke.getTableId().toString());
 
@@ -536,7 +536,7 @@ public class TabletServerBatchWriter {
     for (Entry<KeyExtent,SecurityErrorCode> entry : addition.entrySet()) {
       Set<SecurityErrorCode> secs = source.get(entry.getKey());
       if (secs == null) {
-        secs = new HashSet<SecurityErrorCode>();
+        secs = new HashSet<>();
         source.put(entry.getKey(), secs);
       }
       secs.add(entry.getValue());
@@ -564,9 +564,9 @@ public class TabletServerBatchWriter {
   private void checkForFailures() throws MutationsRejectedException {
     if (somethingFailed) {
       List<ConstraintViolationSummary> cvsList = violations.asList();
-      HashMap<TabletId,Set<org.apache.accumulo.core.client.security.SecurityErrorCode>> af = new HashMap<TabletId,Set<org.apache.accumulo.core.client.security.SecurityErrorCode>>();
+      HashMap<TabletId,Set<org.apache.accumulo.core.client.security.SecurityErrorCode>> af = new HashMap<>();
       for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : authorizationFailures.entrySet()) {
-        HashSet<org.apache.accumulo.core.client.security.SecurityErrorCode> codes = new HashSet<org.apache.accumulo.core.client.security.SecurityErrorCode>();
+        HashSet<org.apache.accumulo.core.client.security.SecurityErrorCode> codes = new HashSet<>();
 
         for (SecurityErrorCode sce : entry.getValue()) {
           codes.add(org.apache.accumulo.core.client.security.SecurityErrorCode.valueOf(sce.name()));
@@ -664,10 +664,10 @@ public class TabletServerBatchWriter {
     private final Map<String,TabletLocator> locators;
 
     public MutationWriter(int numSendThreads) {
-      serversMutations = new HashMap<String,TabletServerMutations<Mutation>>();
-      queued = new HashSet<String>();
+      serversMutations = new HashMap<>();
+      queued = new HashSet<>();
       sendThreadPool = new SimpleThreadPool(numSendThreads, this.getClass().getName());
-      locators = new HashMap<String,TabletLocator>();
+      locators = new HashMap<>();
       binningThreadPool = new SimpleThreadPool(1, "BinMutations", new SynchronousQueue<Runnable>());
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
@@ -695,7 +695,7 @@ public class TabletServerBatchWriter {
           List<Mutation> tableMutations = entry.getValue();
 
           if (tableMutations != null) {
-            ArrayList<Mutation> tableFailures = new ArrayList<Mutation>();
+            ArrayList<Mutation> tableFailures = new ArrayList<>();
             locator.binMutations(context, tableMutations, binnedMutations, tableFailures);
 
             if (tableFailures.size() > 0) {
@@ -752,7 +752,7 @@ public class TabletServerBatchWriter {
     }
 
     private void addMutations(MutationSet mutationsToSend) {
-      Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<String,TabletServerMutations<Mutation>>();
+      Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
       Span span = Trace.start("binMutations");
       try {
         long t1 = System.currentTimeMillis();
@@ -795,7 +795,7 @@ public class TabletServerBatchWriter {
         log.trace(String.format("Started sending %,d mutations to %,d tablet servers", count, binnedMutations.keySet().size()));
 
       // randomize order of servers
-      ArrayList<String> servers = new ArrayList<String>(binnedMutations.keySet());
+      ArrayList<String> servers = new ArrayList<>(binnedMutations.keySet());
       Collections.shuffle(servers);
 
       for (String server : servers)
@@ -848,7 +848,7 @@ public class TabletServerBatchWriter {
 
           long count = 0;
 
-          Set<Text> tableIds = new TreeSet<Text>();
+          Set<Text> tableIds = new TreeSet<>();
           for (Map.Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {
             count += entry.getValue().size();
             tableIds.add(entry.getKey().getTableId());
@@ -896,7 +896,7 @@ public class TabletServerBatchWriter {
           if (log.isTraceEnabled())
             log.trace("failed to send mutations to {} : {}", location, e.getMessage());
 
-          HashSet<String> tables = new HashSet<String>();
+          HashSet<String> tables = new HashSet<>();
           for (KeyExtent ke : mutationBatch.keySet())
             tables.add(ke.getTableId().toString());
 
@@ -947,7 +947,7 @@ public class TabletServerBatchWriter {
 
             long usid = client.startUpdate(tinfo, context.rpcCreds(), DurabilityImpl.toThrift(durability));
 
-            List<TMutation> updates = new ArrayList<TMutation>();
+            List<TMutation> updates = new ArrayList<>();
             for (Entry<KeyExtent,List<Mutation>> entry : tabMuts.entrySet()) {
               long size = 0;
               Iterator<Mutation> iter = entry.getValue().iterator();
@@ -1022,13 +1022,13 @@ public class TabletServerBatchWriter {
     private int memoryUsed = 0;
 
     MutationSet() {
-      mutations = new HashMap<String,List<Mutation>>();
+      mutations = new HashMap<>();
     }
 
     void addMutation(String table, Mutation mutation) {
       List<Mutation> tabMutList = mutations.get(table);
       if (tabMutList == null) {
-        tabMutList = new ArrayList<Mutation>();
+        tabMutList = new ArrayList<>();
         mutations.put(table, tabMutList);
       }
 

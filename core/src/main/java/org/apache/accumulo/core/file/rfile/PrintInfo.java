@@ -55,7 +55,7 @@ public class PrintInfo implements KeywordExecutable {
     @Parameter(names = {"--histogram"}, description = "print a histogram of the key-value sizes")
     boolean histogram = false;
     @Parameter(description = " <file> { <file> ... }")
-    List<String> files = new ArrayList<String>();
+    List<String> files = new ArrayList<>();
     @Parameter(names = {"-c", "--config"}, variableArity = true, description = "Comma-separated Hadoop configuration files")
     List<String> configFiles = new ArrayList<>();
   }

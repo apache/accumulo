@@ -106,7 +106,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     s.setRange(r);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
 
-    Set<String> wals = new HashSet<String>();
+    Set<String> wals = new HashSet<>();
     for (Entry<Key,Value> entry : s) {
       log.debug("Reading WALs: {}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
       // hostname:port/uri://path/to/wal
@@ -135,7 +135,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     s.setRange(r);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-    Set<String> rfiles = new HashSet<String>();
+    Set<String> rfiles = new HashSet<>();
     for (Entry<Key,Value> entry : s) {
       log.debug("Reading RFiles: {}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
       // uri://path/to/wal
@@ -162,7 +162,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacI
     s.setRange(r);
     s.fetchColumn(MetadataSchema.ReplicationSection.COLF, new Text(tableId));
 
-    Map<String,Status> fileToStatus = new HashMap<String,Status>();
+    Map<String,Status> fileToStatus = new HashMap<>();
     for (Entry<Key,Value> entry : s) {
       Text file = new Text();
       MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);

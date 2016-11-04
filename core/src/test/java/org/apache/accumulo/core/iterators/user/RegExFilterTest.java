@@ -50,7 +50,7 @@ import org.junit.Test;
 
 public class RegExFilterTest extends TestCase {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   private Key nkv(TreeMap<Key,Value> tm, String row, String cf, String cq, String val) {
     Key k = nk(row, cf, cq);
@@ -63,7 +63,7 @@ public class RegExFilterTest extends TestCase {
   }
 
   public void test1() throws IOException {
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     Key k1 = nkv(tm, "boo1", "yup", "20080201", "dog");
     Key k2 = nkv(tm, "boo1", "yap", "20080202", "cat");

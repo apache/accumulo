@@ -193,7 +193,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   public static class MemoryRowBuffer implements RowBuffer {
 
-    private ArrayList<Entry<Key,Value>> buffer = new ArrayList<Entry<Key,Value>>();
+    private ArrayList<Entry<Key,Value>> buffer = new ArrayList<>();
 
     @Override
     public void add(Entry<Key,Value> entry) {

@@ -33,7 +33,7 @@ public class CreateTable extends Test {
   private final TreeSet<Text> splits;
 
   public CreateTable() {
-    splits = new TreeSet<Text>();
+    splits = new TreeSet<>();
     for (int i = 1; i < 10; i++) {
       splits.add(new Text(Integer.toString(i)));
     }

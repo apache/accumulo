@@ -218,9 +218,9 @@ public class MockTableOperationsTest {
     fs.mkdirs(tempFile.getParent());
     FileSKVWriter writer = FileOperations.getInstance().openWriter(tempFile.toString(), fs, defaultConf, AccumuloConfiguration.getDefaultConfiguration());
     writer.startDefaultLocalityGroup();
-    List<Pair<Key,Value>> keyVals = new ArrayList<Pair<Key,Value>>();
+    List<Pair<Key,Value>> keyVals = new ArrayList<>();
     for (int i = 0; i < 5; i++) {
-      keyVals.add(new Pair<Key,Value>(new Key("a" + i, "b" + i, "c" + i, new ColumnVisibility(""), 1000l + i), new Value(Integer.toString(i).getBytes())));
+      keyVals.add(new Pair<>(new Key("a" + i, "b" + i, "c" + i, new ColumnVisibility(""), 1000l + i), new Value(Integer.toString(i).getBytes())));
     }
     for (Pair<Key,Value> keyVal : keyVals) {
       writer.append(keyVal.getFirst(), keyVal.getSecond());

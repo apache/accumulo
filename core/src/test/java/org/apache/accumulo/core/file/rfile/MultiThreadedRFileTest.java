@@ -60,7 +60,7 @@ import static org.junit.Assert.assertTrue;
 public class MultiThreadedRFileTest {
 
   private static final Logger LOG = Logger.getLogger(MultiThreadedRFileTest.class);
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
@@ -193,8 +193,8 @@ public class MultiThreadedRFileTest {
   @Test
   public void testMultipleReaders() throws IOException {
     final List<Throwable> threadExceptions = Collections.synchronizedList(new ArrayList<Throwable>());
-    Map<String,MutableInt> messages = new HashMap<String,MutableInt>();
-    Map<String,String> stackTrace = new HashMap<String,String>();
+    Map<String,MutableInt> messages = new HashMap<>();
+    Map<String,String> stackTrace = new HashMap<>();
 
     final TestRFile trfBase = new TestRFile(conf);
 

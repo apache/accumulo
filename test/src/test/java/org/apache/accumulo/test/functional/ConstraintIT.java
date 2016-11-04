@@ -291,7 +291,7 @@ public class ConstraintIT extends AccumuloClusterIT {
         throw new Exception("Unexpected constraints");
       }
 
-      HashMap<String,Integer> expected = new HashMap<String,Integer>();
+      HashMap<String,Integer> expected = new HashMap<>();
 
       expected.put("org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", numericErrors);
       expected.put("org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint", 1);

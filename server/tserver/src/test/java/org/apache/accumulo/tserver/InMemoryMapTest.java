@@ -101,7 +101,7 @@ public class InMemoryMapTest {
   }
 
   static Set<ByteSequence> newCFSet(String... cfs) {
-    HashSet<ByteSequence> cfSet = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> cfSet = new HashSet<>();
     for (String cf : cfs) {
       cfSet.add(new ArrayByteSequence(cf));
     }
@@ -353,7 +353,7 @@ public class InMemoryMapTest {
 
     imm.delete(0);
 
-    ArrayList<ByteSequence> columns = new ArrayList<ByteSequence>();
+    ArrayList<ByteSequence> columns = new ArrayList<>();
     columns.add(new ArrayByteSequence("bar"));
 
     // this seek resulted in an infinite loop before a bug was fixed
@@ -411,7 +411,7 @@ public class InMemoryMapTest {
   @Test
   @Ignore
   public void parallelWriteSpeed() throws InterruptedException, IOException {
-    List<Double> timings = new ArrayList<Double>();
+    List<Double> timings = new ArrayList<>();
     for (int threads : new int[] {1, 2, 16, /* 64, 256 */}) {
       final long now = System.currentTimeMillis();
       final long counts[] = new long[threads];
@@ -452,7 +452,7 @@ public class InMemoryMapTest {
   @Test
   public void testLocalityGroups() throws Exception {
 
-    Map<String,Set<ByteSequence>> lggroups1 = new HashMap<String,Set<ByteSequence>>();
+    Map<String,Set<ByteSequence>> lggroups1 = new HashMap<>();
     lggroups1.put("lg1", newCFSet("cf1", "cf2"));
     lggroups1.put("lg2", newCFSet("cf3", "cf4"));
 

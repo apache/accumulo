@@ -40,8 +40,8 @@ import org.slf4j.LoggerFactory;
 public class UGIAssumingProcessor implements TProcessor {
   private static final Logger log = LoggerFactory.getLogger(UGIAssumingProcessor.class);
 
-  public static final ThreadLocal<String> rpcPrincipal = new ThreadLocal<String>();
-  public static final ThreadLocal<SaslMechanism> rpcMechanism = new ThreadLocal<SaslMechanism>();
+  public static final ThreadLocal<String> rpcPrincipal = new ThreadLocal<>();
+  public static final ThreadLocal<SaslMechanism> rpcMechanism = new ThreadLocal<>();
 
   private final TProcessor wrapped;
   private final UserGroupInformation loginUser;

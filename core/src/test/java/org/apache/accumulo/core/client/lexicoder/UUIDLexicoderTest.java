@@ -28,7 +28,7 @@ public class UUIDLexicoderTest extends AbstractLexicoderTest {
     assertSortOrder(new UUIDLexicoder(),
         Arrays.asList(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()));
 
-    ArrayList<UUID> uuids = new ArrayList<UUID>();
+    ArrayList<UUID> uuids = new ArrayList<>();
 
     for (long ms = -260l; ms < 260l; ms++) {
       for (long ls = -2l; ls < 2; ls++) {

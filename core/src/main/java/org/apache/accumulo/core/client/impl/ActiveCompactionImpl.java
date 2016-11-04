@@ -103,7 +103,7 @@ public class ActiveCompactionImpl extends ActiveCompaction {
 
   @Override
   public List<IteratorSetting> getIterators() {
-    ArrayList<IteratorSetting> ret = new ArrayList<IteratorSetting>();
+    ArrayList<IteratorSetting> ret = new ArrayList<>();
 
     for (IterInfo ii : tac.getSsiList()) {
       IteratorSetting settings = new IteratorSetting(ii.getPriority(), ii.getIterName(), ii.getClassName());

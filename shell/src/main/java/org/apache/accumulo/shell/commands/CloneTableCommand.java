@@ -42,8 +42,8 @@ public class CloneTableCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, TableExistsException {
 
-    final HashMap<String,String> props = new HashMap<String,String>();
-    final HashSet<String> exclude = new HashSet<String>();
+    final HashMap<String,String> props = new HashMap<>();
+    final HashSet<String> exclude = new HashSet<>();
     boolean flush = true;
 
     if (cl.hasOption(setPropsOption.getOpt())) {

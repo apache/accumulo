@@ -166,7 +166,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void testPathsToStrings() {
-    ArrayList<Path> paths = new ArrayList<Path>();
+    ArrayList<Path> paths = new ArrayList<>();
     paths.add(new Path(DIR_1_PATH, "file1"));
     paths.add(DIR_2_PATH);
     paths.add(new Path(DIR_3_PATH, "file3"));
@@ -188,7 +188,7 @@ public class GarbageCollectWriteAheadLogsTest {
      * /dir3/server3/uuid3 -> server3 (new-style)
      */
     // @formatter:on
-    Map<Path,String> fileToServerMap = new java.util.HashMap<Path,String>();
+    Map<Path,String> fileToServerMap = new java.util.HashMap<>();
     Path path1 = new Path(new Path(DIR_1_PATH, "server1"), UUID1);
     fileToServerMap.put(path1, "server1"); // new-style
     Path path2 = new Path(DIR_1_PATH, UUID2);
@@ -202,7 +202,7 @@ public class GarbageCollectWriteAheadLogsTest {
      * uuid3 -> /dir3/server3/uuid3
      */
     // @formatter:on
-    Map<String,Path> nameToFileMap = new java.util.HashMap<String,Path>();
+    Map<String,Path> nameToFileMap = new java.util.HashMap<>();
     nameToFileMap.put(UUID1, path1);
     nameToFileMap.put(UUID3, path3);
 
@@ -268,8 +268,8 @@ public class GarbageCollectWriteAheadLogsTest {
     mockListStatus(serverDir3Path, file3);
     replay(volMgr);
 
-    Map<Path,String> fileToServerMap = new java.util.HashMap<Path,String>();
-    Map<String,Path> nameToFileMap = new java.util.HashMap<String,Path>();
+    Map<Path,String> fileToServerMap = new java.util.HashMap<>();
+    Map<String,Path> nameToFileMap = new java.util.HashMap<>();
     int count = gcwal.scanServers(walDirs, fileToServerMap, nameToFileMap);
     assertEquals(3, count);
     // @formatter:off
@@ -314,8 +314,8 @@ public class GarbageCollectWriteAheadLogsTest {
     mockListStatus(DIR_3_PATH, serverFile3);
     replay(volMgr);
 
-    Map<Path,String> fileToServerMap = new java.util.HashMap<Path,String>();
-    Map<String,Path> nameToFileMap = new java.util.HashMap<String,Path>();
+    Map<Path,String> fileToServerMap = new java.util.HashMap<>();
+    Map<String,Path> nameToFileMap = new java.util.HashMap<>();
     int count = gcwal.scanServers(walDirs, fileToServerMap, nameToFileMap);
     /*
      * Expect only a single server, the non-server entry for upgrade WALs
@@ -628,7 +628,7 @@ public class GarbageCollectWriteAheadLogsTest {
     private LinkedHashMap<String,List<Object>> mapWrapper;
 
     public MethodCalls() {
-      mapWrapper = new LinkedHashMap<String,List<Object>>();
+      mapWrapper = new LinkedHashMap<>();
     }
 
     public void put(String methodName, Object... args) {
@@ -709,12 +709,12 @@ public class GarbageCollectWriteAheadLogsTest {
   }
 
   private Map<String,Path> getEmptyMap() {
-    return new HashMap<String,Path>();
+    return new HashMap<>();
   }
 
   private Map<String,ArrayList<Path>> getServerToFileMap1(String key, Path singlePath) {
-    Map<String,ArrayList<Path>> serverToFileMap = new HashMap<String,ArrayList<Path>>();
-    serverToFileMap.put(key, new ArrayList<Path>(Arrays.asList(singlePath)));
+    Map<String,ArrayList<Path>> serverToFileMap = new HashMap<>();
+    serverToFileMap.put(key, new ArrayList<>(Arrays.asList(singlePath)));
     return serverToFileMap;
   }
 
@@ -779,8 +779,8 @@ public class GarbageCollectWriteAheadLogsTest {
   public void testRemoveFilesRemovesSortedWALs() throws IOException {
     GCStatus status = new GCStatus();
     GarbageCollectWriteAheadLogs realGCWAL = getGCWALForRemoveFileTest(status, true);
-    Map<String,ArrayList<Path>> serverToFileMap = new HashMap<String,ArrayList<Path>>();
-    Map<String,Path> sortedWALogs = new HashMap<String,Path>();
+    Map<String,ArrayList<Path>> serverToFileMap = new HashMap<>();
+    Map<String,Path> sortedWALogs = new HashMap<>();
     Path p1 = new Path("hdfs://localhost:9000/accumulo/wal/tserver1+9997/" + UUID.randomUUID().toString());
     sortedWALogs.put("junk", p1); // TODO: see if this key is actually used here, maybe can be removed
 
@@ -811,7 +811,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     @Override
     Map<String,Path> getSortedWALogs() {
-      return new HashMap<String,Path>();
+      return new HashMap<>();
     }
 
     @Override

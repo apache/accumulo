@@ -176,7 +176,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static void setRanges(Class<?> implementingClass, Configuration conf, Collection<Range> ranges) {
     checkArgument(ranges != null, "ranges is null");
 
-    ArrayList<String> rangeStrings = new ArrayList<String>(ranges.size());
+    ArrayList<String> rangeStrings = new ArrayList<>(ranges.size());
     try {
       for (Range r : ranges) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -205,7 +205,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static List<Range> getRanges(Class<?> implementingClass, Configuration conf) throws IOException {
 
     Collection<String> encodedRanges = conf.getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
-    List<Range> ranges = new ArrayList<Range>();
+    List<Range> ranges = new ArrayList<>();
     for (String rangeString : encodedRanges) {
       ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes(UTF_8)));
       Range range = new Range();
@@ -231,11 +231,11 @@ public class InputConfigurator extends ConfiguratorBase {
 
     // If no iterators are present, return an empty list
     if (iterators == null || iterators.isEmpty())
-      return new ArrayList<IteratorSetting>();
+      return new ArrayList<>();
 
     // Compose the set of iterators encoded in the job configuration
     StringTokenizer tokens = new StringTokenizer(iterators, StringUtils.COMMA_STR);
-    List<IteratorSetting> list = new ArrayList<IteratorSetting>();
+    List<IteratorSetting> list = new ArrayList<>();
     try {
       while (tokens.hasMoreTokens()) {
         String itstring = tokens.nextToken();
@@ -271,7 +271,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   public static String[] serializeColumns(Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     checkArgument(columnFamilyColumnQualifierPairs != null, "columnFamilyColumnQualifierPairs is null");
-    ArrayList<String> columnStrings = new ArrayList<String>(columnFamilyColumnQualifierPairs.size());
+    ArrayList<String> columnStrings = new ArrayList<>(columnFamilyColumnQualifierPairs.size());
     for (Pair<Text,Text> column : columnFamilyColumnQualifierPairs) {
 
       if (column.getFirst() == null)
@@ -300,7 +300,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static Set<Pair<Text,Text>> getFetchedColumns(Class<?> implementingClass, Configuration conf) {
     checkArgument(conf != null, "conf is null");
     String confValue = conf.get(enumToConfKey(implementingClass, ScanOpts.COLUMNS));
-    List<String> serialized = new ArrayList<String>();
+    List<String> serialized = new ArrayList<>();
     if (confValue != null) {
       // Split and include any trailing empty strings to allow empty column families
       for (String val : confValue.split(",", -1)) {
@@ -311,7 +311,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   public static Set<Pair<Text,Text>> deserializeFetchedColumns(Collection<String> serialized) {
-    Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
+    Set<Pair<Text,Text>> columns = new HashSet<>();
 
     if (null == serialized) {
       return columns;
@@ -321,7 +321,7 @@ public class InputConfigurator extends ConfiguratorBase {
       int idx = col.indexOf(":");
       Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(UTF_8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(UTF_8)));
       Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(UTF_8)));
-      columns.add(new Pair<Text,Text>(cf, cq));
+      columns.add(new Pair<>(cf, cq));
     }
     return columns;
   }
@@ -589,7 +589,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @since 1.6.0
    */
   public static Map<String,InputTableConfig> getInputTableConfigs(Class<?> implementingClass, Configuration conf) {
-    Map<String,InputTableConfig> configs = new HashMap<String,InputTableConfig>();
+    Map<String,InputTableConfig> configs = new HashMap<>();
     Map.Entry<String,InputTableConfig> defaultConfig = getDefaultInputTableConfig(implementingClass, conf);
     if (defaultConfig != null)
       configs.put(defaultConfig.getKey(), defaultConfig.getValue());
@@ -814,7 +814,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   public static Map<String,Map<KeyExtent,List<Range>>> binOffline(String tableId, List<Range> ranges, Instance instance, Connector conn)
       throws AccumuloException, TableNotFoundException {
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
     if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
       Tables.clearCache(instance);
@@ -879,13 +879,13 @@ public class InputConfigurator extends ConfiguratorBase {
 
         Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
         if (tabletRanges == null) {
-          tabletRanges = new HashMap<KeyExtent,List<Range>>();
+          tabletRanges = new HashMap<>();
           binnedRanges.put(last, tabletRanges);
         }
 
         List<Range> rangeList = tabletRanges.get(extent);
         if (rangeList == null) {
-          rangeList = new ArrayList<Range>();
+          rangeList = new ArrayList<>();
           tabletRanges.put(extent, rangeList);
         }
 

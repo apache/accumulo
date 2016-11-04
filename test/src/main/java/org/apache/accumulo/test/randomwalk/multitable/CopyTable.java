@@ -34,7 +34,7 @@ public class CopyTable extends Test {
   private final TreeSet<Text> splits;
 
   public CopyTable() {
-    splits = new TreeSet<Text>();
+    splits = new TreeSet<>();
     for (int i = 1; i < 10; i++) {
       splits.add(new Text(Integer.toString(i)));
     }

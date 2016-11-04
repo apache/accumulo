@@ -68,13 +68,13 @@ public class AccumuloRowInputFormatTest {
   private static AssertionError e2 = null;
 
   static {
-    row1 = new ArrayList<Entry<Key,Value>>();
+    row1 = new ArrayList<>();
     row1.add(new KeyValue(new Key(ROW1, COLF1, "colq1"), "v1".getBytes()));
     row1.add(new KeyValue(new Key(ROW1, COLF1, "colq2"), "v2".getBytes()));
     row1.add(new KeyValue(new Key(ROW1, "colf2", "colq3"), "v3".getBytes()));
-    row2 = new ArrayList<Entry<Key,Value>>();
+    row2 = new ArrayList<>();
     row2.add(new KeyValue(new Key(ROW2, COLF1, "colq4"), "v4".getBytes()));
-    row3 = new ArrayList<Entry<Key,Value>>();
+    row3 = new ArrayList<>();
     row3.add(new KeyValue(new Key(ROW3, COLF1, "colq5"), "v5".getBytes()));
   }
 

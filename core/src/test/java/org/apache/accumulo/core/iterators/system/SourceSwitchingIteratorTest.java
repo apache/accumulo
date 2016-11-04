@@ -60,7 +60,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
     DataSource next;
     SortedKeyValueIterator<Key,Value> iter;
-    List<TestDataSource> copies = new ArrayList<TestDataSource>();
+    List<TestDataSource> copies = new ArrayList<>();
     AtomicBoolean iflag;
 
     TestDataSource(SortedKeyValueIterator<Key,Value> iter) {
@@ -111,7 +111,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
   }
 
   public void test1() throws Exception {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq3", 5, "v2");
     put(tm1, "r2", "cf1", "cq1", 5, "v3");
@@ -128,7 +128,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
   }
 
   public void test2() throws Exception {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq3", 5, "v2");
     put(tm1, "r2", "cf1", "cq1", 5, "v3");
@@ -140,7 +140,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
     ane(ssi, "r1", "cf1", "cq1", 5, "v1", true);
 
-    TreeMap<Key,Value> tm2 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm2 = new TreeMap<>();
     put(tm2, "r1", "cf1", "cq1", 5, "v4");
     put(tm2, "r1", "cf1", "cq3", 5, "v5");
     put(tm2, "r2", "cf1", "cq1", 5, "v6");
@@ -157,7 +157,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
   public void test3() throws Exception {
     // test switching after a row
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq2", 5, "v2");
     put(tm1, "r1", "cf1", "cq3", 5, "v3");
@@ -172,7 +172,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
     ane(ssi, "r1", "cf1", "cq1", 5, "v1", true);
 
-    TreeMap<Key,Value> tm2 = new TreeMap<Key,Value>(tm1);
+    TreeMap<Key,Value> tm2 = new TreeMap<>(tm1);
     put(tm2, "r1", "cf1", "cq5", 5, "v7"); // should not see this because it should not switch until the row is finished
     put(tm2, "r2", "cf1", "cq1", 5, "v8"); // should see this new row after it switches
 
@@ -192,7 +192,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
   public void test4() throws Exception {
     // ensure switch is done on initial seek
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq2", 5, "v2");
 
@@ -200,7 +200,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     TestDataSource tds = new TestDataSource(smi);
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds, false);
 
-    TreeMap<Key,Value> tm2 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm2 = new TreeMap<>();
     put(tm2, "r1", "cf1", "cq1", 6, "v3");
     put(tm2, "r1", "cf1", "cq2", 6, "v4");
 
@@ -217,7 +217,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
   public void test5() throws Exception {
     // esnure switchNow() works w/ deepCopy()
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq2", 5, "v2");
 
@@ -227,7 +227,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
     SortedKeyValueIterator<Key,Value> dc1 = ssi.deepCopy(null);
 
-    TreeMap<Key,Value> tm2 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm2 = new TreeMap<>();
     put(tm2, "r1", "cf1", "cq1", 6, "v3");
     put(tm2, "r2", "cf1", "cq2", 6, "v4");
 
@@ -248,7 +248,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
   public void testSetInterrupt() throws Exception {
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
 
     SortedMapIterator smi = new SortedMapIterator(tm1);

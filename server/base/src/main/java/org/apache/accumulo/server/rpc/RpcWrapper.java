@@ -106,7 +106,7 @@ public class RpcWrapper {
     isOnewayMethod.setAccessible(true);
 
     try {
-      final Set<String> onewayMethods = new HashSet<String>();
+      final Set<String> onewayMethods = new HashSet<>();
       for (Entry<String,?> entry : processorView.entrySet()) {
         try {
           if ((Boolean) isOnewayMethod.invoke(entry.getValue())) {

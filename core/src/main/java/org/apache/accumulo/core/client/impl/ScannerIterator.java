@@ -112,7 +112,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
     this.options = new ScannerOptions(options);
 
-    synchQ = new ArrayBlockingQueue<Object>(1);
+    synchQ = new ArrayBlockingQueue<>(1);
 
     if (this.options.fetchedColumns.size() > 0) {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());

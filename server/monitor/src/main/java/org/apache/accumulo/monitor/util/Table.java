@@ -43,8 +43,8 @@ public class Table {
     this.caption = caption;
     this.captionclass = captionClass;
     this.subcaption = null;
-    this.columns = new ArrayList<TableColumn<?>>();
-    this.rows = new ArrayList<TableRow>();
+    this.columns = new ArrayList<>();
+    this.rows = new ArrayList<>();
   }
 
   public synchronized void setSubCaption(String subcaption) {
@@ -59,9 +59,9 @@ public class Table {
 
   private synchronized <T> void addColumn(String title, CellType<T> type, String legend, boolean sortable) {
     if (type == null)
-      type = new StringType<T>();
+      type = new StringType<>();
     type.setSortable(sortable);
-    addColumn(new TableColumn<T>(title, type, legend));
+    addColumn(new TableColumn<>(title, type, legend));
   }
 
   public synchronized <T> void addUnsortableColumn(String title, CellType<T> type, String legend) {

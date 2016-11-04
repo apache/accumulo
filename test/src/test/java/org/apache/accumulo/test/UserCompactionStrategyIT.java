@@ -133,7 +133,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterIT {
         System.getProperty("user.dir") + "/src/test/resources/TestCompactionStrat.jar");
     c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
 
-    c.tableOperations().addSplits(tableName, new TreeSet<Text>(Arrays.asList(new Text("efg"))));
+    c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
 
     writeFlush(c, tableName, "a");
     writeFlush(c, tableName, "b");
@@ -276,7 +276,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterIT {
   }
 
   private Set<String> getRows(Connector c, String tableName) throws TableNotFoundException {
-    Set<String> rows = new HashSet<String>();
+    Set<String> rows = new HashSet<>();
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
 
     for (Entry<Key,Value> entry : scanner)

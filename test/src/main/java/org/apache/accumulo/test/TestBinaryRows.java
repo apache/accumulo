@@ -185,7 +185,7 @@ public class TestBinaryRows {
       System.out.printf("rate    : %9.2f lookups/sec%n", numLookups / ((t2 - t1) / 1000.0));
 
     } else if (opts.mode.equals("split")) {
-      TreeSet<Text> splits = new TreeSet<Text>();
+      TreeSet<Text> splits = new TreeSet<>();
       int shift = (int) opts.start;
       int count = (int) opts.num;
 

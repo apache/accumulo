@@ -89,17 +89,17 @@ public class ExportIndex extends Test {
     fs.delete(new Path(exportDir), true);
     fs.delete(new Path(copyDir), true);
 
-    HashSet<Text> splits1 = new HashSet<Text>(env.getConnector().tableOperations().listSplits(indexTableName));
-    HashSet<Text> splits2 = new HashSet<Text>(env.getConnector().tableOperations().listSplits(tmpIndexTableName));
+    HashSet<Text> splits1 = new HashSet<>(env.getConnector().tableOperations().listSplits(indexTableName));
+    HashSet<Text> splits2 = new HashSet<>(env.getConnector().tableOperations().listSplits(tmpIndexTableName));
 
     if (!splits1.equals(splits2))
       throw new Exception("Splits not equals " + indexTableName + " " + tmpIndexTableName);
 
-    HashMap<String,String> props1 = new HashMap<String,String>();
+    HashMap<String,String> props1 = new HashMap<>();
     for (Entry<String,String> entry : env.getConnector().tableOperations().getProperties(indexTableName))
       props1.put(entry.getKey(), entry.getValue());
 
-    HashMap<String,String> props2 = new HashMap<String,String>();
+    HashMap<String,String> props2 = new HashMap<>();
     for (Entry<String,String> entry : env.getConnector().tableOperations().getProperties(tmpIndexTableName))
       props2.put(entry.getKey(), entry.getValue());
 

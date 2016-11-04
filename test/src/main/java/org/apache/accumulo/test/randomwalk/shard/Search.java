@@ -57,7 +57,7 @@ public class Search extends Test {
     if (numSearchTerms < 2)
       numSearchTerms = 2;
 
-    HashSet<String> searchTerms = new HashSet<String>();
+    HashSet<String> searchTerms = new HashSet<>();
     while (searchTerms.size() < numSearchTerms)
       searchTerms.add(tokens[rand.nextInt(tokens.length)]);
 

@@ -55,7 +55,7 @@ public class AlphaNumKeyConstraint implements Constraint {
 
   private Set<Short> addViolation(Set<Short> violations, short violation) {
     if (violations == null) {
-      violations = new LinkedHashSet<Short>();
+      violations = new LinkedHashSet<>();
       violations.add(violation);
     } else if (!violations.contains(violation)) {
       violations.add(violation);

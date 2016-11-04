@@ -201,7 +201,7 @@ public class ValueTest {
   @Test
   @Deprecated
   public void testToArray() {
-    List<byte[]> l = new java.util.ArrayList<byte[]>();
+    List<byte[]> l = new java.util.ArrayList<>();
     byte[] one = toBytes("one");
     byte[] two = toBytes("two");
     byte[] three = toBytes("three");

@@ -53,7 +53,7 @@ import org.junit.Test;
 
 public class BulkImporterTest {
 
-  static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<KeyExtent>();
+  static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<>();
   static final Text tableId = new Text("1");
   static {
     fakeMetaData.add(new KeyExtent(tableId, new Text("a"), null));

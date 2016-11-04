@@ -161,9 +161,9 @@ public class ZooUtil {
   private static final RetryFactory RETRY_FACTORY;
 
   static {
-    PRIVATE = new ArrayList<ACL>();
+    PRIVATE = new ArrayList<>();
     PRIVATE.addAll(Ids.CREATOR_ALL_ACL);
-    PUBLIC = new ArrayList<ACL>();
+    PUBLIC = new ArrayList<>();
     PUBLIC.addAll(PRIVATE);
     PUBLIC.add(new ACL(Perms.READ, Ids.ANYONE_ID_UNSAFE));
     RETRY_FACTORY = RetryFactory.DEFAULT_INSTANCE;
@@ -483,7 +483,7 @@ public class ZooUtil {
       return null;
     }
 
-    children = new ArrayList<String>(children);
+    children = new ArrayList<>(children);
     Collections.sort(children);
 
     String lockNode = children.get(0);

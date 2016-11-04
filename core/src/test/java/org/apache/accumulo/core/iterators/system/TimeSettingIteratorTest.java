@@ -34,7 +34,7 @@ public class TimeSettingIteratorTest {
 
   @Test
   public void test1() throws Exception {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     tm1.put(new Key("r0", "cf1", "cq1", 9l), new Value("v0".getBytes()));
     tm1.put(new Key("r1", "cf1", "cq1", Long.MAX_VALUE), new Value("v1".getBytes()));
@@ -87,7 +87,7 @@ public class TimeSettingIteratorTest {
 
   @Test
   public void testAvoidKeyCopy() throws Exception {
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     final Key k = new Key("r0", "cf1", "cq1", 9l);
 
     tm1.put(k, new Value("v0".getBytes()));

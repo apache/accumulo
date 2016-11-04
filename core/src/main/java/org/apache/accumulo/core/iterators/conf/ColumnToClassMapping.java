@@ -37,8 +37,8 @@ public class ColumnToClassMapping<K> {
   private ColFamHashKey lookupCF = new ColFamHashKey();
 
   public ColumnToClassMapping() {
-    objectsCF = new HashMap<ColFamHashKey,K>();
-    objectsCol = new HashMap<ColHashKey,K>();
+    objectsCF = new HashMap<>();
+    objectsCol = new HashMap<>();
   }
 
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c) throws InstantiationException, IllegalAccessException,

@@ -53,7 +53,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
   }
 
   List<TServerInstance> randomize(Set<TServerInstance> locations) {
-    List<TServerInstance> result = new ArrayList<TServerInstance>(locations);
+    List<TServerInstance> result = new ArrayList<>(locations);
     Collections.shuffle(result);
     return result;
   }
@@ -123,11 +123,11 @@ public class DefaultLoadBalancer extends TabletBalancer {
       if (current.size() < 2) {
         return false;
       }
-      final Map<String,Map<KeyExtent,TabletStats>> donerTabletStats = new HashMap<String,Map<KeyExtent,TabletStats>>();
+      final Map<String,Map<KeyExtent,TabletStats>> donerTabletStats = new HashMap<>();
 
       // Sort by total number of online tablets, per server
       int total = 0;
-      ArrayList<ServerCounts> totals = new ArrayList<ServerCounts>();
+      ArrayList<ServerCounts> totals = new ArrayList<>();
       for (Entry<TServerInstance,TabletServerStatus> entry : current.entrySet()) {
         int serverTotal = 0;
         if (entry.getValue() != null && entry.getValue().tableMap != null) {
@@ -197,7 +197,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
    */
   List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count, Map<String,Map<KeyExtent,TabletStats>> donerTabletStats) {
 
-    List<TabletMigration> result = new ArrayList<TabletMigration>();
+    List<TabletMigration> result = new ArrayList<>();
     if (count == 0)
       return result;
 
@@ -235,7 +235,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       Map<KeyExtent,TabletStats> onlineTabletsForTable = donerTabletStats.get(table);
       try {
         if (onlineTabletsForTable == null) {
-          onlineTabletsForTable = new HashMap<KeyExtent,TabletStats>();
+          onlineTabletsForTable = new HashMap<>();
           List<TabletStats> stats = getOnlineTabletsForTable(tooMuch.server, table);
           if (null == stats) {
             log.warn("Unable to find tablets to move");
@@ -271,7 +271,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
   }
 
   static Map<String,Integer> tabletCountsPerTable(TabletServerStatus status) {
-    Map<String,Integer> result = new HashMap<String,Integer>();
+    Map<String,Integer> result = new HashMap<>();
     if (status != null && status.tableMap != null) {
       Map<String,TableInfo> tableMap = status.tableMap;
       for (Entry<String,TableInfo> entry : tableMap.entrySet()) {

@@ -180,7 +180,7 @@ public class ZKPermHandler implements PermissionHandler {
       byte[] permBytes = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
       Set<SystemPermission> perms;
       if (permBytes == null) {
-        perms = new TreeSet<SystemPermission>();
+        perms = new TreeSet<>();
       } else {
         perms = ZKSecurityTool.convertSystemPermissions(permBytes);
       }
@@ -208,7 +208,7 @@ public class ZKPermHandler implements PermissionHandler {
     if (serializedPerms != null)
       tablePerms = ZKSecurityTool.convertTablePermissions(serializedPerms);
     else
-      tablePerms = new TreeSet<TablePermission>();
+      tablePerms = new TreeSet<>();
 
     try {
       if (tablePerms.add(permission)) {
@@ -234,7 +234,7 @@ public class ZKPermHandler implements PermissionHandler {
     if (serializedPerms != null)
       namespacePerms = ZKSecurityTool.convertNamespacePermissions(serializedPerms);
     else
-      namespacePerms = new TreeSet<NamespacePermission>();
+      namespacePerms = new TreeSet<>();
 
     try {
       if (namespacePerms.add(permission)) {
@@ -377,15 +377,15 @@ public class ZKPermHandler implements PermissionHandler {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
     // create the root user with all system privileges, no table privileges, and no record-level authorizations
-    Set<SystemPermission> rootPerms = new TreeSet<SystemPermission>();
+    Set<SystemPermission> rootPerms = new TreeSet<>();
     for (SystemPermission p : SystemPermission.values())
       rootPerms.add(p);
-    Map<String,Set<TablePermission>> tablePerms = new HashMap<String,Set<TablePermission>>();
+    Map<String,Set<TablePermission>> tablePerms = new HashMap<>();
     // Allow the root user to flush the system tables
     tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     tablePerms.put(MetadataTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     // essentially the same but on the system namespace, the ALTER_TABLE permission is now redundant
-    Map<String,Set<NamespacePermission>> namespacePerms = new HashMap<String,Set<NamespacePermission>>();
+    Map<String,Set<NamespacePermission>> namespacePerms = new HashMap<>();
     namespacePerms.put(Namespaces.ACCUMULO_NAMESPACE_ID, Collections.singleton(NamespacePermission.ALTER_NAMESPACE));
     namespacePerms.put(Namespaces.ACCUMULO_NAMESPACE_ID, Collections.singleton(NamespacePermission.ALTER_TABLE));
 

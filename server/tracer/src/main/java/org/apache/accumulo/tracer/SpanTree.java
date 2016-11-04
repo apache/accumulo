@@ -27,8 +27,8 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.htrace.Span;
 
 public class SpanTree {
-  final Map<Long,List<Long>> parentChildren = new HashMap<Long,List<Long>>();
-  public final Map<Long,RemoteSpan> nodes = new HashMap<Long,RemoteSpan>();
+  final Map<Long,List<Long>> parentChildren = new HashMap<>();
+  public final Map<Long,RemoteSpan> nodes = new HashMap<>();
 
   public SpanTree() {}
 
@@ -40,7 +40,7 @@ public class SpanTree {
   }
 
   public Set<Long> visit(SpanTreeVisitor visitor) {
-    Set<Long> visited = new HashSet<Long>();
+    Set<Long> visited = new HashSet<>();
     List<Long> root = parentChildren.get(Long.valueOf(Span.ROOT_SPAN_ID));
     if (root == null || root.isEmpty())
       return visited;
@@ -57,7 +57,7 @@ public class SpanTree {
     if (visited.contains(node.spanId))
       return;
     visited.add(node.spanId);
-    List<RemoteSpan> children = new ArrayList<RemoteSpan>();
+    List<RemoteSpan> children = new ArrayList<>();
     List<Long> childrenIds = parentChildren.get(node.spanId);
     if (childrenIds != null) {
       for (Long childId : childrenIds) {

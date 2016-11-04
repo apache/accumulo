@@ -47,7 +47,7 @@ public class SplitLarge {
     @Parameter(names = "-m", description = "the maximum size of the key/value pair to shunt to the small file")
     long maxSize = 10 * 1024 * 1024;
     @Parameter(description = "<file.rf> { <file.rf> ... }")
-    List<String> files = new ArrayList<String>();
+    List<String> files = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {

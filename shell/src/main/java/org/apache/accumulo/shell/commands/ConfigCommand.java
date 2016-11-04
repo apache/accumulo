@@ -140,21 +140,21 @@ public class ConfigCommand extends Command {
       }
     } else {
       // display properties
-      final TreeMap<String,String> systemConfig = new TreeMap<String,String>();
+      final TreeMap<String,String> systemConfig = new TreeMap<>();
       systemConfig.putAll(shellState.getConnector().instanceOperations().getSystemConfiguration());
 
       final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
       final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
 
-      final TreeMap<String,String> siteConfig = new TreeMap<String,String>();
+      final TreeMap<String,String> siteConfig = new TreeMap<>();
       siteConfig.putAll(shellState.getConnector().instanceOperations().getSiteConfiguration());
 
-      final TreeMap<String,String> defaults = new TreeMap<String,String>();
+      final TreeMap<String,String> defaults = new TreeMap<>();
       for (Entry<String,String> defaultEntry : AccumuloConfiguration.getDefaultConfiguration()) {
         defaults.put(defaultEntry.getKey(), defaultEntry.getValue());
       }
 
-      final TreeMap<String,String> namespaceConfig = new TreeMap<String,String>();
+      final TreeMap<String,String> namespaceConfig = new TreeMap<>();
       if (tableName != null) {
         String n = Namespaces.getNamespaceName(shellState.getInstance(),
             Tables.getNamespaceId(shellState.getInstance(), Tables.getTableId(shellState.getInstance(), tableName)));
@@ -169,7 +169,7 @@ public class ConfigCommand extends Command {
       } else if (namespace != null) {
         acuconf = shellState.getConnector().namespaceOperations().getProperties(namespace);
       }
-      final TreeMap<String,String> sortedConf = new TreeMap<String,String>();
+      final TreeMap<String,String> sortedConf = new TreeMap<>();
       for (Entry<String,String> propEntry : acuconf) {
         sortedConf.put(propEntry.getKey(), propEntry.getValue());
       }
@@ -187,7 +187,7 @@ public class ConfigCommand extends Command {
         COL2 = Math.max(COL2, propEntry.getKey().length() + 3);
       }
 
-      final ArrayList<String> output = new ArrayList<String>();
+      final ArrayList<String> output = new ArrayList<>();
       printConfHeader(output);
 
       for (Entry<String,String> propEntry : sortedConf.entrySet()) {

@@ -36,8 +36,8 @@ public class Setup extends Test {
     int numNamespaces = Integer.parseInt(props.getProperty("numNamespaces", "2"));
     log.debug("numTables = " + numTables);
     log.debug("numNamespaces = " + numNamespaces);
-    List<String> tables = new ArrayList<String>();
-    List<String> namespaces = new ArrayList<String>();
+    List<String> tables = new ArrayList<>();
+    List<String> namespaces = new ArrayList<>();
 
     for (int i = 0; i < numNamespaces; i++) {
       namespaces.add(String.format("nspc_%03d", i));
@@ -62,7 +62,7 @@ public class Setup extends Test {
 
     int numUsers = Integer.parseInt(props.getProperty("numUsers", "5"));
     log.debug("numUsers = " + numUsers);
-    List<String> users = new ArrayList<String>();
+    List<String> users = new ArrayList<>();
     for (int i = 0; i < numUsers; i++)
       users.add(String.format("user%03d", i));
     state.set("users", users);

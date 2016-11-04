@@ -38,7 +38,7 @@ public class NewTableConfiguration {
 
   private boolean limitVersion = true;
 
-  private Map<String,String> properties = new HashMap<String,String>();
+  private Map<String,String> properties = new HashMap<>();
 
   /**
    * Configure logical or millisecond time for tables created with this configuration.
@@ -85,7 +85,7 @@ public class NewTableConfiguration {
   public NewTableConfiguration setProperties(Map<String,String> prop) {
     checkArgument(prop != null, "properties is null");
 
-    this.properties = new HashMap<String,String>(prop);
+    this.properties = new HashMap<>(prop);
     return this;
   }
 

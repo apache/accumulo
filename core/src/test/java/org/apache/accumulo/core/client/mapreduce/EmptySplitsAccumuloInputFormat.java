@@ -31,7 +31,7 @@ public class EmptySplitsAccumuloInputFormat extends AccumuloInputFormat {
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
     List<InputSplit> oldSplits = super.getSplits(context);
-    List<InputSplit> newSplits = new ArrayList<InputSplit>(oldSplits.size());
+    List<InputSplit> newSplits = new ArrayList<>(oldSplits.size());
 
     // Copy only the necessary information
     for (InputSplit oldSplit : oldSplits) {

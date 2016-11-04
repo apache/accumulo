@@ -93,7 +93,7 @@ public class ProblemServlet extends BasicServlet {
     if (Monitor.getProblemException() != null)
       return;
 
-    ArrayList<ProblemReport> problemReports = new ArrayList<ProblemReport>();
+    ArrayList<ProblemReport> problemReports = new ArrayList<>();
     Iterator<ProblemReport> iter = tableId == null ? ProblemReports.getInstance(Monitor.getContext()).iterator() : ProblemReports.getInstance(
         Monitor.getContext()).iterator(tableId);
     while (iter.hasNext())

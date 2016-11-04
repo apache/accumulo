@@ -63,7 +63,7 @@ public class SetScanIterCommand extends SetIterCommand {
 
     List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
     if (tableScanIterators == null) {
-      tableScanIterators = new ArrayList<IteratorSetting>();
+      tableScanIterators = new ArrayList<>();
       shellState.scanIteratorOptions.put(tableName, tableScanIterators);
     }
     final IteratorSetting setting = new IteratorSetting(priority, name, classname);
@@ -92,7 +92,7 @@ public class SetScanIterCommand extends SetIterCommand {
   public Options getOptions() {
     // Remove the options that specify which type of iterator this is, since
     // they are all scan iterators with this command.
-    final HashSet<OptionGroup> groups = new HashSet<OptionGroup>();
+    final HashSet<OptionGroup> groups = new HashSet<>();
     final Options parentOptions = super.getOptions();
     final Options modifiedOptions = new Options();
     for (Iterator<?> it = parentOptions.getOptions().iterator(); it.hasNext();) {

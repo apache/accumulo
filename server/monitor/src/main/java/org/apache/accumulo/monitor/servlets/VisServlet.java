@@ -150,7 +150,7 @@ public class VisServlet extends BasicServlet {
         cfg.spacing = 80;
     }
 
-    ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
+    ArrayList<TabletServerStatus> tservers = new ArrayList<>();
     if (Monitor.getMmi() != null)
       tservers.addAll(Monitor.getMmi().tServerInfo);
 

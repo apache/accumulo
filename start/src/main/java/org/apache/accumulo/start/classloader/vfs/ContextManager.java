@@ -58,7 +58,7 @@ public class ContextManager {
     }
   }
 
-  private Map<String,Context> contexts = new HashMap<String,Context>();
+  private Map<String,Context> contexts = new HashMap<>();
 
   private volatile ContextsConfig config;
   private FileSystemManager vfs;
@@ -197,7 +197,7 @@ public class ContextManager {
     // the set of currently configured contexts. We will close the contexts that are
     // no longer in the configuration.
     synchronized (this) {
-      unused = new HashMap<String,Context>(contexts);
+      unused = new HashMap<>(contexts);
       unused.keySet().removeAll(configuredContexts);
       contexts.keySet().removeAll(unused.keySet());
     }

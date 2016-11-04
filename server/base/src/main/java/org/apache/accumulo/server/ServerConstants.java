@@ -96,7 +96,7 @@ public class ServerConstants {
     String firstDir = null;
     String firstIid = null;
     Integer firstVersion = null;
-    ArrayList<String> baseDirsList = new ArrayList<String>();
+    ArrayList<String> baseDirsList = new ArrayList<>();
     for (String baseDir : configuredBaseDirs) {
       Path path = new Path(baseDir, INSTANCE_ID_DIR);
       String currentIid;
@@ -177,7 +177,7 @@ public class ServerConstants {
         return Collections.emptyList();
 
       String[] pairs = replacements.split(",");
-      List<Pair<Path,Path>> ret = new ArrayList<Pair<Path,Path>>();
+      List<Pair<Path,Path>> ret = new ArrayList<>();
 
       for (String pair : pairs) {
 
@@ -203,10 +203,10 @@ public class ServerConstants {
           throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains " + uris[1] + " which has a syntax error", e);
         }
 
-        ret.add(new Pair<Path,Path>(p1, p2));
+        ret.add(new Pair<>(p1, p2));
       }
 
-      HashSet<Path> baseDirs = new HashSet<Path>();
+      HashSet<Path> baseDirs = new HashSet<>();
       for (String baseDir : getBaseUris()) {
         // normalize using path
         baseDirs.add(new Path(baseDir));

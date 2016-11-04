@@ -87,14 +87,14 @@ public class VerifyTabletAssignments {
     else
       System.out.println("Checking table " + tableName + " again, failures " + check.size());
 
-    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<KeyExtent,String>();
+    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
 
     String tableId = Tables.getNameToIdMap(context.getInstance()).get(tableName);
     MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
-    final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
+    final HashSet<KeyExtent> failures = new HashSet<>();
 
-    Map<HostAndPort,List<KeyExtent>> extentsPerServer = new TreeMap<HostAndPort,List<KeyExtent>>();
+    Map<HostAndPort,List<KeyExtent>> extentsPerServer = new TreeMap<>();
 
     for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
       KeyExtent keyExtent = entry.getKey();
@@ -108,7 +108,7 @@ public class VerifyTabletAssignments {
         final HostAndPort parsedLoc = HostAndPort.fromString(loc);
         List<KeyExtent> extentList = extentsPerServer.get(parsedLoc);
         if (extentList == null) {
-          extentList = new ArrayList<KeyExtent>();
+          extentList = new ArrayList<>();
           extentsPerServer.put(parsedLoc, extentList);
         }
 
@@ -156,7 +156,7 @@ public class VerifyTabletAssignments {
       throws ThriftSecurityException, TException, NoSuchScanIDException {
     TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), context);
 
-    Map<TKeyExtent,List<TRange>> batch = new TreeMap<TKeyExtent,List<TRange>>();
+    Map<TKeyExtent,List<TRange>> batch = new TreeMap<>();
 
     for (KeyExtent keyExtent : entry.getValue()) {
       Text row = keyExtent.getEndRow();

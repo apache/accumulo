@@ -144,7 +144,7 @@ abstract class Basic extends BasicServlet {
       scanner = getScanner(table, principal, at, sb);
     }
 
-    return new AbstractMap.SimpleEntry<Scanner,UserGroupInformation>(scanner, traceUgi);
+    return new AbstractMap.SimpleEntry<>(scanner, traceUgi);
   }
 
   private Scanner getScanner(String table, String principal, AuthenticationToken at, StringBuilder sb) throws AccumuloException, AccumuloSecurityException {

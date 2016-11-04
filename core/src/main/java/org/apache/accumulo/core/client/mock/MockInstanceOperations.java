@@ -59,12 +59,12 @@ class MockInstanceOperations implements InstanceOperations {
 
   @Override
   public List<String> getTabletServers() {
-    return new ArrayList<String>();
+    return new ArrayList<>();
   }
 
   @Override
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
-    return new ArrayList<ActiveScan>();
+    return new ArrayList<>();
   }
 
   @Override
@@ -80,7 +80,7 @@ class MockInstanceOperations implements InstanceOperations {
 
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
-    return new ArrayList<ActiveCompaction>();
+    return new ArrayList<>();
   }
 
   @Override

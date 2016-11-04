@@ -42,7 +42,7 @@ import org.junit.Test;
 
 public class BigDecimalCombinerTest {
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static double delta = 0.00001;
 
   Encoder<BigDecimal> encoder;
@@ -53,7 +53,7 @@ public class BigDecimalCombinerTest {
   @Before
   public void setup() {
     encoder = new BigDecimalCombiner.BigDecimalEncoder();
-    tm1 = new TreeMap<Key,Value>();
+    tm1 = new TreeMap<>();
     columns = Collections.singletonList(new IteratorSetting.Column("cf001"));
 
     // keys that will aggregate

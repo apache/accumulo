@@ -64,7 +64,7 @@ public enum TablePermission {
   public static List<String> printableValues() {
     TablePermission[] a = TablePermission.values();
 
-    List<String> list = new ArrayList<String>(a.length);
+    List<String> list = new ArrayList<>(a.length);
 
     for (TablePermission p : a)
       list.add("Table." + p);

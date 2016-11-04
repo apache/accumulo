@@ -54,7 +54,7 @@ import org.apache.hadoop.io.Text;
 public class MockInstance implements Instance {
 
   static final String genericAddress = "localhost:1234";
-  static final Map<String,MockAccumulo> instances = new HashMap<String,MockAccumulo>();
+  static final Map<String,MockAccumulo> instances = new HashMap<>();
   MockAccumulo acu;
   String instanceName;
 

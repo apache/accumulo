@@ -29,7 +29,7 @@ import com.beust.jcommander.Parameter;
 public class Framework {
 
   private static final Logger log = Logger.getLogger(Framework.class);
-  private HashMap<String,Node> nodes = new HashMap<String,Node>();
+  private HashMap<String,Node> nodes = new HashMap<>();
   private String configDir = null;
   private static final Framework INSTANCE = new Framework();
 

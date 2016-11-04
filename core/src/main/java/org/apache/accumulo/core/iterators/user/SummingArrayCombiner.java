@@ -69,7 +69,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
 
   @Override
   public List<Long> typedReduce(Key key, Iterator<List<Long>> iter) {
-    List<Long> sum = new ArrayList<Long>();
+    List<Long> sum = new ArrayList<>();
     while (iter.hasNext()) {
       sum = arrayAdd(sum, iter.next());
     }
@@ -173,7 +173,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b, offset, origLen));
       try {
         int len = WritableUtils.readVInt(dis);
-        List<V> vl = new ArrayList<V>(len);
+        List<V> vl = new ArrayList<>(len);
         for (int i = 0; i < len; i++) {
           vl.add(read(dis));
         }
@@ -230,7 +230,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     @Override
     protected List<Long> decodeUnchecked(byte[] b, int offset, int len) {
       String[] longstrs = new String(b, offset, len, UTF_8).split(",");
-      List<Long> la = new ArrayList<Long>(longstrs.length);
+      List<Long> la = new ArrayList<>(longstrs.length);
       for (String s : longstrs) {
         if (s.length() == 0)
           la.add(0l);

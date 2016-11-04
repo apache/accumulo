@@ -140,7 +140,7 @@ public class IteratorSetting implements Writable {
     setPriority(priority);
     setName(name);
     setIteratorClass(iteratorClass);
-    this.properties = new HashMap<String,String>();
+    this.properties = new HashMap<>();
     addOptions(properties);
   }
 
@@ -209,7 +209,7 @@ public class IteratorSetting implements Writable {
    * @since 1.5.0
    */
   public IteratorSetting(DataInput din) throws IOException {
-    this.properties = new HashMap<String,String>();
+    this.properties = new HashMap<>();
     this.readFields(din);
   }
 

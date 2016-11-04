@@ -57,7 +57,7 @@ public class ContinuousIngest {
       return;
     }
 
-    visibilities = new ArrayList<ColumnVisibility>();
+    visibilities = new ArrayList<>();
 
     FileSystem fs = FileSystem.get(new Configuration());
     BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile)), UTF_8));

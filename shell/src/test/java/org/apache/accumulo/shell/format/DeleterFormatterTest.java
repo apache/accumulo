@@ -93,7 +93,7 @@ public class DeleterFormatterTest {
 
     replay(writer, exceptionWriter, shellState);
 
-    data = new TreeMap<Key,Value>();
+    data = new TreeMap<>();
     data.put(new Key("r", "cf", "cq"), new Value("value".getBytes(UTF_8)));
   }
 

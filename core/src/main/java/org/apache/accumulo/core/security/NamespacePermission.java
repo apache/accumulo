@@ -63,7 +63,7 @@ public enum NamespacePermission {
   public static List<String> printableValues() {
     NamespacePermission[] a = NamespacePermission.values();
 
-    List<String> list = new ArrayList<String>(a.length);
+    List<String> list = new ArrayList<>(a.length);
 
     for (NamespacePermission p : a)
       list.add("Namespace." + p);

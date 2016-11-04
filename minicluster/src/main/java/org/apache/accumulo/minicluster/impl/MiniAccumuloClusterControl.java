@@ -56,7 +56,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process gcProcess = null;
   Process monitor = null;
   Process tracer = null;
-  final List<Process> tabletServerProcesses = new ArrayList<Process>();
+  final List<Process> tabletServerProcesses = new ArrayList<>();
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
     requireNonNull(cluster);

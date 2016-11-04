@@ -27,7 +27,7 @@ public class ConfigSanityCheckTest {
 
   @Before
   public void setUp() {
-    m = new java.util.HashMap<String,String>();
+    m = new java.util.HashMap<>();
   }
 
   @Test

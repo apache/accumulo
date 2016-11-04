@@ -36,7 +36,7 @@ public class SetGroupsCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
-    final HashMap<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
+    final HashMap<String,Set<Text>> groups = new HashMap<>();
 
     for (String arg : cl.getArgs()) {
       final String sa[] = arg.split("=", 2);
@@ -44,7 +44,7 @@ public class SetGroupsCommand extends Command {
         throw new IllegalArgumentException("Missing '='");
       }
       final String group = sa[0];
-      final HashSet<Text> colFams = new HashSet<Text>();
+      final HashSet<Text> colFams = new HashSet<>();
 
       for (String family : sa[1].split(",")) {
         colFams.add(new Text(family.getBytes(Shell.CHARSET)));

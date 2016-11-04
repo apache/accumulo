@@ -60,8 +60,8 @@ public class Tables {
     ZooCache zc = getZooCache(instance);
 
     List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
-    TreeMap<String,String> tableMap = new TreeMap<String,String>();
-    Map<String,String> namespaceIdToNameMap = new HashMap<String,String>();
+    TreeMap<String,String> tableMap = new TreeMap<>();
+    Map<String,String> namespaceIdToNameMap = new HashMap<>();
 
     for (String tableId : tableIds) {
       byte[] tableName = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
@@ -211,9 +211,9 @@ public class Tables {
       tableName = MetadataTable.NAME;
     if (tableName.contains(".")) {
       String[] s = tableName.split("\\.", 2);
-      return new Pair<String,String>(s[0], s[1]);
+      return new Pair<>(s[0], s[1]);
     }
-    return new Pair<String,String>(defaultNamespace, tableName);
+    return new Pair<>(defaultNamespace, tableName);
   }
 
   /**

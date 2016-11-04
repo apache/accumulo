@@ -339,7 +339,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
 
     try {
-      SortedSet<Text> sorted = new TreeSet<Text>();
+      SortedSet<Text> sorted = new TreeSet<>();
       for (ByteBuffer split : splits) {
         sorted.add(ByteBufferUtil.toText(split));
       }
@@ -395,7 +395,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
 
   private List<IteratorSetting> getIteratorSettings(List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators) {
-    List<IteratorSetting> result = new ArrayList<IteratorSetting>();
+    List<IteratorSetting> result = new ArrayList<>();
     if (iterators != null) {
       for (org.apache.accumulo.proxy.thrift.IteratorSetting is : iterators) {
         result.add(getIteratorSetting(is));
@@ -468,9 +468,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       Map<String,Set<Text>> groups = getConnector(login).tableOperations().getLocalityGroups(tableName);
-      Map<String,Set<String>> ret = new HashMap<String,Set<String>>();
+      Map<String,Set<String>> ret = new HashMap<>();
       for (Entry<String,Set<Text>> entry : groups.entrySet()) {
-        Set<String> value = new HashSet<String>();
+        Set<String> value = new HashSet<>();
         ret.put(entry.getKey(), value);
         for (Text val : entry.getValue()) {
           value.add(val.toString());
@@ -509,7 +509,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public Map<String,String> getTableProperties(ByteBuffer login, String tableName) throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      Map<String,String> ret = new HashMap<String,String>();
+      Map<String,String> ret = new HashMap<>();
 
       for (Map.Entry<String,String> entry : getConnector(login).tableOperations().getProperties(tableName)) {
         ret.put(entry.getKey(), entry.getValue());
@@ -526,7 +526,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       Collection<Text> splits = getConnector(login).tableOperations().listSplits(tableName, maxSplits);
-      List<ByteBuffer> ret = new ArrayList<ByteBuffer>();
+      List<ByteBuffer> ret = new ArrayList<>();
       for (Text split : splits) {
         ret.add(TextUtil.getByteBuffer(split));
       }
@@ -626,7 +626,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
-      Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
+      Map<String,Set<Text>> groups = new HashMap<>();
       for (Entry<String,Set<String>> groupEntry : groupStrings.entrySet()) {
         groups.put(groupEntry.getKey(), new HashSet<Text>());
         for (String val : groupEntry.getValue()) {
@@ -663,10 +663,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       List<org.apache.accumulo.core.client.admin.DiskUsage> diskUsages = getConnector(login).tableOperations().getDiskUsage(tables);
-      List<DiskUsage> retUsages = new ArrayList<DiskUsage>();
+      List<DiskUsage> retUsages = new ArrayList<>();
       for (org.apache.accumulo.core.client.admin.DiskUsage diskUsage : diskUsages) {
         DiskUsage usage = new DiskUsage();
-        usage.setTables(new ArrayList<String>(diskUsage.getTables()));
+        usage.setTables(new ArrayList<>(diskUsage.getTables()));
         usage.setUsage(diskUsage.getUsage());
         retUsages.add(usage);
       }
@@ -711,7 +711,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public List<org.apache.accumulo.proxy.thrift.ActiveScan> getActiveScans(ByteBuffer login, String tserver)
       throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
-    List<org.apache.accumulo.proxy.thrift.ActiveScan> result = new ArrayList<org.apache.accumulo.proxy.thrift.ActiveScan>();
+    List<org.apache.accumulo.proxy.thrift.ActiveScan> result = new ArrayList<>();
     try {
       List<ActiveScan> activeScans = getConnector(login).instanceOperations().getActiveScans(tserver);
       for (ActiveScan scan : activeScans) {
@@ -726,7 +726,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         TabletId e = scan.getTablet();
         pscan.extent = new org.apache.accumulo.proxy.thrift.KeyExtent(e.getTableId().toString(), TextUtil.getByteBuffer(e.getEndRow()),
             TextUtil.getByteBuffer(e.getPrevEndRow()));
-        pscan.columns = new ArrayList<org.apache.accumulo.proxy.thrift.Column>();
+        pscan.columns = new ArrayList<>();
         if (scan.getColumns() != null) {
           for (Column c : scan.getColumns()) {
             org.apache.accumulo.proxy.thrift.Column column = new org.apache.accumulo.proxy.thrift.Column();
@@ -736,7 +736,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
             pscan.columns.add(column);
           }
         }
-        pscan.iterators = new ArrayList<org.apache.accumulo.proxy.thrift.IteratorSetting>();
+        pscan.iterators = new ArrayList<>();
         for (String iteratorString : scan.getSsiList()) {
           String[] parts = iteratorString.split("[=,]");
           if (parts.length == 3) {
@@ -748,7 +748,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
             pscan.iterators.add(settings);
           }
         }
-        pscan.authorizations = new ArrayList<ByteBuffer>();
+        pscan.authorizations = new ArrayList<>();
         if (scan.getAuthorizations() != null) {
           for (byte[] a : scan.getAuthorizations()) {
             pscan.authorizations.add(ByteBuffer.wrap(a));
@@ -768,7 +768,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
 
     try {
-      List<org.apache.accumulo.proxy.thrift.ActiveCompaction> result = new ArrayList<org.apache.accumulo.proxy.thrift.ActiveCompaction>();
+      List<org.apache.accumulo.proxy.thrift.ActiveCompaction> result = new ArrayList<>();
       List<ActiveCompaction> active = getConnector(login).instanceOperations().getActiveCompactions(tserver);
       for (ActiveCompaction comp : active) {
         org.apache.accumulo.proxy.thrift.ActiveCompaction pcomp = new org.apache.accumulo.proxy.thrift.ActiveCompaction();
@@ -778,7 +778,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         TabletId e = comp.getTablet();
         pcomp.extent = new org.apache.accumulo.proxy.thrift.KeyExtent(e.getTableId().toString(), TextUtil.getByteBuffer(e.getEndRow()),
             TextUtil.getByteBuffer(e.getPrevEndRow()));
-        pcomp.inputFiles = new ArrayList<String>();
+        pcomp.inputFiles = new ArrayList<>();
         if (comp.getInputFiles() != null) {
           pcomp.inputFiles.addAll(comp.getInputFiles());
         }
@@ -787,7 +787,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         pcomp.reason = CompactionReason.valueOf(comp.getReason().toString());
         pcomp.type = CompactionType.valueOf(comp.getType().toString());
 
-        pcomp.iterators = new ArrayList<org.apache.accumulo.proxy.thrift.IteratorSetting>();
+        pcomp.iterators = new ArrayList<>();
         if (comp.getIterators() != null) {
           for (IteratorSetting setting : comp.getIterators()) {
             org.apache.accumulo.proxy.thrift.IteratorSetting psetting = new org.apache.accumulo.proxy.thrift.IteratorSetting(setting.getPriority(),
@@ -850,7 +850,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public void changeUserAuthorizations(ByteBuffer login, String user, Set<ByteBuffer> authorizations)
       throws org.apache.accumulo.proxy.thrift.AccumuloException, org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
-      Set<String> auths = new HashSet<String>();
+      Set<String> auths = new HashSet<>();
       for (ByteBuffer auth : authorizations) {
         auths.add(ByteBufferUtil.toString(auth));
       }
@@ -978,7 +978,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
 
   private Authorizations getAuthorizations(Set<ByteBuffer> authorizations) {
-    List<String> auths = new ArrayList<String>();
+    List<String> auths = new ArrayList<>();
     for (ByteBuffer bbauth : authorizations) {
       auths.add(ByteBufferUtil.toString(bbauth));
     }
@@ -1060,7 +1060,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
           }
         }
 
-        ArrayList<Range> ranges = new ArrayList<Range>();
+        ArrayList<Range> ranges = new ArrayList<>();
 
         if (opts.ranges == null) {
           ranges.add(new Range());
@@ -1208,7 +1208,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     if (bwpe.exception != null)
       return;
 
-    HashMap<Text,ColumnVisibility> vizMap = new HashMap<Text,ColumnVisibility>();
+    HashMap<Text,ColumnVisibility> vizMap = new HashMap<>();
 
     for (Map.Entry<ByteBuffer,List<ColumnUpdate>> entry : cells.entrySet()) {
       Mutation m = new Mutation(ByteBufferUtil.toBytes(entry.getKey()));
@@ -1467,7 +1467,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       Map<String,EnumSet<IteratorScope>> iterMap = getConnector(login).tableOperations().listIterators(tableName);
-      Map<String,Set<org.apache.accumulo.proxy.thrift.IteratorScope>> result = new HashMap<String,Set<org.apache.accumulo.proxy.thrift.IteratorScope>>();
+      Map<String,Set<org.apache.accumulo.proxy.thrift.IteratorScope>> result = new HashMap<>();
       for (Map.Entry<String,EnumSet<IteratorScope>> entry : iterMap.entrySet()) {
         result.put(entry.getKey(), getProxyIteratorScopes(entry.getValue()));
       }
@@ -1495,7 +1495,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.TableNotFoundException, TException {
     try {
       Set<Range> ranges = getConnector(login).tableOperations().splitRangeByTablets(tableName, getRange(range), maxSplits);
-      Set<org.apache.accumulo.proxy.thrift.Range> result = new HashSet<org.apache.accumulo.proxy.thrift.Range>();
+      Set<org.apache.accumulo.proxy.thrift.Range> result = new HashSet<>();
       for (Range r : ranges) {
         result.add(getRange(r));
       }
@@ -1650,9 +1650,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
 
     try {
-      HashMap<Text,ColumnVisibility> vizMap = new HashMap<Text,ColumnVisibility>();
+      HashMap<Text,ColumnVisibility> vizMap = new HashMap<>();
 
-      ArrayList<ConditionalMutation> cmuts = new ArrayList<ConditionalMutation>(updates.size());
+      ArrayList<ConditionalMutation> cmuts = new ArrayList<>(updates.size());
       for (Entry<ByteBuffer,ConditionalUpdates> cu : updates.entrySet()) {
         ConditionalMutation cmut = new ConditionalMutation(ByteBufferUtil.toBytes(cu.getKey()));
 
@@ -1684,7 +1684,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
       Iterator<Result> results = cw.write(cmuts.iterator());
 
-      HashMap<ByteBuffer,ConditionalStatus> resultMap = new HashMap<ByteBuffer,ConditionalStatus>();
+      HashMap<ByteBuffer,ConditionalStatus> resultMap = new HashMap<>();
 
       while (results.hasNext()) {
         Result result = results.next();

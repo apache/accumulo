@@ -35,8 +35,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TabletLocationStateTest {
-  private static final Collection<String> innerWalogs = new java.util.HashSet<String>();
-  private static final Collection<Collection<String>> walogs = new java.util.HashSet<Collection<String>>();
+  private static final Collection<String> innerWalogs = new java.util.HashSet<>();
+  private static final Collection<Collection<String>> walogs = new java.util.HashSet<>();
 
   @BeforeClass
   public static void setUpClass() {
@@ -137,7 +137,7 @@ public class TabletLocationStateTest {
 
   @Test
   public void testGetState_Assigned() throws Exception {
-    Set<TServerInstance> liveServers = new java.util.HashSet<TServerInstance>();
+    Set<TServerInstance> liveServers = new java.util.HashSet<>();
     liveServers.add(future);
     tls = new TabletLocationState(keyExtent, future, null, last, walogs, true);
     assertEquals(TabletState.ASSIGNED, tls.getState(liveServers));
@@ -145,7 +145,7 @@ public class TabletLocationStateTest {
 
   @Test
   public void testGetState_Hosted() throws Exception {
-    Set<TServerInstance> liveServers = new java.util.HashSet<TServerInstance>();
+    Set<TServerInstance> liveServers = new java.util.HashSet<>();
     liveServers.add(current);
     tls = new TabletLocationState(keyExtent, null, current, last, walogs, true);
     assertEquals(TabletState.HOSTED, tls.getState(liveServers));
@@ -153,7 +153,7 @@ public class TabletLocationStateTest {
 
   @Test
   public void testGetState_Dead1() throws Exception {
-    Set<TServerInstance> liveServers = new java.util.HashSet<TServerInstance>();
+    Set<TServerInstance> liveServers = new java.util.HashSet<>();
     liveServers.add(current);
     tls = new TabletLocationState(keyExtent, future, null, last, walogs, true);
     assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, tls.getState(liveServers));
@@ -161,7 +161,7 @@ public class TabletLocationStateTest {
 
   @Test
   public void testGetState_Dead2() throws Exception {
-    Set<TServerInstance> liveServers = new java.util.HashSet<TServerInstance>();
+    Set<TServerInstance> liveServers = new java.util.HashSet<>();
     liveServers.add(future);
     tls = new TabletLocationState(keyExtent, null, current, last, walogs, true);
     assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, tls.getState(liveServers));

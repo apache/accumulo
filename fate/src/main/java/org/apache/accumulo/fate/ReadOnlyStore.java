@@ -86,7 +86,7 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
 
   @Override
   public ReadOnlyRepo<T> top(long tid) {
-    return new ReadOnlyRepoWrapper<T>(store.top(tid));
+    return new ReadOnlyRepoWrapper<>(store.top(tid));
   }
 
   @Override

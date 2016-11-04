@@ -79,7 +79,7 @@ public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>> exte
       throw new RuntimeException("Data does not have 2 fields, it has " + fields.length);
     }
 
-    return new ComparablePair<A,B>(firstLexicoder.decode(unescape(fields[0])), secondLexicoder.decode(unescape(fields[1])));
+    return new ComparablePair<>(firstLexicoder.decode(unescape(fields[0])), secondLexicoder.decode(unescape(fields[1])));
   }
 
 }

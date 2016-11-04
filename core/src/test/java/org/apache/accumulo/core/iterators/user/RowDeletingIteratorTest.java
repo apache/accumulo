@@ -98,7 +98,7 @@ public class RowDeletingIteratorTest extends TestCase {
 
   public void test1() throws Exception {
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "", "", 10, RowDeletingIterator.DELETE_ROW_VALUE);
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq3", 5, "v1");
@@ -137,7 +137,7 @@ public class RowDeletingIteratorTest extends TestCase {
 
   public void test2() throws Exception {
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "", "", 10, RowDeletingIterator.DELETE_ROW_VALUE);
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq3", 15, "v1");
@@ -178,7 +178,7 @@ public class RowDeletingIteratorTest extends TestCase {
 
   public void test3() throws Exception {
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "", "", 10, RowDeletingIterator.DELETE_ROW_VALUE);
     put(tm1, "r1", "", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
@@ -188,7 +188,7 @@ public class RowDeletingIteratorTest extends TestCase {
     RowDeletingIterator rdi = new RowDeletingIterator();
     rdi.init(new ColumnFamilySkippingIterator(new SortedMapIterator(tm1)), null, new TestIE(IteratorScope.scan, false));
 
-    HashSet<ByteSequence> cols = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> cols = new HashSet<>();
     cols.add(new ArrayByteSequence("cf1".getBytes()));
 
     rdi.seek(new Range(), cols, true);
@@ -208,7 +208,7 @@ public class RowDeletingIteratorTest extends TestCase {
 
   public void test4() throws Exception {
 
-    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "", "", 10, RowDeletingIterator.DELETE_ROW_VALUE);
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq3", 15, "v1");

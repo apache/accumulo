@@ -43,7 +43,7 @@ public abstract class AbstractAccumuloMojo extends AbstractMojo {
   }
 
   void configureMiniClasspath(MiniAccumuloConfigImpl macConfig, String miniClasspath) throws MalformedURLException {
-    ArrayList<String> classpathItems = new ArrayList<String>();
+    ArrayList<String> classpathItems = new ArrayList<>();
     if (miniClasspath == null && project != null) {
       classpathItems.add(project.getBuild().getOutputDirectory());
       classpathItems.add(project.getBuild().getTestOutputDirectory());

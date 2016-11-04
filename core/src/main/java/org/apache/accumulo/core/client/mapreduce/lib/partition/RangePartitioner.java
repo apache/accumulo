@@ -89,7 +89,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
       if (cf != null) {
         for (Path path : cf) {
           if (path.toUri().getPath().endsWith(cutFileName.substring(cutFileName.lastIndexOf('/')))) {
-            TreeSet<Text> cutPoints = new TreeSet<Text>();
+            TreeSet<Text> cutPoints = new TreeSet<>();
             Scanner in = new Scanner(new BufferedReader(new InputStreamReader(new FileInputStream(path.toString()), UTF_8)));
             try {
               while (in.hasNextLine())

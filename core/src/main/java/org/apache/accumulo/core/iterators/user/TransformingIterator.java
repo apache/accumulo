@@ -86,7 +86,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
 
   protected Logger log = LoggerFactory.getLogger(getClass());
 
-  protected ArrayList<Pair<Key,Value>> keys = new ArrayList<Pair<Key,Value>>();
+  protected ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
   protected int keyPos = -1;
   protected boolean scanning;
   protected Range seekRange;
@@ -136,7 +136,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use for buffering keys before throwing a BufferOverflowException.  "
         + "Users should keep this limit in mind when deciding what to transform.  That is, if transforming the column family for example, then all "
         + "keys sharing the same row and column family must fit within this limit (along with their associated values)";
-    HashMap<String,String> namedOptions = new HashMap<String,String>();
+    HashMap<String,String> namedOptions = new HashMap<>();
     namedOptions.put(AUTH_OPT, authDesc);
     namedOptions.put(MAX_BUFFER_SIZE_OPT, bufferDesc);
     return new IteratorOptions(getClass().getSimpleName(), desc, namedOptions, null);
@@ -176,7 +176,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     copy.keyPos = keyPos;
     copy.keys.addAll(keys);
     copy.seekRange = (seekRange == null) ? null : new Range(seekRange);
-    copy.seekColumnFamilies = (seekColumnFamilies == null) ? null : new HashSet<ByteSequence>(seekColumnFamilies);
+    copy.seekColumnFamilies = (seekColumnFamilies == null) ? null : new HashSet<>(seekColumnFamilies);
     copy.seekColumnFamiliesInclusive = seekColumnFamiliesInclusive;
 
     copy.ve = ve;
@@ -334,7 +334,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
 
           if (getSource().hasTop() && key == getSource().getTopKey())
             key = new Key(key);
-          keys.add(new Pair<Key,Value>(key, new Value(val)));
+          keys.add(new Pair<>(key, new Value(val)));
           appened += (key.getSize() + val.getSize() + 128);
         }
       }

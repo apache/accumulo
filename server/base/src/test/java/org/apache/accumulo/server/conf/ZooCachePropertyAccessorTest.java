@@ -105,7 +105,7 @@ public class ZooCachePropertyAccessorTest {
 
   @Test
   public void testGetProperties() {
-    Map<String,String> props = new java.util.HashMap<String,String>();
+    Map<String,String> props = new java.util.HashMap<>();
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
     @SuppressWarnings("unchecked")
     Predicate<String> filter = createMock(Predicate.class);
@@ -113,7 +113,7 @@ public class ZooCachePropertyAccessorTest {
     replay(parent);
     String child1 = "child1";
     String child2 = "child2";
-    List<String> children = new java.util.ArrayList<String>();
+    List<String> children = new java.util.ArrayList<>();
     children.add(child1);
     children.add(child2);
     expect(zc.getChildren(PATH)).andReturn(children);
@@ -132,7 +132,7 @@ public class ZooCachePropertyAccessorTest {
 
   @Test
   public void testGetProperties_NoChildren() {
-    Map<String,String> props = new java.util.HashMap<String,String>();
+    Map<String,String> props = new java.util.HashMap<>();
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
     @SuppressWarnings("unchecked")
     Predicate<String> filter = createMock(Predicate.class);
@@ -147,14 +147,14 @@ public class ZooCachePropertyAccessorTest {
 
   @Test
   public void testGetProperties_Filter() {
-    Map<String,String> props = new java.util.HashMap<String,String>();
+    Map<String,String> props = new java.util.HashMap<>();
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
     @SuppressWarnings("unchecked")
     Predicate<String> filter = createMock(Predicate.class);
     parent.getProperties(props, filter);
     replay(parent);
     String child1 = "child1";
-    List<String> children = new java.util.ArrayList<String>();
+    List<String> children = new java.util.ArrayList<>();
     children.add(child1);
     expect(zc.getChildren(PATH)).andReturn(children);
     replay(zc);
@@ -167,7 +167,7 @@ public class ZooCachePropertyAccessorTest {
 
   @Test
   public void testGetProperties_ParentFilter() {
-    Map<String,String> props = new java.util.HashMap<String,String>();
+    Map<String,String> props = new java.util.HashMap<>();
     AccumuloConfiguration parent = createMock(AccumuloConfiguration.class);
     @SuppressWarnings("unchecked")
     Predicate<String> filter = createMock(Predicate.class);

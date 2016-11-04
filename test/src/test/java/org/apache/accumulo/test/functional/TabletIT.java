@@ -68,7 +68,7 @@ public class TabletIT extends AccumuloClusterIT {
     Connector connector = getConnector();
 
     if (!readOnly) {
-      TreeSet<Text> keys = new TreeSet<Text>();
+      TreeSet<Text> keys = new TreeSet<>();
       for (int i = N / 100; i < N; i += N / 100) {
         keys.add(new Text(String.format("%05d", i)));
       }

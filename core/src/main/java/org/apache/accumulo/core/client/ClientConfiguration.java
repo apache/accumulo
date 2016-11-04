@@ -215,7 +215,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   private static ClientConfiguration loadFromSearchPath(List<String> paths) {
     try {
-      List<Configuration> configs = new LinkedList<Configuration>();
+      List<Configuration> configs = new LinkedList<>();
       for (String path : paths) {
         File conf = new File(path);
         if (conf.isFile() && conf.canRead()) {
@@ -272,7 +272,7 @@ public class ClientConfiguration extends CompositeConfiguration {
       // ~/.accumulo/config
       // $ACCUMULO_CONF_DIR/client.conf -OR- $ACCUMULO_HOME/conf/client.conf (depending on whether $ACCUMULO_CONF_DIR is set)
       // /etc/accumulo/client.conf
-      clientConfPaths = new LinkedList<String>();
+      clientConfPaths = new LinkedList<>();
       clientConfPaths.add(System.getProperty("user.home") + File.separator + USER_ACCUMULO_DIR_NAME + File.separator + USER_CONF_FILENAME);
       if (System.getenv("ACCUMULO_CONF_DIR") != null) {
         clientConfPaths.add(System.getenv("ACCUMULO_CONF_DIR") + File.separator + GLOBAL_CONF_FILENAME);

@@ -86,10 +86,10 @@ public class ZKAuthorizor implements Authorizor {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
 
     // create the root user with all system privileges, no table privileges, and no record-level authorizations
-    Set<SystemPermission> rootPerms = new TreeSet<SystemPermission>();
+    Set<SystemPermission> rootPerms = new TreeSet<>();
     for (SystemPermission p : SystemPermission.values())
       rootPerms.add(p);
-    Map<String,Set<TablePermission>> tablePerms = new HashMap<String,Set<TablePermission>>();
+    Map<String,Set<TablePermission>> tablePerms = new HashMap<>();
     // Allow the root user to flush the metadata tables
     tablePerms.put(MetadataTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));

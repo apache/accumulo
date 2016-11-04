@@ -36,7 +36,7 @@ public class DateStringFormatterTest {
   @Before
   public void setUp() {
     formatter = new DateStringFormatter();
-    data = new TreeMap<Key,Value>();
+    data = new TreeMap<>();
     data.put(new Key("", "", "", 0), new Value());
   }
 

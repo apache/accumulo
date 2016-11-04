@@ -66,7 +66,7 @@ public class ChunkInputFormatTest {
   public static void setupClass() {
     System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
 
-    data = new ArrayList<Entry<Key,Value>>();
+    data = new ArrayList<>();
     ChunkInputStreamTest.addData(data, "a", "refs", "ida\0ext", "A&B", "ext");
     ChunkInputStreamTest.addData(data, "a", "refs", "ida\0name", "A&B", "name");
     ChunkInputStreamTest.addData(data, "a", "~chunk", 100, 0, "A&B", "asdfjkl;");
@@ -78,7 +78,7 @@ public class ChunkInputFormatTest {
     ChunkInputStreamTest.addData(data, "b", "~chunk", 100, 1, "A&B", "");
     ChunkInputStreamTest.addData(data, "b", "~chunk", 100, 1, "B&C", "");
     ChunkInputStreamTest.addData(data, "b", "~chunk", 100, 1, "D", "");
-    baddata = new ArrayList<Entry<Key,Value>>();
+    baddata = new ArrayList<>();
     ChunkInputStreamTest.addData(baddata, "c", "refs", "ida\0ext", "A&B", "ext");
     ChunkInputStreamTest.addData(baddata, "c", "refs", "ida\0name", "A&B", "name");
   }

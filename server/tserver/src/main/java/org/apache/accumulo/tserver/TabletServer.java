@@ -288,7 +288,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final TabletServerResourceManager resourceManager;
   private final SecurityOperation security;
 
-  private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<MasterMessage>();
+  private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<>();
 
   private Thread majorCompactorThread;
 
@@ -413,12 +413,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (!security.canPerformSystemActions(credentials))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-      List<TKeyExtent> failures = new ArrayList<TKeyExtent>();
+      List<TKeyExtent> failures = new ArrayList<>();
 
       for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
         TKeyExtent tke = entry.getKey();
         Map<String,MapFileInfo> fileMap = entry.getValue();
-        Map<FileRef,MapFileInfo> fileRefMap = new HashMap<FileRef,MapFileInfo>();
+        Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
         for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(mapping.getKey());
           FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
@@ -473,7 +473,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (tablet == null)
         throw new NotServingTabletException(textent);
 
-      Set<Column> columnSet = new HashSet<Column>();
+      Set<Column> columnSet = new HashSet<>();
       for (TColumn tcolumn : columns) {
         columnSet.add(new Column(tcolumn));
       }
@@ -587,7 +587,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns,
         List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) throws ThriftSecurityException {
       // find all of the tables that need to be scanned
-      final HashSet<String> tables = new HashSet<String>();
+      final HashSet<String> tables = new HashSet<>();
       for (TKeyExtent keyExtent : tbatch.keySet()) {
         tables.add(new String(keyExtent.getTable(), UTF_8));
       }
@@ -607,8 +607,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         log.error("{} is not authorized", credentials.getPrincipal(), tse);
         throw tse;
       }
-      Map<KeyExtent,List<Range>> batch = Translator.translate(tbatch, new TKeyExtentTranslator(), new Translator.ListTranslator<TRange,Range>(
-          new TRangeTranslator()));
+      Map<KeyExtent,List<Range>> batch = Translator.translate(tbatch, new TKeyExtentTranslator(), new Translator.ListTranslator<>(new TRangeTranslator()));
 
       // This is used to determine which thread pool to use
       KeyExtent threadPoolExtent = batch.keySet().iterator().next();
@@ -801,7 +800,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     private void flush(UpdateSession us) {
 
       int mutationCount = 0;
-      Map<CommitSession,Mutations> sendables = new HashMap<CommitSession,Mutations>();
+      Map<CommitSession,Mutations> sendables = new HashMap<>();
       Throwable error = null;
 
       long pt1 = System.currentTimeMillis();
@@ -1079,7 +1078,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
           iter.remove();
         } else {
-          final List<ServerConditionalMutation> okMutations = new ArrayList<ServerConditionalMutation>(entry.getValue().size());
+          final List<ServerConditionalMutation> okMutations = new ArrayList<>(entry.getValue().size());
           final List<TCMResult> resultsSubList = results.subList(results.size(), results.size());
 
           ConditionChecker checker = checkerContext.newChecker(entry.getValue(), okMutations, resultsSubList);
@@ -1107,7 +1106,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     private void writeConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results, ConditionalSession sess) {
       Set<Entry<KeyExtent,List<ServerConditionalMutation>>> es = updates.entrySet();
 
-      Map<CommitSession,Mutations> sendables = new HashMap<CommitSession,Mutations>();
+      Map<CommitSession,Mutations> sendables = new HashMap<>();
 
       boolean sessionCanceled = sess.interruptFlag.get();
 
@@ -1201,7 +1200,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       // sort each list of mutations, this is done to avoid deadlock and doing seeks in order is more efficient and detect duplicate rows.
       ConditionalMutationSet.sortConditionalMutations(updates);
 
-      Map<KeyExtent,List<ServerConditionalMutation>> deferred = new HashMap<KeyExtent,List<ServerConditionalMutation>>();
+      Map<KeyExtent,List<ServerConditionalMutation>> deferred = new HashMap<>();
 
       // can not process two mutations for the same row, because one will not see what the other writes
       ConditionalMutationSet.deferDuplicatesRows(updates, deferred);
@@ -1270,14 +1269,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
 
       try {
-        Map<KeyExtent,List<ServerConditionalMutation>> updates = Translator.translate(mutations, Translators.TKET,
-            new Translator.ListTranslator<TConditionalMutation,ServerConditionalMutation>(ServerConditionalMutation.TCMT));
+        Map<KeyExtent,List<ServerConditionalMutation>> updates = Translator.translate(mutations, Translators.TKET, new Translator.ListTranslator<>(
+            ServerConditionalMutation.TCMT));
 
         for (KeyExtent ke : updates.keySet())
           if (!ke.getTableId().equals(tid))
             throw new IllegalArgumentException("Unexpected table id " + tid + " != " + ke.getTableId());
 
-        ArrayList<TCMResult> results = new ArrayList<TCMResult>();
+        ArrayList<TCMResult> results = new ArrayList<>();
 
         Map<KeyExtent,List<ServerConditionalMutation>> deferred = conditionalUpdate(cs, updates, results, symbols);
 
@@ -1357,9 +1356,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) throws ThriftSecurityException, TException {
       TreeMap<KeyExtent,Tablet> onlineTabletsCopy;
       synchronized (onlineTablets) {
-        onlineTabletsCopy = new TreeMap<KeyExtent,Tablet>(onlineTablets);
+        onlineTabletsCopy = new TreeMap<>(onlineTablets);
       }
-      List<TabletStats> result = new ArrayList<TabletStats>();
+      List<TabletStats> result = new ArrayList<>();
       Text text = new Text(tableId);
       KeyExtent start = new KeyExtent(text, new Text(), null);
       for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.tailMap(start).entrySet()) {
@@ -1451,7 +1450,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             Set<KeyExtent> openingOverlapping = KeyExtent.findOverlapping(extent, openingTablets);
             Set<KeyExtent> onlineOverlapping = KeyExtent.findOverlapping(extent, onlineTablets);
 
-            Set<KeyExtent> all = new HashSet<KeyExtent>();
+            Set<KeyExtent> all = new HashSet<>();
             all.addAll(unopenedOverlapping);
             all.addAll(openingOverlapping);
             all.addAll(onlineOverlapping);
@@ -1532,7 +1531,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         throw new RuntimeException(e);
       }
 
-      ArrayList<Tablet> tabletsToFlush = new ArrayList<Tablet>();
+      ArrayList<Tablet> tabletsToFlush = new ArrayList<>();
 
       KeyExtent ke = new KeyExtent(new Text(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
@@ -1654,7 +1653,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       KeyExtent ke = new KeyExtent(new Text(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
-      ArrayList<Tablet> tabletsToCompact = new ArrayList<Tablet>();
+      ArrayList<Tablet> tabletsToCompact = new ArrayList<>();
       synchronized (onlineTablets) {
         for (Tablet tablet : onlineTablets.values())
           if (ke.overlaps(tablet.getExtent()))
@@ -1682,9 +1681,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
       String myname = getClientAddressString();
       myname = myname.replace(':', '+');
-      Set<String> loggers = new HashSet<String>();
+      Set<String> loggers = new HashSet<>();
       logger.getLogFiles(loggers);
-      Set<String> loggerUUIDs = new HashSet<String>();
+      Set<String> loggerUUIDs = new HashSet<>();
       for (String logger : loggers)
         loggerUUIDs.add(new Path(logger).getName());
 
@@ -1694,7 +1693,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         if (loggerUUIDs.contains(uuid))
           continue nextFile;
 
-        List<Tablet> onlineTabletsCopy = new ArrayList<Tablet>();
+        List<Tablet> onlineTabletsCopy = new ArrayList<>();
         synchronized (onlineTablets) {
           onlineTabletsCopy.addAll(onlineTablets.values());
         }
@@ -1752,7 +1751,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       List<CompactionInfo> compactions = Compactor.getRunningCompactions();
-      List<ActiveCompaction> ret = new ArrayList<ActiveCompaction>(compactions.size());
+      List<ActiveCompaction> ret = new ArrayList<>(compactions.size());
 
       for (CompactionInfo compactionInfo : compactions) {
         ret.add(compactionInfo.toThrift());
@@ -1763,9 +1762,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
-      Set<String> logs = new HashSet<String>();
+      Set<String> logs = new HashSet<>();
       logger.getLogFiles(logs);
-      return new ArrayList<String>(logs);
+      return new ArrayList<>(logs);
     }
   }
 
@@ -1820,7 +1819,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         try {
           UtilWaitThread.sleep(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY));
 
-          TreeMap<KeyExtent,Tablet> copyOnlineTablets = new TreeMap<KeyExtent,Tablet>();
+          TreeMap<KeyExtent,Tablet> copyOnlineTablets = new TreeMap<>();
 
           synchronized (onlineTablets) {
             copyOnlineTablets.putAll(onlineTablets); // avoid
@@ -2093,7 +2092,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       // check Metadata table before accepting assignment
       Text locationToOpen = null;
-      SortedMap<Key,Value> tabletsKeyValues = new TreeMap<Key,Value>();
+      SortedMap<Key,Value> tabletsKeyValues = new TreeMap<>();
       try {
         Pair<Text,KeyExtent> pair = verifyTabletInformation(TabletServer.this, extent, TabletServer.this.getTabletSession(), tabletsKeyValues,
             getClientAddressString(), getLock());
@@ -2104,7 +2103,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
               openingTablets.remove(extent);
               openingTablets.notifyAll();
               // it expected that the new extent will overlap the old one... if it does not, it should not be added to unopenedTablets
-              if (!KeyExtent.findOverlapping(extent, new TreeSet<KeyExtent>(Arrays.asList(pair.getSecond()))).contains(pair.getSecond())) {
+              if (!KeyExtent.findOverlapping(extent, new TreeSet<>(Arrays.asList(pair.getSecond()))).contains(pair.getSecond())) {
                 throw new IllegalStateException("Fixed split does not overlap " + extent + " " + pair.getSecond());
               }
               unopenedTablets.add(pair.getSecond());
@@ -2238,7 +2237,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     log.info("Adding " + logs.size() + " logs for extent " + extent + " as alias " + id);
     long now = RelativeTime.currentTimeMillis();
-    List<String> logSet = new ArrayList<String>();
+    List<String> logSet = new ArrayList<>();
     for (DfsLogger log : logs)
       logSet.add(log.getFileName());
     LogEntry entry = new LogEntry();
@@ -2299,9 +2298,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     final Processor<Iface> processor;
     if (ThriftServerType.SASL == getThriftServerType()) {
       Iface tcredProxy = TCredentialsUpdatingWrapper.service(rpcProxy, ThriftClientHandler.class, getConfiguration());
-      processor = new Processor<Iface>(tcredProxy);
+      processor = new Processor<>(tcredProxy);
     } else {
-      processor = new Processor<Iface>(rpcProxy);
+      processor = new Processor<>(rpcProxy);
     }
     HostAndPort address = startServer(getServerConfigurationFactory().getConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor,
         "Thrift Client Server");
@@ -2313,7 +2312,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     final ReplicationServicerHandler handler = new ReplicationServicerHandler(this);
     ReplicationServicer.Iface rpcProxy = RpcWrapper.service(handler, new ReplicationServicer.Processor<ReplicationServicer.Iface>(handler));
     ReplicationServicer.Iface repl = TCredentialsUpdatingWrapper.service(rpcProxy, handler.getClass(), getConfiguration());
-    ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<ReplicationServicer.Iface>(repl);
+    ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<>(repl);
     AccumuloConfiguration conf = getServerConfigurationFactory().getConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(this, clientAddress.getHostText(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
@@ -2600,7 +2599,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
 
     try {
-      return new Pair<Text,KeyExtent>(new Text(MetadataTableUtil.getRootTabletDir()), null);
+      return new Pair<>(new Text(MetadataTableUtil.getRootTabletDir()), null);
     } catch (IOException e) {
       throw new AccumuloException(e);
     }
@@ -2624,7 +2623,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     ScannerImpl scanner = new ScannerImpl(context, tableToVerify, Authorizations.EMPTY);
     scanner.setRange(extent.toMetadataRange());
 
-    TreeMap<Key,Value> tkv = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tkv = new TreeMap<>();
     for (Entry<Key,Value> entry : scanner)
       tkv.put(entry.getKey(), entry.getValue());
 
@@ -2662,7 +2661,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       if (!fke.equals(extent)) {
-        return new Pair<Text,KeyExtent>(null, fke);
+        return new Pair<>(null, fke);
       }
 
       // reread and reverify metadata entries now that metadata entries were fixed
@@ -2670,7 +2669,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       return verifyTabletInformation(context, fke, instance, tabletsKeyValues, clientAddress, lock);
     }
 
-    return new Pair<Text,KeyExtent>(new Text(dir.get()), null);
+    return new Pair<>(new Text(dir.get()), null);
   }
 
   static Value checkTabletMetadata(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues, Text metadataEntry)
@@ -2784,7 +2783,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       @Override
       public void run() {
         Set<String> contextProperties = getConfiguration().getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
-        Set<String> configuredContexts = new HashSet<String>();
+        Set<String> configuredContexts = new HashSet<>();
         for (String prop : contextProperties) {
           configuredContexts.add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
         }
@@ -2818,7 +2817,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         ArrayList<Tablet> tablets;
 
         synchronized (onlineTablets) {
-          tablets = new ArrayList<Tablet>(onlineTablets.values());
+          tablets = new ArrayList<>(onlineTablets.values());
         }
 
         for (Tablet tablet : tablets) {
@@ -2835,9 +2834,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     Map<KeyExtent,Tablet> onlineTabletsCopy;
     synchronized (this.onlineTablets) {
-      onlineTabletsCopy = new HashMap<KeyExtent,Tablet>(this.onlineTablets);
+      onlineTabletsCopy = new HashMap<>(this.onlineTablets);
     }
-    Map<String,TableInfo> tables = new HashMap<String,TableInfo>();
+    Map<String,TableInfo> tables = new HashMap<>();
 
     for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.entrySet()) {
       String tableId = entry.getKey().getTableId().toString();
@@ -2884,7 +2883,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       table.scans.running += entry.getValue().get(ScanRunState.RUNNING);
     }
 
-    ArrayList<KeyExtent> offlineTabletsCopy = new ArrayList<KeyExtent>();
+    ArrayList<KeyExtent> offlineTabletsCopy = new ArrayList<>();
     synchronized (this.unopenedTablets) {
       synchronized (this.openingTablets) {
         offlineTabletsCopy.addAll(this.unopenedTablets);
@@ -2976,8 +2975,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<LogEntry> logEntries, Set<String> tabletFiles,
       MutationReceiver mutationReceiver) throws IOException {
-    List<Path> recoveryLogs = new ArrayList<Path>();
-    List<LogEntry> sorted = new ArrayList<LogEntry>(logEntries);
+    List<Path> recoveryLogs = new ArrayList<>();
+    List<LogEntry> sorted = new ArrayList<>(logEntries);
     Collections.sort(sorted, new Comparator<LogEntry>() {
       @Override
       public int compare(LogEntry e1, LogEntry e2) {

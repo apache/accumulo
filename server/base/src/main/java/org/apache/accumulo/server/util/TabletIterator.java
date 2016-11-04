@@ -188,7 +188,7 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
 
     Text curMetaDataRow = null;
 
-    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> tm = new TreeMap<>();
 
     boolean sawPrevEndRow = false;
 

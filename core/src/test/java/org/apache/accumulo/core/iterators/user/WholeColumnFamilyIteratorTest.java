@@ -56,9 +56,9 @@ import org.junit.Assert;
 public class WholeColumnFamilyIteratorTest extends TestCase {
 
   public void testEmptyStuff() throws IOException {
-    SortedMap<Key,Value> map = new TreeMap<Key,Value>();
-    SortedMap<Key,Value> map2 = new TreeMap<Key,Value>();
-    final Map<Text,Boolean> toInclude = new HashMap<Text,Boolean>();
+    SortedMap<Key,Value> map = new TreeMap<>();
+    SortedMap<Key,Value> map2 = new TreeMap<>();
+    final Map<Text,Boolean> toInclude = new HashMap<>();
     map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 1l), new Value("val1".getBytes()));
     map.put(new Key(new Text("r1"), new Text("cf1"), new Text("cq2"), new Text("cv1"), 2l), new Value("val2".getBytes()));
     map.put(new Key(new Text("r2"), new Text("cf1"), new Text("cq1"), new Text("cv1"), 3l), new Value("val3".getBytes()));
@@ -88,7 +88,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     }
     SortedMapIterator source = new SortedMapIterator(map);
     WholeColumnFamilyIterator iter = new WholeColumnFamilyIterator(source);
-    SortedMap<Key,Value> resultMap = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> resultMap = new TreeMap<>();
     iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
     int numRows = 0;
     while (iter.hasTop()) {
@@ -129,19 +129,19 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
   }
 
   public void testContinue() throws Exception {
-    SortedMap<Key,Value> map1 = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map1 = new TreeMap<>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, "foo");
     pkv(map1, "row1", "cf1", "cq2", "cv1", 6, "bar");
 
-    SortedMap<Key,Value> map2 = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map2 = new TreeMap<>();
     pkv(map2, "row2", "cf1", "cq1", "cv1", 5, "foo");
     pkv(map2, "row2", "cf1", "cq2", "cv1", 6, "bar");
 
-    SortedMap<Key,Value> map3 = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map3 = new TreeMap<>();
     pkv(map3, "row3", "cf1", "cq1", "cv1", 5, "foo");
     pkv(map3, "row3", "cf1", "cq2", "cv1", 6, "bar");
 
-    SortedMap<Key,Value> map = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map = new TreeMap<>();
     map.putAll(map1);
     map.putAll(map2);
     map.putAll(map3);
@@ -170,14 +170,14 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
   }
 
   public void testBug1() throws Exception {
-    SortedMap<Key,Value> map1 = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map1 = new TreeMap<>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, "foo");
     pkv(map1, "row1", "cf1", "cq2", "cv1", 6, "bar");
 
-    SortedMap<Key,Value> map2 = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map2 = new TreeMap<>();
     pkv(map2, "row2", "cf1", "cq1", "cv1", 5, "foo");
 
-    SortedMap<Key,Value> map = new TreeMap<Key,Value>();
+    SortedMap<Key,Value> map = new TreeMap<>();
     map.putAll(map1);
     map.putAll(map2);
 

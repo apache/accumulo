@@ -104,7 +104,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
 
     // split table
-    TreeSet<Text> splitsToAdd = new TreeSet<Text>();
+    TreeSet<Text> splitsToAdd = new TreeSet<>();
     for (int i = 0; i < 10000; i += 1000)
       splitsToAdd.add(new Text(String.format("%09d", i)));
     conn.tableOperations().addSplits(table, splitsToAdd);
@@ -116,7 +116,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     assertEquals(actualSplits.size() + 1, splits.size()); // No ranges set on the job so it'll start with -inf
 
     // set ranges and get splits
-    List<Range> ranges = new ArrayList<Range>();
+    List<Range> ranges = new ArrayList<>();
     for (Text text : actualSplits)
       ranges.add(new Range(text));
     AccumuloInputFormat.setRanges(job, ranges);
@@ -135,7 +135,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterIT {
     assertEquals(actualSplits.size(), splits.size());
 
     // auto adjust ranges
-    ranges = new ArrayList<Range>();
+    ranges = new ArrayList<>();
     for (int i = 0; i < 5; i++)
       // overlapping ranges
       ranges.add(new Range(String.format("%09d", i), String.format("%09d", i + 2)));

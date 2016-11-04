@@ -54,7 +54,7 @@ public class ChunkInputStreamTest {
   List<Entry<Key,Value>> multidata;
 
   {
-    data = new ArrayList<Entry<Key,Value>>();
+    data = new ArrayList<>();
     addData(data, "a", "refs", "id\0ext", "A&B", "ext");
     addData(data, "a", "refs", "id\0name", "A&B", "name");
     addData(data, "a", "~chunk", 100, 0, "A&B", "asdfjkl;");
@@ -72,7 +72,7 @@ public class ChunkInputStreamTest {
     addData(data, "d", "~chunk", 100, 0, "A&B", "");
     addData(data, "e", "~chunk", 100, 0, "A&B", "asdfjkl;");
     addData(data, "e", "~chunk", 100, 1, "A&B", "");
-    baddata = new ArrayList<Entry<Key,Value>>();
+    baddata = new ArrayList<>();
     addData(baddata, "a", "~chunk", 100, 0, "A", "asdfjkl;");
     addData(baddata, "b", "~chunk", 100, 0, "B", "asdfjkl;");
     addData(baddata, "b", "~chunk", 100, 2, "C", "");
@@ -86,7 +86,7 @@ public class ChunkInputStreamTest {
     addData(baddata, "e", "~chunk", 100, 2, "I", "asdfjkl;");
     addData(baddata, "f", "~chunk", 100, 2, "K", "asdfjkl;");
     addData(baddata, "g", "~chunk", 100, 0, "L", "");
-    multidata = new ArrayList<Entry<Key,Value>>();
+    multidata = new ArrayList<>();
     addData(multidata, "a", "~chunk", 100, 0, "A&B", "asdfjkl;");
     addData(multidata, "a", "~chunk", 100, 1, "A&B", "");
     addData(multidata, "a", "~chunk", 200, 0, "B&C", "asdfjkl;");
@@ -110,8 +110,8 @@ public class ChunkInputStreamTest {
   @Test
   public void testExceptionOnMultipleSetSourceWithoutClose() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
-    pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(data.iterator());
+    pi = new PeekingIterator<>(data.iterator());
     cis.setSource(pi);
     try {
       cis.setSource(pi);
@@ -125,7 +125,7 @@ public class ChunkInputStreamTest {
   @Test
   public void testExceptionOnGetVisBeforeClose() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(data.iterator());
 
     cis.setSource(pi);
     try {
@@ -143,7 +143,7 @@ public class ChunkInputStreamTest {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[5];
 
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(data.iterator());
 
     cis.setSource(pi);
     int read;
@@ -195,7 +195,7 @@ public class ChunkInputStreamTest {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(data.iterator());
 
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
@@ -248,7 +248,7 @@ public class ChunkInputStreamTest {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(scan.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(scan.iterator());
 
     cis.setSource(pi);
     assertEquals(read = cis.read(b), 8);
@@ -307,7 +307,7 @@ public class ChunkInputStreamTest {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(baddata.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(baddata.iterator());
 
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
@@ -353,7 +353,7 @@ public class ChunkInputStreamTest {
 
     assertFalse(pi.hasNext());
 
-    pi = new PeekingIterator<Entry<Key,Value>>(baddata.iterator());
+    pi = new PeekingIterator<>(baddata.iterator());
     cis.setSource(pi);
     assumeExceptionOnClose(cis);
   }
@@ -363,7 +363,7 @@ public class ChunkInputStreamTest {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(baddata.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(baddata.iterator());
 
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
@@ -404,7 +404,7 @@ public class ChunkInputStreamTest {
 
     assertFalse(pi.hasNext());
 
-    pi = new PeekingIterator<Entry<Key,Value>>(baddata.iterator());
+    pi = new PeekingIterator<>(baddata.iterator());
     cis.setSource(pi);
     assumeExceptionOnClose(cis);
   }
@@ -414,7 +414,7 @@ public class ChunkInputStreamTest {
     ChunkInputStream cis = new ChunkInputStream();
     byte[] b = new byte[20];
     int read;
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(multidata.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(multidata.iterator());
 
     b = new byte[20];
 
@@ -441,7 +441,7 @@ public class ChunkInputStreamTest {
   @Test
   public void testSingleByteRead() throws IOException {
     ChunkInputStream cis = new ChunkInputStream();
-    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(data.iterator());
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<>(data.iterator());
 
     cis.setSource(pi);
     assertEquals((byte) 'a', (byte) cis.read());

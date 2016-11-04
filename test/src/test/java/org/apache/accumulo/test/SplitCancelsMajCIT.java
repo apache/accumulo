@@ -73,7 +73,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterIT {
     }
     bw.flush();
     // start majc
-    final AtomicReference<Exception> ex = new AtomicReference<Exception>();
+    final AtomicReference<Exception> ex = new AtomicReference<>();
     Thread thread = new Thread() {
       @Override
       public void run() {
@@ -89,7 +89,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterIT {
     long now = System.currentTimeMillis();
     UtilWaitThread.sleep(10 * 1000);
     // split the table, interrupts the compaction
-    SortedSet<Text> partitionKeys = new TreeSet<Text>();
+    SortedSet<Text> partitionKeys = new TreeSet<>();
     partitionKeys.add(new Text("10"));
     c.tableOperations().addSplits(tableName, partitionKeys);
     thread.join();

@@ -35,7 +35,7 @@ public class StatisticsDisplayFormatterTest {
 
   @Before
   public void setUp() {
-    data = new TreeMap<Key,Value>();
+    data = new TreeMap<>();
     formatter = new StatisticsDisplayFormatter();
   }
 

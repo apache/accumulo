@@ -36,7 +36,7 @@ public class AddSplitsCommand extends Command {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
     final boolean decode = cl.hasOption(base64Opt.getOpt());
 
-    final TreeSet<Text> splits = new TreeSet<Text>();
+    final TreeSet<Text> splits = new TreeSet<>();
 
     if (cl.hasOption(optSplitsFile.getOpt())) {
       splits.addAll(ShellUtil.scanFile(cl.getOptionValue(optSplitsFile.getOpt()), decode));

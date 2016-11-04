@@ -87,8 +87,8 @@ public class BatchScanSplitIT extends AccumuloClusterIT {
     System.out.println("splits : " + splits);
 
     Random random = new Random(19011230);
-    HashMap<Text,Value> expected = new HashMap<Text,Value>();
-    ArrayList<Range> ranges = new ArrayList<Range>();
+    HashMap<Text,Value> expected = new HashMap<>();
+    ArrayList<Range> ranges = new ArrayList<>();
     for (int i = 0; i < 100; i++) {
       int r = random.nextInt(numRows);
       Text row = new Text(String.format("%09x", r));
@@ -98,7 +98,7 @@ public class BatchScanSplitIT extends AccumuloClusterIT {
 
     // logger.setLevel(Level.TRACE);
 
-    HashMap<Text,Value> found = new HashMap<Text,Value>();
+    HashMap<Text,Value> found = new HashMap<>();
 
     for (int i = 0; i < 20; i++) {
       BatchScanner bs = getConnector().createBatchScanner(tableName, Authorizations.EMPTY, 4);

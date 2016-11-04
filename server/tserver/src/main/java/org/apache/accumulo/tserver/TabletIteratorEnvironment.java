@@ -40,7 +40,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private final IteratorScope scope;
   private final boolean fullMajorCompaction;
   private final AccumuloConfiguration config;
-  private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+  private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
   private Map<FileRef,DataFileValue> files;
 
   private final Authorizations authorizations; // these will only be supplied during scan scope
@@ -118,7 +118,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   public SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
     if (topLevelIterators.isEmpty())
       return iter;
-    ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
+    ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
     allIters.add(iter);
     return new MultiIterator(allIters, false);
   }

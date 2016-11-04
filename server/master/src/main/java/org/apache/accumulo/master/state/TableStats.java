@@ -24,14 +24,14 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.io.Text;
 
 public class TableStats {
-  private Map<Text,TableCounts> last = new HashMap<Text,TableCounts>();
+  private Map<Text,TableCounts> last = new HashMap<>();
   private Map<Text,TableCounts> next;
   private long startScan = 0;
   private long endScan = 0;
   private MasterState state;
 
   public synchronized void begin() {
-    next = new HashMap<Text,TableCounts>();
+    next = new HashMap<>();
     startScan = System.currentTimeMillis();
   }
 

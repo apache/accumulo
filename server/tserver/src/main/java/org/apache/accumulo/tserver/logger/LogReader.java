@@ -59,7 +59,7 @@ public class LogReader {
     @Parameter(names = "-p", description = "search for a row that matches the given regex")
     String regexp;
     @Parameter(description = "<logfile> { <logfile> ... }")
-    List<String> files = new ArrayList<String>();
+    List<String> files = new ArrayList<>();
   }
 
   /**
@@ -91,7 +91,7 @@ public class LogReader {
       rowMatcher = pattern.matcher("");
     }
 
-    Set<Integer> tabletIds = new HashSet<Integer>();
+    Set<Integer> tabletIds = new HashSet<>();
 
     for (String file : opts.files) {
 

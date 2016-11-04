@@ -131,7 +131,7 @@ public class DfsLogger {
     VolumeManager getFileSystem();
   }
 
-  private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<DfsLogger.LogWork>();
+  private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<>();
 
   private final Object closeLock = new Object();
 
@@ -145,7 +145,7 @@ public class DfsLogger {
 
     @Override
     public void run() {
-      ArrayList<DfsLogger.LogWork> work = new ArrayList<DfsLogger.LogWork>();
+      ArrayList<DfsLogger.LogWork> work = new ArrayList<>();
       boolean sawClosedMarker = false;
       while (!sawClosedMarker) {
         work.clear();
@@ -336,7 +336,7 @@ public class DfsLogger {
 
           // If it's null, we won't have any parameters whatsoever. First, let's attempt to read
           // parameters
-          Map<String,String> opts = new HashMap<String,String>();
+          Map<String,String> opts = new HashMap<>();
           int count = input.readInt();
           for (int i = 0; i < count; i++) {
             String key = input.readUTF();
@@ -575,7 +575,7 @@ public class DfsLogger {
 
   public LoggerOperation logManyTablets(List<TabletMutations> mutations) throws IOException {
     Durability durability = Durability.NONE;
-    List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<Pair<LogFileKey,LogFileValue>>();
+    List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<>();
     for (TabletMutations tabletMutations : mutations) {
       LogFileKey key = new LogFileKey();
       key.event = MANY_MUTATIONS;
@@ -583,7 +583,7 @@ public class DfsLogger {
       key.tid = tabletMutations.getTid();
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
-      data.add(new Pair<LogFileKey,LogFileValue>(key, value));
+      data.add(new Pair<>(key, value));
       if (tabletMutations.getDurability().ordinal() > durability.ordinal()) {
         durability = tabletMutations.getDurability();
       }
@@ -606,7 +606,7 @@ public class DfsLogger {
     key.event = COMPACTION_FINISH;
     key.seq = seq;
     key.tid = tid;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), durability);
+    return logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), durability);
   }
 
   public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn, Durability durability) throws IOException {
@@ -615,7 +615,7 @@ public class DfsLogger {
     key.seq = seq;
     key.tid = tid;
     key.filename = fqfn;
-    return logFileData(Collections.singletonList(new Pair<LogFileKey,LogFileValue>(key, EMPTY)), durability);
+    return logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), durability);
   }
 
   public String getLogger() {

@@ -72,7 +72,7 @@ public class TableOp extends Test {
         groups = ImageFixture.getLocalityGroups();
       } else {
         log.debug("Removing locality groups from " + state.getString("imageTableName"));
-        groups = new HashMap<String,Set<Text>>();
+        groups = new HashMap<>();
       }
 
       tableOps.setLocalityGroups(state.getString("imageTableName"), groups);

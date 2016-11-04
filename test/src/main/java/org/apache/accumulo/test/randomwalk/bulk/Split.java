@@ -28,7 +28,7 @@ public class Split extends SelectiveBulkTest {
 
   @Override
   protected void runLater(State state, Environment env) throws Exception {
-    SortedSet<Text> splits = new TreeSet<Text>();
+    SortedSet<Text> splits = new TreeSet<>();
     Random rand = (Random) state.get("rand");
     int count = rand.nextInt(20);
     for (int i = 0; i < count; i++)

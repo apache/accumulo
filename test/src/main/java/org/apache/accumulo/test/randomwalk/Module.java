@@ -116,8 +116,8 @@ public class Module extends Node {
     }
   }
 
-  private HashMap<String,Node> nodes = new HashMap<String,Node>();
-  private HashMap<String,Properties> localProps = new HashMap<String,Properties>();
+  private HashMap<String,Node> nodes = new HashMap<>();
+  private HashMap<String,Properties> localProps = new HashMap<>();
 
   private class Edge {
     String nodeId;
@@ -126,7 +126,7 @@ public class Module extends Node {
 
   private class AdjList {
 
-    private List<Edge> edges = new ArrayList<Edge>();
+    private List<Edge> edges = new ArrayList<>();
     private int totalWeight = 0;
     private Random rand = new Random();
 
@@ -167,9 +167,9 @@ public class Module extends Node {
     }
   }
 
-  private HashMap<String,String> prefixes = new HashMap<String,String>();
-  private HashMap<String,AdjList> adjMap = new HashMap<String,AdjList>();
-  private HashMap<String,Set<String>> aliasMap = new HashMap<String,Set<String>>();
+  private HashMap<String,String> prefixes = new HashMap<>();
+  private HashMap<String,AdjList> adjMap = new HashMap<>();
+  private HashMap<String,Set<String>> aliasMap = new HashMap<>();
   private final File xmlFile;
   private String initNodeId;
   private Fixture fixture = null;
@@ -275,7 +275,7 @@ public class Module extends Node {
           }
 
           // Wrap the visit of the next node in the module in a callable that returns a thrown exception
-          FutureTask<Exception> task = new FutureTask<Exception>(new Callable<Exception>() {
+          FutureTask<Exception> task = new FutureTask<>(new Callable<Exception>() {
 
             @Override
             public Exception call() throws Exception {
@@ -327,7 +327,7 @@ public class Module extends Node {
             log.debug("  " + entry.getKey() + ": " + entry.getValue());
           }
           log.debug("State information");
-          for (String key : new TreeSet<String>(state.getMap().keySet())) {
+          for (String key : new TreeSet<>(state.getMap().keySet())) {
             Object value = state.getMap().get(key);
             String logMsg = "  " + key + ": ";
             if (value == null)
@@ -565,7 +565,7 @@ public class Module extends Node {
 
       // parse aliases
       NodeList aliaslist = nodeEl.getElementsByTagName("alias");
-      Set<String> aliases = new TreeSet<String>();
+      Set<String> aliases = new TreeSet<>();
       for (int j = 0; j < aliaslist.getLength(); j++) {
         Element propEl = (Element) aliaslist.item(j);
 

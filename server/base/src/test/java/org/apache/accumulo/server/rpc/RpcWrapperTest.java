@@ -49,12 +49,12 @@ public class RpcWrapperTest {
    * @return A ProcessFunction.
    */
   private fake_proc<FakeService> createProcessFunction(String methodName, boolean isOneway) {
-    return new fake_proc<FakeService>(methodName, isOneway);
+    return new fake_proc<>(methodName, isOneway);
   }
 
   @Test
   public void testSomeOnewayMethods() {
-    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<>();
     procs.put("foo", createProcessFunction("foo", true));
     procs.put("foobar", createProcessFunction("foobar", false));
     procs.put("bar", createProcessFunction("bar", true));
@@ -66,7 +66,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testNoOnewayMethods() {
-    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<>();
     procs.put("foo", createProcessFunction("foo", false));
     procs.put("foobar", createProcessFunction("foobar", false));
     procs.put("bar", createProcessFunction("bar", false));
@@ -78,7 +78,7 @@ public class RpcWrapperTest {
 
   @Test
   public void testAllOnewayMethods() {
-    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<String,ProcessFunction<FakeService,?>>();
+    Map<String,ProcessFunction<FakeService,?>> procs = new HashMap<>();
     procs.put("foo", createProcessFunction("foo", true));
     procs.put("foobar", createProcessFunction("foobar", true));
     procs.put("bar", createProcessFunction("bar", true));

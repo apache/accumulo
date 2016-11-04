@@ -204,7 +204,7 @@ public class Proxy implements KeywordExecutable {
     AccumuloProxy.Iface wrappedImpl = RpcWrapper.service(impl, new AccumuloProxy.Processor<AccumuloProxy.Iface>(impl));
 
     // Create the processor from the implementation
-    TProcessor processor = new AccumuloProxy.Processor<AccumuloProxy.Iface>(wrappedImpl);
+    TProcessor processor = new AccumuloProxy.Processor<>(wrappedImpl);
 
     // Get the type of thrift server to instantiate
     final String serverTypeStr = properties.getProperty(THRIFT_SERVER_TYPE, THRIFT_SERVER_TYPE_DEFAULT);

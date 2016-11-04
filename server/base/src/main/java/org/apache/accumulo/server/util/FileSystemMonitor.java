@@ -56,7 +56,7 @@ public class FileSystemMonitor {
       mountPoint = tokens[1].trim();
       filesystemType = tokens[2].trim().toLowerCase();
 
-      options = new HashSet<String>(Arrays.asList(tokens[3].split(",")));
+      options = new HashSet<>(Arrays.asList(tokens[3].split(",")));
     }
 
     @Override
@@ -80,7 +80,7 @@ public class FileSystemMonitor {
   }
 
   static List<Mount> getMountsFromFile(BufferedReader br) throws IOException {
-    List<Mount> mounts = new ArrayList<Mount>();
+    List<Mount> mounts = new ArrayList<>();
     String line;
     while ((line = br.readLine()) != null) {
       Mount mount = new Mount(line);
@@ -94,7 +94,7 @@ public class FileSystemMonitor {
     return mounts;
   }
 
-  private Map<String,Boolean> readWriteFilesystems = new HashMap<String,Boolean>();
+  private Map<String,Boolean> readWriteFilesystems = new HashMap<>();
 
   public FileSystemMonitor(final String procFile, long period) throws IOException {
     List<Mount> mounts = parse(procFile);

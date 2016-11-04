@@ -30,8 +30,8 @@ import java.util.Set;
  */
 
 public class Token {
-  private Set<String> command = new HashSet<String>();
-  private Set<Token> subcommands = new HashSet<Token>();
+  private Set<String> command = new HashSet<>();
+  private Set<Token> subcommands = new HashSet<>();
   private boolean caseSensitive = false;
 
   public Token() {}
@@ -73,7 +73,7 @@ public class Token {
   }
 
   public Set<String> getSubcommandNames() {
-    HashSet<String> set = new HashSet<String>();
+    HashSet<String> set = new HashSet<>();
     for (Token t : subcommands)
       set.addAll(t.getCommandNames());
     return set;
@@ -81,7 +81,7 @@ public class Token {
 
   public Set<String> getSubcommandNames(String startsWith) {
     Iterator<Token> iter = subcommands.iterator();
-    HashSet<String> set = new HashSet<String>();
+    HashSet<String> set = new HashSet<>();
     while (iter.hasNext()) {
       Token t = iter.next();
       Set<String> subset = t.getCommandNames();

@@ -113,7 +113,7 @@ public class SortedLogRecoveryTest {
   }
 
   private static class CaptureMutations implements MutationReceiver {
-    public ArrayList<Mutation> result = new ArrayList<Mutation>();
+    public ArrayList<Mutation> result = new ArrayList<>();
 
     @Override
     public void receive(Mutation m) {
@@ -133,7 +133,7 @@ public class SortedLogRecoveryTest {
     VolumeManager fs = VolumeManagerImpl.getLocal(workdir);
     final Path workdirPath = new Path("file://" + workdir);
     fs.deleteRecursively(workdirPath);
-    ArrayList<Path> dirs = new ArrayList<Path>();
+    ArrayList<Path> dirs = new ArrayList<>();
     try {
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
         String path = workdir + "/" + entry.getKey();
@@ -177,7 +177,7 @@ public class SortedLogRecoveryTest {
     KeyValue entries5[] = new KeyValue[] {createKeyValue(OPEN, 0, 4, "70"), createKeyValue(DEFINE_TABLET, 1, 4, extent),
         createKeyValue(COMPACTION_START, 3, 4, "/t1/f3"), createKeyValue(MUTATION, 2, 4, ignored), createKeyValue(MUTATION, 6, 4, m2),};
 
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
     logs.put("entries3", entries3);
@@ -217,7 +217,7 @@ public class SortedLogRecoveryTest {
         createKeyValue(MUTATION, 11, 1, ignored), createKeyValue(MUTATION, 15, 1, m), createKeyValue(MUTATION, 16, 1, m2),};
     KeyValue entries4[] = new KeyValue[] {createKeyValue(OPEN, 17, -1, "4"), createKeyValue(DEFINE_TABLET, 18, 1, extent),
         createKeyValue(COMPACTION_START, 20, 1, "/t1/f3"), createKeyValue(MUTATION, 19, 1, m3), createKeyValue(MUTATION, 21, 1, m4),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
     logs.put("entries3", entries3);
@@ -252,7 +252,7 @@ public class SortedLogRecoveryTest {
     KeyValue entries2[] = new KeyValue[] {createKeyValue(OPEN, 0, 1, "2"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 2, 1, "/t1/f1"), createKeyValue(COMPACTION_FINISH, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 3, 1, m2),};
 
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
 
@@ -269,7 +269,7 @@ public class SortedLogRecoveryTest {
   public void testEmpty() throws IOException {
     // Create a test log
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
     List<Mutation> mutations = recover(logs, extent);
@@ -282,7 +282,7 @@ public class SortedLogRecoveryTest {
   public void testMissingDefinition() {
     // Create a test log
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
     try {
@@ -297,7 +297,7 @@ public class SortedLogRecoveryTest {
     Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent), createKeyValue(MUTATION, 2, 1, m),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
     List<Mutation> mutations = recover(logs, extent);
@@ -316,7 +316,7 @@ public class SortedLogRecoveryTest {
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"), createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 2, 1, ignored),
         createKeyValue(MUTATION, 5, 1, m),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
     List<Mutation> mutations = recover(logs, extent);
@@ -336,7 +336,7 @@ public class SortedLogRecoveryTest {
         createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 2, 1, ignored),};
     KeyValue entries2[] = new KeyValue[] {createKeyValue(OPEN, 4, -1, "1"), createKeyValue(DEFINE_TABLET, 5, 1, extent),
         createKeyValue(COMPACTION_FINISH, 6, 1, null), createKeyValue(MUTATION, 7, 1, m),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
     // Recover
@@ -359,7 +359,7 @@ public class SortedLogRecoveryTest {
         createKeyValue(COMPACTION_START, 3, 1, "/t1/f1"), createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 4, 1, m),};
     KeyValue entries2[] = new KeyValue[] {createKeyValue(OPEN, 5, -1, "1"), createKeyValue(DEFINE_TABLET, 6, 1, extent),
         createKeyValue(COMPACTION_FINISH, 7, 1, null), createKeyValue(MUTATION, 8, 1, m2),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
     // Recover
@@ -382,7 +382,7 @@ public class SortedLogRecoveryTest {
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_FINISH, 2, 1, null), createKeyValue(COMPACTION_START, 4, 1, "/t1/f1"), createKeyValue(COMPACTION_FINISH, 6, 1, null),
         createKeyValue(MUTATION, 3, 1, ignored), createKeyValue(MUTATION, 5, 1, m), createKeyValue(MUTATION, 7, 1, m2),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     // Recover
     List<Mutation> mutations = recover(logs, extent);
@@ -408,7 +408,7 @@ public class SortedLogRecoveryTest {
     KeyValue entries2[] = new KeyValue[] {createKeyValue(OPEN, 5, -1, "1"), createKeyValue(DEFINE_TABLET, 6, 1, extent), createKeyValue(MUTATION, 7, 1, m2),};
     KeyValue entries3[] = new KeyValue[] {createKeyValue(OPEN, 8, -1, "1"), createKeyValue(DEFINE_TABLET, 9, 1, extent),
         createKeyValue(COMPACTION_FINISH, 10, 1, null), createKeyValue(MUTATION, 11, 1, m3),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
     logs.put("entries3", entries3);
@@ -431,7 +431,7 @@ public class SortedLogRecoveryTest {
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 30, 1, "/t1/f1"), createKeyValue(COMPACTION_FINISH, 32, 1, "/t1/f1"), createKeyValue(MUTATION, 29, 1, m1),
         createKeyValue(MUTATION, 30, 1, m2),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
     List<Mutation> mutations = recover(logs, extent);
@@ -454,7 +454,7 @@ public class SortedLogRecoveryTest {
         createKeyValue(COMPACTION_START, 2, 1, "/t1/f1"), createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 3, 1, m),};
     KeyValue entries2[] = new KeyValue[] {createKeyValue(OPEN, 5, -1, "1"), createKeyValue(DEFINE_TABLET, 6, 1, extent),
         createKeyValue(COMPACTION_START, 8, 1, "/t1/f1"), createKeyValue(MUTATION, 7, 1, m2), createKeyValue(MUTATION, 9, 1, m3),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
     // Recover
@@ -498,7 +498,7 @@ public class SortedLogRecoveryTest {
         // createKeyValue(COMPACTION_START, 18, 1, "somefile"),
         // createKeyValue(COMPACTION_FINISH, 19, 1, null),
         createKeyValue(MUTATION, 8, 1, m5), createKeyValue(MUTATION, 20, 1, m6),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
     logs.put("entries3", entries3);
@@ -535,7 +535,7 @@ public class SortedLogRecoveryTest {
         createKeyValue(MUTATION, 3, 1, m), createKeyValue(MUTATION, 3, 1, m2), createKeyValue(MUTATION, 3, 1, m3),};
     KeyValue entries2[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "2"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 2, 1, "/t1/f12"), createKeyValue(MUTATION, 3, 1, m4), createKeyValue(MUTATION, 3, 1, m5),};
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
     logs.put("entries2", entries2);
     // Recover
@@ -566,7 +566,7 @@ public class SortedLogRecoveryTest {
 
     Arrays.sort(entries);
 
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
     List<Mutation> mutations = recover(logs, extent);
@@ -586,7 +586,7 @@ public class SortedLogRecoveryTest {
         createKeyValue(MUTATION, 2, 2, ignored), createKeyValue(COMPACTION_START, 3, 2, "/t/f1")};
 
     Arrays.sort(entries);
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
     List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
@@ -607,7 +607,7 @@ public class SortedLogRecoveryTest {
         createKeyValue(MUTATION, 2, 2, ignored), createKeyValue(COMPACTION_START, 3, 2, "/t/f1"), createKeyValue(MUTATION, 4, 2, m),};
 
     Arrays.sort(entries);
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
     List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
@@ -626,10 +626,10 @@ public class SortedLogRecoveryTest {
         createKeyValue(COMPACTION_START, 3, 2, compactionStartFile), createKeyValue(MUTATION, 4, 2, m2),};
 
     Arrays.sort(entries);
-    Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
+    Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
-    HashSet<String> filesSet = new HashSet<String>();
+    HashSet<String> filesSet = new HashSet<>();
     filesSet.addAll(Arrays.asList(tabletFiles));
     List<Mutation> mutations = recover(logs, filesSet, extent);
 

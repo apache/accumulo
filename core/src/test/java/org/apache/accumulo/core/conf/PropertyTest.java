@@ -36,12 +36,12 @@ import org.junit.Test;
 public class PropertyTest {
   @Test
   public void testProperties() {
-    HashSet<String> validPrefixes = new HashSet<String>();
+    HashSet<String> validPrefixes = new HashSet<>();
     for (Property prop : Property.values())
       if (prop.getType().equals(PropertyType.PREFIX))
         validPrefixes.add(prop.getKey());
 
-    HashSet<String> propertyNames = new HashSet<String>();
+    HashSet<String> propertyNames = new HashSet<>();
     for (Property prop : Property.values()) {
       // make sure properties default values match their type
       assertTrue("Property " + prop + " has invalid default value " + prop.getDefaultValue() + " for type " + prop.getType(),
@@ -68,7 +68,7 @@ public class PropertyTest {
 
   @Test
   public void testPorts() {
-    HashSet<Integer> usedPorts = new HashSet<Integer>();
+    HashSet<Integer> usedPorts = new HashSet<>();
     for (Property prop : Property.values())
       if (prop.getType().equals(PropertyType.PORT)) {
         int port = Integer.parseInt(prop.getDefaultValue());
@@ -94,7 +94,7 @@ public class PropertyTest {
 
   @Test
   public void testSensitiveKeys() {
-    final TreeMap<String,String> extras = new TreeMap<String,String>();
+    final TreeMap<String,String> extras = new TreeMap<>();
     extras.put("trace.token.property.blah", "something");
 
     AccumuloConfiguration conf = new DefaultConfiguration() {
@@ -122,14 +122,14 @@ public class PropertyTest {
         };
       }
     };
-    TreeSet<String> expected = new TreeSet<String>();
+    TreeSet<String> expected = new TreeSet<>();
     for (Entry<String,String> entry : conf) {
       String key = entry.getKey();
       if (key.equals(Property.INSTANCE_SECRET.getKey()) || key.toLowerCase().contains("password") || key.toLowerCase().endsWith("secret")
           || key.startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey()))
         expected.add(key);
     }
-    TreeSet<String> actual = new TreeSet<String>();
+    TreeSet<String> actual = new TreeSet<>();
     for (Entry<String,String> entry : conf) {
       String key = entry.getKey();
       if (Property.isSensitive(key))

@@ -266,7 +266,7 @@ public class ZooCacheTest {
   }
 
   private Watcher watchData(byte[] initialData) throws Exception {
-    Capture<Watcher> cw = new Capture<Watcher>();
+    Capture<Watcher> cw = new Capture<>();
     Stat existsStat = new Stat();
     if (initialData != null) {
       expect(zk.exists(eq(ZPATH), capture(cw))).andReturn(existsStat);
@@ -335,7 +335,7 @@ public class ZooCacheTest {
   }
 
   private Watcher watchChildren(List<String> initialChildren) throws Exception {
-    Capture<Watcher> cw = new Capture<Watcher>();
+    Capture<Watcher> cw = new Capture<>();
     expect(zk.getChildren(eq(ZPATH), capture(cw))).andReturn(initialChildren);
     replay(zk);
     zc.getChildren(ZPATH);

@@ -132,7 +132,7 @@ public class LogSorter {
         final long bufferSize = conf.getMemoryInBytes(Property.TSERV_SORT_BUFFER_SIZE);
         Thread.currentThread().setName("Sorting " + name + " for recovery");
         while (true) {
-          final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<Pair<LogFileKey,LogFileValue>>();
+          final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
           try {
             long start = input.getPos();
             while (input.getPos() - start < bufferSize) {
@@ -140,7 +140,7 @@ public class LogSorter {
               LogFileValue value = new LogFileValue();
               key.readFields(decryptingInput);
               value.readFields(decryptingInput);
-              buffer.add(new Pair<LogFileKey,LogFileValue>(key, value));
+              buffer.add(new Pair<>(key, value));
             }
             writeBuffer(destPath, buffer, part++);
             buffer.clear();
@@ -236,7 +236,7 @@ public class LogSorter {
   }
 
   public List<RecoveryStatus> getLogSorts() {
-    List<RecoveryStatus> result = new ArrayList<RecoveryStatus>();
+    List<RecoveryStatus> result = new ArrayList<>();
     synchronized (currentWork) {
       for (Entry<String,LogProcessor> entries : currentWork.entrySet()) {
         RecoveryStatus status = new RecoveryStatus();

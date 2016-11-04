@@ -46,7 +46,7 @@ public class DeadServerList {
   }
 
   public List<DeadServer> getList() {
-    List<DeadServer> result = new ArrayList<DeadServer>();
+    List<DeadServer> result = new ArrayList<>();
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       List<String> children = zoo.getChildren(path);

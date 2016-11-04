@@ -64,7 +64,7 @@ public class CredentialProviderFactoryShim {
   private static Boolean hadoopClassesAvailable = null;
 
   // access to cachedProviders should be synchronized when necessary (for example see getCredentialProviders)
-  private static final ConcurrentHashMap<String,List<Object>> cachedProviders = new ConcurrentHashMap<String,List<Object>>();
+  private static final ConcurrentHashMap<String,List<Object>> cachedProviders = new ConcurrentHashMap<>();
 
   /**
    * Determine if we can load the necessary CredentialProvider classes. Only loaded the first time, so subsequent invocations of this method should return fast.
@@ -291,7 +291,7 @@ public class CredentialProviderFactoryShim {
       return Collections.emptyList();
     }
 
-    ArrayList<String> aliases = new ArrayList<String>();
+    ArrayList<String> aliases = new ArrayList<>();
     for (Object providerObj : providerObjList) {
       if (null != providerObj) {
         Object aliasesObj;

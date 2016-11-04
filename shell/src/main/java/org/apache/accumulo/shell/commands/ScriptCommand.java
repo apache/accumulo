@@ -88,7 +88,7 @@ public class ScriptCommand extends Command {
       Bindings b = engine.getBindings(ScriptContext.ENGINE_SCOPE);
       b.put("connection", shellState.getConnector());
 
-      List<Object> argValues = new ArrayList<Object>();
+      List<Object> argValues = new ArrayList<>();
       if (cl.hasOption(args.getOpt())) {
         String[] argList = cl.getOptionValue(args.getOpt()).split(",");
         for (String arg : argList) {
@@ -249,7 +249,7 @@ public class ScriptCommand extends Command {
 
   private void listJSREngineInfo(ScriptEngineManager mgr, Shell shellState) throws IOException {
     List<ScriptEngineFactory> factories = mgr.getEngineFactories();
-    Set<String> lines = new TreeSet<String>();
+    Set<String> lines = new TreeSet<>();
     for (ScriptEngineFactory factory : factories) {
       lines.add("ScriptEngineFactory Info");
       String engName = factory.getEngineName();

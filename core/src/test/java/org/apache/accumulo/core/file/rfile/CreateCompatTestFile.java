@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.Path;
 public class CreateCompatTestFile {
 
   public static Set<ByteSequence> ncfs(String... colFams) {
-    HashSet<ByteSequence> cfs = new HashSet<ByteSequence>();
+    HashSet<ByteSequence> cfs = new HashSet<>();
 
     for (String cf : colFams) {
       cfs.add(new ArrayByteSequence(cf));

@@ -73,7 +73,7 @@ public class TServerUtils {
   /**
    * Static instance, passed to {@link ClientInfoProcessorFactory}, which will contain the client address of any incoming RPC.
    */
-  public static final ThreadLocal<String> clientAddress = new ThreadLocal<String>();
+  public static final ThreadLocal<String> clientAddress = new ThreadLocal<>();
 
   /**
    * Start a server, at the given port, or higher, if that port is not available.
@@ -333,7 +333,7 @@ public class TServerUtils {
 
       // Be nice for the user and automatically remove protocols that might not exist in their JVM. Keeps us from forcing config alterations too
       // e.g. TLSv1.1 and TLSv1.2 don't exist in JDK6
-      Set<String> socketEnabledProtocols = new HashSet<String>(Arrays.asList(sslServerSock.getEnabledProtocols()));
+      Set<String> socketEnabledProtocols = new HashSet<>(Arrays.asList(sslServerSock.getEnabledProtocols()));
       // Keep only the enabled protocols that were specified by the configuration
       socketEnabledProtocols.retainAll(Arrays.asList(protocols));
       if (socketEnabledProtocols.isEmpty()) {

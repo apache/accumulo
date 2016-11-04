@@ -254,7 +254,7 @@ public class MockNamespacesTest {
     c.tableOperations().create(tableName);
 
     IteratorSetting setting = new IteratorSetting(250, iter, SimpleFilter.class.getName());
-    HashSet<IteratorScope> scope = new HashSet<IteratorScope>();
+    HashSet<IteratorScope> scope = new HashSet<>();
     scope.add(IteratorScope.scan);
     c.namespaceOperations().attachIterator(namespace, setting, EnumSet.copyOf(scope));
 

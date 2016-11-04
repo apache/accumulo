@@ -106,7 +106,7 @@ public class InsertCommand extends Command {
     try {
       bw.close();
     } catch (MutationsRejectedException e) {
-      final ArrayList<String> lines = new ArrayList<String>();
+      final ArrayList<String> lines = new ArrayList<>();
       if (e.getSecurityErrorCodes().isEmpty() == false) {
         lines.add("\tAuthorization Failures:");
       }

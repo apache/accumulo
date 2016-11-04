@@ -79,7 +79,7 @@ public class TestRandomDeletes {
   }
 
   private static TreeSet<RowColumn> scanAll(ClientOnDefaultTable opts, ScannerOpts scanOpts, String tableName) throws Exception {
-    TreeSet<RowColumn> result = new TreeSet<RowColumn>();
+    TreeSet<RowColumn> result = new TreeSet<>();
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(tableName, auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
@@ -95,7 +95,7 @@ public class TestRandomDeletes {
   private static long scrambleDeleteHalfAndCheck(ClientOnDefaultTable opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts, String tableName, Set<RowColumn> rows)
       throws Exception {
     int result = 0;
-    ArrayList<RowColumn> entries = new ArrayList<RowColumn>(rows);
+    ArrayList<RowColumn> entries = new ArrayList<>(rows);
     java.util.Collections.shuffle(entries);
 
     Connector connector = opts.getConnector();

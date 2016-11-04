@@ -72,7 +72,7 @@ public class TabletServerLogger {
   private final TabletServer tserver;
 
   // The current log set: always updated to a new set with every change of loggers
-  private final List<DfsLogger> loggers = new ArrayList<DfsLogger>();
+  private final List<DfsLogger> loggers = new ArrayList<>();
 
   // The current generation of logSet.
   // Because multiple threads can be using a log set at one time, a log
@@ -280,7 +280,7 @@ public class TabletServerLogger {
     while (!success) {
       try {
         // get a reference to the loggers that no other thread can touch
-        ArrayList<DfsLogger> copy = new ArrayList<DfsLogger>();
+        ArrayList<DfsLogger> copy = new ArrayList<>();
         currentLogSet = initializeLoggers(copy);
 
         // add the logger to the log set for the memory in the tablet,
@@ -301,7 +301,7 @@ public class TabletServerLogger {
               // Need to release
               KeyExtent extent = commitSession.getExtent();
               if (ReplicationConfigurationUtil.isEnabled(extent, tserver.getTableConfiguration(extent))) {
-                Set<String> logs = new HashSet<String>();
+                Set<String> logs = new HashSet<>();
                 for (DfsLogger logger : copy) {
                   logs.add(logger.getFileName());
                 }
@@ -321,7 +321,7 @@ public class TabletServerLogger {
           seq = seqGen.incrementAndGet();
           if (seq < 0)
             throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
-          ArrayList<LoggerOperation> queuedOperations = new ArrayList<LoggerOperation>(copy.size());
+          ArrayList<LoggerOperation> queuedOperations = new ArrayList<>(copy.size());
           for (DfsLogger wal : copy) {
             queuedOperations.add(writer.write(wal, seq));
           }
@@ -414,7 +414,7 @@ public class TabletServerLogger {
 
   public int logManyTablets(Map<CommitSession,Mutations> mutations) throws IOException {
 
-    final Map<CommitSession,Mutations> loggables = new HashMap<CommitSession,Mutations>(mutations);
+    final Map<CommitSession,Mutations> loggables = new HashMap<>(mutations);
     for (Entry<CommitSession,Mutations> entry : mutations.entrySet()) {
       if (entry.getValue().getDurability() == Durability.NONE) {
         loggables.remove(entry.getKey());
@@ -426,7 +426,7 @@ public class TabletServerLogger {
     int seq = write(loggables.keySet(), false, new Writer() {
       @Override
       public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
-        List<TabletMutations> copy = new ArrayList<TabletMutations>(loggables.size());
+        List<TabletMutations> copy = new ArrayList<>(loggables.size());
         for (Entry<CommitSession,Mutations> entry : loggables.entrySet()) {
           CommitSession cs = entry.getKey();
           Durability durability = entry.getValue().getDurability();

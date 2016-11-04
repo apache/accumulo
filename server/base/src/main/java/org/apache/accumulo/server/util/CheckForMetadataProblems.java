@@ -90,7 +90,7 @@ public class CheckForMetadataProblems {
 
   public static void checkMetadataAndRootTableEntries(String tableNameToCheck, ClientOpts opts, VolumeManager fs) throws Exception {
     System.out.println("Checking table: " + tableNameToCheck);
-    Map<String,TreeSet<KeyExtent>> tables = new HashMap<String,TreeSet<KeyExtent>>();
+    Map<String,TreeSet<KeyExtent>> tables = new HashMap<>();
 
     Scanner scanner;
 
@@ -124,7 +124,7 @@ public class CheckForMetadataProblems {
 
         tables.clear();
 
-        tablets = new TreeSet<KeyExtent>();
+        tablets = new TreeSet<>();
         tables.put(tableName, tablets);
       }
 

@@ -331,7 +331,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     // Compute the total set of WALs used by tservers
     Set<String> walogs = null;
     if (null != tservers) {
-      walogs = new HashSet<String>();
+      walogs = new HashSet<>();
       // TODO If we have a lot of tservers, this might start to take a fair amount of time
       // Consider adding a threadpool to parallelize the requests.
       // Alternatively, we might have to move to a solution that doesn't involve tserver RPC

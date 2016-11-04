@@ -118,10 +118,10 @@ public class NamespaceConfigurationTest {
   @Test
   public void testGetProperties() {
     Predicate<String> all = Predicates.alwaysTrue();
-    Map<String,String> props = new java.util.HashMap<String,String>();
+    Map<String,String> props = new java.util.HashMap<>();
     parent.getProperties(props, all);
     replay(parent);
-    List<String> children = new java.util.ArrayList<String>();
+    List<String> children = new java.util.ArrayList<>();
     children.add("foo");
     children.add("ding");
     expect(zc.getChildren(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF)).andReturn(children);

@@ -157,7 +157,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     if (in.readBoolean()) {
       int numColumns = in.readInt();
-      List<String> columns = new ArrayList<String>(numColumns);
+      List<String> columns = new ArrayList<>(numColumns);
       for (int i = 0; i < numColumns; i++) {
         columns.add(in.readUTF());
       }
@@ -206,7 +206,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     if (in.readBoolean()) {
       int numIterators = in.readInt();
-      iterators = new ArrayList<IteratorSetting>(numIterators);
+      iterators = new ArrayList<>(numIterators);
       for (int i = 0; i < numIterators; i++) {
         iterators.add(new IteratorSetting(in));
       }
@@ -455,7 +455,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public void setFetchedColumns(Collection<Pair<Text,Text>> fetchedColumns) {
-    this.fetchedColumns = new HashSet<Pair<Text,Text>>();
+    this.fetchedColumns = new HashSet<>();
     for (Pair<Text,Text> columns : fetchedColumns) {
       this.fetchedColumns.add(columns);
     }

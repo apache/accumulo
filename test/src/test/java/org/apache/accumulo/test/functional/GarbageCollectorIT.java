@@ -337,7 +337,7 @@ public class GarbageCollectorIT extends ConfigurableMacIT {
     Scanner scanner = getConnector().createScanner("accumulo.metadata", Authorizations.EMPTY);
     scanner.setRange(Range.prefix(new Text(tableId)));
     scanner.fetchColumnFamily(new Text("log"));
-    List<String> walsList = new ArrayList<String>();
+    List<String> walsList = new ArrayList<>();
     for (Entry<Key,Value> e : scanner) {
       walsList.add(e.getValue().toString());
     }

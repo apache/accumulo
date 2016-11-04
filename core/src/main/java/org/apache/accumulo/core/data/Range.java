@@ -427,10 +427,10 @@ public class Range implements WritableComparable<Range> {
     if (ranges.size() == 1)
       return Collections.singletonList(ranges.iterator().next());
 
-    List<Range> ral = new ArrayList<Range>(ranges);
+    List<Range> ral = new ArrayList<>(ranges);
     Collections.sort(ral);
 
-    ArrayList<Range> ret = new ArrayList<Range>(ranges.size());
+    ArrayList<Range> ret = new ArrayList<>(ranges.size());
 
     Range currentRange = ral.get(0);
     boolean currentStartKeyInclusive = ral.get(0).startKeyInclusive;

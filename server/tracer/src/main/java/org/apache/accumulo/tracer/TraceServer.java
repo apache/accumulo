@@ -239,8 +239,7 @@ public class TraceServer implements Watcher {
     options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
     registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(), conf.get(Property.TRACE_ZK_PATH));
-    writer = new AtomicReference<BatchWriter>(this.connector.createBatchWriter(table,
-        new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
+    writer = new AtomicReference<>(this.connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
   }
 
   public void run() throws Exception {

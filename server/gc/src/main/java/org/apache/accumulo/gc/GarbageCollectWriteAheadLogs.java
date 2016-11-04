@@ -151,8 +151,8 @@ public class GarbageCollectWriteAheadLogs {
 
       status.currentLog.started = System.currentTimeMillis();
 
-      Map<Path,String> fileToServerMap = new HashMap<Path,String>();
-      Map<String,Path> nameToFileMap = new HashMap<String,Path>();
+      Map<Path,String> fileToServerMap = new HashMap<>();
+      Map<String,Path> nameToFileMap = new HashMap<>();
       int count = scanServers(fileToServerMap, nameToFileMap);
       long fileScanStop = System.currentTimeMillis();
       log.info(String.format("Fetched %d files from %d servers in %.2f seconds", fileToServerMap.size(), count,
@@ -424,7 +424,7 @@ public class GarbageCollectWriteAheadLogs {
    * @return string forms of paths
    */
   static List<String> paths2strings(List<Path> paths) {
-    List<String> result = new ArrayList<String>(paths.size());
+    List<String> result = new ArrayList<>(paths.size());
     for (Path path : paths)
       result.add(path.toString());
     return result;
@@ -441,13 +441,13 @@ public class GarbageCollectWriteAheadLogs {
    * @return map of servers to lists of file paths
    */
   static Map<String,ArrayList<Path>> mapServersToFiles(Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) {
-    Map<String,ArrayList<Path>> result = new HashMap<String,ArrayList<Path>>();
+    Map<String,ArrayList<Path>> result = new HashMap<>();
     for (Entry<Path,String> fileServer : fileToServerMap.entrySet()) {
       if (!nameToFileMap.containsKey(fileServer.getKey().getName()))
         continue;
       ArrayList<Path> files = result.get(fileServer.getValue());
       if (files == null) {
-        files = new ArrayList<Path>();
+        files = new ArrayList<>();
         result.put(fileServer.getValue(), files);
       }
       files.add(fileServer.getKey());
@@ -597,7 +597,7 @@ public class GarbageCollectWriteAheadLogs {
    * @return number of servers located (including those with no logs present)
    */
   int scanServers(String[] walDirs, Map<Path,String> fileToServerMap, Map<String,Path> nameToFileMap) throws Exception {
-    Set<String> servers = new HashSet<String>();
+    Set<String> servers = new HashSet<>();
     for (String walDir : walDirs) {
       Path walRoot = new Path(walDir);
       FileStatus[] listing = null;
@@ -647,7 +647,7 @@ public class GarbageCollectWriteAheadLogs {
    * @return map of log file names to paths
    */
   Map<String,Path> getSortedWALogs(String[] recoveryDirs) throws IOException {
-    Map<String,Path> result = new HashMap<String,Path>();
+    Map<String,Path> result = new HashMap<>();
 
     for (String dir : recoveryDirs) {
       Path recoveryDir = new Path(dir);

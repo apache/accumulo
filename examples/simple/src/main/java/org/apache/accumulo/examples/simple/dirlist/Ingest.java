@@ -132,7 +132,7 @@ public class Ingest {
     @Parameter(names = "--chunkSize", description = "the size of chunks when breaking down files")
     int chunkSize = 100000;
     @Parameter(description = "<dir> { <dir> ... }")
-    List<String> directories = new ArrayList<String>();
+    List<String> directories = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {

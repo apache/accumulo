@@ -39,7 +39,7 @@ public class Split extends Test {
     String row = Utils.getBank(rand.nextInt((Integer) state.get("numBanks")));
 
     log.debug("adding split " + row);
-    conn.tableOperations().addSplits(table, new TreeSet<Text>(Arrays.asList(new Text(row))));
+    conn.tableOperations().addSplits(table, new TreeSet<>(Arrays.asList(new Text(row))));
   }
 
 }
