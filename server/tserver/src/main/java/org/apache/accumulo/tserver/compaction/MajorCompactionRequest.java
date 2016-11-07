@@ -68,6 +68,15 @@ public class MajorCompactionRequest implements Cloneable {
     return files;
   }
 
+  /**
+   * returns a summary if it exist in file... otherwise null
+   * 
+   */
+  public Map<String,Long> getSummary(FileRef ref, String id) {
+    // TODO implement
+    return null;
+  }
+
   public void setFiles(Map<FileRef,DataFileValue> update) {
     this.files = Collections.unmodifiableMap(update);
   }

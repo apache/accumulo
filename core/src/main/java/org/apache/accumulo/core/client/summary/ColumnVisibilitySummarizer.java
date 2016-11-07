@@ -1,0 +1,87 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.accumulo.core.client.summary;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.commons.lang.mutable.MutableLong;
+
+public class ColumnVisibilitySummarizer implements KeyValueSummarizer {
+
+  private static final int MAX = 5000;
+  private static final String PREFIX = "cv:";
+  private static final String IGNORE_KEY = "ignored";
+
+  // map for computing summary incrementally stores information in efficient form
+  private Map<ByteSequence,MutableLong> summary = new HashMap<>();
+  private long ignored = 0;
+
+  @Override
+  public String getId() {
+    return "accumulo.cvsummary";
+  }
+
+  @Override
+  public void collect(Key k, Value v) {
+    ByteSequence cv = k.getColumnVisibilityData();
+
+    MutableLong ml = summary.get(cv);
+    if (ml == null) {
+      if (summary.size() >= MAX) {
+        ignored++;
+      } else {
+        summary.put(cv, new MutableLong(1));
+      }
+    } else {
+      ml.increment();
+    }
+  }
+
+  @Override
+  public Map<String,Long> summarize() {
+    HashMap<String,Long> ret = new HashMap<>();
+
+    summary.forEach((k, v) -> {
+      ret.put(PREFIX + k.toString(), v.toLong());
+    });
+
+    ret.put(IGNORE_KEY, ignored);
+
+    return ret;
+  }
+
+  @Override
+  public void merge(Map<String,Long> summary1, Map<String,Long> summary2) {
+    summary2.forEach((k2, v2) -> {
+      Long v1 = summary1.get(k2);
+      if (v1 == null) {
+        if (summary1.size() > MAX) {
+          summary1.merge(IGNORE_KEY, v2, Long::sum);
+        } else {
+          summary1.put(k2, v2);
+        }
+      } else {
+        summary1.put(k2, v1 + v2);
+      }
+    });
+  }
+}
