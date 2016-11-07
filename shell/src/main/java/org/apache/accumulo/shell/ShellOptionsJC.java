@@ -168,7 +168,8 @@ public class ShellOptionsJC {
   @Parameter(names = {"-h", "--hdfsZooInstance"}, description = "use hdfs zoo instance")
   private boolean hdfsZooInstance;
 
-  @Parameter(names = {"-z", "--zooKeeperInstance"}, description = "use a zookeeper instance with the given instance name and list of zoo hosts", arity = 2)
+  @Parameter(names = {"-z", "--zooKeeperInstance"}, description = "use a zookeeper instance with the given instance name and list of zoo hosts. "
+      + "Syntax: -z <zoo-instance-name> <zoo-hosts>. Where <zoo-hosts> is a comma separated list of zookeeper servers.", arity = 2)
   private List<String> zooKeeperInstance = new ArrayList<>();
 
   @Parameter(names = {"--ssl"}, description = "use ssl to connect to accumulo")
@@ -182,10 +183,12 @@ public class ShellOptionsJC {
       + "which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
   private String clientConfigFile = null;
 
-  @Parameter(names = {"-zi", "--zooKeeperInstanceName"}, description = "use a zookeeper instance with the given instance name")
+  @Parameter(names = {"-zi", "--zooKeeperInstanceName"}, description = "use a zookeeper instance with the given instance name. "
+      + "This parameter is used in conjunction with -zh.")
   private String zooKeeperInstanceName;
 
-  @Parameter(names = {"-zh", "--zooKeeperHosts"}, description = "use a zookeeper instance with the given list of zoo hosts")
+  @Parameter(names = {"-zh", "--zooKeeperHosts"}, description = "use a zookeeper instance with the given comma separated list of zookeeper servers. "
+      + "This parameter is used in conjunction with -zi.")
   private String zooKeeperHosts;
 
   @Parameter(names = "--auth-timeout", description = "minutes the shell can be idle without re-entering a password")
