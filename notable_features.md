@@ -432,7 +432,7 @@ that fall completely within a range are simply dropped. Tablets overlapping the
 beginning and end of the range are split, compacted, and then merged.  
 
 [FATE]: #fate
-[M-A-P]: {{ site.baseurl }}/release_notes/1.6.0#maven-plugin
+[M-A-P]: {{ site.baseurl }}/release/accumulo-1.6.0/#maven-plugin
 [CMUT]: {{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/data/ConditionalMutation
 [CWRI]: {{ site.baseurl }}/1.6/apidocs/org/apache/accumulo/core/client/ConditionalWriter
 [4]: {{ site.baseurl }}/1.5/accumulo_user_manual#_writing_accumulo_clients

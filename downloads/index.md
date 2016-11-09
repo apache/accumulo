@@ -193,9 +193,9 @@ Older releases can be found in the [archives][ARCHIVES].
 [CHANGES_17]: https://issues.apache.org/jira/browse/ACCUMULO/fixforversion/12333776 "1.7.2 CHANGES"
 [CHANGES_18]: https://issues.apache.org/jira/browse/ACCUMULO/fixforversion/12329879 "1.8.0 CHANGES"
 
-[REL_NOTES_16]: {{ site.baseurl }}/release_notes/1.6.6 "1.6.6 Release Notes"
-[REL_NOTES_17]: {{ site.baseurl }}/release_notes/1.7.2 "1.7.2 Release Notes"
-[REL_NOTES_18]: {{ site.baseurl }}/release_notes/1.8.0 "1.8.0 Release Notes"
+[REL_NOTES_16]: {{ site.baseurl }}/release/accumulo-1.6.6/ "1.6.6 Release Notes"
+[REL_NOTES_17]: {{ site.baseurl }}/release/accumulo-1.7.2/ "1.7.2 Release Notes"
+[REL_NOTES_18]: {{ site.baseurl }}/release/accumulo-1.8.0/ "1.8.0 Release Notes"
 
 [MD5SUM_16]: https://www.apache.org/dist/accumulo/1.6.6/MD5SUM "1.6.6 MD5 file hashes"
 [MD5SUM_17]: https://www.apache.org/dist/accumulo/1.7.2/MD5SUM "1.7.2 MD5 file hashes"

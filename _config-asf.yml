@@ -35,5 +35,13 @@ defaults:
     values:
       layout: "post"
       category: "blog"
+  -
+    scope:
+      path: "_posts/release"
+      type: "posts"
+    values:
+      layout: "release"
+      category: "release"
+      permalink: "/:categories/:title/"
 whitelist: [jekyll-redirect-from]
 gems: [jekyll-redirect-from]

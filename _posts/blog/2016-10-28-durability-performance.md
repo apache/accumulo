@@ -165,10 +165,10 @@ problems with Per-durability write ahead logs.
 [fos]: https://github.com/apache/hadoop/blob/release-2.7.1/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/server/datanode/BlockReceiver.java#L358
 [ACCUMULO-4146]: https://issues.apache.org/jira/browse/ACCUMULO-4146
 [ACCUMULO-4112]: https://issues.apache.org/jira/browse/ACCUMULO-4112
-[160_RN_WAL]: {{ site.baseurl }}/release_notes/1.6.0#slower-writes-than-previous-accumulo-versions
-[161_RN_WAL]: {{ site.baseurl }}/release_notes/1.6.1#write-ahead-log-sync-implementation
+[160_RN_WAL]: {{ site.baseurl }}/release/accumulo-1.6.0#slower-writes-than-previous-accumulo-versions
+[161_RN_WAL]: {{ site.baseurl }}/release/accumulo-1.6.1#write-ahead-log-sync-implementation
 [16_UM_SM]: {{ site.baseurl }}/1.6/accumulo_user_manual#_tserver_wal_sync_method
 [17_UM_TD]: {{ site.baseurl }}/1.7/accumulo_user_manual#_table_durability
-[172_RN_MCHS]: {{ site.baseurl }}/release_notes/1.7.2#minor-performance-improvements
+[172_RN_MCHS]: {{ site.baseurl }}/release/accumulo-1.7.2#minor-performance-improvements
 [SD]: {{ site.baseurl }}/1.8/apidocs/org/apache/accumulo/core/client/BatchWriterConfig.html#setDurability(org.apache.accumulo.core.client.Durability)
 [ML]: {{ site.baseurl }}/mailing_list

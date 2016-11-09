@@ -3,13 +3,17 @@ title: News Archive
 redirect_from: /blog/
 ---
 
-<table>
+<div>
 {% for post in site.posts %}
   {% assign post_year = post.date | date: "%Y" %}
   {% assign newer_post_year = post.next.date | date: "%Y" %}
   {% if post_year != newer_post_year %}
-  <tr><th colspan="2">{{ post_year }}</th></tr>
+    <hr>
+    <h3>{{ post_year }}</h3>
   {% endif %}
-  <tr><td style="padding: 10px"><small>{{ post.date | date: "%b %d" }}</small></td><td><a href="{{ site.baseurl }}{{ post.url }}" class="post-title-archive">{{ post.title }}</a></td></tr>
+  <div class="row" style="margin-top: 15px">
+    <div class="col-md-1">{{ post.date | date: "%b %d" }}</div>
+    <div class="col-md-10"><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></div>
+  </div>
 {% endfor %}
-</table>
+</div>
