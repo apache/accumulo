@@ -27,7 +27,7 @@ import org.apache.accumulo.core.data.Value;
  * This is an example showing that really efficient summarizers can be written. There are no map lookups per key value.
  * 
  * <p>
- * Also shows how it eassily something besides counting is to do, like min and max.
+ * Also shows how it easy something besides counting is to do, like min and max.
  */
 public class ExampleSummarizer implements KeyValueSummarizer {
   private long minStamp = Long.MAX_VALUE;

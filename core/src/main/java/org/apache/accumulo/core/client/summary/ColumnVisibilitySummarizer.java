@@ -31,7 +31,8 @@ public class ColumnVisibilitySummarizer implements KeyValueSummarizer {
   private static final String PREFIX = "cv:";
   private static final String IGNORE_KEY = "ignored";
 
-  // map for computing summary incrementally stores information in efficient form
+  // Map used for computing summary incrementally uses ByteSequence for key which is more efficient than converting colvis to String for each Key. The
+  // conversion to String is deferred until the summary is requested.  This shows how the interface enables users to write efficient summarizers.
   private Map<ByteSequence,MutableLong> summary = new HashMap<>();
   private long ignored = 0;
 
@@ -47,11 +48,14 @@ public class ColumnVisibilitySummarizer implements KeyValueSummarizer {
     MutableLong ml = summary.get(cv);
     if (ml == null) {
       if (summary.size() >= MAX) {
+        //no need to store this counter in the map and get() it... just use instance variable
         ignored++;
       } else {
+        //TODO would probably be safest to copy/clone cv
         summary.put(cv, new MutableLong(1));
       }
     } else {
+      //using mutable long allows calling put() to be avoided
       ml.increment();
     }
   }
