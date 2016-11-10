@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.util;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.SortedMap;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -33,6 +34,8 @@ public class Table {
   private ArrayList<TableColumn<?>> columns;
   private ArrayList<TableRow> rows;
   private boolean hasBegunAddingRows = false;
+
+  private SortedMap<String,String> namespaces;
 
   public Table(String tableName, String caption) {
     this(tableName, caption, null);
@@ -143,7 +146,26 @@ public class Table {
       showLegend = showStr != null && Boolean.parseBoolean(showStr);
     }
 
-    sb.append("<div>\n");
+    String redir = BasicServlet.currentPage(req);
+
+    if (namespaces != null) {
+      sb.append("<div id=\"filters\">\n");
+      String namespace = BasicServlet.getCookieValue(req, "namespaceDropdown." + BasicServlet.encode(page) + "." + BasicServlet.encode(tableName) + "."
+          + "selected");
+      if (namespace == null) {
+        namespace = "*";
+      }
+      sb.append("<div class=\"table-caption\">Namespaces</div>\n");
+      sb.append("<hr />\n");
+      sb.append("<div class='left show'><dl>\n");
+      doDropdownMenu(redir, page, tableName, sb, namespaces, namespace);
+      sb.append("</dl></div>\n");
+      sb.append("</div>\n");
+      sb.append("<div id=\"tables\">\n");
+    } else {
+      sb.append("<div>\n");
+    }
+
     sb.append("<a name='").append(tableName).append("'>&nbsp;</a>\n");
     sb.append("<table id='").append(tableName).append("' class='sortable'>\n");
     sb.append("<caption");
@@ -155,7 +177,6 @@ public class Table {
     if (subcaption != null && !subcaption.isEmpty())
       sb.append("<span class='table-subcaption'>").append(subcaption).append("</span><br />\n");
 
-    String redir = BasicServlet.currentPage(req);
     if (numLegends > 0) {
       String legendUrl = String.format("/op?action=toggleLegend&redir=%s&page=%s&table=%s&show=%s", redir, page, tableName, !showLegend);
       sb.append("<a href='").append(legendUrl).append("'>").append(showLegend ? "Hide" : "Show").append("&nbsp;Legend</a>\n");
@@ -179,6 +200,7 @@ public class Table {
     }
     if (showLegend && numLegends > 0)
       sb.append("</dl></div>\n");
+
     sb.append("</caption>\n");
     sb.append("<tr>");
     boolean first = true;
@@ -227,4 +249,27 @@ public class Table {
     sb.append("</tr>\n");
   }
 
+  private static void doDropdownMenu(String redir, String page, String tableName, StringBuilder sb, SortedMap<String,String> namespaces, String namespace) {
+
+    String namespaceUrl = String.format("/op?action=namespace&redir=%s&page=%s&table=%s&selected=", redir, page, tableName);
+
+    sb.append("<ul id=\"namespaces\">\n");
+    sb.append("<li><a ").append(namespace.equals("*") ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl)
+        .append("*\">*&nbsp;(All&nbsp;Tables)</a></li>");
+    for (String key : namespaces.keySet()) {
+      if (key.equals("")) {
+        sb.append("<li><a ").append(namespace.equals("-") ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl)
+            .append("-\">-&nbsp;(DEFAULT)</a></li>");
+      } else {
+        sb.append("<li><a ").append(namespace.equals(key) ? "class=\"active\" " : "").append("href=\"").append(namespaceUrl).append(key).append("\">")
+            .append(key).append("</a></li>");
+      }
+    }
+    sb.append("</ul>\n");
+
+  }
+
+  public void setNamespaces(SortedMap<String,String> namespaces) {
+    this.namespaces = namespaces;
+  }
 }

@@ -67,6 +67,9 @@ public class MasterServlet extends BasicServlet {
     TablesServlet.doProblemsBanner(sb);
     doMasterStatus(req, sb);
     doRecoveryList(req, sb);
+    sb.append("<br />\n");
+    sb.append("<hr />\n");
+    sb.append("<br />\n");
     TablesServlet.doTableList(req, sb, tidToNameMap);
   }
 

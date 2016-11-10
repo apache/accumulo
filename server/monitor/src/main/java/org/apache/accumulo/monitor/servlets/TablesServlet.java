@@ -23,11 +23,13 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -115,7 +117,17 @@ public class TablesServlet extends BasicServlet {
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
 
-    for (Entry<String,String> tableName_tableId : Tables.getNameToIdMap(Monitor.getContext().getInstance()).entrySet()) {
+    String page = req.getRequestURI();
+
+    String namespace = BasicServlet.getCookieValue(req, "namespaceDropdown." + BasicServlet.encode(page) + "." + BasicServlet.encode("tableList") + "."
+        + "selected");
+
+    if (namespace == null) {
+      namespace = "*";
+    }
+
+    Tables.getNameToIdMap(Monitor.getContext().getInstance()).entrySet().stream().filter(matchesNamespace(namespace)).forEach(tableName_tableId -> {
+
       String tableName = tableName_tableId.getKey();
       String tableId = tableName_tableId.getValue();
       TableInfo tableInfo = tableStats.get(tableName);
@@ -137,9 +149,25 @@ public class TablesServlet extends BasicServlet {
       row.add(tableInfo);
       row.add(tableInfo);
       tableList.addRow(row);
-    }
+    });
+
+    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
+    tableList.setNamespaces(namespaces);
 
     tableList.generate(req, sb);
+  }
+
+  private static Predicate<Entry<String,String>> matchesNamespace(String namespace) {
+    return new Predicate<Entry<String,String>>() {
+      public boolean test(Entry<String,String> t) {
+        if (namespace.equals("*")) {
+          return true;
+        } else if (namespace.equals("-")) {
+          return !t.getKey().contains(".");
+        }
+        return t.getKey().startsWith(namespace + ".");
+      }
+    };
   }
 
   private void doTableDetails(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap, String tableId) {

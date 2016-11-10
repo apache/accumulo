@@ -190,4 +190,19 @@ public class OperationServlet extends BasicServlet {
       return Collections.emptyList();
     }
   }
+
+  public static class NamespaceOperation implements WebOperation {
+    @Override
+    public List<Cookie> execute(HttpServletRequest req, Logger log) throws Exception {
+      String page = req.getParameter("page");
+      String table = req.getParameter("table");
+      String selected = req.getParameter("selected");
+      if (table == null || page == null || selected == null)
+        return Collections.emptyList();
+      page = BasicServlet.encode(page);
+      table = BasicServlet.encode(table);
+      selected = BasicServlet.encode(selected);
+      return Collections.singletonList(new Cookie("namespaceDropdown." + page + "." + table + "." + "selected", selected));
+    }
+  }
 }
