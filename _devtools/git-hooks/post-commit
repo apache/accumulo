@@ -5,8 +5,6 @@ build_jekyll_site() {
   local source_br; source_br=$1
   # $2 is the name of the target branch
   local tgt_br; tgt_br=$2
-  # $3 jekyll config file to build
-  local config; config=$3
 
   local cur_branch; cur_branch=$(git rev-parse --symbolic-full-name HEAD) || return 1
 
@@ -33,9 +31,6 @@ build_jekyll_site() {
   # don't build what's not checked in
   require_clean_work_tree
 
-  # check that jekyll config file exists
-  [[ -f $config ]] || die "fatal: $config is not a file or does not exist"
-
   # check gem versions
   bundle check >/dev/null || die "fatal: gems are out of date; run 'bundle install'"
 
@@ -44,7 +39,7 @@ build_jekyll_site() {
   trap "rm -rf '""$workdir""'" 0 1 2 3 15
 
   # actually generate the site
-  bundle exec jekyll build --config "$config" --destination "$workdir/_site" --safe || die "fatal: jekyll build failure"
+  bundle exec jekyll build --destination "$workdir/_site" --safe || die "fatal: jekyll build failure"
 
   # prepare and commit to the target branch
   export GIT_INDEX_FILE="$workdir/index"
@@ -57,4 +52,4 @@ build_jekyll_site() {
   return 0
 }
 
-build_jekyll_site 'gh-pages' 'asf-site' '_config-asf.yml'
+build_jekyll_site 'gh-pages' 'asf-site'

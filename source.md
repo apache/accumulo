@@ -33,7 +33,7 @@ directly by a committer, with a pull request to [GitHub][github], or a patch
 submitted to [JIRA][jiraloc]. The rendered site can be previewed locally or on
 [GitHub][site-mirror], and the rendered site (in the `_site` directory) will be
 merged into the `asf-site` branch to update our [official/canonical
-site][site-canon] after being built with the `_config-asf.yml` configuration.
+site][site-canon] after being built.
 
 To manage any Gem dependencies, it is highly recommended to use [Bundler](https://bundler.io).
 To start using Bundler, install it and then the dependencies for the website:
@@ -47,19 +47,19 @@ To get help with jekyll:
 
 To test the site locally (usually on http://localhost:4000):
 
-    jekyll serve --config _config-asf.yml --safe
+    jekyll serve --safe
 
 To do the same with Bundler:
 
-    bundle exec jekyll serve --config _config-asf.yml --safe
+    bundle exec jekyll serve --safe
 
 To build for updating the `asf-site` branch:
 
-    jekyll build --config _config-asf.yml --safe
+    jekyll build --safe
 
 To do the same with Bundler:
 
-    bundle exec jekyll build --config _config-asf.yml --safe
+    bundle exec jekyll build --safe
 
 For preview convenience and consistent builds and testing, build using a
 version which looks the same locally and on GitHub.

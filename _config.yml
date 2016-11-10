@@ -11,7 +11,6 @@ email: dev@accumulo.apache.org
 description: > # this means to ignore newlines until "baseurl:"
   The Apache Accumulo™ sorted, distributed key/value store is a robust, scalable,
   high performance data storage and retrieval system.
-baseurl: "/accumulo" # the subpath of your site, e.g. /blog
 url: "https://accumulo.apache.org" # the base hostname & protocol for your site
 twitter_username: ApacheAccumulo
 exclude: [vendor]
