@@ -1,5 +1,6 @@
 ---
 title: "User Manual: index"
+redirect_from: /user_manual_1.3-incubating/
 ---
 
 ** Next:** [Contents][2]   ** [Contents][2]**   

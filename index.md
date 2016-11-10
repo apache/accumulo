@@ -19,9 +19,9 @@ legal_notice: Apache Accumulo, Accumulo, Apache Hadoop, Apache Thrift, Apache, t
         <p style="font-size: 24px; margin-bottom: 0px;">Latest News</p>
         {% for post in site.posts limit:site.num_home_posts %}
         <div class="row latest-news-item">
-          <div class="col-sm-12">
+          <div class="col-sm-12" style="margin-bottom: 5px">
+           <span style="font-size: 12px; margin-right: 5px;">{{ post.date | date: "%b %Y" }}</span>
            <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
-           <span style="font-size: 12px">{{ post.date | date: "%b %Y" }}</span>
           </div>
         </div>
         {% endfor %}
