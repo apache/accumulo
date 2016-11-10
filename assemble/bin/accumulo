@@ -522,7 +522,7 @@ function main() {
      exit 1
   fi
 
-  if [[ ! "$1" =~ ^(gc|master|monitor|tserver|traser)$ ]]; then
+  if [[ ! "$1" =~ ^(gc|master|monitor|tserver|tracer)$ ]]; then
     if [[ -f ${ACCUMULO_CONF_DIR}/log4j.properties ]]; then
       export ACCUMULO_OPTS="${ACCUMULO_OPTS} -Dlog4j.configuration=file:${ACCUMULO_CONF_DIR}/log4j.properties"
     else
