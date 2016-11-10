@@ -29,6 +29,7 @@ skiph1fortitle: true
 | mdrob         | Mike Drob         | [Cloudera][CLOUDERA]                   | [ET][ET] |
 | medined       | David Medinets    |                                        |          |
 | mjwall        | Michael Wall      | [Objective Solutions, Inc.][OBJECTIVE] | [ET][ET] |
+| mmiller       | Michael Miller    | [Centroid, LLC][CENTROID]              | [ET][ET] |
 | mwalch        | Mike Walch        | [Peterson Technologies][PETERSON]      | [ET][ET] |
 | phrocker      | Marc Parisi       | [WaveStrike LLC][WAVE]                 | [ET][ET] |
 | rweeks        | Russ Weeks        | [PHEMI][PHEMI]                         | [PT][PT] |
@@ -93,7 +94,6 @@ skiph1fortitle: true
 |             | Max Jordan          |                                                                   |                       |
 |             | Michael Allen       | [sqrrl][SQRRL]                                                    | [ET][ET]              |
 |             | Michael Berman      | [sqrrl][SQRRL]                                                    | [ET][ET]              |
-|             | Michael Miller      | [Centroid, LLC][CENTROID]                                         | [ET][ET]              |
 |             | Miguel Pereira      | [SRA International, Inc][SRA]                                     | [ET][ET]              |
 |             | Mike Fagan          | [Arcus Research][ARCUS]                                           | [MT][MT]              |
 |             | Morgan Haskel       |                                                                   |                       |
