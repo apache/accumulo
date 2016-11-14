@@ -1,5 +1,6 @@
 ---
 title: Bylaws
+redirect_from: /bylaws
 ---
 
 This is version 3 of the bylaws. Community work actively continues on the bylaws, and so key segments of them are subject to change.
