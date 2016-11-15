@@ -2,7 +2,7 @@
 title: Project Governance
 ---
 
-* [Bylaws](/governance/bylaws/)
+* [Bylaws](/governance/bylaws)
 * [Consensus Building](/governance/consensusBuilding)
 * [Lazy Consensus](/governance/lazyConsensus)
 * [Releasing](/governance/releasing)
