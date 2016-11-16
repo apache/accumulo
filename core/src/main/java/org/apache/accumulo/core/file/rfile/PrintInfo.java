@@ -115,7 +115,7 @@ public class PrintInfo implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Print rfile info";
+    return "Prints rfile info";
   }
 
   @Override

@@ -27,9 +27,9 @@ Services:
   tracer      Accumulo tracter
 
 Commands:
-  start       Start service
-  stop        Stop service
-  kill        Kill service
+  start       Starts service
+  stop        Stops service
+  kill        Kills service
 
 EOF
   exit 1

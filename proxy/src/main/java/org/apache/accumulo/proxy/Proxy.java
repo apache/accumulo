@@ -114,7 +114,7 @@ public class Proxy implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Start Accumulo proxy";
+    return "Starts Accumulo proxy";
   }
 
   @Override

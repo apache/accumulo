@@ -160,7 +160,7 @@ public class Admin implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Execute administrative commands";
+    return "Executes administrative commands";
   }
 
   @Override

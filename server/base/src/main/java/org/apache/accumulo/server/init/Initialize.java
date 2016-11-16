@@ -120,7 +120,6 @@ import jline.console.ConsoleReader;
 
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance started
- *
  */
 @AutoService(KeywordExecutable.class)
 public class Initialize implements KeywordExecutable {

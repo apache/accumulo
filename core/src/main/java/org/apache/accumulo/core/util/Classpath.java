@@ -30,7 +30,7 @@ public class Classpath implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Print Accumulo classpath";
+    return "Prints Accumulo classpath";
   }
 
   @Override

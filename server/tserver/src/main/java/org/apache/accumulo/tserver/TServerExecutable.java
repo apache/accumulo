@@ -30,7 +30,7 @@ public class TServerExecutable implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Start Accumulo tablet server";
+    return "Starts Accumulo tablet server";
   }
 
   @Override

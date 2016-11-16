@@ -208,12 +208,12 @@ public class Main {
     Map<String,KeywordExecutable> executableMap = new TreeMap<>(getExecutables(getClassLoader()));
 
     System.out.println("\nUsage: accumulo <command> (<argument> ...)\n\nCore Commands:");
-    System.out.println("  create-config                  Create Accumulo configuration");
-    System.out.println("  build-native                   Build Accumulo native libraries");
+    System.out.println("  create-config                  Creates Accumulo configuration");
+    System.out.println("  build-native                   Builds Accumulo native libraries");
     for (String cmd : Arrays.asList("init", "shell", "classpath", "version", "admin", "info", "help", "jar")) {
       printCommand(executableMap.remove(cmd));
     }
-    System.out.println("  <main class> args              Run Java <main class> located on Accumulo classpath");
+    System.out.println("  <main class> args              Runs Java <main class> located on Accumulo classpath");
     System.out.println("\nProcess Commands:");
     for (String cmd : Arrays.asList("gc", "master", "monitor", "minicluster", "proxy", "tserver", "tracer", "zookeeper")) {
       printCommand(executableMap.remove(cmd));

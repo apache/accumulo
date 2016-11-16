@@ -42,7 +42,7 @@ public class LoginProperties implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Print Accumulo login info";
+    return "Prints Accumulo login info";
   }
 
   @Override

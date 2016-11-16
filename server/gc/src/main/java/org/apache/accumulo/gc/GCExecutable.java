@@ -31,7 +31,7 @@ public class GCExecutable implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Start Accumulo garbage collector";
+    return "Starts Accumulo garbage collector";
   }
 
   @Override

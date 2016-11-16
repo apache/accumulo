@@ -31,7 +31,7 @@ public class MiniClusterExecutable implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Start Accumulo minicluster";
+    return "Starts Accumulo minicluster";
   }
 
   @Override

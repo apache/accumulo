@@ -51,7 +51,7 @@ public class ZooKeeperMain implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Start Apache Zookeeper instance";
+    return "Starts Apache Zookeeper instance";
   }
 
   @Override

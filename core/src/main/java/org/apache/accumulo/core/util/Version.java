@@ -36,7 +36,7 @@ public class Version implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Print Accumulo version";
+    return "Prints Accumulo version";
   }
 
   @Override

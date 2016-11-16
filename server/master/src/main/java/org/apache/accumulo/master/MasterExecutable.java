@@ -30,7 +30,7 @@ public class MasterExecutable implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Start Accumulo master";
+    return "Starts Accumulo master";
   }
 
   @Override

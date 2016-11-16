@@ -30,7 +30,7 @@ public class TracerExecutable implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Start Accumulo tracer";
+    return "Starts Accumulo tracer";
   }
 
   @Override

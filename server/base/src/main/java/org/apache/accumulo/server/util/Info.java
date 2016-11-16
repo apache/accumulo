@@ -34,7 +34,7 @@ public class Info implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Print Accumulo cluster info";
+    return "Prints Accumulo cluster info";
   }
 
   @Override

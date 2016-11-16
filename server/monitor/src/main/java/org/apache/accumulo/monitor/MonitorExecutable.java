@@ -30,7 +30,7 @@ public class MonitorExecutable implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Start Accumulo monitor";
+    return "Starts Accumulo monitor";
   }
 
   @Override

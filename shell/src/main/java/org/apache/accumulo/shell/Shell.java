@@ -585,7 +585,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Run Accumulo shell";
+    return "Runs Accumulo shell";
   }
 
   @Override

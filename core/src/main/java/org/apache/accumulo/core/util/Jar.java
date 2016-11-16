@@ -38,7 +38,7 @@ public class Jar implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Run Java <main class> in <jar> using Accumulo classpath";
+    return "Runs Java <main class> in <jar> using Accumulo classpath";
   }
 
   @Override
