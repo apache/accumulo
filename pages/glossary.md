@@ -1,7 +1,7 @@
 ---
 title: Glossary
+permalink: /glossary/
 ---
-
 
 authorizations
 : > a set of strings associated with a user or with a particular scan that will

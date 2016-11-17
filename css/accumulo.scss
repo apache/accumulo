@@ -167,8 +167,8 @@ h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before, 
   visibility: hidden;
 }
 
-/* Makes navbar collapse at larger width (1185px) */
-@media (max-width: 1185px) {
+/* Makes navbar collapse at larger width (1050px) */
+@media (max-width: 975px) {
     .navbar-header {
         float: none;
     }

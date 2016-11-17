@@ -1,5 +1,6 @@
 ---
 title: Git
+redirect_from: /git
 ---
 
 [Git](https://git-scm.com) is an open source, distributed version control system

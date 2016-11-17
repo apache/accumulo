@@ -1,5 +1,6 @@
 ---
 title: Contrib Projects
+redirect_from: /contrib
 ---
 
 Apache Accumulo is a complex distributed system. In order to minimize that

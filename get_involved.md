@@ -3,7 +3,7 @@ title: Get Involved
 ---
 
 You don't need to be a software developer to contribute to 
-Apache Accumulo&trade;. To be successful this project 
+Apache Accumulo. To be successful this project 
 requires a huge range of different skills, levels of involvement and degrees of 
 technical expertise. So, if you want to get involved in Apache Accumulo, there 
 is almost certainly a role for you. 
@@ -36,9 +36,9 @@ Your first engagement with the project should be to subscribe to our
 Apache Accumulo developers and community members hang out in the #accumulo 
 channel on irc.freenode.net.
 
-## Developer's Guide
+## Contributor Guide
 
-See the [developer's guide][4] for recommended practices in interacting with our source code.
+See the [contributor guide][4] for recommended practices in interacting with our source code.
 Take a look at [Accumulo's Ohloh page][5] for an analysis of the code base.
 
 ## Community Interaction
@@ -58,7 +58,6 @@ set of simple processes to ensure things proceed at a good pace.
 In ASF projects we don't like to vote. We reserve that for the few things that need 
 official approval for legal or process reasons (e.g. a release or a new committer). 
 Most of the time we work with the consensus building techniques documented below.
-
 
 ### Lazy Consensus
 
@@ -85,7 +84,7 @@ to approve a release.
 [1]: https://s.apache.org/newbie_accumulo_tickets
 [2]: {{ site.baseurl }}/mailing_list
 [3]: https://www.meetup.com/find/?keywords=accumulo
-[4]: {{ site.baseurl }}/source
+[4]: {{ site.baseurl }}/contributor/
 [5]: https://www.ohloh.net/p/accumulo
 [6]: http://www.betaversion.org/~stefano/papers/ac2006.2.pdf
 [7]: {{ site.baseurl }}/governance/lazyConsensus

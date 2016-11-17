@@ -123,6 +123,16 @@ skiph1fortitle: true
 |             | Volth               |                                                                   |                       |
 |             | Wil Selwood         | [Satellite Applications Catapult][SACAT]                          | [GMT][GMT]/[BST][BST] |
 
+## Organizations
+
+First off, thanks to our parent organization, the [Apache Software Foundation][ASF] and [all who sponsor][ASF_SPONSORS] them.
+
+Additionally, we would like to thank the following organizations for resources that they provide:
+
+  - ej-technologies for allowing us to use their [Java profiler][JPROFILER]
+  - YourKit for allowing us use of their [Java Profiler][YOURKIT]
+  - Coverity for running [static analysis][COVERITY]
+
 [ANTHEMENG]: http://www.anthemengineering.com
 [ARCUS]: http://www.arcus-research.com
 [ARGYLE]: http://www.argyledata.com
@@ -157,7 +167,6 @@ skiph1fortitle: true
 [TETRA]: http://www.tetraconcepts.com
 [UW]: http://www.uw.edu
 [WAVE]: http://www.wavestrike.com/
-
 [BST]: http://www.timeanddate.com/time/zones/bst
 [CT]: http://www.timeanddate.com/time/zones/ct
 [ET]: http://www.timeanddate.com/time/zones/et
@@ -165,3 +174,8 @@ skiph1fortitle: true
 [MT]: http://www.timeanddate.com/time/zones/mt
 [PT]: http://www.timeanddate.com/time/zones/pt
 [CEST]: http://www.timeanddate.com/time/zones/cest
+[ASF]: https://www.apache.org
+[ASF_SPONSORS]: https://www.apache.org/foundation/sponsorship
+[JPROFILER]: https://www.ej-technologies.com/products/jprofiler/overview.html 
+[YOURKIT]: https://www.yourkit.com/java/profiler/features/
+[COVERITY]: https://scan.coverity.com/projects/accumulo

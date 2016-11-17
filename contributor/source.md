@@ -1,6 +1,7 @@
 ---
 title: Source Code and Developers Guide
 skiph1fortitle: true
+redirect_from: /source
 ---
 
 <div class="panel panel-default pull-right">
@@ -210,7 +211,7 @@ Accumulo's release guide can be found [here][release].
 [1]: https://creadur.apache.org/rat/apache-rat-plugin
 [anongit]: git://git.apache.org/accumulo.git
 [cgit]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=summary
-[contrib]: contrib
+[contrib]: {{ "/contributor/contrib-projects" | relative_url }}
 [devlist]: mailto:dev@accumulo.apache.org
 [gh-pages]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=tree;h=gh-pages
 [git-instr]: https://git-wip-us.apache.org
@@ -226,8 +227,8 @@ Accumulo's release guide can be found [here][release].
 [masterbuild]: https://builds.apache.org/job/Accumulo-Master
 [maven]: https://maven.apache.org
 [pom]: https://git-wip-us.apache.org/repos/asf?p=accumulo.git;a=blob_plain;f=pom.xml;hb=HEAD
-[rb]: rb
-[release]: governance/releasing
+[rb]: {{ "/contributor/rb" | relative_url }}
+[release]: {{ "/governance/releasing" | relative_url }}
 [site-canon]: https://accumulo.apache.org
 [site-mirror]: http://apache.github.io/accumulo
 [srcheaders]: https://www.apache.org/legal/src-headers

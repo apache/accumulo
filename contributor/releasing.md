@@ -1,5 +1,6 @@
 ---
 title: Making a Release
+redirect_from: /releasing
 ---
 
 This is a guide for the creation of a release of Apache Accumulo. 

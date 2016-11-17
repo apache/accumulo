@@ -1,5 +1,6 @@
 ---
 title: Verifying a Release
+redirect_from: /verifying_releases
 ---
 
 This is a guide for the verification of a release candidate of Apache Accumulo. These steps are meant to encapsulate

@@ -102,7 +102,7 @@ They should be in the form of a patch containing a single commit,
 
 [rbinstance]: https://reviews.apache.org
 [rb]: https://www.reviewboard.org
-[bylaws]: {{ site.baseurl }}/bylaws
+[bylaws]: {{ "/governance/bylaws" | relative_url }}
 [ctr]: https://www.apache.org/foundation/glossary#CommitThenReview
-[actions]: {{ site.baseurl }}/bylaws#actions
-[contributor]: {{ site.baseurl }}/git#contributors
+[actions]: {{ "/governance/bylaws#actions" | relative_url }}
+[contributor]: {{ "/contributor/git#contributors" | relative_url }}

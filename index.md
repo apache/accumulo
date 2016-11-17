@@ -7,10 +7,10 @@ legal_notice: Apache Accumulo, Accumulo, Apache Hadoop, Apache Thrift, Apache, t
   <div class="col-md-8">
     <div class="jumbotron" style="text-align: center">
       <h3>Apache Accumulo&trade; is a sorted, distributed key/value store that provides robust, scalable data storage and retrieval.</h3>
-      <a class="btn btn-success" href="downloads/" role="button"><span class="glyphicon glyphicon-download"></span> Download</a>
+      <a class="btn btn-success" href="downloads/" role="button"><i class="fa fa-download fa-lg"></i> Download</a>
     </div>
     <div>
-      <p id="home-description">Apache Accumulo is based on the design of Google's <a href="https://research.google.com/archive/bigtable.html">BigTable</a> and is powered by <a href="https://hadoop.apache.org">Apache Hadoop</a>, <a href="https://zookeeper.apache.org">Apache Zookeeper</a>, and <a href="https://thrift.apache.org">Apache Thrift</a>.<br><br>Accumulo has several <a href="{{ site.baseurl }}/notable_features">novel features</a> such as cell-based access control and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</p>
+      <p id="home-description">Apache Accumulo is based on the design of Google's <a href="https://research.google.com/archive/bigtable.html">BigTable</a> and is powered by <a href="https://hadoop.apache.org">Apache Hadoop</a>, <a href="https://zookeeper.apache.org">Apache Zookeeper</a>, and <a href="https://thrift.apache.org">Apache Thrift</a>.<br><br>Accumulo has several <a href="{{ site.baseurl }}/features/">novel features</a> such as cell-based access control and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</p>
     </div>
   </div>
   <div class="col-md-4" id="sidebar">
