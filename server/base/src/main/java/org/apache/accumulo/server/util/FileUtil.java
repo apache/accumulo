@@ -253,7 +253,7 @@ public class FileUtil {
       return (numLte + 1) / (double) (numKeys + 2);
 
     } finally {
-      cleanupIndexOp(acuconf, tmpDir, fs, readers);
+      cleanupIndexOp(tmpDir, fs, readers);
     }
   }
 
@@ -361,11 +361,11 @@ public class FileUtil {
 
       return ret;
     } finally {
-      cleanupIndexOp(acuConf, tmpDir, fs, readers);
+      cleanupIndexOp(tmpDir, fs, readers);
     }
   }
 
-  protected static void cleanupIndexOp(AccumuloConfiguration acuConf, Path tmpDir, VolumeManager fs, ArrayList<FileSKVIterator> readers) throws IOException {
+  protected static void cleanupIndexOp(Path tmpDir, VolumeManager fs, ArrayList<FileSKVIterator> readers) throws IOException {
     // close all of the index sequence files
     for (FileSKVIterator r : readers) {
       try {
