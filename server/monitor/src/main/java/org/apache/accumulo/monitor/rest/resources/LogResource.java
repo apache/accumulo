@@ -30,7 +30,7 @@ import org.apache.accumulo.server.monitor.LogService;
 import org.apache.log4j.spi.LoggingEvent;
 
 @Path("/logs")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class LogResource {
 
   @GET

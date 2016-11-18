@@ -16,29 +16,37 @@
  */
 package org.apache.accumulo.monitor.rest.resources;
 
-import java.util.Map;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response.Status;
 
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.server.problems.ProblemType;
+import org.apache.accumulo.monitor.rest.api.TabletServer;
+import org.apache.accumulo.monitor.rest.api.XMLInformation;
 
-@Path("/problems")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class ProblemsResource {
-
-  @GET
-  public Map<String,Map<ProblemType,Integer>> getSummary() {
-    return Monitor.getProblemSummary();
-  }
+@Path("/xml")
+public class XMLResource {
 
   @GET
-  @Path("/exception")
-  public Exception getException() {
-    return Monitor.getProblemException();
-  }
+  @Produces(MediaType.APPLICATION_XML)
+  public XMLInformation getXMLInformation() {
 
+    MasterMonitorInfo mmi = Monitor.getMmi();
+    if (null == mmi) {
+      throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
+    }
+
+    XMLInformation xml = new XMLInformation(mmi.tServerInfo.size(), new MasterResource().getTables(), new TablesResource().getTables());
+
+    for (TabletServerStatus status : mmi.tServerInfo) {
+      xml.addTablet(new TabletServer(status));
+    }
+
+    return xml;
+  }
 }

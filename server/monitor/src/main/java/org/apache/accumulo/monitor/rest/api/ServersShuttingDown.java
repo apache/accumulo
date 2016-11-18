@@ -16,27 +16,18 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+public class ServersShuttingDown {
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public List<ServerShuttingDownInformation> server;
 
-  public long started, finished, candidates, inUse, deleted, errors;
-
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
+  public ServersShuttingDown() {
+    server = new ArrayList<>();
   }
 
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public void addServerShuttingDown(ServerShuttingDownInformation server) {
+    this.server.add(server);
   }
 }

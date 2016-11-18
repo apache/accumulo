@@ -16,27 +16,16 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+public class CurrentTabletResults {
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+  public Double currentMinorAvg, currentMinorStdDev, currentMajorAvg, currentMajorStdDev;
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public CurrentTabletResults() {}
 
-  public long started, finished, candidates, inUse, deleted, errors;
-
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
-  }
-
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public CurrentTabletResults(Double currentMinorAvg, Double currentMinorStdDev, Double currentMajorAvg, Double currentMajorStdDev) {
+    this.currentMinorAvg = currentMinorAvg;
+    this.currentMinorStdDev = currentMinorStdDev;
+    this.currentMajorAvg = currentMajorAvg;
+    this.currentMajorStdDev = currentMajorStdDev;
   }
 }

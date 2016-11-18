@@ -14,29 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor.rest.api;
+package org.apache.accumulo.monitor.rest.resources;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+import org.apache.accumulo.monitor.ZooKeeperStatus;
+import org.apache.accumulo.monitor.ZooKeeperStatus.ZooKeeperState;
+import org.apache.accumulo.monitor.rest.api.ZKInformation;
+import org.apache.accumulo.monitor.rest.api.ZooKeeper;
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+@Path("/zk")
+@Produces(MediaType.APPLICATION_JSON)
+public class ZookeeperResource {
 
-  public long started, finished, candidates, inUse, deleted, errors;
+  @GET
+  public ZKInformation getZKInformation() {
 
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
-  }
+    ZKInformation zk = new ZKInformation();
 
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+    for (ZooKeeperState k : ZooKeeperStatus.getZooKeeperStatus()) {
+      if (k.clients >= 0) {
+        zk.addZK(new ZooKeeper(k.keeper, k.mode, k.clients));
+      }
+    }
+
+    return zk;
   }
 }

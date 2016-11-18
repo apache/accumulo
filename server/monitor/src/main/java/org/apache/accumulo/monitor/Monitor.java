@@ -789,6 +789,11 @@ public class Monitor implements HighlyAvailableService {
     return START_TIME;
   }
 
+  // TODO Remove this after merging old and new monitor
+  public static void setStartTime(long start) {
+    START_TIME = start;
+  }
+
   public static List<Pair<Long,Double>> getLoadOverTime() {
     synchronized (loadOverTime) {
       return new ArrayList<>(loadOverTime);

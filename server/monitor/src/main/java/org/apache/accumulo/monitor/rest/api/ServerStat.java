@@ -16,27 +16,31 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+public class ServerStat {
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+  public int max;
+  public boolean adjustMax;
+  public float significance;
+  public String description, name;
+  public boolean derived;
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public ServerStat() {}
 
-  public long started, finished, candidates, inUse, deleted, errors;
-
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
+  public ServerStat(int max, boolean adjustMax, float significance, String description, String name) {
+    this.max = max;
+    this.adjustMax = adjustMax;
+    this.significance = significance;
+    this.description = description;
+    this.derived = false;
+    this.name = name;
   }
 
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public ServerStat(int max, boolean adjustMax, float significance, String description, boolean derived, String name) {
+    this.max = max;
+    this.adjustMax = adjustMax;
+    this.significance = significance;
+    this.description = description;
+    this.derived = derived;
+    this.name = name;
   }
 }

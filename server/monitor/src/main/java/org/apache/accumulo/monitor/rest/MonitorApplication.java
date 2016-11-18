@@ -69,6 +69,7 @@ public abstract class MonitorApplication implements Runnable {
     // Preload data
     try {
       Monitor.fetchData();
+      Monitor.setStartTime(System.currentTimeMillis()); // TODO Set start time for new monitor, remove after merge of new and old monitor
     } catch (Exception e) {
       log.warn(e.getMessage(), e);
     }

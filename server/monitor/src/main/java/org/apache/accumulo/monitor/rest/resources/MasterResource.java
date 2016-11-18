@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.monitor.rest.resources;
 
+import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,11 +31,21 @@ import javax.ws.rs.core.MediaType;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
+import org.apache.accumulo.monitor.rest.api.BadTabletServerInformation;
+import org.apache.accumulo.monitor.rest.api.BadTabletServers;
+import org.apache.accumulo.monitor.rest.api.DeadLoggerInformation;
+import org.apache.accumulo.monitor.rest.api.DeadLoggerList;
+import org.apache.accumulo.monitor.rest.api.DeadServerInformation;
+import org.apache.accumulo.monitor.rest.api.DeadServerList;
+import org.apache.accumulo.monitor.rest.api.MasterInformation;
+import org.apache.accumulo.monitor.rest.api.ServerShuttingDownInformation;
+import org.apache.accumulo.monitor.rest.api.ServersShuttingDown;
 import org.apache.accumulo.server.master.state.TabletServerState;
 
 @Path("/master")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class MasterResource {
   public static final String NO_MASTERS = "No Masters running";
 
@@ -45,8 +56,68 @@ public class MasterResource {
     return Monitor.getMmi();
   }
 
-  @Path("/state")
   @GET
+  public MasterInformation getTables() {
+
+    MasterInformation masterInformation;
+
+    if (Monitor.getMmi() != null) {
+      String gcStatus = "Waiting";
+      String label = "";
+      if (Monitor.getGcStatus() != null) {
+        long start = 0;
+        if (Monitor.getGcStatus().current.started != 0 || Monitor.getGcStatus().currentLog.started != 0) {
+          start = Math.max(Monitor.getGcStatus().current.started, Monitor.getGcStatus().currentLog.started);
+          label = "Running";
+        } else if (Monitor.getGcStatus().lastLog.finished != 0) {
+          start = Monitor.getGcStatus().lastLog.finished;
+        }
+        if (start != 0) {
+          gcStatus = String.valueOf(start);
+        }
+      } else {
+        gcStatus = "Down";
+      }
+
+      List<String> tservers = new ArrayList<>();
+      for (TabletServerStatus up : Monitor.getMmi().tServerInfo) {
+        tservers.add(up.name);
+      }
+      for (DeadServer down : Monitor.getMmi().deadTabletServers) {
+        tservers.add(down.server);
+      }
+      List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
+
+      String master = masters.size() == 0 ? "Down" : AddressUtil.parseAddress(masters.get(0), false).getHostText();
+      Integer onlineTabletServers = Monitor.getMmi().tServerInfo.size();
+      Integer totalTabletServers = tservers.size();
+      Integer tablets = Monitor.getTotalTabletCount();
+      Integer unassignedTablets = Monitor.getMmi().unassignedTablets;
+      long entries = Monitor.getTotalEntries();
+      double ingest = Monitor.getTotalIngestRate();
+      double entriesRead = Monitor.getTotalScanRate();
+      double entriesReturned = Monitor.getTotalQueryRate();
+      long holdTime = Monitor.getTotalHoldTime();
+      double osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
+
+      int tables = Monitor.getTotalTables();
+      int deadTabletServers = Monitor.getMmi().deadTabletServers.size();
+      long lookups = Monitor.getTotalLookups();
+      long uptime = System.currentTimeMillis() - Monitor.getStartTime(); // TODO Check that this works when starting accumulo
+
+      System.out.println(Monitor.getStartTime());
+
+      masterInformation = new MasterInformation(master, onlineTabletServers, totalTabletServers, gcStatus, tablets, unassignedTablets, entries, ingest,
+          entriesRead, entriesReturned, holdTime, osLoad, tables, deadTabletServers, lookups, uptime, label, getGoalState(), getState(), getNumBadTservers(),
+          getServersShuttingDown(), getDeadTservers(), getDeadLoggers());
+
+    } else {
+      masterInformation = new MasterInformation();
+    }
+
+    return masterInformation;
+  }
+
   public String getState() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
@@ -56,8 +127,6 @@ public class MasterResource {
     return mmi.state.toString();
   }
 
-  @Path("/goal_state")
-  @GET
   public String getGoalState() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
@@ -67,54 +136,64 @@ public class MasterResource {
     return mmi.goalState.name();
   }
 
-  @Path("/dead_tservers")
-  @GET
-  public List<DeadServer> getDeadTservers() {
+  public DeadServerList getDeadTservers() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
-      return Collections.emptyList();
+      return new DeadServerList();
     }
 
-    List<DeadServer> deadServers = mmi.deadTabletServers;
-    return null == deadServers ? Collections.<DeadServer> emptyList() : deadServers;
+    DeadServerList deadServers = new DeadServerList();
+    for (DeadServer dead : mmi.deadTabletServers) {
+      deadServers.addDeadServer(new DeadServerInformation(dead.server, dead.lastStatus, dead.status));
+    }
+    return deadServers;
   }
 
-  @Path("/bad_tservers")
-  @GET
-  public Map<String,String> getNumBadTservers() {
+  public DeadLoggerList getDeadLoggers() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
-      return Collections.emptyMap();
+      return new DeadLoggerList();
+    }
+
+    DeadLoggerList deadLoggers = new DeadLoggerList();
+    for (DeadServer dead : mmi.deadTabletServers) {
+      deadLoggers.addDeadLogger(new DeadLoggerInformation(dead.server, dead.lastStatus, dead.status));
+    }
+    return deadLoggers;
+  }
+
+  public BadTabletServers getNumBadTservers() {
+    MasterMonitorInfo mmi = getMmi();
+    if (null == mmi) {
+      return new BadTabletServers();
     }
 
     Map<String,Byte> badServers = mmi.getBadTServers();
 
     if (null == badServers || badServers.isEmpty()) {
-      return Collections.emptyMap();
+      return new BadTabletServers();
     }
 
-    Map<String,String> readableBadServers = new HashMap<>();
+    BadTabletServers readableBadServers = new BadTabletServers();
     for (Entry<String,Byte> badServer : badServers.entrySet()) {
       try {
         TabletServerState state = TabletServerState.getStateById(badServer.getValue());
-        readableBadServers.put(badServer.getKey(), state.name());
+        readableBadServers.addBadServer(new BadTabletServerInformation(badServer.getKey(), state.name()));
       } catch (IndexOutOfBoundsException e) {
-        readableBadServers.put(badServer.getKey(), "Unknown state");
+        readableBadServers.addBadServer(new BadTabletServerInformation(badServer.getKey(), "Unknown state"));
       }
     }
-
     return readableBadServers;
   }
 
-  @Path("/unassigned_tablets")
-  @GET
-  public int getUnassignedTablets() {
-    MasterMonitorInfo mmi = getMmi();
-    if (null == mmi) {
-      return -1;
+  public ServersShuttingDown getServersShuttingDown() {
+    ServersShuttingDown servers = new ServersShuttingDown();
+
+    for (String server : Monitor.getMmi().serversShuttingDown) {
+      servers.addServerShuttingDown(new ServerShuttingDownInformation(server));
     }
 
-    return mmi.getUnassignedTablets();
+    return servers;
   }
 
   @Path("/tserver_info")

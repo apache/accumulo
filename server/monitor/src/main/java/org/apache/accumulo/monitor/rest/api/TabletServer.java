@@ -16,27 +16,29 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
 /**
- * Metrics about a single cycle of the garbage collector
+ * To use for XML Resource
  */
-public class GarbageCollectorCycle {
+public class TabletServer {
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public TabletServerInformation server;
 
-  public long started, finished, candidates, inUse, deleted, errors;
-
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
+  public TabletServer() {
+    server = new TabletServerInformation();
   }
 
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public TabletServer(TabletServerInformation server) {
+    this.server = server;
+  }
+
+  public TabletServer(TabletServerStatus status) {
+    server = new TabletServerInformation(status);
+  }
+
+  public void updateTabletServerInfo(TabletServerStatus status, TableInfo summary) {
+    server.updateTabletServerInfo(status, summary);
   }
 }

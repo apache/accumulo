@@ -16,27 +16,28 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+public class CurrentOperations {
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+  public String name, tablet, tableID;
+  public long entries;
+  public double ingest, query;
+  public Double minorStdDev, minorAvgES, majorStdDev, majorAvgES, minorAvg, majorAvg;
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public CurrentOperations() {}
 
-  public long started, finished, candidates, inUse, deleted, errors;
-
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
-  }
-
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public CurrentOperations(String name, String ID, String tablet, long entries, double ingest, double query, Double minorAvg, Double minorStdDev,
+      Double minorAvgES, Double majorAvg, Double majorStdDev, Double majorAvgES) {
+    this.name = name;
+    this.tableID = ID;
+    this.tablet = tablet;
+    this.entries = entries;
+    this.ingest = ingest;
+    this.query = query;
+    this.minorStdDev = minorStdDev;
+    this.minorAvgES = minorAvgES;
+    this.majorStdDev = majorStdDev;
+    this.majorAvgES = majorAvgES;
+    this.minorAvg = minorAvg;
+    this.majorAvg = majorAvg;
   }
 }

@@ -17,28 +17,37 @@
 package org.apache.accumulo.monitor.rest.resources;
 
 import java.util.Map;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.server.problems.ProblemType;
+import org.apache.accumulo.monitor.Monitor.ScanStats;
+import org.apache.accumulo.monitor.rest.api.ScanInformation;
+import org.apache.accumulo.monitor.rest.api.Scans;
 
-@Path("/problems")
+import com.google.common.net.HostAndPort;
+
+@Path("/scans")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class ProblemsResource {
+public class ScansResource {
 
   @GET
-  public Map<String,Map<ProblemType,Integer>> getSummary() {
-    return Monitor.getProblemSummary();
-  }
+  public Scans getTables() {
 
-  @GET
-  @Path("/exception")
-  public Exception getException() {
-    return Monitor.getProblemException();
-  }
+    Scans scans = new Scans();
 
+    Map<HostAndPort,ScanStats> entry = Monitor.getScans();
+
+    for (TabletServerStatus tserverInfo : Monitor.getMmi().getTServerInfo()) {
+      ScanStats stats = entry.get(HostAndPort.fromString(tserverInfo.name));
+      if (stats != null) {
+        scans.addScan(new ScanInformation(tserverInfo, stats.scanCount, stats.oldestScan));
+      }
+    }
+
+    return scans;
+  }
 }

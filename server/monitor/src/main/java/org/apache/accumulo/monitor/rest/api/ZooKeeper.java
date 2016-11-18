@@ -16,27 +16,16 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+public class ZooKeeper {
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+  public String server, mode;
+  public Integer clients;
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public ZooKeeper() {}
 
-  public long started, finished, candidates, inUse, deleted, errors;
-
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
-  }
-
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public ZooKeeper(String server, String mode, Integer clients) {
+    this.server = server;
+    this.mode = mode;
+    this.clients = clients;
   }
 }

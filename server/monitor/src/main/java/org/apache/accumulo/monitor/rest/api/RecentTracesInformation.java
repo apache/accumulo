@@ -16,27 +16,39 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.tracer.thrift.RemoteSpan;
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+public class RecentTracesInformation {
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public String type;
+  public Long avg;
 
-  public long started, finished, candidates, inUse, deleted, errors;
+  public int total = 0;
 
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
+  public long min = Long.MAX_VALUE, max = Long.MIN_VALUE;
+  private long totalMS = 0l;
+  public long histogram[] = new long[] {0l, 0l, 0l, 0l, 0l, 0l};
+
+  public RecentTracesInformation() {}
+
+  public RecentTracesInformation(String type) {
+    this.type = type;
   }
 
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public void addSpan(RemoteSpan span) {
+    total++;
+    long ms = span.stop - span.start;
+    totalMS += ms;
+    min = Math.min(min, ms);
+    max = Math.max(max, ms);
+    int index = 0;
+    while (ms >= 10 && index < histogram.length) {
+      ms /= 10;
+      index++;
+    }
+    histogram[index]++;
+
+    avg = total != 0 ? totalMS / total : null;
   }
+
 }

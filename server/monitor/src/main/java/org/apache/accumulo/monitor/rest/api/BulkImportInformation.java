@@ -16,27 +16,19 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+public class BulkImportInformation {
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public String filename;
+  public long age;
+  public BulkImportState state;
 
-  public long started, finished, candidates, inUse, deleted, errors;
+  public BulkImportInformation() {}
 
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
-  }
-
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public BulkImportInformation(String filename, long age, BulkImportState state) {
+    this.filename = filename;
+    this.age = age;
+    this.state = state;
   }
 }

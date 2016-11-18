@@ -150,7 +150,7 @@ public class XMLServlet extends BasicServlet {
       sb.append("<ingest>").append(tableInfo.ingestRate).append("</ingest>\n");
       sb.append("<ingestByteRate>").append(tableInfo.ingestByteRate).append("</ingestByteRate>\n");
       sb.append("<query>").append(tableInfo.queryRate).append("</query>\n");
-      sb.append("<queryByteRate>").append(tableInfo.queryRate).append("</queryByteRate>\n");
+      sb.append("<queryByteRate>").append(tableInfo.queryByteRate).append("</queryByteRate>\n");
       int running = 0;
       int queued = 0;
       Compacting compacting = entry.getValue().majors;
