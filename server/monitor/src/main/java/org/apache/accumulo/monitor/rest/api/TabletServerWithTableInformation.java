@@ -16,38 +16,13 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-/**
- *
- */
 public class TabletServerWithTableInformation {
 
-  private TabletServerInformation tserverInfo;
-  private TableInformation tableInfo;
+  public TabletServerInformation tserver;
+  public TableInformation table;
 
   public TabletServerWithTableInformation(TabletServerInformation tserverInfo, TableInformation tableInfo) {
-    this.tserverInfo = tserverInfo;
-    this.tableInfo = tableInfo;
-  }
-
-  @JsonProperty("tserver")
-  public TabletServerInformation getTserver() {
-    return tserverInfo;
-  }
-
-  @JsonProperty("tserver")
-  public void setTserver(TabletServerInformation tserverInfo) {
-    this.tserverInfo = tserverInfo;
-  }
-
-  @JsonProperty("table")
-  public TableInformation getTable() {
-    return tableInfo;
-  }
-
-  @JsonProperty("table")
-  public void setTable(TableInformation tableInfo) {
-    this.tableInfo = tableInfo;
+    this.tserver = tserverInfo;
+    this.table = tableInfo;
   }
 }

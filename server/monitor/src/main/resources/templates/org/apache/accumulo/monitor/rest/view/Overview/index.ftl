@@ -21,61 +21,200 @@
     <meta http-equiv='Content-Type' content='test/html"' />
     <meta http-equiv='Content-Script-Type' content='text/javascript' />
     <meta http-equiv='Content-Style-Type' content='text/css' />
-    <link rel='shortcut icon' type='image/jpg' href='/web/favicon.png' />
-    <link rel='stylesheet' type='text/css' href='/web/screen.css' media='screen' />
-    <script src='/web/functions.js' type='text/javascript'></script>
+    <link rel='shortcut icon' type='image/jpg' href='http://localhost:9995/web/favicon.png' />
+    <link rel='stylesheet' type='text/css' href='http://localhost:9995/web/screen.css' media='screen' />
+    <script src='http://localhost:9995/web/functions.js' type='text/javascript'></script>
 
-    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="/web/flot/excanvas.min.js"></script><![endif]-->
-    <script language="javascript" type="text/javascript" src="/web/flot/jquery.js"></script>
-    <script language="javascript" type="text/javascript" src="/web/flot/jquery.flot.js"></script>
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="http://localhost:9995/web/flot/excanvas.min.js"></script><![endif]-->
+    <script language="javascript" type="text/javascript" src="http://localhost:9995/web/flot/jquery.js"></script>
+    <script language="javascript" type="text/javascript" src="http://localhost:9995/web/flot/jquery.flot.js"></script>
   </head>
 
   <body>
+  	<script type="text/javascript">
+  		$.getJSON("rest/master", function(data) {
+  			var items = [];
+  			items.push("<tr><th colspan='2'><a href='/master'>Accumulo&nbsp;Master</a></th></tr>");
+  			items.push("<tr class='highlight'><td class='left'><a href='/tables'>Tables</a></td><td class='right'>" + bigNumberForQuantity(data.tables) + "</td></tr>");
+  			items.push("<tr><td class='left'><a href='/tservers'>Tablet&nbsp;Servers</a></td><td class='right'>" + bigNumberForQuantity(data.totalTabletServers) + "</td></tr>");
+  			items.push("<tr class='highlight'><td class='left'><a href='/tservers'>Dead&nbsp;Tablet&nbsp;Servers</a></td><td class='right'>" + bigNumberForQuantity(data.deadTabletServersCount) + "</td></tr>");
+  			items.push("<tr><td class='left'>Tablets</td><td class='right'>" + bigNumberForQuantity(data.tablets) + "</td></tr>");
+  			items.push("<tr class='highlight'><td class='left'>Entries</td><td class='right'>" + bigNumberForQuantity(data.numentries) + "</td></tr>");
+  			items.push("<tr><td class='left'>Lookups</td><td class='right'>" + bigNumberForQuantity(data.lookups) + "</td></tr>");
+  			items.push("<tr class='highlight'><td class='left'>Uptime</td><td class='right'>" + timeDuration(data.uptime) + "</td></tr>");
+ 
+  			$("<table/>", {
+   			 html: items.join("")
+  			}).appendTo("#master");
+		});
+		
+		$.getJSON("rest/zk", function(data) {
+			var items = [];
+			items.push("<tr><th colspan='3'>Zookeeper</th></tr>");
+			items.push("<tr><th>Server</th><th>Mode</th><th>Clients</th></tr>");
+			$.each(data.zkServers, function(key, val) {
+				items.push("<tr class='highlight'><td class='left'>" + val.server + "</td>");
+				items.push("<td class='left'>" + val.mode + "</td>");
+				items.push("<td class='right'>" + val.clients + "</td></tr>");
+			});
+			
+  			$("<table/>", {
+   			 html: items.join("")
+  			}).appendTo("#zookeeper");
+		});
+        
+        $.getJSON("rest/statistics/time/ingestRate", function(data) {
+           var d0 = [];
+           $.each(data, function(key, val) {
+               d0.push([val.first, val.second]);
+           });
+           $.plot($("#ingest_entries"),[{ data: d0, lines: { show: true }, color:"red" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+        
+        $.getJSON("rest/statistics/time/scanEntries", function(data) {
+           var d0 = [];
+           var d1 = [];
+           $.each(data, function(key, val) {
+               if (val.first == "Read") {
+                   $.each(val.second, function(key2, val2) {
+                       d0.push([val2.first, val2.second]);
+                   });
+               }
+               if (val.first == "Returned") {
+                   $.each(val.second, function(key2, val2) {
+                       d1.push([val2.first, val2.second]);
+                   })
+               }
+           });
+           
+           $.plot($("#scan_entries"),[{ label: "Read", data: d0, lines: { show: true }, color:"red" },{ label: "Returned", data: d1, lines: { show: true }, color:"blue" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+        
+        $.getJSON("rest/statistics/time/ingestByteRate", function(data) {
+           var d0 = [];
+           $.each(data, function(key, val) {
+               d0.push([val.first, val.second]);
+           });
+           $.plot($("#ingest_mb"),[{ data: d0, lines: { show: true }, color:"red" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+        
+        $.getJSON("rest/statistics/time/queryByteRate", function(data) {
+           var d0 = [];
+           $.each(data, function(key, val) {
+               d0.push([val.first, val.second]);
+           });
+           $.plot($("#scan_mb"),[{ data: d0, lines: { show: true }, color:"red" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+        
+        $.getJSON("rest/statistics/time/load", function(data) {
+           var d0 = [];
+           $.each(data, function(key, val) {
+               d0.push([val.first, val.second]);
+           });
+           $.plot($("#load_avg"),[{ data: d0, lines: { show: true }, color:"red" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+        
+        $.getJSON("rest/statistics/time/lookups", function(data) {
+           var d0 = [];
+           $.each(data, function(key, val) {
+               d0.push([val.first, val.second]);
+           });
+           $.plot($("#seeks"),[{ data: d0, lines: { show: true }, color:"red" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+        
+        $.getJSON("rest/statistics/time/minorCompactions", function(data) {
+           var d0 = [];
+           $.each(data, function(key, val) {
+               d0.push([val.first, val.second]);
+           });
+           $.plot($("#minor"),[{ data: d0, lines: { show: true }, color:"red" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+        
+        $.getJSON("rest/statistics/time/majorCompactions", function(data) {
+           var d0 = [];
+           $.each(data, function(key, val) {
+               d0.push([val.first, val.second]);
+           });
+           $.plot($("#major"),[{ data: d0, lines: { show: true }, color:"red" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+        
+        $.getJSON("rest/statistics/time/indexCacheHitRate", function(data) {
+           var d0 = [];
+           $.each(data, function(key, val) {
+               d0.push([val.first, val.second]);
+           });
+           $.plot($("#index_cache"),[{ data: d0, points: { show: true, radius: 1 }, color:"red" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+        
+        $.getJSON("rest/statistics/time/dataCacheHitRate", function(data) {
+           var d0 = [];
+           $.each(data, function(key, val) {
+               d0.push([val.first, val.second]);
+           });
+           $.plot($("#data_cache"),[{ data: d0, points: { show: true, radius: 1 }, color:"red" }], {yaxis:{}, xaxis:{mode:"time",minTickSize: [1, "minute"],timeformat: "%H:%M<br />EST", ticks:3}});
+        });
+		
+  	</script>  	
     <div id='content-wrapper'>
       <div id='content'>
         <div id='header'>
-          <div id='headertitle'>
-            <h1>${title}</h1>
-          </div>
-          <div id='subheader'>Instance&nbsp;Name:&nbsp;${instance_name}&nbsp;&nbsp;&nbsp;Version:&nbsp;${version}
-            <br><span class='smalltext'>Instance&nbsp;ID:&nbsp;${instance_id}</span>
-            <br><span class='smalltext'>${current_date}</span>
-          </div>
+          <#include "/templates/header.ftl">
         </div>
 
         <#include "/templates/sidebar.ftl">
 
         <div id='main' style='bottom:0'>
-        <#--
+            
+          <table class='noborder'>
+        	<tr>
+        	  <td class='noborder' id='master'></td>
+        	  <td class='noborder' id='zookeeper'></td>
+        	</tr>
+       	  </table>
           <br />
-          <h2 class='warning'><a href='/log'>Log Events: 0 Errors, 3 Warnings, 3 Total</a></h2>
-          <div>
-            <a name='masterStatus'>&nbsp;</a>
-            <table id='masterStatus' class='sortable'>
-            <caption>
-            <span class='table-caption'>Master&nbsp;Status</span><br />
-            <a href='/op?action=toggleLegend&redir=%2Fmaster&page=/master&table=masterStatus&show=true'>Show&nbsp;Legend</a>
-            </caption>
-            <tr><th class='firstcell'>Master</th><th>#&nbsp;Online<br />Tablet&nbsp;Servers</th><th>#&nbsp;Total<br />Tablet&nbsp;Servers</th><th>Last&nbsp;GC</th><th>#&nbsp;Tablets</th><th>#&nbsp;Unassigned<br />Tablets</th><th>Entries</th><th>Ingest</th><th>Entries<br />Read</th><th>Entries<br />Returned</th><th>Hold&nbsp;Time</th><th>OS&nbsp;Load</th></tr>
-            <tr class='highlight'><td class='firstcell left'>localhost</td><td class='right'>1</td><td class='right'>1</td><td class='left'><a href='/gc'>Waiting</a></td><td class='right'>4</td><td class='right'>0</td><td class='right'>2.20K</td><td class='right'>0</td><td class='right'>0</td><td class='right'>0</td><td class='right'>&mdash;</td><td class='right'>5.64</td></tr>
-            </table>
-          </div>
-        
-          <div>
-            <a name='tableList'>&nbsp;</a>
-            <table id='tableList' class='sortable'>
-            <caption>
-            <span class='table-caption'>Table&nbsp;List</span><br />
-            <a href='/op?action=toggleLegend&redir=%2Fmaster&page=/master&table=tableList&show=true'>Show&nbsp;Legend</a>
-            </caption>
-            <tr><th class='firstcell'><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&asc=false'>Table&nbsp;Name&nbsp;<img width='10px' height='10px' src='/web/up.gif' alt='v' /></a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=1'>State</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=2'>#&nbsp;Tablets</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=3'>#&nbsp;Offline<br />Tablets</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=4'>Entries</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=5'>Entries<br />In&nbsp;Memory</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=6'>Ingest</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=7'>Entries<br/>Read</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=8'>Entries<br/>Returned</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=9'>Hold&nbsp;Time</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=10'>Running<br />Scans</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=11'>Minor<br />Compactions</a></th><th><a href='/op?action=sortTable&redir=%2Fmaster&page=/master&table=tableList&col=12'>Major<br />Compactions</a></th></tr>
-            <tr class='highlight'><td class='firstcell left'><a href='/tables?t=%210'>accumulo.metadata</a></td><td class='center'><span>ONLINE</span></td><td class='right'>2</td><td class='right'>0</td><td class='right'>28</td><td class='right'>3</td><td class='right'>0</td><td class='right'>0</td><td class='right'>0</td><td class='right'>&mdash;</td><td class='right'>0&nbsp;(0)</td><td class='right'>0&nbsp;(0)</td><td class='right'>0&nbsp;(0)</td></tr>
-            <tr><td class='firstcell left'><a href='/tables?t=%2Brep'>accumulo.replication</a></td><td class='center'><span>OFFLINE</span></td><td class='right'>-</td><td class='right'>-</td><td class='right'>-</td><td class='right'>-</td><td class='right'>-</td><td class='right'>-</td><td class='right'>-</td><td class='right'>&mdash;</td><td class='right'>-</td><td class='right'>-</td><td class='right'>-</td></tr>
-            <tr class='highlight'><td class='firstcell left'><a href='/tables?t=%2Br'>accumulo.root</a></td><td class='center'><span>ONLINE</span></td><td class='right'>1</td><td class='right'>0</td><td class='right'>6</td><td class='right'>6</td><td class='right'>0</td><td class='right'>0</td><td class='right'>0</td><td class='right'>&mdash;</td><td class='right'>0&nbsp;(0)</td><td class='right'>0&nbsp;(0)</td><td class='right'>0&nbsp;(0)</td></tr>
-            <tr><td class='firstcell left'><a href='/tables?t=1'>trace</a></td><td class='center'><span>ONLINE</span></td><td class='right'>1</td><td class='right'>0</td><td class='right'>2.16K</td><td class='right'>0</td><td class='right'>0</td><td class='right'>0</td><td class='right'>0</td><td class='right'>&mdash;</td><td class='right'>0&nbsp;(0)</td><td class='right'>0&nbsp;(0)</td><td class='right'>0&nbsp;(0)</td></tr>
-            </table>
-          </div>
-          -->
+          <table class="noborder">          
+            <tr>
+              <td>
+                <div class="plotHeading">Ingest (Entries/s)</div></br><div id="ingest_entries" style="width:450px;height:150px;"></div>
+              </td>
+              <td>
+                <div class="plotHeading">Scan (Entries/s)</div></br><div id="scan_entries" style="width:450px;height:150px;"></div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="plotHeading">Ingest (MB/s)</div></br><div id="ingest_mb" style="width:450px;height:150px;"></div>
+              </td>
+              <td>
+                <div class="plotHeading">Scan (MB/s)</div></br><div id="scan_mb" style="width:450px;height:150px;"></div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="plotHeading">Load Average</div></br><div id="load_avg" style="width:450px;height:150px;"></div>
+              </td>
+              <td>
+                <div class="plotHeading">Seeks</div></br><div id="seeks" style="width:450px;height:150px;"></div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="plotHeading">Minor Compactions</div></br><div id="minor" style="width:450px;height:150px;"></div>
+              </td>
+              <td>
+                <div class="plotHeading">Major Compactions</div></br><div id="major" style="width:450px;height:150px;"></div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="plotHeading">Index Cache Hit Rate</div></br><div id="index_cache" style="width:450px;height:150px;"></div>
+              </td>
+              <td>
+                <div class="plotHeading">Data Cache Hit Rate</div></br><div id="data_cache" style="width:450px;height:150px;"></div>
+              </td>
+            </tr>
+          </table>         
+          
         </div>
       </div>    
     </div>

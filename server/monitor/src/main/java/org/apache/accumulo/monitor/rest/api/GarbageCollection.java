@@ -18,45 +18,22 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-/**
- *
- */
 public class GarbageCollection {
+
   public static final GarbageCollection EMPTY = new GarbageCollection();
 
-  protected GarbageCollectorCycle last = new GarbageCollectorCycle(), current = new GarbageCollectorCycle();
+  public GarbageCollectorCycle lastCycle = new GarbageCollectorCycle();
+  public GarbageCollectorCycle currentCycle = new GarbageCollectorCycle();
 
   public GarbageCollection() {}
 
   public GarbageCollection(GcCycleStats last, GcCycleStats current) {
-    this.last = new GarbageCollectorCycle(last);
-    this.current = new GarbageCollectorCycle(current);
+    this.lastCycle = new GarbageCollectorCycle(last);
+    this.currentCycle = new GarbageCollectorCycle(current);
   }
 
   public GarbageCollection(GarbageCollectorCycle last, GarbageCollectorCycle current) {
-    this.last = last;
-    this.current = current;
-  }
-
-  @JsonProperty("lastCycle")
-  public GarbageCollectorCycle getLastCycle() {
-    return last;
-  }
-
-  @JsonProperty("lastCycle")
-  public void setLastCycle(GarbageCollectorCycle last) {
-    this.last = last;
-  }
-
-  @JsonProperty("currentCycle")
-  public GarbageCollectorCycle getCurrentCycle() {
-    return current;
-  }
-
-  @JsonProperty("currentCycle")
-  public void setCurrentCycle(GarbageCollectorCycle current) {
-    this.current = current;
+    this.lastCycle = last;
+    this.currentCycle = current;
   }
 }

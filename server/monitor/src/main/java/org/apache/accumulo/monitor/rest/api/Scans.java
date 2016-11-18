@@ -16,31 +16,18 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- *
- */
-public class TabletServerTableInformation extends TabletServerInformation {
+public class Scans {
 
-  private String tableId;
+  public List<ScanInformation> scans;
 
-  public TabletServerTableInformation() {
-    super();
+  public Scans() {
+    scans = new ArrayList<>();
   }
 
-  public TabletServerTableInformation(String tableId) {
-    super();
-    this.tableId = tableId;
-  }
-
-  @JsonProperty("tableId")
-  public String getTableId() {
-    return tableId;
-  }
-
-  @JsonProperty("tableId")
-  public void setTableId(String tableId) {
-    this.tableId = tableId;
+  public void addScan(ScanInformation scan) {
+    scans.add(scan);
   }
 }

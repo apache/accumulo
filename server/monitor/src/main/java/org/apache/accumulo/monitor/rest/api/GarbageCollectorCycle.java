@@ -18,19 +18,18 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
  * Metrics about a single cycle of the garbage collector
  */
 public class GarbageCollectorCycle {
+
   public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
 
-  protected long started = 0, finished = 0;
-  protected long candidates = 0, inUse = 0, deleted = 0;
-  protected long errors = 0;
+  public long started, finished, candidates, inUse, deleted, errors;
 
-  public GarbageCollectorCycle() {}
+  public GarbageCollectorCycle() {
+    started = finished = candidates = inUse = deleted = errors = 0l;
+  }
 
   public GarbageCollectorCycle(GcCycleStats thriftStats) {
     this.started = thriftStats.started;
@@ -39,65 +38,5 @@ public class GarbageCollectorCycle {
     this.inUse = thriftStats.inUse;
     this.deleted = thriftStats.deleted;
     this.errors = thriftStats.errors;
-  }
-
-  @JsonProperty("started")
-  public long getStarted() {
-    return started;
-  }
-
-  @JsonProperty("started")
-  public void setStarted(long started) {
-    this.started = started;
-  }
-
-  @JsonProperty("finished")
-  public long getFinished() {
-    return finished;
-  }
-
-  @JsonProperty("finished")
-  public void setFinished(long finished) {
-    this.finished = finished;
-  }
-
-  @JsonProperty("candidates")
-  public long getCandidates() {
-    return candidates;
-  }
-
-  @JsonProperty("candidates")
-  public void setCandidates(long candidates) {
-    this.candidates = candidates;
-  }
-
-  @JsonProperty("inUse")
-  public long getInUse() {
-    return inUse;
-  }
-
-  @JsonProperty("inUse")
-  public void setInUse(long inUse) {
-    this.inUse = inUse;
-  }
-
-  @JsonProperty("deleted")
-  public long getDeleted() {
-    return deleted;
-  }
-
-  @JsonProperty("deleted")
-  public void setDeleted(long deleted) {
-    this.deleted = deleted;
-  }
-
-  @JsonProperty("errors")
-  public long getErrors() {
-    return errors;
-  }
-
-  @JsonProperty("errors")
-  public void setErrors(long errors) {
-    this.errors = errors;
   }
 }

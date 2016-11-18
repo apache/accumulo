@@ -19,39 +19,81 @@ package org.apache.accumulo.monitor.rest.api;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.annotation.XmlAttribute;
+
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
+import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.monitor.Monitor;
+import org.apache.accumulo.server.util.TableInfoUtil;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-/**
- *
- */
 public class TabletServerInformation {
-  private String address;
-  private long lastContact, holdTime, lookups, indexCacheHits, indexCacheRequests, dataCacheHits, dataCacheRequests;
-  private double osLoad;
-  private List<RecoveryStatusInformation> logRecoveries;
+
+  @XmlAttribute(name = "id")
+  public String server;
+
+  public String hostname;
+  public long lastContact;
+  public double osload;
+
+  public CompactionsTypes compactions;
+
+  public int tablets;
+  public double ingest, query, ingestMB, queryMB;
+  public Integer scans; // For backwards compatibility, has same information as scansRunning
+  public Double scansessions;
+  public Double scanssessions; // For backwards compatibility
+  public long holdtime;
+
+  // New variables
+
+  public String ip;
+  private Integer scansRunning, scansQueued, minorRunning, minorQueued, majorRunning, majorQueued;
+  private CompactionsList scansCompacting, major, minor; // if scans is removed, change scansCompacting to scans
+  public long entries, lookups, indexCacheHits, indexCacheRequests, dataCacheHits, dataCacheRequests;
+  public double indexCacheHitRate, dataCacheHitRate;
+  public List<RecoveryStatusInformation> logRecoveries;
 
   public TabletServerInformation() {}
 
-  public TabletServerInformation(String address, double osLoad, long holdTime, long lookups, long indexCacheHits, long indexCacheRequests, long dataCacheHits,
-      long dataCacheRequests, List<RecoveryStatusInformation> logRecoveries) {
-    this.address = address;
-    this.osLoad = osLoad;
-    this.holdTime = holdTime;
-    this.lookups = lookups;
-    this.indexCacheHits = indexCacheHits;
-    this.indexCacheRequests = indexCacheRequests;
-    this.dataCacheHits = dataCacheHits;
-    this.dataCacheRequests = dataCacheRequests;
-    this.logRecoveries = logRecoveries;
+  public TabletServerInformation(TabletServerStatus thriftStatus) {
+    TableInfo summary = TableInfoUtil.summarizeTableStats(thriftStatus);
+    updateTabletServerInfo(thriftStatus, summary);
   }
 
-  public TabletServerInformation(TabletServerStatus thriftStatus) {
-    this.address = thriftStatus.name;
-    this.osLoad = thriftStatus.osLoad;
-    this.holdTime = thriftStatus.holdTime;
+  public void updateTabletServerInfo(TabletServerStatus thriftStatus, TableInfo summary) {
+
+    long now = System.currentTimeMillis();
+
+    this.server = this.ip = this.hostname = thriftStatus.name;
+    this.tablets = summary.tablets;
+    this.lastContact = now - thriftStatus.lastContact;
+    this.entries = summary.recs;
+    this.ingest = summary.ingestRate;
+    this.query = summary.queryRate;
+
+    this.holdtime = thriftStatus.holdTime;
+
+    this.scansRunning = summary.scans != null ? summary.scans.running : null;
+    this.scansQueued = summary.scans != null ? summary.scans.queued : null;
+
+    this.scans = this.scansRunning;
+
+    this.scansCompacting = new CompactionsList(this.scansRunning, this.scansQueued);
+
+    this.minorRunning = summary.minors != null ? summary.minors.running : null;
+    this.minorQueued = summary.minors != null ? summary.minors.running : null;
+
+    this.minor = new CompactionsList(this.minorRunning, this.minorQueued);
+
+    this.majorRunning = summary.majors != null ? summary.majors.running : null;
+    this.majorQueued = summary.majors != null ? summary.majors.running : null;
+
+    this.major = new CompactionsList(this.majorRunning, this.majorQueued);
+
+    this.compactions = new CompactionsTypes(scansCompacting, major, minor);
+
+    this.osload = thriftStatus.osLoad;
     this.lookups = thriftStatus.lookups;
 
     this.dataCacheHits = thriftStatus.dataCacheHits;
@@ -59,109 +101,18 @@ public class TabletServerInformation {
     this.indexCacheHits = thriftStatus.indexCacheHits;
     this.indexCacheRequests = thriftStatus.indexCacheRequest;
 
+    this.indexCacheHitRate = this.indexCacheHits / (double) Math.max(this.indexCacheRequests, 1);
+    this.dataCacheHitRate = this.dataCacheHits / (double) Math.max(this.dataCacheRequests, 1);
+
+    this.ingestMB = summary.ingestByteRate;
+    this.queryMB = summary.queryByteRate;
+
+    this.scansessions = Monitor.getLookupRate();
+    this.scanssessions = this.scansessions; // For backwards compatibility
+
     this.logRecoveries = new ArrayList<>(thriftStatus.logSorts.size());
     for (RecoveryStatus recovery : thriftStatus.logSorts) {
       logRecoveries.add(new RecoveryStatusInformation(recovery));
     }
-  }
-
-  @JsonProperty("address")
-  public String getAddress() {
-    return address;
-  }
-
-  @JsonProperty("address")
-  public void setAddress(String address) {
-    this.address = address;
-  }
-
-  @JsonProperty("lastContact")
-  public long getLastContact() {
-    return lastContact;
-  }
-
-  @JsonProperty("lastContact")
-  public void setLastContact(long lastContact) {
-    this.lastContact = lastContact;
-  }
-
-  @JsonProperty("holdTime")
-  public long getHoldTime() {
-    return holdTime;
-  }
-
-  @JsonProperty("holdTime")
-  public void setHoldTime(long holdTime) {
-    this.holdTime = holdTime;
-  }
-
-  @JsonProperty("lookups")
-  public long getLookups() {
-    return lookups;
-  }
-
-  @JsonProperty("lookups")
-  public void setLookups(long lookups) {
-    this.lookups = lookups;
-  }
-
-  @JsonProperty("indexCacheHits")
-  public long getIndexCacheHits() {
-    return indexCacheHits;
-  }
-
-  @JsonProperty("indexCacheHits")
-  public void setIndexCacheHits(long indexCacheHits) {
-    this.indexCacheHits = indexCacheHits;
-  }
-
-  @JsonProperty("indexCacheRequests")
-  public long getIndexCacheRequests() {
-    return indexCacheRequests;
-  }
-
-  @JsonProperty("indexCacheRequests")
-  public void setIndexCacheRequests(long indexCacheRequests) {
-    this.indexCacheRequests = indexCacheRequests;
-  }
-
-  @JsonProperty("dataCacheHits")
-  public long getDataCacheHits() {
-    return dataCacheHits;
-  }
-
-  @JsonProperty("dataCacheHits")
-  public void setDataCacheHits(long dataCacheHits) {
-    this.dataCacheHits = dataCacheHits;
-  }
-
-  @JsonProperty("dataCacheRequests")
-  public long getDataCacheRequests() {
-    return dataCacheRequests;
-  }
-
-  @JsonProperty("dataCacheRequests")
-  public void setDataCacheRequests(long dataCacheRequests) {
-    this.dataCacheRequests = dataCacheRequests;
-  }
-
-  @JsonProperty("osLoad")
-  public double getOsLoad() {
-    return osLoad;
-  }
-
-  @JsonProperty("osLoad")
-  public void setOsLoad(double osLoad) {
-    this.osLoad = osLoad;
-  }
-
-  @JsonProperty("logRecoveries")
-  public List<RecoveryStatusInformation> getLogRecoveries() {
-    return logRecoveries;
-  }
-
-  @JsonProperty("logRecoveries")
-  public void setLogRecoveries(List<RecoveryStatusInformation> logRecoveries) {
-    this.logRecoveries = logRecoveries;
   }
 }
