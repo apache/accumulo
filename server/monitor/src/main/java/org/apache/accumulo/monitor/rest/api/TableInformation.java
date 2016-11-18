@@ -18,38 +18,49 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.master.thrift.TableInfo;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- *
- */
 public class TableInformation {
-  protected String name, id;
-  protected int tablets;
-  protected int offlineTablets;
-  protected long entries;
-  protected long entriesInMemory;
-  protected double ingest;
-  protected double entriesRead, entriesReturned;
-  protected double holdTime;
-  protected int queuedScans, runningScans;
-  protected int queuedMinorCompactions, runningMinorCompactions;
-  protected int queuedMajorCompactions, runningMajorCompactions;
-  protected String tableState;
+
+  public String tablename, tableId, tableState;
+  
+  public int tablets, onlineTablets;
+  public long recs, recsInMemory;
+  
+  public double ingest, ingestByteRate, query, queryByteRate;
+  
+  public CompactionsList majorCompactions, minorCompactions, scans;
+  
+  private int queuedMajorCompactions, runningMajorCompactions, queuedMinorCompactions, runningMinorCompactions, queuedScans, runningScans;
+    
+  public double entriesRead, entriesReturned;
+  public Double holdTime;
+  
+  public int offlineTablets;
 
   public TableInformation() {}
 
-  public TableInformation(String tableName, String tableId, TableInfo info, double holdTime, String tableState) {
-    this.name = tableName;
-    this.id = tableId;
+  public TableInformation(String tableName, String tableId, String tableState) {
+    this.tablename = tableName;
+    this.tableId = tableId;
+    this.tableState = tableState;
+  }
+
+  public TableInformation(String tableName, String tableId, TableInfo info, Double holdTime, String tableState) {
+    this.tablename = tableName;
+    this.tableId = tableId;
 
     this.tablets = info.tablets;
     this.offlineTablets = info.tablets - info.onlineTablets;
+    this.onlineTablets = info.onlineTablets;
 
-    this.entries = info.recs;
-    this.entriesInMemory = info.recsInMemory;
+    this.recs = info.recs;
+    this.recsInMemory = info.recsInMemory;
 
     this.ingest = info.getIngestRate();
+    this.ingestByteRate = info.getIngestByteRate();
+
+    this.query = info.getQueryRate();
+    this.queryByteRate = info.getQueryByteRate();
 
     this.entriesRead = info.scanRate;
     this.entriesReturned = info.queryRate;
@@ -79,208 +90,11 @@ public class TableInformation {
       this.queuedMajorCompactions = 0;
       this.runningMajorCompactions = 0;
     }
+    
+    this.majorCompactions = new CompactionsList(runningMajorCompactions, queuedMajorCompactions);
+    this.minorCompactions = new CompactionsList(runningMinorCompactions, queuedMinorCompactions);
+    this.scans = new CompactionsList(runningScans, queuedScans);
 
     this.tableState = tableState;
   }
-
-  public TableInformation(TableInformation summary) {
-    this.name = summary.getName();
-    this.id = summary.getId();
-    this.tablets = summary.getTablets();
-    this.offlineTablets = summary.getOfflineTablets();
-    this.entries = summary.getEntries();
-    this.entriesInMemory = summary.getEntriesInMemory();
-    this.ingest = summary.getIngest();
-    this.entriesRead = summary.getEntriesRead();
-    this.entriesReturned = summary.getEntriesReturned();
-    this.holdTime = summary.getHoldTime();
-    this.queuedScans = summary.getQueuedScans();
-    this.runningScans = summary.getRunningScans();
-    this.queuedMinorCompactions = summary.getQueuedMinorCompactions();
-    this.runningMinorCompactions = summary.getRunningMinorCompactions();
-    this.queuedMajorCompactions = summary.getQueuedMajorCompactions();
-    this.runningMajorCompactions = summary.getRunningMajorCompactions();
-  }
-
-  public TableInformation(String tableName, String tableId, int tablets, int offlineTablets, long entries, long entriesInMemory, double ingest,
-      double entriesRead, double entriesReturned, long holdTime, int queuedScans, int runningScans, int queuedMinc, int runningMinc, int queuedMajc,
-      int runningMajc) {
-    this.name = tableName;
-    this.id = tableId;
-    this.tablets = tablets;
-    this.offlineTablets = offlineTablets;
-    this.entries = entries;
-    this.entriesInMemory = entriesInMemory;
-    this.ingest = ingest;
-    this.entriesRead = entriesRead;
-    this.entriesReturned = entriesReturned;
-    this.holdTime = holdTime;
-    this.queuedScans = queuedScans;
-    this.runningScans = runningScans;
-    this.queuedMinorCompactions = queuedMinc;
-    this.runningMinorCompactions = runningMinc;
-    this.queuedMajorCompactions = queuedMajc;
-    this.runningMajorCompactions = runningMajc;
-  }
-
-  @JsonProperty("name")
-  public String getName() {
-    return name;
-  }
-
-  @JsonProperty("name")
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  @JsonProperty("id")
-  public String getId() {
-    return id;
-  }
-
-  @JsonProperty("id")
-  public void setId(String id) {
-    this.id = id;
-  }
-
-  @JsonProperty("tablets")
-  public int getTablets() {
-    return tablets;
-  }
-
-  @JsonProperty("tablets")
-  public void setTablets(int tablets) {
-    this.tablets = tablets;
-  }
-
-  @JsonProperty("entries")
-  public long getEntries() {
-    return entries;
-  }
-
-  @JsonProperty("entries")
-  public void setEntries(long entries) {
-    this.entries = entries;
-  }
-
-  @JsonProperty("entriesInMemory")
-  public long getEntriesInMemory() {
-    return entriesInMemory;
-  }
-
-  @JsonProperty("entriesInMemory")
-  public void setEntriesInMemory(long entriesInMemory) {
-    this.entriesInMemory = entriesInMemory;
-  }
-
-  @JsonProperty("ingest")
-  public double getIngest() {
-    return ingest;
-  }
-
-  @JsonProperty("ingest")
-  public void setIngest(double ingest) {
-    this.ingest = ingest;
-  }
-
-  @JsonProperty("entriesRead")
-  public double getEntriesRead() {
-    return entriesRead;
-  }
-
-  @JsonProperty("entriesRead")
-  public void setEntriesRead(double entriesRead) {
-    this.entriesRead = entriesRead;
-  }
-
-  @JsonProperty("entriesReturned")
-  public double getEntriesReturned() {
-    return entriesReturned;
-  }
-
-  @JsonProperty("entriesReturned")
-  public void setEntriesReturned(double entriesReturned) {
-    this.entriesReturned = entriesReturned;
-  }
-
-  @JsonProperty("holdTime")
-  public double getHoldTime() {
-    return holdTime;
-  }
-
-  @JsonProperty("holdTime")
-  public void setHoldTime(long holdTime) {
-    this.holdTime = holdTime;
-  }
-
-  @JsonProperty("runningScans")
-  public int getRunningScans() {
-    return runningScans;
-  }
-
-  @JsonProperty("runningScans")
-  public void setRunningScans(int runningScans) {
-    this.runningScans = runningScans;
-  }
-
-  @JsonProperty("queuedScans")
-  public int getQueuedScans() {
-    return queuedScans;
-  }
-
-  @JsonProperty("queuedScans")
-  public void setQueuedScans(int queuedScans) {
-    this.queuedScans = queuedScans;
-  }
-
-  @JsonProperty("runningMinorCompactions")
-  public int getRunningMinorCompactions() {
-    return runningMinorCompactions;
-  }
-
-  @JsonProperty("runningMinorCompactions")
-  public void setRunningMinorCompactions(int runningMinorCompactions) {
-    this.runningMinorCompactions = runningMinorCompactions;
-  }
-
-  @JsonProperty("queuedMinorCompactions")
-  public int getQueuedMinorCompactions() {
-    return queuedMinorCompactions;
-  }
-
-  @JsonProperty("queuedMinorCompactions")
-  public void setQueuedMinorCompactions(int queuedMinorCompactions) {
-    this.queuedMinorCompactions = queuedMinorCompactions;
-  }
-
-  @JsonProperty("runningMajorCompactions")
-  public int getRunningMajorCompactions() {
-    return runningMajorCompactions;
-  }
-
-  @JsonProperty("runningMajorCompactions")
-  public void setRunningMajorCompactions(int runningMajorCompactions) {
-    this.runningMajorCompactions = runningMajorCompactions;
-  }
-
-  @JsonProperty("queuedMajorCompactions")
-  public int getQueuedMajorCompactions() {
-    return queuedMajorCompactions;
-  }
-
-  @JsonProperty("queuedMajorCompactions")
-  public void setQueuedMajorCompactions(int queuedMajc) {
-    this.queuedMajorCompactions = queuedMajc;
-  }
-
-  @JsonProperty("offlineTablets")
-  public int getOfflineTablets() {
-    return offlineTablets;
-  }
-
-  @JsonProperty("offlineTablets")
-  public void setOfflineTablets(int offlineTablets) {
-    this.offlineTablets = offlineTablets;
-  }
-
 }

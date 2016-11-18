@@ -16,31 +16,18 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import javax.xml.bind.annotation.XmlAttribute;
 
-/**
- *
- */
-public class TabletServerTableInformation extends TabletServerInformation {
 
-  private String tableId;
+public class ServerShuttingDownInformation {
 
-  public TabletServerTableInformation() {
-    super();
+  @XmlAttribute
+  public String id;
+
+  public ServerShuttingDownInformation() {
   }
-
-  public TabletServerTableInformation(String tableId) {
-    super();
-    this.tableId = tableId;
-  }
-
-  @JsonProperty("tableId")
-  public String getTableId() {
-    return tableId;
-  }
-
-  @JsonProperty("tableId")
-  public void setTableId(String tableId) {
-    this.tableId = tableId;
+  
+  public ServerShuttingDownInformation(String id) {
+    this.id = id;
   }
 }

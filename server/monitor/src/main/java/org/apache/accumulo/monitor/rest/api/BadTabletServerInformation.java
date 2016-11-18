@@ -16,27 +16,19 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import javax.xml.bind.annotation.XmlAttribute;
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+public class BadTabletServerInformation {
 
-  public long started, finished, candidates, inUse, deleted, errors;
+  @XmlAttribute
+  public String id, status;
 
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
+  public BadTabletServerInformation() {
   }
-
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  
+  public BadTabletServerInformation(String id, String status) {
+    this.id = id;
+    this.status = status;
   }
 }

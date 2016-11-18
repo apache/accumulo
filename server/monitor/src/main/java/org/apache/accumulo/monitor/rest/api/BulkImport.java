@@ -16,27 +16,25 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+public class BulkImport {
 
-  public long started, finished, candidates, inUse, deleted, errors;
+  public List<BulkImportInformation> bulkImport;
+  public List<TabletServerBulkImportInformation> tabletServerBulkImport;
 
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
+  public BulkImport() {
+    bulkImport = new ArrayList<>();
+    tabletServerBulkImport = new ArrayList<>();
   }
 
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public void addBulkImport(BulkImportInformation bulkImport) {
+    this.bulkImport.add(bulkImport);
+  }
+
+  public void addTabletServerBulkImport(TabletServerBulkImportInformation tabletServerBulkImport) {
+    this.tabletServerBulkImport.add(tabletServerBulkImport);
   }
 }

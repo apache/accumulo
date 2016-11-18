@@ -20,10 +20,11 @@
           <a href='/master'>Master&nbsp;Server</a><br />
           <a href='/tservers'>Tablet&nbsp;Servers</a><br />
           <a href='/scans'>Active&nbsp;Scans</a><br />
-          <a href='/vis'>Server Activity</a><br />
+          <a href='/bulkImports'>Bulk&nbsp;Imports</a><br />
+          <a href='/vis'>Server&nbsp;Activity</a><br />
           <a href='/gc'>Garbage&nbsp;Collector</a><br />
           <a href='/tables'>Tables</a><br />
-          <a href='/trace/summary?minutes=10'>Recent&nbsp;Traces</a><br />
+          <a href='/trace/summary/10'>Recent&nbsp;Traces</a><br />
           <a href='/replication'>Replication</a><br />
           <#if num_logs gt 0>
             <span class='<#if logsHaveError>error<#else>warning</#if>'><a href='/log'>Recent&nbsp;Logs&nbsp;<span class='smalltext'>(${num_logs})</span></a></span><br />
@@ -38,5 +39,6 @@
             <a href='/shell'>Shell</a><hr />
           </#if>
           <div class='smalltext'>[<a href='/op?action=refresh&value=<#if refresh < 1>5<#else>-1</#if>&redir=${redirect}'>
-                <#if refresh < 1>enable<#else>disable</#if>&nbsp;auto-refresh</a>]</div>
+                <#if refresh < 1>enable<#else>disable</#if>&nbsp;auto-refresh</a>]</div><hr />
+          <div class='smalltext'><a href='https://accumulo.apache.org/' target='_blank'>Apache&nbsp;Accumulo</a></div>
         </div>

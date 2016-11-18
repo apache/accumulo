@@ -18,20 +18,16 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- *
- */
 public class RecoveryStatusInformation {
 
-  private String name;
-  private int runtime;
-  private double progress;
+  public String name;
+  public Integer runtime;
+  public Double progress;
 
   public RecoveryStatusInformation() {}
 
-  public RecoveryStatusInformation(String name, int runtime, double progress) {
+  public RecoveryStatusInformation(String name, Integer runtime, Double progress) {
     this.name = name;
     this.runtime = runtime;
     this.progress = progress;
@@ -41,35 +37,5 @@ public class RecoveryStatusInformation {
     this.name = recovery.name;
     this.runtime = recovery.runtime;
     this.progress = recovery.progress;
-  }
-
-  @JsonProperty("name")
-  public String getName() {
-    return name;
-  }
-
-  @JsonProperty("name")
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  @JsonProperty("runtime")
-  public int getRuntime() {
-    return runtime;
-  }
-
-  @JsonProperty("runtime")
-  public void setRuntime(int runtime) {
-    this.runtime = runtime;
-  }
-
-  @JsonProperty("progress")
-  public double getProgress() {
-    return progress;
-  }
-
-  @JsonProperty("progress")
-  public void setProgress(double progress) {
-    this.progress = progress;
   }
 }

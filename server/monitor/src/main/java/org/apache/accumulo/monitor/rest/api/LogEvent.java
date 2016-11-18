@@ -16,17 +16,15 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
  * A single message logged
  */
 public class LogEvent {
 
-  protected long timestamp;
-  protected Object application;
-  protected int count;
-  protected String level, message;
+  public long timestamp;
+  public Object application;
+  public int count;
+  public String level, message;
 
   public LogEvent() {}
 
@@ -35,56 +33,6 @@ public class LogEvent {
     this.application = application;
     this.count = count;
     this.level = level;
-    this.message = message;
-  }
-
-  @JsonProperty("timestamp")
-  public long getTimestamp() {
-    return timestamp;
-  }
-
-  @JsonProperty("timestamp")
-  public void setTimestamp(long timestamp) {
-    this.timestamp = timestamp;
-  }
-
-  @JsonProperty("application")
-  public Object getApplication() {
-    return application;
-  }
-
-  @JsonProperty("application")
-  public void setApplication(Object application) {
-    this.application = application;
-  }
-
-  @JsonProperty("count")
-  public int getCount() {
-    return count;
-  }
-
-  @JsonProperty("count")
-  public void setCount(int count) {
-    this.count = count;
-  }
-
-  @JsonProperty("level")
-  public String getLevel() {
-    return level;
-  }
-
-  @JsonProperty("level")
-  public void setLevel(String level) {
-    this.level = level;
-  }
-
-  @JsonProperty("message")
-  public String getMessage() {
-    return message;
-  }
-
-  @JsonProperty("message")
-  public void setMessage(String message) {
     this.message = message;
   }
 }

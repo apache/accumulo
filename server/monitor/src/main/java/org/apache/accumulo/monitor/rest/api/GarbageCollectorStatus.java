@@ -18,42 +18,21 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- *
- */
 public class GarbageCollectorStatus {
+
   public static final GarbageCollectorStatus EMPTY = new GarbageCollectorStatus();
 
-  protected GarbageCollection fileCollection = new GarbageCollection(), logCollection = new GarbageCollection();
+  public GarbageCollection files = new GarbageCollection();
+  
+  public GarbageCollection wals = new GarbageCollection();
 
   public GarbageCollectorStatus() {}
 
   public GarbageCollectorStatus(GCStatus status) {
     if (null != status) {
-      fileCollection = new GarbageCollection(status.last, status.current);
-      logCollection = new GarbageCollection(status.lastLog, status.currentLog);
+      files = new GarbageCollection(status.last, status.current);
+      wals = new GarbageCollection(status.lastLog, status.currentLog);
     }
-  }
-
-  @JsonProperty("files")
-  public GarbageCollection getFiles() {
-    return fileCollection;
-  }
-
-  @JsonProperty("files")
-  public void setFiles(GarbageCollection fileCollection) {
-    this.fileCollection = fileCollection;
-  }
-
-  @JsonProperty("wals")
-  public GarbageCollection getWals() {
-    return logCollection;
-  }
-
-  @JsonProperty("wals")
-  public void setWals(GarbageCollection logCollection) {
-    this.logCollection = logCollection;
   }
 }

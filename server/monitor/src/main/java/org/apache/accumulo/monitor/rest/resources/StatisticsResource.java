@@ -31,7 +31,7 @@ import org.apache.accumulo.monitor.Monitor;
  *
  */
 @Path("/statistics")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({MediaType.APPLICATION_JSON,MediaType.APPLICATION_XML})
 public class StatisticsResource {
 
   @GET

@@ -16,27 +16,22 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+public class TraceInformation {
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public int level;
+  public long time, start;
+  public String location, name;
+  public AddlInformation addlData;
 
-  public long started, finished, candidates, inUse, deleted, errors;
+  public TraceInformation() {}
 
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
-  }
-
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  public TraceInformation(int level, long time, long start, String location, String name, AddlInformation addlData) {
+    this.level = level;
+    this.time = time;
+    this.start = start;
+    this.location = location;
+    this.name = name;
+    this.addlData = addlData;
   }
 }

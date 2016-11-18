@@ -16,27 +16,20 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 
-/**
- * Metrics about a single cycle of the garbage collector
- */
-public class GarbageCollectorCycle {
+public class CompactionsTypes {
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  public CompactionsList scans, major, minor;
 
-  public long started, finished, candidates, inUse, deleted, errors;
-
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
+  public CompactionsTypes() {
+    scans = new CompactionsList();
+    major = new CompactionsList();
+    minor = new CompactionsList();
   }
-
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
-    this.finished = thriftStats.finished;
-    this.candidates = thriftStats.candidates;
-    this.inUse = thriftStats.inUse;
-    this.deleted = thriftStats.deleted;
-    this.errors = thriftStats.errors;
+  
+  public CompactionsTypes(CompactionsList scans, CompactionsList major, CompactionsList minor) {
+    this.scans = scans;
+    this.major = major;
+    this.minor = minor;
   }
 }
