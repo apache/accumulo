@@ -34,11 +34,14 @@ body {
 code {
   background-color: #f5f5f5;
   color: #20b2aa;
+  /* override nowrap in bootstrap */
+  white-space: normal;
 }
 
 #nav-logo {
     padding-top: 10px;
     padding-bottom: 10px;
+    padding-left: 10px;
 }
 
 .nav-link, li.dropdown {
@@ -64,8 +67,8 @@ code {
 }
 
 #sociallinks td {
-    /* no lines in the link table */
-    border-top: none;
+   /* no lines in the link table */
+   border-top: none;
 }
 
 #bannertext {
@@ -96,6 +99,7 @@ code {
 #content img {
     vertical-align: middle;
 }
+
 footer {
     border-top: 1px solid #CCCCCC;
     color: #666666;
@@ -103,6 +107,7 @@ footer {
     padding: 8px 8px;
     text-align: center;
 }
+
 footer > p {
     width: 60%;
     margin-left: auto;
@@ -111,6 +116,7 @@ footer > p {
 
 #asf-logo {
     float: left;
+
 }
 
 #release_notes_testing {
@@ -125,19 +131,8 @@ footer > p {
     padding: 5px;
 }
 
-#download-button-sidebar {
-    width: 60%;
-    margin-left: auto;
-    margin-right: auto;
-}
-
 #accumulo-summit-logo img {
-    height: 40px
-}
-
-code {
-    /* override nowrap in bootstrap */
-    white-space: normal;
+  height: 40px
 }
 
 .header-link {
