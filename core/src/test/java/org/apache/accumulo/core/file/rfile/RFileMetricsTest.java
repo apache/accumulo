@@ -129,7 +129,7 @@ public class RFileMetricsTest {
     // test an rfile with one entry in the default locality group
 
     trf.openWriter();
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
     trf.closeWriter();
 
     trf.openReader(false);
@@ -153,8 +153,8 @@ public class RFileMetricsTest {
     // test an rfile with two entries in the default locality group
 
     trf.openWriter();
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L2", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L2", 55), RFileTest.newValue("foo"));
     trf.closeWriter();
 
     trf.openReader(false);
@@ -185,7 +185,7 @@ public class RFileMetricsTest {
     lg1.add(new ArrayByteSequence("cf1"));
 
     trf.writer.startNewLocalityGroup("lg1", lg1);
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
     trf.closeWriter();
 
     trf.openReader(false);
@@ -214,8 +214,8 @@ public class RFileMetricsTest {
     lg1.add(new ArrayByteSequence("cf1"));
 
     trf.writer.startNewLocalityGroup("lg1", lg1);
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L2", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L2", 55), RFileTest.newValue("foo"));
     trf.closeWriter();
 
     trf.openReader(false);
@@ -246,15 +246,15 @@ public class RFileMetricsTest {
     lg1.add(new ArrayByteSequence("cf1"));
 
     trf.writer.startNewLocalityGroup("lg1", lg1);
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L2", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L2", 55), RFileTest.newValue("foo"));
 
     Set<ByteSequence> lg2 = new HashSet<>();
     lg2.add(new ArrayByteSequence("cf2"));
 
     trf.writer.startNewLocalityGroup("lg2", lg2);
-    trf.writer.append(RFileTest.nk("r1", "cf2", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf2", "cq1", "L2", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf2", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf2", "cq1", "L2", 55), RFileTest.newValue("foo"));
 
     trf.closeWriter();
 
@@ -297,13 +297,13 @@ public class RFileMetricsTest {
     lg1.add(new ArrayByteSequence("cf1"));
 
     trf.writer.startNewLocalityGroup("lg1", lg1);
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq2", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq2", "L2", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq2", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq2", "L2", 55), RFileTest.newValue("foo"));
 
     trf.writer.startDefaultLocalityGroup();
-    trf.writer.append(RFileTest.nk("r1", "cf2", "cq1", "A", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf2", "cq1", "B", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf2", "cq1", "A", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf2", "cq1", "B", 55), RFileTest.newValue("foo"));
 
     trf.closeWriter();
 
@@ -347,16 +347,16 @@ public class RFileMetricsTest {
     lg1.add(new ArrayByteSequence("cf3"));
 
     trf.writer.startNewLocalityGroup("lg1", lg1);
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq2", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf3", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf3", "cq2", "L2", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq2", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf3", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf3", "cq2", "L2", 55), RFileTest.newValue("foo"));
 
     trf.writer.startDefaultLocalityGroup();
-    trf.writer.append(RFileTest.nk("r1", "cf2", "cq1", "A", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf2", "cq1", "B", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf4", "cq1", "A", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf4", "cq1", "B", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf2", "cq1", "A", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf2", "cq1", "B", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf4", "cq1", "A", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf4", "cq1", "B", 55), RFileTest.newValue("foo"));
 
     trf.closeWriter();
 
@@ -395,10 +395,10 @@ public class RFileMetricsTest {
     // test an rfile with four blocks in the default locality group
 
     trf.openWriter(20);// Each entry is a block
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq2", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf3", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf3", "cq2", "L2", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq2", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf3", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf3", "cq2", "L2", 55), RFileTest.newValue("foo"));
     trf.closeWriter();
 
     trf.openReader(false);
@@ -430,10 +430,10 @@ public class RFileMetricsTest {
     lg1.add(new ArrayByteSequence("cf3"));
 
     trf.writer.startNewLocalityGroup("lg1", lg1);
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq2", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf3", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf3", "cq2", "L2", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq2", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf3", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf3", "cq2", "L2", 55), RFileTest.newValue("foo"));
     trf.closeWriter();
 
     trf.openReader(false);
@@ -465,16 +465,16 @@ public class RFileMetricsTest {
     lg1.add(new ArrayByteSequence("cf3"));
 
     trf.writer.startNewLocalityGroup("lg1", lg1);
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf1", "cq2", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf3", "cq1", "L1", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf3", "cq2", "L2", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf1", "cq2", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf3", "cq1", "L1", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf3", "cq2", "L2", 55), RFileTest.newValue("foo"));
 
     trf.writer.startDefaultLocalityGroup();
-    trf.writer.append(RFileTest.nk("r1", "cf2", "cq1", "A", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf2", "cq1", "B", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf4", "cq1", "A", 55), RFileTest.nv("foo"));
-    trf.writer.append(RFileTest.nk("r1", "cf4", "cq1", "B", 55), RFileTest.nv("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf2", "cq1", "A", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf2", "cq1", "B", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf4", "cq1", "A", 55), RFileTest.newValue("foo"));
+    trf.writer.append(RFileTest.newKey("r1", "cf4", "cq1", "B", 55), RFileTest.newValue("foo"));
 
     trf.closeWriter();
 

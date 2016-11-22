@@ -190,11 +190,11 @@ public class MultiThreadedRFileTest {
     }
   }
 
-  static Key nk(String row, String cf, String cq, String cv, long ts) {
+  static Key newKey(String row, String cf, String cq, String cv, long ts) {
     return new Key(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes(), ts);
   }
 
-  static Value nv(String val) {
+  static Value newValue(String val) {
     return new Value(val.getBytes());
   }
 
@@ -362,7 +362,7 @@ public class MultiThreadedRFileTest {
     String cf = getCf(locality);
     String cq = "cq" + pad(index);
 
-    return nk(row, cf, cq, "", 1);
+    return newKey(row, cf, cq, "", 1);
   }
 
   private String pad(int val) {
@@ -380,7 +380,7 @@ public class MultiThreadedRFileTest {
   }
 
   private Value getValue(int index) {
-    return nv("" + index);
+    return newValue("" + index);
   }
 
   private String getCf(int locality) {

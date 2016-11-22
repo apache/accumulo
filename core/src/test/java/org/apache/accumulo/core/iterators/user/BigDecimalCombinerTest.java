@@ -57,13 +57,13 @@ public class BigDecimalCombinerTest {
     columns = Collections.singletonList(new IteratorSetting.Column("cf001"));
 
     // keys that will aggregate
-    CombinerTest.nkv(tm1, 1, 1, 1, 1, false, BigDecimal.valueOf(2), encoder);
-    CombinerTest.nkv(tm1, 1, 1, 1, 2, false, BigDecimal.valueOf(2.3), encoder);
-    CombinerTest.nkv(tm1, 1, 1, 1, 3, false, BigDecimal.valueOf(-1.4E1), encoder);
+    CombinerTest.newKeyValue(tm1, 1, 1, 1, 1, false, BigDecimal.valueOf(2), encoder);
+    CombinerTest.newKeyValue(tm1, 1, 1, 1, 2, false, BigDecimal.valueOf(2.3), encoder);
+    CombinerTest.newKeyValue(tm1, 1, 1, 1, 3, false, BigDecimal.valueOf(-1.4E1), encoder);
 
     // and keys that will not aggregate
-    CombinerTest.nkv(tm1, 1, 2, 1, 1, false, BigDecimal.valueOf(99), encoder);
-    CombinerTest.nkv(tm1, 1, 3, 1, 1, false, BigDecimal.valueOf(-88), encoder);
+    CombinerTest.newKeyValue(tm1, 1, 2, 1, 1, false, BigDecimal.valueOf(99), encoder);
+    CombinerTest.newKeyValue(tm1, 1, 3, 1, 1, false, BigDecimal.valueOf(-88), encoder);
   }
 
   @Test
@@ -76,7 +76,7 @@ public class BigDecimalCombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(CombinerTest.nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(CombinerTest.newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals(-9.7, encoder.decode(ai.getTopValue().get()).doubleValue(), delta);
 
     verify();
@@ -92,7 +92,7 @@ public class BigDecimalCombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(CombinerTest.nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(CombinerTest.newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals(-14.0, encoder.decode(ai.getTopValue().get()).doubleValue(), delta);
 
     verify();
@@ -108,7 +108,7 @@ public class BigDecimalCombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(CombinerTest.nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(CombinerTest.newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals(2.3, encoder.decode(ai.getTopValue().get()).doubleValue(), delta);
 
     verify();
@@ -118,11 +118,11 @@ public class BigDecimalCombinerTest {
     ai.next(); // Skip the combined key, since we've already looked at it by now
 
     // Should have exactly two more keys left over
-    assertEquals(CombinerTest.nk(1, 2, 1, 1), ai.getTopKey());
+    assertEquals(CombinerTest.newKey(1, 2, 1, 1), ai.getTopKey());
     assertEquals(99.0, encoder.decode(ai.getTopValue().get()).doubleValue(), delta);
     ai.next();
 
-    assertEquals(CombinerTest.nk(1, 3, 1, 1), ai.getTopKey());
+    assertEquals(CombinerTest.newKey(1, 3, 1, 1), ai.getTopKey());
     assertEquals(-88.0, encoder.decode(ai.getTopValue().get()).doubleValue(), delta);
     ai.next();
 

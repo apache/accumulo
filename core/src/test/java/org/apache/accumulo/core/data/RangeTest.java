@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.hadoop.io.Text;
 
 public class RangeTest extends TestCase {
-  private Range nr(String k1, String k2) {
+  private Range newRange(String k1, String k2) {
     Key ik1 = null;
     if (k1 != null)
       ik1 = new Key(new Text(k1), 0l);
@@ -44,7 +44,7 @@ public class RangeTest extends TestCase {
     return new Range(ik1, ik2);
   }
 
-  private List<Range> nrl(Range... ranges) {
+  private List<Range> newRangeList(Range... ranges) {
     return Arrays.asList(ranges);
   }
 
@@ -56,135 +56,135 @@ public class RangeTest extends TestCase {
   }
 
   public void testMergeOverlapping1() {
-    List<Range> rl = nrl(nr("a", "c"), nr("a", "b"));
-    List<Range> expected = nrl(nr("a", "c"));
+    List<Range> rl = newRangeList(newRange("a", "c"), newRange("a", "b"));
+    List<Range> expected = newRangeList(newRange("a", "c"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping2() {
-    List<Range> rl = nrl(nr("a", "c"), nr("d", "f"));
-    List<Range> expected = nrl(nr("a", "c"), nr("d", "f"));
+    List<Range> rl = newRangeList(newRange("a", "c"), newRange("d", "f"));
+    List<Range> expected = newRangeList(newRange("a", "c"), newRange("d", "f"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping3() {
-    List<Range> rl = nrl(nr("a", "e"), nr("b", "f"), nr("c", "r"), nr("g", "j"), nr("t", "x"));
-    List<Range> expected = nrl(nr("a", "r"), nr("t", "x"));
+    List<Range> rl = newRangeList(newRange("a", "e"), newRange("b", "f"), newRange("c", "r"), newRange("g", "j"), newRange("t", "x"));
+    List<Range> expected = newRangeList(newRange("a", "r"), newRange("t", "x"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping4() {
-    List<Range> rl = nrl(nr("a", "e"), nr("b", "f"), nr("c", "r"), nr("g", "j"));
-    List<Range> expected = nrl(nr("a", "r"));
+    List<Range> rl = newRangeList(newRange("a", "e"), newRange("b", "f"), newRange("c", "r"), newRange("g", "j"));
+    List<Range> expected = newRangeList(newRange("a", "r"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping5() {
-    List<Range> rl = nrl(nr("a", "e"));
-    List<Range> expected = nrl(nr("a", "e"));
+    List<Range> rl = newRangeList(newRange("a", "e"));
+    List<Range> expected = newRangeList(newRange("a", "e"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping6() {
-    List<Range> rl = nrl();
-    List<Range> expected = nrl();
+    List<Range> rl = newRangeList();
+    List<Range> expected = newRangeList();
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping7() {
-    List<Range> rl = nrl(nr("a", "e"), nr("g", "q"), nr("r", "z"));
-    List<Range> expected = nrl(nr("a", "e"), nr("g", "q"), nr("r", "z"));
+    List<Range> rl = newRangeList(newRange("a", "e"), newRange("g", "q"), newRange("r", "z"));
+    List<Range> expected = newRangeList(newRange("a", "e"), newRange("g", "q"), newRange("r", "z"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping8() {
-    List<Range> rl = nrl(nr("a", "c"), nr("a", "c"));
-    List<Range> expected = nrl(nr("a", "c"));
+    List<Range> rl = newRangeList(newRange("a", "c"), newRange("a", "c"));
+    List<Range> expected = newRangeList(newRange("a", "c"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping9() {
-    List<Range> rl = nrl(nr(null, null));
-    List<Range> expected = nrl(nr(null, null));
+    List<Range> rl = newRangeList(newRange(null, null));
+    List<Range> expected = newRangeList(newRange(null, null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping10() {
-    List<Range> rl = nrl(nr(null, null), nr("a", "c"));
-    List<Range> expected = nrl(nr(null, null));
+    List<Range> rl = newRangeList(newRange(null, null), newRange("a", "c"));
+    List<Range> expected = newRangeList(newRange(null, null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping11() {
-    List<Range> rl = nrl(nr("a", "c"), nr(null, null));
-    List<Range> expected = nrl(nr(null, null));
+    List<Range> rl = newRangeList(newRange("a", "c"), newRange(null, null));
+    List<Range> expected = newRangeList(newRange(null, null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping12() {
-    List<Range> rl = nrl(nr("b", "d"), nr("c", null));
-    List<Range> expected = nrl(nr("b", null));
+    List<Range> rl = newRangeList(newRange("b", "d"), newRange("c", null));
+    List<Range> expected = newRangeList(newRange("b", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping13() {
-    List<Range> rl = nrl(nr("b", "d"), nr("a", null));
-    List<Range> expected = nrl(nr("a", null));
+    List<Range> rl = newRangeList(newRange("b", "d"), newRange("a", null));
+    List<Range> expected = newRangeList(newRange("a", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping14() {
-    List<Range> rl = nrl(nr("b", "d"), nr("e", null));
-    List<Range> expected = nrl(nr("b", "d"), nr("e", null));
+    List<Range> rl = newRangeList(newRange("b", "d"), newRange("e", null));
+    List<Range> expected = newRangeList(newRange("b", "d"), newRange("e", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping15() {
-    List<Range> rl = nrl(nr("b", "d"), nr("e", null), nr("c", "f"));
-    List<Range> expected = nrl(nr("b", null));
+    List<Range> rl = newRangeList(newRange("b", "d"), newRange("e", null), newRange("c", "f"));
+    List<Range> expected = newRangeList(newRange("b", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping16() {
-    List<Range> rl = nrl(nr("b", "d"), nr("f", null), nr("c", "e"));
-    List<Range> expected = nrl(nr("b", "e"), nr("f", null));
+    List<Range> rl = newRangeList(newRange("b", "d"), newRange("f", null), newRange("c", "e"));
+    List<Range> expected = newRangeList(newRange("b", "e"), newRange("f", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping17() {
-    List<Range> rl = nrl(nr("b", "d"), nr("r", null), nr("c", "e"), nr("g", "t"));
-    List<Range> expected = nrl(nr("b", "e"), nr("g", null));
+    List<Range> rl = newRangeList(newRange("b", "d"), newRange("r", null), newRange("c", "e"), newRange("g", "t"));
+    List<Range> expected = newRangeList(newRange("b", "e"), newRange("g", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping18() {
-    List<Range> rl = nrl(nr(null, "d"), nr("r", null), nr("c", "e"), nr("g", "t"));
-    List<Range> expected = nrl(nr(null, "e"), nr("g", null));
+    List<Range> rl = newRangeList(newRange(null, "d"), newRange("r", null), newRange("c", "e"), newRange("g", "t"));
+    List<Range> expected = newRangeList(newRange(null, "e"), newRange("g", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping19() {
-    List<Range> rl = nrl(nr(null, "d"), nr("r", null), nr("c", "e"), nr("g", "t"), nr("d", "h"));
-    List<Range> expected = nrl(nr(null, null));
+    List<Range> rl = newRangeList(newRange(null, "d"), newRange("r", null), newRange("c", "e"), newRange("g", "t"), newRange("d", "h"));
+    List<Range> expected = newRangeList(newRange(null, null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
   public void testMergeOverlapping20() {
 
-    List<Range> rl = nrl(new Range(new Text("a"), true, new Text("b"), false), new Range(new Text("b"), false, new Text("c"), false));
-    List<Range> expected = nrl(new Range(new Text("a"), true, new Text("b"), false), new Range(new Text("b"), false, new Text("c"), false));
+    List<Range> rl = newRangeList(new Range(new Text("a"), true, new Text("b"), false), new Range(new Text("b"), false, new Text("c"), false));
+    List<Range> expected = newRangeList(new Range(new Text("a"), true, new Text("b"), false), new Range(new Text("b"), false, new Text("c"), false));
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = nrl(new Range(new Text("a"), true, new Text("b"), false), new Range(new Text("b"), true, new Text("c"), false));
-    expected = nrl(new Range(new Text("a"), true, new Text("c"), false));
+    rl = newRangeList(new Range(new Text("a"), true, new Text("b"), false), new Range(new Text("b"), true, new Text("c"), false));
+    expected = newRangeList(new Range(new Text("a"), true, new Text("c"), false));
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = nrl(new Range(new Text("a"), true, new Text("b"), true), new Range(new Text("b"), false, new Text("c"), false));
-    expected = nrl(new Range(new Text("a"), true, new Text("c"), false));
+    rl = newRangeList(new Range(new Text("a"), true, new Text("b"), true), new Range(new Text("b"), false, new Text("c"), false));
+    expected = newRangeList(new Range(new Text("a"), true, new Text("c"), false));
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = nrl(new Range(new Text("a"), true, new Text("b"), true), new Range(new Text("b"), true, new Text("c"), false));
-    expected = nrl(new Range(new Text("a"), true, new Text("c"), false));
+    rl = newRangeList(new Range(new Text("a"), true, new Text("b"), true), new Range(new Text("b"), true, new Text("c"), false));
+    expected = newRangeList(new Range(new Text("a"), true, new Text("c"), false));
     check(Range.mergeOverlapping(rl), expected);
 
   }
@@ -197,24 +197,25 @@ public class RangeTest extends TestCase {
     Range ke4 = new KeyExtent("tab1", new Text("bails"), new Text("Sam")).toMetadataRange();
     Range ke5 = new KeyExtent("tab1", null, new Text("bails")).toMetadataRange();
 
-    List<Range> rl = nrl(ke1, ke2, ke3, ke4, ke5);
-    List<Range> expected = nrl(new KeyExtent("tab1", null, null).toMetadataRange());
+    List<Range> rl = newRangeList(ke1, ke2, ke3, ke4, ke5);
+    List<Range> expected = newRangeList(new KeyExtent("tab1", null, null).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = nrl(ke1, ke2, ke4, ke5);
-    expected = nrl(new KeyExtent("tab1", new Text("Fails"), null).toMetadataRange(), new KeyExtent("tab1", null, new Text("Sam")).toMetadataRange());
+    rl = newRangeList(ke1, ke2, ke4, ke5);
+    expected = newRangeList(new KeyExtent("tab1", new Text("Fails"), null).toMetadataRange(), new KeyExtent("tab1", null, new Text("Sam")).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = nrl(ke2, ke3, ke4, ke5);
-    expected = nrl(new KeyExtent("tab1", null, new Text("Bank")).toMetadataRange());
+    rl = newRangeList(ke2, ke3, ke4, ke5);
+    expected = newRangeList(new KeyExtent("tab1", null, new Text("Bank")).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = nrl(ke1, ke2, ke3, ke4);
-    expected = nrl(new KeyExtent("tab1", new Text("bails"), null).toMetadataRange());
+    rl = newRangeList(ke1, ke2, ke3, ke4);
+    expected = newRangeList(new KeyExtent("tab1", new Text("bails"), null).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
-    rl = nrl(ke2, ke3, ke4);
-    expected = nrl(new KeyExtent("tab1", new Text("bails"), new Text("Bank")).toMetadataRange());
+    rl = newRangeList(ke2, ke3, ke4);
+    expected = newRangeList(new KeyExtent("tab1", new Text("bails"), new Text("Bank")).toMetadataRange());
+
     check(Range.mergeOverlapping(rl), expected);
   }
 
@@ -226,21 +227,24 @@ public class RangeTest extends TestCase {
 
             // System.out.println("b1:"+b1+" b2:"+b2+" b3:"+b3+" b4:"+b4);
 
-            List<Range> rl = nrl(new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2), new Range(new Key(new Text("b")), b3,
-                new Key(new Text("n")), b4));
-            List<Range> expected = nrl(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b4));
+            List<Range> rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2), new Range(new Key(new Text("b")), b3, new Key(
+                new Text("n")), b4));
+            List<Range> expected = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b4));
             check(Range.mergeOverlapping(rl), expected);
 
-            rl = nrl(new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2), new Range(new Key(new Text("a")), b3, new Key(new Text("n")), b4));
-            expected = nrl(new Range(new Key(new Text("a")), b1 || b3, new Key(new Text("n")), b4));
+            rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2), new Range(new Key(new Text("a")), b3, new Key(new Text("n")),
+                b4));
+            expected = newRangeList(new Range(new Key(new Text("a")), b1 || b3, new Key(new Text("n")), b4));
             check(Range.mergeOverlapping(rl), expected);
 
-            rl = nrl(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2), new Range(new Key(new Text("b")), b3, new Key(new Text("n")), b4));
-            expected = nrl(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2 || b4));
+            rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2), new Range(new Key(new Text("b")), b3, new Key(new Text("n")),
+                b4));
+            expected = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2 || b4));
             check(Range.mergeOverlapping(rl), expected);
 
-            rl = nrl(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2), new Range(new Key(new Text("a")), b3, new Key(new Text("n")), b4));
-            expected = nrl(new Range(new Key(new Text("a")), b1 || b3, new Key(new Text("n")), b2 || b4));
+            rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b2), new Range(new Key(new Text("a")), b3, new Key(new Text("n")),
+                b4));
+            expected = newRangeList(new Range(new Key(new Text("a")), b1 || b3, new Key(new Text("n")), b2 || b4));
             check(Range.mergeOverlapping(rl), expected);
           }
 
@@ -248,33 +252,33 @@ public class RangeTest extends TestCase {
 
   public void testEqualsNull() {
 
-    assertTrue(nr(null, "d").equals(nr(null, "d")));
+    assertTrue(newRange(null, "d").equals(newRange(null, "d")));
 
-    assertTrue(nr(null, null).equals(nr(null, null)));
+    assertTrue(newRange(null, null).equals(newRange(null, null)));
 
-    assertTrue(nr("a", null).equals(nr("a", null)));
+    assertTrue(newRange("a", null).equals(newRange("a", null)));
 
-    assertFalse(nr(null, "d").equals(nr("a", "d")));
-    assertFalse(nr("a", "d").equals(nr(null, "d")));
+    assertFalse(newRange(null, "d").equals(newRange("a", "d")));
+    assertFalse(newRange("a", "d").equals(newRange(null, "d")));
 
-    assertFalse(nr(null, null).equals(nr("a", "d")));
-    assertFalse(nr("a", "d").equals(nr(null, null)));
+    assertFalse(newRange(null, null).equals(newRange("a", "d")));
+    assertFalse(newRange("a", "d").equals(newRange(null, null)));
 
-    assertFalse(nr("a", null).equals(nr("a", "d")));
-    assertFalse(nr("a", "d").equals(nr("a", null)));
+    assertFalse(newRange("a", null).equals(newRange("a", "d")));
+    assertFalse(newRange("a", "d").equals(newRange("a", null)));
   }
 
   public void testEquals() {
-    assertFalse(nr("b", "d").equals(nr("a", "d")));
-    assertFalse(nr("a", "d").equals(nr("b", "d")));
+    assertFalse(newRange("b", "d").equals(newRange("a", "d")));
+    assertFalse(newRange("a", "d").equals(newRange("b", "d")));
 
-    assertFalse(nr("x", "y").equals(nr("a", "d")));
-    assertFalse(nr("a", "d").equals(nr("x", "y")));
+    assertFalse(newRange("x", "y").equals(newRange("a", "d")));
+    assertFalse(newRange("a", "d").equals(newRange("x", "y")));
 
-    assertFalse(nr("a", "z").equals(nr("a", "d")));
-    assertFalse(nr("a", "d").equals(nr("a", "z")));
+    assertFalse(newRange("a", "z").equals(newRange("a", "d")));
+    assertFalse(newRange("a", "d").equals(newRange("a", "z")));
 
-    assertTrue(nr("a", "z").equals(nr("a", "z")));
+    assertTrue(newRange("a", "z").equals(newRange("a", "z")));
   }
 
   public void testRow1() {
@@ -415,7 +419,7 @@ public class RangeTest extends TestCase {
     assertTrue(rowRange.contains(new Key(new Text("r2")).followingKey(PartialKey.ROW)));
   }
 
-  private static Range nr(String r1, boolean r1i, String r2, boolean r2i) {
+  private static Range newRange(String r1, boolean r1i, String r2, boolean r2i) {
     Text tr1 = null;
     Text tr2 = null;
 
@@ -429,98 +433,98 @@ public class RangeTest extends TestCase {
 
   }
 
-  private static Key nk(String r) {
+  private static Key newKey(String r) {
     return new Key(new Text(r));
   }
 
   public void testClip1() {
-    Range fence = nr("a", false, "c", false);
+    Range fence = newRange("a", false, "c", false);
 
-    runClipTest(fence, nr("a", false, "c", false), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", true, "c", false), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", false, "c", true), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", true, "c", true), nr("a", false, "c", false));
+    runClipTest(fence, newRange("a", false, "c", false), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", true, "c", false), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", false, "c", true), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", true, "c", true), newRange("a", false, "c", false));
 
-    fence = nr("a", true, "c", false);
+    fence = newRange("a", true, "c", false);
 
-    runClipTest(fence, nr("a", false, "c", false), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", true, "c", false), nr("a", true, "c", false));
-    runClipTest(fence, nr("a", false, "c", true), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", true, "c", true), nr("a", true, "c", false));
+    runClipTest(fence, newRange("a", false, "c", false), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", true, "c", false), newRange("a", true, "c", false));
+    runClipTest(fence, newRange("a", false, "c", true), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", true, "c", true), newRange("a", true, "c", false));
 
-    fence = nr("a", false, "c", true);
+    fence = newRange("a", false, "c", true);
 
-    runClipTest(fence, nr("a", false, "c", false), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", true, "c", false), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", false, "c", true), nr("a", false, "c", true));
-    runClipTest(fence, nr("a", true, "c", true), nr("a", false, "c", true));
+    runClipTest(fence, newRange("a", false, "c", false), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", true, "c", false), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", false, "c", true), newRange("a", false, "c", true));
+    runClipTest(fence, newRange("a", true, "c", true), newRange("a", false, "c", true));
 
-    fence = nr("a", true, "c", true);
+    fence = newRange("a", true, "c", true);
 
-    runClipTest(fence, nr("a", false, "c", false), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", true, "c", false), nr("a", true, "c", false));
-    runClipTest(fence, nr("a", false, "c", true), nr("a", false, "c", true));
-    runClipTest(fence, nr("a", true, "c", true), nr("a", true, "c", true));
+    runClipTest(fence, newRange("a", false, "c", false), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", true, "c", false), newRange("a", true, "c", false));
+    runClipTest(fence, newRange("a", false, "c", true), newRange("a", false, "c", true));
+    runClipTest(fence, newRange("a", true, "c", true), newRange("a", true, "c", true));
   }
 
   public void testClip2() {
-    Range fence = nr("a", false, "c", false);
+    Range fence = newRange("a", false, "c", false);
 
-    runClipTest(fence, nr(null, true, null, true), nr("a", false, "c", false));
-    runClipTest(fence, nr(null, true, "c", true), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", true, null, true), nr("a", false, "c", false));
-    runClipTest(fence, nr("a", true, "c", true), nr("a", false, "c", false));
+    runClipTest(fence, newRange(null, true, null, true), newRange("a", false, "c", false));
+    runClipTest(fence, newRange(null, true, "c", true), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", true, null, true), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("a", true, "c", true), newRange("a", false, "c", false));
   }
 
   public void testClip3() {
-    Range fence = nr("a", false, "c", false);
+    Range fence = newRange("a", false, "c", false);
 
-    runClipTest(fence, nr("0", false, "z", false), nr("a", false, "c", false));
-    runClipTest(fence, nr("0", true, "z", false), nr("a", false, "c", false));
-    runClipTest(fence, nr("0", false, "z", true), nr("a", false, "c", false));
-    runClipTest(fence, nr("0", true, "z", true), nr("a", false, "c", false));
+    runClipTest(fence, newRange("0", false, "z", false), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("0", true, "z", false), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("0", false, "z", true), newRange("a", false, "c", false));
+    runClipTest(fence, newRange("0", true, "z", true), newRange("a", false, "c", false));
 
-    runClipTest(fence, nr("0", false, "b", false), nr("a", false, "b", false));
-    runClipTest(fence, nr("0", true, "b", false), nr("a", false, "b", false));
-    runClipTest(fence, nr("0", false, "b", true), nr("a", false, "b", true));
-    runClipTest(fence, nr("0", true, "b", true), nr("a", false, "b", true));
+    runClipTest(fence, newRange("0", false, "b", false), newRange("a", false, "b", false));
+    runClipTest(fence, newRange("0", true, "b", false), newRange("a", false, "b", false));
+    runClipTest(fence, newRange("0", false, "b", true), newRange("a", false, "b", true));
+    runClipTest(fence, newRange("0", true, "b", true), newRange("a", false, "b", true));
 
-    runClipTest(fence, nr("a1", false, "z", false), nr("a1", false, "c", false));
-    runClipTest(fence, nr("a1", true, "z", false), nr("a1", true, "c", false));
-    runClipTest(fence, nr("a1", false, "z", true), nr("a1", false, "c", false));
-    runClipTest(fence, nr("a1", true, "z", true), nr("a1", true, "c", false));
+    runClipTest(fence, newRange("a1", false, "z", false), newRange("a1", false, "c", false));
+    runClipTest(fence, newRange("a1", true, "z", false), newRange("a1", true, "c", false));
+    runClipTest(fence, newRange("a1", false, "z", true), newRange("a1", false, "c", false));
+    runClipTest(fence, newRange("a1", true, "z", true), newRange("a1", true, "c", false));
 
-    runClipTest(fence, nr("a1", false, "b", false), nr("a1", false, "b", false));
-    runClipTest(fence, nr("a1", true, "b", false), nr("a1", true, "b", false));
-    runClipTest(fence, nr("a1", false, "b", true), nr("a1", false, "b", true));
-    runClipTest(fence, nr("a1", true, "b", true), nr("a1", true, "b", true));
+    runClipTest(fence, newRange("a1", false, "b", false), newRange("a1", false, "b", false));
+    runClipTest(fence, newRange("a1", true, "b", false), newRange("a1", true, "b", false));
+    runClipTest(fence, newRange("a1", false, "b", true), newRange("a1", false, "b", true));
+    runClipTest(fence, newRange("a1", true, "b", true), newRange("a1", true, "b", true));
   }
 
   public void testClip4() {
-    Range fence = new Range(nk("c"), false, nk("n"), false);
+    Range fence = new Range(newKey("c"), false, newKey("n"), false);
 
-    runClipTest(fence, new Range(nk("a"), false, nk("c"), false));
-    runClipTest(fence, new Range(nk("a"), false, nk("c"), true));
-    runClipTest(fence, new Range(nk("n"), false, nk("r"), false));
-    runClipTest(fence, new Range(nk("n"), true, nk("r"), false));
-    runClipTest(fence, new Range(nk("a"), true, nk("b"), false));
-    runClipTest(fence, new Range(nk("a"), true, nk("b"), true));
+    runClipTest(fence, new Range(newKey("a"), false, newKey("c"), false));
+    runClipTest(fence, new Range(newKey("a"), false, newKey("c"), true));
+    runClipTest(fence, new Range(newKey("n"), false, newKey("r"), false));
+    runClipTest(fence, new Range(newKey("n"), true, newKey("r"), false));
+    runClipTest(fence, new Range(newKey("a"), true, newKey("b"), false));
+    runClipTest(fence, new Range(newKey("a"), true, newKey("b"), true));
 
-    fence = new Range(nk("c"), true, nk("n"), true);
+    fence = new Range(newKey("c"), true, newKey("n"), true);
 
-    runClipTest(fence, new Range(nk("a"), false, nk("c"), false));
-    runClipTest(fence, new Range(nk("a"), false, nk("c"), true), new Range(nk("c"), true, nk("c"), true));
-    runClipTest(fence, new Range(nk("n"), false, nk("r"), false));
-    runClipTest(fence, new Range(nk("n"), true, nk("r"), false), new Range(nk("n"), true, nk("n"), true));
-    runClipTest(fence, new Range(nk("q"), false, nk("r"), false));
-    runClipTest(fence, new Range(nk("q"), true, nk("r"), false));
+    runClipTest(fence, new Range(newKey("a"), false, newKey("c"), false));
+    runClipTest(fence, new Range(newKey("a"), false, newKey("c"), true), new Range(newKey("c"), true, newKey("c"), true));
+    runClipTest(fence, new Range(newKey("n"), false, newKey("r"), false));
+    runClipTest(fence, new Range(newKey("n"), true, newKey("r"), false), new Range(newKey("n"), true, newKey("n"), true));
+    runClipTest(fence, new Range(newKey("q"), false, newKey("r"), false));
+    runClipTest(fence, new Range(newKey("q"), true, newKey("r"), false));
 
-    fence = nr("b", true, "b", true);
+    fence = newRange("b", true, "b", true);
 
-    runClipTest(fence, nr("b", false, "c", false));
-    runClipTest(fence, nr("b", true, "c", false), nr("b", true, "b", true));
-    runClipTest(fence, nr("a", false, "b", false));
-    runClipTest(fence, nr("a", false, "b", true), nr("b", true, "b", true));
+    runClipTest(fence, newRange("b", false, "c", false));
+    runClipTest(fence, newRange("b", true, "c", false), newRange("b", true, "b", true));
+    runClipTest(fence, newRange("a", false, "b", false));
+    runClipTest(fence, newRange("a", false, "b", true), newRange("b", true, "b", true));
 
   }
 
@@ -558,95 +562,95 @@ public class RangeTest extends TestCase {
     assertEquals(expected, clipped);
   }
 
-  private static Key nk(String r, String cf, String cq) {
+  private static Key newKey(String r, String cf, String cq) {
     return new Key(new Text(r), new Text(cf), new Text(cq));
   }
 
-  private static Key nk(String r, String cf, String cq, String cv) {
+  private static Key newKey(String r, String cf, String cq, String cv) {
     return new Key(new Text(r), new Text(cf), new Text(cq), new Text(cv));
   }
 
-  private static Column nc(String cf, String cq) {
+  private static Column newColumn(String cf, String cq) {
     return new Column(cf.getBytes(), cq == null ? null : cq.getBytes(), null);
   }
 
-  private static Column nc(String cf) {
-    return nc(cf, null);
+  private static Column newColumn(String cf) {
+    return newColumn(cf, null);
   }
 
-  private static Range nr(String row) {
+  private static Range newRange(String row) {
     return new Range(new Text(row));
   }
 
   public void testBound1() {
-    Range range1 = nr("row1");
+    Range range1 = newRange("row1");
 
-    Range range2 = range1.bound(nc("b"), nc("e"));
+    Range range2 = range1.bound(newColumn("b"), newColumn("e"));
 
-    assertFalse(range2.contains(nk("row1")));
-    assertFalse(range2.contains(nk("row1", "a", "z")));
-    assertTrue(range2.contains(nk("row1", "b", "")));
-    assertTrue(range2.contains(nk("row1", "b", "z")));
-    assertTrue(range2.contains(nk("row1", "c", "z")));
-    assertTrue(range2.contains(nk("row1", "e", "")));
-    assertTrue(range2.contains(nk("row1", "e", "z")));
-    assertFalse(range2.contains(nk("row1", "e", "").followingKey(PartialKey.ROW_COLFAM)));
-    assertFalse(range2.contains(nk("row1", "f", "")));
-    assertFalse(range2.contains(nk("row1", "f", "z")));
+    assertFalse(range2.contains(newKey("row1")));
+    assertFalse(range2.contains(newKey("row1", "a", "z")));
+    assertTrue(range2.contains(newKey("row1", "b", "")));
+    assertTrue(range2.contains(newKey("row1", "b", "z")));
+    assertTrue(range2.contains(newKey("row1", "c", "z")));
+    assertTrue(range2.contains(newKey("row1", "e", "")));
+    assertTrue(range2.contains(newKey("row1", "e", "z")));
+    assertFalse(range2.contains(newKey("row1", "e", "").followingKey(PartialKey.ROW_COLFAM)));
+    assertFalse(range2.contains(newKey("row1", "f", "")));
+    assertFalse(range2.contains(newKey("row1", "f", "z")));
 
   }
 
   public void testBound2() {
-    Range range1 = new Range(nk("row1", "b", "x"), true, nk("row1", "f", "x"), true);
+    Range range1 = new Range(newKey("row1", "b", "x"), true, newKey("row1", "f", "x"), true);
 
-    Range range2 = range1.bound(nc("a"), nc("g"));
+    Range range2 = range1.bound(newColumn("a"), newColumn("g"));
     assertEquals(range1, range2);
-    assertFalse(range2.contains(nk("row1", "a", "x")));
-    assertTrue(range2.contains(nk("row1", "b", "x")));
-    assertTrue(range2.contains(nk("row1", "f", "x")));
-    assertFalse(range2.contains(nk("row1", "g", "")));
+    assertFalse(range2.contains(newKey("row1", "a", "x")));
+    assertTrue(range2.contains(newKey("row1", "b", "x")));
+    assertTrue(range2.contains(newKey("row1", "f", "x")));
+    assertFalse(range2.contains(newKey("row1", "g", "")));
 
-    Range range3 = range1.bound(nc("c"), nc("d"));
-    assertFalse(range3.contains(nk("row1", "b", "x")));
-    assertTrue(range3.contains(nk("row1", "c", "")));
-    assertTrue(range3.contains(nk("row1", "c", "z")));
-    assertTrue(range3.contains(nk("row1", "d", "")));
-    assertTrue(range3.contains(nk("row1", "d", "z")));
-    assertFalse(range3.contains(nk("row1", "e", "")));
-    assertFalse(range3.contains(nk("row1", "f", "x")));
+    Range range3 = range1.bound(newColumn("c"), newColumn("d"));
+    assertFalse(range3.contains(newKey("row1", "b", "x")));
+    assertTrue(range3.contains(newKey("row1", "c", "")));
+    assertTrue(range3.contains(newKey("row1", "c", "z")));
+    assertTrue(range3.contains(newKey("row1", "d", "")));
+    assertTrue(range3.contains(newKey("row1", "d", "z")));
+    assertFalse(range3.contains(newKey("row1", "e", "")));
+    assertFalse(range3.contains(newKey("row1", "f", "x")));
 
-    Range range4 = range1.bound(nc("c", "w"), nc("d", "z"));
-    assertFalse(range4.contains(nk("row1", "b", "x")));
-    assertTrue(range4.contains(nk("row1", "c", "w")));
-    assertTrue(range4.contains(nk("row1", "c", "w", "")));
-    assertTrue(range4.contains(nk("row1", "c", "w", "a")));
-    assertTrue(range4.contains(nk("row1", "d", "z", "")));
-    assertTrue(range4.contains(nk("row1", "d", "z", "a")));
-    assertFalse(range4.contains(nk("row1", "d", "{", "")));
-    assertFalse(range4.contains(nk("row1", "d", "z", "a").followingKey(PartialKey.ROW_COLFAM_COLQUAL)));
-    assertFalse(range4.contains(nk("row1", "f", "x")));
+    Range range4 = range1.bound(newColumn("c", "w"), newColumn("d", "z"));
+    assertFalse(range4.contains(newKey("row1", "b", "x")));
+    assertTrue(range4.contains(newKey("row1", "c", "w")));
+    assertTrue(range4.contains(newKey("row1", "c", "w", "")));
+    assertTrue(range4.contains(newKey("row1", "c", "w", "a")));
+    assertTrue(range4.contains(newKey("row1", "d", "z", "")));
+    assertTrue(range4.contains(newKey("row1", "d", "z", "a")));
+    assertFalse(range4.contains(newKey("row1", "d", "{", "")));
+    assertFalse(range4.contains(newKey("row1", "d", "z", "a").followingKey(PartialKey.ROW_COLFAM_COLQUAL)));
+    assertFalse(range4.contains(newKey("row1", "f", "x")));
 
-    Range range5 = range1.bound(nc("b", "w"), nc("f", "z"));
+    Range range5 = range1.bound(newColumn("b", "w"), newColumn("f", "z"));
     assertEquals(range1, range5);
-    assertFalse(range5.contains(nk("row1", "b", "w")));
-    assertTrue(range5.contains(nk("row1", "b", "x")));
-    assertTrue(range5.contains(nk("row1", "f", "x")));
-    assertFalse(range5.contains(nk("row1", "f", "z")));
+    assertFalse(range5.contains(newKey("row1", "b", "w")));
+    assertTrue(range5.contains(newKey("row1", "b", "x")));
+    assertTrue(range5.contains(newKey("row1", "f", "x")));
+    assertFalse(range5.contains(newKey("row1", "f", "z")));
 
-    Range range6 = range1.bound(nc("b", "y"), nc("f", "w"));
-    assertFalse(range6.contains(nk("row1", "b", "x")));
-    assertTrue(range6.contains(nk("row1", "b", "y")));
-    assertTrue(range6.contains(nk("row1", "f", "w")));
-    assertTrue(range6.contains(nk("row1", "f", "w", "a")));
-    assertFalse(range6.contains(nk("row1", "f", "w").followingKey(PartialKey.ROW_COLFAM_COLQUAL)));
-    assertFalse(range6.contains(nk("row1", "f", "x")));
+    Range range6 = range1.bound(newColumn("b", "y"), newColumn("f", "w"));
+    assertFalse(range6.contains(newKey("row1", "b", "x")));
+    assertTrue(range6.contains(newKey("row1", "b", "y")));
+    assertTrue(range6.contains(newKey("row1", "f", "w")));
+    assertTrue(range6.contains(newKey("row1", "f", "w", "a")));
+    assertFalse(range6.contains(newKey("row1", "f", "w").followingKey(PartialKey.ROW_COLFAM_COLQUAL)));
+    assertFalse(range6.contains(newKey("row1", "f", "x")));
 
-    Range range7 = range1.bound(nc("a", "y"), nc("g", "w"));
+    Range range7 = range1.bound(newColumn("a", "y"), newColumn("g", "w"));
     assertEquals(range1, range7);
-    assertFalse(range7.contains(nk("row1", "b", "w")));
-    assertTrue(range7.contains(nk("row1", "b", "x")));
-    assertTrue(range7.contains(nk("row1", "f", "x")));
-    assertFalse(range7.contains(nk("row1", "f", "z")));
+    assertFalse(range7.contains(newKey("row1", "b", "w")));
+    assertTrue(range7.contains(newKey("row1", "b", "x")));
+    assertTrue(range7.contains(newKey("row1", "f", "x")));
+    assertFalse(range7.contains(newKey("row1", "f", "z")));
   }
 
   public void testString() {
@@ -769,7 +773,7 @@ public class RangeTest extends TestCase {
   }
 
   public void testReadFields() throws Exception {
-    Range r = nr("nuts", "soup");
+    Range r = newRange("nuts", "soup");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     r.write(dos);
@@ -803,7 +807,7 @@ public class RangeTest extends TestCase {
   }
 
   public void testThrift() {
-    Range r = nr("nuts", "soup");
+    Range r = newRange("nuts", "soup");
     TRange tr = r.toThrift();
     Range r2 = new Range(tr);
     assertEquals(r, r2);
