@@ -146,12 +146,12 @@ public class IndexedDocIteratorTest extends TestCase {
     trf.openWriter(false);
 
     TreeMap<Key,Value> inMemoryMap = createSortedMap(hitRatio, numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, negatedColumns);
-    trf.writer.startNewLocalityGroup("docs", RFileTest.ncfs(docColf.toString()));
+    trf.writer.startNewLocalityGroup("docs", RFileTest.newColFamByteSequence(docColf.toString()));
     for (Entry<Key,Value> entry : inMemoryMap.entrySet()) {
       if (entry.getKey().getColumnFamily().equals(docColf))
         trf.writer.append(entry.getKey(), entry.getValue());
     }
-    trf.writer.startNewLocalityGroup("terms", RFileTest.ncfs(indexColf.toString()));
+    trf.writer.startNewLocalityGroup("terms", RFileTest.newColFamByteSequence(indexColf.toString()));
     for (Entry<Key,Value> entry : inMemoryMap.entrySet()) {
       if (entry.getKey().getColumnFamily().equals(indexColf))
         trf.writer.append(entry.getKey(), entry.getValue());

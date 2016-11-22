@@ -43,25 +43,25 @@ public class ColumnSliceFilterTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   private static final SortedMap<Key,Value> TEST_DATA = new TreeMap<>();
-  private static final Key KEY_1 = nkv(TEST_DATA, "boo1", "yup", "20080201", "dog");
-  private static final Key KEY_2 = nkv(TEST_DATA, "boo1", "yap", "20080202", "cat");
-  private static final Key KEY_3 = nkv(TEST_DATA, "boo2", "yap", "20080203", "hamster");
-  private static final Key KEY_4 = nkv(TEST_DATA, "boo2", "yop", "20080204", "lion");
-  private static final Key KEY_5 = nkv(TEST_DATA, "boo2", "yup", "20080206", "tiger");
-  private static final Key KEY_6 = nkv(TEST_DATA, "boo2", "yip", "20080203", "tiger");
+  private static final Key KEY_1 = newKeyValue(TEST_DATA, "boo1", "yup", "20080201", "dog");
+  private static final Key KEY_2 = newKeyValue(TEST_DATA, "boo1", "yap", "20080202", "cat");
+  private static final Key KEY_3 = newKeyValue(TEST_DATA, "boo2", "yap", "20080203", "hamster");
+  private static final Key KEY_4 = newKeyValue(TEST_DATA, "boo2", "yop", "20080204", "lion");
+  private static final Key KEY_5 = newKeyValue(TEST_DATA, "boo2", "yup", "20080206", "tiger");
+  private static final Key KEY_6 = newKeyValue(TEST_DATA, "boo2", "yip", "20080203", "tiger");
 
   private IteratorEnvironment iteratorEnvironment;
 
   private ColumnSliceFilter columnSliceFilter = new ColumnSliceFilter();
   private IteratorSetting is;
 
-  private static Key nkv(SortedMap<Key,Value> tm, String row, String cf, String cq, String val) {
-    Key k = nk(row, cf, cq);
+  private static Key newKeyValue(SortedMap<Key,Value> tm, String row, String cf, String cq, String val) {
+    Key k = newKey(row, cf, cq);
     tm.put(k, new Value(val.getBytes()));
     return k;
   }
 
-  private static Key nk(String row, String cf, String cq) {
+  private static Key newKey(String row, String cf, String cq) {
     return new Key(new Text(row), new Text(cf), new Text(cq));
   }
 

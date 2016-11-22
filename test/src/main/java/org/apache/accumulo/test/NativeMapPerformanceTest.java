@@ -39,11 +39,11 @@ public class NativeMapPerformanceTest {
   private static final byte ROW_PREFIX[] = new byte[] {'r'};
   private static final byte COL_PREFIX[] = new byte[] {'c'};
 
-  static Key nk(int r, int c) {
+  static Key newKey(int r, int c) {
     return new Key(new Text(FastFormat.toZeroPaddedString(r, 9, 10, ROW_PREFIX)), new Text(FastFormat.toZeroPaddedString(c, 6, 10, COL_PREFIX)));
   }
 
-  static Mutation nm(int r) {
+  static Mutation newMutation(int r) {
     return new Mutation(new Text(FastFormat.toZeroPaddedString(r, 9, 10, ROW_PREFIX)));
   }
 
@@ -75,7 +75,7 @@ public class NativeMapPerformanceTest {
     if (nm != null) {
       for (int i = 0; i < numRows; i++) {
         int row = rand.nextInt(1000000000);
-        Mutation m = nm(row);
+        Mutation m = newMutation(row);
         for (int j = 0; j < numCols; j++) {
           int col = rand.nextInt(1000000);
           Value val = new Value("test".getBytes(UTF_8));
@@ -88,7 +88,7 @@ public class NativeMapPerformanceTest {
         int row = rand.nextInt(1000000000);
         for (int j = 0; j < numCols; j++) {
           int col = rand.nextInt(1000000);
-          Key key = nk(row, col);
+          Key key = newKey(row, col);
           Value val = new Value("test".getBytes(UTF_8));
           tm.put(key, val);
         }
@@ -132,14 +132,14 @@ public class NativeMapPerformanceTest {
     long tgs = System.currentTimeMillis();
     if (nm != null) {
       for (int i = 0; i < numLookups; i++) {
-        Key key = nk(rowsToLookup[i], colsToLookup[i]);
+        Key key = newKey(rowsToLookup[i], colsToLookup[i]);
         if (nm.get(key) == null) {
           throw new RuntimeException("Did not find " + rowsToLookup[i] + " " + colsToLookup[i] + " " + i);
         }
       }
     } else {
       for (int i = 0; i < numLookups; i++) {
-        Key key = nk(rowsToLookup[i], colsToLookup[i]);
+        Key key = newKey(rowsToLookup[i], colsToLookup[i]);
         if (tm.get(key) == null) {
           throw new RuntimeException("Did not find " + rowsToLookup[i] + " " + colsToLookup[i] + " " + i);
         }

@@ -38,21 +38,21 @@ public class MultiIteratorTest extends TestCase {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
-  public static Key nk(int row, long ts) {
-    return new Key(nr(row), ts);
+  public static Key newKey(int row, long ts) {
+    return new Key(newRow(row), ts);
   }
 
-  public static Range nrng(int row, long ts) {
-    return new Range(nk(row, ts), null);
+  public static Range newRange(int row, long ts) {
+    return new Range(newKey(row, ts), null);
   }
 
-  public static void nkv(TreeMap<Key,Value> tm, int row, long ts, boolean deleted, String val) {
-    Key k = nk(row, ts);
+  public static void newKeyValue(TreeMap<Key,Value> tm, int row, long ts, boolean deleted, String val) {
+    Key k = newKey(row, ts);
     k.setDeleted(deleted);
     tm.put(k, new Value(val.getBytes()));
   }
 
-  public static Text nr(int row) {
+  public static Text newRow(int row) {
     return new Text(String.format("r%03d", row));
   }
 
@@ -85,9 +85,9 @@ public class MultiIteratorTest extends TestCase {
     int i = start;
     while (mi.hasTop()) {
       if (incrRow)
-        assertEquals(nk(i, 0), mi.getTopKey());
+        assertEquals(newKey(i, 0), mi.getTopKey());
       else
-        assertEquals(nk(0, i), mi.getTopKey());
+        assertEquals(newKey(0, i), mi.getTopKey());
 
       assertEquals("v" + i, mi.getTopValue().toString());
 
@@ -125,19 +125,19 @@ public class MultiIteratorTest extends TestCase {
     List<TreeMap<Key,Value>> tmpList = new ArrayList<>(2);
 
     for (int i = 0; i < 4; i++) {
-      nkv(tm1, 0, i, false, "v" + i);
+      newKeyValue(tm1, 0, i, false, "v" + i);
     }
     tmpList.add(tm1);
     tm1 = new TreeMap<>();
     for (int i = 4; i < 8; i++) {
-      nkv(tm1, 0, i, false, "v" + i);
+      newKeyValue(tm1, 0, i, false, "v" + i);
     }
     tmpList.add(tm1);
     for (int seek = -1; seek < 8; seek++) {
       if (seek == 7) {
         verify(seek, null, tmpList);
       }
-      verify(seek, nk(0, seek), tmpList);
+      verify(seek, newKey(0, seek), tmpList);
     }
   }
 
@@ -150,9 +150,9 @@ public class MultiIteratorTest extends TestCase {
 
     for (int i = 0; i < 8; i++) {
       if (i % 2 == 0)
-        nkv(tm1, 0, i, false, "v" + i);
+        newKeyValue(tm1, 0, i, false, "v" + i);
       else
-        nkv(tm2, 0, i, false, "v" + i);
+        newKeyValue(tm2, 0, i, false, "v" + i);
     }
     tmpList.add(tm1);
     tmpList.add(tm2);
@@ -160,7 +160,7 @@ public class MultiIteratorTest extends TestCase {
       if (seek == 7) {
         verify(seek, null, tmpList);
       }
-      verify(seek, nk(0, seek), tmpList);
+      verify(seek, newKey(0, seek), tmpList);
     }
   }
 
@@ -171,7 +171,7 @@ public class MultiIteratorTest extends TestCase {
     List<TreeMap<Key,Value>> tmpList = new ArrayList<>(2);
 
     for (int i = 0; i < 8; i++) {
-      nkv(tm1, 0, i, false, "v" + i);
+      newKeyValue(tm1, 0, i, false, "v" + i);
     }
     tmpList.add(tm1);
 
@@ -179,7 +179,7 @@ public class MultiIteratorTest extends TestCase {
       if (seek == 7) {
         verify(seek, null, tmpList);
       }
-      verify(seek, nk(0, seek), tmpList);
+      verify(seek, newKey(0, seek), tmpList);
     }
   }
 
@@ -194,7 +194,7 @@ public class MultiIteratorTest extends TestCase {
 
     assertFalse(mi.hasTop());
 
-    mi.seek(nrng(0, 6), EMPTY_COL_FAMS, false);
+    mi.seek(newRange(0, 6), EMPTY_COL_FAMS, false);
     assertFalse(mi.hasTop());
   }
 
@@ -207,16 +207,16 @@ public class MultiIteratorTest extends TestCase {
 
     for (int i = 0; i < 8; i++) {
       if (i % 2 == 0)
-        nkv(tm1, i, 0, false, "v" + i);
+        newKeyValue(tm1, i, 0, false, "v" + i);
       else
-        nkv(tm2, i, 0, false, "v" + i);
+        newKeyValue(tm2, i, 0, false, "v" + i);
     }
 
     tmpList.add(tm1);
     tmpList.add(tm2);
     for (int seek = -1; seek < 9; seek++) {
-      verify(Math.max(0, seek), 8, nk(seek, 0), null, null, true, true, tmpList);
-      verify(Math.max(0, seek), 8, nk(seek, 0), null, null, false, true, tmpList);
+      verify(Math.max(0, seek), 8, newKey(seek, 0), null, null, true, true, tmpList);
+      verify(Math.max(0, seek), 8, newKey(seek, 0), null, null, false, true, tmpList);
 
       for (int er = seek; er < 10; er++) {
 
@@ -227,9 +227,9 @@ public class MultiIteratorTest extends TestCase {
           noSeekEnd = 0;
         }
 
-        verify(0, noSeekEnd, null, nr(er), null, true, true, tmpList);
-        verify(Math.max(0, seek), end, nk(seek, 0), nr(er), null, true, true, tmpList);
-        verify(Math.max(0, seek), end, nk(seek, 0), nr(er), null, false, true, tmpList);
+        verify(0, noSeekEnd, null, newRow(er), null, true, true, tmpList);
+        verify(Math.max(0, seek), end, newKey(seek, 0), newRow(er), null, true, true, tmpList);
+        verify(Math.max(0, seek), end, newKey(seek, 0), newRow(er), null, false, true, tmpList);
 
         for (int per = -1; per < er; per++) {
 
@@ -247,9 +247,9 @@ public class MultiIteratorTest extends TestCase {
             noSeekEnd = noSeekStart;
           }
 
-          verify(noSeekStart, noSeekEnd, null, nr(er), nr(per), true, true, tmpList);
-          verify(Math.max(0, start), end, nk(seek, 0), nr(er), nr(per), true, true, tmpList);
-          verify(Math.max(0, start), end, nk(seek, 0), nr(er), nr(per), false, true, tmpList);
+          verify(noSeekStart, noSeekEnd, null, newRow(er), newRow(per), true, true, tmpList);
+          verify(Math.max(0, start), end, newKey(seek, 0), newRow(er), newRow(per), true, true, tmpList);
+          verify(Math.max(0, start), end, newKey(seek, 0), newRow(er), newRow(per), false, true, tmpList);
         }
       }
     }
@@ -258,70 +258,70 @@ public class MultiIteratorTest extends TestCase {
   public void test6() throws IOException {
     // TEst setting an endKey
     TreeMap<Key,Value> tm1 = new TreeMap<>();
-    nkv(tm1, 3, 0, false, "1");
-    nkv(tm1, 4, 0, false, "2");
-    nkv(tm1, 6, 0, false, "3");
+    newKeyValue(tm1, 3, 0, false, "1");
+    newKeyValue(tm1, 4, 0, false, "2");
+    newKeyValue(tm1, 6, 0, false, "3");
 
     List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
     MultiIterator mi = new MultiIterator(skvil, true);
-    mi.seek(new Range(null, true, nk(5, 9), false), EMPTY_COL_FAMS, false);
+    mi.seek(new Range(null, true, newKey(5, 9), false), EMPTY_COL_FAMS, false);
 
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(nk(3, 0)));
+    assertTrue(mi.getTopKey().equals(newKey(3, 0)));
     assertTrue(mi.getTopValue().toString().equals("1"));
     mi.next();
 
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(nk(4, 0)));
+    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
     assertTrue(mi.getTopValue().toString().equals("2"));
     mi.next();
 
     assertFalse(mi.hasTop());
 
-    mi.seek(new Range(nk(4, 10), true, nk(5, 9), false), EMPTY_COL_FAMS, false);
+    mi.seek(new Range(newKey(4, 10), true, newKey(5, 9), false), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(nk(4, 0)));
+    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
     assertTrue(mi.getTopValue().toString().equals("2"));
     mi.next();
 
     assertFalse(mi.hasTop());
 
-    mi.seek(new Range(nk(4, 10), true, nk(6, 0), false), EMPTY_COL_FAMS, false);
+    mi.seek(new Range(newKey(4, 10), true, newKey(6, 0), false), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(nk(4, 0)));
+    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
     assertTrue(mi.getTopValue().toString().equals("2"));
     mi.next();
 
     assertFalse(mi.hasTop());
 
-    mi.seek(new Range(nk(4, 10), true, nk(6, 0), true), EMPTY_COL_FAMS, false);
+    mi.seek(new Range(newKey(4, 10), true, newKey(6, 0), true), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(nk(4, 0)));
+    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
     assertTrue(mi.getTopValue().toString().equals("2"));
     mi.next();
 
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(nk(6, 0)));
+    assertTrue(mi.getTopKey().equals(newKey(6, 0)));
     assertTrue(mi.getTopValue().toString().equals("3"));
     mi.next();
 
     assertFalse(mi.hasTop());
 
-    mi.seek(new Range(nk(4, 0), true, nk(6, 0), false), EMPTY_COL_FAMS, false);
+    mi.seek(new Range(newKey(4, 0), true, newKey(6, 0), false), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(nk(4, 0)));
+    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
     assertTrue(mi.getTopValue().toString().equals("2"));
     mi.next();
 
     assertFalse(mi.hasTop());
 
-    mi.seek(new Range(nk(4, 0), false, nk(6, 0), false), EMPTY_COL_FAMS, false);
+    mi.seek(new Range(newKey(4, 0), false, newKey(6, 0), false), EMPTY_COL_FAMS, false);
     assertFalse(mi.hasTop());
 
-    mi.seek(new Range(nk(4, 0), false, nk(6, 0), true), EMPTY_COL_FAMS, false);
+    mi.seek(new Range(newKey(4, 0), false, newKey(6, 0), true), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(nk(6, 0)));
+    assertTrue(mi.getTopKey().equals(newKey(6, 0)));
     assertTrue(mi.getTopValue().toString().equals("3"));
     mi.next();
     assertFalse(mi.hasTop());
@@ -331,20 +331,20 @@ public class MultiIteratorTest extends TestCase {
   public void test7() throws IOException {
     // TEst setting an endKey
     TreeMap<Key,Value> tm1 = new TreeMap<>();
-    nkv(tm1, 0, 3, false, "1");
-    nkv(tm1, 0, 2, false, "2");
-    nkv(tm1, 0, 1, false, "3");
-    nkv(tm1, 0, 0, false, "4");
-    nkv(tm1, 1, 2, false, "5");
-    nkv(tm1, 1, 1, false, "6");
-    nkv(tm1, 1, 0, false, "7");
-    nkv(tm1, 2, 1, false, "8");
-    nkv(tm1, 2, 0, false, "9");
+    newKeyValue(tm1, 0, 3, false, "1");
+    newKeyValue(tm1, 0, 2, false, "2");
+    newKeyValue(tm1, 0, 1, false, "3");
+    newKeyValue(tm1, 0, 0, false, "4");
+    newKeyValue(tm1, 1, 2, false, "5");
+    newKeyValue(tm1, 1, 1, false, "6");
+    newKeyValue(tm1, 1, 0, false, "7");
+    newKeyValue(tm1, 2, 1, false, "8");
+    newKeyValue(tm1, 2, 0, false, "9");
 
     List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
 
-    KeyExtent extent = new KeyExtent(new Text("tablename"), nr(1), nr(0));
+    KeyExtent extent = new KeyExtent(new Text("tablename"), newRow(1), newRow(0));
     MultiIterator mi = new MultiIterator(skvil, extent);
 
     Range r1 = new Range((Text) null, (Text) null);
@@ -360,7 +360,7 @@ public class MultiIteratorTest extends TestCase {
     mi.next();
     assertFalse(mi.hasTop());
 
-    Range r2 = new Range(nk(0, 0), true, nk(1, 1), true);
+    Range r2 = new Range(newKey(0, 0), true, newKey(1, 1), true);
     mi.seek(r2, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
     assertTrue(mi.getTopValue().toString().equals("5"));
@@ -370,32 +370,32 @@ public class MultiIteratorTest extends TestCase {
     mi.next();
     assertFalse(mi.hasTop());
 
-    Range r3 = new Range(nk(0, 0), false, nk(1, 1), false);
+    Range r3 = new Range(newKey(0, 0), false, newKey(1, 1), false);
     mi.seek(r3, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
     assertTrue(mi.getTopValue().toString().equals("5"));
     mi.next();
     assertFalse(mi.hasTop());
 
-    Range r4 = new Range(nk(1, 2), true, nk(1, 1), false);
+    Range r4 = new Range(newKey(1, 2), true, newKey(1, 1), false);
     mi.seek(r4, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
     assertTrue(mi.getTopValue().toString().equals("5"));
     mi.next();
     assertFalse(mi.hasTop());
 
-    Range r5 = new Range(nk(1, 2), false, nk(1, 1), true);
+    Range r5 = new Range(newKey(1, 2), false, newKey(1, 1), true);
     mi.seek(r5, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
     assertTrue(mi.getTopValue().toString().equals("6"));
     mi.next();
     assertFalse(mi.hasTop());
 
-    Range r6 = new Range(nk(2, 1), true, nk(2, 0), true);
+    Range r6 = new Range(newKey(2, 1), true, newKey(2, 0), true);
     mi.seek(r6, EMPTY_COL_FAMS, false);
     assertFalse(mi.hasTop());
 
-    Range r7 = new Range(nk(0, 3), true, nk(0, 1), true);
+    Range r7 = new Range(newKey(0, 3), true, newKey(0, 1), true);
     mi.seek(r7, EMPTY_COL_FAMS, false);
     assertFalse(mi.hasTop());
   }
