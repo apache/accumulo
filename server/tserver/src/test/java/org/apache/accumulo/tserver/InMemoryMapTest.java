@@ -141,9 +141,9 @@ public class InMemoryMapTest {
 
   }
 
-  static void aeNoNext(SortedKeyValueIterator<Key,Value> dc, String row, String column, int ts, String val) throws IOException {
+  static void assertEqualsNoNext(SortedKeyValueIterator<Key,Value> dc, String row, String column, int ts, String val) throws IOException {
     assertTrue(dc.hasTop());
-    assertEquals(nk(row, column, ts), dc.getTopKey());
+    assertEquals(newKey(row, column, ts), dc.getTopKey());
     assertEquals(new Value(val.getBytes()), dc.getTopValue());
 
   }
@@ -265,9 +265,9 @@ public class InMemoryMapTest {
     imm.delete(0);
 
     ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    aeNoNext(ski1, "r1", "foo:cq1", 3, "");
+    assertEqualsNoNext(ski1, "r1", "foo:cq1", 3, "");
     ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski1, "r1", "foo:cq1", 3, "");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "");
     assertFalse(ski1.hasTop());
 
     ski1.close();
@@ -733,7 +733,7 @@ public class InMemoryMapTest {
   private void mutate(InMemoryMap imm, String row, String cols, int ts, String val, Sampler sampler, TreeMap<Key,Value> expectedSample,
       TreeMap<Key,Value> expectedAll) {
     mutate(imm, row, cols, ts, val);
-    Key k1 = nk(row, cols, ts);
+    Key k1 = newKey(row, cols, ts);
     if (sampler.accept(k1)) {
       expectedSample.put(k1, new Value(val.getBytes()));
     }
