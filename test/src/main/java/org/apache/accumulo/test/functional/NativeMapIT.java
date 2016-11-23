@@ -49,11 +49,11 @@ import org.junit.experimental.categories.Category;
 @Category(SunnyDayTests.class)
 public class NativeMapIT {
 
-  private Key nk(int r) {
+  private Key newKey(int r) {
     return new Key(new Text(String.format("r%09d", r)));
   }
 
-  private Key nk(int r, int cf, int cq, int cv, int ts, boolean deleted) {
+  private Key newKey(int r, int cf, int cq, int cv, int ts, boolean deleted) {
     Key k = new Key(new Text(String.format("r%09d", r)), new Text(String.format("cf%09d", cf)), new Text(String.format("cq%09d", cq)), new Text(String.format(
         "cv%09d", cv)), ts);
 
@@ -62,7 +62,7 @@ public class NativeMapIT {
     return k;
   }
 
-  private Value nv(int v) {
+  private Value newValue(int v) {
     return new Value(String.format("r%09d", v).getBytes(UTF_8));
   }
 
@@ -81,8 +81,8 @@ public class NativeMapIT {
     for (int i = start; i <= end; i++) {
       assertTrue(iter.hasNext());
       Entry<Key,Value> entry = iter.next();
-      assertEquals(nk(i), entry.getKey());
-      assertEquals(nv(i + valueOffset), entry.getValue());
+      assertEquals(newKey(i), entry.getKey());
+      assertEquals(newValue(i + valueOffset), entry.getValue());
     }
 
     assertFalse(iter.hasNext());
@@ -90,34 +90,34 @@ public class NativeMapIT {
 
   private void insertAndVerify(NativeMap nm, int start, int end, int valueOffset) {
     for (int i = start; i <= end; i++) {
-      nm.put(nk(i), nv(i + valueOffset));
+      nm.put(newKey(i), newValue(i + valueOffset));
     }
 
     for (int i = start; i <= end; i++) {
-      Value v = nm.get(nk(i));
+      Value v = nm.get(newKey(i));
       assertNotNull(v);
-      assertEquals(nv(i + valueOffset), v);
+      assertEquals(newValue(i + valueOffset), v);
 
-      Iterator<Entry<Key,Value>> iter2 = nm.iterator(nk(i));
+      Iterator<Entry<Key,Value>> iter2 = nm.iterator(newKey(i));
       assertTrue(iter2.hasNext());
       Entry<Key,Value> entry = iter2.next();
-      assertEquals(nk(i), entry.getKey());
-      assertEquals(nv(i + valueOffset), entry.getValue());
+      assertEquals(newKey(i), entry.getKey());
+      assertEquals(newValue(i + valueOffset), entry.getValue());
     }
 
-    assertNull(nm.get(nk(start - 1)));
+    assertNull(nm.get(newKey(start - 1)));
 
-    assertNull(nm.get(nk(end + 1)));
+    assertNull(nm.get(newKey(end + 1)));
 
     Iterator<Entry<Key,Value>> iter = nm.iterator();
     verifyIterator(start, end, valueOffset, iter);
 
     for (int i = start; i <= end; i++) {
-      iter = nm.iterator(nk(i));
+      iter = nm.iterator(newKey(i));
       verifyIterator(i, end, valueOffset, iter);
 
       // lookup nonexistant key that falls after existing key
-      iter = nm.iterator(nk(i, 1, 1, 1, 1, false));
+      iter = nm.iterator(newKey(i, 1, 1, 1, 1, false));
       verifyIterator(i + 1, end, valueOffset, iter);
     }
 
@@ -130,12 +130,12 @@ public class NativeMapIT {
         for (int k = 0; k < num; k++) {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
-              Key key = nk(i, j, k, l, ts, true);
+              Key key = newKey(i, j, k, l, ts, true);
               Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(UTF_8));
 
               nm.put(key, value);
 
-              key = nk(i, j, k, l, ts, false);
+              key = newKey(i, j, k, l, ts, false);
               value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(UTF_8));
 
               nm.put(key, value);
@@ -152,7 +152,7 @@ public class NativeMapIT {
         for (int k = 0; k < num; k++) {
           for (int l = 0; l < num; l++) {
             for (int ts = num - 1; ts >= 0; ts--) {
-              Key key = nk(i, j, k, l, ts, true);
+              Key key = newKey(i, j, k, l, ts, true);
               Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(UTF_8));
 
               assertTrue(iter.hasNext());
@@ -160,7 +160,7 @@ public class NativeMapIT {
               assertEquals(key, entry.getKey());
               assertEquals(value, entry.getValue());
 
-              key = nk(i, j, k, l, ts, false);
+              key = newKey(i, j, k, l, ts, false);
               value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(UTF_8));
 
               assertTrue(iter.hasNext());
@@ -180,7 +180,7 @@ public class NativeMapIT {
         for (int k = 0; k < num; k++) {
           for (int l = 0; l < num; l++) {
             for (int ts = 0; ts < num; ts++) {
-              Key key = nk(i, j, k, l, ts, true);
+              Key key = newKey(i, j, k, l, ts, true);
               Value value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + true + "_" + run).getBytes(UTF_8));
 
               assertEquals(value, nm.get(key));
@@ -191,7 +191,7 @@ public class NativeMapIT {
               assertEquals(key, entry.getKey());
               assertEquals(value, entry.getValue());
 
-              key = nk(i, j, k, l, ts, false);
+              key = newKey(i, j, k, l, ts, false);
               value = new Value((i + "_" + j + "_" + k + "_" + l + "_" + ts + "_" + false + "_" + run).getBytes(UTF_8));
 
               assertEquals(value, nm.get(key));
@@ -251,14 +251,14 @@ public class NativeMapIT {
     nm.delete();
 
     try {
-      nm.put(nk(1), nv(1));
+      nm.put(newKey(1), newValue(1));
       assertTrue(false);
     } catch (IllegalStateException e) {
 
     }
 
     try {
-      nm.get(nk(1));
+      nm.get(newKey(1));
       assertTrue(false);
     } catch (IllegalStateException e) {
 
@@ -272,7 +272,7 @@ public class NativeMapIT {
     }
 
     try {
-      nm.iterator(nk(1));
+      nm.iterator(newKey(1));
       assertTrue(false);
     } catch (IllegalStateException e) {
 
@@ -377,13 +377,13 @@ public class NativeMapIT {
 
     NativeMap nm = new NativeMap();
     for (int i = start; i <= end; i++) {
-      nm.put(nk(i), nv(i));
+      nm.put(newKey(i), newValue(i));
     }
 
     long mem1 = nm.getMemoryUsed();
 
     for (int i = start; i <= end; i++) {
-      nm.put(nk(i), nv(i));
+      nm.put(newKey(i), newValue(i));
     }
 
     long mem2 = nm.getMemoryUsed();
@@ -393,7 +393,7 @@ public class NativeMapIT {
     }
 
     for (int i = start; i <= end; i++) {
-      nm.put(nk(i), nv(i));
+      nm.put(newKey(i), newValue(i));
     }
 
     long mem3 = nm.getMemoryUsed();
@@ -436,7 +436,7 @@ public class NativeMapIT {
   }
 
   // random length random field
-  private static byte[] rlrf(Random r, int maxLen) {
+  private static byte[] getRandomBytes(Random r, int maxLen) {
     int len = r.nextInt(maxLen);
 
     byte f[] = new byte[len];
@@ -458,8 +458,9 @@ public class NativeMapIT {
 
     for (int i = 0; i < 100000; i++) {
 
-      Key k = new Key(rlrf(r, 97), rlrf(r, 13), rlrf(r, 31), rlrf(r, 11), (r.nextLong() & 0x7fffffffffffffffl), false, false);
-      Value v = new Value(rlrf(r, 511));
+      Key k = new Key(getRandomBytes(r, 97), getRandomBytes(r, 13), getRandomBytes(r, 31), getRandomBytes(r, 11), (r.nextLong() & 0x7fffffffffffffffl), false,
+          false);
+      Value v = new Value(getRandomBytes(r, 511));
 
       testData.add(new Pair<>(k, v));
     }
@@ -506,7 +507,7 @@ public class NativeMapIT {
       Collections.shuffle(testData, r);
       // insert unsorted data
       for (Pair<Key,Value> pair : testData) {
-        pair.getSecond().set(rlrf(r, 511));
+        pair.getSecond().set(getRandomBytes(r, 511));
         nm.put(pair.getFirst(), pair.getSecond());
       }
     }
@@ -583,29 +584,29 @@ public class NativeMapIT {
   public void testConcurrentIter() throws IOException {
     NativeMap nm = new NativeMap();
 
-    nm.put(nk(0), nv(0));
-    nm.put(nk(1), nv(1));
-    nm.put(nk(3), nv(3));
+    nm.put(newKey(0), newValue(0));
+    nm.put(newKey(1), newValue(1));
+    nm.put(newKey(3), newValue(3));
 
     SortedKeyValueIterator<Key,Value> iter = nm.skvIterator();
 
     // modify map after iter created
-    nm.put(nk(2), nv(2));
+    nm.put(newKey(2), newValue(2));
 
     assertTrue(iter.hasTop());
-    assertEquals(iter.getTopKey(), nk(0));
+    assertEquals(iter.getTopKey(), newKey(0));
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertEquals(iter.getTopKey(), nk(1));
+    assertEquals(iter.getTopKey(), newKey(1));
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertEquals(iter.getTopKey(), nk(2));
+    assertEquals(iter.getTopKey(), newKey(2));
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertEquals(iter.getTopKey(), nk(3));
+    assertEquals(iter.getTopKey(), newKey(3));
     iter.next();
 
     assertFalse(iter.hasTop());

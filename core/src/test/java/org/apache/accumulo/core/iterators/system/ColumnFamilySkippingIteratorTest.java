@@ -34,16 +34,16 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
 
   private static final Collection<ByteSequence> EMPTY_SET = new HashSet<>();
 
-  Key nk(String row, String cf, String cq, long time) {
+  Key newKey(String row, String cf, String cq, long time) {
     return new Key(new Text(row), new Text(cf), new Text(cq), time);
   }
 
-  Key nk(int row, int cf, int cq, long time) {
-    return nk(String.format("%06d", row), String.format("%06d", cf), String.format("%06d", cq), time);
+  Key newKey(int row, int cf, int cq, long time) {
+    return newKey(String.format("%06d", row), String.format("%06d", cf), String.format("%06d", cq), time);
   }
 
   void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, Value val) {
-    tm.put(nk(row, cf, cq, time), val);
+    tm.put(newKey(row, cf, cq, time), val);
   }
 
   void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, String val) {
@@ -51,12 +51,12 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
   }
 
   void put(TreeMap<Key,Value> tm, int row, int cf, int cq, long time, int val) {
-    tm.put(nk(row, cf, cq, time), new Value((val + "").getBytes()));
+    tm.put(newKey(row, cf, cq, time), new Value((val + "").getBytes()));
   }
 
-  private void aten(ColumnFamilySkippingIterator rdi, String row, String cf, String cq, long time, String val) throws Exception {
+  private void testAndCallnext(ColumnFamilySkippingIterator rdi, String row, String cf, String cq, long time, String val) throws Exception {
     assertTrue(rdi.hasTop());
-    assertEquals(nk(row, cf, cq, time), rdi.getTopKey());
+    assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
     rdi.next();
   }
@@ -87,22 +87,22 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
     HashSet<ByteSequence> colfams = new HashSet<>();
     colfams.add(new ArrayByteSequence("cf2"));
     cfi.seek(new Range(), colfams, true);
-    aten(cfi, "r2", "cf2", "cq4", 5, "v4");
-    aten(cfi, "r2", "cf2", "cq5", 5, "v5");
+    testAndCallnext(cfi, "r2", "cf2", "cq4", 5, "v4");
+    testAndCallnext(cfi, "r2", "cf2", "cq5", 5, "v5");
     assertFalse(cfi.hasTop());
 
     colfams.add(new ArrayByteSequence("cf3"));
     colfams.add(new ArrayByteSequence("cf4"));
     cfi.seek(new Range(), colfams, true);
-    aten(cfi, "r2", "cf2", "cq4", 5, "v4");
-    aten(cfi, "r2", "cf2", "cq5", 5, "v5");
-    aten(cfi, "r3", "cf3", "cq6", 5, "v6");
+    testAndCallnext(cfi, "r2", "cf2", "cq4", 5, "v4");
+    testAndCallnext(cfi, "r2", "cf2", "cq5", 5, "v5");
+    testAndCallnext(cfi, "r3", "cf3", "cq6", 5, "v6");
     assertFalse(cfi.hasTop());
 
     cfi.seek(new Range(), colfams, false);
-    aten(cfi, "r1", "cf1", "cq1", 5, "v1");
-    aten(cfi, "r1", "cf1", "cq3", 5, "v2");
-    aten(cfi, "r2", "cf1", "cq1", 5, "v3");
+    testAndCallnext(cfi, "r1", "cf1", "cq1", 5, "v1");
+    testAndCallnext(cfi, "r1", "cf1", "cq3", 5, "v2");
+    testAndCallnext(cfi, "r2", "cf1", "cq1", 5, "v3");
     assertFalse(cfi.hasTop());
 
   }
@@ -204,11 +204,11 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
     HashSet<ByteSequence> colfams = new HashSet<>();
     colfams.add(new ArrayByteSequence(String.format("%06d", 4)));
 
-    Range range = new Range(nk(0, 4, 0, 6), true, nk(0, 400, 0, 6), true);
+    Range range = new Range(newKey(0, 4, 0, 6), true, newKey(0, 400, 0, 6), true);
     cfi.seek(range, colfams, true);
 
     assertTrue(cfi.hasTop());
-    assertEquals(nk(0, 4, 0, 6), cfi.getTopKey());
+    assertEquals(newKey(0, 4, 0, 6), cfi.getTopKey());
     cfi.next();
     assertFalse(cfi.hasTop());
 
@@ -216,21 +216,21 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
     cfi.seek(range, colfams, true);
 
     assertTrue(cfi.hasTop());
-    assertEquals(nk(0, 4, 0, 6), cfi.getTopKey());
+    assertEquals(newKey(0, 4, 0, 6), cfi.getTopKey());
     cfi.next();
     assertFalse(cfi.hasTop());
 
-    range = new Range(nk(0, 4, 0, 6), true, nk(1, 400, 0, 6), true);
+    range = new Range(newKey(0, 4, 0, 6), true, newKey(1, 400, 0, 6), true);
     cfi.seek(range, colfams, true);
 
     assertTrue(cfi.hasTop());
-    assertEquals(nk(0, 4, 0, 6), cfi.getTopKey());
+    assertEquals(newKey(0, 4, 0, 6), cfi.getTopKey());
     cfi.next();
     assertTrue(cfi.hasTop());
-    assertEquals(nk(0, 500, 0, 6), cfi.getTopKey());
+    assertEquals(newKey(0, 500, 0, 6), cfi.getTopKey());
     cfi.next();
     assertTrue(cfi.hasTop());
-    assertEquals(nk(1, 4, 0, 6), cfi.getTopKey());
+    assertEquals(newKey(1, 4, 0, 6), cfi.getTopKey());
     cfi.next();
     assertFalse(cfi.hasTop());
 

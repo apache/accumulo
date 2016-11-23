@@ -39,13 +39,13 @@ public class RegExFilterTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
-  private Key nkv(TreeMap<Key,Value> tm, String row, String cf, String cq, String val) {
-    Key k = nk(row, cf, cq);
+  private Key newKeyValue(TreeMap<Key,Value> tm, String row, String cf, String cq, String val) {
+    Key k = newKey(row, cf, cq);
     tm.put(k, new Value(val.getBytes()));
     return k;
   }
 
-  private Key nk(String row, String cf, String cq) {
+  private Key newKey(String row, String cf, String cq) {
     return new Key(new Text(row), new Text(cf), new Text(cq));
   }
 
@@ -53,9 +53,9 @@ public class RegExFilterTest {
   public void test1() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    Key k1 = nkv(tm, "boo1", "yup", "20080201", "dog");
-    Key k2 = nkv(tm, "boo1", "yap", "20080202", "cat");
-    Key k3 = nkv(tm, "boo2", "yip", "20080203", "hamster");
+    Key k1 = newKeyValue(tm, "boo1", "yup", "20080201", "dog");
+    Key k2 = newKeyValue(tm, "boo1", "yap", "20080202", "cat");
+    Key k3 = newKeyValue(tm, "boo2", "yip", "20080203", "hamster");
 
     RegExFilter rei = new RegExFilter();
     rei.describeOptions();

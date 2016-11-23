@@ -36,21 +36,22 @@ import org.apache.hadoop.io.Text;
 
 public class SourceSwitchingIteratorTest extends TestCase {
 
-  Key nk(String row, String cf, String cq, long time) {
+  Key newKey(String row, String cf, String cq, long time) {
     return new Key(new Text(row), new Text(cf), new Text(cq), time);
   }
 
   void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, Value val) {
-    tm.put(nk(row, cf, cq, time), val);
+    tm.put(newKey(row, cf, cq, time), val);
   }
 
   void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, String val) {
     put(tm, row, cf, cq, time, new Value(val.getBytes()));
   }
 
-  private void ane(SortedKeyValueIterator<Key,Value> rdi, String row, String cf, String cq, long time, String val, boolean callNext) throws Exception {
+  private void testAndCallNext(SortedKeyValueIterator<Key,Value> rdi, String row, String cf, String cq, long time, String val, boolean callNext)
+      throws Exception {
     assertTrue(rdi.hasTop());
-    assertEquals(nk(row, cf, cq, time), rdi.getTopKey());
+    assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
     if (callNext)
       rdi.next();
@@ -121,9 +122,9 @@ public class SourceSwitchingIteratorTest extends TestCase {
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds);
 
     ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
-    ane(ssi, "r1", "cf1", "cq1", 5, "v1", true);
-    ane(ssi, "r1", "cf1", "cq3", 5, "v2", true);
-    ane(ssi, "r2", "cf1", "cq1", 5, "v3", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v2", true);
+    testAndCallNext(ssi, "r2", "cf1", "cq1", 5, "v3", true);
     assertFalse(ssi.hasTop());
   }
 
@@ -138,7 +139,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds);
 
     ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
-    ane(ssi, "r1", "cf1", "cq1", 5, "v1", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
 
     TreeMap<Key,Value> tm2 = new TreeMap<>();
     put(tm2, "r1", "cf1", "cq1", 5, "v4");
@@ -149,8 +150,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
     TestDataSource tds2 = new TestDataSource(smi2);
     tds.next = tds2;
 
-    ane(ssi, "r1", "cf1", "cq3", 5, "v2", true);
-    ane(ssi, "r2", "cf1", "cq1", 5, "v6", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v2", true);
+    testAndCallNext(ssi, "r2", "cf1", "cq1", 5, "v6", true);
     assertFalse(ssi.hasTop());
   }
 
@@ -170,7 +171,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds, true);
 
     ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
-    ane(ssi, "r1", "cf1", "cq1", 5, "v1", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
 
     TreeMap<Key,Value> tm2 = new TreeMap<>(tm1);
     put(tm2, "r1", "cf1", "cq5", 5, "v7"); // should not see this because it should not switch until the row is finished
@@ -181,12 +182,12 @@ public class SourceSwitchingIteratorTest extends TestCase {
     TestDataSource tds2 = new TestDataSource(smi2);
     tds.next = tds2;
 
-    ane(ssi, "r1", "cf1", "cq2", 5, "v2", true);
-    ane(ssi, "r1", "cf1", "cq3", 5, "v3", true);
-    ane(ssi, "r1", "cf1", "cq4", 5, "v4", true);
-    ane(ssi, "r2", "cf1", "cq1", 5, "v8", true);
-    ane(ssi, "r3", "cf1", "cq1", 5, "v5", true);
-    ane(ssi, "r3", "cf1", "cq2", 5, "v6", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq2", 5, "v2", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v3", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq4", 5, "v4", true);
+    testAndCallNext(ssi, "r2", "cf1", "cq1", 5, "v8", true);
+    testAndCallNext(ssi, "r3", "cf1", "cq1", 5, "v5", true);
+    testAndCallNext(ssi, "r3", "cf1", "cq2", 5, "v6", true);
 
   }
 
@@ -210,8 +211,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
     ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
 
-    ane(ssi, "r1", "cf1", "cq1", 6, "v3", true);
-    ane(ssi, "r1", "cf1", "cq2", 6, "v4", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq1", 6, "v3", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq2", 6, "v4", true);
 
   }
 
@@ -240,9 +241,9 @@ public class SourceSwitchingIteratorTest extends TestCase {
     ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
     dc1.seek(new Range("r2"), new ArrayList<ByteSequence>(), false);
 
-    ane(ssi, "r1", "cf1", "cq1", 6, "v3", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq1", 6, "v3", true);
     assertFalse(ssi.hasTop());
-    ane(dc1, "r2", "cf1", "cq2", 6, "v4", true);
+    testAndCallNext(dc1, "r2", "cf1", "cq2", 6, "v4", true);
     assertFalse(dc1.hasTop());
   }
 
@@ -261,7 +262,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     assertSame(flag, tds.iflag);
 
     ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
-    ane(ssi, "r1", "cf1", "cq1", 5, "v1", true);
+    testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     assertFalse(ssi.hasTop());
 
     flag.set(true);

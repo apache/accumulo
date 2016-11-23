@@ -127,23 +127,23 @@ public class InMemoryMapTest {
     imm.mutate(Collections.singletonList(m));
   }
 
-  static Key nk(String row, String column, long ts) {
+  static Key newKey(String row, String column, long ts) {
     String[] sa = column.split(":");
     Key k = new Key(new Text(row), new Text(sa[0]), new Text(sa[1]), ts);
     return k;
   }
 
-  static void ae(SortedKeyValueIterator<Key,Value> dc, String row, String column, int ts, String val) throws IOException {
+  static void testAndCallNext(SortedKeyValueIterator<Key,Value> dc, String row, String column, int ts, String val) throws IOException {
     assertTrue(dc.hasTop());
-    assertEquals(nk(row, column, ts), dc.getTopKey());
+    assertEquals(newKey(row, column, ts), dc.getTopKey());
     assertEquals(new Value(val.getBytes()), dc.getTopValue());
     dc.next();
 
   }
 
-  static void aeNoNext(SortedKeyValueIterator<Key,Value> dc, String row, String column, int ts, String val) throws IOException {
+  static void assertEqualsNoNext(SortedKeyValueIterator<Key,Value> dc, String row, String column, int ts, String val) throws IOException {
     assertTrue(dc.hasTop());
-    assertEquals(nk(row, column, ts), dc.getTopKey());
+    assertEquals(newKey(row, column, ts), dc.getTopKey());
     assertEquals(new Value(val.getBytes()), dc.getTopValue());
 
   }
@@ -191,7 +191,7 @@ public class InMemoryMapTest {
 
     ski2.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
     assertTrue(ski2.hasTop());
-    ae(ski2, "r1", "foo:cq1", 3, "bar1");
+    testAndCallNext(ski2, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski2.hasTop());
 
   }
@@ -211,13 +211,13 @@ public class InMemoryMapTest {
     MemoryIterator ski2 = imm.skvIterator(null);
 
     ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski1, "r1", "foo:cq1", 3, "bar2");
-    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
     ski2.seek(new Range(new Text("r3")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski2, "r3", "foo:cq1", 3, "bara");
-    ae(ski2, "r3", "foo:cq1", 3, "bar9");
+    testAndCallNext(ski2, "r3", "foo:cq1", 3, "bara");
+    testAndCallNext(ski2, "r3", "foo:cq1", 3, "bar9");
     assertFalse(ski1.hasTop());
 
   }
@@ -234,21 +234,21 @@ public class InMemoryMapTest {
     imm.delete(0);
 
     ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski1, "r1", "foo:cq1", 3, "bar2");
-    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
     ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski1, "r1", "foo:cq1", 3, "bar2");
-    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
     ski1.seek(new Range(new Text("r2")), LocalityGroupUtil.EMPTY_CF_SET, false);
     assertFalse(ski1.hasTop());
 
-    ski1.seek(new Range(nk("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski1, "r1", "foo:cq1", 3, "bar2");
-    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
     ski1.close();
@@ -265,9 +265,9 @@ public class InMemoryMapTest {
     imm.delete(0);
 
     ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    aeNoNext(ski1, "r1", "foo:cq1", 3, "");
+    assertEqualsNoNext(ski1, "r1", "foo:cq1", 3, "");
     ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski1, "r1", "foo:cq1", 3, "");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "");
     assertFalse(ski1.hasTop());
 
     ski1.close();
@@ -283,12 +283,12 @@ public class InMemoryMapTest {
 
     MemoryIterator ski1 = imm.skvIterator(null);
     ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski1, "r1", "foo:cq1", 3, "bar3");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar3");
 
     imm.delete(0);
 
-    ae(ski1, "r1", "foo:cq1", 3, "bar2");
-    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
     ski1.close();
@@ -301,12 +301,12 @@ public class InMemoryMapTest {
 
     ski1 = imm.skvIterator(null);
     ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
 
     imm.delete(0);
 
-    ae(ski1, "r1", "foo:cq2", 3, "bar2");
-    ae(ski1, "r1", "foo:cq3", 3, "bar3");
+    testAndCallNext(ski1, "r1", "foo:cq2", 3, "bar2");
+    testAndCallNext(ski1, "r1", "foo:cq3", 3, "bar3");
     assertFalse(ski1.hasTop());
 
     ski1.close();
@@ -327,30 +327,30 @@ public class InMemoryMapTest {
 
     SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(new SampleIE());
 
-    ski1.seek(new Range(nk("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
 
-    dc.seek(new Range(nk("r1", "foo:cq2", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(dc, "r1", "foo:cq2", 3, "bar2");
+    dc.seek(new Range(newKey("r1", "foo:cq2", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    testAndCallNext(dc, "r1", "foo:cq2", 3, "bar2");
 
     imm.delete(0);
 
-    ae(ski1, "r1", "foo:cq2", 3, "bar2");
-    ae(dc, "r1", "foo:cq3", 3, "bar3");
-    ae(ski1, "r1", "foo:cq3", 3, "bar3");
-    ae(dc, "r1", "foo:cq4", 3, "bar4");
-    ae(ski1, "r1", "foo:cq4", 3, "bar4");
+    testAndCallNext(ski1, "r1", "foo:cq2", 3, "bar2");
+    testAndCallNext(dc, "r1", "foo:cq3", 3, "bar3");
+    testAndCallNext(ski1, "r1", "foo:cq3", 3, "bar3");
+    testAndCallNext(dc, "r1", "foo:cq4", 3, "bar4");
+    testAndCallNext(ski1, "r1", "foo:cq4", 3, "bar4");
     assertFalse(ski1.hasTop());
     assertFalse(dc.hasTop());
 
-    ski1.seek(new Range(nk("r1", "foo:cq3", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(newKey("r1", "foo:cq3", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
 
-    dc.seek(new Range(nk("r1", "foo:cq4", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(dc, "r1", "foo:cq4", 3, "bar4");
+    dc.seek(new Range(newKey("r1", "foo:cq4", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    testAndCallNext(dc, "r1", "foo:cq4", 3, "bar4");
     assertFalse(dc.hasTop());
 
-    ae(ski1, "r1", "foo:cq3", 3, "bar3");
-    ae(ski1, "r1", "foo:cq4", 3, "bar4");
+    testAndCallNext(ski1, "r1", "foo:cq3", 3, "bar3");
+    testAndCallNext(ski1, "r1", "foo:cq4", 3, "bar4");
     assertFalse(ski1.hasTop());
     assertFalse(dc.hasTop());
 
@@ -393,8 +393,8 @@ public class InMemoryMapTest {
         iflag.set(true);
     }
 
-    ae(dc, "r1", "foo:cq1", 3, "bar1");
-    ae(ski1, "r1", "foo:cq1", 3, "bar1");
+    testAndCallNext(dc, "r1", "foo:cq1", 3, "bar1");
+    testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
 
     if (interleaving == 4) {
@@ -403,9 +403,9 @@ public class InMemoryMapTest {
         iflag.set(true);
     }
 
-    ae(ski1, "r1", "foo:cq2", 3, "bar2");
-    ae(dc, "r1", "foo:cq1", 3, "bar1");
-    ae(dc, "r1", "foo:cq2", 3, "bar2");
+    testAndCallNext(ski1, "r1", "foo:cq2", 3, "bar2");
+    testAndCallNext(dc, "r1", "foo:cq1", 3, "bar1");
+    testAndCallNext(dc, "r1", "foo:cq2", 3, "bar2");
     assertFalse(dc.hasTop());
     assertFalse(ski1.hasTop());
 
@@ -464,11 +464,11 @@ public class InMemoryMapTest {
 
     MemoryIterator skvi1 = imm.skvIterator(null);
 
-    skvi1.seek(new Range(nk("r1", "foo:cq3", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(skvi1, "r1", "foo:cq3", 3, "bar3");
+    skvi1.seek(new Range(newKey("r1", "foo:cq3", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    testAndCallNext(skvi1, "r1", "foo:cq3", 3, "bar3");
 
-    skvi1.seek(new Range(nk("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(skvi1, "r1", "foo:cq1", 3, "bar1");
+    skvi1.seek(new Range(newKey("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    testAndCallNext(skvi1, "r1", "foo:cq1", 3, "bar1");
 
   }
 
@@ -483,8 +483,8 @@ public class InMemoryMapTest {
 
     MemoryIterator skvi1 = imm.skvIterator(null);
     skvi1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ae(skvi1, "r1", "foo:cq", 3, "v2");
-    ae(skvi1, "r1", "foo:cq", 3, "v1");
+    testAndCallNext(skvi1, "r1", "foo:cq", 3, "v2");
+    testAndCallNext(skvi1, "r1", "foo:cq", 3, "v1");
   }
 
   private static final Logger log = Logger.getLogger(InMemoryMapTest.class);
@@ -733,7 +733,7 @@ public class InMemoryMapTest {
   private void mutate(InMemoryMap imm, String row, String cols, int ts, String val, Sampler sampler, TreeMap<Key,Value> expectedSample,
       TreeMap<Key,Value> expectedAll) {
     mutate(imm, row, cols, ts, val);
-    Key k1 = nk(row, cols, ts);
+    Key k1 = newKey(row, cols, ts);
     if (sampler.accept(k1)) {
       expectedSample.put(k1, new Value(val.getBytes()));
     }
@@ -836,52 +836,52 @@ public class InMemoryMapTest {
 
   private void seekLocalityGroups(SortedKeyValueIterator<Key,Value> iter1) throws IOException {
     iter1.seek(new Range(), newCFSet("cf1"), true);
-    ae(iter1, "r1", "cf1:x", 2, "1");
-    ae(iter1, "r1", "cf1:y", 2, "2");
-    ae(iter1, "r2", "cf2:x", 3, "5");
+    testAndCallNext(iter1, "r1", "cf1:x", 2, "1");
+    testAndCallNext(iter1, "r1", "cf1:y", 2, "2");
+    testAndCallNext(iter1, "r2", "cf2:x", 3, "5");
     assertFalse(iter1.hasTop());
 
     iter1.seek(new Range("r2", "r4"), newCFSet("cf1"), true);
-    ae(iter1, "r2", "cf2:x", 3, "5");
+    testAndCallNext(iter1, "r2", "cf2:x", 3, "5");
     assertFalse(iter1.hasTop());
 
     iter1.seek(new Range(), newCFSet("cf3"), true);
-    ae(iter1, "r1", "cf3:z", 2, "3");
-    ae(iter1, "r4", "cf4:z", 5, "8");
-    ae(iter1, "r5", "cf3:z", 6, "A");
-    ae(iter1, "r5", "cf4:z", 6, "B");
+    testAndCallNext(iter1, "r1", "cf3:z", 2, "3");
+    testAndCallNext(iter1, "r4", "cf4:z", 5, "8");
+    testAndCallNext(iter1, "r5", "cf3:z", 6, "A");
+    testAndCallNext(iter1, "r5", "cf4:z", 6, "B");
     assertFalse(iter1.hasTop());
 
     iter1.seek(new Range(), newCFSet("foo"), true);
-    ae(iter1, "r1", "foo:b", 2, "9");
-    ae(iter1, "r3", "foo:b", 4, "6");
-    ae(iter1, "r4", "foo:b", 5, "7");
+    testAndCallNext(iter1, "r1", "foo:b", 2, "9");
+    testAndCallNext(iter1, "r3", "foo:b", 4, "6");
+    testAndCallNext(iter1, "r4", "foo:b", 5, "7");
     assertFalse(iter1.hasTop());
 
     iter1.seek(new Range(), newCFSet("cf1", "cf3"), true);
-    ae(iter1, "r1", "cf1:x", 2, "1");
-    ae(iter1, "r1", "cf1:y", 2, "2");
-    ae(iter1, "r1", "cf3:z", 2, "3");
-    ae(iter1, "r2", "cf2:x", 3, "5");
-    ae(iter1, "r4", "cf4:z", 5, "8");
-    ae(iter1, "r5", "cf3:z", 6, "A");
-    ae(iter1, "r5", "cf4:z", 6, "B");
+    testAndCallNext(iter1, "r1", "cf1:x", 2, "1");
+    testAndCallNext(iter1, "r1", "cf1:y", 2, "2");
+    testAndCallNext(iter1, "r1", "cf3:z", 2, "3");
+    testAndCallNext(iter1, "r2", "cf2:x", 3, "5");
+    testAndCallNext(iter1, "r4", "cf4:z", 5, "8");
+    testAndCallNext(iter1, "r5", "cf3:z", 6, "A");
+    testAndCallNext(iter1, "r5", "cf4:z", 6, "B");
     assertFalse(iter1.hasTop());
 
     iter1.seek(new Range("r2", "r4"), newCFSet("cf1", "cf3"), true);
-    ae(iter1, "r2", "cf2:x", 3, "5");
-    ae(iter1, "r4", "cf4:z", 5, "8");
+    testAndCallNext(iter1, "r2", "cf2:x", 3, "5");
+    testAndCallNext(iter1, "r4", "cf4:z", 5, "8");
     assertFalse(iter1.hasTop());
 
     iter1.seek(new Range(), newCFSet("cf1", "cf3", "foo"), true);
     assertAll(iter1);
 
     iter1.seek(new Range("r1", "r2"), newCFSet("cf1", "cf3", "foo"), true);
-    ae(iter1, "r1", "cf1:x", 2, "1");
-    ae(iter1, "r1", "cf1:y", 2, "2");
-    ae(iter1, "r1", "cf3:z", 2, "3");
-    ae(iter1, "r1", "foo:b", 2, "9");
-    ae(iter1, "r2", "cf2:x", 3, "5");
+    testAndCallNext(iter1, "r1", "cf1:x", 2, "1");
+    testAndCallNext(iter1, "r1", "cf1:y", 2, "2");
+    testAndCallNext(iter1, "r1", "cf3:z", 2, "3");
+    testAndCallNext(iter1, "r1", "foo:b", 2, "9");
+    testAndCallNext(iter1, "r2", "cf2:x", 3, "5");
     assertFalse(iter1.hasTop());
 
     iter1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
@@ -891,31 +891,31 @@ public class InMemoryMapTest {
     assertAll(iter1);
 
     iter1.seek(new Range(), newCFSet("cf1", "cf2"), false);
-    ae(iter1, "r1", "cf3:z", 2, "3");
-    ae(iter1, "r1", "foo:b", 2, "9");
-    ae(iter1, "r3", "foo:b", 4, "6");
-    ae(iter1, "r4", "cf4:z", 5, "8");
-    ae(iter1, "r4", "foo:b", 5, "7");
-    ae(iter1, "r5", "cf3:z", 6, "A");
-    ae(iter1, "r5", "cf4:z", 6, "B");
+    testAndCallNext(iter1, "r1", "cf3:z", 2, "3");
+    testAndCallNext(iter1, "r1", "foo:b", 2, "9");
+    testAndCallNext(iter1, "r3", "foo:b", 4, "6");
+    testAndCallNext(iter1, "r4", "cf4:z", 5, "8");
+    testAndCallNext(iter1, "r4", "foo:b", 5, "7");
+    testAndCallNext(iter1, "r5", "cf3:z", 6, "A");
+    testAndCallNext(iter1, "r5", "cf4:z", 6, "B");
     assertFalse(iter1.hasTop());
 
     iter1.seek(new Range("r2"), newCFSet("cf1", "cf3", "foo"), true);
-    ae(iter1, "r2", "cf2:x", 3, "5");
+    testAndCallNext(iter1, "r2", "cf2:x", 3, "5");
     assertFalse(iter1.hasTop());
   }
 
   private void assertAll(SortedKeyValueIterator<Key,Value> iter1) throws IOException {
-    ae(iter1, "r1", "cf1:x", 2, "1");
-    ae(iter1, "r1", "cf1:y", 2, "2");
-    ae(iter1, "r1", "cf3:z", 2, "3");
-    ae(iter1, "r1", "foo:b", 2, "9");
-    ae(iter1, "r2", "cf2:x", 3, "5");
-    ae(iter1, "r3", "foo:b", 4, "6");
-    ae(iter1, "r4", "cf4:z", 5, "8");
-    ae(iter1, "r4", "foo:b", 5, "7");
-    ae(iter1, "r5", "cf3:z", 6, "A");
-    ae(iter1, "r5", "cf4:z", 6, "B");
+    testAndCallNext(iter1, "r1", "cf1:x", 2, "1");
+    testAndCallNext(iter1, "r1", "cf1:y", 2, "2");
+    testAndCallNext(iter1, "r1", "cf3:z", 2, "3");
+    testAndCallNext(iter1, "r1", "foo:b", 2, "9");
+    testAndCallNext(iter1, "r2", "cf2:x", 3, "5");
+    testAndCallNext(iter1, "r3", "foo:b", 4, "6");
+    testAndCallNext(iter1, "r4", "cf4:z", 5, "8");
+    testAndCallNext(iter1, "r4", "foo:b", 5, "7");
+    testAndCallNext(iter1, "r5", "cf3:z", 6, "A");
+    testAndCallNext(iter1, "r5", "cf4:z", 6, "B");
     assertFalse(iter1.hasTop());
   }
 }

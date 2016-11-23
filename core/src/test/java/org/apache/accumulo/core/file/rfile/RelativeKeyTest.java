@@ -129,17 +129,17 @@ public class RelativeKeyTest {
     Key prev = null;
     int val = 0;
     for (int row = 0; row < 4; row++) {
-      String rowS = RFileTest.nf("r_", row);
+      String rowS = RFileTest.formatString("r_", row);
       for (int cf = 0; cf < 4; cf++) {
-        String cfS = RFileTest.nf("cf_", cf);
+        String cfS = RFileTest.formatString("cf_", cf);
         for (int cq = 0; cq < 4; cq++) {
-          String cqS = RFileTest.nf("cq_", cq);
+          String cqS = RFileTest.formatString("cq_", cq);
           for (int cv = 'A'; cv < 'A' + 4; cv++) {
             String cvS = "" + (char) cv;
             for (int ts = 4; ts > 0; ts--) {
-              Key k = RFileTest.nk(rowS, cfS, cqS, cvS, ts);
+              Key k = RFileTest.newKey(rowS, cfS, cqS, cvS, ts);
               k.setDeleted(true);
-              Value v = RFileTest.nv("" + val);
+              Value v = RFileTest.newValue("" + val);
               expectedPositions.add(out.size());
               new RelativeKey(prev, k).write(out);
               prev = k;
@@ -147,8 +147,8 @@ public class RelativeKeyTest {
               expectedKeys.add(k);
               expectedValues.add(v);
 
-              k = RFileTest.nk(rowS, cfS, cqS, cvS, ts);
-              v = RFileTest.nv("" + val);
+              k = RFileTest.newKey(rowS, cfS, cqS, cvS, ts);
+              v = RFileTest.newValue("" + val);
               expectedPositions.add(out.size());
               new RelativeKey(prev, k).write(out);
               prev = k;

@@ -133,8 +133,8 @@ public class IteratorUtilTest {
 
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    MultiIteratorTest.nkv(tm, 1, 0, false, "1");
-    MultiIteratorTest.nkv(tm, 2, 0, false, "2");
+    MultiIteratorTest.newKeyValue(tm, 1, 0, false, "1");
+    MultiIteratorTest.newKeyValue(tm, 2, 0, false, "2");
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
@@ -143,13 +143,13 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.nk(1, 0)));
+    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(1, 0)));
     assertTrue(iter.getTopValue().toString().equals("4"));
 
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.nk(2, 0)));
+    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 0)));
     assertTrue(iter.getTopValue().toString().equals("9"));
 
     iter.next();
@@ -165,8 +165,8 @@ public class IteratorUtilTest {
 
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    MultiIteratorTest.nkv(tm, 1, 0, false, "1");
-    MultiIteratorTest.nkv(tm, 2, 0, false, "2");
+    MultiIteratorTest.newKeyValue(tm, 1, 0, false, "1");
+    MultiIteratorTest.newKeyValue(tm, 2, 0, false, "2");
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
@@ -175,13 +175,13 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.nk(1, 0)));
+    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(1, 0)));
     assertTrue(iter.getTopValue().toString().equals("1"));
 
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.nk(2, 0)));
+    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 0)));
     assertTrue(iter.getTopValue().toString().equals("2"));
 
     iter.next();
@@ -198,8 +198,8 @@ public class IteratorUtilTest {
 
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    MultiIteratorTest.nkv(tm, 1, 0, false, "1");
-    MultiIteratorTest.nkv(tm, 2, 0, false, "2");
+    MultiIteratorTest.newKeyValue(tm, 1, 0, false, "1");
+    MultiIteratorTest.newKeyValue(tm, 2, 0, false, "2");
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
@@ -211,13 +211,13 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.nk(1, 0)));
+    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(1, 0)));
     assertTrue(iter.getTopValue().toString().equals("2"));
 
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.nk(2, 0)));
+    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 0)));
     assertTrue(iter.getTopValue().toString().equals("5"));
 
     iter.next();
@@ -237,8 +237,8 @@ public class IteratorUtilTest {
 
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    MultiIteratorTest.nkv(tm, 1, 0, false, "1");
-    MultiIteratorTest.nkv(tm, 2, 0, false, "2");
+    MultiIteratorTest.newKeyValue(tm, 1, 0, false, "1");
+    MultiIteratorTest.newKeyValue(tm, 2, 0, false, "2");
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
@@ -247,13 +247,13 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.nk(1, 0)));
+    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(1, 0)));
     assertTrue(iter.getTopValue().toString().equals("64"));
 
     iter.next();
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.nk(2, 0)));
+    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 0)));
     assertTrue(iter.getTopValue().toString().equals("81"));
 
     iter.next();
@@ -273,8 +273,8 @@ public class IteratorUtilTest {
 
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    MultiIteratorTest.nkv(tm, 1, 850, false, "1");
-    MultiIteratorTest.nkv(tm, 2, 950, false, "2");
+    MultiIteratorTest.newKeyValue(tm, 1, 850, false, "1");
+    MultiIteratorTest.newKeyValue(tm, 2, 950, false, "2");
 
     SortedMapIterator source = new SortedMapIterator(tm);
 
@@ -283,7 +283,7 @@ public class IteratorUtilTest {
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
-    assertTrue(iter.getTopKey().equals(MultiIteratorTest.nk(2, 950)));
+    assertTrue(iter.getTopKey().equals(MultiIteratorTest.newKey(2, 950)));
     iter.next();
 
     assertFalse(iter.hasTop());

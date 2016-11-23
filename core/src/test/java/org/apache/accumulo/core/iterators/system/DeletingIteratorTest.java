@@ -117,24 +117,24 @@ public class DeletingIteratorTest extends TestCase {
   public void test2() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    nkv(tm, "r000", 4, false, "v4");
-    nkv(tm, "r000", 3, false, "v3");
-    nkv(tm, "r000", 2, true, "v2");
-    nkv(tm, "r000", 1, false, "v1");
+    newKeyValue(tm, "r000", 4, false, "v4");
+    newKeyValue(tm, "r000", 3, false, "v3");
+    newKeyValue(tm, "r000", 2, true, "v2");
+    newKeyValue(tm, "r000", 1, false, "v1");
 
     DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
 
     // SEEK two keys before delete
-    it.seek(nr("r000", 4), EMPTY_COL_FAMS, false);
+    it.seek(newRange("r000", 4), EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
-    assertEquals(nk("r000", 4), it.getTopKey());
+    assertEquals(newKey("r000", 4), it.getTopKey());
     assertEquals("v4", it.getTopValue().toString());
 
     it.next();
 
     assertTrue(it.hasTop());
-    assertEquals(nk("r000", 3), it.getTopKey());
+    assertEquals(newKey("r000", 3), it.getTopKey());
     assertEquals("v3", it.getTopValue().toString());
 
     it.next();
@@ -142,20 +142,20 @@ public class DeletingIteratorTest extends TestCase {
     assertFalse(it.hasTop());
 
     // SEEK passed delete
-    it.seek(nr("r000", 1), EMPTY_COL_FAMS, false);
+    it.seek(newRange("r000", 1), EMPTY_COL_FAMS, false);
 
     assertFalse(it.hasTop());
 
     // SEEK to delete
-    it.seek(nr("r000", 2), EMPTY_COL_FAMS, false);
+    it.seek(newRange("r000", 2), EMPTY_COL_FAMS, false);
 
     assertFalse(it.hasTop());
 
     // SEEK right before delete
-    it.seek(nr("r000", 3), EMPTY_COL_FAMS, false);
+    it.seek(newRange("r000", 3), EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
-    assertEquals(nk("r000", 3), it.getTopKey());
+    assertEquals(newKey("r000", 3), it.getTopKey());
     assertEquals("v3", it.getTopValue().toString());
 
     it.next();
@@ -167,23 +167,23 @@ public class DeletingIteratorTest extends TestCase {
   public void test3() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    nkv(tm, "r000", 3, false, "v3");
-    nkv(tm, "r000", 2, false, "v2");
-    nkv(tm, "r000", 2, true, "");
-    nkv(tm, "r000", 1, false, "v1");
+    newKeyValue(tm, "r000", 3, false, "v3");
+    newKeyValue(tm, "r000", 2, false, "v2");
+    newKeyValue(tm, "r000", 2, true, "");
+    newKeyValue(tm, "r000", 1, false, "v1");
 
     DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
     it.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
-    assertEquals(nk("r000", 3), it.getTopKey());
+    assertEquals(newKey("r000", 3), it.getTopKey());
     assertEquals("v3", it.getTopValue().toString());
 
     it.next();
 
     assertFalse(it.hasTop());
 
-    it.seek(nr("r000", 2), EMPTY_COL_FAMS, false);
+    it.seek(newRange("r000", 2), EMPTY_COL_FAMS, false);
 
     assertFalse(it.hasTop());
   }
@@ -192,42 +192,42 @@ public class DeletingIteratorTest extends TestCase {
   public void test4() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    nkv(tm, "r000", 3, false, "v3");
-    nkv(tm, "r000", 2, false, "v2");
-    nkv(tm, "r000", 2, true, "");
-    nkv(tm, "r000", 1, false, "v1");
+    newKeyValue(tm, "r000", 3, false, "v3");
+    newKeyValue(tm, "r000", 2, false, "v2");
+    newKeyValue(tm, "r000", 2, true, "");
+    newKeyValue(tm, "r000", 1, false, "v1");
 
     DeletingIterator it = new DeletingIterator(new SortedMapIterator(tm), false);
 
-    it.seek(nr("r000", 3), EMPTY_COL_FAMS, false);
+    it.seek(newRange("r000", 3), EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
-    assertEquals(nk("r000", 3), it.getTopKey());
+    assertEquals(newKey("r000", 3), it.getTopKey());
     assertEquals("v3", it.getTopValue().toString());
 
     it.next();
 
     assertFalse(it.hasTop());
 
-    it.seek(nr("r000", 3, false), EMPTY_COL_FAMS, false);
+    it.seek(newRange("r000", 3, false), EMPTY_COL_FAMS, false);
 
     assertFalse(it.hasTop());
   }
 
-  private Range nr(String row, long ts, boolean inclusive) {
-    return new Range(nk(row, ts), inclusive, null, true);
+  private Range newRange(String row, long ts, boolean inclusive) {
+    return new Range(newKey(row, ts), inclusive, null, true);
   }
 
-  private Range nr(String row, long ts) {
-    return nr(row, ts, true);
+  private Range newRange(String row, long ts) {
+    return newRange(row, ts, true);
   }
 
-  private Key nk(String row, long ts) {
+  private Key newKey(String row, long ts) {
     return new Key(new Text(row), ts);
   }
 
-  private void nkv(TreeMap<Key,Value> tm, String row, long ts, boolean deleted, String val) {
-    Key k = nk(row, ts);
+  private void newKeyValue(TreeMap<Key,Value> tm, String row, long ts, boolean deleted, String val) {
+    Key k = newKey(row, ts);
     k.setDeleted(deleted);
     tm.put(k, new Value(val.getBytes()));
   }

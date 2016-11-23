@@ -285,15 +285,15 @@ public class RFileTest {
     }
   }
 
-  static Key nk(String row, String cf, String cq, String cv, long ts) {
+  static Key newKey(String row, String cf, String cq, String cv, long ts) {
     return new Key(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes(), ts);
   }
 
-  static Value nv(String val) {
+  static Value newValue(String val) {
     return new Value(val.getBytes());
   }
 
-  static String nf(String prefix, int i) {
+  static String formatString(String prefix, int i) {
     return String.format(prefix + "%06d", i);
   }
 
@@ -326,31 +326,31 @@ public class RFileTest {
     TestRFile trf = new TestRFile(conf);
 
     trf.openWriter();
-    trf.writer.append(nk("r1", "cf1", "cq1", "L1", 55), nv("foo"));
+    trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 55), newValue("foo"));
     trf.closeWriter();
 
     trf.openReader();
     // seek before everything
     trf.seek(null);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("r1", "cf1", "cq1", "L1", 55)));
-    assertTrue(trf.iter.getTopValue().equals(nv("foo")));
+    assertTrue(trf.iter.getTopKey().equals(newKey("r1", "cf1", "cq1", "L1", 55)));
+    assertTrue(trf.iter.getTopValue().equals(newValue("foo")));
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // seek after the key
-    trf.seek(nk("r2", "cf1", "cq1", "L1", 55));
+    trf.seek(newKey("r2", "cf1", "cq1", "L1", 55));
     assertFalse(trf.iter.hasTop());
 
     // seek exactly to the key
-    trf.seek(nk("r1", "cf1", "cq1", "L1", 55));
+    trf.seek(newKey("r1", "cf1", "cq1", "L1", 55));
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("r1", "cf1", "cq1", "L1", 55)));
-    assertTrue(trf.iter.getTopValue().equals(nv("foo")));
+    assertTrue(trf.iter.getTopKey().equals(newKey("r1", "cf1", "cq1", "L1", 55)));
+    assertTrue(trf.iter.getTopValue().equals(newValue("foo")));
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(nk("r1", "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
+    assertEquals(newKey("r1", "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
 
     trf.closeReader();
   }
@@ -370,26 +370,26 @@ public class RFileTest {
     ArrayList<Value> expectedValues = new ArrayList<>(10000);
 
     for (int row = 0; row < 4; row++) {
-      String rowS = nf("r_", row);
+      String rowS = formatString("r_", row);
       for (int cf = 0; cf < 4; cf++) {
-        String cfS = nf("cf_", cf);
+        String cfS = formatString("cf_", cf);
         for (int cq = 0; cq < 4; cq++) {
-          String cqS = nf("cq_", cq);
+          String cqS = formatString("cq_", cq);
           for (int cv = 'A'; cv < 'A' + 4; cv++) {
             String cvS = "" + (char) cv;
             for (int ts = 4; ts > 0; ts--) {
-              Key k = nk(rowS, cfS, cqS, cvS, ts);
+              Key k = newKey(rowS, cfS, cqS, cvS, ts);
               // check below ensures when all key sizes are same more than one index block is created
               Assert.assertEquals(27, k.getSize());
               k.setDeleted(true);
-              Value v = nv("" + val);
+              Value v = newValue("" + val);
               trf.writer.append(k, v);
               expectedKeys.add(k);
               expectedValues.add(v);
 
-              k = nk(rowS, cfS, cqS, cvS, ts);
+              k = newKey(rowS, cfS, cqS, cvS, ts);
               Assert.assertEquals(27, k.getSize());
-              v = nv("" + val);
+              v = newValue("" + val);
               trf.writer.append(k, v);
               expectedKeys.add(k);
               expectedValues.add(v);
@@ -401,7 +401,7 @@ public class RFileTest {
       }
     }
 
-    // trf.writer.append(nk("r1","cf1","cq1","L1", 55), nv("foo"));
+    // trf.writer.append(newKey("r1","cf1","cq1","L1", 55), newValue("foo"));
     trf.closeWriter();
 
     trf.openReader();
@@ -531,37 +531,37 @@ public class RFileTest {
 
     trf.openWriter();
 
-    trf.writer.append(nk("r1", "cf1", "cq1", "L1", 55), nv("foo1"));
+    trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 55), newValue("foo1"));
     try {
-      trf.writer.append(nk("r0", "cf1", "cq1", "L1", 55), nv("foo1"));
+      trf.writer.append(newKey("r0", "cf1", "cq1", "L1", 55), newValue("foo1"));
       assertFalse(true);
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
-      trf.writer.append(nk("r1", "cf0", "cq1", "L1", 55), nv("foo1"));
+      trf.writer.append(newKey("r1", "cf0", "cq1", "L1", 55), newValue("foo1"));
       assertFalse(true);
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
-      trf.writer.append(nk("r1", "cf1", "cq0", "L1", 55), nv("foo1"));
+      trf.writer.append(newKey("r1", "cf1", "cq0", "L1", 55), newValue("foo1"));
       assertFalse(true);
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
-      trf.writer.append(nk("r1", "cf1", "cq1", "L0", 55), nv("foo1"));
+      trf.writer.append(newKey("r1", "cf1", "cq1", "L0", 55), newValue("foo1"));
       assertFalse(true);
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
-      trf.writer.append(nk("r1", "cf1", "cq1", "L1", 56), nv("foo1"));
+      trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 56), newValue("foo1"));
       assertFalse(true);
     } catch (IllegalArgumentException ioe) {
 
@@ -574,25 +574,25 @@ public class RFileTest {
     TestRFile trf = new TestRFile(conf);
 
     trf.openWriter();
-    trf.writer.append(nk("r1", "cf1", "cq1", "L1", 55), nv("foo1"));
-    trf.writer.append(nk("r1", "cf1", "cq4", "L1", 56), nv("foo2"));
+    trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 55), newValue("foo1"));
+    trf.writer.append(newKey("r1", "cf1", "cq4", "L1", 56), newValue("foo2"));
     trf.closeWriter();
 
     trf.openReader();
 
     // test seeking between keys
-    trf.seek(nk("r1", "cf1", "cq3", "L1", 55));
+    trf.seek(newKey("r1", "cf1", "cq3", "L1", 55));
     assertTrue(trf.iter.hasTop());
-    assertEquals(nk("r1", "cf1", "cq4", "L1", 56), trf.iter.getTopKey());
-    assertEquals(nv("foo2"), trf.iter.getTopValue());
+    assertEquals(newKey("r1", "cf1", "cq4", "L1", 56), trf.iter.getTopKey());
+    assertEquals(newValue("foo2"), trf.iter.getTopValue());
 
     // test seeking right before previous seek
-    trf.seek(nk("r1", "cf1", "cq0", "L1", 55));
+    trf.seek(newKey("r1", "cf1", "cq0", "L1", 55));
     assertTrue(trf.iter.hasTop());
-    assertEquals(nk("r1", "cf1", "cq1", "L1", 55), trf.iter.getTopKey());
-    assertEquals(nv("foo1"), trf.iter.getTopValue());
+    assertEquals(newKey("r1", "cf1", "cq1", "L1", 55), trf.iter.getTopKey());
+    assertEquals(newValue("foo1"), trf.iter.getTopValue());
 
-    assertEquals(nk("r1", "cf1", "cq4", "L1", 56), trf.reader.getLastKey());
+    assertEquals(newKey("r1", "cf1", "cq4", "L1", 56), trf.reader.getLastKey());
 
     trf.closeReader();
   }
@@ -604,7 +604,7 @@ public class RFileTest {
 
     trf.openWriter();
     for (int i = 0; i < 500; i++) {
-      trf.writer.append(nk(nf("r_", i), "cf1", "cq1", "L1", 55), nv("foo1"));
+      trf.writer.append(newKey(formatString("r_", i), "cf1", "cq1", "L1", 55), newValue("foo1"));
     }
 
     trf.closeWriter();
@@ -613,19 +613,19 @@ public class RFileTest {
 
     // repeatedly seek to locations before the first key in the file
     for (int i = 0; i < 10; i++) {
-      trf.seek(nk(nf("q_", i), "cf1", "cq1", "L1", 55));
+      trf.seek(newKey(formatString("q_", i), "cf1", "cq1", "L1", 55));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", 0), "cf1", "cq1", "L1", 55), trf.iter.getTopKey());
-      assertEquals(nv("foo1"), trf.iter.getTopValue());
+      assertEquals(newKey(formatString("r_", 0), "cf1", "cq1", "L1", 55), trf.iter.getTopKey());
+      assertEquals(newValue("foo1"), trf.iter.getTopValue());
     }
 
     // repeatedly seek to locations after the last key in the file
     for (int i = 0; i < 10; i++) {
-      trf.seek(nk(nf("s_", i), "cf1", "cq1", "L1", 55));
+      trf.seek(newKey(formatString("s_", i), "cf1", "cq1", "L1", 55));
       assertFalse(trf.iter.hasTop());
     }
 
-    assertEquals(nk(nf("r_", 499), "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
+    assertEquals(newKey(formatString("r_", 499), "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
 
     trf.closeReader();
   }
@@ -638,7 +638,7 @@ public class RFileTest {
 
     trf.openWriter();
     for (int i = 2; i < 50; i++) {
-      trf.writer.append(nk(nf("r_", i), "cf1", "cq1", "L1", 55), nv("foo" + i));
+      trf.writer.append(newKey(formatString("r_", i), "cf1", "cq1", "L1", 55), newValue("foo" + i));
     }
 
     trf.closeWriter();
@@ -646,38 +646,44 @@ public class RFileTest {
     trf.openReader();
 
     // test that has top returns false when end of range reached
-    trf.iter.seek(new Range(nk(nf("r_", 3), "cf1", "cq1", "L1", 55), true, nk(nf("r_", 4), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 4), "cf1", "cq1", "L1", 55), false),
+        EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk(nf("r_", 3), "cf1", "cq1", "L1", 55)));
-    assertEquals(nv("foo" + 3), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55)));
+    assertEquals(newValue("foo" + 3), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // test seeking to a range that is between two keys, should not return anything
-    trf.iter.seek(new Range(nk(nf("r_", 4) + "a", "cf1", "cq1", "L1", 55), true, nk(nf("r_", 4) + "b", "cf1", "cq1", "L1", 55), true), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey(formatString("r_", 4) + "a", "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 4) + "b", "cf1", "cq1", "L1", 55),
+        true), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
     // test seeking to another range after the previously seeked range, that is between the same two keys in the file
     // as the previously seeked range.... this test an optimization on RFile
-    trf.iter.seek(new Range(nk(nf("r_", 4) + "c", "cf1", "cq1", "L1", 55), true, nk(nf("r_", 4) + "d", "cf1", "cq1", "L1", 55), true), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey(formatString("r_", 4) + "c", "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 4) + "d", "cf1", "cq1", "L1", 55),
+        true), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    trf.iter.seek(new Range(nk(nf("r_", 4) + "e", "cf1", "cq1", "L1", 55), true, nk(nf("r_", 4) + "f", "cf1", "cq1", "L1", 55), true), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey(formatString("r_", 4) + "e", "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 4) + "f", "cf1", "cq1", "L1", 55),
+        true), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
     // now ensure we can seek somewhere, that triggering the optimization does not cause any problems
-    trf.iter.seek(new Range(nk(nf("r_", 5), "cf1", "cq1", "L1", 55), true, nk(nf("r_", 6), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 6), "cf1", "cq1", "L1", 55), false),
+        EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk(nf("r_", 5), "cf1", "cq1", "L1", 55)));
-    assertEquals(nv("foo" + 5), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55)));
+    assertEquals(newValue("foo" + 5), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // test seeking to range that is before the beginning of the file
-    trf.iter.seek(new Range(nk(nf("r_", 0), "cf1", "cq1", "L1", 55), true, nk(nf("r_", 2), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey(formatString("r_", 0), "cf1", "cq1", "L1", 55), true, newKey(formatString("r_", 2), "cf1", "cq1", "L1", 55), false),
+        EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(nk(nf("r_", 49), "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
+    assertEquals(newKey(formatString("r_", 49), "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
 
     trf.reader.close();
   }
@@ -689,7 +695,7 @@ public class RFileTest {
     trf.openWriter();
 
     for (int i = 0; i < 2500; i++) {
-      trf.writer.append(nk(nf("r_", i), "cf1", "cq1", "L1", 42), nv("foo" + i));
+      trf.writer.append(newKey(formatString("r_", i), "cf1", "cq1", "L1", 42), newValue("foo" + i));
     }
 
     trf.closeWriter();
@@ -697,23 +703,23 @@ public class RFileTest {
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i++) {
-      trf.seek(nk(nf("r_", i), "cf1", "cq1", "L1", 42).followingKey(PartialKey.ROW));
+      trf.seek(newKey(formatString("r_", i), "cf1", "cq1", "L1", 42).followingKey(PartialKey.ROW));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", i + 1), "cf1", "cq1", "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", i + 1), "cf1", "cq1", "L1", 42), trf.iter.getTopKey());
     }
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i += 2) {
-      trf.seek(nk(nf("r_", i), "cf1", "cq1", "L1", 42).followingKey(PartialKey.ROW));
+      trf.seek(newKey(formatString("r_", i), "cf1", "cq1", "L1", 42).followingKey(PartialKey.ROW));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", i + 1), "cf1", "cq1", "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", i + 1), "cf1", "cq1", "L1", 42), trf.iter.getTopKey());
     }
 
     // test seeking backwards between each key
     for (int i = 2498; i >= 0; i--) {
-      trf.seek(nk(nf("r_", i), "cf1", "cq1", "L1", 42).followingKey(PartialKey.ROW));
+      trf.seek(newKey(formatString("r_", i), "cf1", "cq1", "L1", 42).followingKey(PartialKey.ROW));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", i + 1), "cf1", "cq1", "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", i + 1), "cf1", "cq1", "L1", 42), trf.iter.getTopKey());
     }
 
     trf.closeReader();
@@ -724,7 +730,7 @@ public class RFileTest {
     trf.openWriter();
 
     for (int i = 0; i < 2500; i++) {
-      trf.writer.append(nk(nf("r_", 0), nf("cf_", i), "cq1", "L1", 42), nv("foo" + i));
+      trf.writer.append(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42), newValue("foo" + i));
     }
 
     trf.closeWriter();
@@ -732,23 +738,23 @@ public class RFileTest {
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i++) {
-      trf.seek(nk(nf("r_", 0), nf("cf_", i), "cq1", "L1", 42).followingKey(PartialKey.ROW_COLFAM));
+      trf.seek(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42).followingKey(PartialKey.ROW_COLFAM));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", 0), nf("cf_", i + 1), "cq1", "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", i + 1), "cq1", "L1", 42), trf.iter.getTopKey());
     }
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i += 2) {
-      trf.seek(nk(nf("r_", 0), nf("cf_", i), "cq1", "L1", 42).followingKey(PartialKey.ROW_COLFAM));
+      trf.seek(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42).followingKey(PartialKey.ROW_COLFAM));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", 0), nf("cf_", i + 1), "cq1", "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", i + 1), "cq1", "L1", 42), trf.iter.getTopKey());
     }
 
     // test seeking backwards between each key
     for (int i = 2498; i >= 0; i--) {
-      trf.seek(nk(nf("r_", 0), nf("cf_", i), "cq1", "L1", 42).followingKey(PartialKey.ROW_COLFAM));
+      trf.seek(newKey(formatString("r_", 0), formatString("cf_", i), "cq1", "L1", 42).followingKey(PartialKey.ROW_COLFAM));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", 0), nf("cf_", i + 1), "cq1", "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", i + 1), "cq1", "L1", 42), trf.iter.getTopKey());
     }
 
     trf.closeReader();
@@ -759,7 +765,7 @@ public class RFileTest {
     trf.openWriter();
 
     for (int i = 0; i < 2500; i++) {
-      trf.writer.append(nk(nf("r_", 0), nf("cf_", 0), nf("cq_", i), "L1", 42), nv("foo" + i));
+      trf.writer.append(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42), newValue("foo" + i));
     }
 
     trf.closeWriter();
@@ -767,29 +773,29 @@ public class RFileTest {
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i++) {
-      trf.seek(nk(nf("r_", 0), nf("cf_", 0), nf("cq_", i), "L1", 42).followingKey(PartialKey.ROW_COLFAM_COLQUAL));
+      trf.seek(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42).followingKey(PartialKey.ROW_COLFAM_COLQUAL));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", 0), nf("cf_", 0), nf("cq_", i + 1), "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i + 1), "L1", 42), trf.iter.getTopKey());
     }
 
     // test seeking between each key forward
     for (int i = 0; i < 2499; i += 2) {
-      trf.seek(nk(nf("r_", 0), nf("cf_", 0), nf("cq_", i), "L1", 42).followingKey(PartialKey.ROW_COLFAM_COLQUAL));
+      trf.seek(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42).followingKey(PartialKey.ROW_COLFAM_COLQUAL));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", 0), nf("cf_", 0), nf("cq_", i + 1), "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i + 1), "L1", 42), trf.iter.getTopKey());
     }
 
     // test seeking backwards between each key
     for (int i = 2498; i >= 0; i--) {
-      trf.seek(nk(nf("r_", 0), nf("cf_", 0), nf("cq_", i), "L1", 42).followingKey(PartialKey.ROW_COLFAM_COLQUAL));
+      trf.seek(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i), "L1", 42).followingKey(PartialKey.ROW_COLFAM_COLQUAL));
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("r_", 0), nf("cf_", 0), nf("cq_", i + 1), "L1", 42), trf.iter.getTopKey());
+      assertEquals(newKey(formatString("r_", 0), formatString("cf_", 0), formatString("cq_", i + 1), "L1", 42), trf.iter.getTopKey());
     }
 
     trf.closeReader();
   }
 
-  public static Set<ByteSequence> ncfs(String... colFams) {
+  public static Set<ByteSequence> newColFamByteSequence(String... colFams) {
     HashSet<ByteSequence> cfs = new HashSet<>();
 
     for (String cf : colFams) {
@@ -805,135 +811,135 @@ public class RFileTest {
 
     trf.openWriter(false);
 
-    trf.writer.startNewLocalityGroup("lg1", ncfs("cf1", "cf2"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("cf1", "cf2"));
 
-    trf.writer.append(nk("0000", "cf1", "doe,john", "", 4), nv("1123 West Left st"));
-    trf.writer.append(nk("0002", "cf2", "doe,jane", "", 5), nv("1124 East Right st"));
+    trf.writer.append(newKey("0000", "cf1", "doe,john", "", 4), newValue("1123 West Left st"));
+    trf.writer.append(newKey("0002", "cf2", "doe,jane", "", 5), newValue("1124 East Right st"));
 
-    trf.writer.startNewLocalityGroup("lg2", ncfs("cf3", "cf4"));
+    trf.writer.startNewLocalityGroup("lg2", newColFamByteSequence("cf3", "cf4"));
 
-    trf.writer.append(nk("0001", "cf3", "buck,john", "", 4), nv("90 Slum st"));
-    trf.writer.append(nk("0003", "cf4", "buck,jane", "", 5), nv("09 Slum st"));
+    trf.writer.append(newKey("0001", "cf3", "buck,john", "", 4), newValue("90 Slum st"));
+    trf.writer.append(newKey("0003", "cf4", "buck,jane", "", 5), newValue("09 Slum st"));
 
     trf.writer.close();
 
     trf.openReader();
 
     // scan first loc group
-    Range r = new Range(nk("0000", "cf1", "doe,john", "", 4), true, nk("0003", "cf4", "buck,jane", "", 5), true);
-    trf.iter.seek(r, ncfs("cf1", "cf2"), true);
+    Range r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    trf.iter.seek(r, newColFamByteSequence("cf1", "cf2"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0000", "cf1", "doe,john", "", 4)));
-    assertEquals(nv("1123 West Left st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0002", "cf2", "doe,jane", "", 5)));
-    assertEquals(nv("1124 East Right st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // scan second loc group
-    r = new Range(nk("0000", "cf1", "doe,john", "", 4), true, nk("0003", "cf4", "buck,jane", "", 5), true);
-    trf.iter.seek(r, ncfs("cf3", "cf4"), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    trf.iter.seek(r, newColFamByteSequence("cf3", "cf4"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0001", "cf3", "buck,john", "", 4)));
-    assertEquals(nv("90 Slum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0003", "cf4", "buck,jane", "", 5)));
-    assertEquals(nv("09 Slum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // scan all loc groups
-    r = new Range(nk("0000", "cf1", "doe,john", "", 4), true, nk("0003", "cf4", "buck,jane", "", 5), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
     trf.iter.seek(r, EMPTY_COL_FAMS, false);
     assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0000", "cf1", "doe,john", "", 4)));
-    assertEquals(nv("1123 West Left st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0001", "cf3", "buck,john", "", 4)));
-    assertEquals(nv("90 Slum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0002", "cf2", "doe,jane", "", 5)));
-    assertEquals(nv("1124 East Right st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0003", "cf4", "buck,jane", "", 5)));
-    assertEquals(nv("09 Slum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // scan no loc groups
-    r = new Range(nk("0000", "cf1", "doe,john", "", 4), true, nk("0003", "cf4", "buck,jane", "", 5), true);
-    trf.iter.seek(r, ncfs("saint", "dogooder"), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    trf.iter.seek(r, newColFamByteSequence("saint", "dogooder"), true);
     assertEquals(0, trf.reader.getNumLocalityGroupsSeeked());
     assertFalse(trf.iter.hasTop());
 
     // scan a subset of second locality group
-    r = new Range(nk("0000", "cf1", "doe,john", "", 4), true, nk("0003", "cf4", "buck,jane", "", 5), true);
-    trf.iter.seek(r, ncfs("cf4"), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    trf.iter.seek(r, newColFamByteSequence("cf4"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0003", "cf4", "buck,jane", "", 5)));
-    assertEquals(nv("09 Slum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // scan a subset of second locality group
-    r = new Range(nk("0000", "cf1", "doe,john", "", 4), true, nk("0003", "cf4", "buck,jane", "", 5), true);
-    trf.iter.seek(r, ncfs("cf3"), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    trf.iter.seek(r, newColFamByteSequence("cf3"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0001", "cf3", "buck,john", "", 4)));
-    assertEquals(nv("90 Slum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // scan subset of first loc group
-    r = new Range(nk("0000", "cf1", "doe,john", "", 4), true, nk("0003", "cf4", "buck,jane", "", 5), true);
-    trf.iter.seek(r, ncfs("cf1"), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    trf.iter.seek(r, newColFamByteSequence("cf1"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0000", "cf1", "doe,john", "", 4)));
-    assertEquals(nv("1123 West Left st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // scan subset of first loc group
-    r = new Range(nk("0000", "cf1", "doe,john", "", 4), true, nk("0003", "cf4", "buck,jane", "", 5), true);
-    trf.iter.seek(r, ncfs("cf2"), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    trf.iter.seek(r, newColFamByteSequence("cf2"), true);
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0002", "cf2", "doe,jane", "", 5)));
-    assertEquals(nv("1124 East Right st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
     // scan subset of all loc groups
-    r = new Range(nk("0000", "cf1", "doe,john", "", 4), true, nk("0003", "cf4", "buck,jane", "", 5), true);
-    trf.iter.seek(r, ncfs("cf1", "cf4"), true);
+    r = new Range(newKey("0000", "cf1", "doe,john", "", 4), true, newKey("0003", "cf4", "buck,jane", "", 5), true);
+    trf.iter.seek(r, newColFamByteSequence("cf1", "cf4"), true);
     assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0000", "cf1", "doe,john", "", 4)));
-    assertEquals(nv("1123 West Left st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0003", "cf4", "buck,jane", "", 5)));
-    assertEquals(nv("09 Slum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -948,8 +954,8 @@ public class RFileTest {
     TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false);
-    trf.writer.startNewLocalityGroup("lg1", ncfs("cf1", "cf2"));
-    trf.writer.startNewLocalityGroup("lg2", ncfs("cf3", "cf4"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("cf1", "cf2"));
+    trf.writer.startNewLocalityGroup("lg2", newColFamByteSequence("cf3", "cf4"));
     trf.writer.startDefaultLocalityGroup();
     trf.writer.close();
 
@@ -963,22 +969,22 @@ public class RFileTest {
     trf = new TestRFile(conf);
 
     trf.openWriter(false);
-    trf.writer.startNewLocalityGroup("lg1", ncfs("cf1", "cf2"));
-    trf.writer.append(nk("0000", "cf1", "doe,john", "", 4), nv("1123 West Left st"));
-    trf.writer.append(nk("0002", "cf2", "doe,jane", "", 5), nv("1124 East Right st"));
-    trf.writer.startNewLocalityGroup("lg2", ncfs("cf3", "cf4"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("cf1", "cf2"));
+    trf.writer.append(newKey("0000", "cf1", "doe,john", "", 4), newValue("1123 West Left st"));
+    trf.writer.append(newKey("0002", "cf2", "doe,jane", "", 5), newValue("1124 East Right st"));
+    trf.writer.startNewLocalityGroup("lg2", newColFamByteSequence("cf3", "cf4"));
     trf.writer.startDefaultLocalityGroup();
     trf.writer.close();
 
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0000", "cf1", "doe,john", "", 4)));
-    assertEquals(nv("1123 West Left st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0002", "cf2", "doe,jane", "", 5)));
-    assertEquals(nv("1124 East Right st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -988,22 +994,22 @@ public class RFileTest {
     trf = new TestRFile(conf);
 
     trf.openWriter(false);
-    trf.writer.startNewLocalityGroup("lg1", ncfs("cf1", "cf2"));
-    trf.writer.startNewLocalityGroup("lg2", ncfs("cf3", "cf4"));
-    trf.writer.append(nk("0001", "cf3", "buck,john", "", 4), nv("90 Slum st"));
-    trf.writer.append(nk("0003", "cf4", "buck,jane", "", 5), nv("09 Slum st"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("cf1", "cf2"));
+    trf.writer.startNewLocalityGroup("lg2", newColFamByteSequence("cf3", "cf4"));
+    trf.writer.append(newKey("0001", "cf3", "buck,john", "", 4), newValue("90 Slum st"));
+    trf.writer.append(newKey("0003", "cf4", "buck,jane", "", 5), newValue("09 Slum st"));
     trf.writer.startDefaultLocalityGroup();
     trf.writer.close();
 
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0001", "cf3", "buck,john", "", 4)));
-    assertEquals(nv("90 Slum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0003", "cf4", "buck,jane", "", 5)));
-    assertEquals(nv("09 Slum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -1013,22 +1019,22 @@ public class RFileTest {
     trf = new TestRFile(conf);
 
     trf.openWriter(false);
-    trf.writer.startNewLocalityGroup("lg1", ncfs("cf1", "cf2"));
-    trf.writer.startNewLocalityGroup("lg2", ncfs("cf3", "cf4"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("cf1", "cf2"));
+    trf.writer.startNewLocalityGroup("lg2", newColFamByteSequence("cf3", "cf4"));
     trf.writer.startDefaultLocalityGroup();
-    trf.writer.append(nk("0007", "good citizen", "q,john", "", 4), nv("70 Apple st"));
-    trf.writer.append(nk("0008", "model citizen", "q,jane", "", 5), nv("81 Plum st"));
+    trf.writer.append(newKey("0007", "good citizen", "q,john", "", 4), newValue("70 Apple st"));
+    trf.writer.append(newKey("0008", "model citizen", "q,jane", "", 5), newValue("81 Plum st"));
     trf.writer.close();
 
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0007", "good citizen", "q,john", "", 4)));
-    assertEquals(nv("70 Apple st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0007", "good citizen", "q,john", "", 4)));
+    assertEquals(newValue("70 Apple st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0008", "model citizen", "q,jane", "", 5)));
-    assertEquals(nv("81 Plum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0008", "model citizen", "q,jane", "", 5)));
+    assertEquals(newValue("81 Plum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -1038,32 +1044,32 @@ public class RFileTest {
     trf = new TestRFile(conf);
 
     trf.openWriter(false);
-    trf.writer.startNewLocalityGroup("lg1", ncfs("cf1", "cf2"));
-    trf.writer.append(nk("0000", "cf1", "doe,john", "", 4), nv("1123 West Left st"));
-    trf.writer.append(nk("0002", "cf2", "doe,jane", "", 5), nv("1124 East Right st"));
-    trf.writer.startNewLocalityGroup("lg2", ncfs("cf3", "cf4"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("cf1", "cf2"));
+    trf.writer.append(newKey("0000", "cf1", "doe,john", "", 4), newValue("1123 West Left st"));
+    trf.writer.append(newKey("0002", "cf2", "doe,jane", "", 5), newValue("1124 East Right st"));
+    trf.writer.startNewLocalityGroup("lg2", newColFamByteSequence("cf3", "cf4"));
     trf.writer.startDefaultLocalityGroup();
-    trf.writer.append(nk("0007", "good citizen", "q,john", "", 4), nv("70 Apple st"));
-    trf.writer.append(nk("0008", "model citizen", "q,jane", "", 5), nv("81 Plum st"));
+    trf.writer.append(newKey("0007", "good citizen", "q,john", "", 4), newValue("70 Apple st"));
+    trf.writer.append(newKey("0008", "model citizen", "q,jane", "", 5), newValue("81 Plum st"));
     trf.writer.close();
 
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0000", "cf1", "doe,john", "", 4)));
-    assertEquals(nv("1123 West Left st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0002", "cf2", "doe,jane", "", 5)));
-    assertEquals(nv("1124 East Right st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0007", "good citizen", "q,john", "", 4)));
-    assertEquals(nv("70 Apple st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0007", "good citizen", "q,john", "", 4)));
+    assertEquals(newValue("70 Apple st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0008", "model citizen", "q,jane", "", 5)));
-    assertEquals(nv("81 Plum st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0008", "model citizen", "q,jane", "", 5)));
+    assertEquals(newValue("81 Plum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -1077,17 +1083,17 @@ public class RFileTest {
     TestRFile trf = new TestRFile(conf);
 
     trf.openWriter(false);
-    trf.writer.startNewLocalityGroup("lg1", ncfs("3mod10"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("3mod10"));
     for (int i = 3; i < 1024; i += 10) {
-      trf.writer.append(nk(nf("i", i), "3mod10", "", "", i + 2), nv("" + i));
+      trf.writer.append(newKey(formatString("i", i), "3mod10", "", "", i + 2), newValue("" + i));
     }
 
-    trf.writer.startNewLocalityGroup("lg2", ncfs("5mod10", "7mod10"));
+    trf.writer.startNewLocalityGroup("lg2", newColFamByteSequence("5mod10", "7mod10"));
 
     for (int i = 5; i < 1024;) {
-      trf.writer.append(nk(nf("i", i), "5mod10", "", "", i + 2), nv("" + i));
+      trf.writer.append(newKey(formatString("i", i), "5mod10", "", "", i + 2), newValue("" + i));
       i += 2;
-      trf.writer.append(nk(nf("i", i), "7mod10", "", "", i + 2), nv("" + i));
+      trf.writer.append(newKey(formatString("i", i), "7mod10", "", "", i + 2), newValue("" + i));
       i += 8;
     }
 
@@ -1098,7 +1104,7 @@ public class RFileTest {
       if (m10 == 3 || m10 == 5 || m10 == 7)
         continue;
 
-      trf.writer.append(nk(nf("i", i), m10 + "mod10", "", "", i + 2), nv("" + i));
+      trf.writer.append(newKey(formatString("i", i), m10 + "mod10", "", "", i + 2), newValue("" + i));
 
     }
     trf.writer.close();
@@ -1109,26 +1115,26 @@ public class RFileTest {
     assertEquals(3, trf.reader.getNumLocalityGroupsSeeked());
     for (int i = 0; i < 1024; i++) {
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk(nf("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
-      assertEquals(nv("" + i), trf.iter.getTopValue());
+      assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
+      assertEquals(newValue("" + i), trf.iter.getTopValue());
       trf.iter.next();
     }
     assertFalse(trf.iter.hasTop());
 
     // try reading each of the 10 column families separately
     for (int m = 0; m < 10; m++) {
-      trf.iter.seek(new Range(new Key(), true, null, true), ncfs(m + "mod10"), true);
+      trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"), true);
       assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
       for (int i = m; i < 1024; i += 10) {
         assertTrue(trf.iter.hasTop());
-        assertEquals(nk(nf("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
-        assertEquals(nv("" + i), trf.iter.getTopValue());
+        assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
+        assertEquals(newValue("" + i), trf.iter.getTopValue());
         trf.iter.next();
       }
       assertFalse(trf.iter.hasTop());
 
       // test excluding an individual column family
-      trf.iter.seek(new Range(new Key(), true, null, true), ncfs(m + "mod10"), false);
+      trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"), false);
       if (m == 3)
         assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
       else
@@ -1139,8 +1145,8 @@ public class RFileTest {
           continue;
 
         assertTrue(trf.iter.hasTop());
-        assertEquals(nk(nf("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
-        assertEquals(nv("" + i), trf.iter.getTopValue());
+        assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
+        assertEquals(newValue("" + i), trf.iter.getTopValue());
         trf.iter.next();
       }
       assertFalse(trf.iter.hasTop());
@@ -1151,20 +1157,20 @@ public class RFileTest {
 
     // try reading from cloned reader at the same time as parent reader
     for (int m = 0; m < 9; m++) {
-      trf.iter.seek(new Range(new Key(), true, null, true), ncfs(m + "mod10"), true);
+      trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"), true);
       assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
-      reader2.seek(new Range(new Key(), true, null, true), ncfs((m + 1) + "mod10"), true);
+      reader2.seek(new Range(new Key(), true, null, true), newColFamByteSequence((m + 1) + "mod10"), true);
       // assertEquals(1, reader2.getNumLocalityGroupsSeeked());
       for (int i = m; i < 1024; i += 10) {
         // System.out.println(m+","+i);
         assertTrue(trf.iter.hasTop());
-        assertEquals(nk(nf("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
-        assertEquals(nv("" + i), trf.iter.getTopValue());
+        assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2), trf.iter.getTopKey());
+        assertEquals(newValue("" + i), trf.iter.getTopValue());
         trf.iter.next();
         if (i + 1 < 1024) {
           assertTrue(reader2.hasTop());
-          assertEquals(nk(nf("i", (i + 1)), ((i + 1) % 10) + "mod10", "", "", i + 3), reader2.getTopKey());
-          assertEquals(nv("" + (i + 1)), reader2.getTopValue());
+          assertEquals(newKey(formatString("i", (i + 1)), ((i + 1) % 10) + "mod10", "", "", i + 3), reader2.getTopKey());
+          assertEquals(newValue("" + (i + 1)), reader2.getTopValue());
           reader2.next();
         }
       }
@@ -1183,12 +1189,12 @@ public class RFileTest {
 
     trf.openWriter(false);
 
-    trf.writer.startNewLocalityGroup("lg1", ncfs("a", "b"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
 
-    trf.writer.append(nk("0007", "a", "cq1", "", 4), nv("1"));
+    trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
 
     try {
-      trf.writer.append(nk("0009", "c", "cq1", "", 4), nv("1"));
+      trf.writer.append(newKey("0009", "c", "cq1", "", 4), newValue("1"));
       assertFalse(true);
     } catch (IllegalArgumentException ioe) {
 
@@ -1200,8 +1206,8 @@ public class RFileTest {
 
     trf.iter.seek(new Range(), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertEquals(nk("0007", "a", "cq1", "", 4), trf.iter.getTopKey());
-    assertEquals(nv("1"), trf.iter.getTopValue());
+    assertEquals(newKey("0007", "a", "cq1", "", 4), trf.iter.getTopKey());
+    assertEquals(newValue("1"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -1216,21 +1222,21 @@ public class RFileTest {
 
     trf.openWriter(false);
 
-    trf.writer.startNewLocalityGroup("lg1", ncfs("a", "b"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
 
-    trf.writer.append(nk("0007", "a", "cq1", "", 4), nv("1"));
+    trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
 
     trf.writer.startDefaultLocalityGroup();
 
     try {
-      trf.writer.append(nk("0008", "a", "cq1", "", 4), nv("1"));
+      trf.writer.append(newKey("0008", "a", "cq1", "", 4), newValue("1"));
       assertFalse(true);
     } catch (IllegalArgumentException ioe) {
 
     }
 
     try {
-      trf.writer.append(nk("0009", "b", "cq1", "", 4), nv("1"));
+      trf.writer.append(newKey("0009", "b", "cq1", "", 4), newValue("1"));
       assertFalse(true);
     } catch (IllegalArgumentException ioe) {
 
@@ -1242,8 +1248,8 @@ public class RFileTest {
 
     trf.iter.seek(new Range(), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertEquals(nk("0007", "a", "cq1", "", 4), trf.iter.getTopKey());
-    assertEquals(nv("1"), trf.iter.getTopValue());
+    assertEquals(newKey("0007", "a", "cq1", "", 4), trf.iter.getTopKey());
+    assertEquals(newValue("1"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -1258,7 +1264,7 @@ public class RFileTest {
 
     trf.writer.startDefaultLocalityGroup();
     try {
-      trf.writer.startNewLocalityGroup("lg1", ncfs("a", "b"));
+      trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
       assertFalse(true);
     } catch (IllegalStateException ioe) {
 
@@ -1280,11 +1286,11 @@ public class RFileTest {
 
     trf.openWriter(false);
 
-    trf.writer.startNewLocalityGroup("lg1", ncfs("a", "b"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
 
-    trf.writer.append(nk("0007", "a", "cq1", "", 4), nv("1"));
+    trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
     try {
-      trf.writer.startNewLocalityGroup("lg1", ncfs("b", "c"));
+      trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("b", "c"));
       assertFalse(true);
     } catch (IllegalArgumentException ioe) {
 
@@ -1305,11 +1311,11 @@ public class RFileTest {
 
     trf.writer.startDefaultLocalityGroup();
     for (int i = 0; i < 2048; i++) {
-      trf.writer.append(nk("r0000", "cf1", "cq1", "", 1), nv("" + i));
+      trf.writer.append(newKey("r0000", "cf1", "cq1", "", 1), newValue("" + i));
     }
 
     for (int i = 2048; i < 4096; i++) {
-      trf.writer.append(nk("r0001", "cf1", "cq1", "", 1), nv("" + i));
+      trf.writer.append(newKey("r0001", "cf1", "cq1", "", 1), newValue("" + i));
     }
 
     trf.writer.close();
@@ -1325,55 +1331,55 @@ public class RFileTest {
 
     assertTrue(count > 4);
 
-    trf.iter.seek(new Range(nk("r0000", "cf1", "cq1", "", 1), true, nk("r0001", "cf1", "cq1", "", 1), false), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey("r0000", "cf1", "cq1", "", 1), true, newKey("r0001", "cf1", "cq1", "", 1), false), EMPTY_COL_FAMS, false);
 
     for (int i = 0; i < 2048; i++) {
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk("r0000", "cf1", "cq1", "", 1), trf.iter.getTopKey());
-      assertEquals(nv("" + i), trf.iter.getTopValue());
+      assertEquals(newKey("r0000", "cf1", "cq1", "", 1), trf.iter.getTopKey());
+      assertEquals(newValue("" + i), trf.iter.getTopValue());
       trf.iter.next();
     }
 
     assertFalse(trf.iter.hasTop());
 
-    trf.iter.seek(new Range(nk("r0000", "cf1", "cq1", "", 1), false, nk("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey("r0000", "cf1", "cq1", "", 1), false, newKey("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
 
     for (int i = 2048; i < 4096; i++) {
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk("r0001", "cf1", "cq1", "", 1), trf.iter.getTopKey());
-      assertEquals(nv("" + i), trf.iter.getTopValue());
+      assertEquals(newKey("r0001", "cf1", "cq1", "", 1), trf.iter.getTopKey());
+      assertEquals(newValue("" + i), trf.iter.getTopValue());
       trf.iter.next();
     }
 
     assertFalse(trf.iter.hasTop());
 
-    trf.iter.seek(new Range(nk("r0001", "cf1", "cq1", "", 1), true, nk("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey("r0001", "cf1", "cq1", "", 1), true, newKey("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
 
     for (int i = 2048; i < 4096; i++) {
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk("r0001", "cf1", "cq1", "", 1), trf.iter.getTopKey());
-      assertEquals(nv("" + i), trf.iter.getTopValue());
+      assertEquals(newKey("r0001", "cf1", "cq1", "", 1), trf.iter.getTopKey());
+      assertEquals(newValue("" + i), trf.iter.getTopValue());
       trf.iter.next();
     }
 
     assertFalse(trf.iter.hasTop());
 
-    trf.iter.seek(new Range(nk("r0002", "cf1", "cq1", "", 1), true, nk("r0002", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
+    trf.iter.seek(new Range(newKey("r0002", "cf1", "cq1", "", 1), true, newKey("r0002", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
 
     for (int i = 0; i < 2048; i++) {
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk("r0000", "cf1", "cq1", "", 1), trf.iter.getTopKey());
-      assertEquals(nv("" + i), trf.iter.getTopValue());
+      assertEquals(newKey("r0000", "cf1", "cq1", "", 1), trf.iter.getTopKey());
+      assertEquals(newValue("" + i), trf.iter.getTopValue());
       trf.iter.next();
     }
 
     for (int i = 2048; i < 4096; i++) {
       assertTrue(trf.iter.hasTop());
-      assertEquals(nk("r0001", "cf1", "cq1", "", 1), trf.iter.getTopKey());
-      assertEquals(nv("" + i), trf.iter.getTopValue());
+      assertEquals(newKey("r0001", "cf1", "cq1", "", 1), trf.iter.getTopKey());
+      assertEquals(newValue("" + i), trf.iter.getTopValue());
       trf.iter.next();
     }
 
@@ -1386,7 +1392,7 @@ public class RFileTest {
     return String.format("cf%06d", i);
   }
 
-  private Set<ByteSequence> t18ncfs(int... colFams) {
+  private Set<ByteSequence> t18newColFamByteSequence(int... colFams) {
     HashSet<ByteSequence> cfs = new HashSet<>();
     for (int i : colFams) {
       cfs.add(new ArrayByteSequence(t18ncf(i)));
@@ -1397,7 +1403,7 @@ public class RFileTest {
 
   private void t18Append(TestRFile trf, HashSet<ByteSequence> allCf, int i) throws IOException {
     String cf = t18ncf(i);
-    trf.writer.append(nk("r0000", cf, "cq1", "", 1), nv("" + i));
+    trf.writer.append(newKey("r0000", cf, "cq1", "", 1), newValue("" + i));
     allCf.add(new ArrayByteSequence(cf));
   }
 
@@ -1442,15 +1448,15 @@ public class RFileTest {
 
     HashSet<ByteSequence> allCf = new HashSet<>();
 
-    trf.writer.startNewLocalityGroup("lg1", t18ncfs(0));
+    trf.writer.startNewLocalityGroup("lg1", t18newColFamByteSequence(0));
     for (int i = 0; i < 1; i++)
       t18Append(trf, allCf, i);
 
-    trf.writer.startNewLocalityGroup("lg2", t18ncfs(1, 2));
+    trf.writer.startNewLocalityGroup("lg2", t18newColFamByteSequence(1, 2));
     for (int i = 1; i < 3; i++)
       t18Append(trf, allCf, i);
 
-    trf.writer.startNewLocalityGroup("lg3", t18ncfs(3, 4, 5));
+    trf.writer.startNewLocalityGroup("lg3", t18newColFamByteSequence(3, 4, 5));
     for (int i = 3; i < 6; i++)
       t18Append(trf, allCf, i);
 
@@ -1464,22 +1470,22 @@ public class RFileTest {
 
     trf.openReader();
 
-    t18Verify(t18ncfs(0), trf.iter, trf.reader, allCf, 1, 3);
+    t18Verify(t18newColFamByteSequence(0), trf.iter, trf.reader, allCf, 1, 3);
     for (int i = 1; i < 10; i++)
-      t18Verify(t18ncfs(i), trf.iter, trf.reader, allCf, 1, 4);
+      t18Verify(t18newColFamByteSequence(i), trf.iter, trf.reader, allCf, 1, 4);
 
-    t18Verify(t18ncfs(max + 1), trf.iter, trf.reader, allCf, 1, 4);
+    t18Verify(t18newColFamByteSequence(max + 1), trf.iter, trf.reader, allCf, 1, 4);
 
-    t18Verify(t18ncfs(1, 2, 3, 4), trf.iter, trf.reader, allCf, 2, 3);
-    t18Verify(t18ncfs(1, 2, 3, 4, 5), trf.iter, trf.reader, allCf, 2, 2);
+    t18Verify(t18newColFamByteSequence(1, 2, 3, 4), trf.iter, trf.reader, allCf, 2, 3);
+    t18Verify(t18newColFamByteSequence(1, 2, 3, 4, 5), trf.iter, trf.reader, allCf, 2, 2);
 
-    t18Verify(t18ncfs(0, 1, 2, 3, 4), trf.iter, trf.reader, allCf, 3, 2);
-    t18Verify(t18ncfs(0, 1, 2, 3, 4, 5), trf.iter, trf.reader, allCf, 3, 1);
-    t18Verify(t18ncfs(0, 1, 2, 3, 4, 5, 6), trf.iter, trf.reader, allCf, 4, 1);
+    t18Verify(t18newColFamByteSequence(0, 1, 2, 3, 4), trf.iter, trf.reader, allCf, 3, 2);
+    t18Verify(t18newColFamByteSequence(0, 1, 2, 3, 4, 5), trf.iter, trf.reader, allCf, 3, 1);
+    t18Verify(t18newColFamByteSequence(0, 1, 2, 3, 4, 5, 6), trf.iter, trf.reader, allCf, 4, 1);
 
-    t18Verify(t18ncfs(0, 1), trf.iter, trf.reader, allCf, 2, 3);
-    t18Verify(t18ncfs(2, 3), trf.iter, trf.reader, allCf, 2, 4);
-    t18Verify(t18ncfs(5, 6), trf.iter, trf.reader, allCf, 2, 4);
+    t18Verify(t18newColFamByteSequence(0, 1), trf.iter, trf.reader, allCf, 2, 3);
+    t18Verify(t18newColFamByteSequence(2, 3), trf.iter, trf.reader, allCf, 2, 4);
+    t18Verify(t18newColFamByteSequence(5, 6), trf.iter, trf.reader, allCf, 2, 4);
 
     trf.closeReader();
   }
@@ -1492,10 +1498,10 @@ public class RFileTest {
     trf.openWriter(false);
 
     trf.openWriter(false);
-    trf.writer.startNewLocalityGroup("lg1", ncfs("cf1", "cf2"));
-    trf.writer.append(nk("0000", "cf1", "doe,john", "", 4), nv("1123 West Left st"));
-    trf.writer.append(nk("0002", "cf2", "doe,jane", "", 5), nv("1124 East Right st"));
-    trf.writer.startNewLocalityGroup("lg2", ncfs("cf3", "cf4"));
+    trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("cf1", "cf2"));
+    trf.writer.append(newKey("0000", "cf1", "doe,john", "", 4), newValue("1123 West Left st"));
+    trf.writer.append(newKey("0002", "cf2", "doe,jane", "", 5), newValue("1124 East Right st"));
+    trf.writer.startNewLocalityGroup("lg2", newColFamByteSequence("cf3", "cf4"));
 
     DataOutputStream dos = trf.writer.createMetaStore("count");
 
@@ -1514,8 +1520,8 @@ public class RFileTest {
     trf.iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0000", "cf1", "doe,john", "", 4)));
-    assertEquals(nv("1123 West Left st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
 
     DataInputStream in = trf.reader.getMetaStore("count");
@@ -1529,8 +1535,8 @@ public class RFileTest {
     in.close();
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(nk("0002", "cf2", "doe,jane", "", 5)));
-    assertEquals(nv("1124 East Right st"), trf.iter.getTopValue());
+    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -1544,7 +1550,7 @@ public class RFileTest {
     trf.openWriter();
 
     for (int i = 0; i < 2500; i++) {
-      trf.writer.append(nk(nf("r_", i), "cf1", "cq1", "L1", 42), nv("foo" + i));
+      trf.writer.append(newKey(formatString("r_", i), "cf1", "cq1", "L1", 42), newValue("foo" + i));
     }
 
     trf.closeWriter();
@@ -1557,7 +1563,7 @@ public class RFileTest {
     for (int count = 0; count < 100; count++) {
 
       int start = rand.nextInt(2300);
-      Range range = new Range(nk(nf("r_", start), "cf1", "cq1", "L1", 42), nk(nf("r_", start + 100), "cf1", "cq1", "L1", 42));
+      Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42), newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
 
       trf.reader.seek(range, cfs, false);
 
@@ -1565,24 +1571,24 @@ public class RFileTest {
 
       for (int j = 0; j < numToScan; j++) {
         assertTrue(trf.reader.hasTop());
-        assertEquals(nk(nf("r_", start + j), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
+        assertEquals(newKey(formatString("r_", start + j), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
         trf.reader.next();
       }
 
       assertTrue(trf.reader.hasTop());
-      assertEquals(nk(nf("r_", start + numToScan), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
+      assertEquals(newKey(formatString("r_", start + numToScan), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
 
       // seek a little forward from the last range and read a few keys within the unconsumed portion of the last range
 
       int start2 = start + numToScan + rand.nextInt(3);
       int end2 = start2 + rand.nextInt(3);
 
-      range = new Range(nk(nf("r_", start2), "cf1", "cq1", "L1", 42), nk(nf("r_", end2), "cf1", "cq1", "L1", 42));
+      range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42), newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
       trf.reader.seek(range, cfs, false);
 
       for (int j = start2; j <= end2; j++) {
         assertTrue(trf.reader.hasTop());
-        assertEquals(nk(nf("r_", j), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
+        assertEquals(newKey(formatString("r_", j), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
         trf.reader.next();
       }
 
@@ -1627,14 +1633,14 @@ public class RFileTest {
     for (int start : new int[] {0, 10, 100, 998}) {
       for (int cf = 1; cf <= 4; cf++) {
         if (start == 0)
-          iter.seek(new Range(), ncfs(nf("cf_", cf)), true);
+          iter.seek(new Range(), newColFamByteSequence(formatString("cf_", cf)), true);
         else
-          iter.seek(new Range(nf("r_", start), null), ncfs(nf("cf_", cf)), true);
+          iter.seek(new Range(formatString("r_", start), null), newColFamByteSequence(formatString("cf_", cf)), true);
 
         for (int i = start; i < 1000; i++) {
           assertTrue(iter.hasTop());
-          assertEquals(nk(nf("r_", i), nf("cf_", cf), nf("cq_", 0), "", 1000 - i), iter.getTopKey());
-          assertEquals(nv(i + ""), iter.getTopValue());
+          assertEquals(newKey(formatString("r_", i), formatString("cf_", cf), formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
+          assertEquals(newValue(i + ""), iter.getTopValue());
           iter.next();
         }
 
@@ -1642,15 +1648,15 @@ public class RFileTest {
       }
 
       if (start == 0)
-        iter.seek(new Range(), ncfs(), false);
+        iter.seek(new Range(), newColFamByteSequence(), false);
       else
-        iter.seek(new Range(nf("r_", start), null), ncfs(), false);
+        iter.seek(new Range(formatString("r_", start), null), newColFamByteSequence(), false);
 
       for (int i = start; i < 1000; i++) {
         for (int cf = 1; cf <= 4; cf++) {
           assertTrue(iter.hasTop());
-          assertEquals(nk(nf("r_", i), nf("cf_", cf), nf("cq_", 0), "", 1000 - i), iter.getTopKey());
-          assertEquals(nv(i + ""), iter.getTopValue());
+          assertEquals(newKey(formatString("r_", i), formatString("cf_", cf), formatString("cq_", 0), "", 1000 - i), iter.getTopKey());
+          assertEquals(newValue(i + ""), iter.getTopValue());
           iter.next();
         }
       }
@@ -1808,7 +1814,7 @@ public class RFileTest {
     conf = null;
   }
 
-  private Key nk(int r, int c) {
+  private Key newKey(int r, int c) {
     String row = String.format("r%06d", r);
     switch (c) {
       case 0:
@@ -1820,7 +1826,7 @@ public class RFileTest {
     }
   }
 
-  private Value nv(int r, int c) {
+  private Value newValue(int r, int c) {
     switch (c) {
       case 0:
         return new Value(("123" + r + " west st").getBytes());
@@ -1936,8 +1942,8 @@ public class RFileTest {
         trf.openWriter();
 
         for (int i = 0; i < num; i++) {
-          add(trf, nk(i, 0), nv(i, 0), dataHasher, sampleData, sampler);
-          add(trf, nk(i, 1), nv(i, 1), dataHasher, sampleData, sampler);
+          add(trf, newKey(i, 0), newValue(i, 0), dataHasher, sampleData, sampler);
+          add(trf, newKey(i, 1), newValue(i, 1), dataHasher, sampleData, sampler);
         }
 
         HashCode expectedDataHash = dataHasher.hash();
@@ -2016,7 +2022,7 @@ public class RFileTest {
 
         trf.openWriter(false, 1000);
 
-        trf.writer.startNewLocalityGroup("meta-lg", ncfs("metaA", "metaB"));
+        trf.writer.startNewLocalityGroup("meta-lg", newColFamByteSequence("metaA", "metaB"));
         for (int r = 0; r < num; r++) {
           String row = String.format("r%06d", r);
           Key k1 = new Key(row, "metaA", "q9", 7);
@@ -2061,13 +2067,13 @@ public class RFileTest {
         trf.openReader(false);
         FileSKVIterator sample = trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
 
-        checkSample(sample, sampleDataLG1, ncfs("metaA", "metaB"), true);
-        checkSample(sample, sampleDataLG1, ncfs("metaA"), true);
-        checkSample(sample, sampleDataLG1, ncfs("metaB"), true);
-        checkSample(sample, sampleDataLG1, ncfs("dataA"), false);
+        checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA", "metaB"), true);
+        checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA"), true);
+        checkSample(sample, sampleDataLG1, newColFamByteSequence("metaB"), true);
+        checkSample(sample, sampleDataLG1, newColFamByteSequence("dataA"), false);
 
-        checkSample(sample, sampleDataLG2, ncfs("metaA", "metaB"), false);
-        checkSample(sample, sampleDataLG2, ncfs("dataA"), true);
+        checkSample(sample, sampleDataLG2, newColFamByteSequence("metaA", "metaB"), false);
+        checkSample(sample, sampleDataLG2, newColFamByteSequence("dataA"), true);
 
         ArrayList<Entry<Key,Value>> allSampleData = new ArrayList<>();
         allSampleData.addAll(sampleDataLG1);
@@ -2080,7 +2086,7 @@ public class RFileTest {
           }
         });
 
-        checkSample(sample, allSampleData, ncfs("dataA", "metaA"), true);
+        checkSample(sample, allSampleData, newColFamByteSequence("dataA", "metaA"), true);
         checkSample(sample, allSampleData, EMPTY_COL_FAMS, false);
 
         trf.closeReader();

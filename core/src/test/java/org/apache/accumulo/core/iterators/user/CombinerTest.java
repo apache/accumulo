@@ -83,31 +83,31 @@ public class CombinerTest {
 
   static final IteratorEnvironment SCAN_IE = new CombinerIteratorEnvironment(IteratorScope.scan, false);
 
-  static Key nk(int row, int colf, int colq, long ts, boolean deleted) {
-    Key k = nk(row, colf, colq, ts);
+  static Key newKey(int row, int colf, int colq, long ts, boolean deleted) {
+    Key k = newKey(row, colf, colq, ts);
     k.setDeleted(deleted);
     return k;
   }
 
-  static Key nk(int row, int colf, int colq, long ts) {
-    return new Key(nr(row), new Text(String.format("cf%03d", colf)), new Text(String.format("cq%03d", colq)), ts);
+  static Key newKey(int row, int colf, int colq, long ts) {
+    return new Key(newRow(row), new Text(String.format("cf%03d", colf)), new Text(String.format("cq%03d", colq)), ts);
   }
 
-  static Range nr(int row, int colf, int colq, long ts, boolean inclusive) {
-    return new Range(nk(row, colf, colq, ts), inclusive, null, true);
+  static Range newRow(int row, int colf, int colq, long ts, boolean inclusive) {
+    return new Range(newKey(row, colf, colq, ts), inclusive, null, true);
   }
 
-  static Range nr(int row, int colf, int colq, long ts) {
-    return nr(row, colf, colq, ts, true);
+  static Range newRow(int row, int colf, int colq, long ts) {
+    return newRow(row, colf, colq, ts, true);
   }
 
-  static <V> void nkv(TreeMap<Key,Value> tm, int row, int colf, int colq, long ts, boolean deleted, V val, Encoder<V> encoder) {
-    Key k = nk(row, colf, colq, ts);
+  static <V> void newKeyValue(TreeMap<Key,Value> tm, int row, int colf, int colq, long ts, boolean deleted, V val, Encoder<V> encoder) {
+    Key k = newKey(row, colf, colq, ts);
     k.setDeleted(deleted);
     tm.put(k, new Value(encoder.encode(val)));
   }
 
-  static Text nr(int row) {
+  static Text newRow(int row) {
     return new Text(String.format("r%03d", row));
   }
 
@@ -118,9 +118,9 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that do not aggregate
-    nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    nkv(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    nkv(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -132,19 +132,19 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("4", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 2), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 1), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 1), ai.getTopKey());
     assertEquals("2", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -153,16 +153,16 @@ public class CombinerTest {
 
     // try seeking
 
-    ai.seek(nr(1, 1, 1, 2), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 2), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 2), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 1), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 1), ai.getTopKey());
     assertEquals("2", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -170,7 +170,7 @@ public class CombinerTest {
     assertFalse(ai.hasTop());
 
     // seek after everything
-    ai.seek(nr(1, 1, 1, 0), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 0), EMPTY_COL_FAMS, false);
 
     assertFalse(ai.hasTop());
 
@@ -183,9 +183,9 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    nkv(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    nkv(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -197,7 +197,7 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -206,10 +206,10 @@ public class CombinerTest {
 
     // try seeking to the beginning of a key that aggregates
 
-    ai.seek(nr(1, 1, 1, 3), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 3), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -217,20 +217,20 @@ public class CombinerTest {
     assertFalse(ai.hasTop());
 
     // try seeking the middle of a key the aggregates
-    ai.seek(nr(1, 1, 1, 2), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 2), EMPTY_COL_FAMS, false);
 
     assertFalse(ai.hasTop());
 
     // try seeking to the end of a key the aggregates
-    ai.seek(nr(1, 1, 1, 1), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 1), EMPTY_COL_FAMS, false);
 
     assertFalse(ai.hasTop());
 
     // try seeking before a key the aggregates
-    ai.seek(nr(1, 1, 1, 4), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 4), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -245,13 +245,13 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    nkv(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    nkv(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
 
     // keys that do not aggregate
-    nkv(tm1, 2, 2, 1, 1, false, 2l, encoder);
-    nkv(tm1, 2, 2, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 2, 2, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 2, 2, 1, 2, false, 3l, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -263,19 +263,19 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 1), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 1), ai.getTopKey());
     assertEquals("2", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -283,23 +283,23 @@ public class CombinerTest {
     assertFalse(ai.hasTop());
 
     // seek after key that aggregates
-    ai.seek(nr(1, 1, 1, 2), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 2), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
 
     // seek before key that aggregates
-    ai.seek(nr(1, 1, 1, 4), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 4), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
 
   }
@@ -311,13 +311,13 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    nkv(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    nkv(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
 
     // keys that do not aggregate
-    nkv(tm1, 2, 2, 1, 1, false, 2l, encoder);
-    nkv(tm1, 2, 2, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 2, 2, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 2, 2, 1, 2, false, 3l, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -332,19 +332,19 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 1), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 1), ai.getTopKey());
     assertEquals("2", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -352,23 +352,23 @@ public class CombinerTest {
     assertFalse(ai.hasTop());
 
     // seek after key that aggregates
-    ai2.seek(nr(1, 1, 1, 2), EMPTY_COL_FAMS, false);
+    ai2.seek(newRow(1, 1, 1, 2), EMPTY_COL_FAMS, false);
 
     assertTrue(ai2.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai2.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai2.getTopKey());
     assertEquals("3", encoder.decode(ai2.getTopValue().get()).toString());
 
     // seek before key that aggregates
-    ai3.seek(nr(1, 1, 1, 4), EMPTY_COL_FAMS, false);
+    ai3.seek(newRow(1, 1, 1, 4), EMPTY_COL_FAMS, false);
 
     assertTrue(ai3.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai3.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai3.getTopKey());
     assertEquals("9", encoder.decode(ai3.getTopValue().get()).toString());
 
     ai3.next();
 
     assertTrue(ai3.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai3.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai3.getTopKey());
     assertEquals("3", encoder.decode(ai3.getTopValue().get()).toString());
   }
 
@@ -379,16 +379,16 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that do not aggregate
-    nkv(tm1, 0, 0, 1, 1, false, 7l, encoder);
+    newKeyValue(tm1, 0, 0, 1, 1, false, 7l, encoder);
 
     // keys that aggregate
-    nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    nkv(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    nkv(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
 
     // keys that do not aggregate
-    nkv(tm1, 2, 2, 1, 1, false, 2l, encoder);
-    nkv(tm1, 2, 2, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 2, 2, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 2, 2, 1, 2, false, 3l, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -400,25 +400,25 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(0, 0, 1, 1), ai.getTopKey());
+    assertEquals(newKey(0, 0, 1, 1), ai.getTopKey());
     assertEquals("7", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 1), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 1), ai.getTopKey());
     assertEquals("2", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -426,23 +426,23 @@ public class CombinerTest {
     assertFalse(ai.hasTop());
 
     // seek test
-    ai.seek(nr(0, 0, 1, 0), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(0, 0, 1, 0), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
 
     // seek after key that aggregates
-    ai.seek(nr(1, 1, 1, 2), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 2), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
 
     // combine all columns
@@ -455,19 +455,19 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(0, 0, 1, 1), ai.getTopKey());
+    assertEquals(newKey(0, 0, 1, 1), ai.getTopKey());
     assertEquals("7", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals(newKey(2, 2, 1, 2), ai.getTopKey());
     assertEquals("5", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -482,13 +482,13 @@ public class CombinerTest {
     // the exact same keys w/ different values
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
-    nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
 
     TreeMap<Key,Value> tm2 = new TreeMap<>();
-    nkv(tm2, 1, 1, 1, 1, false, 3l, encoder);
+    newKeyValue(tm2, 1, 1, 1, 1, false, 3l, encoder);
 
     TreeMap<Key,Value> tm3 = new TreeMap<>();
-    nkv(tm3, 1, 1, 1, 1, false, 4l, encoder);
+    newKeyValue(tm3, 1, 1, 1, 1, false, 4l, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -506,7 +506,7 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 1), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 1), ai.getTopKey());
     assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
   }
 
@@ -516,9 +516,9 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
-    nkv(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    nkv(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -530,7 +530,7 @@ public class CombinerTest {
 
     // try seeking to the beginning of a key that aggregates
 
-    ai.seek(nr(1, 1, 1, 3, false), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 3, false), EMPTY_COL_FAMS, false);
 
     assertFalse(ai.hasTop());
 
@@ -544,9 +544,9 @@ public class CombinerTest {
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
-    nkv(tm1, 1, 1, 1, 2, true, 0l, encoder);
-    nkv(tm1, 1, 1, 1, 3, false, 4l, encoder);
-    nkv(tm1, 1, 1, 1, 4, false, 3l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, true, 0l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 4, false, 3l, encoder);
 
     Combiner ai = new SummingCombiner();
 
@@ -556,29 +556,29 @@ public class CombinerTest {
 
     ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
 
-    ai.seek(nr(1, 1, 1, 4, true), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 4, true), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 4), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 4), ai.getTopKey());
     assertEquals("7", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 2, true), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 2, true), ai.getTopKey());
     assertEquals("0", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
     assertFalse(ai.hasTop());
 
     tm1 = new TreeMap<>();
-    nkv(tm1, 1, 1, 1, 2, true, 0l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, true, 0l, encoder);
     ai = new SummingCombiner();
     ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
 
-    ai.seek(nr(1, 1, 1, 4, true), EMPTY_COL_FAMS, false);
+    ai.seek(newRow(1, 1, 1, 4, true), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 2, true), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 2, true), ai.getTopKey());
     assertEquals("0", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -639,9 +639,9 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    nkv(tm1, 1, 1, 1, 1, false, 4l, encoder);
-    nkv(tm1, 1, 1, 1, 2, false, 3l, encoder);
-    nkv(tm1, 1, 1, 1, 3, false, 2l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, 4l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, 3l, encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, 2l, encoder);
 
     Combiner ai = new MaxCombiner();
 
@@ -653,7 +653,7 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("4", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -666,7 +666,7 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertEquals("2", encoder.decode(ai.getTopValue().get()).toString());
 
     ai.next();
@@ -695,9 +695,9 @@ public class CombinerTest {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
     // keys that aggregate
-    nkv(tm1, 1, 1, 1, 1, false, nal(1l, 2l), encoder);
-    nkv(tm1, 1, 1, 1, 2, false, nal(3l, 4l, 5l), encoder);
-    nkv(tm1, 1, 1, 1, 3, false, nal(), encoder);
+    newKeyValue(tm1, 1, 1, 1, 1, false, nal(1l, 2l), encoder);
+    newKeyValue(tm1, 1, 1, 1, 2, false, nal(3l, 4l, 5l), encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, nal(), encoder);
 
     Combiner ai = new SummingArrayCombiner();
 
@@ -709,7 +709,7 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertBytesEqual(encoder.encode(nal(4l, 6l, 5l)), ai.getTopValue().get());
 
     ai.next();
@@ -724,7 +724,7 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertBytesEqual(encoder.encode(nal(4l, 6l, 5l)), ai.getTopValue().get());
 
     ai.next();
@@ -739,7 +739,7 @@ public class CombinerTest {
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
-    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals(newKey(1, 1, 1, 3), ai.getTopKey());
     assertBytesEqual(encoder.encode(nal(4l, 6l, 5l)), ai.getTopValue().get());
 
     ai.next();
@@ -901,15 +901,15 @@ public class CombinerTest {
     IteratorEnvironment fullMajcIe = new CombinerIteratorEnvironment(IteratorScope.majc, true);
 
     // keys that aggregate
-    nkv(input, 1, 1, 1, 1, false, 4l, encoder);
-    nkv(input, 1, 1, 1, 2, true, 0l, encoder);
-    nkv(input, 1, 1, 1, 3, false, 2l, encoder);
-    nkv(input, 1, 1, 1, 4, false, 9l, encoder);
+    newKeyValue(input, 1, 1, 1, 1, false, 4l, encoder);
+    newKeyValue(input, 1, 1, 1, 2, true, 0l, encoder);
+    newKeyValue(input, 1, 1, 1, 3, false, 2l, encoder);
+    newKeyValue(input, 1, 1, 1, 4, false, 9l, encoder);
 
     TreeMap<Key,Value> expected = new TreeMap<>();
-    nkv(expected, 1, 1, 1, 1, false, 4l, encoder);
-    nkv(expected, 1, 1, 1, 2, true, 0l, encoder);
-    nkv(expected, 1, 1, 1, 4, false, 11l, encoder);
+    newKeyValue(expected, 1, 1, 1, 1, false, 4l, encoder);
+    newKeyValue(expected, 1, 1, 1, 2, true, 0l, encoder);
+    newKeyValue(expected, 1, 1, 1, 4, false, 11l, encoder);
 
     runDeleteHandlingTest(input, input, true, paritalMajcIe);
     runDeleteHandlingTest(input, expected, true, fullMajcIe);

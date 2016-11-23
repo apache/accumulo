@@ -37,16 +37,16 @@ public class FirstEntryInRowTest {
   private static final Map<String,String> EMPTY_MAP = new HashMap<>();
   private static final Collection<ByteSequence> EMPTY_SET = new HashSet<>();
 
-  private Key nk(String row, String cf, String cq, long time) {
+  private Key newKey(String row, String cf, String cq, long time) {
     return new Key(new Text(row), new Text(cf), new Text(cq), time);
   }
 
-  private Key nk(int row, int cf, int cq, long time) {
-    return nk(String.format("%06d", row), String.format("%06d", cf), String.format("%06d", cq), time);
+  private Key newKey(int row, int cf, int cq, long time) {
+    return newKey(String.format("%06d", row), String.format("%06d", cf), String.format("%06d", cq), time);
   }
 
   private void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, Value val) {
-    tm.put(nk(row, cf, cq, time), val);
+    tm.put(newKey(row, cf, cq, time), val);
   }
 
   private void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, String val) {
@@ -54,19 +54,19 @@ public class FirstEntryInRowTest {
   }
 
   private void put(TreeMap<Key,Value> tm, int row, int cf, int cq, long time, int val) {
-    tm.put(nk(row, cf, cq, time), new Value((val + "").getBytes()));
+    tm.put(newKey(row, cf, cq, time), new Value((val + "").getBytes()));
   }
 
-  private void aten(FirstEntryInRowIterator rdi, String row, String cf, String cq, long time, String val) throws Exception {
+  private void testAndCallNext(FirstEntryInRowIterator rdi, String row, String cf, String cq, long time, String val) throws Exception {
     assertTrue(rdi.hasTop());
-    assertEquals(nk(row, cf, cq, time), rdi.getTopKey());
+    assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
     rdi.next();
   }
 
-  private void aten(FirstEntryInRowIterator rdi, int row, int cf, int cq, long time, int val) throws Exception {
+  private void testAndCallNext(FirstEntryInRowIterator rdi, int row, int cf, int cq, long time, int val) throws Exception {
     assertTrue(rdi.hasTop());
-    assertEquals(nk(row, cf, cq, time), rdi.getTopKey());
+    assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, Integer.parseInt(rdi.getTopValue().toString()));
     rdi.next();
   }
@@ -85,9 +85,9 @@ public class FirstEntryInRowTest {
     fei.init(new SortedMapIterator(tm1), EMPTY_MAP, null);
 
     fei.seek(new Range(), EMPTY_SET, false);
-    aten(fei, "r1", "cf1", "cq1", 5, "v1");
-    aten(fei, "r2", "cf1", "cq1", 5, "v3");
-    aten(fei, "r3", "cf3", "cq6", 5, "v6");
+    testAndCallNext(fei, "r1", "cf1", "cq1", 5, "v1");
+    testAndCallNext(fei, "r2", "cf1", "cq1", 5, "v3");
+    testAndCallNext(fei, "r3", "cf3", "cq6", 5, "v6");
     assertFalse(fei.hasTop());
 
   }
@@ -106,21 +106,21 @@ public class FirstEntryInRowTest {
 
     FirstEntryInRowIterator fei = new FirstEntryInRowIterator();
     fei.init(new SortedMapIterator(tm1), EMPTY_MAP, null);
-    fei.seek(new Range(nk(0, 10, 0, 0), null), EMPTY_SET, false);
-    aten(fei, 1, 1, 3, 6, 1 * 1 * 3);
-    aten(fei, 2, 2, 3, 6, 2 * 2 * 3);
-    aten(fei, 3, 3, 3, 6, 3 * 3 * 3);
-    aten(fei, 4, 4, 3, 6, 4 * 4 * 3);
+    fei.seek(new Range(newKey(0, 10, 0, 0), null), EMPTY_SET, false);
+    testAndCallNext(fei, 1, 1, 3, 6, 1 * 1 * 3);
+    testAndCallNext(fei, 2, 2, 3, 6, 2 * 2 * 3);
+    testAndCallNext(fei, 3, 3, 3, 6, 3 * 3 * 3);
+    testAndCallNext(fei, 4, 4, 3, 6, 4 * 4 * 3);
     assertFalse(fei.hasTop());
 
-    fei.seek(new Range(nk(1, 1, 3, 6), nk(3, 3, 3, 6)), EMPTY_SET, false);
-    aten(fei, 1, 1, 3, 6, 1 * 1 * 3);
-    aten(fei, 2, 2, 3, 6, 2 * 2 * 3);
-    aten(fei, 3, 3, 3, 6, 3 * 3 * 3);
+    fei.seek(new Range(newKey(1, 1, 3, 6), newKey(3, 3, 3, 6)), EMPTY_SET, false);
+    testAndCallNext(fei, 1, 1, 3, 6, 1 * 1 * 3);
+    testAndCallNext(fei, 2, 2, 3, 6, 2 * 2 * 3);
+    testAndCallNext(fei, 3, 3, 3, 6, 3 * 3 * 3);
     assertFalse(fei.hasTop());
 
-    fei.seek(new Range(nk(1, 1, 3, 6), false, nk(3, 3, 3, 6), false), EMPTY_SET, false);
-    aten(fei, 2, 2, 3, 6, 2 * 2 * 3);
+    fei.seek(new Range(newKey(1, 1, 3, 6), false, newKey(3, 3, 3, 6), false), EMPTY_SET, false);
+    testAndCallNext(fei, 2, 2, 3, 6, 2 * 2 * 3);
     assertFalse(fei.hasTop());
   }
 }

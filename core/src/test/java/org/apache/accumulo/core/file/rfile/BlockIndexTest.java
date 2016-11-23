@@ -69,7 +69,7 @@ public class BlockIndexTest {
     int num = 1000;
 
     for (int i = 0; i < num; i++) {
-      Key key = new Key(RFileTest.nf("", i), "cf1", "cq1");
+      Key key = new Key(RFileTest.formatString("", i), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
       new Value(new byte[0]).write(out);
       prevKey = key;
@@ -93,22 +93,22 @@ public class BlockIndexTest {
 
       BlockIndexEntry bie;
 
-      bie = blockIndex.seekBlock(new Key(RFileTest.nf("", row), "cf1", "cq1"), cacheBlock);
+      bie = blockIndex.seekBlock(new Key(RFileTest.formatString("", row), "cf1", "cq1"), cacheBlock);
       if (i == 0)
         Assert.assertSame(null, bie);
       else
         Assert.assertSame(indexEntries[i - 1], bie);
 
-      Assert.assertSame(bie, blockIndex.seekBlock(new Key(RFileTest.nf("", row - 1), "cf1", "cq1"), cacheBlock));
+      Assert.assertSame(bie, blockIndex.seekBlock(new Key(RFileTest.formatString("", row - 1), "cf1", "cq1"), cacheBlock));
 
-      bie = blockIndex.seekBlock(new Key(RFileTest.nf("", row + 1), "cf1", "cq1"), cacheBlock);
+      bie = blockIndex.seekBlock(new Key(RFileTest.formatString("", row + 1), "cf1", "cq1"), cacheBlock);
       Assert.assertSame(indexEntries[i], bie);
 
       RelativeKey rk = new RelativeKey();
       rk.setPrevKey(bie.getPrevKey());
       rk.readFields(cacheBlock);
 
-      Assert.assertEquals(rk.getKey(), new Key(RFileTest.nf("", row + 1), "cf1", "cq1"));
+      Assert.assertEquals(rk.getKey(), new Key(RFileTest.formatString("", row + 1), "cf1", "cq1"));
 
     }
     cacheBlock.close();
@@ -124,21 +124,21 @@ public class BlockIndexTest {
     int num = 1000;
 
     for (int i = 0; i < num; i++) {
-      Key key = new Key(RFileTest.nf("", 1), "cf1", "cq1");
+      Key key = new Key(RFileTest.formatString("", 1), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
       new Value(new byte[0]).write(out);
       prevKey = key;
     }
 
     for (int i = 0; i < num; i++) {
-      Key key = new Key(RFileTest.nf("", 3), "cf1", "cq1");
+      Key key = new Key(RFileTest.formatString("", 3), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
       new Value(new byte[0]).write(out);
       prevKey = key;
     }
 
     for (int i = 0; i < num; i++) {
-      Key key = new Key(RFileTest.nf("", 5), "cf1", "cq1");
+      Key key = new Key(RFileTest.formatString("", 5), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
       new Value(new byte[0]).write(out);
       prevKey = key;
@@ -155,11 +155,11 @@ public class BlockIndexTest {
     for (int i = 0; i < 257; i++)
       blockIndex = BlockIndex.getIndex(cacheBlock, new IndexEntry(prevKey, num, 0, 0, 0));
 
-    Assert.assertSame(null, blockIndex.seekBlock(new Key(RFileTest.nf("", 0), "cf1", "cq1"), cacheBlock));
-    Assert.assertSame(null, blockIndex.seekBlock(new Key(RFileTest.nf("", 1), "cf1", "cq1"), cacheBlock));
+    Assert.assertSame(null, blockIndex.seekBlock(new Key(RFileTest.formatString("", 0), "cf1", "cq1"), cacheBlock));
+    Assert.assertSame(null, blockIndex.seekBlock(new Key(RFileTest.formatString("", 1), "cf1", "cq1"), cacheBlock));
 
     for (int i = 2; i < 6; i++) {
-      Key seekKey = new Key(RFileTest.nf("", i), "cf1", "cq1");
+      Key seekKey = new Key(RFileTest.formatString("", i), "cf1", "cq1");
       BlockIndexEntry bie = blockIndex.seekBlock(seekKey, cacheBlock);
 
       Assert.assertTrue(bie.getPrevKey().compareTo(seekKey) < 0);
