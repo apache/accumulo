@@ -264,8 +264,12 @@ for(Entry<Key,Value> entry : bscan) {
 }
 ----
 
-An example of the BatchScanner can be found at
-+accumulo/docs/examples/README.batch+.
+An example of the BatchScanner can be found at +accumulo/docs/examples/README.batch+.
+
+At this time, there is no client side isolation support for the BatchScanner.
+You may consider using the WholeRowIterator with the BatchScanner to achieve
+isolation. The drawback of this approach is that entire rows are read into
+memory on the server side. If a row is too big, it may crash a tablet server.
 
 === Proxy
 
@@ -280,7 +284,6 @@ without requiring access to all tablet servers in the cluster.
 The proxy server can live on any node in which the basic client API would work. That
 means it must be able to communicate with the Master, ZooKeepers, NameNode, and the
 DataNodes. A proxy client only needs the ability to communicate with the proxy server.
-
 
 ==== Configuration
 
