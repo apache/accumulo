@@ -135,15 +135,6 @@
       </includes>
     </fileSet>
     <fileSet>
-      <directory>../docs/target</directory>
-      <outputDirectory>docs</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>config.html</include>
-      </includes>
-    </fileSet>
-    <fileSet>
       <directory>conf</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0755</fileMode>

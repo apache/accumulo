@@ -86,136 +86,6 @@ class ConfigurationDocGen {
 
   }
 
-  private class HTML extends Format {
-    private boolean highlight;
-
-    private void beginRow() {
-      doc.println(startTag("tr", highlight ? "class='highlight'" : null));
-      highlight = !highlight;
-    }
-
-    @Override
-    void beginSection(String section) {
-      doc.println(t("h1", section, null));
-      highlight = true;
-      doc.println("<table>");
-    }
-
-    private String t(String tag, String cell, String options) {
-      return startTag(tag, options) + cell + "</" + tag + ">";
-    }
-
-    private void cellData(String cell, String options) {
-      doc.println(t("td", cell, options));
-    }
-
-    private void columnNames(String... names) {
-      beginRow();
-      for (String s : names)
-        doc.println(t("th", s, null));
-      endRow();
-    }
-
-    private void endRow() {
-      doc.println("</tr>");
-    }
-
-    @Override
-    void endSection() {
-      doc.println("</table>");
-    }
-
-    @Override
-    String getExt() {
-      return "html";
-    }
-
-    @Override
-    void pageFooter() {
-      doc.println("</body>");
-      doc.println("</html>");
-    }
-
-    @Override
-    void propertyQuickLinks() {
-      doc.println("<p>Jump to: ");
-      String delimiter = "";
-      for (Property prefix : prefixes) {
-        if (!prefix.isExperimental()) {
-          doc.print(delimiter + "<a href='#" + prefix.name() + "'>" + prefix.getKey() + "*</a>");
-          delimiter = "&nbsp;|&nbsp;";
-        }
-      }
-      doc.println("</p>");
-    }
-
-    @Override
-    void prefixSection(Property prefix) {
-      beginRow();
-      doc.println(t("td", t("span", prefix.getKey() + '*', "id='" + prefix.name() + "' class='large'"), "colspan='5'"
-          + (prefix.isDeprecated() ? " class='deprecated'" : "")));
-      endRow();
-      beginRow();
-      doc.println(t("td", (prefix.isDeprecated() ? t("b", t("i", "Deprecated. ", null), null) : "") + sanitize(prefix.getDescription()), "colspan='5'"
-          + (prefix.isDeprecated() ? " class='deprecated'" : "")));
-      endRow();
-
-      switch (prefix) {
-        case TABLE_CONSTRAINT_PREFIX:
-          break;
-        case TABLE_ITERATOR_PREFIX:
-          break;
-        case TABLE_LOCALITY_GROUP_PREFIX:
-          break;
-        case TABLE_COMPACTION_STRATEGY_PREFIX:
-          break;
-        default:
-          columnNames("Property", "Type", "ZooKeeper Mutable", "Default Value", "Description");
-          break;
-      }
-    }
-
-    @Override
-    void property(Property prefix, Property prop) {
-      boolean isDeprecated = prefix.isDeprecated() || prop.isDeprecated();
-      if (prop.getKey().startsWith(prefix.getKey())) {
-        beginRow();
-        cellData(prop.getKey(), isDeprecated ? "class='deprecated'" : null);
-        cellData("<b><a href='#" + prop.getType().name() + "'>" + prop.getType().toString().replaceAll(" ", "&nbsp;") + "</a></b>",
-            isDeprecated ? "class='deprecated'" : null);
-        cellData(isZooKeeperMutable(prop), isDeprecated ? "class='deprecated'" : null);
-        cellData("<pre>" + (prop.getRawDefaultValue().isEmpty() ? "&nbsp;" : sanitize(prop.getRawDefaultValue().replaceAll(" ", "&nbsp;"))) + "</pre>",
-            isDeprecated ? "class='deprecated'" : null);
-        cellData((isDeprecated ? "<b><i>Deprecated.</i></b> " : "") + sanitize(prop.getDescription()), isDeprecated ? "class='deprecated'" : null);
-        endRow();
-      }
-
-    }
-
-    @Override
-    void propertyTypeDescriptions() {
-      columnNames("Property Type", "Description");
-      for (PropertyType type : PropertyType.values()) {
-        if (type == PropertyType.PREFIX)
-          continue;
-        beginRow();
-        cellData("<h3 id='" + type.name() + "'>" + type + "</h3>", null);
-        cellData(type.getFormatDescription(), null);
-        endRow();
-      }
-    }
-
-    @Override
-    String sanitize(String str) {
-      return str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replaceAll("(?:\r\n|\r|\n)", "<br />");
-    }
-
-    private String startTag(String tag, String options) {
-      return "<" + tag + (options != null ? " " + options : "") + ">";
-    }
-
-  }
-
   private class Asciidoc extends Format {
     @Override
     void beginSection(String section) {
@@ -303,7 +173,7 @@ class ConfigurationDocGen {
 
   private final TreeMap<String,Property> sortedProps;
 
-  ConfigurationDocGen(PrintStream doc) {
+  private ConfigurationDocGen(PrintStream doc) {
     this.doc = doc;
     this.prefixes = new ArrayList<>();
     this.sortedProps = new TreeMap<>();
@@ -329,7 +199,6 @@ class ConfigurationDocGen {
           doc.print(new String(buffer, 0, n, UTF_8));
       } catch (IOException e) {
         log.debug("Encountered IOException while reading InputStream in appendResource().", e);
-        return;
       } finally {
         try {
           data.close();
@@ -348,31 +217,23 @@ class ConfigurationDocGen {
     return "yes";
   }
 
-  void generateHtml() {
-    new HTML().generate();
-  }
-
-  void generateAsciidoc() {
+  private void generateAsciidoc() {
     new Asciidoc().generate();
   }
 
   /**
-   * Generates documentation for conf/accumulo-site.xml file usage. Arguments are: "--generate-doc", file to write to.
+   * Generates documentation for conf/accumulo-site.xml file usage. Arguments are: "--generate-asciidoc filename"
    *
    * @param args
    *          command-line arguments
-   *
    * @throws IllegalArgumentException
    *           if args is invalid
    */
   public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
-    if (args.length == 2 && args[0].equals("--generate-html")) {
-      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateHtml();
-    } else if (args.length == 2 && args[0].equals("--generate-asciidoc")) {
+    if (args.length == 2 && args[0].equals("--generate-asciidoc")) {
       new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateAsciidoc();
     } else {
-      throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName() + " --generate-html <filename> | --generate-asciidoc <filename>");
+      throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName() + " --generate-asciidoc <filename>");
     }
   }
-
 }

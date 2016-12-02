@@ -18,16 +18,7 @@
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 
 <configuration>
-	<!--
-  Put your site-specific accumulo configurations here.
-
-  The available configuration values along with their defaults
-  are documented in docs/config.html
-
-  Unless you are simply testing at your workstation, you will most 
-  definitely need to change the three entries below.
-	-->
-
+  
     <property>
       <name>instance.zookeeper.host</name>
       <value>localhost:2181</value>
@@ -130,7 +121,5 @@
     	<name>crypto.default.key.strategy.cipher.suite</name>
     	<value>AES/ECB/NoPadding</value>
     </property>
-
-
 
 </configuration>
