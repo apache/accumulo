@@ -92,8 +92,7 @@ Note that the paths referenced are directories within the same HDFS instance ove
 which Accumulo is running. Accumulo places any files that failed to be added to the
 second directory specified.
 
-A complete example of using Bulk Ingest can be found at
-+accumulo/docs/examples/README.bulkIngest+.
+A complete example of using Bulk Ingest can be found at +docs/examples/bulkIngest.md+.
 
 === Logical Time for Bulk Ingest
 
@@ -116,10 +115,10 @@ undefined. This could occur if an insert and an update were in the same bulk
 import file.
 
 === MapReduce Ingest
+
 It is possible to efficiently write many mutations to Accumulo in parallel via a
 MapReduce job. In this scenario the MapReduce is written to process data that lives
 in HDFS and write mutations to Accumulo using the AccumuloOutputFormat. See
 the MapReduce section under Analytics for details.
 
-An example of using MapReduce can be found under
-+accumulo/docs/examples/README.mapred+.
+An example of using MapReduce can be found at +docs/examples/mapred.md+.

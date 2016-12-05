@@ -1,22 +1,24 @@
-Title: Apache Accumulo File System Archive
-Notice:    Licensed to the Apache Software Foundation (ASF) under one
-           or more contributor license agreements.  See the NOTICE file
-           distributed with this work for additional information
-           regarding copyright ownership.  The ASF licenses this file
-           to you under the Apache License, Version 2.0 (the
-           "License"); you may not use this file except in compliance
-           with the License.  You may obtain a copy of the License at
-           .
-             http://www.apache.org/licenses/LICENSE-2.0
-           .
-           Unless required by applicable law or agreed to in writing,
-           software distributed under the License is distributed on an
-           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-           KIND, either express or implied.  See the License for the
-           specific language governing permissions and limitations
-           under the License.
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
 
-This example stores filesystem information in accumulo. The example stores the information in the following three tables. More information about the table structures can be found at the end of README.dirlist.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+---
+title: Apache Accumulo File System Archive
+---
+
+This example stores filesystem information in accumulo. The example stores the information in the following three tables. More information about the table structures can be found at the end of this document.
 
  * directory table : This table stores information about the filesystem directory structure.
  * index table     : This table stores a file name index. It can be used to quickly find files with given name, suffix, or prefix.
@@ -60,7 +62,7 @@ To perform searches on file or directory names, also use QueryUtil.java. Search 
 
 To count the number of direct children (directories and files) and descendants (children and children's descendants, directories and files), run the FileCount over the dirTable table.
 The results are written back to the same table. FileCount reads from and writes to Accumulo. This requires scan authorizations for the read and a visibility for the data written.
-In this example, the authorizations and visibility are set to the same value, exampleVis. See README.visibility for more information on visibility and authorizations.
+In this example, the authorizations and visibility are set to the same value, exampleVis. See the [visibility example][vis] for more information on visibility and authorizations.
 
     $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.FileCount -i instance -z zookeepers -u username -p password -t dirTable --auths exampleVis
 
@@ -112,3 +114,5 @@ The rows are the md5 hash of the file. Some column family : column qualifier pai
 Other column family : column qualifier pairs are "~chunk" : chunk size in bytes + chunk number in bytes, in which case the value is the bytes for that chunk of the file. There is an end of file data marker whose chunk number is the number of chunks for the file and whose value is empty.
 
 There may exist multiple copies of the same file (with the same md5 hash) with different chunk sizes or different visibilities. There is an iterator that can be set on the data table that combines these copies into a single copy with a visibility taken from the visibilities of the file references, e.g. (vis from ref1)|(vis from ref2).
+
+[vis]: visibility.md
