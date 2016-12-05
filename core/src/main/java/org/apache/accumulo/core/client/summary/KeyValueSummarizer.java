@@ -43,13 +43,22 @@ public interface KeyValueSummarizer {
    */
   void collect(Key k, Value v);
 
-  /**
-   * @return a summary of all collected information.
-   */
-  Map<String,Long> summarize();
+  public static interface SummaryConsumer {
+    public void consume(String summary, long value);
+  }
 
   /**
-   * Merge summary 2 into summary 1.
+   * Report summaries for all key values collected before this point.
+   */
+  void summarize(SummaryConsumer sc);
+
+  /**
+   * Reset and clear back to an initial state before anything was collected
+   */
+  public void reset();
+
+  /**
+   * Merge summary 2 into summary 1. This method is called to merge information previously obtained from calling {@link #summarize(SummaryConsumer)}.
    */
   void merge(Map<String,Long> summary1, Map<String,Long> summary2);
 }

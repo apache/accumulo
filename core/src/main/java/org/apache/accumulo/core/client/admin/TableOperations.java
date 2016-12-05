@@ -812,7 +812,7 @@ public interface TableOperations {
   /**
    * 
    */
-  default SummaryRetriever summaries() {
+  default SummaryRetriever summaries(String tableName) {
     throw new UnsupportedOperationException();
   };
 }

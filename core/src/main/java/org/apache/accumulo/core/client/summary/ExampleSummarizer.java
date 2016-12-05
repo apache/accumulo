@@ -23,6 +23,8 @@ import java.util.Map;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
+import com.google.common.collect.ImmutableMap;
+
 /**
  * This is an example showing that really efficient summarizers can be written. There are no map lookups per key value.
  * 
@@ -58,15 +60,11 @@ public class ExampleSummarizer implements KeyValueSummarizer {
   }
 
   @Override
-  public Map<String,Long> summarize() {
-    HashMap<String,Long> ret = new HashMap<>();
-
-    ret.put("minStamp", minStamp);
-    ret.put("maxStamp", maxStamp);
-    ret.put("deletes", deletes);
-    ret.put("total", total);
-
-    return ret;
+  public void summarize(SummaryConsumer sc) {
+    sc.consume("minStamp", minStamp);
+    sc.consume("maxStamp", maxStamp);
+    sc.consume("deletes", deletes);
+    sc.consume("total", total);
   }
 
   @Override
@@ -75,5 +73,13 @@ public class ExampleSummarizer implements KeyValueSummarizer {
     summary1.merge("total", summary2.getOrDefault("total", 0l), Long::sum);
     summary1.merge("minStamp", summary2.getOrDefault("minStamp", Long.MAX_VALUE), Long::min);
     summary1.merge("maxStamp", summary2.getOrDefault("maxStamp", Long.MIN_VALUE), Long::max);
+  }
+
+  @Override
+  public void reset() {
+    minStamp = Long.MAX_VALUE;
+    maxStamp = Long.MIN_VALUE;
+    deletes = 0;
+    total = 0;
   }
 }
