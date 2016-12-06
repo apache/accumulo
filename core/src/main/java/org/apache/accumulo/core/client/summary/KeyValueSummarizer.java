@@ -38,6 +38,8 @@ public interface KeyValueSummarizer {
    */
   String getId();
 
+  // TODO consider adding a version number
+
   /**
    * Incrementally build summary information.
    */

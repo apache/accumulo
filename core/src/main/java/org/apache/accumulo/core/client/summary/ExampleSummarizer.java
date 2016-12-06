@@ -17,13 +17,8 @@
 
 package org.apache.accumulo.core.client.summary;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * This is an example showing that really efficient summarizers can be written. There are no map lookups per key value.
@@ -31,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
  * <p>
  * Also shows how it easy something besides counting is to do, like min and max.
  */
-public class ExampleSummarizer implements KeyValueSummarizer {
+public class ExampleSummarizer extends SimpleMergeSummarizer {
   private long minStamp = Long.MAX_VALUE;
   private long maxStamp = Long.MIN_VALUE;
   private long deletes = 0;
@@ -68,11 +63,18 @@ public class ExampleSummarizer implements KeyValueSummarizer {
   }
 
   @Override
-  public void merge(Map<String,Long> summary1, Map<String,Long> summary2) {
-    summary1.merge("deletes", summary2.getOrDefault("deletes", 0l), Long::sum);
-    summary1.merge("total", summary2.getOrDefault("total", 0l), Long::sum);
-    summary1.merge("minStamp", summary2.getOrDefault("minStamp", Long.MAX_VALUE), Long::min);
-    summary1.merge("maxStamp", summary2.getOrDefault("maxStamp", Long.MIN_VALUE), Long::max);
+  public long merge(String summaryKey, long v1, long v2) {
+    switch (summaryKey) {
+      case "deletes":
+      case "total":
+        return v1 + v2;
+      case "minStamp":
+        return Long.min(v1, v2);
+      case "maxStamp":
+        return Long.max(v1, v2);
+      default:
+        throw new IllegalArgumentException("Unknown summary key " + summaryKey);
+    }
   }
 
   @Override
