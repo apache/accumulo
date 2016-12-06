@@ -318,16 +318,18 @@ public class ShellOptionsJC {
       clientConfig.setProperty(ClientProperty.INSTANCE_ZK_HOST, hosts);
       clientConfig.setProperty(ClientProperty.INSTANCE_NAME, instanceName);
     }
+    // If the user provided the hosts, set the ZK for tracing too
+    if (null != zooKeeperHosts && !zooKeeperHosts.isEmpty()) {
+      clientConfig.setProperty(ClientProperty.INSTANCE_ZK_HOST, zooKeeperHosts);
+    }
+    if (null != zooKeeperInstanceName && !zooKeeperInstanceName.isEmpty()) {
+      clientConfig.setProperty(ClientProperty.INSTANCE_NAME, zooKeeperInstanceName);
+    }
 
     // Automatically try to add in the proper ZK from accumulo-site for backwards compat.
     if (!clientConfig.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
       AccumuloConfiguration siteConf = SiteConfiguration.getInstance(ClientContext.convertClientConfig(clientConfig));
       clientConfig.withZkHosts(siteConf.get(Property.INSTANCE_ZK_HOST));
-    }
-
-    // If the user provided the hosts, set the ZK for tracing too
-    if (null != zooKeeperHosts) {
-      clientConfig.setProperty(ClientProperty.INSTANCE_ZK_HOST, zooKeeperHosts);
     }
 
     return clientConfig;
