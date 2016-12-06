@@ -14,6 +14,7 @@ public abstract class SimpleMergeSummarizer implements KeyValueSummarizer {
   public abstract long merge(String summaryKey, long v1, long v2);
 
   public void merge(Map<String,Long> summary1, Map<String,Long> summary2) {
+    //TODO iterate over smaller map to do less lookups on other map
     summary2.forEach((k2, v2) -> {
       Long v1 = summary1.get(k2);
       if (v1 == null) {
