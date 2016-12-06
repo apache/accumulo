@@ -120,6 +120,7 @@ To enable bloom filters, enter the following command in the Shell:
 An extensive example of using Bloom Filters can be found at +docs/examples/bloom.md+ .
 
 === Iterators
+
 Iterators provide a modular mechanism for adding functionality to be executed by
 TabletServers when scanning or compacting data. This allows users to efficiently
 summarize, filter, and aggregate data. In fact, the built-in features of cell-level
@@ -299,6 +300,10 @@ To see the iterator settings for a table, use:
 
 ==== Combiners
 
+Accumulo supports on the fly lazy aggregation of data using Combiners. Aggregation is
+done at compaction and scan time. No lookup is done at insert time, which` greatly
+speeds up ingest.
+
 Accumulo allows Combiners to be configured on tables and column
 families. When a Combiner is set it is applied across the values
 associated with any keys that share rowID, column family, and column qualifier.
@@ -346,7 +351,7 @@ Additional Combiners can be added by creating a Java class that extends
 +org.apache.accumulo.core.iterators.Combiner+ and adding a jar containing that
 class to Accumulo's lib/ext directory.
 
-An example of a Combiner can be found at +docs/examples/src/combiner/StatsCombiner.java+.
+An example of a Combiner can be found at +docs/examples/combiner.md+.
 
 === Block Cache
 
