@@ -214,7 +214,6 @@ has the following method
 [source,java]
 connector.tableOperations.create(String tableName, boolean limitVersion);
 
-
 ===== Logical Time
 
 Accumulo 1.2 introduces the concept of logical time. This ensures that timestamps
@@ -230,6 +229,7 @@ A table can be configured to use logical timestamps at creation time as follows:
   user@myinstance> createtable -tl logical
 
 ===== Deletes
+
 Deletes are special keys in Accumulo that get sorted along will all the other data.
 When a delete key is inserted, Accumulo will not show anything that has a
 timestamp less than or equal to the delete key. During major compaction, any keys
@@ -237,6 +237,7 @@ older than a delete key are omitted from the new file created, and the omitted k
 are removed from disk as part of the regular garbage collection process.
 
 ==== Filters
+
 When scanning over a set of key-value pairs it is possible to apply an arbitrary
 filtering policy through the use of a Filter. Filters are types of iterators that return
 only key-value pairs that satisfy the filter logic. Accumulo has a few built-in filters
