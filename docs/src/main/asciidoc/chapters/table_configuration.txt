@@ -21,6 +21,7 @@ These include locality groups, constraints, bloom filters, iterators, and block
 cache.  For a complete list of available configuration options, see <<configuration>>.
 
 === Locality Groups
+
 Accumulo supports storing sets of column families separately on disk to allow
 clients to efficiently scan over columns that are frequently used together and to avoid
 scanning over column families that are not requested. After a locality group is set,
@@ -102,11 +103,11 @@ new constraint and place it in the lib directory of the Accumulo installation. N
 constraint jars can be added to Accumulo and enabled without restarting but any
 change to an existing constraint class requires Accumulo to be restarted.
 
-An example of constraints can be found in
-+accumulo/docs/examples/README.constraints+ with corresponding code under
-+accumulo/examples/simple/src/main/java/accumulo/examples/simple/constraints+ .
+An example of constraints can be found in +docs/examples/constraints.md+ with
+corresponding code in +docs/examples/src/constraints+ .
 
 === Bloom Filters
+
 As mutations are applied to an Accumulo table, several files are created per tablet. If
 bloom filters are enabled, Accumulo will create and load a small data structure into
 memory to determine whether a file contains a given key before opening the file.
@@ -116,10 +117,10 @@ To enable bloom filters, enter the following command in the Shell:
 
   user@myinstance> config -t mytable -s table.bloom.enabled=true
 
-An extensive example of using Bloom Filters can be found at
-+accumulo/docs/examples/README.bloom+ .
+An extensive example of using Bloom Filters can be found at +docs/examples/bloom.md+ .
 
 === Iterators
+
 Iterators provide a modular mechanism for adding functionality to be executed by
 TabletServers when scanning or compacting data. This allows users to efficiently
 summarize, filter, and aggregate data. In fact, the built-in features of cell-level
@@ -214,7 +215,6 @@ has the following method
 [source,java]
 connector.tableOperations.create(String tableName, boolean limitVersion);
 
-
 ===== Logical Time
 
 Accumulo 1.2 introduces the concept of logical time. This ensures that timestamps
@@ -230,6 +230,7 @@ A table can be configured to use logical timestamps at creation time as follows:
   user@myinstance> createtable -tl logical
 
 ===== Deletes
+
 Deletes are special keys in Accumulo that get sorted along will all the other data.
 When a delete key is inserted, Accumulo will not show anything that has a
 timestamp less than or equal to the delete key. During major compaction, any keys
@@ -237,6 +238,7 @@ older than a delete key are omitted from the new file created, and the omitted k
 are removed from disk as part of the regular garbage collection process.
 
 ==== Filters
+
 When scanning over a set of key-value pairs it is possible to apply an arbitrary
 filtering policy through the use of a Filter. Filters are types of iterators that return
 only key-value pairs that satisfy the filter logic. Accumulo has a few built-in filters
@@ -298,6 +300,10 @@ To see the iterator settings for a table, use:
 
 ==== Combiners
 
+Accumulo supports on the fly lazy aggregation of data using Combiners. Aggregation is
+done at compaction and scan time. No lookup is done at insert time, which` greatly
+speeds up ingest.
+
 Accumulo allows Combiners to be configured on tables and column
 families. When a Combiner is set it is applied across the values
 associated with any keys that share rowID, column family, and column qualifier.
@@ -345,10 +351,7 @@ Additional Combiners can be added by creating a Java class that extends
 +org.apache.accumulo.core.iterators.Combiner+ and adding a jar containing that
 class to Accumulo's lib/ext directory.
 
-An example of a Combiner can be found under
-
-  accumulo/examples/simple/src/main/java/org/apache/accumulo/examples/simple/combiner/StatsCombiner.java
-
+An example of a Combiner can be found at +docs/examples/combiner.md+.
 
 === Block Cache
 
@@ -661,4 +664,4 @@ splits, and logical time. Tables are exported and then copied via the hadoop
 distcp command. To export a table, it must be offline and stay offline while
 discp runs. The reason it needs to stay offline is to prevent files from being
 deleted. A table can be cloned and the clone taken offline inorder to avoid
-losing access to the table. See +docs/examples/README.export+ for an example.
+losing access to the table. See +docs/examples/export.md+ for an example.

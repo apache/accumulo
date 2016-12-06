@@ -22,7 +22,7 @@ This sample data is kept up to date as a table is mutated.  What key values are
 placed in the sample data is configurable per table.
 
 This feature can be used for query estimation and optimization.  For an example
-of estimaiton assume an Accumulo table is configured to generate a sample
+of estimation assume an Accumulo table is configured to generate a sample
 containing one millionth of a tables data.   If a query is executed against the
 sample and returns one thousand results, then the same query against all the
 data would probably return a billion results.  A nice property of having
@@ -40,8 +40,8 @@ that class.  For guidance on implementing a Sampler see that interface's
 javadoc.  Accumulo provides a few implementations out of the box.   For
 information on how to use the samplers that ship with Accumulo look in the
 package `org.apache.accumulo.core.sample` and consult the javadoc of the
-classes there.  See +README.sample+ and +SampleExample.java+ for examples of
-how to configure a Sampler on a table.
+classes there.  See +docs/examples/sample.md+ and +docs/examples/src/sample/SampleExample.java+
+for examples of how to configure a Sampler on a table.
 
 Once a table is configured with a sampler all writes after that point will
 generate sample data.  For data written before sampling was configured sample
@@ -61,8 +61,8 @@ Inorder to scan sample data, use the +setSamplerConfiguration(...)+  method on
 information.
 
 Sample data can also be scanned from within an Accumulo
-+SortedKeyValueIterator+.  To see how to do this look at the example iterator
-referenced in README.sample.  Also, consult the javadoc on
++SortedKeyValueIterator+.  To see how to do this, look at the example iterator
+referenced in +docs/examples/sample.md+.  Also, consult the javadoc on
 +org.apache.accumulo.core.iterators.IteratorEnvironment.cloneWithSamplingEnabled()+.
 
 Map reduce jobs using the +AccumuloInputFormat+ can also read sample data.  See

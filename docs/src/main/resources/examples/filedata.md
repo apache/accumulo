@@ -1,20 +1,22 @@
-Title: Apache Accumulo File System Archive Example (Data Only)
-Notice:    Licensed to the Apache Software Foundation (ASF) under one
-           or more contributor license agreements.  See the NOTICE file
-           distributed with this work for additional information
-           regarding copyright ownership.  The ASF licenses this file
-           to you under the Apache License, Version 2.0 (the
-           "License"); you may not use this file except in compliance
-           with the License.  You may obtain a copy of the License at
-           .
-             http://www.apache.org/licenses/LICENSE-2.0
-           .
-           Unless required by applicable law or agreed to in writing,
-           software distributed under the License is distributed on an
-           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-           KIND, either express or implied.  See the License for the
-           specific language governing permissions and limitations
-           under the License.
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+---
+title: Apache Accumulo File System Archive Example (Data Only)
+---
 
 This example archives file data into an Accumulo table. Files with duplicate data are only stored once.
 The example has the following classes:
@@ -28,9 +30,9 @@ The example has the following classes:
  * KeyUtil - A utility for creating and parsing null-byte separated strings into/from Text objects.
  * VisibilityCombiner - A utility for merging visibilities into the form (VIS1)|(VIS2)|...
 
-This example is coupled with the dirlist example. See README.dirlist for instructions.
+This example is coupled with the [dirlist example][dirlist].
 
-If you haven't already run the README.dirlist example, ingest a file with FileDataIngest.
+If you haven't already run the [dirlist example][dirlist], ingest a file with FileDataIngest.
 
     $ ./bin/accumulo org.apache.accumulo.examples.simple.filedata.FileDataIngest -i instance -z zookeepers -u username -p password -t dataTable --auths exampleVis --chunk 1000 /path/to/accumulo/README.md
 
@@ -45,3 +47,5 @@ Run the CharacterHistogram MapReduce to add some information about the file.
 Scan again to see the histogram stored in the 'info' column family.
 
     > scan -t dataTable
+
+[dirlist]: dirlist.md

@@ -123,10 +123,10 @@ writer.addMutation(mutation);
 writer.close();
 ----
 
-An example of using the batch writer can be found at
-+accumulo/docs/examples/README.batch+.
+An example of using the batch writer can be found at +docs/examples/batch.md+.
 
 ==== ConditionalWriter
+
 The ConditionalWriter enables efficient, atomic read-modify-write operations on
 rows.  The ConditionalWriter writes special Mutations which have a list of per
 column conditions that must all be met before the mutation is applied.  The
@@ -148,8 +148,7 @@ and possibly sending another conditional mutation.  If this is not sufficient,
 then a higher level of abstraction can be built by storing transactional
 information within a row.
 
-An example of using the batch writer can be found at
-+accumulo/docs/examples/README.reservations+.
+An example of using the conditional writer can be found at +docs/examples/reservations.md+.
 
 ==== Durability
 
@@ -233,9 +232,7 @@ crash a tablet server. By default rows are buffered in memory, but the user
 can easily supply their own buffer if they wish to buffer to disk when rows are
 large.
 
-For an example, look at the following
-
-  examples/simple/src/main/java/org/apache/accumulo/examples/simple/isolation/InterferenceTest.java
+For an example, see +docs/examples/src/isolation/InterferenceTest.java+
 
 ==== BatchScanner
 
@@ -264,8 +261,12 @@ for(Entry<Key,Value> entry : bscan) {
 }
 ----
 
-An example of the BatchScanner can be found at
-+accumulo/docs/examples/README.batch+.
+An example of the BatchScanner can be found at +docs/examples/batch.md+.
+
+At this time, there is no client side isolation support for the BatchScanner.
+You may consider using the WholeRowIterator with the BatchScanner to achieve
+isolation. The drawback of this approach is that entire rows are read into
+memory on the server side. If a row is too big, it may crash a tablet server.
 
 === Proxy
 
@@ -280,7 +281,6 @@ without requiring access to all tablet servers in the cluster.
 The proxy server can live on any node in which the basic client API would work. That
 means it must be able to communicate with the Master, ZooKeepers, NameNode, and the
 DataNodes. A proxy client only needs the ability to communicate with the proxy server.
-
 
 ==== Configuration
 
