@@ -118,13 +118,13 @@ def main():
 
     print 'adding max mutation size namespace constraint'
     constraintid = client.addNamespaceConstraint(login, 'testing',
-                                                 'org.apache.accumulo.examples.simple.constraints.MaxMutationSize')
+                                                 'org.apache.accumulo.test.constraints.MaxMutationSize')
 
     print 'make sure constraint was added'
     constraints = client.listNamespaceConstraints(login, 'testing')
     found = False
     for name, cid in constraints.iteritems():
-        if cid == constraintid and name == 'org.apache.accumulo.examples.simple.constraints.MaxMutationSize':
+        if cid == constraintid and name == 'org.apache.accumulo.test.constraints.MaxMutationSize':
             found = True
             break
     assert found
@@ -136,7 +136,7 @@ def main():
     constraints = client.listNamespaceConstraints(login, 'testing')
     found = False
     for name, cid in constraints.iteritems():
-        if cid == constraintid and name == 'org.apache.accumulo.examples.simple.constraints.MaxMutationSize':
+        if cid == constraintid and name == 'org.apache.accumulo.test.constraints.MaxMutationSize':
             found = True
             break
     assert not found

@@ -35,22 +35,15 @@ Follow [these instructions][install] to install and run an Accumulo binary distr
 Documentation
 -------------
 
-Accumulo has the following documentation which is viewable on the [Accumulo website][accumulo]
-using the links below:
+Apache Accumulo has the following documentation:
 
-* [User Manual][man-web] - In-depth developer and administrator documentation.
-* [Accumulo Examples][ex-web] - Code with corresponding README files that give step by step
-instructions for running the example.
+* [User Manual][manual] - In-depth developer and administrator documentation.
+  - Available in binary tarball at `docs/accumulo_user_manual.html`
+  - Available in source tarball at `docs/src/main/asciidoc`
+* [Accumulo Examples][examples] - Documented example code for using Accumulo
+* [Javadocs][javadocs] - Accumulo API documentation
 
-This documentation can also be found in Accumulo distributions:
-
-* **Binary distribution**
-  - User manual is located at `docs/accumulo_user_manual.html`.
-  - Accumulo Examples: READMEs and source are in `docs/examples`. The distribution also has a jar with
-    the compiled examples. This makes it easy to run them after following the [install] instructions.
-
-* **Source distribution** - The [Example Source][ex-src], [Example Readmes][rm-src], and
-[User Manual Source][man-src] are available.
+More documentation can be found on the [project website][accumulo].
 
 Building
 --------
@@ -126,7 +119,6 @@ the bouncycastle library for some crypographic technology as well. See
 [the BouncyCastle FAQ][bouncy-faq] for
 more details on bouncycastle's cryptography features.
 
-
 [accumulo]: https://accumulo.apache.org
 [logo]: contrib/accumulo-logo.png
 [install]: INSTALL.md
@@ -137,13 +129,11 @@ more details on bouncycastle's cryptography features.
 [Thrift]: https://thrift.apache.org
 [features]: https://accumulo.apache.org/notable_features
 [Maven]: https://maven.apache.org
-[man-web]: https://accumulo.apache.org/latest/accumulo_user_manual
-[ex-web]: https://accumulo.apache.org/latest/examples
+[manual]: https://accumulo.apache.org/latest/accumulo_user_manual
+[examples]: https://github.com/apache/accumulo-examples
+[javadocs]: https://accumulo.apache.org/latest/apidocs
 [semver]: http://semver.org/spec/v2.0.0
 [regex]: http://checkstyle.sourceforge.net/config_regexp.html
-[ex-src]: examples/simple/src/main/java/org/apache/accumulo/examples/simple
-[rm-src]: docs/src/main/resources/examples
-[man-src]: docs/src/main/asciidoc
 [li]: https://img.shields.io/badge/license-ASL-blue.svg
 [ll]: https://www.apache.org/licenses/LICENSE-2.0
 [mi]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg

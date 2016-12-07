@@ -148,12 +148,11 @@ public class TestProxyNamespaceOperations {
 
   @Test
   public void namespaceConstraints() throws TException {
-    int constraintId = tpc.proxy().addNamespaceConstraint(userpass, testnamespace, "org.apache.accumulo.examples.simple.constraints.MaxMutationSize");
-    assertTrue(tpc.proxy().listNamespaceConstraints(userpass, testnamespace).containsKey("org.apache.accumulo.examples.simple.constraints.MaxMutationSize"));
-    assertEquals(constraintId,
-        (int) tpc.proxy().listNamespaceConstraints(userpass, testnamespace).get("org.apache.accumulo.examples.simple.constraints.MaxMutationSize"));
+    int constraintId = tpc.proxy().addNamespaceConstraint(userpass, testnamespace, "org.apache.accumulo.test.constraints.MaxMutationSize");
+    assertTrue(tpc.proxy().listNamespaceConstraints(userpass, testnamespace).containsKey("org.apache.accumulo.test.constraints.MaxMutationSize"));
+    assertEquals(constraintId, (int) tpc.proxy().listNamespaceConstraints(userpass, testnamespace).get("org.apache.accumulo.test.constraints.MaxMutationSize"));
     tpc.proxy().removeNamespaceConstraint(userpass, testnamespace, constraintId);
-    assertFalse(tpc.proxy().listNamespaceConstraints(userpass, testnamespace).containsKey("org.apache.accumulo.examples.simple.constraints.MaxMutationSize"));
+    assertFalse(tpc.proxy().listNamespaceConstraints(userpass, testnamespace).containsKey("org.apache.accumulo.test.constraints.MaxMutationSize"));
   }
 
   @Test

@@ -55,7 +55,7 @@ class RowHashBenchmark(Benchmark):
                     self.output_table) 
             self.sleep(15)
         code, out, err = cloudshell.run(self.username, self.password, "createtable %s -sf %s\n" % (self.output_table, file))
-        command = self.buildcommand('org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest',
+        command = self.buildcommand('org.apache.accumulo.test.mapreduce.TeraSortIngest',
                                     '--count', self.numrows(),
                                     '-nk', self.keysizemin(),
                                     '-xk', self.keysizemax(),
@@ -102,7 +102,7 @@ class RowHashBenchmark(Benchmark):
         return self.valmax
         
     def runTest(self):   
-        command = self.buildcommand('org.apache.accumulo.examples.simple.mapreduce.RowHash',
+        command = self.buildcommand('org.apache.accumulo.test.mapreduce.RowHash',
                                     self.getInstance(),
                                     self.getZookeepers(),
                                     self.getUsername(),

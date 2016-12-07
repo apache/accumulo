@@ -72,7 +72,7 @@ class TeraSortBenchmark(Benchmark):
         dir = os.path.dirname(os.path.realpath(__file__))
         file = os.path.join( dir, 'splits' )
         code, out, err = cloudshell.run(self.username, self.password, "createtable %s -sf %s\n" % (self.tablename, file))
-        command = self.buildcommand('org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest',
+        command = self.buildcommand('org.apache.accumulo.test.mapreduce.TeraSortIngest',
                                     '--count', self.numrows(),
                                     '-nk', self.keysizemin(),
                                     '-xk', self.keysizemax(),

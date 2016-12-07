@@ -185,7 +185,8 @@ AccumuloOutputFormat.setZooKeeperInstance(job, "myinstance",
 AccumuloOutputFormat.setMaxLatency(job, 300000); // milliseconds
 AccumuloOutputFormat.setMaxMutationBufferSize(job, 50000000); // bytes
 
-An example of using MapReduce with Accumulo can be found at +docs/examples/mapred.md+.
+The https://github.com/apache/accumulo-examples/blob/master/docs/mapred.md[MapReduce example]
+contains a complete example of using MapReduce with Accumulo.
 
 === Combiners
 

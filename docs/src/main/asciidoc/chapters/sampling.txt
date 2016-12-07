@@ -40,7 +40,7 @@ that class.  For guidance on implementing a Sampler see that interface's
 javadoc.  Accumulo provides a few implementations out of the box.   For
 information on how to use the samplers that ship with Accumulo look in the
 package `org.apache.accumulo.core.sample` and consult the javadoc of the
-classes there.  See +docs/examples/sample.md+ and +docs/examples/src/sample/SampleExample.java+
+classes there.  See the https://github.com/apache/accumulo-examples/blob/master/docs/sample.md[sampling example]
 for examples of how to configure a Sampler on a table.
 
 Once a table is configured with a sampler all writes after that point will
@@ -60,10 +60,10 @@ Inorder to scan sample data, use the +setSamplerConfiguration(...)+  method on
 +Scanner+ or +BatchScanner+.  Please consult this methods javadocs for more
 information.
 
-Sample data can also be scanned from within an Accumulo
-+SortedKeyValueIterator+.  To see how to do this, look at the example iterator
-referenced in +docs/examples/sample.md+.  Also, consult the javadoc on
-+org.apache.accumulo.core.iterators.IteratorEnvironment.cloneWithSamplingEnabled()+.
+Sample data can also be scanned from within an Accumulo +SortedKeyValueIterator+.
+To see how to do this, look at the example iterator referenced in the
+https://github.com/apache/accumulo-examples/blob/master/docs/sample.md[sampling example].
+Also, consult the javadoc on +org.apache.accumulo.core.iterators.IteratorEnvironment.cloneWithSamplingEnabled()+.
 
 Map reduce jobs using the +AccumuloInputFormat+ can also read sample data.  See
 the javadoc for the +setSamplerConfiguration()+ method on

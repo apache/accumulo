@@ -52,7 +52,7 @@ import org.apache.hadoop.io.Text;
  * This iterator will *ignore* any columnFamilies passed to {@link #seek(Range, Collection, boolean)} as it performs intersections over terms. Extending classes
  * should override the {@link TermSource#seekColfams} in their implementation's {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method.
  *
- * README.shard in docs/examples shows an example of using the IntersectingIterator.
+ * An example of using the IntersectingIterator is available at https://github.com/apache/accumulo-examples/blob/master/docs/shard.md
  */
 public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
 

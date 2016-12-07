@@ -143,7 +143,7 @@ public interface TableOperations {
    * offline for the duration of distcp. To avoid losing access to a table it can be cloned and the clone taken offline for export.
    *
    * <p>
-   * See docs/examples/README.export
+   * See https://github.com/apache/accumulo-examples/blob/master/docs/export.md
    *
    * @param tableName
    *          Name of the table to export.

@@ -83,7 +83,6 @@
     <module>assemble</module>
     <module>core</module>
     <module>docs</module>
-    <module>examples/simple</module>
     <module>fate</module>
     <module>iterator-test-harness</module>
     <module>maven-plugin</module>
@@ -266,11 +265,6 @@
         <version>${project.version}</version>
         <classifier>user-manual</classifier>
         <type>html</type>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-examples-simple</artifactId>
-        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>

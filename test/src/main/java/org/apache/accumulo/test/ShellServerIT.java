@@ -1692,7 +1692,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("tables", true, "thing2.thingy", false);
 
     // put constraints on a namespace
-    ts.exec("constraint -ns thing3 -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
+    ts.exec("constraint -ns thing3 -a org.apache.accumulo.test.constraints.NumericValueConstraint", true);
     ts.exec("createtable thing3.constrained", true);
     ts.exec("table thing3.constrained", true);
     ts.exec("constraint -d 1");

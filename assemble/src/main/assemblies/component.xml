@@ -99,15 +99,6 @@
       </includes>  
     </fileSet>
     <fileSet>
-      <directory>../examples/simple/src/main/java/org/apache/accumulo/examples/simple/</directory>
-      <outputDirectory>docs/examples/src</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>*/**</include>
-      </includes>
-    </fileSet>
-    <fileSet>
       <directory>./</directory>
       <outputDirectory>lib/ext</outputDirectory>
       <directoryMode>0755</directoryMode>
@@ -122,17 +113,6 @@
       <excludes>
         <exclude>*/**</exclude>
       </excludes>
-    </fileSet>
-    <fileSet>
-      <directory>../docs/src/main/resources</directory>
-      <outputDirectory>docs</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>*.html</include>
-        <include>*.css</include>
-        <include>examples/*</include>
-      </includes>
     </fileSet>
     <fileSet>
       <directory>conf</directory>

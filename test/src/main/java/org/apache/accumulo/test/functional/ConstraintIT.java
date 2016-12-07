@@ -37,8 +37,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint;
-import org.apache.accumulo.examples.simple.constraints.NumericValueConstraint;
+import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
+import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -295,8 +295,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
       HashMap<String,Integer> expected = new HashMap<>();
 
-      expected.put("org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", numericErrors);
-      expected.put("org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint", 1);
+      expected.put("org.apache.accumulo.test.constraints.NumericValueConstraint", numericErrors);
+      expected.put("org.apache.accumulo.test.constraints.AlphaNumKeyConstraint", 1);
 
       for (ConstraintViolationSummary cvs : cvsl) {
         if (expected.get(cvs.constrainClass) != cvs.numberOfViolatingMutations) {

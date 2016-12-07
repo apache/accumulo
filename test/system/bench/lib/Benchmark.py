@@ -94,9 +94,9 @@ class Benchmark(unittest.TestCase):
         globjar = [ j for j in glob.glob(path) if j.find('javadoc') == -1 and j.find('sources') == -1 ]
         return globjar[0]
         
-    # Returns the location of the local examples jar
-    def getexamplejar(self):
-        return self.findjar(accumulo() + '/lib/accumulo-examples-simple.jar')
+    # Returns the location of the local test jar
+    def gettestjar(self):
+        return self.findjar(accumulo() + '/lib/accumulo-test.jar')
     
     # Returns a string of core, thrift and zookeeper jars with a specified delim
     def getjars(self, delim=','):

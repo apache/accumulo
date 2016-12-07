@@ -103,8 +103,8 @@ new constraint and place it in the lib directory of the Accumulo installation. N
 constraint jars can be added to Accumulo and enabled without restarting but any
 change to an existing constraint class requires Accumulo to be restarted.
 
-An example of constraints can be found in +docs/examples/constraints.md+ with
-corresponding code in +docs/examples/src/constraints+ .
+See the https://github.com/apache/accumulo-examples/blob/master/docs/contraints.md[constraints example]
+for example code.
 
 === Bloom Filters
 
@@ -117,7 +117,8 @@ To enable bloom filters, enter the following command in the Shell:
 
   user@myinstance> config -t mytable -s table.bloom.enabled=true
 
-An extensive example of using Bloom Filters can be found at +docs/examples/bloom.md+ .
+The https://github.com/apache/accumulo-examples/blob/master/docs/bloom.md[bloom filter example]
+contains an extensive example of using Bloom Filters.
 
 === Iterators
 
@@ -351,7 +352,8 @@ Additional Combiners can be added by creating a Java class that extends
 +org.apache.accumulo.core.iterators.Combiner+ and adding a jar containing that
 class to Accumulo's lib/ext directory.
 
-An example of a Combiner can be found at +docs/examples/combiner.md+.
+See the https://github.com/apache/accumulo-examples/blob/master/docs/combiner.md[combiner example]
+for example code.
 
 === Block Cache
 
@@ -664,4 +666,5 @@ splits, and logical time. Tables are exported and then copied via the hadoop
 distcp command. To export a table, it must be offline and stay offline while
 discp runs. The reason it needs to stay offline is to prevent files from being
 deleted. A table can be cloned and the clone taken offline inorder to avoid
-losing access to the table. See +docs/examples/export.md+ for an example.
+losing access to the table. See the https://github.com/apache/accumulo-examples/blob/master/docs/export.md[export example]
+for example code.
