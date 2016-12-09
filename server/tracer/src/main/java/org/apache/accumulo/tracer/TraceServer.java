@@ -29,12 +29,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -184,6 +188,48 @@ public class TraceServer implements Watcher {
     log.info("Instance " + serverConfiguration.getInstance().getInstanceID());
     AccumuloConfiguration conf = serverConfiguration.getConfiguration();
     tableName = conf.get(Property.TRACE_TABLE);
+    connector = ensureTraceTableExists(conf);
+
+    int ports[] = conf.getPort(Property.TRACE_PORT);
+    ServerSocket sock = null;
+    for (int port : ports) {
+      ServerSocket s = ServerSocketChannel.open().socket();
+      s.setReuseAddress(true);
+      try {
+        s.bind(new InetSocketAddress(hostname, port));
+        sock = s;
+        break;
+      } catch (Exception e) {
+        log.warn("Unable to start trace server on port {}", port);
+      }
+    }
+    if (null == sock) {
+      throw new RuntimeException("Unable to start trace server on configured ports: " + Arrays.toString(ports));
+    }
+    final TServerTransport transport = new TServerSocket(sock);
+    TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
+    options.processor(new Processor<Iface>(new Receiver()));
+    server = new TThreadPoolServer(options);
+    registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(), conf.get(Property.TRACE_ZK_PATH));
+    writer = new AtomicReference<>(this.connector.createBatchWriter(tableName,
+        new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
+  }
+
+  /**
+   * Exceptions thrown out of here should be things that cause service failure (e.g. misconfigurations that aren't likely to change on retry).
+   *
+   * @return a working Connection that can be reused
+   * @throws ClassNotFoundException
+   *           if TRACE_TOKEN_TYPE is set to a class that we can't load.
+   * @throws InstantiationException
+   *           if we fail to create an instance of TRACE_TOKEN_TYPE.
+   * @throws IllegalAccessException
+   *           if the class pointed to by TRACE_TOKEN_TYPE is private.
+   * @throws AccumuloSecurityException
+   *           if the trace user has the wrong permissions
+   */
+  private Connector ensureTraceTableExists(final AccumuloConfiguration conf) throws AccumuloSecurityException, ClassNotFoundException, InstantiationException,
+      IllegalAccessException {
     Connector connector = null;
     while (true) {
       try {
@@ -223,38 +269,12 @@ public class TraceServer implements Watcher {
         }
         connector.tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
         break;
-      } catch (RuntimeException ex) {
+      } catch (AccumuloException | TableExistsException | TableNotFoundException | IOException | RuntimeException ex) {
         log.info("Waiting to checking/create the trace table.", ex);
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
     }
-    this.connector = connector;
-    // make sure we refer to the final variable from now on.
-    connector = null;
-
-    int ports[] = conf.getPort(Property.TRACE_PORT);
-    ServerSocket sock = null;
-    for (int port : ports) {
-      ServerSocket s = ServerSocketChannel.open().socket();
-      s.setReuseAddress(true);
-      try {
-        s.bind(new InetSocketAddress(hostname, port));
-        sock = s;
-        break;
-      } catch (Exception e) {
-        log.warn("Unable to start trace server on port {}", port);
-      }
-    }
-    if (null == sock) {
-      throw new RuntimeException("Unable to start trace server on configured ports: " + Arrays.toString(ports));
-    }
-    final TServerTransport transport = new TServerSocket(sock);
-    TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
-    options.processor(new Processor<Iface>(new Receiver()));
-    server = new TThreadPoolServer(options);
-    registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(), conf.get(Property.TRACE_ZK_PATH));
-    writer = new AtomicReference<>(this.connector.createBatchWriter(tableName,
-        new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
+    return connector;
   }
 
   public void run() throws Exception {
