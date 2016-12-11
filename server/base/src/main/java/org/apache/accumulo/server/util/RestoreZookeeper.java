@@ -118,6 +118,9 @@ public class RestoreZookeeper {
     }
 
     SAXParserFactory factory = SAXParserFactory.newInstance();
+    // Prevent external entities by failing on any doctypes. We don't expect any doctypes, so this
+    // is a simple switch to remove any chance of external entities causing problems.
+    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     SAXParser parser = factory.newSAXParser();
     parser.parse(in, new Restore(ZooReaderWriter.getInstance(), opts.overwrite));
     in.close();
