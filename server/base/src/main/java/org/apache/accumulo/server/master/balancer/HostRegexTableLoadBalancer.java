@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -254,7 +255,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   }
 
   @Override
-  public void init(ServerConfiguration conf) {
+  public void init(ServerConfigurationFactory conf) {
     super.init(conf);
     parseConfiguration(conf);
   }
