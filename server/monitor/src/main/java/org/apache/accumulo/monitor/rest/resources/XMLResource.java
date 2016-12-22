@@ -35,14 +35,13 @@ public class XMLResource {
   @GET
   @Produces(MediaType.APPLICATION_XML)
   public XMLInformation getXMLInformation() {
-    
+
     MasterMonitorInfo mmi = Monitor.getMmi();
     if (null == mmi) {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
-    
-    XMLInformation xml = new XMLInformation(mmi.tServerInfo.size(),
-        new MasterResource().getTables(), new TablesResource().getTables());
+
+    XMLInformation xml = new XMLInformation(mmi.tServerInfo.size(), new MasterResource().getTables(), new TablesResource().getTables());
 
     for (TabletServerStatus status : mmi.tServerInfo) {
       xml.addTablet(new TabletServer(status));

@@ -18,7 +18,6 @@ package org.apache.accumulo.monitor.rest.api;
 
 import java.util.List;
 
-
 public class TabletServerSummary {
 
   public TabletServerDetailInformation details;

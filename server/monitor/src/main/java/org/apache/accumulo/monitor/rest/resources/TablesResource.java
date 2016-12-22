@@ -53,7 +53,7 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.Text;
 
 @Path("/tables")
-@Produces({MediaType.APPLICATION_JSON,MediaType.APPLICATION_XML})
+@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class TablesResource {
 
   private static final TabletServerStatus NO_STATUS = new TabletServerStatus();

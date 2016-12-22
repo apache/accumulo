@@ -18,7 +18,6 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 
-
 public class TracesForTypeInformation {
 
   public String id, source;

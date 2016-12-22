@@ -19,7 +19,6 @@ package org.apache.accumulo.monitor.rest.api;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class DeadLoggerList {
 
   public List<DeadLoggerInformation> deadLogger;
@@ -27,9 +26,9 @@ public class DeadLoggerList {
   public DeadLoggerList() {
     deadLogger = new ArrayList<>();
   }
-  
+
   public void addDeadLogger(DeadLoggerInformation deadLogger) {
     this.deadLogger.add(deadLogger);
   }
-  
+
 }

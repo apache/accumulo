@@ -19,7 +19,6 @@ package org.apache.accumulo.monitor.rest.api;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class AddlInformation {
 
   public List<DataInformation> data;
@@ -36,5 +35,5 @@ public class AddlInformation {
 
   public void addAnnotations(AnnotationInformation annotations) {
     this.annotations.add(annotations);
-  }  
+  }
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-
 public class CurrentTabletResults {
 
   public Double currentMinorAvg, currentMinorStdDev, currentMajorAvg, currentMajorStdDev;

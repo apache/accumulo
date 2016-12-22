@@ -16,33 +16,31 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-
 public class ServerStats {
-	
+
   public int max;
   public boolean adjustMax;
   public float significance;
   public String description, name;
   public boolean derived;
-    
-  public ServerStats() {
-  }
-  
+
+  public ServerStats() {}
+
   public ServerStats(int max, boolean adjustMax, float significance, String description, String name) {
-      this.max = max;
-      this.adjustMax = adjustMax;
-      this.significance = significance;
-      this.description = description;
-      this.derived = false;
-      this.name = name;
+    this.max = max;
+    this.adjustMax = adjustMax;
+    this.significance = significance;
+    this.description = description;
+    this.derived = false;
+    this.name = name;
   }
 
   public ServerStats(int max, boolean adjustMax, float significance, String description, boolean derived, String name) {
-      this.max = max;
-      this.adjustMax = adjustMax;
-      this.significance = significance;
-      this.description = description;
-      this.derived = derived;
-      this.name = name;
+    this.max = max;
+    this.adjustMax = adjustMax;
+    this.significance = significance;
+    this.description = description;
+    this.derived = derived;
+    this.name = name;
   }
 }

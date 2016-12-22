@@ -18,15 +18,13 @@ package org.apache.accumulo.monitor.rest.api;
 
 import javax.xml.bind.annotation.XmlAttribute;
 
-
 public class BadTabletServerInformation {
 
   @XmlAttribute
   public String id, status;
 
-  public BadTabletServerInformation() {
-  }
-  
+  public BadTabletServerInformation() {}
+
   public BadTabletServerInformation(String id, String status) {
     this.id = id;
     this.status = status;

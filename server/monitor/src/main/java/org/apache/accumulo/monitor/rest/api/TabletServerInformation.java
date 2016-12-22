@@ -27,31 +27,30 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
-
 public class TabletServerInformation {
 
-  @XmlAttribute(name="id")
+  @XmlAttribute(name = "id")
   public String server;
-  
+
   public String hostname;
   public long lastContact;
   public double osload;
-  
-  public CompactionsTypes compactions;  
-  
+
+  public CompactionsTypes compactions;
+
   public int tablets;
   public double ingest, query, ingestMB, queryMB;
   public Integer scans; // For backwards compatibility, has same information as scansRunning
   public Double scansessions;
-  public Double scanssessions; //For backwards compatibility
+  public Double scanssessions; // For backwards compatibility
   public long holdtime;
-  
+
   // New variables
-  
+
   public String ip;
   private Integer scansRunning, scansQueued, minorRunning, minorQueued, majorRunning, majorQueued;
   private CompactionsList scansCompacting, major, minor; // if scans is removed, change scansCompacting to scans
-  public long entries, lookups, indexCacheHits, indexCacheRequests, dataCacheHits, dataCacheRequests;  
+  public long entries, lookups, indexCacheHits, indexCacheRequests, dataCacheHits, dataCacheRequests;
   public double indexCacheHitRate, dataCacheHitRate;
   public List<RecoveryStatusInformation> logRecoveries;
 
@@ -77,21 +76,21 @@ public class TabletServerInformation {
 
     this.scansRunning = summary.scans != null ? summary.scans.running : null;
     this.scansQueued = summary.scans != null ? summary.scans.queued : null;
-    
+
     this.scans = this.scansRunning;
-    
+
     this.scansCompacting = new CompactionsList(this.scansRunning, this.scansQueued);
 
     this.minorRunning = summary.minors != null ? summary.minors.running : null;
     this.minorQueued = summary.minors != null ? summary.minors.running : null;
-    
+
     this.minor = new CompactionsList(this.minorRunning, this.minorQueued);
 
     this.majorRunning = summary.majors != null ? summary.majors.running : null;
     this.majorQueued = summary.majors != null ? summary.majors.running : null;
-    
+
     this.major = new CompactionsList(this.majorRunning, this.majorQueued);
-    
+
     this.compactions = new CompactionsTypes(scansCompacting, major, minor);
 
     this.osload = thriftStatus.osLoad;

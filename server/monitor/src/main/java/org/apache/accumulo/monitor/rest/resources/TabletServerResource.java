@@ -159,27 +159,27 @@ public class TabletServerResource {
 
     return tserverDetails;
   }
-  
+
   private static final int concurrentScans = Monitor.getContext().getConfiguration().getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
-  
+
   @Path("/serverStats")
   @GET
   public List<ServerStats> getServerStats() {
-	  
-	  List<ServerStats> stats = new ArrayList<>();
-	  
-	  stats.add(new ServerStats(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100, "OS Load", "osload"));
-	  stats.add(new ServerStats(1000, true, 1, "Ingest Entries", "ingest"));
-	  stats.add(new ServerStats(10000, true, 1, "Scan Entries", "query"));
-	  stats.add(new ServerStats(10, true, 10, "Ingest MB", "ingestMB"));
-	  stats.add(new ServerStats(5, true, 10, "Scan MB", "queryMB"));
-	  stats.add(new ServerStats(concurrentScans * 2, false, 1, "Running Scans", "scans"));
-	  stats.add(new ServerStats(50, true, 10, "Scan Sessions", "scansessions"));
-	  stats.add(new ServerStats(60000, false, 1, "Hold Time", "holdtime"));
-	  stats.add(new ServerStats(1, false, 100, "Overall Avg", true, "allavg"));
-	  stats.add(new ServerStats(1, false, 100, "Overall Max", true, "allmax"));
-	  
-	  return stats;	  
+
+    List<ServerStats> stats = new ArrayList<>();
+
+    stats.add(new ServerStats(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100, "OS Load", "osload"));
+    stats.add(new ServerStats(1000, true, 1, "Ingest Entries", "ingest"));
+    stats.add(new ServerStats(10000, true, 1, "Scan Entries", "query"));
+    stats.add(new ServerStats(10, true, 10, "Ingest MB", "ingestMB"));
+    stats.add(new ServerStats(5, true, 10, "Scan MB", "queryMB"));
+    stats.add(new ServerStats(concurrentScans * 2, false, 1, "Running Scans", "scans"));
+    stats.add(new ServerStats(50, true, 10, "Scan Sessions", "scansessions"));
+    stats.add(new ServerStats(60000, false, 1, "Hold Time", "holdtime"));
+    stats.add(new ServerStats(1, false, 100, "Overall Avg", true, "allavg"));
+    stats.add(new ServerStats(1, false, 100, "Overall Max", true, "allmax"));
+
+    return stats;
   }
 
   private TabletServerDetailInformation doDetails(HostAndPort address, int numTablets) {

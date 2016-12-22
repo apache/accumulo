@@ -33,11 +33,11 @@ public class TabletServer {
   public TabletServer(TabletServerInformation server) {
     this.server = server;
   }
-  
+
   public TabletServer(TabletServerStatus status) {
     server = new TabletServerInformation(status);
   }
-  
+
   public void updateTabletServerInfo(TabletServerStatus status, TableInfo summary) {
     server.updateTabletServerInfo(status, summary);
   }

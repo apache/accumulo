@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-
 public class CompactionsTypes {
 
   public CompactionsList scans, major, minor;
@@ -26,7 +25,7 @@ public class CompactionsTypes {
     major = new CompactionsList();
     minor = new CompactionsList();
   }
-  
+
   public CompactionsTypes(CompactionsList scans, CompactionsList major, CompactionsList minor) {
     this.scans = scans;
     this.major = major;

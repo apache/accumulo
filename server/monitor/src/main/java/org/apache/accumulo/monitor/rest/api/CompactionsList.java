@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-
 public class CompactionsList {
 
   public Integer running, queued;
@@ -25,7 +24,7 @@ public class CompactionsList {
     running = null;
     queued = null;
   }
-  
+
   public CompactionsList(Integer running, Integer queued) {
     this.running = running;
     this.queued = queued;

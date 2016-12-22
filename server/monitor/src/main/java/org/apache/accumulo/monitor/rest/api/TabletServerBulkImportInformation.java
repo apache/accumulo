@@ -18,7 +18,6 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
-
 public class TabletServerBulkImportInformation {
 
   public String server;

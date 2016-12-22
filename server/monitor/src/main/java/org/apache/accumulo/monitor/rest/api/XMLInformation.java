@@ -21,23 +21,22 @@ import java.util.List;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-
-@XmlRootElement(name="stats")
+@XmlRootElement(name = "stats")
 public class XMLInformation {
 
   public List<TabletServer> servers;
-  
+
   public String masterGoalState, masterState;
-  
-  public BadTabletServers badTabletServers; 
+
+  public BadTabletServers badTabletServers;
   public ServersShuttingDown tabletServersShuttingDown;
   public Integer unassignedTablets;
   public DeadServerList deadTabletServers;
 
-  public DeadLoggerList deadLoggers;  
-  
+  public DeadLoggerList deadLoggers;
+
   public TableInformationList tables;
-  
+
   public Totals totals;
 
   public XMLInformation() {
@@ -46,38 +45,37 @@ public class XMLInformation {
 
   public XMLInformation(int size, MasterInformation info, TablesList tablesList) {
     this.servers = new ArrayList<>(size);
-    
+
     this.masterGoalState = info.masterGoalState;
     this.masterState = info.masterState;
-    
+
     this.badTabletServers = info.badTabletServers;
     this.tabletServersShuttingDown = info.tabletServersShuttingDown;
     this.unassignedTablets = info.unassignedTablets;
     this.deadTabletServers = info.deadTabletServers;
     this.deadLoggers = info.deadLoggers;
-    
+
     getTableInformationList(tablesList.tables);
-    
+
     this.totals = new Totals(info.ingestrate, info.queryrate, info.numentries);
   }
 
   public void addTablet(TabletServer tablet) {
     servers.add(tablet);
   }
-  
+
   /**
    * For backwards compatibility, gets all the tables without namespace information
-   * @param namespaces
    */
   private void getTableInformationList(List<TableNamespace> namespaces) {
-       
+
     this.tables = new TableInformationList();
-    
+
     for (TableNamespace namespace : namespaces) {
       for (TableInformation info : namespace.table) {
         tables.addTable(info);
       }
     }
-    
+
   }
 }

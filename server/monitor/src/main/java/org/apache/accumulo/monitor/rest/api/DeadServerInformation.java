@@ -18,21 +18,19 @@ package org.apache.accumulo.monitor.rest.api;
 
 import javax.xml.bind.annotation.XmlAttribute;
 
-
 public class DeadServerInformation {
 
   @XmlAttribute
   public String server;
-  
+
   @XmlAttribute
   public long lastStatus;
-  
+
   @XmlAttribute
   public String status;
 
-  public DeadServerInformation() {
-  }
-  
+  public DeadServerInformation() {}
+
   public DeadServerInformation(String server, long lastStatus, String status) {
     this.server = server;
     this.lastStatus = lastStatus;

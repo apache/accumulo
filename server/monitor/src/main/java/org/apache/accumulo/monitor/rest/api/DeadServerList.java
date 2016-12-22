@@ -19,7 +19,6 @@ package org.apache.accumulo.monitor.rest.api;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class DeadServerList {
 
   public List<DeadServerInformation> deadTabletServer;
@@ -27,8 +26,8 @@ public class DeadServerList {
   public DeadServerList() {
     deadTabletServer = new ArrayList<>();
   }
-  
+
   public void addDeadServer(DeadServerInformation deadTabletServer) {
     this.deadTabletServer.add(deadTabletServer);
-  }  
+  }
 }

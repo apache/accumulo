@@ -45,7 +45,7 @@ import org.apache.accumulo.monitor.rest.api.ServersShuttingDown;
 import org.apache.accumulo.server.master.state.TabletServerState;
 
 @Path("/master")
-@Produces({MediaType.APPLICATION_JSON,MediaType.APPLICATION_XML})
+@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class MasterResource {
   public static final String NO_MASTERS = "No Masters running";
 
@@ -108,8 +108,8 @@ public class MasterResource {
       System.out.println(Monitor.getStartTime());
 
       masterInformation = new MasterInformation(master, onlineTabletServers, totalTabletServers, gcStatus, tablets, unassignedTablets, entries, ingest,
-          entriesRead, entriesReturned, holdTime, osLoad, tables, deadTabletServers, lookups, uptime, label, getGoalState(),
-          getState(), getNumBadTservers(), getServersShuttingDown(), getDeadTservers(), getDeadLoggers());
+          entriesRead, entriesReturned, holdTime, osLoad, tables, deadTabletServers, lookups, uptime, label, getGoalState(), getState(), getNumBadTservers(),
+          getServersShuttingDown(), getDeadTservers(), getDeadLoggers());
 
     } else {
       masterInformation = new MasterInformation();
@@ -142,19 +142,19 @@ public class MasterResource {
       return new DeadServerList();
     }
 
-    DeadServerList deadServers = new DeadServerList(); 
+    DeadServerList deadServers = new DeadServerList();
     for (DeadServer dead : mmi.deadTabletServers) {
       deadServers.addDeadServer(new DeadServerInformation(dead.server, dead.lastStatus, dead.status));
     }
     return deadServers;
   }
-  
+
   public DeadLoggerList getDeadLoggers() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
       return new DeadLoggerList();
     }
-    
+
     DeadLoggerList deadLoggers = new DeadLoggerList();
     for (DeadServer dead : mmi.deadTabletServers) {
       deadLoggers.addDeadLogger(new DeadLoggerInformation(dead.server, dead.lastStatus, dead.status));
@@ -178,7 +178,7 @@ public class MasterResource {
     for (Entry<String,Byte> badServer : badServers.entrySet()) {
       try {
         TabletServerState state = TabletServerState.getStateById(badServer.getValue());
-        readableBadServers.addBadServer(new BadTabletServerInformation(badServer.getKey(), state.name()));        
+        readableBadServers.addBadServer(new BadTabletServerInformation(badServer.getKey(), state.name()));
       } catch (IndexOutOfBoundsException e) {
         readableBadServers.addBadServer(new BadTabletServerInformation(badServer.getKey(), "Unknown state"));
       }

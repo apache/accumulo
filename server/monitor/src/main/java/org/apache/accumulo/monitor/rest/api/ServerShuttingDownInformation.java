@@ -18,15 +18,13 @@ package org.apache.accumulo.monitor.rest.api;
 
 import javax.xml.bind.annotation.XmlAttribute;
 
-
 public class ServerShuttingDownInformation {
 
   @XmlAttribute
   public String id;
 
-  public ServerShuttingDownInformation() {
-  }
-  
+  public ServerShuttingDownInformation() {}
+
   public ServerShuttingDownInformation(String id) {
     this.id = id;
   }
