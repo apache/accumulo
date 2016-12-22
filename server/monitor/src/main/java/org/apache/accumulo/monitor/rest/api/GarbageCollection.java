@@ -18,7 +18,6 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 
-
 public class GarbageCollection {
 
   public static final GarbageCollection EMPTY = new GarbageCollection();

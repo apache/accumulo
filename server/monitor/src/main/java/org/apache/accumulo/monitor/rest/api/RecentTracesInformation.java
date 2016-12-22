@@ -18,14 +18,13 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 
-
 public class RecentTracesInformation {
 
   public String type;
   public Long avg;
-  
+
   public int total = 0;
-  
+
   public long min = Long.MAX_VALUE, max = Long.MIN_VALUE;
   private long totalMS = 0l;
   public long histogram[] = new long[] {0l, 0l, 0l, 0l, 0l, 0l};
@@ -48,7 +47,7 @@ public class RecentTracesInformation {
       index++;
     }
     histogram[index]++;
-    
+
     avg = total != 0 ? totalMS / total : null;
   }
 

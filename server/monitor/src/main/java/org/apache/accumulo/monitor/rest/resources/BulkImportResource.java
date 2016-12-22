@@ -30,7 +30,7 @@ import org.apache.accumulo.monitor.rest.api.BulkImportInformation;
 import org.apache.accumulo.monitor.rest.api.TabletServerBulkImportInformation;
 
 @Path("/bulkImports")
-@Produces({MediaType.APPLICATION_JSON,MediaType.APPLICATION_XML})
+@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class BulkImportResource {
 
   @GET

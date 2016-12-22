@@ -18,23 +18,22 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.master.thrift.TableInfo;
 
-
 public class TableInformation {
 
   public String tablename, tableId, tableState;
-  
+
   public int tablets, onlineTablets;
   public long recs, recsInMemory;
-  
+
   public double ingest, ingestByteRate, query, queryByteRate;
-  
+
   public CompactionsList majorCompactions, minorCompactions, scans;
-  
+
   private int queuedMajorCompactions, runningMajorCompactions, queuedMinorCompactions, runningMinorCompactions, queuedScans, runningScans;
-    
+
   public double entriesRead, entriesReturned;
   public Double holdTime;
-  
+
   public int offlineTablets;
 
   public TableInformation() {}
@@ -90,7 +89,7 @@ public class TableInformation {
       this.queuedMajorCompactions = 0;
       this.runningMajorCompactions = 0;
     }
-    
+
     this.majorCompactions = new CompactionsList(runningMajorCompactions, queuedMajorCompactions);
     this.minorCompactions = new CompactionsList(runningMinorCompactions, queuedMinorCompactions);
     this.scans = new CompactionsList(runningScans, queuedScans);

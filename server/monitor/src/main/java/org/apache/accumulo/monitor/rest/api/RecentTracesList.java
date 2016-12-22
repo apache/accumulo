@@ -19,7 +19,6 @@ package org.apache.accumulo.monitor.rest.api;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class RecentTracesList {
 
   public List<RecentTracesInformation> recentTraces;

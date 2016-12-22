@@ -19,7 +19,6 @@ package org.apache.accumulo.monitor.rest.api;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class BadTabletServers {
 
   public List<BadTabletServerInformation> badTabletServer;
@@ -27,9 +26,9 @@ public class BadTabletServers {
   public BadTabletServers() {
     badTabletServer = new ArrayList<>();
   }
-  
+
   public void addBadServer(BadTabletServerInformation badTabletServer) {
     this.badTabletServer.add(badTabletServer);
   }
-  
+
 }

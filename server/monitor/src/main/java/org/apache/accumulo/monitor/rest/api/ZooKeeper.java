@@ -16,14 +16,12 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-
 public class ZooKeeper {
 
   public String server, mode;
   public Integer clients;
 
-  public ZooKeeper() {
-  }
+  public ZooKeeper() {}
 
   public ZooKeeper(String server, String mode, Integer clients) {
     this.server = server;

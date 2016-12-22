@@ -19,7 +19,6 @@ package org.apache.accumulo.monitor.rest.api;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class ServersShuttingDown {
 
   public List<ServerShuttingDownInformation> server;
@@ -27,7 +26,7 @@ public class ServersShuttingDown {
   public ServersShuttingDown() {
     server = new ArrayList<>();
   }
-  
+
   public void addServerShuttingDown(ServerShuttingDownInformation server) {
     this.server.add(server);
   }

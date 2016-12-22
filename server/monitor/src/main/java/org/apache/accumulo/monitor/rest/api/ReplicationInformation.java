@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-
 public class ReplicationInformation {
 
   public String tableName, peerName, remoteIdentifier, replicaSystemType;

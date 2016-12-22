@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-
 public class CurrentOperations {
 
   public String name, tablet, tableID;

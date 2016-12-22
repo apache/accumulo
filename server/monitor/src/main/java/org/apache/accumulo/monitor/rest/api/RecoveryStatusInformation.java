@@ -18,7 +18,6 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 
-
 public class RecoveryStatusInformation {
 
   public String name;

@@ -32,7 +32,7 @@ public class ZookeeperResource {
 
   @GET
   public ZKInformation getZKInformation() {
-    
+
     ZKInformation zk = new ZKInformation();
 
     for (ZooKeeperState k : ZooKeeperStatus.getZooKeeperStatus()) {

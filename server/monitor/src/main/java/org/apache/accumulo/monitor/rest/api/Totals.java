@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-
 public class Totals {
 
   public double ingestrate, queryrate, diskrate = 0.0;
@@ -27,7 +26,7 @@ public class Totals {
     queryrate = 0.0;
     numentries = 0l;
   }
-  
+
   public Totals(double ingestrate, double queryrate, long numentries) {
     this.ingestrate = ingestrate;
     this.queryrate = queryrate;

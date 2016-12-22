@@ -72,7 +72,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 
 @Path("/trace")
-@Produces({MediaType.APPLICATION_JSON,MediaType.APPLICATION_XML})
+@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class TracesResource {
 
   @Path("/summary/{minutes}")
@@ -190,7 +190,7 @@ public class TracesResource {
       @Override
       public void visit(int level, RemoteSpan parent, RemoteSpan node, Collection<RemoteSpan> children) {
         traces.addTrace(addTraceInformation(level, node, finalStart));
-      };
+      }
     });
     tree.nodes.keySet().removeAll(visited);
     if (!tree.nodes.isEmpty()) {

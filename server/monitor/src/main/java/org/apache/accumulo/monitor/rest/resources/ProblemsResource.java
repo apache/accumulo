@@ -27,7 +27,7 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.problems.ProblemType;
 
 @Path("/problems")
-@Produces({MediaType.APPLICATION_JSON,MediaType.APPLICATION_XML})
+@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class ProblemsResource {
 
   @GET

@@ -18,13 +18,12 @@ package org.apache.accumulo.monitor.rest.api;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 
-
 public class GarbageCollectorStatus {
 
   public static final GarbageCollectorStatus EMPTY = new GarbageCollectorStatus();
 
   public GarbageCollection files = new GarbageCollection();
-  
+
   public GarbageCollection wals = new GarbageCollection();
 
   public GarbageCollectorStatus() {}

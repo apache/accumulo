@@ -16,11 +16,10 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-
 public class MasterInformation {
 
   public String master, lastGC, gcStatus, masterGoalState, masterState;
-  
+
   public Integer onlineTabletServers, totalTabletServers, tablets, unassignedTablets;
   public long numentries;
   public double osload, ingestrate, entriesRead, queryrate; // entriesReturned same as queryrate
@@ -28,8 +27,8 @@ public class MasterInformation {
 
   public int tables, deadTabletServersCount;
   public long lookups, uptime;
-  
-  public BadTabletServers badTabletServers; 
+
+  public BadTabletServers badTabletServers;
   public ServersShuttingDown tabletServersShuttingDown;
   public DeadServerList deadTabletServers;
   public DeadLoggerList deadLoggers;
@@ -54,9 +53,9 @@ public class MasterInformation {
   }
 
   public MasterInformation(String master, int onlineTabletServers, int totalTabletServers, String lastGC, int tablets, int unassignedTablets, long entries,
-      double ingest, double entriesRead, double entriesReturned, long holdTime, double osLoad, int tables, int deadTabletServersCount, long lookups, long uptime,
-      String gcStatus, String masterGoalState, String masterState, BadTabletServers badTabletServers, ServersShuttingDown tabletServersShuttingDown,
-      DeadServerList deadTabletServers, DeadLoggerList deadLoggers) {
+      double ingest, double entriesRead, double entriesReturned, long holdTime, double osLoad, int tables, int deadTabletServersCount, long lookups,
+      long uptime, String gcStatus, String masterGoalState, String masterState, BadTabletServers badTabletServers,
+      ServersShuttingDown tabletServersShuttingDown, DeadServerList deadTabletServers, DeadLoggerList deadLoggers) {
 
     this.master = master;
     this.onlineTabletServers = onlineTabletServers;
