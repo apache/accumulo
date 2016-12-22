@@ -181,9 +181,6 @@
         <exclude>**/*.pyo</exclude>
         <exclude>**/walkers.txt</exclude>
         <exclude>**/ingesters.txt</exclude>
-        <exclude>**/randomwalk/conf/logger.xml</exclude>
-        <exclude>**/randomwalk/conf/randomwalk.conf</exclude>
-        <exclude>**/randomwalk/conf/walkers</exclude>
       </excludes>
     </fileSet>
     <!-- Lift generated thrift proxy code into its own directory -->
