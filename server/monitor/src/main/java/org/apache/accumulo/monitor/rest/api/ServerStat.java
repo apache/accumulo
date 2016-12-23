@@ -16,18 +16,31 @@
  */
 package org.apache.accumulo.monitor.rest.api;
 
-import java.util.ArrayList;
-import java.util.List;
+public class ServerStat {
 
-public class ServerStats {
+  public int max;
+  public boolean adjustMax;
+  public float significance;
+  public String description, name;
+  public boolean derived;
 
-  public List<ServerStat> serverStats;
+  public ServerStat() {}
 
-  public ServerStats() {
-    serverStats = new ArrayList<>();
+  public ServerStat(int max, boolean adjustMax, float significance, String description, String name) {
+    this.max = max;
+    this.adjustMax = adjustMax;
+    this.significance = significance;
+    this.description = description;
+    this.derived = false;
+    this.name = name;
   }
 
-  public void addStats(ServerStat stat) {
-    serverStats.add(stat);
+  public ServerStat(int max, boolean adjustMax, float significance, String description, boolean derived, String name) {
+    this.max = max;
+    this.adjustMax = adjustMax;
+    this.significance = significance;
+    this.description = description;
+    this.derived = derived;
+    this.name = name;
   }
 }

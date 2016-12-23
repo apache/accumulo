@@ -46,6 +46,7 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.api.AllTimeTabletResults;
 import org.apache.accumulo.monitor.rest.api.CurrentOperations;
 import org.apache.accumulo.monitor.rest.api.CurrentTabletResults;
+import org.apache.accumulo.monitor.rest.api.ServerStat;
 import org.apache.accumulo.monitor.rest.api.ServerStats;
 import org.apache.accumulo.monitor.rest.api.TabletServer;
 import org.apache.accumulo.monitor.rest.api.TabletServerDetailInformation;
@@ -164,20 +165,20 @@ public class TabletServerResource {
 
   @Path("/serverStats")
   @GET
-  public List<ServerStats> getServerStats() {
+  public ServerStats getServerStats() {
 
-    List<ServerStats> stats = new ArrayList<>();
+    ServerStats stats = new ServerStats();
 
-    stats.add(new ServerStats(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100, "OS Load", "osload"));
-    stats.add(new ServerStats(1000, true, 1, "Ingest Entries", "ingest"));
-    stats.add(new ServerStats(10000, true, 1, "Scan Entries", "query"));
-    stats.add(new ServerStats(10, true, 10, "Ingest MB", "ingestMB"));
-    stats.add(new ServerStats(5, true, 10, "Scan MB", "queryMB"));
-    stats.add(new ServerStats(concurrentScans * 2, false, 1, "Running Scans", "scans"));
-    stats.add(new ServerStats(50, true, 10, "Scan Sessions", "scansessions"));
-    stats.add(new ServerStats(60000, false, 1, "Hold Time", "holdtime"));
-    stats.add(new ServerStats(1, false, 100, "Overall Avg", true, "allavg"));
-    stats.add(new ServerStats(1, false, 100, "Overall Max", true, "allmax"));
+    stats.addStats(new ServerStat(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100, "OS Load", "osload"));
+    stats.addStats(new ServerStat(1000, true, 1, "Ingest Entries", "ingest"));
+    stats.addStats(new ServerStat(10000, true, 1, "Scan Entries", "query"));
+    stats.addStats(new ServerStat(10, true, 10, "Ingest MB", "ingestMB"));
+    stats.addStats(new ServerStat(5, true, 10, "Scan MB", "queryMB"));
+    stats.addStats(new ServerStat(concurrentScans * 2, false, 1, "Running Scans", "scans"));
+    stats.addStats(new ServerStat(50, true, 10, "Scan Sessions", "scansessions"));
+    stats.addStats(new ServerStat(60000, false, 1, "Hold Time", "holdtime"));
+    stats.addStats(new ServerStat(1, false, 100, "Overall Avg", true, "allavg"));
+    stats.addStats(new ServerStat(1, false, 100, "Overall Max", true, "allmax"));
 
     return stats;
   }
