@@ -235,18 +235,27 @@ public class IteratorUtil {
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
       SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
       IteratorEnvironment env, boolean useAccumuloClassLoader) throws IOException {
-    List<IterInfo> iters = new ArrayList<>(ssiList);
-    Map<String,Map<String,String>> allOptions = new HashMap<>();
-    parseIteratorConfiguration(scope, iters, ssio, allOptions, conf);
-    return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, conf.get(Property.TABLE_CLASSPATH));
+
+    return loadIteratorsHelper(scope, source, extent, conf, ssiList, ssio, env, useAccumuloClassLoader, null);
   }
 
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
       SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
       IteratorEnvironment env, boolean useAccumuloClassLoader, String classLoaderContext) throws IOException {
+
+    return loadIteratorsHelper(scope, source, extent, conf, ssiList, ssio, env, useAccumuloClassLoader, classLoaderContext);
+  }
+
+  private static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIteratorsHelper(IteratorScope scope,
+      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+      IteratorEnvironment env, boolean useAccumuloClassLoader, String classLoaderContext) throws IOException {
+
     List<IterInfo> iters = new ArrayList<>(ssiList);
     Map<String,Map<String,String>> allOptions = new HashMap<>();
     parseIteratorConfiguration(scope, iters, ssio, allOptions, conf);
+    if (classLoaderContext == null) {
+      classLoaderContext = conf.get(Property.TABLE_CLASSPATH);
+    }
     return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader, classLoaderContext);
   }
 
