@@ -2310,6 +2310,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   public ZooLock getLock() {
+    log.info("Acquiring Tablet Server Lock");
+    log.info("Lock Acquired");
     return tabletServerLock;
   }
 
