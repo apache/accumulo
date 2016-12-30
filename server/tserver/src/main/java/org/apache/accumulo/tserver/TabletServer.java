@@ -320,6 +320,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<>();
 
   private Thread majorCompactorThread;
+  
+  private String version;
 
   private HostAndPort replicationAddress;
   private HostAndPort clientAddress;
@@ -347,6 +349,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   public TabletServer(Instance instance, ServerConfigurationFactory confFactory, VolumeManager fs) throws IOException {
     super(instance, confFactory);
+    this.version = Constants.VERSION;
     this.confFactory = confFactory;
     this.fs = fs;
     final AccumuloConfiguration aconf = getConfiguration();
@@ -412,6 +415,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     } else {
       authKeyWatcher = null;
     }
+  }
+  
+  public String getVersion() {
+    return version;
+  }
+  
+  public void setVersion(String version) {
+    this.version = version;
   }
 
   private static long jitter(long ms) {
@@ -3053,6 +3064,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     result.bulkImports = new ArrayList<>();
     result.bulkImports.addAll(clientHandler.getBulkLoadStatus());
     result.bulkImports.addAll(bulkImportStatus.getBulkLoadStatus());
+    result.version = this.version;
     return result;
   }
 
