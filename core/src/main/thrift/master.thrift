@@ -85,6 +85,7 @@ struct TabletServerStatus {
   15:i64 flushs
   16:i64 syncs
   17:list<BulkImportStatus> bulkImports
+  18:string version
 }
 
 enum MasterState {
