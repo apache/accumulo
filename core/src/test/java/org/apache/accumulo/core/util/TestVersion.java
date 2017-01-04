@@ -55,10 +55,11 @@ public class TestVersion extends TestCase {
     assertTrue(v.getReleaseVersion() == 0);
     assertTrue(v.getEtcetera().equals("beta"));
 
-    try {
-      make("beta");
-      fail("Should have thrown an error");
-    } catch (IllegalArgumentException t) {}
+    v = make("beta");
+    assertTrue(v.getPackage() == null);
+    assertTrue(v.getMajorVersion() == 0);
+    assertTrue(v.getMinorVersion() == 0);
+    assertTrue(v.getReleaseVersion() == 0);
+    assertTrue(v.getEtcetera() == null);
   }
-
 }

@@ -21,11 +21,14 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
 public class Version implements KeywordExecutable {
+  private static final Logger log = LoggerFactory.getLogger(Version.class);
 
   public Version() {}
 
@@ -58,8 +61,10 @@ public class Version implements KeywordExecutable {
   private void parse(String everything) {
     Pattern pattern = Pattern.compile("(([^-]*)-)?(\\d+)(\\.(\\d+)(\\.(\\d+))?)?(-(.*))?");
     Matcher parser = pattern.matcher(everything);
-    if (!parser.matches())
-      throw new IllegalArgumentException("Unable to parse: " + everything + " as a version");
+    if (!parser.matches()) {
+      log.warn("Unable to parse '{}' as a version", everything);
+      return;
+    }
 
     if (parser.group(1) != null)
       package_ = parser.group(2);
