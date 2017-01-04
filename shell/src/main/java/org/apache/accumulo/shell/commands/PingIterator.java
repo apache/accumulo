@@ -43,11 +43,11 @@ class PingIterator implements Iterator<String> {
 
     try {
       instanceOps.ping(tserver);
+      return tserver + " OK " + instanceOps.getTabletServerVersion(tserver);
     } catch (AccumuloException e) {
       return tserver + " ERROR " + e.getMessage();
     }
 
-    return tserver + " OK";
   }
 
   @Override

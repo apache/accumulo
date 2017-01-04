@@ -37,6 +37,8 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -205,6 +207,42 @@ public class InstanceOperationsImpl implements InstanceOperations {
         transport.close();
       }
     }
+  }
+
+  @Override
+  public String getTabletServerVersion(String tserver) throws AccumuloException {
+    String version = null;
+    MasterMonitorInfo mmi = null;
+    boolean retry = true;
+
+    while (retry) {
+      MasterClientService.Iface client = null;
+      try {
+        client = MasterClient.getConnection(context);
+        if (client != null) {
+          mmi = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+          retry = false;
+        } else {
+          mmi = null;
+        }
+      } catch (Exception e) {
+        mmi = null;
+      } finally {
+        if (client != null) {
+          MasterClient.close(client);
+        }
+      }
+    }
+    if (mmi != null) {
+      for (TabletServerStatus ts : mmi.getTServerInfo()) {
+        if (tserver.equals(ts.getName())) {
+          version = ts.getVersion();
+          break;
+        }
+      }
+    }
+
+    return version;
   }
 
   @Override

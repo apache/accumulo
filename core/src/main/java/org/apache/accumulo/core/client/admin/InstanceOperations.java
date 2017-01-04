@@ -81,6 +81,16 @@ public interface InstanceOperations {
   List<String> getTabletServers();
 
   /**
+   * Return the version the selected tablet server in the accumulo instance
+   * 
+   * @param tserver
+   *          The tablet server address should be of the form {@code <ip address>:<port>}
+   * @return The version of the selected tablet server.
+   */
+
+  String getTabletServerVersion(String tserver) throws AccumuloException;
+
+  /**
    * List the active scans on tablet server.
    *
    * @param tserver

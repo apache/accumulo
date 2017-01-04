@@ -94,4 +94,9 @@ class MockInstanceOperations implements InstanceOperations {
 
   @Override
   public void waitForBalance() throws AccumuloException {}
+
+  @Override
+  public String getTabletServerVersion(String tserver) throws AccumuloException {
+    return null;
+  }
 }
