@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
@@ -97,6 +98,6 @@ class MockInstanceOperations implements InstanceOperations {
 
   @Override
   public String getTabletServerVersion(String tserver) throws AccumuloException {
-    return null;
+    return Constants.VERSION;
   }
 }
