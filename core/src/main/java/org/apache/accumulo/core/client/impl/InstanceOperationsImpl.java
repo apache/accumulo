@@ -29,6 +29,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TServerStatus;
+import org.apache.accumulo.core.client.TableInfoUtil;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
@@ -38,6 +40,7 @@ import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -208,13 +211,14 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     }
   }
-
+  
   @Override
-  public String getTabletServerVersion(String tserver) throws AccumuloException {
-    String version = null;
+  public List<TServerStatus> getTabletServerStatus() throws AccumuloException {
+    List<TServerStatus> status = new ArrayList<>();
     MasterMonitorInfo mmi = null;
     boolean retry = true;
-
+    long now = System.currentTimeMillis();
+    
     while (retry) {
       MasterClientService.Iface client = null;
       try {
@@ -234,15 +238,34 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     }
     if (mmi != null) {
-      for (TabletServerStatus ts : mmi.getTServerInfo()) {
-        if (tserver.equals(ts.getName())) {
-          version = ts.getVersion();
-          break;
-        }
+      for (TabletServerStatus ts : mmi.getTServerInfo()) {    
+        
+        TableInfo summary = TableInfoUtil.summarizeTableStats(ts);
+        if (summary == null)
+          return status;
+        String name = ts.getName();
+        int hostedTablets = summary.tablets;
+        long lastContact = now - ts.lastContact;
+        long entries = summary.recs;
+        double ingest = summary.ingestRate;
+        double query = summary.queryRate;
+        long holdTime = ts.holdTime;
+        Integer scans = summary.scans != null ? summary.scans.running : null;
+        Integer minor = summary.minors != null ? summary.minors.running : null;
+        Integer major = summary.majors != null ? summary.majors.running : null;
+        double indexHitRate = ts.indexCacheHits / (double) Math.max(ts.indexCacheRequest, 1);
+        double dataHitRate = ts.dataCacheHits / (double) Math.max(ts.dataCacheRequest, 1);
+        double osLoad = ts.osLoad;
+        String version = ts.version;
+        
+        TServerStatus stat = new TServerStatus(name, hostedTablets, lastContact, entries, ingest, query, holdTime, scans,
+            minor, major, indexHitRate, dataHitRate, osLoad, version);
+        
+        status.add(stat);
       }
     }
-
-    return version;
+    
+    return status;
   }
 
   @Override

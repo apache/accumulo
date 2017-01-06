@@ -20,9 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TServerStatus;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -97,7 +97,7 @@ class MockInstanceOperations implements InstanceOperations {
   public void waitForBalance() throws AccumuloException {}
 
   @Override
-  public String getTabletServerVersion(String tserver) throws AccumuloException {
-    return Constants.VERSION;
+  public List<TServerStatus> getTabletServerStatus() throws AccumuloException {
+    return null;
   }
 }

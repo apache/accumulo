@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TServerStatus;
 
 /**
  *
@@ -79,16 +80,14 @@ public interface InstanceOperations {
    */
 
   List<String> getTabletServers();
-
+  
   /**
-   * Return the version the selected tablet server in the accumulo instance
+   * List the tablet server status
    * 
-   * @param tserver
-   *          The tablet server address should be of the form {@code <ip address>:<port>}
-   * @return The version of the selected tablet server.
+   * @return A list of tablet server status.
    */
-
-  String getTabletServerVersion(String tserver) throws AccumuloException;
+  
+  List<TServerStatus> getTabletServerStatus() throws AccumuloException;
 
   /**
    * List the active scans on tablet server.
