@@ -648,7 +648,6 @@ public class Monitor implements HighlyAvailableService {
       }
 
       if (!monitorLockWatcher.failedToAcquireLock) {
-        log.warn("Failed to acquire Monitor lock. Monitor lock is in unknown state.");
         throw new IllegalStateException("monitor lock in unknown state");
       }
 
