@@ -19,20 +19,24 @@ package org.apache.accumulo.shell.commands;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TServerStatus;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.MissingArgumentException;
+import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.hadoop.yarn.webapp.NotFoundException;
 
 /**
  *
  */
 public class TabletServerStatusCommand extends Command {
 
-  private Option tserverOption, disablePaginationOpt;
+  private Option tserverOption, disablePaginationOpt, allOption;
 
   @Override
   public String description() {
@@ -40,8 +44,7 @@ public class TabletServerStatusCommand extends Command {
   }
 
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {    
     List<TServerStatus> tservers;
 
     final InstanceOperations instanceOps = shellState.getConnector().instanceOperations();
@@ -55,11 +58,16 @@ public class TabletServerStatusCommand extends Command {
           tservers.add(ts);
         }
       }
-    } else {
+    } else if (cl.hasOption(allOption.getOpt())) {
       tservers = instanceOps.getTabletServerStatus();
+    } else {
+      throw new MissingOptionException("Missing options");
     }
     
-    shellState.printLines(new TabletServerStatusIterator(tservers, instanceOps), paginate);
+    if (tservers.isEmpty()) {
+      throw new NotFoundException("Tablet Servers not found");
+    }
+    shellState.printLines(new TabletServerStatusIterator(tservers, shellState), paginate);
 
     return 0;
   }
@@ -79,6 +87,9 @@ public class TabletServerStatusCommand extends Command {
 
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     opts.addOption(disablePaginationOpt);
+    
+    allOption = new Option("a", "all", false, "list tablet servers status");
+    opts.addOption(allOption);
 
     return opts;
   }

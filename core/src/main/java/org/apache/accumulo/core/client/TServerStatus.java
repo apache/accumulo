@@ -25,6 +25,7 @@ package org.apache.accumulo.core.client;
 
 public class TServerStatus extends RuntimeException {
 
+  private static final long serialVersionUID = 1L;
   private String name, version;
   int hostedTablets;
   long lastContact, entries, holdTime;
