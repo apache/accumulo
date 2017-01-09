@@ -2310,8 +2310,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   public ZooLock getLock() {
-    log.info("Acquiring Tablet Server Lock");
-    log.info("Lock Acquired");
     return tabletServerLock;
   }
 
@@ -2362,7 +2360,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 
         if (tabletServerLock.tryLock(lw, lockContent)) {
-          log.debug("Obtained tablet server lock " + tabletServerLock.getLockPath());
+          log.info("Obtained tablet server lock " + tabletServerLock.getLockPath());
           lockID = tabletServerLock.getLockID().serialize(ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/");
           return;
         }
