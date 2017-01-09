@@ -171,12 +171,12 @@ These files do exist in the build tree, but at different locations)
 
 # Manual Distributed Testing
 
-Apache Accumulo also contains a number of tests which are suitable for running against large clusters for hours to days
-at a time, for example the [Continuous Ingest][1] and [Randomwalk test][2] suites. These all exist in the repository under
-`test/system` and contain their own README files for configuration and use.
+Apache Accumulo has a number of tests which are suitable for running against large clusters for hours to days at a time.
+Some of these test suites (like the [Continuous Ingest][1] test) exist in the repository under `test/system` and contain their
+own README files for configuration. Others (like the Random Walk test) are in the [accumulo-testing repo][2].
 
 [1]: test/system/continuous/README.md
-[2]: test/system/randomwalk/README.md
+[2]: https://github.com/apache/accumulo-testing
 [3]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
 [4]: http://maven.apache.org/surefire/maven-surefire-plugin/
 [5]: http://maven.apache.org/surefire/maven-failsafe-plugin/
