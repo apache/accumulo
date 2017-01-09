@@ -80,13 +80,13 @@ public interface InstanceOperations {
    */
 
   List<String> getTabletServers();
-  
+
   /**
    * List the tablet server status
    * 
    * @return A list of tablet server status.
    */
-  
+
   List<TServerStatus> getTabletServerStatus() throws AccumuloException;
 
   /**

@@ -44,10 +44,9 @@ class TabletServerStatusIterator implements Iterator<String> {
   public String next() {
     TServerStatus tserver = iter.next();
     long now = System.currentTimeMillis();
-    
-    String name, hostedTablets, lastContact, entries, ingest, query, holdTime, scans, minor, major, indexHitRate, dataHitRate,
-      osLoad, version;
-    
+
+    String name, hostedTablets, lastContact, entries, ingest, query, holdTime, scans, minor, major, indexHitRate, dataHitRate, osLoad, version;
+
     name = tserver.getName();
     hostedTablets = Integer.toString(tserver.getHostedTablets());
     lastContact = Long.toString(now - tserver.getLastContact());
@@ -62,9 +61,9 @@ class TabletServerStatusIterator implements Iterator<String> {
     dataHitRate = Double.toString(tserver.getDataHitRate());
     osLoad = Double.toString(tserver.getOsLoad());
     version = tserver.getVersion();
-    
+
     // Check config file for this
-    
+
     String output = "";
 
     output += printStatHeader();
@@ -82,9 +81,9 @@ class TabletServerStatusIterator implements Iterator<String> {
     output += printStatLine("Data Cache Hit Rate", dataHitRate);
     output += printStatLine("OS Load", osLoad);
     output += printStatLine("Version", version);
-    
+
     output += printStatFooter();
-    
+
     return output;
   }
 
@@ -92,31 +91,31 @@ class TabletServerStatusIterator implements Iterator<String> {
   public void remove() {
     throw new UnsupportedOperationException();
   }
-  
+
   private String printStatHeader() {
     String output = "";
     output += printStatFooter();
     output += (String.format("\n%-" + COL1 + "s | %s", "NAME", "VALUE"));
     output += printStatFooter();
-    
+
     return output;
   }
-  
+
   private String printStatLine(String s1, String s2) {
     String output = "";
-    if (s1.length() < COL1) { 
+    if (s1.length() < COL1) {
       s1 += " " + Shell.repeat(".", COL1 - s1.length() - 1);
     }
     output += String.format("\n%-" + COL1 + "s | %s", s1, s2.replace("\n", "\n" + Shell.repeat(" ", COL1 + 1) + "| "));
-    
+
     return output;
   }
-  
+
   private String printStatFooter() {
     String output = "";
-    int col2 = Math.max(1,  Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - 6));
+    int col2 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - 6));
     output += String.format("\n%" + COL1 + "s-+-%-" + col2 + "s", Shell.repeat("-", COL1), Shell.repeat("-", col2));
-    
+
     return output;
   }
 

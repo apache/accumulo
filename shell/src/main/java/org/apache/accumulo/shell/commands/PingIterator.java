@@ -46,7 +46,7 @@ class PingIterator implements Iterator<String> {
     } catch (AccumuloException e) {
       return tserver + " ERROR " + e.getMessage();
     }
-    
+
     return tserver + " OK";
   }
 

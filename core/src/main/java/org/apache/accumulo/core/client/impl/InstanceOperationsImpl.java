@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TServerStatus;
-import org.apache.accumulo.core.client.TableInfoUtil;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
@@ -47,6 +46,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.TableInfoUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -211,14 +211,14 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     }
   }
-  
+
   @Override
   public List<TServerStatus> getTabletServerStatus() throws AccumuloException {
     List<TServerStatus> status = new ArrayList<>();
     MasterMonitorInfo mmi = null;
     boolean retry = true;
     long now = System.currentTimeMillis();
-    
+
     while (retry) {
       MasterClientService.Iface client = null;
       try {
@@ -238,8 +238,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     }
     if (mmi != null) {
-      for (TabletServerStatus ts : mmi.getTServerInfo()) {    
-        
+      for (TabletServerStatus ts : mmi.getTServerInfo()) {
+
         TableInfo summary = TableInfoUtil.summarizeTableStats(ts);
         if (summary == null)
           return status;
@@ -257,14 +257,14 @@ public class InstanceOperationsImpl implements InstanceOperations {
         double dataHitRate = ts.dataCacheHits / (double) Math.max(ts.dataCacheRequest, 1);
         double osLoad = ts.osLoad;
         String version = ts.version;
-        
-        TServerStatus stat = new TServerStatus(name, hostedTablets, lastContact, entries, ingest, query, holdTime, scans,
-            minor, major, indexHitRate, dataHitRate, osLoad, version);
-        
+
+        TServerStatus stat = new TServerStatus(name, hostedTablets, lastContact, entries, ingest, query, holdTime, scans, minor, major, indexHitRate,
+            dataHitRate, osLoad, version);
+
         status.add(stat);
       }
     }
-    
+
     return status;
   }
 

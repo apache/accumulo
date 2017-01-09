@@ -31,7 +31,7 @@ public class TServerStatus extends RuntimeException {
   long lastContact, entries, holdTime;
   double ingest, query, indexHitRate, dataHitRate, osLoad;
   Integer scans, minor, major;
-  
+
   public TServerStatus() {
     name = "";
     hostedTablets = 0;
@@ -49,9 +49,8 @@ public class TServerStatus extends RuntimeException {
     version = "";
   }
 
-  public TServerStatus(String name, int hostedTablets, long lastContact, long entries, double ingest, double query, 
-      long holdTime, Integer scans, Integer minor, Integer major, double indexHitRate, double dataHitRate, double osLoad, 
-      String version) {
+  public TServerStatus(String name, int hostedTablets, long lastContact, long entries, double ingest, double query, long holdTime, Integer scans,
+      Integer minor, Integer major, double indexHitRate, double dataHitRate, double osLoad, String version) {
     this.name = name;
     this.hostedTablets = hostedTablets;
     this.lastContact = lastContact;
@@ -180,5 +179,4 @@ public class TServerStatus extends RuntimeException {
     this.major = major;
   }
 
-  
 }
