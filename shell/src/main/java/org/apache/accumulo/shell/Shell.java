@@ -1007,7 +1007,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  public interface PrintLine {
+  public interface PrintLine extends AutoCloseable {
     void print(String s);
 
     void close();
