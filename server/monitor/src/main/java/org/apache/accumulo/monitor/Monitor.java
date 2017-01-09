@@ -634,7 +634,7 @@ public class Monitor implements HighlyAvailableService {
       }
     }
 
-    log.info("Acquiring Monitor lock");
+    log.info("Attempting to acquire Monitor Lock");
     // Get a ZooLock for the monitor
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
@@ -656,7 +656,7 @@ public class Monitor implements HighlyAvailableService {
       sleepUninterruptibly(getContext().getConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL), TimeUnit.MILLISECONDS);
     }
 
-    log.info("Got Monitor lock.");
+    log.info("Acquired Monitor Lock " + monitorLock.getLockPath());
   }
 
   /**

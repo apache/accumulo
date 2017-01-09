@@ -1400,7 +1400,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   }
 
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
-    log.info("Acquiring Master lock");
+    log.info("Attempting to acquire Master Lock");
 
     final String masterClientAddress = hostname + ":" + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
 
@@ -1424,7 +1424,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
       sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, TimeUnit.MILLISECONDS);
     }
-    log.info("Got Master lock.");
+    log.info("Acquired Master Lock");
     setMasterState(MasterState.HAVE_LOCK);
   }
 

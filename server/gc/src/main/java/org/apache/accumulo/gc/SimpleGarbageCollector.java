@@ -665,7 +665,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    log.info("Acquiring Garbage Collector lock.");
+    log.info("Attempting to acquire Garbage Collector Lock");
     String path = ZooUtil.getRoot(getInstance()) + Constants.ZGC_LOCK;
 
     LockWatcher lockWatcher = new LockWatcher() {
@@ -691,10 +691,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     while (true) {
       lock = new ZooLock(path);
       if (lock.tryLock(lockWatcher, new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
-        log.info("Got Garbage Collector lock.");
+        log.info("Acquired Garbage Collector Lock");
         return;
       }
-      log.debug("Failed to get GC ZooKeeper lock, will retry");
+      log.debug("Failed to acquire GC ZooKeeper lock, will retry");
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
