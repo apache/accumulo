@@ -61,6 +61,13 @@ struct ScanResult {
 	2:bool more
 }
 
+struct TResourceRequest {
+	1:string queueName,
+	2:bool interruptible,
+	3:optional i64 mem,
+	4:optional i64 cpuTime
+	
+}
 struct TRange {
 	1:TKey start,
 	2:TKey stop,

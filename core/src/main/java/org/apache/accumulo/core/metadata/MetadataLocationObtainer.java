@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceRequest;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
@@ -99,7 +100,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
       boolean more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-          serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L, null);
+          serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L, null, ResourceRequest.METADATA);
 
       decodeRows(encodedResults, results);
 
@@ -107,7 +108,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME), true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
         more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L, null);
+            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L, null, ResourceRequest.METADATA);
 
         decodeRows(encodedResults, results);
       }

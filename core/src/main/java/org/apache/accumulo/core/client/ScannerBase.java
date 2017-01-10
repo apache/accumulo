@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.ResourceRequest;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -266,4 +267,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * @since 1.8.0
    */
   String getClassLoaderContext();
+
+  void setResourceRequest(ResourceRequest requestedResourceQueue);
+
+  ResourceRequest getResourceRequest();
 }

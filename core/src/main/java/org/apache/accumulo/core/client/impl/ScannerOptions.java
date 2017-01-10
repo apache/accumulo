@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.ResourceRequest;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
@@ -58,6 +59,8 @@ public class ScannerOptions implements ScannerBase {
   private SamplerConfiguration samplerConfig = null;
 
   protected String classLoaderContext = null;
+
+  protected ResourceRequest requestedResource = null;
 
   protected ScannerOptions() {}
 
@@ -261,6 +264,16 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public String getClassLoaderContext() {
     return this.classLoaderContext;
+  }
+
+  @Override
+  public void setResourceRequest(ResourceRequest requestedResourceQueue) {
+    this.requestedResource = requestedResourceQueue;
+  }
+
+  @Override
+  public ResourceRequest getResourceRequest() {
+    return requestedResource;
   }
 
 }
