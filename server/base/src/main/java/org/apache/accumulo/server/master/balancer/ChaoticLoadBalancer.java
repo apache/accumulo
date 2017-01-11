@@ -164,6 +164,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     return 100;
   }
 
+  @Deprecated
   @Override
   public void init(ServerConfiguration conf) {
     throw new NotImplementedException();
