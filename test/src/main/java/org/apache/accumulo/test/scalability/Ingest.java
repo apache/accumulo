@@ -29,7 +29,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.test.continuous.ContinuousIngest;
+import org.apache.accumulo.test.performance.ContinuousIngest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
