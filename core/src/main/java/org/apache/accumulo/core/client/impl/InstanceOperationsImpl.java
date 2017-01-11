@@ -236,6 +236,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
           MasterClient.close(client);
         }
       }
+      if (mmi == null) {
+        break;
+      }
     }
     if (mmi != null) {
       for (TabletServerStatus ts : mmi.getTServerInfo()) {

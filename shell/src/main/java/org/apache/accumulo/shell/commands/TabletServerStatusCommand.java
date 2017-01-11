@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.client.TServerStatus;
+import org.apache.accumulo.core.client.TabletServerNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -27,7 +28,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.yarn.webapp.NotFoundException;
 
 /**
  *
@@ -38,7 +38,7 @@ public class TabletServerStatusCommand extends Command {
 
   @Override
   public String description() {
-    return "get tablet servers status";
+    return "get tablet servers status, master server must be running";
   }
 
   @Override
@@ -63,7 +63,7 @@ public class TabletServerStatusCommand extends Command {
     }
 
     if (tservers.isEmpty()) {
-      throw new NotFoundException("Tablet Servers not found");
+      throw new TabletServerNotFoundException("Tablet Servers not found");
     }
     shellState.printLines(new TabletServerStatusIterator(tservers, shellState), paginate);
 
