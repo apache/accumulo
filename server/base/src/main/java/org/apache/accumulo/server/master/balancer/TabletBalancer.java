@@ -59,6 +59,10 @@ public abstract class TabletBalancer {
     configuration = conf;
   }
 
+  /**
+   * @deprecated since 1.7.3 and 1.8.1; overriding this has no effect; subclasses should override {@link #init(ServerConfigurationFactory)} instead.
+   */
+  @Deprecated
   public void init(ServerConfiguration conf) {
     init((ServerConfigurationFactory) conf);
   }
