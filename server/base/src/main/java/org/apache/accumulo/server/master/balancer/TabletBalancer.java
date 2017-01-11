@@ -32,7 +32,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -57,14 +56,6 @@ public abstract class TabletBalancer {
   public void init(ServerConfigurationFactory conf) {
     context = new AccumuloServerContext(conf);
     configuration = conf;
-  }
-
-  /**
-   * @deprecated since 1.7.3 and 1.8.1; overriding this has no effect; subclasses should override {@link #init(ServerConfigurationFactory)} instead.
-   */
-  @Deprecated
-  public void init(ServerConfiguration conf) {
-    init((ServerConfigurationFactory) conf);
   }
 
   /**
