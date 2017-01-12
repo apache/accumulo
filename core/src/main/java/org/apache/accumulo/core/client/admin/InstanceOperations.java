@@ -83,8 +83,9 @@ public interface InstanceOperations {
 
   /**
    * List the tablet server status
-   * 
+   *
    * @return A list of tablet server status.
+   * @since 2.0.0
    */
 
   List<TServerStatus> getTabletServerStatus() throws AccumuloException;
