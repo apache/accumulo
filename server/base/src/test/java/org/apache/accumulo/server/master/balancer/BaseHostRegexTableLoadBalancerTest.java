@@ -98,16 +98,6 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       throw new UnsupportedOperationException();
     }
 
-    @Deprecated
-    @Override
-    public AccumuloConfiguration getConfiguration() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Deprecated
-    @Override
-    public void setConfiguration(AccumuloConfiguration conf) {}
-
     @Override
     public Connector getConnector(String principal, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();

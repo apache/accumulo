@@ -26,8 +26,6 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -353,22 +351,6 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    */
   public static void setSamplerConfiguration(JobConf job, SamplerConfiguration samplerConfig) {
     InputConfigurator.setSamplerConfiguration(CLASS, job, samplerConfig);
-  }
-
-  /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.impl.TabletLocator} based on the configuration.
-   *
-   * @param job
-   *          the Hadoop job for the configured job
-   * @return an Accumulo tablet locator
-   * @throws org.apache.accumulo.core.client.TableNotFoundException
-   *           if the table name set on the job doesn't exist
-   * @since 1.5.0
-   * @deprecated since 1.6.0
-   */
-  @Deprecated
-  protected static TabletLocator getTabletLocator(JobConf job) throws TableNotFoundException {
-    return InputConfigurator.getTabletLocator(CLASS, job, InputConfigurator.getInputTableName(CLASS, job));
   }
 
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {

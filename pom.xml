@@ -116,6 +116,7 @@
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
+    <apilyzer.ignoreDeprecated>false</apilyzer.ignoreDeprecated>
     <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.54</bouncycastle.version>

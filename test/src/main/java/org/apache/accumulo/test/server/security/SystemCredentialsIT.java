@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -64,12 +63,6 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
       throw new RuntimeException("Incorrect usage; expected to be run by test only");
     if (args[0].equals("bad")) {
       Instance inst = new Instance() {
-
-        @Deprecated
-        @Override
-        public void setConfiguration(AccumuloConfiguration conf) {
-          throw new UnsupportedOperationException();
-        }
 
         @Override
         public int getZooKeepersSessionTimeOut() {
@@ -121,12 +114,6 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         @Deprecated
         @Override
         public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
-        @Deprecated
-        @Override
-        public AccumuloConfiguration getConfiguration() {
           throw new UnsupportedOperationException();
         }
 
@@ -187,18 +174,6 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         @Deprecated
         @Override
         public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-          throw new UnsupportedOperationException();
-        }
-
-        @Deprecated
-        @Override
-        public AccumuloConfiguration getConfiguration() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Deprecated
-        @Override
-        public void setConfiguration(AccumuloConfiguration conf) {
           throw new UnsupportedOperationException();
         }
 

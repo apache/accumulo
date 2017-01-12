@@ -31,8 +31,6 @@ import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
@@ -135,20 +133,6 @@ public class MockInstance implements Instance {
   @Deprecated
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
-  }
-
-  AccumuloConfiguration conf = null;
-
-  @Deprecated
-  @Override
-  public AccumuloConfiguration getConfiguration() {
-    return conf == null ? DefaultConfiguration.getInstance() : conf;
-  }
-
-  @Override
-  @Deprecated
-  public void setConfiguration(AccumuloConfiguration conf) {
-    this.conf = conf;
   }
 
   @Override

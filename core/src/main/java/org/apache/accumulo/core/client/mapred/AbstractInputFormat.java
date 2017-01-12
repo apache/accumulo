@@ -328,23 +328,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.impl.TabletLocator} based on the configuration.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return an Accumulo tablet locator
-   * @throws org.apache.accumulo.core.client.TableNotFoundException
-   *           if the table name set on the configuration doesn't exist
-   * @since 1.6.0
-   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is not guaranteed to be stable. The method was deprecated to
-   *             discourage its use.
-   */
-  @Deprecated
-  protected static TabletLocator getTabletLocator(JobConf job, String tableId) throws TableNotFoundException {
-    return InputConfigurator.getTabletLocator(CLASS, job, tableId);
-  }
-
-  /**
    * Fetch the client configuration from the job.
    *
    * @param job

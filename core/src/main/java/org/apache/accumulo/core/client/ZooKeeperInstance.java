@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
@@ -73,7 +72,6 @@ public class ZooKeeperInstance implements Instance {
 
   private final int zooKeepersSessionTimeOut;
 
-  private AccumuloConfiguration conf;
   private ClientConfiguration clientConf;
 
   /**
@@ -274,29 +272,6 @@ public class ZooKeeperInstance implements Instance {
   @Deprecated
   public Connector getConnector(String principal, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(principal, new PasswordToken(pass));
-  }
-
-  @Override
-  @Deprecated
-  public AccumuloConfiguration getConfiguration() {
-    return conf = conf == null ? DefaultConfiguration.getInstance() : ClientContext.convertClientConfig(clientConf);
-  }
-
-  @Override
-  @Deprecated
-  public void setConfiguration(AccumuloConfiguration conf) {
-    this.conf = conf;
-  }
-
-  /**
-   * Given a zooCache and instanceId, look up the instance name.
-   *
-   * @deprecated since 1.7.0 {@link ZooCache} is not part of the public API, but its a parameter to this method. Therefore code that uses this method is not
-   *             guaranteed to be stable. This method was deprecated to discourage its use.
-   */
-  @Deprecated
-  public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {
-    return InstanceOperationsImpl.lookupInstanceName(zooCache, instanceId);
   }
 
   @Override

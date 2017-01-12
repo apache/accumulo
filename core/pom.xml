@@ -208,7 +208,9 @@
                 <allow>org[.]apache[.]hadoop[.]fs[.](FileSystem|Path)</allow>
                 <allow>org[.]apache[.]hadoop[.]io[.](Text|Writable|WritableComparable|WritableComparator)</allow>
                 <allow>org[.]apache[.]hadoop[.]mapred[.](JobConf|RecordReader|InputSplit|RecordWriter|Reporter)</allow>
+                <allow>org[.]apache[.]hadoop[.]mapred[.]FileOutputFormat[$]Counter</allow>
                 <allow>org[.]apache[.]hadoop[.]mapreduce[.](Job|JobContext|RecordReader|InputSplit|TaskAttemptContext|RecordWriter|OutputCommitter|TaskInputOutputContext)</allow>
+                <allow>org[.]apache[.]hadoop[.]mapreduce[.]lib[.]output[.]FileOutputFormat[$]Counter</allow>
                 <allow>org[.]apache[.]hadoop[.]util[.]Progressable</allow>
                 <!--ugghhh-->
                 <allow>org[.]apache[.]log4j[.](Level|Logger)</allow>

@@ -65,21 +65,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
   private SamplerConfiguration iteratorSamplerConfig;
 
-  /**
-   * @deprecated since 1.7.0 was never intended for public use. However this could have been used by anything extending this class.
-   */
-  @Deprecated
-  public class ScannerTranslator extends ScannerTranslatorImpl {
-    public ScannerTranslator(Scanner scanner) {
-      super(scanner, scanner.getSamplerConfiguration());
-    }
-
-    @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
-      return new ScannerTranslator(scanner);
-    }
-  }
-
   private class ClientSideIteratorEnvironment implements IteratorEnvironment {
 
     private SamplerConfiguration samplerConfig;

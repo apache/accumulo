@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -48,15 +47,15 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.Accumulo;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Joiner;
 
 /**
  * An implementation of Instance that looks in HDFS and ZooKeeper to find the master and root tablet location.
@@ -193,30 +192,6 @@ public class HdfsZooInstance implements Instance {
   @Override
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
-  }
-
-  private final AtomicReference<AccumuloConfiguration> conf = new AtomicReference<>();
-
-  @Deprecated
-  @Override
-  public AccumuloConfiguration getConfiguration() {
-    AccumuloConfiguration conf = this.conf.get();
-    if (conf == null) {
-      // conf hasn't been set before, get an instance
-      conf = new ServerConfigurationFactory(this).getConfiguration();
-      // if the shared variable is still null, we're done.
-      if (!(this.conf.compareAndSet(null, conf))) {
-        // if it wasn't null, then we need to return the value that won.
-        conf = this.conf.get();
-      }
-    }
-    return conf;
-  }
-
-  @Override
-  @Deprecated
-  public void setConfiguration(AccumuloConfiguration conf) {
-    this.conf.set(conf);
   }
 
   public static void main(String[] args) {
