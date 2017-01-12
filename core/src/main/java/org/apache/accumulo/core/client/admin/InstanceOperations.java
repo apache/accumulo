@@ -21,7 +21,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TServerStatus;
 
 /**
  *
@@ -88,7 +87,7 @@ public interface InstanceOperations {
    * @since 2.0.0
    */
 
-  List<TServerStatus> getTabletServerStatus() throws AccumuloException;
+  List<Map<String,String>> getTabletServerStatus() throws AccumuloException;
 
   /**
    * List the active scans on tablet server.

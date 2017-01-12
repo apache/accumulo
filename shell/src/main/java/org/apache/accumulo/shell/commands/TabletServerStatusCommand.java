@@ -18,9 +18,8 @@ package org.apache.accumulo.shell.commands;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.accumulo.core.client.TServerStatus;
-import org.apache.accumulo.core.client.TabletServerNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -38,12 +37,12 @@ public class TabletServerStatusCommand extends Command {
 
   @Override
   public String description() {
-    return "get tablet servers status, master server must be running";
+    return "get tablet servers status";
   }
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    List<TServerStatus> tservers;
+    List<Map<String,String>> tservers;
 
     final InstanceOperations instanceOps = shellState.getConnector().instanceOperations();
 
@@ -51,8 +50,8 @@ public class TabletServerStatusCommand extends Command {
 
     if (cl.hasOption(tserverOption.getOpt())) {
       tservers = new ArrayList<>();
-      for (TServerStatus ts : instanceOps.getTabletServerStatus()) {
-        if (ts.getName().equals(cl.getOptionValue(tserverOption.getOpt()))) {
+      for (Map<String,String> ts : instanceOps.getTabletServerStatus()) {
+        if (ts.get("server").equals(cl.getOptionValue(tserverOption.getOpt()))) {
           tservers.add(ts);
         }
       }
@@ -62,9 +61,6 @@ public class TabletServerStatusCommand extends Command {
       throw new MissingOptionException("Missing options");
     }
 
-    if (tservers.isEmpty()) {
-      throw new TabletServerNotFoundException("Tablet Servers not found");
-    }
     shellState.printLines(new TabletServerStatusIterator(tservers, shellState), paginate);
 
     return 0;

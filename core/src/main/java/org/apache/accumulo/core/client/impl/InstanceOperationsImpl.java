@@ -23,13 +23,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.TServerStatus;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
@@ -213,8 +213,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public List<TServerStatus> getTabletServerStatus() throws AccumuloException {
-    List<TServerStatus> status = new ArrayList<>();
+  public List<Map<String,String>> getTabletServerStatus() throws AccumuloException {
+    List<Map<String,String>> status = new ArrayList<>();
     MasterMonitorInfo mmi = null;
     boolean retry = true;
     long now = System.currentTimeMillis();
@@ -247,22 +247,35 @@ public class InstanceOperationsImpl implements InstanceOperations {
         if (summary == null)
           return status;
         String name = ts.getName();
-        int hostedTablets = summary.tablets;
-        long lastContact = now - ts.lastContact;
-        long entries = summary.recs;
-        double ingest = summary.ingestRate;
-        double query = summary.queryRate;
-        long holdTime = ts.holdTime;
-        Integer scans = summary.scans != null ? summary.scans.running : null;
-        Integer minor = summary.minors != null ? summary.minors.running : null;
-        Integer major = summary.majors != null ? summary.majors.running : null;
-        double indexHitRate = ts.indexCacheHits / (double) Math.max(ts.indexCacheRequest, 1);
-        double dataHitRate = ts.dataCacheHits / (double) Math.max(ts.dataCacheRequest, 1);
-        double osLoad = ts.osLoad;
+        String tablets = Integer.toString(summary.tablets);
+        String lastContact = Long.toString(now - ts.lastContact);
+        String entries = Long.toString(summary.recs);
+        String ingest = Double.toString(summary.ingestRate);
+        String query = Double.toString(summary.queryRate);
+        String holdTime = Long.toString(ts.holdTime);
+        String scans = summary.scans != null ? Integer.toString(summary.scans.running) : null;
+        String minor = summary.minors != null ? Integer.toString(summary.minors.running) : null;
+        String major = summary.majors != null ? Integer.toString(summary.majors.running) : null;
+        String indexHitRate = Double.toString(ts.indexCacheHits / (double) Math.max(ts.indexCacheRequest, 1));
+        String dataHitRate = Double.toString(ts.dataCacheHits / (double) Math.max(ts.dataCacheRequest, 1));
+        String osLoad = Double.toString(ts.osLoad);
         String version = ts.version;
 
-        TServerStatus stat = new TServerStatus(name, hostedTablets, lastContact, entries, ingest, query, holdTime, scans, minor, major, indexHitRate,
-            dataHitRate, osLoad, version);
+        Map<String,String> stat = new TreeMap<String,String>();
+        stat.put("server", name);
+        stat.put("tablets", tablets);
+        stat.put("lastContact", lastContact);
+        stat.put("entries", entries);
+        stat.put("ingest", ingest);
+        stat.put("query", query);
+        stat.put("holdtime", holdTime);
+        stat.put("scans", scans);
+        stat.put("minor", minor);
+        stat.put("major", major);
+        stat.put("indexCacheHitRate", indexHitRate);
+        stat.put("dataCacheHitRate", dataHitRate);
+        stat.put("osload", osLoad);
+        stat.put("version", version);
 
         status.add(stat);
       }

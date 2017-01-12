@@ -18,19 +18,19 @@ package org.apache.accumulo.shell.commands;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.accumulo.core.client.TServerStatus;
 import org.apache.accumulo.shell.Shell;
 
 import jline.console.ConsoleReader;
 
 class TabletServerStatusIterator implements Iterator<String> {
 
-  private Iterator<TServerStatus> iter;
+  private Iterator<Map<String,String>> iter;
   private int COL1 = 25;
   private ConsoleReader reader;
 
-  TabletServerStatusIterator(List<TServerStatus> tservers, Shell shellState) {
+  TabletServerStatusIterator(List<Map<String,String>> tservers, Shell shellState) {
     iter = tservers.iterator();
     this.reader = shellState.getReader();
   }
@@ -42,47 +42,17 @@ class TabletServerStatusIterator implements Iterator<String> {
 
   @Override
   public String next() {
-    TServerStatus tserver = iter.next();
-    long now = System.currentTimeMillis();
-
-    String name, hostedTablets, lastContact, entries, ingest, query, holdTime, scans, minor, major, indexHitRate, dataHitRate, osLoad, version;
-
-    name = tserver.getName();
-    hostedTablets = Integer.toString(tserver.getHostedTablets());
-    lastContact = Long.toString(now - tserver.getLastContact());
-    entries = Long.toString(tserver.getEntries());
-    ingest = Double.toString(tserver.getIngest());
-    query = Double.toString(tserver.getQuery());
-    holdTime = Long.toString(tserver.getHoldTime());
-    scans = Integer.toString(tserver.getScans());
-    minor = Integer.toString(tserver.getMinor());
-    major = Integer.toString(tserver.getMajor());
-    indexHitRate = Double.toString(tserver.getIndexHitRate());
-    dataHitRate = Double.toString(tserver.getDataHitRate());
-    osLoad = Double.toString(tserver.getOsLoad());
-    version = tserver.getVersion();
-
-    // Check config file for this
+    Map<String,String> tserver = iter.next();
 
     String output = "";
 
     output += printStatHeader();
-    output += printStatLine("Server", name);
-    output += printStatLine("Hosted Tablets", hostedTablets);
-    output += printStatLine("Last Contact", lastContact);
-    output += printStatLine("Entries", entries);
-    output += printStatLine("Ingest", ingest);
-    output += printStatLine("Query", query);
-    output += printStatLine("Hold Time", holdTime);
-    output += printStatLine("Running Scans", scans);
-    output += printStatLine("Minor Compactions", minor);
-    output += printStatLine("Major Compactions", major);
-    output += printStatLine("Index Cache Hit Rate", indexHitRate);
-    output += printStatLine("Data Cache Hit Rate", dataHitRate);
-    output += printStatLine("OS Load", osLoad);
-    output += printStatLine("Version", version);
 
-    output += printStatFooter();
+    for (Map.Entry<String,String> entry : tserver.entrySet()) {
+      output += printStatLine(entry.getKey(), entry.getValue());
+    }
+
+    output += "\n" + printStatFooter();
 
     return output;
   }
@@ -95,7 +65,7 @@ class TabletServerStatusIterator implements Iterator<String> {
   private String printStatHeader() {
     String output = "";
     output += printStatFooter();
-    output += (String.format("\n%-" + COL1 + "s | %s", "NAME", "VALUE"));
+    output += (String.format("\n%-" + COL1 + "s | %s\n", "NAME", "VALUE"));
     output += printStatFooter();
 
     return output;
@@ -114,7 +84,7 @@ class TabletServerStatusIterator implements Iterator<String> {
   private String printStatFooter() {
     String output = "";
     int col2 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - 6));
-    output += String.format("\n%" + COL1 + "s-+-%-" + col2 + "s", Shell.repeat("-", COL1), Shell.repeat("-", col2));
+    output += String.format("%" + COL1 + "s-+-%-" + col2 + "s", Shell.repeat("-", COL1), Shell.repeat("-", col2));
 
     return output;
   }

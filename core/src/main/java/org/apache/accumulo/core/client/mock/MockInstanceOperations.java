@@ -22,7 +22,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TServerStatus;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -97,7 +96,7 @@ class MockInstanceOperations implements InstanceOperations {
   public void waitForBalance() throws AccumuloException {}
 
   @Override
-  public List<TServerStatus> getTabletServerStatus() throws AccumuloException {
-    return null;
+  public List<Map<String,String>> getTabletServerStatus() throws AccumuloException {
+    return new ArrayList<>();
   }
 }
