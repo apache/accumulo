@@ -25,8 +25,6 @@ import java.util.Map.Entry;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -44,9 +42,7 @@ import org.apache.accumulo.monitor.rest.api.ServerShuttingDownInformation;
 import org.apache.accumulo.monitor.rest.api.ServersShuttingDown;
 import org.apache.accumulo.server.master.state.TabletServerState;
 
-@Path("/master")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class MasterResource {
+public class MasterResource extends BasicResource {
   public static final String NO_MASTERS = "No Masters running";
 
   /**

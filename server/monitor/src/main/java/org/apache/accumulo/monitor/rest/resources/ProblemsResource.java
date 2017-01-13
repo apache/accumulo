@@ -20,15 +20,11 @@ import java.util.Map;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.problems.ProblemType;
 
-@Path("/problems")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class ProblemsResource {
+public class ProblemsResource extends BasicResource {
 
   @GET
   public Map<String,Map<ProblemType,Integer>> getSummary() {

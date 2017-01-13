@@ -17,10 +17,8 @@
 package org.apache.accumulo.monitor.rest.resources;
 
 import java.util.Map;
+
 import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
@@ -30,9 +28,7 @@ import org.apache.accumulo.monitor.rest.api.Scans;
 
 import com.google.common.net.HostAndPort;
 
-@Path("/scans")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class ScansResource {
+public class ScansResource extends BasicResource {
 
   @GET
   public Scans getTables() {

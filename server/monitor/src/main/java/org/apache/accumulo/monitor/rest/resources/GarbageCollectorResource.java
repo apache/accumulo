@@ -18,8 +18,6 @@ package org.apache.accumulo.monitor.rest.resources;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.monitor.Monitor;
@@ -30,9 +28,7 @@ import org.apache.accumulo.monitor.rest.api.GarbageCollectorStatus;
 /**
  * GarbageCollector metrics
  */
-@Path("/gc")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class GarbageCollectorResource {
+public class GarbageCollectorResource extends BasicResource {
 
   @GET
   public GarbageCollectorStatus getStatus() {

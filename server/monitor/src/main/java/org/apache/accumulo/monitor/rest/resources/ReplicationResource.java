@@ -26,9 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -55,9 +52,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Path("/replication")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class ReplicationResource {
+public class ReplicationResource extends BasicResource {
   private static final Logger log = LoggerFactory.getLogger(ReplicationResource.class);
 
   @GET

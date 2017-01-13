@@ -22,6 +22,7 @@ import java.util.List;
 public class TraceList {
 
   public String id;
+  public Long start;
   public List<TraceInformation> traces;
 
   public TraceList() {
@@ -35,5 +36,9 @@ public class TraceList {
 
   public void addTrace(TraceInformation traces) {
     this.traces.add(traces);
+  }
+
+  public void addStartTime(Long start) {
+    this.start = start;
   }
 }

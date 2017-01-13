@@ -16,12 +16,11 @@
  */
 package org.apache.accumulo.monitor.rest.resources;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.util.Pair;
@@ -30,9 +29,7 @@ import org.apache.accumulo.monitor.Monitor;
 /**
  *
  */
-@Path("/statistics")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class StatisticsResource {
+public class StatisticsResource extends BasicResource {
 
   @GET
   @Path("lookupRate")
@@ -107,6 +104,21 @@ public class StatisticsResource {
   }
 
   @GET
+  @Path("time/scanEntries")
+  public List<Pair<String,List<Pair<Long,Integer>>>> getScanEntries() {
+
+    List<Pair<String,List<Pair<Long,Integer>>>> scanEntries = new ArrayList<>();
+
+    Pair<String,List<Pair<Long,Integer>>> read = new Pair<>("Read", Monitor.getScanRateOverTime());
+    Pair<String,List<Pair<Long,Integer>>> returned = new Pair<>("Returned", Monitor.getQueryRateOverTime());
+
+    scanEntries.add(read);
+    scanEntries.add(returned);
+
+    return scanEntries;
+  }
+
+  @GET
   @Path("time/queryByteRate")
   public List<Pair<Long,Double>> getQueryByteRate() {
     return Monitor.getQueryByteRateOverTime();
@@ -147,4 +159,17 @@ public class StatisticsResource {
   public List<Pair<Long,Double>> getLookups() {
     return Monitor.getLookupsOverTime();
   }
+
+  @GET
+  @Path("time/indexCacheHitRate")
+  public List<Pair<Long,Double>> getIndexCacheHitRate() {
+    return Monitor.getIndexCacheHitRateOverTime();
+  }
+
+  @GET
+  @Path("time/dataCacheHitRate")
+  public List<Pair<Long,Double>> getDataCacheHitRate() {
+    return Monitor.getDataCacheHitRateOverTime();
+  }
+
 }

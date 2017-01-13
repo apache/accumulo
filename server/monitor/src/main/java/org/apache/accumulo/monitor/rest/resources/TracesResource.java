@@ -32,8 +32,6 @@ import java.util.TreeMap;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -71,9 +69,7 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 
-@Path("/trace")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class TracesResource {
+public class TracesResource extends BasicResource {
 
   @Path("/summary/{minutes}")
   @GET
@@ -184,6 +180,8 @@ public class TracesResource {
     } else {
       start = addSpans(scanner, tree, Long.MAX_VALUE);
     }
+
+    traces.addStartTime(start);
 
     final long finalStart = start;
     Set<Long> visited = tree.visit(new SpanTreeVisitor() {

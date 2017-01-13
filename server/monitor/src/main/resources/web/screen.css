@@ -186,6 +186,14 @@ table.sortable {
 	border-bottom: 1px #333333 dotted;
 }
 
+table.sortable tbody tr:nth-child(2n) td {
+    background: #ffffff;
+}
+
+table.sortable tbody tr:nth-child(2n+1) td {
+    background: #cef4b5;
+}
+
 td {
 	border-top: 0;
 	border-bottom: 0;
@@ -222,8 +230,8 @@ td.firstcell {
 	border-left: 0;
 }
 
-th.firstcell {
-	border-left: 0;
+th.sortable {
+	color: blue;
 }
 
 a {

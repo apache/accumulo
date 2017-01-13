@@ -17,10 +17,8 @@
 package org.apache.accumulo.monitor.rest.resources;
 
 import java.util.List;
+
 import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -29,9 +27,7 @@ import org.apache.accumulo.monitor.rest.api.BulkImport;
 import org.apache.accumulo.monitor.rest.api.BulkImportInformation;
 import org.apache.accumulo.monitor.rest.api.TabletServerBulkImportInformation;
 
-@Path("/bulkImports")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class BulkImportResource {
+public class BulkImportResource extends BasicResource {
 
   @GET
   public BulkImport getTables() {

@@ -25,13 +25,13 @@ public class AllTimeTabletResults {
 
   public AllTimeTabletResults() {}
 
-  public AllTimeTabletResults(String operation, int success, int failure, Double avgQueueTime, Double majorQueueStdDev, Double queueStdDev, double stdDev,
+  public AllTimeTabletResults(String operation, int success, int failure, Double avgQueueTime, Double queueStdDev, Double avgTime, double stdDev,
       double timeSpent) {
     this.operation = operation;
     this.success = success;
     this.failure = failure;
     this.avgQueueTime = avgQueueTime;
-    this.avgTime = majorQueueStdDev;
+    this.avgTime = avgTime;
     this.queueStdDev = queueStdDev;
     this.stdDev = stdDev;
     this.timeSpent = timeSpent;
