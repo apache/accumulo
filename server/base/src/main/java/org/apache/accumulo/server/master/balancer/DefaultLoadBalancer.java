@@ -187,7 +187,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       }
 
     } finally {
-      log.debug("balance ended with " + result.size() + " migrations");
+      log.trace("balance ended with {} migrations", result.size());
     }
     return moreBalancingNeeded;
   }
