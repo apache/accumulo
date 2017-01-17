@@ -217,6 +217,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections.unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
+  private final AtomicBoolean masterInitialized = new AtomicBoolean(false);
+
   @Override
   public synchronized MasterState getMasterState() {
     return state;
@@ -1302,6 +1304,9 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       log.error("Failed to register replication metrics", e);
     }
 
+    // The master is fully initialized. Clients are allowed to connect now.
+    masterInitialized.set(true);
+
     while (clientService.isServing()) {
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
@@ -1694,9 +1699,6 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   @Override
   public boolean isActiveService() {
-    if (null != masterLock) {
-      return masterLock.isLocked();
-    }
-    return false;
+    return masterInitialized.get();
   }
 }
