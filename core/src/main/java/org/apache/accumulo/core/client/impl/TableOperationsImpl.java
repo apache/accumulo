@@ -1209,6 +1209,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     String tableId = Tables.getTableId(context.getInstance(), tableName);
+
+    /**
+     * ACCUMULO-4574 if table is already online return without executing fate operation.
+     */
+    TableState expectedState = Tables.getTableState(context.getInstance(), tableId);
+    if (expectedState == TableState.ONLINE) {
+      return;
+    }
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
 
