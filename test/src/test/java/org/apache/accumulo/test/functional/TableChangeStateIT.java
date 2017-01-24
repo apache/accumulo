@@ -35,6 +35,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -44,23 +45,26 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
  * ACCUMULO-4574. Test to verify that changing table state to online / offline {@link org.apache.accumulo.core.client.admin.TableOperations#online(String)} when
  * the table is already in that state returns without blocking.
  */
-public class TableChangeStateIT extends ConfigurableMacIT {
+public class TableChangeStateIT extends AccumuloClusterIT {
 
   private static final Logger log = LoggerFactory.getLogger(TableChangeStateIT.class);
 
   private static final int NUM_ROWS = 1000;
+  private static final long SLOW_SCAN_SLEEP_MS = 100L;
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -78,6 +82,8 @@ public class TableChangeStateIT extends ConfigurableMacIT {
   @Test
   public void changeTableStateTest() throws Exception {
 
+    ExecutorService pool = Executors.newCachedThreadPool();
+
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
 
@@ -85,11 +91,14 @@ public class TableChangeStateIT extends ConfigurableMacIT {
 
     assertEquals("verify table online after created", TableState.ONLINE, getTableState(connector, tableName));
 
-    OnlineStatus status = onLine(tableName);
+    OnLineCallable onlineOp = new OnLineCallable(tableName);
 
-    log.trace("Online 1 in {} ms", TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
+    Future<OnlineOpTiming> task = pool.submit(onlineOp);
 
-    assertFalse("verify no exception thrown changing state", status.hasError());
+    OnlineOpTiming timing1 = task.get();
+
+    log.trace("Online 1 in {} ms", TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
+
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(connector, tableName));
 
     // verify that offline then online functions as expected.
@@ -97,33 +106,32 @@ public class TableChangeStateIT extends ConfigurableMacIT {
     connector.tableOperations().offline(tableName, true);
     assertEquals("verify table is offline", TableState.OFFLINE, getTableState(connector, tableName));
 
-    OnlineStatus status2 = onLine(tableName);
+    onlineOp = new OnLineCallable(tableName);
 
-    log.trace("Online 2 in {} ms", TimeUnit.MILLISECONDS.convert(status2.runningTime(), TimeUnit.NANOSECONDS));
+    task = pool.submit(onlineOp);
 
-    if (status2.hasError()) {
-      log.debug("Online failed with exception", status2.getException());
-    }
+    OnlineOpTiming timing2 = task.get();
 
-    assertFalse("verify no exception thrown changing state", status2.hasError());
+    log.trace("Online 2 in {} ms", TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
+
     assertEquals("verify table is back online", TableState.ONLINE, getTableState(connector, tableName));
 
     // launch a full table compaction with the slow iterator to ensure table lock is acquired and held by the compaction
-    Thread compactThread = new Thread(new SlowCompactionRunner(tableName));
-    compactThread.start();
 
+    Future compactTask = pool.submit(new SlowCompactionRunner(tableName));
     assertTrue("verify that compaction running and fate transaction exists", blockUntilCompactionRunning());
 
     // try to set online while fate transaction is in progress - before ACCUMULO-4574 this would block
-    OnlineStatus status3 = onLine(tableName);
-    log.trace("Online while compacting in {} ms", TimeUnit.MILLISECONDS.convert(status3.runningTime(), TimeUnit.NANOSECONDS));
 
-    if (status3.hasError()) {
-      log.debug("Online failed with exception", status3.getException());
-    }
+    onlineOp = new OnLineCallable(tableName);
 
-    assertFalse("verify no exception thrown changing state", status3.hasError());
-    assertTrue("online should take less time than expected compaction time", status3.runningTime() < TimeUnit.NANOSECONDS.convert(2, TimeUnit.SECONDS));
+    task = pool.submit(onlineOp);
+
+    OnlineOpTiming timing3 = task.get();
+
+    assertTrue("online should take less time than expected compaction time",
+        timing3.runningTime() < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS, TimeUnit.MILLISECONDS));
+
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(connector, tableName));
 
     assertTrue("verify compaction still running and fate transaction still exists", blockUntilCompactionRunning());
@@ -132,11 +140,12 @@ public class TableChangeStateIT extends ConfigurableMacIT {
     connector.tableOperations().cancelCompaction(tableName);
 
     log.debug("Success: Timing results for online commands.");
-    log.debug("Time for unblocked online {} ms", TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
-    log.debug("Time for online when offline {} ms", TimeUnit.MILLISECONDS.convert(status2.runningTime(), TimeUnit.NANOSECONDS));
-    log.debug("Time for blocked online {} ms", TimeUnit.MILLISECONDS.convert(status3.runningTime(), TimeUnit.NANOSECONDS));
+    log.debug("Time for unblocked online {} ms", TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
+    log.debug("Time for online when offline {} ms", TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
+    log.debug("Time for blocked online {} ms", TimeUnit.MILLISECONDS.convert(timing3.runningTime(), TimeUnit.NANOSECONDS));
 
-    compactThread.join();
+    // block if compaction still running
+    compactTask.get();
 
   }
 
@@ -259,40 +268,6 @@ public class TableChangeStateIT extends ConfigurableMacIT {
   }
 
   /**
-   * Executes TableOperations online command in a separate thread and blocks the current thread until command is complete. The status and time to complete is
-   * returned in {@code OnlineStatus}
-   *
-   * @param tableName
-   *          the table to set online.
-   * @return status that can be used to determine if running and timing information when complete.
-   */
-
-  private OnlineStatus onLine(String tableName) {
-
-    OnLineThread onLineCmd = new OnLineThread(tableName);
-    Thread onLineThread = new Thread(onLineCmd);
-    onLineThread.start();
-
-    int count = 0;
-
-    while (onLineCmd.getStatus().isRunning()) {
-
-      if ((count++ % 10) == 0) {
-        log.trace("online operation blocked, waiting for it to complete.");
-      }
-
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException ex) {
-        // reassert interrupt
-        Thread.currentThread().interrupt();
-      }
-    }
-
-    return onLineCmd.getStatus();
-  }
-
-  /**
    * Create the provided table and populate with some data using a batch writer. The table is scanned to ensure it was populated as expected.
    *
    * @param tableName
@@ -339,32 +314,14 @@ public class TableChangeStateIT extends ConfigurableMacIT {
   }
 
   /**
-   * Provides timing information and online command status results for online command executed asynchronously. The
+   * Provides timing information for oline operation.
    */
-  private static class OnlineStatus {
+  private static class OnlineOpTiming {
 
     private long started = 0L;
     private long completed = 0L;
 
-    // set to true - even before running so that we can block on isRunning before thread may have started.
-    private final AtomicBoolean isRunning = new AtomicBoolean(Boolean.TRUE);
-    private Boolean hasError = Boolean.FALSE;
-    private Exception exception = null;
-
-    /**
-     * Returns true until operation has completed.
-     *
-     * @return false when operation has been set complete.
-     */
-    Boolean isRunning() {
-      return isRunning.get();
-    }
-
-    /**
-     * start timing operation.
-     */
-    void setRunning() {
-      isRunning.set(Boolean.TRUE);
+    OnlineOpTiming() {
       started = System.nanoTime();
     }
 
@@ -373,37 +330,6 @@ public class TableChangeStateIT extends ConfigurableMacIT {
      */
     void setComplete() {
       completed = System.nanoTime();
-      isRunning.set(Boolean.FALSE);
-    }
-
-    /**
-     * Returns true if setError was called to complete operation.
-     *
-     * @return true if an error was set, false otherwise.
-     */
-    boolean hasError() {
-      return hasError;
-    }
-
-    /**
-     * Returns exception if set by {@code setError}.
-     *
-     * @return the exception set with {@code setError} or null if not set.
-     */
-    public Exception getException() {
-      return exception;
-    }
-
-    /**
-     * Marks the operation as complete, stops timing the operation, with error status and exception that caused the failure.
-     *
-     * @param ex
-     *          the exception that caused failure.
-     */
-    public void setError(Exception ex) {
-      hasError = Boolean.TRUE;
-      exception = ex;
-      setComplete();
     }
 
     /**
@@ -415,13 +341,11 @@ public class TableChangeStateIT extends ConfigurableMacIT {
   }
 
   /**
-   * Run online operation in a separate thread. The operation status can be tracked with {@link OnlineStatus} returned by {@link OnLineThread#getStatus}. The
-   * operation timing is started when run is called. If an exception occurs, it is available in the status.
+   * Run online operation in a separate thread and gather timing information.
    */
-  private class OnLineThread implements Runnable {
+  private class OnLineCallable implements Callable<OnlineOpTiming> {
 
     final String tableName;
-    final OnlineStatus status;
 
     /**
      * Create an instance of this class to set the provided table online.
@@ -429,45 +353,26 @@ public class TableChangeStateIT extends ConfigurableMacIT {
      * @param tableName
      *          The table name that will be set online.
      */
-    OnLineThread(final String tableName) {
+    OnLineCallable(final String tableName) {
       this.tableName = tableName;
-      this.status = new OnlineStatus();
     }
 
-    /**
-     * Update status for timing and execute the online operation.
-     */
     @Override
-    public void run() {
+    public OnlineOpTiming call() throws Exception {
 
-      status.setRunning();
+      OnlineOpTiming status = new OnlineOpTiming();
 
-      try {
+      log.trace("Setting {} online", tableName);
 
-        log.trace("Setting {} online", tableName);
+      getConnector().tableOperations().online(tableName, true);
 
-        getConnector().tableOperations().online(tableName, true);
+      // stop timing
+      status.setComplete();
 
-        // stop timing
-        status.setComplete();
-        log.trace("Online completed in {} ms", TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
+      log.trace("Online completed in {} ms", TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
 
-      } catch (Exception ex) {
-        // set error in status with this exception.
-        status.setError(ex);
-      }
-
-    }
-
-    /**
-     * Provide OnlineStatus of this operation to determine when complete and timing information
-     *
-     * @return OnlineStatus to determine when complete and timing information
-     */
-    public OnlineStatus getStatus() {
       return status;
     }
-
   }
 
   /**
@@ -493,7 +398,7 @@ public class TableChangeStateIT extends ConfigurableMacIT {
       long startTimestamp = System.nanoTime();
 
       IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
-      SlowIterator.setSleepTime(slow, 100);
+      SlowIterator.setSleepTime(slow, SLOW_SCAN_SLEEP_MS);
 
       List<IteratorSetting> compactIterators = new ArrayList<>();
       compactIterators.add(slow);
