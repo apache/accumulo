@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -42,18 +43,14 @@ import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class ConcurrentDeleteTableIT extends AccumuloClusterIT {
-
-  private static final String SCHEME = "digest";
-
-  private static final String USER = "accumulo";
 
   @Test
   public void testConcurrentDeleteTablesOps() throws Exception {
@@ -127,8 +124,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterIT {
   private FateStatus getFateStatus() throws KeeperException, InterruptedException {
     Instance instance = getConnector().getInstance();
     AdminUtil<String> admin = new AdminUtil<>(false);
-    String secret = "DONTTELL";
-    IZooReaderWriter zk = new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), SCHEME, (USER + ":" + secret).getBytes());
+    String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
+    IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
     ZooStore<String> zs = new ZooStore<String>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
     FateStatus fateStatus = admin.getStatus(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, null, null);
     return fateStatus;
