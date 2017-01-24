@@ -172,8 +172,7 @@ These files do exist in the build tree, but at different locations)
 # Manual Distributed Testing
 
 Apache Accumulo has a number of tests which are suitable for running against large clusters for hours to days at a time.
-Some of these test suites exist in the repository under `test/system` and contain their own README files for configuration.
-Others (like the Continuous Ingest and Random Walk tests) are in the [accumulo-testing repo][2].
+These test suites exist in the [accumulo-testing repo][2].
 
 [2]: https://github.com/apache/accumulo-testing
 [3]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html

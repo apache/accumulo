@@ -148,38 +148,6 @@
         <exclude>**/*.sh</exclude>
       </excludes>
     </fileSet>
-    <fileSet>
-      <directory>../test</directory>
-      <outputDirectory>test</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.sh</include>
-        <include>**/*.py</include>
-        <include>**/*.pl</include>
-      </includes>
-      <excludes>
-        <exclude>src/**</exclude>
-        <exclude>target/**</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
-      <directory>../test</directory>
-      <outputDirectory>test</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>**/.*/**</exclude>
-        <exclude>pom.xml</exclude>
-        <exclude>src/**</exclude>
-        <exclude>target/**</exclude>
-        <exclude>**/*.sh</exclude>
-        <exclude>**/*.py</exclude>
-        <exclude>**/*.pl</exclude>
-        <exclude>**/*.pyc</exclude>
-        <exclude>**/*.pyo</exclude>
-      </excludes>
-    </fileSet>
     <!-- Lift generated thrift proxy code into its own directory -->
     <fileSet>
       <directory>../proxy/target</directory>
