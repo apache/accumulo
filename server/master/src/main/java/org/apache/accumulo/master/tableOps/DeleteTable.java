@@ -28,20 +28,32 @@ public class DeleteTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private String tableId;
+  private String namespaceId;
 
-  public DeleteTable(String tableId) {
+  private String getNamespaceId(Master environment) {
+    if (namespaceId == null) {
+      // For ACCUMULO-4575 namespaceId was added in a bug fix release. Since it was added in bug fix release, we have to ensure we can properly deserialize
+      // older versions. When deserializing an older version, namespaceId will be null. For this case revert to the old buggy behavior.
+      return Tables.getNamespaceId(environment.getInstance(), tableId);
+    }
+
+    return namespaceId;
+  }
+
+  public DeleteTable(String namespaceId, String tableId) {
+    this.namespaceId = namespaceId;
     this.tableId = tableId;
   }
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
+    String namespaceId = getNamespaceId(environment);
     return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE) + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
+    String namespaceId = getNamespaceId(environment);
     TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
     environment.getEventCoordinator().event("deleting table %s ", tableId);
     return new CleanUp(tableId, namespaceId);
@@ -49,9 +61,9 @@ public class DeleteTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
-    Utils.unreserveNamespace(namespaceId, tid, false);
+    if (namespaceId != null) {
+      Utils.unreserveNamespace(namespaceId, tid, false);
+    }
     Utils.unreserveTable(tableId, tid, true);
   }
-
 }

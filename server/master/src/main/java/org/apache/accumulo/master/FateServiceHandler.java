@@ -254,7 +254,7 @@ class FateServiceHandler implements FateService.Iface {
 
         if (!canDeleteTable)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-        master.fate.seedTransaction(opid, new TraceRepo<>(new DeleteTable(tableId)), autoCleanup);
+        master.fate.seedTransaction(opid, new TraceRepo<>(new DeleteTable(namespaceId, tableId)), autoCleanup);
         break;
       }
       case TABLE_ONLINE: {
