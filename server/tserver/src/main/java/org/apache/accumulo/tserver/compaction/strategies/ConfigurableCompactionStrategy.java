@@ -19,6 +19,8 @@ package org.apache.accumulo.tserver.compaction.strategies;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,27 +41,57 @@ import org.apache.hadoop.fs.Path;
 
 public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
-  private static interface Test {
-    boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request);
+  private static abstract class Test {
+    // Do any work that blocks in this method. This method is not always called before shouldCompact(). See CompactionStrategy javadocs.
+    void gatherInformation(MajorCompactionRequest request) {}
+
+    abstract boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request);
   }
 
-  private static class NoSampleTest implements Test {
+  private static class NoSampleTest extends Test {
+
+    private Set<FileRef> filesWithSample = Collections.emptySet();
+    private boolean samplingConfigured = true;
+    private boolean gatherCalled = false;
+
+    @Override
+    void gatherInformation(MajorCompactionRequest request) {
+      gatherCalled = true;
+
+      SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
+      if (sc == null) {
+        samplingConfigured = false;
+      } else {
+        filesWithSample = new HashSet<>();
+        for (FileRef fref : request.getFiles().keySet()) {
+          try (FileSKVIterator reader = request.openReader(fref)) {
+            if (reader.getSample(sc) != null) {
+              filesWithSample.add(fref);
+            }
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }
+    }
 
     @Override
     public boolean shouldCompact(Entry<FileRef,DataFileValue> file, MajorCompactionRequest request) {
-      try (FileSKVIterator reader = request.openReader(file.getKey())) {
+
+      if (!gatherCalled) {
         SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(new ConfigurationCopy(request.getTableProperties()));
-        if (sc == null) {
-          return false;
-        }
-        return reader.getSample(sc) == null;
-      } catch (IOException e) {
-        throw new RuntimeException(e);
+        return sc != null;
       }
+
+      if (!samplingConfigured) {
+        return false;
+      }
+
+      return !filesWithSample.contains(file.getKey());
     }
   }
 
-  private static abstract class FileSizeTest implements Test {
+  private static abstract class FileSizeTest extends Test {
     private final long esize;
 
     private FileSizeTest(String s) {
@@ -74,7 +106,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     public abstract boolean shouldCompact(long fsize, long esize);
   }
 
-  private static abstract class PatternPathTest implements Test {
+  private static abstract class PatternPathTest extends Test {
     private Pattern pattern;
 
     private PatternPathTest(String p) {
@@ -185,6 +217,14 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
     return getFilesToCompact(request).size() >= minFiles;
+  }
+
+  @Override
+  public void gatherInformation(MajorCompactionRequest request) throws IOException {
+    // Gather any information that requires blocking calls here. This is only called before getCompactionPlan() is called.
+    for (Test test : tests) {
+      test.gatherInformation(request);
+    }
   }
 
   @Override
