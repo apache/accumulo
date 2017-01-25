@@ -1,1 +1,0 @@
-org.apache.accumulo.core.data.KeyValue
