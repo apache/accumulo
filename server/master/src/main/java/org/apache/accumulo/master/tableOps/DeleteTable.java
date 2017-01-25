@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
@@ -30,11 +29,11 @@ public class DeleteTable extends MasterRepo {
   private String tableId;
   private String namespaceId;
 
-  private String getNamespaceId(Master environment) {
+  private String getNamespaceId(Master environment) throws Exception {
     if (namespaceId == null) {
       // For ACCUMULO-4575 namespaceId was added in a bug fix release. Since it was added in bug fix release, we have to ensure we can properly deserialize
       // older versions. When deserializing an older version, namespaceId will be null. For this case revert to the old buggy behavior.
-      return Tables.getNamespaceId(environment.getInstance(), tableId);
+      return Utils.getNamespaceId(environment.getInstance(), tableId, TableOperation.DELETE);
     }
 
     return namespaceId;
