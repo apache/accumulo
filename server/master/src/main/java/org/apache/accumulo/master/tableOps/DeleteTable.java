@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
@@ -29,45 +27,28 @@ public class DeleteTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private String tableId;
+  private String namespaceId;
 
-  public DeleteTable(String tableId) {
+  public DeleteTable(String namespaceId, String tableId) {
+    this.namespaceId = namespaceId;
     this.tableId = tableId;
   }
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    try {
-      String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
-      return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE)
-          + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
-    } catch (IllegalArgumentException ex) {
-      if (ex.getCause() != null && ex.getCause() instanceof TableNotFoundException) {
-        return 0;
-      }
-      throw ex;
-    }
+    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE) + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    try {
-      String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
-      TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
-      environment.getEventCoordinator().event("deleting table %s ", tableId);
-      return new CleanUp(tableId, namespaceId);
-    } catch (IllegalArgumentException ex) {
-      if (ex.getCause() != null && ex.getCause() instanceof TableNotFoundException) {
-        return null;
-      }
-      throw ex;
-    }
+    TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
+    environment.getEventCoordinator().event("deleting table %s ", tableId);
+    return new CleanUp(tableId, namespaceId);
   }
 
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
   }
-
 }
