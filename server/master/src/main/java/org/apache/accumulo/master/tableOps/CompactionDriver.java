@@ -57,13 +57,18 @@ class CompactionDriver extends MasterRepo {
 
   private long compactId;
   private final String tableId;
+  private final String namespaceId;
   private byte[] startRow;
   private byte[] endRow;
 
-  public CompactionDriver(long compactId, String tableId, byte[] startRow, byte[] endRow) {
+  private String getNamespaceId(Master env) throws Exception {
+    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT, this.namespaceId);
+  }
 
+  public CompactionDriver(long compactId, String namespaceId, String tableId, byte[] startRow, byte[] endRow) {
     this.compactId = compactId;
     this.tableId = tableId;
+    this.namespaceId = namespaceId;
     this.startRow = startRow;
     this.endRow = endRow;
   }
@@ -172,11 +177,10 @@ class CompactionDriver extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
-    CompactRange.removeIterators(environment, tid, tableId);
+  public Repo<Master> call(long tid, Master env) throws Exception {
+    CompactRange.removeIterators(env, tid, tableId);
     Utils.getReadLock(tableId, tid).unlock();
-    Utils.getReadLock(namespaceId, tid).unlock();
+    Utils.getReadLock(getNamespaceId(env), tid).unlock();
     return null;
   }
 
