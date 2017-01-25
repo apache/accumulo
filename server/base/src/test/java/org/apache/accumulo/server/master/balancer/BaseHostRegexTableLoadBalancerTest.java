@@ -24,7 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -136,8 +138,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected static final HashMap<String,String> DEFAULT_TABLE_PROPERTIES = new HashMap<>();
   {
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "10s");
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_POOL_RECHECK_KEY, "30s");
+    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "2s");
     DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r01.*");
     DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
   }
@@ -263,6 +264,15 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         tables.put(FOO.getTableName(), FOO.getId());
         tables.put(BAR.getTableName(), BAR.getId());
         tables.put(BAZ.getTableName(), BAZ.getId());
+        return tables;
+      }
+
+      @Override
+      public SortedSet<String> list() {
+        TreeSet<String> tables = new TreeSet<>();
+        tables.add(BAR.getTableName());
+        tables.add(BAZ.getTableName());
+        tables.add(FOO.getTableName());
         return tables;
       }
     };
