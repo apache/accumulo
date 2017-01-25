@@ -116,6 +116,19 @@ public class Utils {
       return 100;
   }
 
+  public static String getNamespaceId(Instance instance, String tableId, TableOperation op) throws Exception {
+    try {
+      return Tables.getNamespaceId(instance, tableId);
+    } catch (RuntimeException e) {
+      // see if this was caused because the table does not exists
+      IZooReaderWriter zk = ZooReaderWriter.getInstance();
+      if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId))
+        throw new ThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exist");
+      else
+        throw e;
+    }
+  }
+
   public static long reserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
 

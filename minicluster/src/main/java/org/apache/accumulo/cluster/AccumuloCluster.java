@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -55,6 +56,11 @@ public interface AccumuloCluster {
    * Get the client configuration for the cluster
    */
   ClientConfiguration getClientConfig();
+
+  /**
+   * Get server side config derived from accumulo-site.xml
+   */
+  AccumuloConfiguration getSiteConfiguration();
 
   /**
    * Get an object that can manage a cluster

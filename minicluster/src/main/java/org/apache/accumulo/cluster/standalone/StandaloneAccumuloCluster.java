@@ -32,6 +32,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.minicluster.ServerType;
@@ -40,6 +42,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
 
 /**
  * AccumuloCluster implementation to connect to an existing deployment of Accumulo
@@ -183,5 +187,13 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   public ClusterUser getUser(int offset) {
     checkArgument(offset >= 0 && offset < users.size(), "Invalid offset, should be non-negative and less than " + users.size());
     return users.get(offset);
+  }
+
+  @Override
+  public AccumuloConfiguration getSiteConfiguration() {
+    Configuration conf = new Configuration(false);
+    Path accumuloSite = new Path(serverAccumuloConfDir, "accumulo-site.xml");
+    conf.addResource(accumuloSite);
+    return new ConfigurationCopy(Iterables.concat(AccumuloConfiguration.getDefaultConfiguration(), conf));
   }
 }
