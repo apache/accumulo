@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.fate.zookeeper.IZooReader;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -62,11 +63,77 @@ public class AdminUtil<T> {
     this.exitOnError = exitOnError;
   }
 
-  public void print(ReadOnlyTStore<T> zs, IZooReaderWriter zk, String lockPath) throws KeeperException, InterruptedException {
-    print(zs, zk, lockPath, new Formatter(System.out), null, null);
+  public static class TransactionStatus {
+
+    private final long txid;
+    private final TStatus status;
+    private final String debug;
+    private final List<String> hlocks;
+    private final List<String> wlocks;
+    private final String top;
+
+    private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks, List<String> wlocks, String top) {
+      this.txid = tid;
+      this.status = status;
+      this.debug = debug;
+      this.hlocks = Collections.unmodifiableList(hlocks);
+      this.wlocks = Collections.unmodifiableList(wlocks);
+      this.top = top;
+    }
+
+    public long getTxid() {
+      return txid;
+    }
+
+    public TStatus getStatus() {
+      return status;
+    }
+
+    public String getDebug() {
+      return debug;
+    }
+
+    public List<String> getHeldLocks() {
+      return hlocks;
+    }
+
+    public List<String> getWaitingLocks() {
+      return wlocks;
+    }
+
+    public String getTop() {
+      return top;
+    }
+
   }
 
-  public void print(ReadOnlyTStore<T> zs, IZooReaderWriter zk, String lockPath, Formatter fmt, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+  public static class FateStatus {
+
+    private final List<TransactionStatus> transactions;
+    private final Map<Long,List<String>> danglingHeldLocks;
+    private final Map<Long,List<String>> danglingWaitingLocks;
+
+    private FateStatus(List<TransactionStatus> transactions, Map<Long,List<String>> danglingHeldLocks, Map<Long,List<String>> danglingWaitingLocks) {
+      this.transactions = Collections.unmodifiableList(transactions);
+      this.danglingHeldLocks = Collections.unmodifiableMap(danglingHeldLocks);
+      this.danglingWaitingLocks = Collections.unmodifiableMap(danglingWaitingLocks);
+
+    }
+
+    public List<TransactionStatus> getTransactions() {
+      return transactions;
+    }
+
+    public Map<Long,List<String>> getDanglingHeldLocks() {
+      return danglingHeldLocks;
+    }
+
+    public Map<Long,List<String>> getDanglingWaitingLocks() {
+      return danglingWaitingLocks;
+    }
+  }
+
+  public FateStatus getStatus(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
     Map<Long,List<String>> heldLocks = new HashMap<>();
     Map<Long,List<String>> waitingLocks = new HashMap<>();
@@ -118,13 +185,12 @@ public class AdminUtil<T> {
 
       } catch (Exception e) {
         log.error("Failed to read locks for " + id + " continuing.", e);
-        fmt.format("Failed to read locks for %s continuing", id);
       }
     }
 
     List<Long> transactions = zs.list();
+    List<TransactionStatus> statuses = new ArrayList<>(transactions.size());
 
-    long txCount = 0;
     for (Long tid : transactions) {
 
       zs.reserve(tid);
@@ -152,17 +218,33 @@ public class AdminUtil<T> {
       if ((filterTxid != null && !filterTxid.contains(tid)) || (filterStatus != null && !filterStatus.contains(status)))
         continue;
 
-      ++txCount;
-      fmt.format("txid: %016x  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s%n", tid, status, debug, hlocks, wlocks, top);
+      statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top));
     }
-    fmt.format(" %s transactions", txCount);
 
-    if (heldLocks.size() != 0 || waitingLocks.size() != 0) {
+    return new FateStatus(statuses, heldLocks, waitingLocks);
+  }
+
+  public void print(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath) throws KeeperException, InterruptedException {
+    print(zs, zk, lockPath, new Formatter(System.out), null, null);
+  }
+
+  public void print(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath, Formatter fmt, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+      throws KeeperException, InterruptedException {
+
+    FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
+
+    for (TransactionStatus txStatus : fateStatus.getTransactions()) {
+      fmt.format("txid: %016x  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s%n", txStatus.getTxid(), txStatus.getStatus(),
+          txStatus.getDebug(), txStatus.getHeldLocks(), txStatus.getWaitingLocks(), txStatus.getTop());
+    }
+    fmt.format(" %s transactions", fateStatus.getTransactions().size());
+
+    if (fateStatus.getDanglingHeldLocks().size() != 0 || fateStatus.getDanglingWaitingLocks().size() != 0) {
       fmt.format("%nThe following locks did not have an associated FATE operation%n");
-      for (Entry<Long,List<String>> entry : heldLocks.entrySet())
+      for (Entry<Long,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet())
         fmt.format("txid: %016x  locked: %s%n", entry.getKey(), entry.getValue());
 
-      for (Entry<Long,List<String>> entry : waitingLocks.entrySet())
+      for (Entry<Long,List<String>> entry : fateStatus.getDanglingWaitingLocks().entrySet())
         fmt.format("txid: %016x  locking: %s%n", entry.getKey(), entry.getValue());
     }
   }
