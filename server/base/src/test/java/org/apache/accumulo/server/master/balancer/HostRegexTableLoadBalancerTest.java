@@ -50,8 +50,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testInit() {
     init(factory);
-    Assert.assertEquals("OOB check interval value is incorrect", 10000, this.getOobCheckMillis());
-    Assert.assertEquals("Pool check interval value is incorrect", 30000, this.getPoolRecheckMillis());
+    Assert.assertEquals("OOB check interval value is incorrect", 2000, this.getOobCheckMillis());
+    Assert.assertEquals("Pool check interval value is incorrect", 0, this.getPoolRecheckMillis());
     Assert.assertFalse(isIpBasedRegex());
     Map<String,Pattern> patterns = this.getPoolNameToRegexPattern();
     Assert.assertEquals(2, patterns.size());
@@ -75,7 +75,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     List<TabletMigration> migrations = new ArrayList<>();
     init(factory);
     long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(2)), Collections.singleton(new KeyExtent()), migrations);
-    Assert.assertEquals(5000, wait);
+    Assert.assertEquals(20000, wait);
     Assert.assertEquals(0, migrations.size());
   }
 
@@ -180,7 +180,6 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       public synchronized AccumuloConfiguration getConfiguration() {
         HashMap<String,String> props = new HashMap<>();
         props.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "30s");
-        props.put(HostRegexTableLoadBalancer.HOST_BALANCER_POOL_RECHECK_KEY, "30s");
         props.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_USING_IPS_KEY, "true");
         return new ConfigurationCopy(props);
       }
