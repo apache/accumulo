@@ -41,7 +41,6 @@ public class HostRegexTableLoadBalancerReconfigurationTest extends BaseHostRegex
 
   @Test
   public void testConfigurationChanges() {
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_POOL_RECHECK_KEY, "10s");
 
     init(factory);
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
@@ -72,14 +71,14 @@ public class HostRegexTableLoadBalancerReconfigurationTest extends BaseHostRegex
     Set<KeyExtent> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     // Wait to trigger the out of bounds check which will call our version of getOnlineTabletsForTable
-    UtilWaitThread.sleep(11000);
+    UtilWaitThread.sleep(3000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
     Assert.assertEquals(0, migrationsOut.size());
     // Change property, simulate call by TableConfWatcher
     DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
     this.propertiesChanged();
     // Wait to trigger the out of bounds check and the repool check
-    UtilWaitThread.sleep(11000);
+    UtilWaitThread.sleep(3000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
     Assert.assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
