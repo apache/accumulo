@@ -116,7 +116,14 @@ public class Utils {
       return 100;
   }
 
-  public static String getNamespaceId(Instance instance, String tableId, TableOperation op) throws Exception {
+  public static String getNamespaceId(Instance instance, String tableId, TableOperation op, String namespaceId) throws Exception {
+    if (namespaceId != null) {
+      return namespaceId;
+    }
+
+    // For ACCUMULO-4575 namespaceId was added in a bug fix release. Since it was added in bug fix release, we have to ensure we can properly deserialize
+    // older versions. When deserializing an older version, namespaceId will be null. For this case revert to the old buggy behavior.
+
     try {
       return Tables.getNamespaceId(instance, tableId);
     } catch (RuntimeException e) {
