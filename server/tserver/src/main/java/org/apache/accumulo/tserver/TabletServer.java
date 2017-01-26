@@ -2383,12 +2383,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 
+        log.info("Attempting to acquire Tablet Server Lock");
         if (tabletServerLock.tryLock(lw, lockContent)) {
-          log.debug("Obtained tablet server lock " + tabletServerLock.getLockPath());
+          log.info("Acquired Tablet Server Lock " + tabletServerLock.getLockPath());
           lockID = tabletServerLock.getLockID().serialize(ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/");
           return;
         }
-        log.info("Waiting for tablet server lock");
         UtilWaitThread.sleep(5000);
       }
       String msg = "Too many retries, exiting.";
