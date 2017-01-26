@@ -90,7 +90,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterIT {
               cdl.countDown();
               cdl.await();
               c.tableOperations().delete(table);
-            } catch (TableNotFoundException | TableOfflineException e) {
+            } catch (TableNotFoundException e) {
               // expected
             } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
               throw new RuntimeException(e);
@@ -190,7 +190,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterIT {
             cdl.countDown();
             cdl.await();
             c.tableOperations().delete(table);
-          } catch (TableNotFoundException e) {
+          } catch (TableNotFoundException | TableOfflineException e) {
             // expected
           } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
             throw new RuntimeException(e);
