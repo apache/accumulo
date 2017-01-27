@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.fate.Repo;
@@ -47,18 +46,25 @@ public class CompactRange extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
   private final String tableId;
+  private final String namespaceId;
   private byte[] startRow;
   private byte[] endRow;
   private byte[] config;
 
-  public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators, CompactionStrategyConfig compactionStrategy)
-      throws AcceptableThriftTableOperationException {
+  private String getNamespaceId(Master env) throws Exception {
+    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.COMPACT, this.namespaceId);
+  }
 
+  public CompactRange(String namespaceId, String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators,
+      CompactionStrategyConfig compactionStrategy) throws AcceptableThriftTableOperationException {
+
+    requireNonNull(namespaceId, "Invalid argument: null namespaceId");
     requireNonNull(tableId, "Invalid argument: null tableId");
     requireNonNull(iterators, "Invalid argument: null iterator list");
     requireNonNull(compactionStrategy, "Invalid argument: null compactionStrategy");
 
     this.tableId = tableId;
+    this.namespaceId = namespaceId;
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
 
@@ -74,15 +80,14 @@ public class CompactRange extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
-    return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.COMPACT)
+  public long isReady(long tid, Master env) throws Exception {
+    return Utils.reserveNamespace(getNamespaceId(env), tid, false, true, TableOperation.COMPACT)
         + Utils.reserveTable(tableId, tid, false, true, TableOperation.COMPACT);
   }
 
   @Override
-  public Repo<Master> call(final long tid, Master environment) throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + environment.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+  public Repo<Master> call(final long tid, Master env) throws Exception {
+    String zTablePath = Constants.ZROOT + "/" + env.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     byte[] cid;
@@ -122,7 +127,7 @@ public class CompactRange extends MasterRepo {
         }
       });
 
-      return new CompactionDriver(Long.parseLong(new String(cid, UTF_8).split(",")[0]), tableId, startRow, endRow);
+      return new CompactionDriver(Long.parseLong(new String(cid, UTF_8).split(",")[0]), getNamespaceId(env), tableId, startRow, endRow);
     } catch (NoNodeException nne) {
       throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
     }
@@ -158,12 +163,11 @@ public class CompactRange extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
+  public void undo(long tid, Master env) throws Exception {
     try {
-      removeIterators(environment, tid, tableId);
+      removeIterators(env, tid, tableId);
     } finally {
-      Utils.unreserveNamespace(namespaceId, tid, false);
+      Utils.unreserveNamespace(getNamespaceId(env), tid, false);
       Utils.unreserveTable(tableId, tid, false);
     }
   }

@@ -29,14 +29,8 @@ public class DeleteTable extends MasterRepo {
   private String tableId;
   private String namespaceId;
 
-  private String getNamespaceId(Master environment) throws Exception {
-    if (namespaceId == null) {
-      // For ACCUMULO-4575 namespaceId was added in a bug fix release. Since it was added in bug fix release, we have to ensure we can properly deserialize
-      // older versions. When deserializing an older version, namespaceId will be null. For this case revert to the old buggy behavior.
-      return Utils.getNamespaceId(environment.getInstance(), tableId, TableOperation.DELETE);
-    }
-
-    return namespaceId;
+  private String getNamespaceId(Master env) throws Exception {
+    return Utils.getNamespaceId(env.getInstance(), tableId, TableOperation.DELETE, this.namespaceId);
   }
 
   public DeleteTable(String namespaceId, String tableId) {
@@ -45,24 +39,21 @@ public class DeleteTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
-    String namespaceId = getNamespaceId(environment);
-    return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE) + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
+  public long isReady(long tid, Master env) throws Exception {
+    return Utils.reserveNamespace(getNamespaceId(env), tid, false, false, TableOperation.DELETE)
+        + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
-    String namespaceId = getNamespaceId(environment);
+  public Repo<Master> call(long tid, Master env) throws Exception {
     TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
-    environment.getEventCoordinator().event("deleting table %s ", tableId);
-    return new CleanUp(tableId, namespaceId);
+    env.getEventCoordinator().event("deleting table %s ", tableId);
+    return new CleanUp(tableId, getNamespaceId(env));
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
-    if (namespaceId != null) {
-      Utils.unreserveNamespace(namespaceId, tid, false);
-    }
+  public void undo(long tid, Master env) throws Exception {
     Utils.unreserveTable(tableId, tid, true);
+    Utils.unreserveNamespace(getNamespaceId(env), tid, false);
   }
 }

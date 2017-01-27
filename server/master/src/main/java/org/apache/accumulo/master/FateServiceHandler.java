@@ -186,7 +186,7 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         try {
-          master.fate.seedTransaction(opid, new TraceRepo<>(new RenameTable(tableId, oldTableName, newTableName)), autoCleanup);
+          master.fate.seedTransaction(opid, new TraceRepo<>(new RenameTable(namespaceId, tableId, oldTableName, newTableName)), autoCleanup);
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, oldTableName, tableOp, TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
         }
@@ -274,7 +274,7 @@ class FateServiceHandler implements FateService.Iface {
         if (!canOnlineOfflineTable)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid, new TraceRepo<>(new ChangeTableState(tableId, tableOp)), autoCleanup);
+        master.fate.seedTransaction(opid, new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup);
         break;
       }
       case TABLE_OFFLINE: {
@@ -293,7 +293,7 @@ class FateServiceHandler implements FateService.Iface {
         if (!canOnlineOfflineTable)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid, new TraceRepo<>(new ChangeTableState(tableId, tableOp)), autoCleanup);
+        master.fate.seedTransaction(opid, new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup);
         break;
       }
       case TABLE_MERGE: {
@@ -317,7 +317,7 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         Master.log.debug("Creating merge op: " + tableId + " " + startRow + " " + endRow);
-        master.fate.seedTransaction(opid, new TraceRepo<>(new TableRangeOp(MergeInfo.Operation.MERGE, tableId, startRow, endRow)), autoCleanup);
+        master.fate.seedTransaction(opid, new TraceRepo<>(new TableRangeOp(MergeInfo.Operation.MERGE, namespaceId, tableId, startRow, endRow)), autoCleanup);
         break;
       }
       case TABLE_DELETE_RANGE: {
@@ -340,7 +340,7 @@ class FateServiceHandler implements FateService.Iface {
         if (!canDeleteRange)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid, new TraceRepo<>(new TableRangeOp(MergeInfo.Operation.DELETE, tableId, startRow, endRow)), autoCleanup);
+        master.fate.seedTransaction(opid, new TraceRepo<>(new TableRangeOp(MergeInfo.Operation.DELETE, namespaceId, tableId, startRow, endRow)), autoCleanup);
         break;
       }
       case TABLE_BULK_IMPORT: {
@@ -388,7 +388,8 @@ class FateServiceHandler implements FateService.Iface {
         if (!canCompact)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid, new TraceRepo<>(new CompactRange(tableId, startRow, endRow, iterators, compactionStrategy)), autoCleanup);
+        master.fate
+            .seedTransaction(opid, new TraceRepo<>(new CompactRange(namespaceId, tableId, startRow, endRow, iterators, compactionStrategy)), autoCleanup);
         break;
       }
       case TABLE_CANCEL_COMPACT: {
@@ -407,7 +408,7 @@ class FateServiceHandler implements FateService.Iface {
         if (!canCancelCompact)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid, new TraceRepo<>(new CancelCompactions(tableId)), autoCleanup);
+        master.fate.seedTransaction(opid, new TraceRepo<>(new CancelCompactions(namespaceId, tableId)), autoCleanup);
         break;
       }
       case TABLE_IMPORT: {
