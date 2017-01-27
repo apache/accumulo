@@ -17,7 +17,6 @@
 package org.apache.accumulo.master.tableOps;
 
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -38,19 +37,19 @@ public class TableRangeOp extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private final String tableId;
+  private final String namespaceId;
   private byte[] startRow;
   private byte[] endRow;
   private Operation op;
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
+  public long isReady(long tid, Master env) throws Exception {
     return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.MERGE) + Utils.reserveTable(tableId, tid, true, true, TableOperation.MERGE);
   }
 
-  public TableRangeOp(MergeInfo.Operation op, String tableId, Text startRow, Text endRow) throws AcceptableThriftTableOperationException {
-
+  public TableRangeOp(MergeInfo.Operation op, String namespaceId, String tableId, Text startRow, Text endRow) throws AcceptableThriftTableOperationException {
     this.tableId = tableId;
+    this.namespaceId = namespaceId;
     this.startRow = TextUtil.getBytes(startRow);
     this.endRow = TextUtil.getBytes(endRow);
     this.op = op;
@@ -80,12 +79,11 @@ public class TableRangeOp extends MasterRepo {
       env.setMergeState(new MergeInfo(range, op), MergeState.STARTED);
     }
 
-    return new TableRangeOpWait(tableId);
+    return new TableRangeOpWait(namespaceId, tableId);
   }
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    String namespaceId = Tables.getNamespaceId(env.getInstance(), tableId);
     // Not sure this is a good thing to do. The Master state engine should be the one to remove it.
     MergeInfo mergeInfo = env.getMergeInfo(tableId);
     if (mergeInfo.getState() != MergeState.NONE)

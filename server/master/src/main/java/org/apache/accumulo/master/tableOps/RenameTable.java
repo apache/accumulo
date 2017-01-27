@@ -39,16 +39,17 @@ public class RenameTable extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
   private String tableId;
+  private String namespaceId;
   private String oldTableName;
   private String newTableName;
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
-    String namespaceId = Tables.getNamespaceId(environment.getInstance(), tableId);
+  public long isReady(long tid, Master env) throws Exception {
     return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.RENAME) + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
   }
 
-  public RenameTable(String tableId, String oldTableName, String newTableName) throws NamespaceNotFoundException {
+  public RenameTable(String namespaceId, String tableId, String oldTableName, String newTableName) throws NamespaceNotFoundException {
+    this.namespaceId = namespaceId;
     this.tableId = tableId;
     this.oldTableName = oldTableName;
     this.newTableName = newTableName;
@@ -57,7 +58,6 @@ public class RenameTable extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     Instance instance = master.getInstance();
-    String namespaceId = Tables.getNamespaceId(instance, tableId);
     Pair<String,String> qualifiedOldTableName = Tables.qualify(oldTableName);
     Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
 
@@ -104,7 +104,6 @@ public class RenameTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    String namespaceId = Tables.getNamespaceId(env.getInstance(), tableId);
     Utils.unreserveTable(tableId, tid, true);
     Utils.unreserveNamespace(namespaceId, tid, false);
   }

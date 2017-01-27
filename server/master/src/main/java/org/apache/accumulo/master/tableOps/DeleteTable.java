@@ -35,20 +35,20 @@ public class DeleteTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Master env) throws Exception {
     return Utils.reserveNamespace(namespaceId, tid, false, false, TableOperation.DELETE) + Utils.reserveTable(tableId, tid, true, true, TableOperation.DELETE);
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master env) throws Exception {
     TableManager.getInstance().transitionTableState(tableId, TableState.DELETING);
-    environment.getEventCoordinator().event("deleting table %s ", tableId);
+    env.getEventCoordinator().event("deleting table %s ", tableId);
     return new CleanUp(tableId, namespaceId);
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
-    Utils.unreserveNamespace(namespaceId, tid, false);
+  public void undo(long tid, Master env) throws Exception {
     Utils.unreserveTable(tableId, tid, true);
+    Utils.unreserveNamespace(namespaceId, tid, false);
   }
 }
