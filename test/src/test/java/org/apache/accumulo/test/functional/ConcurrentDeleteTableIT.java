@@ -29,29 +29,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.AdminUtil.FateStatus;
-import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.harness.AccumuloClusterIT;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -112,11 +102,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterIT {
         // expected
       }
 
-      FateStatus fateStatus = getFateStatus();
-
-      // ensure there are no dangling locks... before ACCUMULO-4575 was fixed concurrent delete tables could fail and leave dangling locks.
-      Assert.assertEquals(0, fateStatus.getDanglingHeldLocks().size());
-      Assert.assertEquals(0, fateStatus.getDanglingWaitingLocks().size());
+      FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
     }
 
     es.shutdown();
@@ -262,24 +248,10 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterIT {
         // expected
       }
 
-      FateStatus fateStatus = getFateStatus();
-
-      // ensure there are no dangling locks... before ACCUMULO-4575 was fixed concurrent delete tables could fail and leave dangling locks.
-      Assert.assertEquals(0, fateStatus.getDanglingHeldLocks().size());
-      Assert.assertEquals(0, fateStatus.getDanglingWaitingLocks().size());
+      FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
     }
 
     es.shutdown();
-  }
-
-  private FateStatus getFateStatus() throws KeeperException, InterruptedException {
-    Instance instance = getConnector().getInstance();
-    AdminUtil<String> admin = new AdminUtil<>(false);
-    String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
-    IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
-    ZooStore<String> zs = new ZooStore<String>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
-    FateStatus fateStatus = admin.getStatus(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, null, null);
-    return fateStatus;
   }
 
   private void writeData(Connector c, String table) throws TableNotFoundException, MutationsRejectedException {

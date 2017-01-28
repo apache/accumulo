@@ -44,6 +44,7 @@ import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -56,6 +57,11 @@ public class UserCompactionStrategyIT extends AccumuloClusterIT {
   @Override
   public int defaultTimeoutSeconds() {
     return 3 * 60;
+  }
+
+  @After
+  public void checkForDanglingFateLocks() {
+    FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
   }
 
   @Test

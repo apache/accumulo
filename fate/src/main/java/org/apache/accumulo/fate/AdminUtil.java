@@ -110,25 +110,36 @@ public class AdminUtil<T> {
   public static class FateStatus {
 
     private final List<TransactionStatus> transactions;
-    private final Map<Long,List<String>> danglingHeldLocks;
-    private final Map<Long,List<String>> danglingWaitingLocks;
+    private final Map<String,List<String>> danglingHeldLocks;
+    private final Map<String,List<String>> danglingWaitingLocks;
+
+    private static Map<String,List<String>> convert(Map<Long,List<String>> danglocks) {
+      if (danglocks.isEmpty()) {
+        return Collections.emptyMap();
+      }
+
+      Map<String,List<String>> ret = new HashMap<>();
+      for (Entry<Long,List<String>> entry : danglocks.entrySet()) {
+        ret.put(String.format("%016x", entry.getKey()), Collections.unmodifiableList(entry.getValue()));
+      }
+      return Collections.unmodifiableMap(ret);
+    }
 
     private FateStatus(List<TransactionStatus> transactions, Map<Long,List<String>> danglingHeldLocks, Map<Long,List<String>> danglingWaitingLocks) {
       this.transactions = Collections.unmodifiableList(transactions);
-      this.danglingHeldLocks = Collections.unmodifiableMap(danglingHeldLocks);
-      this.danglingWaitingLocks = Collections.unmodifiableMap(danglingWaitingLocks);
-
+      this.danglingHeldLocks = convert(danglingHeldLocks);
+      this.danglingWaitingLocks = convert(danglingWaitingLocks);
     }
 
     public List<TransactionStatus> getTransactions() {
       return transactions;
     }
 
-    public Map<Long,List<String>> getDanglingHeldLocks() {
+    public Map<String,List<String>> getDanglingHeldLocks() {
       return danglingHeldLocks;
     }
 
-    public Map<Long,List<String>> getDanglingWaitingLocks() {
+    public Map<String,List<String>> getDanglingWaitingLocks() {
       return danglingWaitingLocks;
     }
   }
@@ -241,11 +252,11 @@ public class AdminUtil<T> {
 
     if (fateStatus.getDanglingHeldLocks().size() != 0 || fateStatus.getDanglingWaitingLocks().size() != 0) {
       fmt.format("%nThe following locks did not have an associated FATE operation%n");
-      for (Entry<Long,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet())
-        fmt.format("txid: %016x  locked: %s%n", entry.getKey(), entry.getValue());
+      for (Entry<String,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet())
+        fmt.format("txid: %s  locked: %s%n", entry.getKey(), entry.getValue());
 
-      for (Entry<Long,List<String>> entry : fateStatus.getDanglingWaitingLocks().entrySet())
-        fmt.format("txid: %016x  locking: %s%n", entry.getKey(), entry.getValue());
+      for (Entry<String,List<String>> entry : fateStatus.getDanglingWaitingLocks().entrySet())
+        fmt.format("txid: %s  locking: %s%n", entry.getKey(), entry.getValue());
     }
   }
 

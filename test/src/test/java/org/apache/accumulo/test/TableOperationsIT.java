@@ -58,8 +58,10 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterIT;
 import org.apache.accumulo.test.functional.BadIterator;
+import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,6 +82,11 @@ public class TableOperationsIT extends AccumuloClusterIT {
   @Before
   public void setup() throws Exception {
     connector = getConnector();
+  }
+
+  @After
+  public void checkForDanglingFateLocks() {
+    FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
   }
 
   @Test
