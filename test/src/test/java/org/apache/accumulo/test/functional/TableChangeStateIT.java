@@ -22,27 +22,32 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.harness.AccumuloClusterIT;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -66,6 +71,13 @@ public class TableChangeStateIT extends AccumuloClusterIT {
   private static final int NUM_ROWS = 1000;
   private static final long SLOW_SCAN_SLEEP_MS = 100L;
 
+  private Connector connector;
+
+  @Before
+  public void setup() {
+    connector = getConnector();
+  }
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
@@ -84,12 +96,11 @@ public class TableChangeStateIT extends AccumuloClusterIT {
 
     ExecutorService pool = Executors.newCachedThreadPool();
 
-    Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
 
     createData(tableName);
 
-    assertEquals("verify table online after created", TableState.ONLINE, getTableState(connector, tableName));
+    assertEquals("verify table online after created", TableState.ONLINE, getTableState(tableName));
 
     OnLineCallable onlineOp = new OnLineCallable(tableName);
 
@@ -99,12 +110,12 @@ public class TableChangeStateIT extends AccumuloClusterIT {
 
     log.trace("Online 1 in {} ms", TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
 
-    assertEquals("verify table is still online", TableState.ONLINE, getTableState(connector, tableName));
+    assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
     // verify that offline then online functions as expected.
 
     connector.tableOperations().offline(tableName, true);
-    assertEquals("verify table is offline", TableState.OFFLINE, getTableState(connector, tableName));
+    assertEquals("verify table is offline", TableState.OFFLINE, getTableState(tableName));
 
     onlineOp = new OnLineCallable(tableName);
 
@@ -114,12 +125,12 @@ public class TableChangeStateIT extends AccumuloClusterIT {
 
     log.trace("Online 2 in {} ms", TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
 
-    assertEquals("verify table is back online", TableState.ONLINE, getTableState(connector, tableName));
+    assertEquals("verify table is back online", TableState.ONLINE, getTableState(tableName));
 
     // launch a full table compaction with the slow iterator to ensure table lock is acquired and held by the compaction
 
-    Future compactTask = pool.submit(new SlowCompactionRunner(tableName));
-    assertTrue("verify that compaction running and fate transaction exists", blockUntilCompactionRunning());
+    Future<?> compactTask = pool.submit(new SlowCompactionRunner(tableName));
+    assertTrue("verify that compaction running and fate transaction exists", blockUntilCompactionRunning(tableName));
 
     // try to set online while fate transaction is in progress - before ACCUMULO-4574 this would block
 
@@ -132,9 +143,9 @@ public class TableChangeStateIT extends AccumuloClusterIT {
     assertTrue("online should take less time than expected compaction time",
         timing3.runningTime() < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS, TimeUnit.MILLISECONDS));
 
-    assertEquals("verify table is still online", TableState.ONLINE, getTableState(connector, tableName));
+    assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
-    assertTrue("verify compaction still running and fate transaction still exists", blockUntilCompactionRunning());
+    assertTrue("verify compaction still running and fate transaction still exists", blockUntilCompactionRunning(tableName));
 
     // test complete, cancel compaction and move on.
     connector.tableOperations().cancelCompaction(tableName);
@@ -154,47 +165,39 @@ public class TableChangeStateIT extends AccumuloClusterIT {
    *
    * @return true if compaction and associate fate found.
    */
-  private boolean blockUntilCompactionRunning() {
+  private boolean blockUntilCompactionRunning(final String tableName) {
 
-    try {
+    int runningCompactions = 0;
 
-      Connector connector = getConnector();
+    List<String> tservers = connector.instanceOperations().getTabletServers();
 
-      int runningCompactions = 0;
+    /*
+     * wait for compaction to start - The compaction will acquire a fate transaction lock that used to block a subsequent online command while the fate
+     * transaction lock was held.
+     */
+    while (runningCompactions == 0) {
 
-      List<String> tservers = connector.instanceOperations().getTabletServers();
+      try {
 
-      /*
-       * wait for compaction to start - The compaction will acquire a fate transaction lock that used to block a subsequent online command while the fate
-       * transaction lock was held.
-       */
-      while (runningCompactions == 0) {
-
-        try {
-
-          for (String tserver : tservers) {
-            runningCompactions += connector.instanceOperations().getActiveCompactions(tserver).size();
-            log.trace("tserver {}, running compactions {}", tservers, runningCompactions);
-          }
-
-        } catch (AccumuloSecurityException | AccumuloException ex) {
-          throw new IllegalStateException("failed to get active compactions, test fails.", ex);
+        for (String tserver : tservers) {
+          runningCompactions += connector.instanceOperations().getActiveCompactions(tserver).size();
+          log.trace("tserver {}, running compactions {}", tservers, runningCompactions);
         }
 
-        try {
-          Thread.sleep(250);
-        } catch (InterruptedException ex) {
-          // reassert interrupt
-          Thread.currentThread().interrupt();
-        }
+      } catch (AccumuloSecurityException | AccumuloException ex) {
+        throw new IllegalStateException("failed to get active compactions, test fails.", ex);
       }
 
-      // Validate that there is a compaction fate transaction - otherwise test is invalid.
-      return findFate();
-
-    } catch (AccumuloSecurityException | AccumuloException ex) {
-      throw new IllegalStateException("test failed waiting for compaction to start", ex);
+      try {
+        Thread.sleep(250);
+      } catch (InterruptedException ex) {
+        // reassert interrupt
+        Thread.currentThread().interrupt();
+      }
     }
+
+    // Validate that there is a compaction fate transaction - otherwise test is invalid.
+    return findFate(tableName);
   }
 
   /**
@@ -202,43 +205,32 @@ public class TableChangeStateIT extends AccumuloClusterIT {
    * does have a fate transaction lock.
    *
    * @return true if corresponding fate transaction found, false otherwise
-   * @throws AccumuloException
-   *           from {@link ConfigurableMacIT#getConnector}
-   * @throws AccumuloSecurityException
-   *           from {@link ConfigurableMacIT#getConnector}
    */
-  private boolean findFate() throws AccumuloException, AccumuloSecurityException {
+  private boolean findFate(final String tableName) {
 
-    Connector connector = getConnector();
+    Instance instance = connector.getInstance();
+    AdminUtil<String> admin = new AdminUtil<>(false);
 
-    String zPath = ZooUtil.getRoot(connector.getInstance()) + Constants.ZFATE;
-    ZooReader zooReader = new ZooReader(connector.getInstance().getZooKeepers(), connector.getInstance().getZooKeepersSessionTimeOut());
-    ZooCache zooCache = new ZooCache(zooReader, null);
+    try {
 
-    List<String> lockedIds = zooCache.getChildren(zPath);
+      String tableId = Tables.getTableId(instance, tableName);
 
-    for (String fateId : lockedIds) {
+      log.trace("tid: {}", tableId);
 
-      List<String> lockNodes = zooCache.getChildren(zPath + "/" + fateId);
-      lockNodes = new ArrayList<>(lockNodes);
-      Collections.sort(lockNodes);
+      String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
+      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
+      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
+      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
 
-      for (String node : lockNodes) {
+      for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
 
-        byte[] data = zooCache.get(zPath + "/" + fateId + "/" + node);
-        String lda[] = new String(data, UTF_8).split(":");
-
-        for (String fateString : lda) {
-
-          log.trace("Lock: {}:{}: {}", fateId, node, lda);
-
-          if (node.contains("prop_debug") && fateString.contains("CompactRange")) {
-            // found fate associated with table compaction.
-            log.trace("FOUND - Lock: {}:{}: {}", fateId, node, lda);
-            return Boolean.TRUE;
-          }
+        if (tx.getTop().contains("CompactionDriver") && tx.getDebug().contains("CompactRange")) {
+          return true;
         }
       }
+
+    } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
+      throw new IllegalStateException(ex);
     }
 
     // did not find appropriate fate transaction for compaction.
@@ -248,15 +240,13 @@ public class TableChangeStateIT extends AccumuloClusterIT {
   /**
    * Returns the current table state (ONLINE, OFFLINE,...) of named table.
    *
-   * @param connector
-   *          connector to Accumulo instance
    * @param tableName
    *          the table name
    * @return the current table state
    * @throws TableNotFoundException
    *           if table does not exist
    */
-  private TableState getTableState(Connector connector, String tableName) throws TableNotFoundException {
+  private TableState getTableState(String tableName) throws TableNotFoundException {
 
     String tableId = Tables.getTableId(connector.getInstance(), tableName);
 
@@ -276,8 +266,6 @@ public class TableChangeStateIT extends AccumuloClusterIT {
   private void createData(final String tableName) {
 
     try {
-
-      Connector connector = getConnector();
 
       // create table.
       connector.tableOperations().create(tableName);
@@ -364,8 +352,7 @@ public class TableChangeStateIT extends AccumuloClusterIT {
 
       log.trace("Setting {} online", tableName);
 
-      getConnector().tableOperations().online(tableName, true);
-
+      connector.tableOperations().online(tableName, true);
       // stop timing
       status.setComplete();
 
@@ -406,8 +393,6 @@ public class TableChangeStateIT extends AccumuloClusterIT {
       log.trace("Slow iterator {}", slow.toString());
 
       try {
-
-        Connector connector = getConnector();
 
         log.trace("Start compaction");
 

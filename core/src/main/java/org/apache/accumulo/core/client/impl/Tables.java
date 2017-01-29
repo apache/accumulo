@@ -149,6 +149,28 @@ public class Tables {
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
   }
 
+  /**
+   * Clears the zoo cache from instance/root/{PATH}
+   *
+   * @param instance
+   *          The Accumulo Instance
+   * @param zooPath
+   *          A zookeeper path
+   */
+  public static void clearCacheByPath(Instance instance, final String zooPath) {
+
+    String thePath;
+
+    if (zooPath.startsWith("/")) {
+      thePath = zooPath;
+    } else {
+      thePath = "/" + zooPath;
+    }
+
+    getZooCache(instance).clear(ZooUtil.getRoot(instance) + thePath);
+
+  }
+
   public static String getPrintableTableNameFromId(Map<String,String> tidToNameMap, String tableId) {
     String tableName = tidToNameMap.get(tableId);
     return tableName == null ? "(ID:" + tableId + ")" : tableName;
