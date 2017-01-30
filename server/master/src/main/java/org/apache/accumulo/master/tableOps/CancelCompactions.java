@@ -73,7 +73,7 @@ public class CancelCompactions extends MasterRepo {
       }
     });
 
-    return new FinishCancelCompaction(tableId);
+    return new FinishCancelCompaction(getNamespaceId(environment), tableId);
   }
 
   @Override

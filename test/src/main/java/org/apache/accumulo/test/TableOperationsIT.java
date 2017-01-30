@@ -58,8 +58,10 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.BadIterator;
+import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,6 +83,11 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   @Before
   public void setup() throws Exception {
     connector = getConnector();
+  }
+
+  @After
+  public void checkForDanglingFateLocks() {
+    FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
   }
 
   @Test
