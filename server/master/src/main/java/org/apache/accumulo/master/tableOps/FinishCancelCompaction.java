@@ -22,14 +22,17 @@ import org.apache.accumulo.master.Master;
 class FinishCancelCompaction extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private String tableId;
+  private String namespaceId;
 
-  public FinishCancelCompaction(String tableId) {
+  public FinishCancelCompaction(String namespaceId, String tableId) {
     this.tableId = tableId;
+    this.namespaceId = namespaceId;
   }
 
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
-    Utils.getReadLock(tableId, tid).unlock();
+    Utils.unreserveTable(tableId, tid, false);
+    Utils.unreserveNamespace(namespaceId, tid, false);
     return null;
   }
 

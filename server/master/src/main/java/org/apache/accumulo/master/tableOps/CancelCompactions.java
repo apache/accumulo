@@ -69,7 +69,7 @@ public class CancelCompactions extends MasterRepo {
       }
     });
 
-    return new FinishCancelCompaction(tableId);
+    return new FinishCancelCompaction(namespaceId, tableId);
   }
 
   @Override

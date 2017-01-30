@@ -69,6 +69,8 @@ public class RenameIT extends AccumuloClusterHarness {
     c.tableOperations().rename(name2, name1);
     vopts.setTableName(name1);
     VerifyIngest.verifyIngest(c, vopts, scanOpts);
+
+    FunctionalTestUtils.assertNoDanglingFateLocks(getConnector().getInstance(), getCluster());
   }
 
 }
