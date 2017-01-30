@@ -156,7 +156,7 @@ public class AdminUtil<T> {
 
     /**
      * Get locks that are held by non existent FATE transactions. These are table or namespace locks.
-     * 
+     *
      * @return map where keys are transaction ids and values are a list of table IDs and/or namespace IDs. The transaction IDs are in the same format as
      *         transaction IDs in the Accumulo logs.
      */
@@ -166,7 +166,7 @@ public class AdminUtil<T> {
 
     /**
      * Get locks that are waiting to be aquired by non existent FATE transactions. These are table or namespace locks.
-     * 
+     *
      * @return map where keys are transaction ids and values are a list of table IDs and/or namespace IDs. The transaction IDs are in the same format as
      *         transaction IDs in the Accumulo logs.
      */
