@@ -2385,7 +2385,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
         log.info("Attempting to acquire Tablet Server Lock");
         if (tabletServerLock.tryLock(lw, lockContent)) {
-          log.info("Acquired Tablet Server Lock " + tabletServerLock.getLockPath());
+          log.info("Acquired Tablet Server Lock {}", tabletServerLock.getLockPath());
           lockID = tabletServerLock.getLockID().serialize(ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/");
           return;
         }

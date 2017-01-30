@@ -643,7 +643,7 @@ public class Monitor {
       UtilWaitThread.sleep(getContext().getConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL));
     }
 
-    log.info("Acquired Monitor Lock " + monitorLock.getLockPath());
+    log.info("Acquired Monitor Lock {}", monitorLock.getLockPath());
   }
 
   /**
