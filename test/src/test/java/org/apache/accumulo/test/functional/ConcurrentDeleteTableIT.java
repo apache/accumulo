@@ -131,7 +131,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterIT {
         cdl.await();
         Thread.sleep(10);
         doTableOp();
-      } catch (TableNotFoundException e) {
+      } catch (TableNotFoundException | TableOfflineException e) {
         // expected
       } catch (RuntimeException e) {
         throw e;
