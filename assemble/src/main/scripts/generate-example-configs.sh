@@ -20,4 +20,4 @@
 out=target/config.out
 
 echo 'Generating example scripts...' > $out
-bin/accumulo create-config -o -d target/example-configs -s 2GB -j -v 2 >> $out 2>&1
+bin/accumulo-util create-config -o -d target/example-configs -s 2GB -j -v 2 >> $out 2>&1

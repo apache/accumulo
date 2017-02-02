@@ -40,7 +40,7 @@ network bandwidth must be available between any two machines.
 
 In addition to needing access to ports associated with HDFS and ZooKeeper, Accumulo will
 use the following default ports. Please make sure that they are open, or change
-their value in conf/accumulo-site.xml.
+their value in accumulo-site.xml.
 
 .Accumulo default ports
 [width="75%",cols=">,^2,^2"]
@@ -80,23 +80,14 @@ sufficient space:
 Repeat this step on each machine in your cluster. Typically, the same +<install directory>+
 is chosen for all machines in the cluster.
 
-There are three scripts in the the `bin/` directory that are used to manage Accumulo:
+There are four scripts in the `bin/` directory that are used to manage Accumulo:
 
 1. `accumulo` - Runs Accumulo command-line tools and starts Accumulo processes
 2. `accumulo-service` - Runs Accumulo processes as services
 3. `accumulo-cluster` - Manages Accumulo cluster on a single node or several nodes
+4. `accumulo-util` - Accumulo utilities for creating configuration, native libraries, etc.
 
 These scripts will be used in the remaining instructions to configure and run Accumulo.
-
-Add the following to your `~/.bashrc` if you want to be able to execute these scripts
-from any directory:
-
-  export PATH=/path/to/accumulo-X.Y.Z/bin:$PATH
-
-Source your `~/.bashrc` for the changes to take effect and verify:
-
-  source ~/.bashrc
-  which accumulo
 
 === Dependencies
 
@@ -108,32 +99,37 @@ sync, which can cause problems with automatically timestamped data.
 
 === Configuration
 
-Accumulo is configured by editing several Shell and XML files found in
-+$ACCUMULO_CONF_DIR+. The structure closely resembles Hadoop's configuration
-files.
+The Accumulo tarball contains a +conf/+ directory where Accumulo looks for configuration. If you
+installed Accumulo using downstream packaging, the +conf/+ could be something else like +/etc/accumulo/+.
 
-Logging is primarily controlled using the log4j configuration files,
-+generic_logger.xml+ and +monitor_logger.xml+ (or their corresponding
-+.properties+ version if the +.xml+ version is missing). The generic logger is
-used for most server types, and is typically configured to send logs to the
-monitor, as well as log files. The monitor logger is used by the monitor, and
-is typically configured to log only errors the monitor itself generates,
-rather than all the logs that it receives from other server types.
+Before starting Accumulo, the configuration files +accumulo-env.sh+ and +accumulo-site.xml+ must exist in
++conf/+ and be properly configured.  You can either copy these files from +conf/examples+ or run
++accumulo-util create-config+ to generate these files. If you are using +accumulo-cluster+ to launch
+a cluster, the `conf/` directory must also contain hosts file for Accumulo services (i.e +gc+, +masters+,
++monitor+, +tservers+, +tracers+). You can either create these files manually or run 
++accumulo-cluster create-config+.
 
-==== Edit conf/accumulo-env.sh
+Additional optional configuration files can be copied from `conf/examples` to `conf/`. For example,
+logging is primarily controlled using the log4j configuration files, +generic_logger.xml+ and
++monitor_logger.xml+ (or their corresponding +.properties+ version if the +.xml+ version is missing).
+The generic logger is used for most server types, and is typically configured to send logs to the
+monitor, as well as log files. The monitor logger is used by the monitor, and is typically configured
+to log only errors the monitor itself generates, rather than all the logs that it receives from other
+server types.
+
+==== Configure accumulo-env.sh
 
 Accumulo needs to know where to find the software it depends on. Edit accumulo-env.sh
 and specify the following:
 
-. Enter your system's Java home for +$JAVA_HOME+
 . Enter the location of Hadoop for +$HADOOP_PREFIX+
-. Choose a location for Accumulo logs and enter it for +$ACCUMULO_LOG_DIR+
 . Enter the location of ZooKeeper for +$ZOOKEEPER_HOME+
+. Optionally, choose a different location for Accumulo logs using +$ACCUMULO_LOG_DIR+
 
-By default Accumulo TabletServers are set to use 1GB of memory. You may change
-this by altering the value of +$ACCUMULO_TSERVER_OPTS+. Note the syntax is that of
-the Java JVM command line options. This value should be less than the physical
-memory of the machines running TabletServers.
+You may want to change the default memory settings for Accumulo's TabletServer which are
+by set in the +JAVA_OPTS+ settings for 'tservers' in +accumulo-env.sh+. Note the
+syntax is that of the Java JVM command line options. This value should be less than the
+physical memory of the machines running TabletServers.
 
 There are similar options for the master's memory usage and the garbage collector
 process. Reduce these if they exceed the physical RAM of your hardware and
@@ -161,23 +157,22 @@ in the JVM by causing it to pause much less frequently.
 
 ===== Building
 
-32-bit and 64-bit Linux and Mac OS X versions of the native map can be built
-from the Accumulo bin package by executing +accumulo build-native+. If your system's
-default compiler options are insufficient, you can add additional compiler
-options to the command line, such as options for the architecture. These will be
-passed to the Makefile in the environment variable +USERFLAGS+.
+32-bit and 64-bit Linux and Mac OS X versions of the native map can be built by executing
++accumulo-util build-native+. If your system's default compiler options are insufficient,
+you can add additional compiler options to the command line, such as options for the
+architecture. These will be passed to the Makefile in the environment variable +USERFLAGS+.
 
 Examples:
 
-  accumulo build-native
-  accumulo build-native -m32
+  accumulo-util build-native
+  accumulo-util build-native -m32
 
 After building the native map from the source, you will find the artifact in
 +lib/native+. Upon starting up, the tablet server will look
 in this directory for the map library. If the file is renamed or moved from its
 target directory, the tablet server may not be able to find it. The system can
 also locate the native maps shared library by setting +LD_LIBRARY_PATH+
-(or +DYLD_LIBRARY_PATH+ on Mac OS X) in +$ACCUMULO_CONF_DIR/accumulo-env.sh+.
+(or +DYLD_LIBRARY_PATH+ on Mac OS X) in +accumulo-env.sh+.
 
 ===== Native Maps Configuration
 
@@ -211,18 +206,19 @@ performance to the write-ahead log file which will slow ingest.
 
 ==== Cluster Specification
 
-On the machine that will serve as the Accumulo master:
+If you are using +accumulo-cluster+ to start a cluster, configure the following on the
+machine that will serve as the Accumulo master:
 
-. Write the IP address or domain name of the Accumulo Master to the +$ACCUMULO_CONF_DIR/masters+ file.
-. Write the IP addresses or domain name of the machines that will be TabletServers in +$ACCUMULO_CONF_DIR/tservers+, one per line.
+. Write the IP address or domain name of the Accumulo Master to the +conf/masters+ file.
+. Write the IP addresses or domain name of the machines that will be TabletServers in +conf/tservers+, one per line.
 
 Note that if using domain names rather than IP addresses, DNS must be configured
 properly for all machines participating in the cluster. DNS can be a confusing source
 of errors.
 
-==== Accumulo Settings
-Specify appropriate values for the following settings in
-+$ACCUMULO_CONF_DIR/accumulo-site.xml+ :
+==== Configure accumulo-site.xml
+
+Specify appropriate values for the following settings in +accumulo-site.xml+:
 
 [source,xml]
 <property>
@@ -251,10 +247,10 @@ some settings require a process restart to take effect. See the configuration do
 
 One aspect of Accumulo's configuration which is different as compared to the rest of the Hadoop
 ecosystem is that the server-process classpath is determined in part by multiple values. A
-bootstrap classpath is based soley on the `accumulo-start.jar`, Log4j and `$ACCUMULO_CONF_DIR`.
+bootstrap classpath is based soley on the `accumulo-start.jar`, Log4j and `/path/to/accumulo/conf`.
 
 A second classloader is used to dynamically load all of the resources specified by `general.classpaths`
-in `$ACCUMULO_CONF_DIR/accumulo-site.xml`. This value is a comma-separated list of regular-expression
+in `accumulo-site.xml`. This value is a comma-separated list of regular-expression
 paths which are all loaded into a secondary classloader. This includes Hadoop, Accumulo and ZooKeeper
 jars necessary to run Accumulo. When this value is not defined, a default value is used which attempts
 to load Hadoop from multiple potential locations depending on how Hadoop was installed. It is strongly
@@ -280,9 +276,9 @@ Accumulo identifies +localhost:8020+ as a different HDFS instance than +127.0.0.
 
 ==== Deploy Configuration
 
-Copy the masters, tservers, accumulo-env.sh, and if necessary, accumulo-site.xml
-from the +$ACCUMULO_CONF_DIR/+ directory on the master to all the machines
-specified in the tservers file.
+Copy accumulo-env.sh and accumulo-site.xml from the +conf/+ directory on the master to all Accumulo
+tablet servers.  The "host" configuration files files +accumulo-cluster+ only need to be on servers
+where that command is run.
 
 ==== Sensitive Configuration Values
 
@@ -311,14 +307,14 @@ Each entry in the KeyStore is the Accumulo Property key name. For example, to st
 
 The command will then prompt you to enter the secret to use and create a keystore in: 
 
-  /etc/accumulo/conf/accumulo.jceks
+  /path/to/accumulo/conf/accumulo.jceks
 
 Then, accumulo-site.xml must be configured to use this KeyStore as a CredentialProvider:
 
 [source,xml]
 <property>
     <name>general.security.credential.provider.paths</name>
-    <value>jceks://file/etc/accumulo/conf/accumulo.jceks</value>
+    <value>jceks://file/path/to/accumulo/conf/accumulo.jceks</value>
 </property>
 
 This configuration will then transparently extract the +instance.secret+ from
@@ -342,7 +338,7 @@ The client configuration file is a subset of the information stored in accumulo-
 meant only for consumption by clients of Accumulo. By default, Accumulo checks a number
 of locations for a client configuration by default:
 
-* +\${ACCUMULO_CONF_DIR}/client.conf+
+* +/path/to/accumulo/conf/client.conf+
 * +/etc/accumulo/client.conf+
 * +/etc/accumulo/conf/client.conf+
 * +~/.accumulo/config+
@@ -447,7 +443,7 @@ take some time for particular configurations.
 
 ==== Adding a Tablet Server
 
-Update your +$ACCUMULO_CONF_DIR/tservers+ file to account for the addition.
+Update your +conf/tservers+ file to account for the addition.
 
 Next, ssh to each of the hosts you want to add and run:
 
@@ -468,13 +464,13 @@ Alternatively, you can ssh to each of the hosts you want to remove and run:
 
   accumulo-service tserver stop
 
-Be sure to update your +$ACCUMULO_CONF_DIR/tservers+ file to
+Be sure to update your +conf/tservers+ file to
 account for the removal of these hosts. Bear in mind that the monitor will not re-read the
 tservers file automatically, so it will report the decomissioned servers as down; it's
 recommended that you restart the monitor so that the node list is up to date.
 
 The steps described to decomission a node can also be used (without removal of the host
-from the +$ACCUMULO_CONF_DIR/tservers+ file) to gracefully stop a node. This will
+from the +conf/tservers+ file) to gracefully stop a node. This will
 ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
 when the tablets are re-hosted.
 
@@ -504,29 +500,18 @@ With very powerful nodes, it may be beneficial to run more than one TabletServer
 node. This decision should be made carefully and with much deliberation as Accumulo is designed
 to be able to scale to using 10's of GB of RAM and 10's of CPU cores.
 
-To run multiple TabletServers on a single host you will need to change the +NUM_TSERVERS+ property
-in the accumulo-env.sh file from 1 to the number of TabletServers that you want to run. On NUMA
-hardware, with numactl installed, the TabletServer will interleave its memory allocations across
-the NUMA nodes and the processes will be scheduled on all the NUMA cores without restriction. To
-change this behavior you can uncomment the +TSERVER_NUMA_OPTIONS+ example in accumulo-env.sh and
-set the numactl options for each TabletServer.
-
 Accumulo TabletServers bind certain ports on the host to accommodate remote procedure calls to/from
-other nodes. Running more than one TabletServer on a host requires that you set the following
-properties in +accumulo-site.xml+:
+other nodes. Running more than one TabletServer on a host requires that you add +-Daccumulo.service.instance=<NUM>+
+(replace <NUM> with you instance number) to JAVA_OPTS in your +accumulo-env.sh+ file and set these properties in +accumulo-site.xml+:
 
   <property>
-    <name>tserver.port.client</name>
-    <value>0</value>
+    <name>tserver.port.search</name>
+    <value>true</value>
   </property>
   <property>
     <name>replication.receipt.service.port</name>
     <value>0</value>
   </property>
-
-Accumulo's provided scripts for starting and stopping the cluster should work normally with multiple
-TabletServers on a host. Sanity checks are provided in the scripts and will output an error when there
-is a configuration mismatch.
 
 [[monitoring]]
 === Monitoring
@@ -566,10 +551,10 @@ SSL may be enabled for the monitor page by setting the following properties in t
   monitor.ssl.trustStore
   monitor.ssl.trustStorePassword
 
-If the Accumulo conf directory has been configured (in particular the +accumulo-env.sh+ file must be set up), the +gen-monitor-cert.sh+
-script in the Accumulo +contrib+ directory can be used to create the keystore and truststore files with random passwords. The script
+If the Accumulo conf directory has been configured (in particular the +accumulo-env.sh+ file must be set up), the 
++accumulo-util gen-monitor-cert+ command can be used to create the keystore and truststore files with random passwords. The command
 will print out the properties that need to be added to the +accumulo-site.xml+ file. The stores can also be generated manually with the
-Java +keytool+ command, whose usage can be seen in the +gen-monitor-cert.sh+ script.
+Java +keytool+ command, whose usage can be seen in the +accumulo-util+ script.
 
 If desired, the SSL ciphers allowed for connections can be controlled via the following properties in +accumulo-site.xml+:
 
@@ -635,12 +620,10 @@ http://research.google.com/pubs/pub36356.html[Google's Dapper].
 
 ==== Tracers
 
-To collect traces, Accumulo needs at least one server listed in
- +$ACCUMULO_CONF_DIR/tracers+. The server collects traces
-from clients and writes them to the +trace+ table. The Accumulo
-user that the tracer connects to Accumulo with can be configured with
-the following properties
-(see the <<configuration,Configuration>> section for setting Accumulo server properties)
+To collect traces, Accumulo needs at least one tracer server running. If you are using +accumulo-cluster+ to start your cluster,
+configure your server in +conf/tracers+. The server collects traces from clients and writes them to the +trace+ table. The Accumulo
+user that the tracer connects to Accumulo with can be configured with the following properties (see the <<configuration,Configuration>> 
+section for setting Accumulo server properties)
 
   trace.user
   trace.token.property.password
@@ -729,7 +712,7 @@ for adding any SpanReceiver to Accumulo:
 +lib/+ and NOT in +lib/ext/+ so that the new SpanReceiver class
 is visible to the same class loader of htrace-core.
 
-2. Add the following to +$ACCUMULO_CONF_DIR/accumulo-site.xml+:
+2. Add the following to +accumulo-site.xml+:
 
   <property>
     <name>trace.span.receivers</name>
@@ -949,32 +932,6 @@ Time  Start  Service@Location       Name
 Accumulo processes each write to a set of log files. By default these are found under
 +$ACCUMULO/logs/+.
 
-[[watcher]]
-=== Watcher
-Accumulo includes scripts to automatically restart server processes in the case
-of intermittent failures. To enable this watcher, edit +conf/accumulo-env.sh+
-to include the following:
-
-....
-# Should process be automatically restarted
-export ACCUMULO_WATCHER="true"
-
-# What settings should we use for the watcher, if enabled
-export UNEXPECTED_TIMESPAN="3600"
-export UNEXPECTED_RETRIES="2"
-
-export OOM_TIMESPAN="3600"
-export OOM_RETRIES="5"
-
-export ZKLOCK_TIMESPAN="600"
-export ZKLOCK_RETRIES="5"
-....
-
-When an Accumulo process dies, the watcher will look at the logs and exit codes
-to determine how the process failed and either restart or fail depending on the
-recent history of failures. The restarting policy for various failure conditions
-is configurable through the +*_TIMESPAN+ and +*_RETRIES+ variables shown above.
-
 === Recovery
 
 In the event of TabletServer failure or error on shutting Accumulo down, some
@@ -1016,7 +973,7 @@ that the only volume displayed is the volume from the current namenode's HDFS UR
 
 After verifying the current volume is correct, shut down the cluster and transition HDFS to the HA nameservice.
 
-Edit +$ACCUMULO_CONF_DIR/accumulo-site.xml+ to notify accumulo that a volume is being replaced. First,
+Edit +accumulo-site.xml+ to notify accumulo that a volume is being replaced. First,
 add the new nameservice volume to the +instance.volumes+ property. Next, add the
 +instance.volumes.replacements+ property in the form of +old new+. It's important to not include
 the volume that's being replaced in +instance.volumes+, otherwise it's possible accumulo could continue
@@ -1054,14 +1011,6 @@ new nameservice volume shows up with +accumulo admin volumes+.
 Some erroneous GarbageCollector messages may still be seen for a small period while data is transitioning to
 the new volumes. This is expected and can usually be ignored.
 
-
-
-
-
-
-
-
-
 === Achieving Stability in a VM Environment
 
 For testing, demonstration, and even operation uses, Accumulo is often
@@ -1075,6 +1024,7 @@ maximizing stability in a VM environment, including some of the common failure
 modes that are more common when running in VMs.
 
 ==== Known failure modes: Setup and Troubleshooting
+
 In addition to the general failure modes of running Accumulo, VMs can introduce a
 couple of environmental challenges that can affect process stability. Clock
 drift is something that is more common in VMs, especially when VMs are
@@ -1087,6 +1037,7 @@ performance will require additional tuning, which is not covered in this
 section), however there are some limits.
 
 ===== Physical Memory
+
 One of those limits has to do with the Linux out of memory killer. A common
 failure mode in VM environments (and in some bare metal installations) is when
 the Linux out of memory killer decides to kill processes in order to avoid a
@@ -1177,14 +1128,6 @@ occur that cause Accumulo process to lose their Zookeeper locks, some of which
 are true interruptions to availability and some of which are false positives.
 Several of these conditions become more common in VM environments, where they
 can be exacerbated by resource constraints and clock drift.
-
-Accumulo includes a mechanism to limit the impact of the false positives known
-as the <<watcher>>. The watcher monitors Accumulo processes and will restart
-them when they fail for certain reasons. The watcher can be configured within
-the accumulo-env.sh file inside of Accumulo's configuration directory. We
-recommend using the watcher to monitor Accumulo processes, as it will restore
-the system to full capacity without administrator interaction after many of the
-common failure modes.
 
 ==== Tested Versions
 Another large consideration for Accumulo stability is to use versions of

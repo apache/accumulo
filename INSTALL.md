@@ -25,11 +25,13 @@ source code.  Unpack as follows.
     tar xzf <some dir>/accumulo-X.Y.Z-bin.tar.gz
     cd accumulo-X.Y.Z
 
-There are three scripts in the the `bin/` directory that are used to manage Accumulo:
+There are four scripts in the `bin` directory of the tarball distribution that are used
+to manage Accumulo:
 
 1. `accumulo` - Runs Accumulo command-line tools and starts Accumulo processes
 2. `accumulo-service` - Runs Accumulo processes as services
 3. `accumulo-cluster` - Manages Accumulo cluster on a single node or several nodes
+4. `accumulo-util` - Accumulo utilities for creating configuration, native libraries, etc.
 
 These scripts will be used in the remaining instructions to configure and run Accumulo.
 For convenience, consider adding `accumulo-X.Y.Z/bin/` to your shell's path.
@@ -40,13 +42,13 @@ Accumulo has some optional native code that improves its performance and
 stability. Before configuring Accumulo, attempt to build this native code
 with the following command.
 
-    accumulo build-native
+    accumulo-util build-native
 
 If the command fails, its OK to continue with setup and resolve the issue later.
 
 Run the command below to create configuration for Accumulo in `conf/`:
 
-    accumulo create-config
+    accumulo-util create-config
 
 The script will ask you questions about your set up. Below are some suggestions:
 
@@ -57,7 +59,7 @@ The script will ask you questions about your set up. Below are some suggestions:
   processes like Hadoop, Zookeeper, and the Accumulo client code.  If Accumulo
   worker processes are swapped out and unresponsive, they may be killed.
 
-After the `create-config` command is run, the `conf/` directory will contain
+After the `accumulo-util create-config` command is run, the `conf/` directory will contain
 `accumulo-env.sh`, `accumulo-site.xml`, and few a additional files. These files require
 a few edits before starting Accumulo.
 
@@ -65,7 +67,7 @@ a few edits before starting Accumulo.
 
 Accumulo coordination and worker processes can only communicate with each other
 if they share the same secret key.  To change the secret key set
-`instance.secret` in `conf/accumulo-site.xml`.  Changing this secret key from
+`instance.secret` in `accumulo-site.xml`.  Changing this secret key from
 the default is highly recommended.
 
 ### Dependencies
@@ -76,19 +78,19 @@ When configuring Accumulo the following information about these dependencies
 must be provided.
 
  * **Location of Zookeepers** :  Provide this by setting `instance.zookeeper.host`
-   in `conf/accumulo-site.xml`.
+   in `accumulo-site.xml`.
  * **Where to store data** :  Provide this by setting `instance.volumes` in
-   `conf/accumulo-site.xml`.  If your namenode is running at 192.168.1.9:9000
+   `accumulo-site.xml`.  If your namenode is running at 192.168.1.9:9000
    and you want to store data in `/accumulo` in HDFS, then set
   `instance.volumes` to `hdfs://192.168.1.9:9000/accumulo`.
  * **Location of Zoookeeper and Hadoop jars** :  Setting `ZOOKEEPER_HOME` and
-   `HADOOP_PREFIX` in `conf/accumulo-env.sh` will help Accumulo find these
-   jars.
+   `HADOOP_PREFIX` in `accumulo-env.sh` will help Accumulo find these jars
+   when using the default setting for `general.classpaths` in accumulo-site.xml.
 
 If Accumulo has problems later on finding jars, then run `bin/accumulo
 classpath` to print out info about where Accumulo is finding jars.  If the
 settings mentioned above are correct, then inspect `general.classpaths` in
-`conf/accumulo-site.xml`.
+`accumulo-site.xml`.
 
 ## Initialization
 
@@ -141,19 +143,19 @@ changed and the next section should be skipped.
 #### Multi-node configuration
 
 If you are running an Accumulo cluster on multiple nodes, the following files
-should be configured with a newline seperated list of node names:
+in `conf/` should be configured with a newline seperated list of node names:
 
- * `conf/masters` : Accumulo primary coordinating process.  Must specify one
-                    node.  Can specify a few for fault tolerance.
- * `conf/gc`      : Accumulo garbage collector.  Must specify one node.  Can
-                    specify a few for fault tolerance.
- * `conf/monitor` : Node where Accumulo monitoring web server is run.
- * `conf/tservers`: Accumulo worker processes.   List all of the nodes where
-                    tablet servers should run in this file.
- * `conf/tracers` : Optional capability. Can specify zero or more nodes. 
+ * `masters` : Accumulo primary coordinating process. Must specify one node. Can
+               specify a few for fault tolerance.
+ * `gc`      : Accumulo garbage collector. Must specify one node. Can specify a
+               few for fault tolerance.
+ * `monitor` : Node where Accumulo monitoring web server is run.
+ * `tservers`: Accumulo worker processes. List all of the nodes where tablet servers
+               should run in this file.
+ * `tracers` : Optional capability. Can specify zero or more nodes. 
 
 The Accumulo, Hadoop, and Zookeeper software should be present at the same
-location on every node.  Also the files in the `conf` directory must be copied
+location on every node. Also the files in the `conf` directory must be copied
 to every node. There are many ways to replicate the software and configuration,
 two possible tools that can help replicate software and/or config are [pdcp][5]
 and [prsync][6].

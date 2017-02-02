@@ -49,6 +49,7 @@
         <include>org.apache.htrace:htrace-core</include>
         <include>org.slf4j:slf4j-api</include>
         <include>org.slf4j:slf4j-log4j12</include>
+        <include>log4j:log4j</include>
       </includes>
       <excludes>
         <exclude>${groupId}:${artifactId}-docs</exclude>
@@ -73,32 +74,6 @@
       <fileMode>0755</fileMode>
     </fileSet>
     <fileSet>
-      <directory>contrib</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.sh</include>
-        <include>check-tservers</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>libexec</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.sh</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>libexec/templates</directory>
-      <outputDirectory>libexec/templates</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>accumulo-site.xml</include>
-      </includes>  
-    </fileSet>
-    <fileSet>
       <directory>./</directory>
       <outputDirectory>lib/ext</outputDirectory>
       <directoryMode>0755</directoryMode>
@@ -117,36 +92,13 @@
     <fileSet>
       <directory>conf</directory>
       <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.sh</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>conf</directory>
-      <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>**/*.sh</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
-      <directory>target/example-configs</directory>
-      <outputDirectory>conf/examples</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.sh</include>
-      </includes>
     </fileSet>
     <fileSet>
       <directory>target/example-configs</directory>
       <outputDirectory>conf/examples</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>**/*.sh</exclude>
-      </excludes>
     </fileSet>
     <!-- Lift generated thrift proxy code into its own directory -->
     <fileSet>

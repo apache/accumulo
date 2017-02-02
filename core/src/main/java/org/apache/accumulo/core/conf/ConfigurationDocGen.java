@@ -222,7 +222,7 @@ class ConfigurationDocGen {
   }
 
   /**
-   * Generates documentation for conf/accumulo-site.xml file usage. Arguments are: "--generate-asciidoc filename"
+   * Generates documentation for accumulo-site.xml file usage. Arguments are: "--generate-asciidoc filename"
    *
    * @param args
    *          command-line arguments
