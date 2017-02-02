@@ -23,7 +23,7 @@ Accumulo is a distributed system.  It is supposed to run on remote
 equipment, across hundreds of computers.  Each program that runs on
 these remote computers writes down events as they occur, into a local
 file. By default, this is defined in
-+$ACCUMULO_CONF_DIR/accumule-env.sh+ as +ACCUMULO_LOG_DIR+.
++conf/accumule-env.sh+ as +ACCUMULO_LOG_DIR+.
 
 *A*: Look in the +$ACCUMULO_LOG_DIR/tserver*.log+ file.  Specifically, check the end of the file.
 
@@ -125,7 +125,7 @@ It is important to see the word +CONNECTED+!  If you only see
 +CONNECTING+ you will need to diagnose zookeeper errors.
 
 *A*: Check to make sure that zookeeper is up, and that
-+$ACCUMULO_CONF_DIR/accumulo-site.xml+ has been pointed to
++conf/accumulo-site.xml+ has been pointed to
 your zookeeper server(s).
 
 *Q*: Zookeeper is running, but it does not say +CONNECTED+

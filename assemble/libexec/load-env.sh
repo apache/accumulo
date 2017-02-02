@@ -35,7 +35,7 @@ locationByProgram()
 {
    RESULT=$( which "$1" )
    if [[ "$?" != 0 && -z "${RESULT}" ]]; then
-      echo "Cannot find '$1' and '$2' is not set in $ACCUMULO_CONF_DIR/accumulo-env.sh"
+      echo "Cannot find '$1' and '$2' is not set in $conf/accumulo-env.sh"
       exit 1
    fi
    while [ -h "${RESULT}" ]; do # resolve $RESULT until the file is no longer a symlink
@@ -58,22 +58,21 @@ while [ -h "$SOURCE" ]; do
 done
 libexec="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 basedir=$( cd -P "${libexec}"/.. && pwd )
+conf="${basedir}/conf"
 
-export ACCUMULO_CONF_DIR="${ACCUMULO_CONF_DIR:-$basedir/conf}"
-
-if [[ -z $ACCUMULO_CONF_DIR || ! -d $ACCUMULO_CONF_DIR ]]; then
-  echo "ACCUMULO_CONF_DIR=$ACCUMULO_CONF_DIR is not a valid directory.  Please make sure it exists"
+if [[ -z $conf || ! -d $conf ]]; then
+  echo "$conf is not a valid directory.  Please make sure it exists"
   exit 1
 fi
 
-if [[ ! -f $ACCUMULO_CONF_DIR/accumulo-env.sh || ! -f $ACCUMULO_CONF_DIR/accumulo-site.xml ]]; then
-  echo "The configuration files 'accumulo-env.sh' & 'accumulo-site.xml' must exist in $ACCUMULO_CONF_DIR"
-  echo "Run 'accumulo create-config' to create them or copy them from $ACCUMULO_CONF_DIR/examples"
+if [[ ! -f $conf/accumulo-env.sh || ! -f $conf/accumulo-site.xml ]]; then
+  echo "The configuration files 'accumulo-env.sh' & 'accumulo-site.xml' must exist in $conf"
+  echo "Run 'accumulo create-config' to create them or copy them from $conf/examples"
   echo "Follow the instructions in INSTALL.md to edit them for your environment."
   exit 1
 fi
 
-source "$ACCUMULO_CONF_DIR/accumulo-env.sh"
+source "$conf/accumulo-env.sh"
 
 ## Variables that must be set
 
@@ -93,30 +92,19 @@ test -z "${HADOOP_PREFIX}" && locationByProgram hadoop HADOOP_PREFIX
 test -z "${ZOOKEEPER_HOME}" && locationByProgram zkCli.sh ZOOKEEPER_HOME
 
 export HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-$HADOOP_PREFIX/etc/hadoop}"
-export ACCUMULO_HOME="${ACCUMULO_HOME:-$basedir}"
-export ACCUMULO_BIN_DIR="${ACCUMULO_BIN_DIR:-$basedir/bin}"
-export ACCUMULO_CONF_DIR="${ACCUMULO_CONF_DIR:-$basedir/conf}"
-export ACCUMULO_LIB_DIR="${ACCUMULO_LIB_DIR:-$basedir/lib}"
-export ACCUMULO_LIBEXEC_DIR="${ACCUMULO_LIBEXEC_DIR:-$basedir/libexec}"
+export ACCUMULO_HOME="$basedir"
+export ACCUMULO_CONF_DIR="$conf"
 export ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-$basedir/logs}"
-export ACCUMULO_PID_DIR="${ACCUMULO_PID_DIR:-$basedir/run}"
 
 # Make directories that may not exist
 mkdir -p "${ACCUMULO_LOG_DIR}" 2>/dev/null
-mkdir -p "${ACCUMULO_PID_DIR}" 2>/dev/null
+mkdir -p "${basedir}/run" 2>/dev/null
 
 # Verify all directories exist
 verify_env_dir "JAVA_HOME" "${JAVA_HOME}"
 verify_env_dir "HADOOP_PREFIX" "${HADOOP_PREFIX}"
 verify_env_dir "HADOOP_CONF_DIR" "${HADOOP_CONF_DIR}"
 verify_env_dir "ZOOKEEPER_HOME" "${ZOOKEEPER_HOME}"
-verify_env_dir "ACCUMULO_HOME" "${ACCUMULO_HOME}"
-verify_env_dir "ACCUMULO_BIN_DIR" "${ACCUMULO_BIN_DIR}"
-verify_env_dir "ACCUMULO_CONF_DIR" "${ACCUMULO_CONF_DIR}"
-verify_env_dir "ACCUMULO_LIB_DIR" "${ACCUMULO_LIB_DIR}"
-verify_env_dir "ACCUMULO_LIBEXEC_DIR" "${ACCUMULO_LIBEXEC_DIR}"
-verify_env_dir "ACCUMULO_LOG_DIR" "${ACCUMULO_LOG_DIR}"
-verify_env_dir "ACCUMULO_PID_DIR" "${ACCUMULO_PID_DIR}"
 
 ## Verify Zookeeper installation
 ZOOKEEPER_VERSION=$(find -L "$ZOOKEEPER_HOME" -maxdepth 1 -name "zookeeper-[0-9]*.jar" | head -1)
@@ -134,19 +122,6 @@ fi
 ## Variables that have a default
 export ACCUMULO_KILL_CMD=${ACCUMULO_KILL_CMD:-'kill -9 %p'}
 export ACCUMULO_MONITOR_BIND_ALL=${ACCUMULO_MONITOR_BIND_ALL:-"true"}
-export ACCUMULO_JAAS_CONF=${ACCUMULO_JAAS_CONF:-${ACCUMULO_CONF_DIR}/jaas.conf}
-export ACCUMULO_KRB5_CONF=${ACCUMULO_KRB5_CONF:-${ACCUMULO_CONF_DIR}/krb5.conf}
-export ACCUMULO_NUM_OUT_FILES=${ACCUMULO_NUM_OUT_FILES:-5}
-export ACCUMULO_WATCHER=${ACCUMULO_WATCHER:-"false"}
-export ACCUMULO_NUM_TSERVERS=${ACCUMULO_NUM_TSERVERS:-1}
-export ACCUMULO_ENABLE_NUMACTL=${ACCUMULO_ENABLE_NUMACTL:-"false"}
-export ACCUMULO_NUMACTL_OPTIONS=${ACCUMULO_NUMACTL_OPTIONS:-"--interleave=all"}
-
-# Validate that ACCUMULO_NUM_TSERVERS is a positive integer
-if ! [[ $ACCUMULO_NUM_TSERVERS =~ ^[0-9]+$ ]]; then
-   echo "ACCUMULO_NUM_TSERVERS, when defined in accumulo-env.sh, should be a positive number, is '$ACCUMULO_NUM_TSERVERS'"
-   exit 1
-fi
 
 export HADOOP_HOME=$HADOOP_PREFIX
 export HADOOP_HOME_WARN_SUPPRESS=true

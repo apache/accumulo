@@ -26,14 +26,15 @@ contrib=$( cd -P "$( dirname "$SOURCE" )" && pwd )
 basedir=$( cd -P "${contrib}"/.. && pwd )
 # Stop: Resolve Script Directory
 
+conf="${basdir}/conf"
 source "$basedir"/libexec/load-env.sh
 
 ALIAS="default"
 KEYPASS=$(LC_CTYPE=C tr -dc '#-~' < /dev/urandom | tr -d '<>&' | head -c 20)
 STOREPASS=$(LC_CTYPE=C tr -dc '#-~' < /dev/urandom | tr -d '<>&' | head -c 20)
-KEYSTOREPATH="$ACCUMULO_CONF_DIR/keystore.jks"
-TRUSTSTOREPATH="$ACCUMULO_CONF_DIR/conf/cacerts.jks"
-CERTPATH="$ACCUMULO_CONF_DIR/server.cer"
+KEYSTOREPATH="${conf}/keystore.jks"
+TRUSTSTOREPATH="${conf}/conf/cacerts.jks"
+CERTPATH="${conf}/server.cer"
 
 if [[ -e "$KEYSTOREPATH" ]]; then
    rm -i "$KEYSTOREPATH"

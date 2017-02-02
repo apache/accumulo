@@ -44,7 +44,7 @@ if [[ $(eval "$ZOOKEEPER_CMD" | wc -l) -ne 1 ]] ; then
 fi
 ZOOKEEPER_LIB=$(eval "$ZOOKEEPER_CMD")
 
-LIB="$ACCUMULO_LIB_DIR"
+LIB="${basedir}/lib"
 CORE_LIB="$LIB/accumulo-core.jar"
 FATE_LIB="$LIB/accumulo-fate.jar"
 THRIFT_LIB="$LIB/libthrift.jar"
