@@ -59,6 +59,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.CompressedIterators;
 import org.apache.accumulo.core.client.impl.DurabilityImpl;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
@@ -448,7 +449,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         long readaheadThreshold) throws NotServingTabletException, ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
 
       String tableId = new String(textent.getTable(), UTF_8);
-      if (!security.canScan(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), range, columns, ssiList, ssio, authorizations))
+      String namespaceId;
+      try {
+        namespaceId = Tables.getNamespaceId(getInstance(), tableId);
+      } catch (TableNotFoundException e1) {
+        throw new NotServingTabletException(textent);
+      }
+      if (!security.canScan(credentials, tableId, namespaceId, range, columns, ssiList, ssio, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       if (!security.userHasAuthorizations(credentials, authorizations))
@@ -596,9 +603,16 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         throw new IllegalArgumentException("Cannot batch scan over multiple tables");
 
       // check if user has permission to the tables
-      for (String tableId : tables)
-        if (!security.canScan(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), tbatch, tcolumns, ssiList, ssio, authorizations))
+      for (String tableId : tables) {
+        String namespaceId;
+        try {
+          namespaceId = Tables.getNamespaceId(getInstance(), tableId);
+        } catch (TableNotFoundException e1) {
+          throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.TABLE_DOESNT_EXIST);
+        }
+        if (!security.canScan(credentials, tableId, namespaceId, tbatch, tcolumns, ssiList, ssio, authorizations))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+      }
 
       try {
         if (!security.userHasAuthorizations(credentials, authorizations))
@@ -715,11 +729,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         return;
       }
 
+      String tableId = "";
       try {
         // if user has no permission to write to this table, add it to
         // the failures list
         boolean sameTable = us.currentTablet != null && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
-        String tableId = keyExtent.getTableId().toString();
+        tableId = keyExtent.getTableId().toString();
         if (sameTable || security.canWrite(us.getCredentials(), tableId, Tables.getNamespaceId(getInstance(), tableId))) {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
@@ -743,6 +758,15 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
           return;
         }
+      } catch (TableNotFoundException tnfe) {
+        log.error("Table " + tableId + " not found ", tnfe);
+        long t2 = System.currentTimeMillis();
+        us.authTimes.addStat(t2 - t1);
+        us.currentTablet = null;
+        us.authFailures.put(keyExtent, SecurityErrorCode.TABLE_DOESNT_EXIST);
+        if (updateMetrics.isEnabled())
+          updateMetrics.add(TabletServerUpdateMetrics.UNKNOWN_TABLET_ERRORS, 0);
+        return;
       } catch (ThriftSecurityException e) {
         log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(), e);
         long t2 = System.currentTimeMillis();
@@ -999,7 +1023,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         throws NotServingTabletException, ConstraintViolationException, ThriftSecurityException {
 
       final String tableId = new String(tkeyExtent.getTable(), UTF_8);
-      if (!security.canWrite(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId)))
+      String namespaceId;
+      try {
+        namespaceId = Tables.getNamespaceId(getInstance(), tableId);
+      } catch (TableNotFoundException e1) {
+        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.TABLE_DOESNT_EXIST);
+      }
+      if (!security.canWrite(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       final KeyExtent keyExtent = new KeyExtent(tkeyExtent);
       final Tablet tablet = onlineTablets.get(new KeyExtent(keyExtent));
@@ -1232,7 +1262,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         TDurability tdurabilty) throws ThriftSecurityException, TException {
 
       Authorizations userauths = null;
-      if (!security.canConditionallyUpdate(credentials, tableId, Tables.getNamespaceId(getInstance(), tableId), authorizations))
+      String namespaceId;
+      try {
+        namespaceId = Tables.getNamespaceId(getInstance(), tableId);
+      } catch (TableNotFoundException e) {
+        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.TABLE_DOESNT_EXIST);
+      }
+      if (!security.canConditionallyUpdate(credentials, tableId, namespaceId, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
       userauths = security.getUserAuthorizations(credentials);
@@ -1320,9 +1356,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       String namespaceId;
       try {
         namespaceId = Tables.getNamespaceId(getInstance(), tableId);
-      } catch (IllegalArgumentException ex) {
-        // table does not exist, try to educate the client
-        throw new NotServingTabletException(tkeyExtent);
+      } catch (TableNotFoundException ex) {
+        // tableOperationsImpl catches ThriftSeccurityException and checks for missing table
+        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.TABLE_DOESNT_EXIST);
       }
 
       if (!security.canSplitTablet(credentials, tableId, namespaceId))

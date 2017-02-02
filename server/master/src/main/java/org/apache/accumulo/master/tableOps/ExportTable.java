@@ -16,10 +16,9 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.fs.Path;
 
 public class ExportTable extends MasterRepo {
@@ -27,12 +26,12 @@ public class ExportTable extends MasterRepo {
 
   private final ExportInfo tableInfo;
 
-  public ExportTable(String tableName, String tableId, String exportDir) {
+  public ExportTable(String namespaceId, String tableName, String tableId, String exportDir) throws ThriftTableOperationException {
     tableInfo = new ExportInfo();
     tableInfo.tableName = tableName;
     tableInfo.exportDir = exportDir;
     tableInfo.tableID = tableId;
-    tableInfo.namespaceID = Tables.getNamespaceId(HdfsZooInstance.getInstance(), tableId);
+    tableInfo.namespaceID = namespaceId;
   }
 
   @Override
