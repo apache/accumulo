@@ -20,7 +20,7 @@ Upgrading
 
 # From 1.7 to 1.8
 
-Upgrades from 1.7 to 1.8 are be possible with little effort as no changes were made at the data layer and RPC changes
+Upgrades from 1.7 to 1.8 are possible with little effort as no changes were made at the data layer and RPC changes
 were made in a backwards-compatible way. The recommended way is to stop Accumulo 1.7, perform the Accumulo upgrade to
 1.8, and then start 1.8. Like previous versions, after 1.8 is started on a 1.7 instance, a one-time upgrade will
 happen by the Master which will prevent a downgrade back to 1.7. Upgrades are still one way. Upgrades from versions
@@ -36,7 +36,7 @@ sections in the User Manual for the feature for information on how to properly c
 
 # From 1.6 to 1.7
 
-Upgrades from 1.6 to 1.7 are be possible with little effort as no changes were made at the data layer and RPC changes
+Upgrades from 1.6 to 1.7 are possible with little effort as no changes were made at the data layer and RPC changes
 were made in a backwards-compatible way. The recommended way is to stop Accumulo 1.6, perform the Accumulo upgrade to
 1.7, and then start 1.7. Like previous versions, after 1.7.0 is started on a 1.6 instance, a one-time upgrade will
 happen by the Master which will prevent a downgrade back to 1.6. Upgrades are still one way. Upgrades from versions
