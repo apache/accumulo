@@ -1208,20 +1208,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void online(String tableName, boolean wait) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
 
-    long cacheResetCount = Tables.getCacheResetCount();
-
     String tableId = Tables.getTableId(context.getInstance(), tableName);
 
     /**
      * ACCUMULO-4574 if table is already online return without executing fate operation.
      */
 
-    // getTableId may have side effect of clearing zookeeper cache - no need to clear again.
-    if (cacheResetCount == Tables.getCacheResetCount()) {
-      Tables.clearCacheByPath(context.getInstance(), Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
-    }
-
-    TableState expectedState = Tables.getTableState(context.getInstance(), tableId);
+    TableState expectedState = Tables.getTableState(context.getInstance(), tableId, true);
     if (expectedState == TableState.ONLINE) {
       return;
     }

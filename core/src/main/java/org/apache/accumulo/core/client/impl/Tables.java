@@ -197,13 +197,36 @@ public class Tables {
   }
 
   public static TableState getTableState(Instance instance, String tableId) {
+    return getTableState(instance, tableId, false);
+  }
+
+  /**
+   * Get the current state of the table using the tableid. The boolean clearCache, if true will clear the table state in zookeeper before fetching the state.
+   * Added with ACCUMULO-4574.
+   *
+   * @param instance
+   *          the Accumulo instance.
+   * @param tableId
+   *          the table id
+   * @param clearCachedState
+   *          if true clear the table state in zookeeper before checking status
+   * @return the table state.
+   */
+  public static TableState getTableState(Instance instance, String tableId, boolean clearCachedState) {
+
     String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
+
+    if (clearCachedState) {
+      Tables.clearCacheByPath(instance, statePath);
+    }
+
     ZooCache zc = getZooCache(instance);
     byte[] state = zc.get(statePath);
     if (state == null)
       return TableState.UNKNOWN;
 
     return TableState.valueOf(new String(state, UTF_8));
+
   }
 
   public static long getCacheResetCount() {
