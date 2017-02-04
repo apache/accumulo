@@ -81,26 +81,41 @@ public class AdminUtil<T> {
       this.top = top;
     }
 
-    public long getTxid() {
-      return txid;
+    /**
+     * @return This fate operations transaction id, formatted in the same way as FATE transactions are in the Accumulo logs.
+     */
+    public String getTxid() {
+      return String.format("%016x", txid);
     }
 
     public TStatus getStatus() {
       return status;
     }
 
+    /**
+     * @return The debug info for the operation on the top of the stack for this Fate operation.
+     */
     public String getDebug() {
       return debug;
     }
 
+    /**
+     * @return list of namespace and table ids locked
+     */
     public List<String> getHeldLocks() {
       return hlocks;
     }
 
+    /**
+     * @return list of namespace and table ids locked
+     */
     public List<String> getWaitingLocks() {
       return wlocks;
     }
 
+    /**
+     * @return The operation on the top of the stack for this Fate operation.
+     */
     public String getTop() {
       return top;
     }
@@ -113,6 +128,10 @@ public class AdminUtil<T> {
     private final Map<String,List<String>> danglingHeldLocks;
     private final Map<String,List<String>> danglingWaitingLocks;
 
+    /**
+     * Convert FATE transactions IDs in keys of map to format that used in printing and logging FATE transactions ids. This is done so that if the map is
+     * printed, the output can be used to search Accumulo's logs.
+     */
     private static Map<String,List<String>> convert(Map<Long,List<String>> danglocks) {
       if (danglocks.isEmpty()) {
         return Collections.emptyMap();
@@ -135,10 +154,22 @@ public class AdminUtil<T> {
       return transactions;
     }
 
+    /**
+     * Get locks that are held by non existent FATE transactions. These are table or namespace locks.
+     *
+     * @return map where keys are transaction ids and values are a list of table IDs and/or namespace IDs. The transaction IDs are in the same format as
+     *         transaction IDs in the Accumulo logs.
+     */
     public Map<String,List<String>> getDanglingHeldLocks() {
       return danglingHeldLocks;
     }
 
+    /**
+     * Get locks that are waiting to be aquired by non existent FATE transactions. These are table or namespace locks.
+     *
+     * @return map where keys are transaction ids and values are a list of table IDs and/or namespace IDs. The transaction IDs are in the same format as
+     *         transaction IDs in the Accumulo logs.
+     */
     public Map<String,List<String>> getDanglingWaitingLocks() {
       return danglingWaitingLocks;
     }
@@ -245,8 +276,8 @@ public class AdminUtil<T> {
     FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
-      fmt.format("txid: %016x  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s%n", txStatus.getTxid(), txStatus.getStatus(),
-          txStatus.getDebug(), txStatus.getHeldLocks(), txStatus.getWaitingLocks(), txStatus.getTop());
+      fmt.format("txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s%n", txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(),
+          txStatus.getHeldLocks(), txStatus.getWaitingLocks(), txStatus.getTop());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
 
