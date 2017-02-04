@@ -25,21 +25,16 @@ import javax.ws.rs.CookieParam;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.core.Context;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.log4j.Level;
-import org.eclipse.jetty.server.Request;
 import org.glassfish.jersey.server.mvc.Viewable;
 
 @Path("/scans")
 public class Scans {
-
-  @Context
-  private Request request;
 
   @GET
   public Viewable get(@CookieParam("page.refresh.rate ") @DefaultValue("-1") String refreshValue) {
@@ -59,10 +54,6 @@ public class Scans {
 
     int numProblems = Monitor.getProblemSummary().entrySet().size();
 
-    String redir = request.getRequestURI();
-    if (request.getQueryString() != null)
-      redir += "?" + request.getQueryString();
-
     Map<String,Object> model = new HashMap<>();
     model.put("title", "Scans");
     model.put("version", Constants.VERSION);
@@ -74,7 +65,7 @@ public class Scans {
     model.put("logs_have_error", logsHaveError);
     model.put("num_problems", numProblems);
     model.put("is_ssl", false);
-    model.put("redirect", redir);
+    model.put("redirect", null);
 
     return new Viewable("scans.ftl", model);
   }

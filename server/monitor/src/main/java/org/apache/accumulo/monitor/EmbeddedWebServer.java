@@ -26,8 +26,8 @@ import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
@@ -81,12 +81,17 @@ public class EmbeddedWebServer {
     connector.setHost(host);
     connector.setPort(port);
 
-    handler = new ServletContextHandler(server, "/", new SessionHandler(), new ConstraintSecurityHandler(), null, null);
+    handler = new ServletContextHandler(ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
+    handler.setContextPath("/");
     disableTrace("/");
   }
 
-  public void addServlet(Class<? extends HttpServlet> klass, String where) {
-    handler.addServlet(klass, where);
+  public ServletHolder addServlet(Class<? extends HttpServlet> klass, String where) {
+    return handler.addServlet(klass, where);
+  }
+
+  public void addServlet(ServletHolder restServlet, String where) {
+    handler.addServlet(restServlet, where);
   }
 
   private void disableTrace(String where) {
@@ -133,4 +138,5 @@ public class EmbeddedWebServer {
   public boolean isRunning() {
     return server.isRunning();
   }
+
 }
