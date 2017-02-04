@@ -27,7 +27,7 @@
           <a href='/trace/summary?minutes=10'>Recent&nbsp;Traces</a><br />
           <a href='/replication'>Replication</a><br />
           <#if num_logs gt 0>
-            <span class='<#if logsHaveError>error<#else>warning</#if>'><a href='/log'>Recent&nbsp;Logs&nbsp;<span class='smalltext'>(${num_logs})</span></a></span><br />
+            <span class='<#if logsHaveError?? && logsHaveError>error<#else>warning</#if>'><a href='/log'>Recent&nbsp;Logs&nbsp;<span class='smalltext'>(${num_logs})</span></a></span><br />
           </#if>
           <#if num_problems gt 0>
             <span class='error'><a href='/problems'>Table&nbsp;Problems&nbsp;<span class='smalltext'>(${num_problems}")</span></a></span><br />
@@ -38,7 +38,7 @@
           <#if is_ssl>
             <a href='/shell'>Shell</a><hr />
           </#if>
-          <div class='smalltext'>[<a href='/op?action=refresh&value=<#if refresh < 1>5<#else>-1</#if>&redir=${redirect}'>
+          <div class='smalltext'>[<a href='/op?action=refresh&value=<#if refresh < 1>5<#else>-1</#if><#if redirect??>&redir=${redirect}</#if>'>
                 <#if refresh < 1>enable<#else>disable</#if>&nbsp;auto-refresh</a>]</div><hr />
           <div class='smalltext'><a href='https://accumulo.apache.org/' target='_blank'>Apache&nbsp;Accumulo</a></div>
         </div>

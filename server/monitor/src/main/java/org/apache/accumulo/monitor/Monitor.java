@@ -64,24 +64,12 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.monitor.servlets.BulkImportServlet;
-import org.apache.accumulo.monitor.servlets.DefaultServlet;
-import org.apache.accumulo.monitor.servlets.GcStatusServlet;
-import org.apache.accumulo.monitor.servlets.JSONServlet;
 import org.apache.accumulo.monitor.servlets.LogServlet;
-import org.apache.accumulo.monitor.servlets.MasterServlet;
 import org.apache.accumulo.monitor.servlets.OperationServlet;
 import org.apache.accumulo.monitor.servlets.ProblemServlet;
-import org.apache.accumulo.monitor.servlets.ReplicationServlet;
-import org.apache.accumulo.monitor.servlets.ScanServlet;
 import org.apache.accumulo.monitor.servlets.ShellServlet;
-import org.apache.accumulo.monitor.servlets.TServersServlet;
-import org.apache.accumulo.monitor.servlets.TablesServlet;
+import org.apache.accumulo.monitor.servlets.StaticWebResourcesServlet;
 import org.apache.accumulo.monitor.servlets.VisServlet;
-import org.apache.accumulo.monitor.servlets.XMLServlet;
-import org.apache.accumulo.monitor.servlets.trace.ListType;
-import org.apache.accumulo.monitor.servlets.trace.ShowTrace;
-import org.apache.accumulo.monitor.servlets.trace.Summary;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -100,6 +88,15 @@ import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.glassfish.jersey.jackson.JacksonFeature;
+import org.glassfish.jersey.logging.LoggingFeature;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
+import org.glassfish.jersey.server.mvc.MvcFeature;
+import org.glassfish.jersey.server.mvc.freemarker.FreemarkerMvcFeature;
+import org.glassfish.jersey.servlet.ServletContainer;
+import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -473,25 +470,14 @@ public class Monitor implements HighlyAvailableService {
       try {
         log.debug("Creating monitor on port " + port);
         server = new EmbeddedWebServer(hostname, port);
-        server.addServlet(DefaultServlet.class, "/");
+        server.addServlet(StaticWebResourcesServlet.class, "/web/*");
         server.addServlet(OperationServlet.class, "/op");
-        server.addServlet(MasterServlet.class, "/master");
-        server.addServlet(TablesServlet.class, "/tables");
-        server.addServlet(TServersServlet.class, "/tservers");
         server.addServlet(ProblemServlet.class, "/problems");
-        server.addServlet(GcStatusServlet.class, "/gc");
         server.addServlet(LogServlet.class, "/log");
-        server.addServlet(XMLServlet.class, "/xml");
-        server.addServlet(JSONServlet.class, "/json");
         server.addServlet(VisServlet.class, "/vis");
-        server.addServlet(ScanServlet.class, "/scans");
-        server.addServlet(BulkImportServlet.class, "/bulkImports");
-        server.addServlet(Summary.class, "/trace/summary");
-        server.addServlet(ListType.class, "/trace/listType");
-        server.addServlet(ShowTrace.class, "/trace/show");
-        server.addServlet(ReplicationServlet.class, "/replication");
         if (server.isUsingSsl())
           server.addServlet(ShellServlet.class, "/shell");
+        server.addServlet(getRestServlet(), "/*");
         server.start();
         break;
       } catch (Throwable ex) {
@@ -569,6 +555,15 @@ public class Monitor implements HighlyAvailableService {
     }), "Scan scanner").start();
 
     monitorInitialized.set(true);
+  }
+
+  private ServletHolder getRestServlet() {
+    final ResourceConfig rc = new ResourceConfig().register(FreemarkerMvcFeature.class)
+        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class)
+        .packages("org.apache.accumulo.monitor.rest").property(MvcFeature.TEMPLATE_BASE_PATH, "/templates").property(ServerProperties.TRACING, "ALL")
+        .property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/web/.*");
+    ServletHolder holder = new ServletHolder(new ServletContainer(rc));
+    return holder;
   }
 
   public static class ScanStats {

@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Date;
@@ -64,11 +63,6 @@ abstract public class BasicServlet extends HttpServlet {
 
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    // Verify that this is the active Monitor instance
-    if (!isActiveMonitor()) {
-      resp.sendError(HttpURLConnection.HTTP_UNAVAILABLE, STANDBY_MONITOR_MESSAGE);
-      return;
-    }
     StringBuilder sb = new StringBuilder();
     try {
       Monitor.fetchData();

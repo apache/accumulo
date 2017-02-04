@@ -40,9 +40,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class ReplicationServlet extends BasicServlet {
   private static final Logger log = LoggerFactory.getLogger(ReplicationServlet.class);
 
