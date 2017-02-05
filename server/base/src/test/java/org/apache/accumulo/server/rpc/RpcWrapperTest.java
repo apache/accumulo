@@ -288,7 +288,7 @@ public class RpcWrapperTest {
     }
 
     @Override
-    public TBase<foo_args,fake_fields> deepCopy() {
+    public foo_args deepCopy() {
       throw new UnsupportedOperationException();
     }
 

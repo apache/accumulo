@@ -26,7 +26,7 @@
 #   INCLUDED_MODULES should be an array that includes other Maven modules with src/main/thrift directories
 #   Use INCLUDED_MODULES=(-) in calling scripts that require no other modules
 # ========================================================================================================================
-[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.9.3'
+[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.10.0'
 [[ -z $INCLUDED_MODULES ]]        && INCLUDED_MODULES=(../server/tracer)
 [[ -z $BASE_OUTPUT_PACKAGE ]]     && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
 [[ -z $PACKAGES_TO_GENERATE ]]    && PACKAGES_TO_GENERATE=(gc master tabletserver security client.impl data replication trace)
@@ -71,11 +71,16 @@ for f in src/main/thrift/*.thrift; do
   thrift ${THRIFT_ARGS} --gen cpp "$f" || fail unable to generate cpp thrift classes
 done
 
-# For all generated thrift code, suppress all warnings and add the LICENSE header
-cs='@SuppressWarnings({"unchecked", "serial", "rawtypes", "unused"})'
-es='@SuppressWarnings({"unused"})'
-find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/"unchecked"/"unchecked", "unused"/'
-find $BUILD_DIR/gen-java -name '*.java' -print0 | xargs -0 sed -i.orig -e 's/\(public enum [A-Z]\)/'"$es"' \1/'
+# For all generated thrift code, get rid of all warnings and add the LICENSE header
+
+# workaround for THRIFT-4062; should be fixed in newer thrift versions
+find $BUILD_DIR/gen-java -name '*.java' -exec sed -i -e 's/\(org[.]apache[.]\)thrift\([.]TServiceClient\) /\1accumulo.core.rpc\2Wrapper /' {} +
+# upstream stopped doing import statements for classes, but overlooked enums; delete unused imports
+find $BUILD_DIR/gen-java -name '*.java' -exec grep -Zl '^public enum ' {} + | xargs -0 sed -i -e '/^import .*$/d'
+# add dummy method to suppress "unnecessary suppress warnings" for classes which don't have any unused variables
+# this only affects classes, enums aren't affected
+find $BUILD_DIR/gen-java -name '*.java' -exec grep -Zl '^public class ' {} + | xargs -0 sed -i -e 's/^[}]$/  private static void unusedMethod() {}\
+}/'
 
 for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
   case $lang in

@@ -112,7 +112,7 @@ struct DeadServer {
 struct MasterMonitorInfo {
   1:map<string, TableInfo> tableMap
   2:list<TabletServerStatus> tServerInfo
-  3:map<string, byte> badTServers
+  3:map<string, i8> badTServers
   6:MasterState state
   8:MasterGoalState goalState
   7:i32 unassignedTablets
