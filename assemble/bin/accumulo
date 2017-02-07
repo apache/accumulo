@@ -499,11 +499,11 @@ function main() {
 
   # Set up -D switches for JAAS and Kerberos if files exist
   jaas_conf="${conf}/jaas.conf"
-  if [ -f $jaas_conf ]; then
+  if [ -f "$jaas_conf" ]; then
     ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.auth.login.config=${jaas_conf}"
   fi
   krb5_conf="${conf}/krb5.conf"
-  if [ -f $krb5_conf ]; then
+  if [ -f "$krb5_conf" ]; then
     ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.krb5.conf=${krb5_conf}"
   fi
 
