@@ -48,6 +48,7 @@ import org.apache.accumulo.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.monitor.util.celltypes.PercentageType;
 import org.apache.accumulo.monitor.util.celltypes.ProgressChartType;
+import org.apache.accumulo.monitor.util.celltypes.StringType;
 import org.apache.accumulo.monitor.util.celltypes.TServerLinkType;
 import org.apache.accumulo.monitor.util.celltypes.TableLinkType;
 import org.apache.accumulo.server.master.state.TabletServerState;
@@ -338,6 +339,7 @@ public class TServersServlet extends BasicServlet {
     tServerList.addSortableColumn("Data Cache<br />Hit Rate", new PercentageType(), "The recent data cache hit rate.");
     tServerList.addSortableColumn("OS&nbsp;Load", new NumberType<>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
         "The Unix one minute load average. The average number of processes in the run queue over a one minute interval.");
+    tServerList.addSortableColumn("Version", new StringType<String>(), "Accumulo version the tablet server is currently running.");
 
     log.debug("tableId: " + tableId);
     for (TabletServerStatus status : tservers) {
@@ -364,6 +366,7 @@ public class TServersServlet extends BasicServlet {
       double dataCacheHitRate = status.dataCacheHits / (double) Math.max(status.dataCacheRequest, 1);
       row.add(dataCacheHitRate);
       row.add(status.osLoad);
+      row.add(status.version);
       tServerList.addRow(row);
     }
     tServerList.generate(req, sb);
