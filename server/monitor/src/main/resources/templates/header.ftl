@@ -14,12 +14,8 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-    <div id='header' class="navbar navbar-inverse navbar-fixed-top">
-        <div id='headertitle'>
-            <h1>${title}</h1>
-        </div>
-        <div id='subheader'>Instance&nbsp;Name:&nbsp;${instance_name}&nbsp;&nbsp;&nbsp;Version:&nbsp;${version}
-          <br><span class='smalltext'>Instance&nbsp;ID:&nbsp;${instance_id}</span>
-          <br><span class='smalltext'>${current_date}</span>
-        </div>
-    </div>
+      <div id="headertitle">
+        <ul class="nav nav-pills">
+          <li><a href="/">${instance_name}</a></li>
+        </ul>
+      </div>
