@@ -191,7 +191,8 @@ public class Table {
             sortCol == i ? !sortAscending : i);
         String img = "";
         if (sortCol == i)
-          img = String.format("&nbsp;<img width='10px' height='10px' src='/web/%s.gif' alt='%s' />", sortAscending ? "up" : "down", !sortAscending ? "^" : "v");
+          img = String.format("&nbsp;<img width='10px' height='10px' src='/resources/%s.gif' alt='%s' />", sortAscending ? "up" : "down", !sortAscending ? "^"
+              : "v");
         col.setTitle(String.format("<a href='%s'>%s%s</a>", url, title, img));
       }
       String legend = col.getLegend();

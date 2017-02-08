@@ -64,12 +64,8 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.monitor.servlets.LogServlet;
-import org.apache.accumulo.monitor.servlets.OperationServlet;
-import org.apache.accumulo.monitor.servlets.ProblemServlet;
 import org.apache.accumulo.monitor.servlets.ShellServlet;
 import org.apache.accumulo.monitor.servlets.StaticWebResourcesServlet;
-import org.apache.accumulo.monitor.servlets.VisServlet;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -470,11 +466,9 @@ public class Monitor implements HighlyAvailableService {
       try {
         log.debug("Creating monitor on port " + port);
         server = new EmbeddedWebServer(hostname, port);
-        server.addServlet(StaticWebResourcesServlet.class, "/web/*");
-        server.addServlet(OperationServlet.class, "/op");
-        server.addServlet(ProblemServlet.class, "/problems");
-        server.addServlet(LogServlet.class, "/log");
-        server.addServlet(VisServlet.class, "/vis");
+        server.addServlet(StaticWebResourcesServlet.class, "/resources/*");
+        // server.addServlet(OperationServlet.class, "/op");
+        // server.addServlet(ProblemServlet.class, "/problems");
         if (server.isUsingSsl())
           server.addServlet(ShellServlet.class, "/shell");
         server.addServlet(getRestServlet(), "/*");
@@ -561,7 +555,7 @@ public class Monitor implements HighlyAvailableService {
     final ResourceConfig rc = new ResourceConfig().register(FreemarkerMvcFeature.class)
         .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class)
         .packages("org.apache.accumulo.monitor.rest").property(MvcFeature.TEMPLATE_BASE_PATH, "/templates").property(ServerProperties.TRACING, "ALL")
-        .property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/web/.*");
+        .property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/resources/.*");
     ServletHolder holder = new ServletHolder(new ServletContainer(rc));
     return holder;
   }
@@ -782,11 +776,6 @@ public class Monitor implements HighlyAvailableService {
 
   public static long getStartTime() {
     return START_TIME;
-  }
-
-  // TODO Remove this after merging old and new monitor
-  public static void setStartTime(long start) {
-    START_TIME = start;
   }
 
   public static List<Pair<Long,Double>> getLoadOverTime() {

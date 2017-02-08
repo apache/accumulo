@@ -143,13 +143,13 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<meta http-equiv='Content-Type' content='").append(DEFAULT_CONTENT_TYPE).append("' />\n");
     sb.append("<meta http-equiv='Content-Script-Type' content='text/javascript' />\n");
     sb.append("<meta http-equiv='Content-Style-Type' content='text/css' />\n");
-    sb.append("<link rel='shortcut icon' type='image/jpg' href='/web/favicon.png' />\n");
-    sb.append("<link rel='stylesheet' type='text/css' href='/web/screen.css' media='screen' />\n");
-    sb.append("<script src='/web/functions.js' type='text/javascript'></script>\n");
+    sb.append("<link rel='shortcut icon' type='image/jpg' href='/resources/favicon.png' />\n");
+    sb.append("<link rel='stylesheet' type='text/css' href='/resources/screen.css' media='screen' />\n");
+    sb.append("<script src='/resources/functions.js' type='text/javascript'></script>\n");
 
-    sb.append("<!--[if lte IE 8]><script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/excanvas.min.js\"></script><![endif]-->\n");
-    sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.js\"></script>\n");
-    sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.flot.js\"></script>\n");
+    sb.append("<!--[if lte IE 8]><script language=\"javascript\" type=\"text/javascript\" src=\"/resources/flot/excanvas.min.js\"></script><![endif]-->\n");
+    sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/resources/flot/jquery.js\"></script>\n");
+    sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/resources/flot/jquery.flot.js\"></script>\n");
 
     sb.append("</head>\n");
 

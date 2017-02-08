@@ -14,8 +14,20 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div id="headertitle">
-        <ul class="nav nav-pills">
-          <li><a href="/">${instance_name}</a></li>
-        </ul>
+      <script>
+        /**
+         * Creates trace summary initial table, passes the minutes from the template
+         */
+        $(document).ready(function() {
+          createHeader('${minutes}');
+          refreshSummary();
+        });
+      </script>
+            
+      <div><h3>${title}</h3></div>
+      <div class="center-block">
+        <table id="traceSummary" class="table table-bordered table-striped table-condensed">
+          
+        </table>
       </div>
+

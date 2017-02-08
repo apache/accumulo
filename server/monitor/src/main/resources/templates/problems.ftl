@@ -14,8 +14,23 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div id="headertitle">
-        <ul class="nav nav-pills">
-          <li><a href="/">${instance_name}</a></li>
-        </ul>
+      <script>
+        /**
+         * Creates problems initial table, passes tableID from template
+         */
+        $(document).ready(function() {
+          var tableID = <#if table??>'${table}'<#else>''</#if>
+          createSummaryHeader();
+          createDetailsHeader(tableID);
+          refreshProblems();
+        });
+      </script>
+      <div><h3>${title}</h3></div>
+      <div class="center-block">
+        <table id="problemSummary" class="table table-bordered table-striped table-condensed">
+        
+        </table>
+        <table id="problemDetails" class="table table-bordered table-striped table-condensed">
+          
+        </table>
       </div>

@@ -14,8 +14,19 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div id="headertitle">
-        <ul class="nav nav-pills">
-          <li><a href="/">${instance_name}</a></li>
-        </ul>
+      <script>
+        /**
+         * Creates initial trace list type table, and passes type and minutes values from template
+         */
+        $(document).ready(function() {
+          createHeader('${type}', '${minutes}');
+          refreshListType();
+        });
+      </script>
+           
+      <div><h3>${title}</h3></div>
+      <div class="center-block">
+        <table id="trace" class="table table-bordered table-striped table-condensed">
+
+        </table>
       </div>

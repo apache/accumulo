@@ -14,8 +14,16 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div id="headertitle">
-        <ul class="nav nav-pills">
-          <li><a href="/">${instance_name}</a></li>
-        </ul>
+      <div><h3>${title}</h3></div>
+      <div id="masterBanner"></div>
+      <div class="center-block">
+        <table id="masterStatus" class="table table-bordered table-striped table-condensed">
+          
+        </table>
+        <table id="recoveryList" class="table table-bordered table-striped table-condensed">
+
+        </table>
       </div>
+      <br />
+      <script src="/resources/${tablesJs}"></script>
+      <#include "/templates/${tablesTemplate}">

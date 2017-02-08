@@ -14,8 +14,18 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div id="headertitle">
-        <ul class="nav nav-pills">
-          <li><a href="/">${instance_name}</a></li>
-        </ul>
+      <script>
+        /**
+         * Creates participating Tservers initial table, passes the table and tableID from the template
+         */
+        $(document).ready(function() {
+          createHeader('${table}', '${tableID}');
+          refreshTable();
+        });
+      </script>
+      <div><h3>${title}</h3></div>
+      <div class="center-block">
+        <table id="participatingTServers" class="table table-bordered table-striped table-condensed">
+
+        </table>
       </div>

@@ -14,8 +14,28 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div id="headertitle">
-        <ul class="nav nav-pills">
-          <li><a href="/">${instance_name}</a></li>
-        </ul>
+      <script type="text/javascript">
+        /**
+         * Creates tables initial table
+         */
+        $(document).ready(function() {
+          createTablesHeader();
+          refreshTables();
+          <#if tablesJs??>
+            toggleMaster(true);
+          </#if>
+        });
+      </script>
+      <div><h3>${tablesTitle}</h3></div>
+      <div id="tablesBanner"></div>
+      <div class="center-block">
+        <div>
+          <select id="namespaces" data-placeholder="Select a namespace" multiple="multiple" style="width: 100%;">
+          </select>
+        </div>
+      </div>
+      <div class="center-block">
+        <table id="tableList" class="table table-bordered table-striped table-condensed">
+
+        </table>
       </div>
