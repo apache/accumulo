@@ -198,10 +198,14 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
-      ThriftTableOperationException {
+  public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws TException {
     String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
-    String namespaceId = Tables.getNamespaceId(instance, tableId);
+    String namespaceId;
+    try {
+      namespaceId = Tables.getNamespaceId(instance, tableId);
+    } catch (TableNotFoundException e) {
+      throw new TException(e);
+    }
 
     security.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
   }
@@ -219,10 +223,14 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
-      ThriftTableOperationException {
+  public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user, String tableName, byte permission) throws TException {
     String tableId = checkTableId(instance, tableName, TableOperation.PERMISSION);
-    String namespaceId = Tables.getNamespaceId(instance, tableId);
+    String namespaceId;
+    try {
+      namespaceId = Tables.getNamespaceId(instance, tableId);
+    } catch (TableNotFoundException e) {
+      throw new TException(e);
+    }
 
     security.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission), namespaceId);
   }
@@ -446,6 +454,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     } catch (AccumuloException e) {
       throw new TException(e);
     } catch (IOException e) {
+      throw new TException(e);
+    } catch (TableNotFoundException e) {
       throw new TException(e);
     }
   }
