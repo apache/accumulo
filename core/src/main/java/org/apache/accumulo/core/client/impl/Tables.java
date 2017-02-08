@@ -272,7 +272,7 @@ public class Tables {
    * @throws IllegalArgumentException
    *           if the table doesn't exist in ZooKeeper
    */
-  public static String getNamespaceId(Instance instance, String tableId) throws IllegalArgumentException {
+  public static String getNamespaceId(Instance instance, String tableId) throws TableNotFoundException {
     checkArgument(instance != null, "instance is null");
     checkArgument(tableId != null, "tableId is null");
 
