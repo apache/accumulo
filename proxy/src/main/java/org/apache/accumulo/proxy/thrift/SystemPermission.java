@@ -35,7 +35,11 @@ import org.apache.thrift.TEnum;
   CREATE_USER(4),
   DROP_USER(5),
   ALTER_USER(6),
-  SYSTEM(7);
+  SYSTEM(7),
+  CREATE_NAMESPACE(8),
+  DROP_NAMESPACE(9),
+  ALTER_NAMESPACE(10),
+  OBTAIN_DELEGATION_TOKEN(11);
 
   private final int value;
 
@@ -72,6 +76,14 @@ import org.apache.thrift.TEnum;
         return ALTER_USER;
       case 7:
         return SYSTEM;
+      case 8:
+        return CREATE_NAMESPACE;
+      case 9:
+        return DROP_NAMESPACE;
+      case 10:
+        return ALTER_NAMESPACE;
+      case 11:
+        return OBTAIN_DELEGATION_TOKEN;
       default:
         return null;
     }

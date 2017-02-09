@@ -73,7 +73,11 @@ int _kSystemPermissionValues[] = {
   SystemPermission::CREATE_USER,
   SystemPermission::DROP_USER,
   SystemPermission::ALTER_USER,
-  SystemPermission::SYSTEM
+  SystemPermission::SYSTEM,
+  SystemPermission::CREATE_NAMESPACE,
+  SystemPermission::DROP_NAMESPACE,
+  SystemPermission::ALTER_NAMESPACE,
+  SystemPermission::OBTAIN_DELEGATION_TOKEN
 };
 const char* _kSystemPermissionNames[] = {
   "GRANT",
@@ -83,9 +87,13 @@ const char* _kSystemPermissionNames[] = {
   "CREATE_USER",
   "DROP_USER",
   "ALTER_USER",
-  "SYSTEM"
+  "SYSTEM",
+  "CREATE_NAMESPACE",
+  "DROP_NAMESPACE",
+  "ALTER_NAMESPACE",
+  "OBTAIN_DELEGATION_TOKEN"
 };
-const std::map<int, const char*> _SystemPermission_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(8, _kSystemPermissionValues, _kSystemPermissionNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
+const std::map<int, const char*> _SystemPermission_VALUES_TO_NAMES(::apache::thrift::TEnumIterator(12, _kSystemPermissionValues, _kSystemPermissionNames), ::apache::thrift::TEnumIterator(-1, NULL, NULL));
 
 int _kNamespacePermissionValues[] = {
   NamespacePermission::READ,
