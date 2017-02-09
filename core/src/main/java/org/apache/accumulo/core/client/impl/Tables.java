@@ -266,7 +266,7 @@ public class Tables {
    * @throws IllegalArgumentException
    *           if the table doesn't exist in ZooKeeper
    */
-  public static String getNamespaceId(Instance instance, String tableId) throws IllegalArgumentException {
+  public static String getNamespaceId(Instance instance, String tableId) throws TableNotFoundException {
     checkArgument(instance != null, "instance is null");
     checkArgument(tableId != null, "tableId is null");
 
@@ -275,7 +275,7 @@ public class Tables {
 
     // We might get null out of ZooCache if this tableID doesn't exist
     if (null == n) {
-      throw new IllegalArgumentException(new TableNotFoundException(tableId, null, null));
+      throw new TableNotFoundException(tableId, null, null);
     }
 
     return new String(n, UTF_8);

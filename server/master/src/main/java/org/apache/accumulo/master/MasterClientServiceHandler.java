@@ -114,7 +114,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
 
   @Override
   public long initiateFlush(TInfo tinfo, TCredentials c, String tableId) throws ThriftSecurityException, ThriftTableOperationException {
-    String namespaceId = Tables.getNamespaceId(instance, tableId);
+    String namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
     String zTablePath = Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
@@ -142,7 +142,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
   @Override
   public void waitForFlush(TInfo tinfo, TCredentials c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
       throws ThriftSecurityException, ThriftTableOperationException {
-    String namespaceId = Tables.getNamespaceId(instance, tableId);
+    String namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
     if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0)
@@ -254,6 +254,16 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
       }
     }
 
+  }
+
+  private String getNamespaceIdFromTableId(TableOperation tableOp, String tableId) throws ThriftTableOperationException {
+    String namespaceId;
+    try {
+      namespaceId = Tables.getNamespaceId(instance, tableId);
+    } catch (TableNotFoundException e) {
+      throw new ThriftTableOperationException(tableId, null, tableOp, TableOperationExceptionType.NOTFOUND, e.getMessage());
+    }
+    return namespaceId;
   }
 
   @Override
@@ -430,7 +440,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
   private void alterTableProperty(TCredentials c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
       ThriftTableOperationException {
     final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
-    String namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
+    String namespaceId = getNamespaceIdFromTableId(op, tableId);
     if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
