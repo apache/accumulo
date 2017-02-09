@@ -71,7 +71,11 @@ struct SystemPermission {
     CREATE_USER = 4,
     DROP_USER = 5,
     ALTER_USER = 6,
-    SYSTEM = 7
+    SYSTEM = 7,
+    CREATE_NAMESPACE = 8,
+    DROP_NAMESPACE = 9,
+    ALTER_NAMESPACE = 10,
+    OBTAIN_DELEGATION_TOKEN = 11
   };
 };
 
