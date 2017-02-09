@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
@@ -35,8 +36,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceRequest;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
@@ -59,13 +64,15 @@ import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
+import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.hadoop.io.Text;
 import org.apache.htrace.wrappers.TraceExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import com.google.common.collect.Maps;
 
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
@@ -88,6 +95,8 @@ public class TabletServerResourceManager {
   private final ExecutorService defaultReadAheadThreadPool;
   private final Map<String,ExecutorService> threadPools = new TreeMap<>();
 
+  private final Map<ResourceRequest,ExecutorService> resourcePools = new TreeMap<>();
+
   private final ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments;
 
   private final VolumeManager fs;
@@ -102,6 +111,8 @@ public class TabletServerResourceManager {
   private final BlockCache _iCache;
   private final TabletServer tserver;
   private final ServerConfigurationFactory conf;
+  
+  protected SimpleTimer simpleTimer = null;
 
   private ExecutorService addEs(String name, ExecutorService tp) {
     if (threadPools.containsKey(name)) {
@@ -114,7 +125,7 @@ public class TabletServerResourceManager {
 
   private ExecutorService addEs(final Property maxThreads, String name, final ThreadPoolExecutor tp) {
     ExecutorService result = addEs(name, tp);
-    SimpleTimer.getInstance(tserver.getConfiguration()).schedule(new Runnable() {
+    simpleTimer.schedule(new Runnable() {
       @Override
       public void run() {
         try {
@@ -126,6 +137,118 @@ public class TabletServerResourceManager {
           }
         } catch (Throwable t) {
           log.error("Failed to change thread pool size", t);
+        }
+      }
+
+    }, 1000, 10 * 1000);
+    return result;
+  }
+  
+  /**
+   * Creates table specific thread pools for executing scan threads.
+   *
+   * @param instance
+   *          incoming instance object
+   * @param acuConf
+   *          accumulo configuration
+   * @throws TableNotFoundException
+   *           This will occur if this prefix is used on a table that does not exist
+   */
+  private void createTablePools(final Instance instance, final AccumuloConfiguration acuConf) {
+    final HashMap<String, Integer> nonConfiguredTables = Maps.newHashMap();
+    for (Entry<String,String> entry : acuConf.getAllPropertiesWithPrefix(Property.TSERV_READ_AHEAD_PREFIX).entrySet()) {
+      final String tableName = entry.getKey().substring(Property.TSERV_READ_AHEAD_PREFIX.getKey().length());
+      if (null == entry.getValue() || entry.getValue().length() == 0) {
+        throw new RuntimeException("Read ahead prefix is inproperly configured");
+      }
+
+      if (tableThreadPools.containsKey(new Text(tableName)))
+        continue;
+      final int maxThreads = Integer.valueOf(entry.getValue()).intValue();
+      try {
+
+
+        final String tableId = Tables.getTableId(instance, tableName);
+
+        // create our executor and place it into tableThreadPools
+        if (log.isInfoEnabled()) {
+          log.info("Creating table specific thread pool for " + tableName + " at a size of " + maxThreads);
+        }
+        // add references to the executor via the tableName and tableID
+        final ExecutorService service = createEs(maxThreads, Property.TSERV_READ_AHEAD_PREFIX, tableName, tableName + "specific read ahead", new LinkedBlockingQueue<Runnable>());
+        tableThreadPools.put(new Text(tableId),
+                service);
+        tableThreadPools.put(new Text(tableName),service);
+        if (log.isDebugEnabled()) {
+          log.debug("Created " + tableName + " specific thread pool");
+        }
+      }catch(TableNotFoundException tnf)
+      {
+        if (log.isInfoEnabled())
+          log.info(tableName + " was not found. Keeping track of it in case it is later added");
+        nonConfiguredTables.put(tableName,maxThreads);
+      }
+    }
+    /**
+     * Check to see if nonConfiguredTables needs to be re-evaluated.
+     */
+    if (nonConfiguredTables.size() > 0) {
+    	simpleTimer.schedule(new Runnable() {
+        @Override
+        public void run() {
+
+          createTablePools(instance,acuConf);
+
+        }
+      }, 5000, 60 * 1000);
+    }
+
+  }
+  
+  private ExecutorService createEs(int maxThreads, Property prefix, String tableName, String name, BlockingQueue<Runnable> queue) {
+	    final ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L, TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name));
+	    return addEs(maxThreads, prefix, tableName, name, tp);
+	  }
+  
+  /**
+   * Creates an executor service based on a prefix.
+   *
+   * @param maxThreads
+   *          maximum threads
+   * @param prefix
+   *          property prefix
+   * @param tableName
+   *          incoming table name
+   * @param name
+   *          Name of executor
+   * @param tp
+   *          thread pool executor
+   * @return executor that we will be returning
+   */
+  private ExecutorService addEs(final int maxThreads, final Property prefix, final String tableName, final String name, final ThreadPoolExecutor tp) {
+    ExecutorService result = addEs(name, tp);
+    simpleTimer.schedule(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          int max = maxThreads;
+          for (Entry<String,String> entry : conf.getConfiguration().getAllPropertiesWithPrefix(prefix).entrySet()) {
+            if (entry.getKey().endsWith(tableName)) {
+              if (null != entry.getValue() && entry.getValue().length() != 0) {
+                max = Integer.valueOf(entry.getValue()).intValue();
+                break;
+              }
+            }
+          }
+
+          if (tp.getMaximumPoolSize() != max) {
+            log.info("Changing table specific thread pool for " + tableName + " to " + max);
+            tp.setCorePoolSize(max);
+            tp.setMaximumPoolSize(max);
+          }
+
+        } catch (Throwable t) {
+          log.error(t, t);
         }
       }
 
@@ -156,6 +279,8 @@ public class TabletServerResourceManager {
     this.conf = tserver.getServerConfigurationFactory();
     this.fs = fs;
     final AccumuloConfiguration acuConf = conf.getConfiguration();
+    
+    simpleTimer = SimpleTimer.getInstance(acuConf);
 
     long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
@@ -222,6 +347,8 @@ public class TabletServerResourceManager {
     readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
     defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
 
+    createTablePools(tserver.getInstance(), acuConf);
+    
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
     fileManager = new FileManager(tserver, fs, maxOpenFiles, _dCache, _iCache);
@@ -231,11 +358,10 @@ public class TabletServerResourceManager {
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
 
-    SimpleTimer timer = SimpleTimer.getInstance(tserver.getConfiguration());
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
-    timer.schedule(new AssignmentWatcher(acuConf, activeAssignments, timer), 5000);
+    simpleTimer.schedule(new AssignmentWatcher(acuConf, activeAssignments, timer), 5000);
   }
 
   /**
@@ -724,6 +850,37 @@ public class TabletServerResourceManager {
     }
   }
 
+  /**
+   * Provide a scan session since other sessions
+   * 
+   * @param readAheadRequest
+   */
+  public void executeReadAhead(final ScanSession readAheadRequest) {
+    final KeyExtent tablet = readAheadRequest.extent;
+    final Runnable task = readAheadRequest.nextBatchTask;
+    final ResourceRequest request = readAheadRequest.getResourceRequest();
+    if (tablet.isRootTablet()) {
+      task.run();
+    } else if (tablet.isMeta()) {
+      defaultReadAheadThreadPool.execute(task);
+    } else {
+      if (null != request) {
+        ExecutorService pool = resourcePools.get(request);
+        if (null == pool)
+          readAheadThreadPool.execute(task);
+        else
+          pool.execute(task);
+      } else
+        readAheadThreadPool.execute(task);
+    }
+  }
+
+  /**
+   * Let's deprecate this interface
+   * 
+   * @param tablet
+   * @param task
+   */
   public void executeReadAhead(KeyExtent tablet, Runnable task) {
     if (tablet.isRootTablet()) {
       task.run();

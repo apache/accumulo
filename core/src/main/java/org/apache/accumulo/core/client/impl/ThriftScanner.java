@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceRequest;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.InitialScan;
@@ -86,8 +87,8 @@ public class ThriftScanner {
 
   public static boolean getBatchFromServer(ClientContext context, Range range, KeyExtent extent, String server, SortedMap<Key,Value> results,
       SortedSet<Column> fetchedColumns, List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, int size,
-      Authorizations authorizations, boolean retry, long batchTimeOut, String classLoaderContext) throws AccumuloException, AccumuloSecurityException,
-      NotServingTabletException {
+      Authorizations authorizations, boolean retry, long batchTimeOut, String classLoaderContext, ResourceRequest request) throws AccumuloException,
+      AccumuloSecurityException, NotServingTabletException {
     if (server == null)
       throw new AccumuloException(new IOException());
 
@@ -105,7 +106,7 @@ public class ThriftScanner {
         InitialScan isr = client.startScan(tinfo, scanState.context.rpcCreds(), extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translators.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold, null, scanState.batchTimeOut,
-            classLoaderContext);
+            classLoaderContext, request.toThrift());
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(server);
 
@@ -397,6 +398,12 @@ public class ThriftScanner {
 
   private static List<KeyValue> scan(TabletLocation loc, ScanState scanState, ClientContext context) throws AccumuloSecurityException,
       NotServingTabletException, TException, NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
+
+    return scan(loc, scanState, context, null);
+  }
+
+  private static List<KeyValue> scan(TabletLocation loc, ScanState scanState, ClientContext context, ResourceRequest resourceRequest)
+      throws AccumuloSecurityException, NotServingTabletException, TException, NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
     if (scanState.finished)
       return null;
 
@@ -431,7 +438,7 @@ public class ThriftScanner {
         InitialScan is = client.startScan(tinfo, scanState.context.rpcCreds(), loc.tablet_extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translators.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated, scanState.readaheadThreshold,
-            SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut, scanState.classLoaderContext);
+            SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut, scanState.classLoaderContext, resourceRequest.toThrift());
         if (waitForWrites)
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
 

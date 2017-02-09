@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.session;
 
+import org.apache.accumulo.core.data.ResourceRequest;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.rpc.TServerUtils;
 
@@ -25,10 +26,16 @@ public class Session {
   public long startTime;
   boolean reserved;
   private final TCredentials credentials;
+  protected ResourceRequest requestedResource;
 
-  Session(TCredentials credentials) {
+  Session(TCredentials credentials, ResourceRequest requestedResource) {
     this.credentials = credentials;
     this.client = TServerUtils.clientAddress.get();
+    this.requestedResource = requestedResource;
+  }
+
+  Session(TCredentials credentials) {
+    this(credentials, null);
   }
 
   public String getUser() {
@@ -41,5 +48,9 @@ public class Session {
 
   public boolean cleanup() {
     return true;
+  }
+
+  public ResourceRequest getResourceRequest() {
+    return requestedResource;
   }
 }

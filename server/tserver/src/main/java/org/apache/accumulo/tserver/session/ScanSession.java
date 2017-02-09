@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.ResourceRequest;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
@@ -48,8 +49,8 @@ public class ScanSession extends Session {
   public final String context;
 
   public ScanSession(TCredentials credentials, KeyExtent extent, Set<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      Authorizations authorizations, long readaheadThreshold, long batchTimeOut, String context) {
-    super(credentials);
+      Authorizations authorizations, long readaheadThreshold, long batchTimeOut, String context, ResourceRequest requestedResource) {
+    super(credentials, requestedResource);
     this.extent = extent;
     this.columnSet = columnSet;
     this.ssiList = ssiList;
