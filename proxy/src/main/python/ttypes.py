@@ -91,6 +91,10 @@ class SystemPermission:
   DROP_USER = 5
   ALTER_USER = 6
   SYSTEM = 7
+  CREATE_NAMESPACE = 8
+  DROP_NAMESPACE = 9
+  ALTER_NAMESPACE = 10
+  OBTAIN_DELEGATION_TOKEN = 11
 
   _VALUES_TO_NAMES = {
     0: "GRANT",
@@ -101,6 +105,10 @@ class SystemPermission:
     5: "DROP_USER",
     6: "ALTER_USER",
     7: "SYSTEM",
+    8: "CREATE_NAMESPACE",
+    9: "DROP_NAMESPACE",
+    10: "ALTER_NAMESPACE",
+    11: "OBTAIN_DELEGATION_TOKEN",
   }
 
   _NAMES_TO_VALUES = {
@@ -112,6 +120,10 @@ class SystemPermission:
     "DROP_USER": 5,
     "ALTER_USER": 6,
     "SYSTEM": 7,
+    "CREATE_NAMESPACE": 8,
+    "DROP_NAMESPACE": 9,
+    "ALTER_NAMESPACE": 10,
+    "OBTAIN_DELEGATION_TOKEN": 11,
   }
 
 class ScanType:
