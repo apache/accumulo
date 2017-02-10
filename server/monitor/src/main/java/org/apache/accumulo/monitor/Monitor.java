@@ -451,6 +451,18 @@ public class Monitor implements HighlyAvailableService {
     }
   }
 
+  public static void setConfig(ServerConfigurationFactory newConfig) {
+    config = newConfig;
+  }
+
+  public static void setInstance(Instance newInstance) {
+    instance = newInstance;
+  }
+
+  public static void setContext(AccumuloServerContext newContext) {
+    context = newContext;
+  }
+
   private static long START_TIME;
 
   public void run(String hostname) {
@@ -575,7 +587,7 @@ public class Monitor implements HighlyAvailableService {
     }
   }
 
-  protected static void fetchScans() throws Exception {
+  public static void fetchScans() throws Exception {
     if (instance == null)
       return;
     Connector c = context.getConnector();
@@ -767,6 +779,11 @@ public class Monitor implements HighlyAvailableService {
 
   public static long getStartTime() {
     return START_TIME;
+  }
+
+  // TODO Remove this after merging old and new monitor
+  public static void setStartTime(long start) {
+    START_TIME = start;
   }
 
   public static List<Pair<Long,Double>> getLoadOverTime() {
