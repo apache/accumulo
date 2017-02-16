@@ -268,7 +268,7 @@ prompted for a password you can just hit return, since it won't be used.
 ----
 $ accumulo-cluster stop
 ...
-$ ACCUMULO_CONF_DIR=/path/to/server/conf/ accumulo init --reset-security
+$ accumulo init --reset-security
 Running against secured HDFS
 Principal (user) to grant administrative privileges to : acculumo_admin@EXAMPLE.COM
 Enter initial password for accumulo_admin@EXAMPLE.COM (this may not be applicable for your security setup):
@@ -401,9 +401,9 @@ Valid starting       Expires              Service principal
 ===== Configuration
 
 The second thing clients need to do is to set up their client configuration file. By
-default, this file is stored in +~/.accumulo/config+, +$ACCUMULO_CONF_DIR/client.conf+ or
-+$ACCUMULO_CONF_DIR/client.conf+. Accumulo utilities also allow you to provide your own
-copy of this file in any location using the +--config-file+ command line option.
+default, this file is stored in +~/.accumulo/config+ or +/path/to/accumulo/client.conf+.
+Accumulo utilities also allow you to provide your own copy of this file in any location
+using the +--config-file+ command line option.
 
 Three items need to be set to enable access to Accumulo:
 
@@ -545,11 +545,11 @@ I don't know what is actually failing.
 This will enable lots of extra debugging at the JVM level which is often sufficient to
 diagnose some high-level configuration problem. Client applications can add this system property by
 hand to the command line and Accumulo server processes or applications started using the `accumulo`
-script by adding the property to +ACCUMULO_GENERAL_OPTS+ in +$ACCUMULO_CONF_DIR/accumulo-env.sh+.
+script by adding the property to +ACCUMULO_GENERAL_OPTS+ in +accumulo-env.sh+.
 
 Additionally, you can increase the log4j levels on +org.apache.hadoop.security+, which includes the
 Hadoop +UserGroupInformation+ class, which will include some high-level debug statements. This
-can be controlled in your client application, or using +$ACCUMULO_CONF_DIR/generic_logger.xml+
+can be controlled in your client application, or using +generic_logger.xml+
 
 *Q*: All of my Accumulo processes successfully start and log in with their
 keytab, but they are unable to communicate with each other, showing the
@@ -627,7 +627,7 @@ Caused by: org.apache.thrift.transport.TTransportException: Peer indicated failu
 on, is extremely important when negotiating an SASL connection. This problem commonly arises when the Accumulo
 servers are not configured to listen on the address denoted by their FQDN.
 
-The values in the Accumulo "hosts" files (In +$ACCUMULO_CONF_DIR+: +masters+, +monitors+, +tservers+, +tracers+,
+The values in the Accumulo "hosts" files (In +accumulo/conf+: +masters+, +monitors+, +tservers+, +tracers+,
 and +gc+) should match the instance componentof the Kerberos server principal (e.g. +host+ in +accumulo/host@EXAMPLE.COM+).
 
 *Q*: After configuring my system for Kerberos, server processes come up normally and I can interact with the system. However,

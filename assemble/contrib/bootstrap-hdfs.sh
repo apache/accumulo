@@ -28,10 +28,13 @@ basedir=$( cd -P "${contrib}"/.. && pwd )
 
 source "$basedir"/libexec/load-env.sh
 
+lib="${basedir}/lib"
+conf="${basedir}/conf"
+
 #
 # Find the system context directory in HDFS
 #
-SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$ACCUMULO_CONF_DIR/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; s/,.+$//; s|[^/]+$||; print $ARGV[1]')
+SYSTEM_CONTEXT_HDFS_DIR=$(grep -A1 "general.vfs.classpaths" "$conf/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; s/,.+$//; s|[^/]+$||; print $ARGV[1]')
 
 if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]
 then
@@ -63,7 +66,7 @@ fi
 #
 # Replicate to all tservers to avoid network contention on startup
 #
-TSERVERS=$ACCUMULO_CONF_DIR/tservers
+TSERVERS=${conf}/tservers
 NUM_TSERVERS=$(egrep -v '(^#|^\s*$)' "$TSERVERS" | wc -l)
 
 #let each datanode service around 50 clients
@@ -73,19 +76,19 @@ REP=$(( NUM_TSERVERS / 50 ))
 #
 # Copy all jars in lib to the system context directory
 #
-"$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$ACCUMULO_LIB_DIR"/*.jar "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$lib"/*.jar "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -setrep -R $REP "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 
 #
 # We need some of the jars in lib, copy them back out and remove them from the system context dir
 #
-"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar" "$ACCUMULO_LIB_DIR/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar" "$lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar"  > /dev/null
-"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar" "$ACCUMULO_LIB_DIR/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar" "$lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
-"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar" "$ACCUMULO_LIB_DIR/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar" "$lib/."  > /dev/null
 "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar"  > /dev/null
-for f in $(grep -v '^#' "$ACCUMULO_CONF_DIR/tservers")
+for f in $(grep -v '^#' "${conf}/tservers")
 do
   rsync -ra --delete "$ACCUMULO_HOME" "$(dirname "$ACCUMULO_HOME")"
 done

@@ -39,8 +39,8 @@ export ACCUMULO_OTHER_OPTS="${otherHigh_otherLow}"
 # export HADOOP_CONF_DIR=/path/to/hadoop/etc/conf
 # export ZOOKEEPER_HOME=/path/to/zookeeper
 
-# If not set below, Accumulo will derive these locations by determining the root of your
-# installation and using the default locations
+## If not set below, Accumulo will derive these locations by determining the root of your
+## installation and using the default locations
 
 # export ACCUMULO_LOG_DIR=/path/to/accumulo/log
 
@@ -50,41 +50,16 @@ export ACCUMULO_OTHER_OPTS="${otherHigh_otherLow}"
 
 ## Specifies what do when the JVM runs out of heap memory
 # export ACCUMULO_KILL_CMD='kill -9 %p'
-## Should the monitor bind to all network interfaces -- default: true
+## Should the monitor bind to all network interfaces
 # export ACCUMULO_MONITOR_BIND_ALL="true"
-## Location of jaas.conf file. Needed by JAAS for things like Kerberos based logins
-# export ACCUMULO_JAAS_CONF=${ACCUMULO_CONF_DIR}/jaas.conf
-## Location of krb5.conf file. Needed by Kerberos subsystems to find login servers
-# export ACCUMULO_KRB5_CONF=${ACCUMULO_CONF_DIR}/krb5.conf
-## The number of .out and .err files per process to retain
-# export ACCUMULO_NUM_OUT_FILES=5
-## Should process be automatically restarted
-# export ACCUMULO_WATCHER="false"
-## Sets number of tablet servers to run on each node
-# export ACCUMULO_NUM_TSERVERS=1
-## Enables NUMA control policy
-# export ACCUMULO_ENABLE_NUMACTL="false"
-## Sets NUMA control options
-# export ACCUMULO_NUMACTL_OPTIONS="--interleave=all"
 
 ###############################################
 # Variables that are optional. Uncomment to set
 ###############################################
 
-## Example for configuring multiple tservers per host. Note that the ACCUMULO_NUMACTL_OPTIONS
-## environment variable is used when ACCUMULO_NUM_TSERVERS is 1 to preserve backwards compatibility.
-## If ACCUMULO_NUM_TSERVERS is greater than 2, then the TSERVER_NUMA_OPTIONS array is used if defined.
-## If TSERVER_NUMA_OPTIONS is declared but not the correct size, then the service will not start.
-#
-# export ACCUMULO_NUM_TSERVERS=2
-# declare -a TSERVER_NUMA_OPTIONS
-# TSERVER_NUMA_OPTIONS[1]="--cpunodebind 0"
-# TSERVER_NUMA_OPTIONS[2]="--cpunodebind 1"
-
-## Optionally look for hadoop and accumulo native libraries for your
-## platform in additional directories. (Use DYLD_LIBRARY_PATH on Mac OS X.)
-## May not be necessary for Hadoop 2.x or using an RPM that installs to
-## the correct system library directory.
-#
+## Specifies command that will wrap calls to Java in bin/accumulo
+# export ACCUMULO_WRAP_CMD=""
+## Optionally look for hadoop and accumulo native libraries for your platform in additional
+## directories. (Use DYLD_LIBRARY_PATH on Mac OS X.) May not be necessary for Hadoop 2.x or
+## using an RPM that installs to the correct system library directory.
 # export LD_LIBRARY_PATH=${HADOOP_PREFIX}/lib/native/${PLATFORM}:${LD_LIBRARY_PATH}
-
