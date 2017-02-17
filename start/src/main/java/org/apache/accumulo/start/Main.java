@@ -208,8 +208,6 @@ public class Main {
     Map<String,KeywordExecutable> executableMap = new TreeMap<>(getExecutables(getClassLoader()));
 
     System.out.println("\nUsage: accumulo <command> (<argument> ...)\n\nCore Commands:");
-    System.out.println("  create-config                  Creates Accumulo configuration");
-    System.out.println("  build-native                   Builds Accumulo native libraries");
     for (String cmd : Arrays.asList("init", "shell", "classpath", "version", "admin", "info", "help", "jar")) {
       printCommand(executableMap.remove(cmd));
     }

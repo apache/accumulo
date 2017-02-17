@@ -40,7 +40,7 @@ included in a section below. Accumulo servers require a certificate and keystore
 in the form of Java KeyStores, to enable SSL. The following configuration assumes
 these files already exist.
 
-In +$ACCUMULO_CONF_DIR/accumulo-site.xml+, the following properties are required:
+In +accumulo-site.xml+, the following properties are required:
 
 * *rpc.javax.net.ssl.keyStore*=_The path on the local filesystem to the keystore containing the server's certificate_
 * *rpc.javax.net.ssl.keyStorePassword*=_The password for the keystore containing the server's certificate_
@@ -49,7 +49,7 @@ In +$ACCUMULO_CONF_DIR/accumulo-site.xml+, the following properties are required
 * *instance.rpc.ssl.enabled*=_true_
 
 Optionally, SSL client-authentication (two-way SSL) can also be enabled by setting
-+instance.rpc.ssl.clientAuth=true+ in +$ACCUMULO_CONF_DIR/accumulo-site.xml+.
++instance.rpc.ssl.clientAuth=true+ in +accumulo-site.xml+.
 This requires that each client has access to  valid certificate to set up a secure connection
 to the servers. By default, Accumulo uses one-way SSL which does not require clients to have
 their own certificate.

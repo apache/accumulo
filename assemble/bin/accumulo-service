@@ -42,7 +42,10 @@ function invalid_args {
 }
 
 function get_host {
-  host="$(hostname -s)"
+  host="$(hostname -f)"
+  if [ "$1" == "-s" ]; then
+    host="$(hostname -s)"
+  fi
   if [[ -z "$host" ]]; then
     host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
     if [[ $? != 0 ]]; then
@@ -52,8 +55,76 @@ function get_host {
   echo "$host"
 }
 
-function main() {
+function rotate_log () {
+  logfile="$1"
+  max_retained="5"
+  if [ -f "$logfile" ]; then
+    while [[ "$max_retained" -gt 1 ]]; do
+      prev=$(( max_retained - 1))
+      [ -f "$logfile.$prev" ] && mv -f "$logfile.$prev" "$logfile.$max_retained"
+      max_retained=$prev
+    done
+    mv -f "$logfile" "$logfile.$max_retained";
+  fi
+}
 
+function start_service() {
+  host="$(get_host -s)"
+
+  if [ -f "$pid_file" ]; then
+    pid=$(cat "$pid_file")
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "$host : $service already running (${pid})"
+      exit 0
+    fi
+  fi
+  echo "Starting $service on $host"
+
+  if [[ $service == "master" ]]; then
+    "${bin}/accumulo" org.apache.accumulo.master.state.SetGoalState NORMAL
+  fi
+
+  outfile="${ACCUMULO_LOG_DIR}/${service}_${host}.out"
+  errfile="${ACCUMULO_LOG_DIR}/${service}_${host}.err"
+  rotate_log "$outfile"
+  rotate_log "$errfile"
+
+  export ACCUMULO_MONITOR_BIND_ALL=${ACCUMULO_MONITOR_BIND_ALL:-"true"}
+  extra_args=""
+  if [[ $service == "monitor" && $ACCUMULO_MONITOR_BIND_ALL == "true" ]]; then
+    extra_args=('--address' '0.0.0.0')
+  fi
+
+  nohup "${bin}/accumulo" "$service" "${extra_args[@]}" >"$outfile" 2>"$errfile" < /dev/null &
+  echo "$!" > "${pid_file}"
+
+  # Check the max open files limit and selectively warn
+  max_files_open=$(ulimit -n)
+  if [[ -n $max_files_open ]] ; then
+    max_files_recommended=32768
+    if (( max_files_open < max_files_recommended )); then
+      echo "WARN : Max open files on $host is $max_files_open, recommend $max_files_recommended" >&2
+    fi
+  fi
+}
+
+function stop_service() {
+  if [ -f "$pid_file" ]; then
+    echo "Stopping $service on $(get_host -s)";
+    kill -s TERM "$(cat "$pid_file")" 2>/dev/null
+    rm -f "${pid_file}" 2>/dev/null
+  fi
+}
+
+function kill_service() {
+  if [ -f "$pid_file" ]; then
+    echo "Killing $service on $(get_host -s)";
+    kill -s KILL "$(cat "$pid_file")" 2>/dev/null
+    rm -f "${pid_file}" 2>/dev/null
+  fi
+}
+
+function main() {
   if [[ -z $1 ]]; then
     invalid_args "<service> cannot be empty"
   fi
@@ -67,10 +138,18 @@ function main() {
   done
   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
   basedir=$( cd -P "${bin}"/.. && pwd )
+  conf="${basedir}/conf"
 
-  source "$basedir"/libexec/load-env.sh
+  if [ -f "${conf}/accumulo-env.sh" ]; then
+    source "${conf}/accumulo-env.sh"
+  fi
+  ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
 
-  service=$1
+  mkdir -p "$ACCUMULO_LOG_DIR" 2>/dev/null
+  mkdir -p "${basedir}/run" 2>/dev/null
+
+  service="$1"
+  pid_file="${basedir}/run/accumulo-${service}.pid"
   case "$service" in
     gc|master|monitor|tserver|tracer)
       if [[ -z $2 ]]; then
@@ -78,13 +157,13 @@ function main() {
       fi
       case "$2" in 
         start)
-          "${ACCUMULO_LIBEXEC_DIR}/service.sh" start "$(get_host)" "$1"
+          start_service
           ;;
         stop)
-          "${ACCUMULO_LIBEXEC_DIR}/service.sh" stop "$(get_host)" "$service" TERM
+          stop_service
           ;;
         kill)
-          "${ACCUMULO_LIBEXEC_DIR}/service.sh" stop "$(get_host)" "$service" KILL
+          kill_service
           ;;
         *)
           invalid_args "'$2' is an invalid <command>"
@@ -92,7 +171,7 @@ function main() {
       esac
       ;;
     *)
-      invalid_args "'$1' is an invalid <service>"
+      invalid_args "'$service' is an invalid <service>"
       ;;
   esac
 }

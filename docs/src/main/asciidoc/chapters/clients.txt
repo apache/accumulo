@@ -40,8 +40,8 @@ script to execute your code. For example if you create a jar containing the
 class +com.foo.Client+ and placed that in +lib/ext+, then you could use the command
 +accumulo com.foo.Client+ to execute your code.
 
-If you are writing map reduce job that access Accumulo, then you can use the
-+contrib/tool.sh+ script to run those jobs. See the map reduce example.
+If you are writing map reduce job that access Accumulo, then you can use
++accumulo-util hadoop-jar+ to run those jobs. See the map reduce example.
 
 === Connecting
 

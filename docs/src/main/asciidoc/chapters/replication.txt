@@ -224,7 +224,7 @@ with that name as well (primary:2181 and peer:2181).
 
 We want to configure these systems so that "my_table" on "primary" replicates to "my_table" on "peer".
 
-==== conf/accumulo-site.xml
+==== accumulo-site.xml
 
 We can assign the "unique" name that identifies this Accumulo instance among all others that might participate
 in replication together. In this example, we will use the names provided in the description.
@@ -248,7 +248,7 @@ in replication together. In this example, we will use the names provided in the 
 </property>
 ----
 
-==== conf/masters and conf/tservers
+==== masters and tservers files
 
 Be *sure* to use non-local IP addresses. Other nodes need to connect to it and using localhost will likely result in
 a local node talking to another local node.

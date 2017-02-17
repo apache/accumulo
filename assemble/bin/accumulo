@@ -15,436 +15,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function build_native() {
-  if [[ -f "$basedir"/conf/accumulo-env.sh ]]; then
-    source "$basedir"/libexec/load-env.sh
-  fi
-
-  native_tarball="$basedir/lib/accumulo-native.tar.gz"
-  final_native_target="$basedir/lib/native"
-
-  if [[ ! -f $native_tarball ]]; then
-      echo "Could not find native code artifact: ${native_tarball}";
-      exit 1
-  fi
-
-  # Make the destination for the native library
-  mkdir -p "${final_native_target}" || exit 1
-
-  # Make a directory for us to unpack the native source into
-  TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXX) || exit 1
-
-  # Unpack the tarball to our temp directory
-  if ! tar xf "${native_tarball}" -C "${TMP_DIR}"
-  then
-      echo "Failed to unpack native tarball to ${TMP_DIR}"
-      exit 1
-  fi
-
-  # Move to the first (only) directory in our unpacked tarball
-  native_dir=$(find "${TMP_DIR}" -maxdepth 1 -mindepth 1 -type d)
-
-  cd "${native_dir}" || exit 1
-
-  # Make the native library
-  export USERFLAGS="$*"
-  make || { echo 'Make failed!'; exit 1; }
-
-  # "install" the artifact
-  cp libaccumulo.* "${final_native_target}" || exit 1
-
-  # Clean up our temp directory
-  rm -rf "${TMP_DIR}"
-
-  echo "Successfully installed native library"
-}
-
-function create_config_usage() {
-  cat <<EOF
-Usage: accumulo create-config [-options]
-where options include (long options not available on all platforms):
-    -d, --dir        Alternate directory to setup config files
-    -s, --size       Supported sizes: '1GB' '2GB' '3GB' '512MB'
-    -n, --native     Configure to use native libraries
-    -j, --jvm        Configure to use the jvm
-    -o, --overwrite  Overwrite the default config directory
-    -v, --version    Specify the Apache Hadoop version supported versions: '1' '2'
-    -k, --kerberos   Configure for use with Kerberos
-    -h, --help       Print this help message
-EOF
-}
-
-function create_config() {
-  TEMPLATE_CONF_DIR="$basedir/libexec/templates"
-  CONF_DIR="${ACCUMULO_CONF_DIR:-$basedir/conf}"
-  ACCUMULO_SITE=accumulo-site.xml
-  ACCUMULO_ENV=accumulo-env.sh
-
-  SIZE=
-  TYPE=
-  HADOOP_VERSION=
-  OVERWRITE="0"
-  BASE_DIR=
-  KERBEROS=
-
-  #Execute getopt
-  if [[ $(uname -s) == "Linux" ]]; then
-    args=$(getopt -o "b:d:s:njokv:h" -l "basedir:,dir:,size:,native,jvm,overwrite,kerberos,version:,help" -q -- "$@")
-  else # Darwin, BSD
-    args=$(getopt b:d:s:njokv:h "$@")
-  fi
-
-  #Bad arguments
-  if [[ $? != 0 ]]; then
-    create_config_usage 1>&2
+function verify_env_dir() {
+  property=$1
+  directory=$2
+  if [[ -z "$directory" ]]; then
+    echo "$property is not set. Please make sure it's set globally or in $conf/accumulo-env.sh"
     exit 1
   fi
-  eval set -- "${args[@]}"
-
-  for i
-  do
-    case "$i" in
-      -b|--basedir) #Hidden option used to set general.maven.project.basedir for developers
-        BASE_DIR=$2; shift
-        shift;;
-      -d|--dir)
-        CONF_DIR=$2; shift
-        shift;;
-      -s|--size)
-        SIZE=$2; shift
-        shift;;
-      -n|--native)
-        TYPE=native
-        shift;;
-      -j|--jvm)
-        TYPE=jvm
-        shift;;
-      -o|--overwrite)
-        OVERWRITE=1
-        shift;;
-      -v|--version)
-        HADOOP_VERSION=$2; shift
-        shift;;
-      -k|--kerberos)
-        KERBEROS="true"
-        shift;;
-      -h|--help)
-        create_config_usage
-        exit 0
-        shift;;
-      --)
-        shift
-        break;;
-    esac
-  done
-
-  while [[ "${OVERWRITE}" = "0" ]]; do
-    if [[ -e "${CONF_DIR}/${ACCUMULO_ENV}" || -e "${CONF_DIR}/${ACCUMULO_SITE}" ]]; then
-      echo "Warning your current config files in ${CONF_DIR} will be overwritten!"
-      echo
-      echo "How would you like to proceed?:"
-      select CHOICE in 'Continue with overwrite' 'Specify new conf dir'; do
-        if [[ "${CHOICE}" = 'Specify new conf dir' ]]; then
-          echo -n "Please specifiy new conf directory: "
-          read CONF_DIR
-        elif [[ "${CHOICE}" = 'Continue with overwrite' ]]; then
-          OVERWRITE=1
-        fi
-        break
-      done
-    else
-      OVERWRITE=1
-    fi
-  done
-  echo "Copying configuration files to: ${CONF_DIR}"
-
-  #Native 1GB
-  native_1GB_tServer="-Xmx128m -Xms128m"
-  _1GB_master="-Xmx128m -Xms128m"
-  _1GB_monitor="-Xmx64m -Xms64m"
-  _1GB_gc="-Xmx64m -Xms64m"
-  _1GB_other="-Xmx128m -Xms64m"
-  _1GB_shell="${_1GB_other}"
-
-  _1GB_memoryMapMax="256M"
-  native_1GB_nativeEnabled="true"
-  _1GB_cacheDataSize="15M"
-  _1GB_cacheIndexSize="40M"
-  _1GB_sortBufferSize="50M"
-  _1GB_waLogMaxSize="256M"
-
-  #Native 2GB
-  native_2GB_tServer="-Xmx256m -Xms256m"
-  _2GB_master="-Xmx256m -Xms256m"
-  _2GB_monitor="-Xmx128m -Xms64m"
-  _2GB_gc="-Xmx128m -Xms128m"
-  _2GB_other="-Xmx256m -Xms64m"
-  _2GB_shell="${_2GB_other}"
-
-  _2GB_memoryMapMax="512M"
-  native_2GB_nativeEnabled="true"
-  _2GB_cacheDataSize="30M"
-  _2GB_cacheIndexSize="80M"
-  _2GB_sortBufferSize="50M"
-  _2GB_waLogMaxSize="512M"
-
-  #Native 3GB
-  native_3GB_tServer="-Xmx1g -Xms1g -XX:NewSize=500m -XX:MaxNewSize=500m"
-  _3GB_master="-Xmx1g -Xms1g"
-  _3GB_monitor="-Xmx1g -Xms256m"
-  _3GB_gc="-Xmx256m -Xms256m"
-  _3GB_other="-Xmx1g -Xms256m"
-  _3GB_shell="${_3GB_other}"
-
-  _3GB_memoryMapMax="1G"
-  native_3GB_nativeEnabled="true"
-  _3GB_cacheDataSize="128M"
-  _3GB_cacheIndexSize="128M"
-  _3GB_sortBufferSize="200M"
-  _3GB_waLogMaxSize="1G"
-
-  #Native 512MB
-  native_512MB_tServer="-Xmx48m -Xms48m"
-  _512MB_master="-Xmx128m -Xms128m"
-  _512MB_monitor="-Xmx64m -Xms64m"
-  _512MB_gc="-Xmx64m -Xms64m"
-  _512MB_other="-Xmx128m -Xms64m"
-  _512MB_shell="${_512MB_other}"
-
-  _512MB_memoryMapMax="80M"
-  native_512MB_nativeEnabled="true"
-  _512MB_cacheDataSize="7M"
-  _512MB_cacheIndexSize="20M"
-  _512MB_sortBufferSize="50M"
-  _512MB_waLogMaxSize="100M"
-
-  #JVM 1GB
-  jvm_1GB_tServer="-Xmx384m -Xms384m"
-
-  jvm_1GB_nativeEnabled="false"
-
-  #JVM 2GB
-  jvm_2GB_tServer="-Xmx768m -Xms768m"
-
-  jvm_2GB_nativeEnabled="false"
-
-  #JVM 3GB
-  jvm_3GB_tServer="-Xmx2g -Xms2g -XX:NewSize=1G -XX:MaxNewSize=1G"
-
-  jvm_3GB_nativeEnabled="false"
-
-  #JVM 512MB
-  jvm_512MB_tServer="-Xmx128m -Xms128m"
-
-  jvm_512MB_nativeEnabled="false"
-
-
-  if [[ -z "${SIZE}" ]]; then
-    echo "Choose the heap configuration:"
-    select DIRNAME in 1GB 2GB 3GB 512MB; do
-      echo "Using '${DIRNAME}' configuration"
-      SIZE=${DIRNAME}
-      break
-    done
-  elif [[ "${SIZE}" != "1GB" && "${SIZE}" != "2GB"  && "${SIZE}" != "3GB" && "${SIZE}" != "512MB" ]]; then
-    echo "Invalid memory size"
-    echo "Supported sizes: '1GB' '2GB' '3GB' '512MB'"
+  if [[ ! -d "$directory" ]]; then
+    echo "$property=$directory is not a valid directory. Please make sure it's set correctly globally or in $conf/accumulo-env.sh"
     exit 1
   fi
-
-  if [[ -z "${TYPE}" ]]; then
-    echo
-    echo "Choose the Accumulo memory-map type:"
-    select TYPENAME in Java Native; do
-      if [[ "${TYPENAME}" == "Native" ]]; then
-        TYPE="native"
-        echo "Don't forget to build the native libraries using the command 'bin/accumulo build-native'"
-      elif [[ "${TYPENAME}" == "Java" ]]; then
-        TYPE="jvm"
-      fi
-      echo "Using '${TYPE}' configuration"
-      echo
-      break
-    done
-  fi
-
-  if [[ -z "${HADOOP_VERSION}" ]]; then
-    echo
-    echo "Choose the Apache Hadoop version:"
-    select HADOOP in 'Hadoop 2' 'HDP 2.0/2.1' 'HDP 2.2' 'IOP 4.1'; do
-      if [ "${HADOOP}" == "Hadoop 2" ]; then
-        HADOOP_VERSION="2"
-      elif [ "${HADOOP}" == "HDP 2.0/2.1" ]; then
-        HADOOP_VERSION="HDP2"
-      elif [ "${HADOOP}" == "HDP 2.2" ]; then
-        HADOOP_VERSION="HDP2.2"
-      elif [ "${HADOOP}" == "IOP 4.1" ]; then
-        HADOOP_VERSION="IOP4.1"
-      fi
-      echo "Using Hadoop version '${HADOOP_VERSION}' configuration"
-      echo
-      break
-    done
-  elif [[ "${HADOOP_VERSION}" != "2" && "${HADOOP_VERSION}" != "HDP2" && "${HADOOP_VERSION}" != "HDP2.2" ]]; then
-    echo "Invalid Hadoop version"
-    echo "Supported Hadoop versions: '2', 'HDP2', 'HDP2.2'"
-    exit 1
-  fi
-
-  TRACE_USER="root"
-
-  if [[ ! -z "${KERBEROS}" ]]; then
-    echo
-    read -p "Enter server's Kerberos principal: " PRINCIPAL
-    read -p "Enter server's Kerberos keytab: " KEYTAB
-    TRACE_USER="${PRINCIPAL}"
-  fi
-
-  for var in SIZE TYPE HADOOP_VERSION; do
-    if [[ -z ${!var} ]]; then
-      echo "Invalid $var configuration"
-      exit 1
-    fi
-  done
-
-  TSERVER="${TYPE}_${SIZE}_tServer"
-  MASTER="_${SIZE}_master"
-  MONITOR="_${SIZE}_monitor"
-  GC="_${SIZE}_gc"
-  SHELL="_${SIZE}_shell"
-  OTHER="_${SIZE}_other"
-
-  MEMORY_MAP_MAX="_${SIZE}_memoryMapMax"
-  NATIVE="${TYPE}_${SIZE}_nativeEnabled"
-  CACHE_DATA_SIZE="_${SIZE}_cacheDataSize"
-  CACHE_INDEX_SIZE="_${SIZE}_cacheIndexSize"
-  SORT_BUFFER_SIZE="_${SIZE}_sortBufferSize"
-  WAL_MAX_SIZE="_${SIZE}_waLogMaxSize"
-
-  MAVEN_PROJ_BASEDIR=""
-
-  if [[ ! -z "${BASE_DIR}" ]]; then
-    MAVEN_PROJ_BASEDIR="\n  <property>\n    <name>general.maven.project.basedir</name>\n    <value>${BASE_DIR}</value>\n  </property>\n"
-  fi
-
-  mkdir -p "${CONF_DIR}" && cp "${TEMPLATE_CONF_DIR}"/* "${CONF_DIR}"/
-
-  if [[ -f "${CONF_DIR}/examples/client.conf" ]]; then
-    cp "${CONF_DIR}"/examples/client.conf "${CONF_DIR}"/
-  fi
-
-  #Configure accumulo-env.sh
-  sed -e "s/\${tServerHigh_tServerLow}/${!TSERVER}/" \
-    -e "s/\${masterHigh_masterLow}/${!MASTER}/" \
-    -e "s/\${monitorHigh_monitorLow}/${!MONITOR}/" \
-    -e "s/\${gcHigh_gcLow}/${!GC}/" \
-    -e "s/\${shellHigh_shellLow}/${!SHELL}/" \
-    -e "s/\${otherHigh_otherLow}/${!OTHER}/" \
-    "${TEMPLATE_CONF_DIR}/$ACCUMULO_ENV" > "${CONF_DIR}/$ACCUMULO_ENV"
-
-  #Configure accumulo-site.xml
-  sed -e "s/\${memMapMax}/${!MEMORY_MAP_MAX}/" \
-    -e "s/\${nativeEnabled}/${!NATIVE}/" \
-    -e "s/\${cacheDataSize}/${!CACHE_DATA_SIZE}/" \
-    -e "s/\${cacheIndexSize}/${!CACHE_INDEX_SIZE}/" \
-    -e "s/\${sortBufferSize}/${!SORT_BUFFER_SIZE}/" \
-    -e "s/\${waLogMaxSize}/${!WAL_MAX_SIZE}/" \
-    -e "s=\${traceUser}=${TRACE_USER}=" \
-    -e "s=\${mvnProjBaseDir}=${MAVEN_PROJ_BASEDIR}=" "${TEMPLATE_CONF_DIR}/$ACCUMULO_SITE" > "${CONF_DIR}/$ACCUMULO_SITE"
-
-  # If we're not using kerberos, filter out the krb properties
-  if [[ -z "${KERBEROS}" ]]; then
-    sed -e 's/<!-- Kerberos requirements -->/<!-- Kerberos requirements --><!--/' \
-      -e 's/<!-- End Kerberos requirements -->/--><!-- End Kerberos requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-  else
-    # Make the substitutions
-    sed -e "s!\${keytab}!${KEYTAB}!" \
-      -e "s!\${principal}!${PRINCIPAL}!" \
-      "${CONF_DIR}/${ACCUMULO_SITE}" > temp
-    mv temp "${CONF_DIR}/${ACCUMULO_SITE}"
-  fi
-
-  # Configure hadoop version
-  if [[ "${HADOOP_VERSION}" == "2" ]]; then
-    sed -e 's/<!-- HDP 2.0 requirements -->/<!-- HDP 2.0 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-    sed -e 's/<!-- HDP 2.2 requirements -->/<!-- HDP 2.2 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.2 requirements -->/--><!-- End HDP 2.2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-    sed -e 's/<!-- IOP 4.1 requirements -->/<!-- IOP 4.1 requirements --><!--/' \
-      -e 's/<!-- End IOP 4.1 requirements -->/--><!-- End IOP 4.1 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-  elif [[ "${HADOOP_VERSION}" == "HDP2" ]]; then
-    sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements --><!--/' \
-      -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-    sed -e 's/<!-- HDP 2.2 requirements -->/<!-- HDP 2.2 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.2 requirements -->/--><!-- End HDP 2.2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-    sed -e 's/<!-- IOP 4.1 requirements -->/<!-- IOP 4.1 requirements --><!--/' \
-      -e 's/<!-- End IOP 4.1 requirements -->/--><!-- End IOP 4.1 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-  elif [[ "${HADOOP_VERSION}" == "HDP2.2" ]]; then
-    sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements --><!--/' \
-      -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-    sed -e 's/<!-- HDP 2.0 requirements -->/<!-- HDP 2.0 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-    sed -e 's/<!-- IOP 4.1 requirements -->/<!-- IOP 4.1 requirements --><!--/' \
-      -e 's/<!-- End IOP 4.1 requirements -->/--><!-- End IOP 4.1 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-  elif [[ "${HADOOP_VERSION}" == "IOP4.1" ]]; then
-    sed -e 's/<!-- Hadoop 2 requirements -->/<!-- Hadoop 2 requirements --><!--/' \
-      -e 's/<!-- End Hadoop 2 requirements -->/--><!-- End Hadoop 2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-    sed -e 's/<!-- HDP 2.0 requirements -->/<!-- HDP 2.0 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.0 requirements -->/--><!-- End HDP 2.0 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-    sed -e 's/<!-- HDP 2.2 requirements -->/<!-- HDP 2.2 requirements --><!--/' \
-      -e 's/<!-- End HDP 2.2 requirements -->/--><!-- End HDP 2.2 requirements -->/' \
-      "${CONF_DIR}/$ACCUMULO_SITE" > temp
-    mv temp "${CONF_DIR}/$ACCUMULO_SITE"
-  fi
-
-  #Additional setup steps for native configuration.
-  if [[ ${TYPE} == native ]]; then
-    if [[ $(uname) == Linux ]]; then
-      if [[ -z $HADOOP_PREFIX ]]; then
-        echo "WARNING: HADOOP_PREFIX not set, cannot automatically configure LD_LIBRARY_PATH to include Hadoop native libraries"
-      else
-        NATIVE_LIB=$(readlink -ef "$(dirname "$(for x in $(find "$HADOOP_PREFIX" -name libhadoop.so); do ld "$x" 2>/dev/null && echo "$x" && break; done)" 2>>/dev/null)" 2>>/dev/null)
-        if [[ -z $NATIVE_LIB ]]; then
-          echo -e "WARNING: The Hadoop native libraries could not be found for your sytem in: $HADOOP_PREFIX"
-        else
-          sed "/# Should the monitor/ i export LD_LIBRARY_PATH=${NATIVE_LIB}:\${LD_LIBRARY_PATH}" "${CONF_DIR}/$ACCUMULO_ENV" > temp
-          mv temp "${CONF_DIR}/$ACCUMULO_ENV"
-          echo -e "Added ${NATIVE_LIB} to the LD_LIBRARY_PATH"
-        fi
-      fi
-    fi
-    echo -e "Please remember to compile the Accumulo native libraries using the command 'bin/accumulo build-native' and to set the LD_LIBRARY_PATH variable in the ${CONF_DIR}/accumulo-env.sh script if needed."
-  fi
-  echo "Setup complete"
 }
 
 function main() {
 
-  # Start: Resolve Script Directory
   SOURCE="${BASH_SOURCE[0]}"
   while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
      bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
@@ -453,129 +38,108 @@ function main() {
   done
   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
   basedir=$( cd -P "${bin}"/.. && pwd )
-  # Stop: Resolve Script Directory
+  conf="${basedir}/conf"
+  lib="${basedir}/lib"
 
-  if [[ "$1" == "create-config" ]]; then
-    create_config "${@:2}"
-    exit 0
-  elif [[ "$1" == "build-native" ]]; then
-    build_native "${@:2}"
-    exit 0
+  # Might be needed by accumulo-env.sh, accumulo-site.xml, and other Accumulo configuration
+  export ACCUMULO_HOME="$basedir"
+  export ACCUMULO_CONF_DIR="$conf"
+
+  export ACCUMULO_CMD="$1"
+
+  if [[ -z $conf || ! -d $conf ]]; then
+    echo "$conf is not a valid directory.  Please make sure it exists"
+    exit 1
+  fi
+  if [[ ! -f $conf/accumulo-env.sh || ! -f $conf/accumulo-site.xml ]]; then
+    echo "The configuration files 'accumulo-env.sh' & 'accumulo-site.xml' must exist in $conf"
+    echo "Copy them from $conf/examples and edit them for your environment."
+    exit 1
+  fi
+  source "$conf/accumulo-env.sh"
+
+  # Verify setting in accumulo-env.sh
+
+  : "${JAVA_OPTS:?"variable is not set in accumulo-env.sh"}"
+  : "${ACCUMULO_LOG_DIR:?"variable is not set in accumulo-env.sh"}"
+  mkdir -p "${ACCUMULO_LOG_DIR}" 2>/dev/null
+  verify_env_dir "ACCUMULO_LOG_DIR" "${ACCUMULO_LOG_DIR}"
+  verify_env_dir "HADOOP_PREFIX" "${HADOOP_PREFIX}"
+  verify_env_dir "HADOOP_CONF_DIR" "${HADOOP_CONF_DIR}"
+  verify_env_dir "ZOOKEEPER_HOME" "${ZOOKEEPER_HOME}"
+  : "${MALLOC_ARENA_MAX:?"variable is not set in accumulo-env.sh"}"
+
+  export HADOOP_HOME=$HADOOP_PREFIX
+  export HADOOP_HOME_WARN_SUPPRESS=true
+
+  if [ -f "${conf}/jaas.conf" ]; then
+    export JAVA_OPTS=("${JAVA_OPTS[@]}" "-Djava.security.auth.login.config=${conf}/jaas.conf")
+  fi
+  if [ -f "${conf}/krb5.conf" ]; then
+    export JAVA_OPTS=("${JAVA_OPTS[@]}" "-Djava.security.krb5.conf=${conf}/krb5.conf")
   fi
 
-  source "$basedir"/libexec/load-env.sh
-
-  # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
-  # It also holds the JAR run with the jar command and, if possible, any items in the JAR manifest's Class-Path.
-  if [[ "$1" = "-add" ]]; then
-      export ACCUMULO_XTRAJARS="$2"
-      shift 2
-  else
-      export ACCUMULO_XTRAJARS=""
-  fi
-  if [[ "$1" = "jar" && -f "$2" ]]; then
-      if [[ $2 =~ ^/ ]]; then
-        jardir="$(dirname "$2")"
-        jarfile="$2"
-      else
-        jardir="$(pwd)"
-        jarfile="${jardir}/${2}"
-      fi
-      if jar tf "$jarfile" | grep -q META-INF/MANIFEST.MF ; then
-        cp="$(unzip -p "$jarfile" META-INF/MANIFEST.MF | grep ^Class-Path: | sed 's/^Class-Path: *//')"
-        if [[ -n "$cp" ]] ; then
-           for j in $cp; do
-              if [[ "$j" != "Class-Path:" ]] ; then
-                 ACCUMULO_XTRAJARS="${jardir}/${j},$ACCUMULO_XTRAJARS"
-              fi
-           done
-        fi
-      fi
-      ACCUMULO_XTRAJARS="${jarfile},$ACCUMULO_XTRAJARS"
-  fi
-
-  # Set up -D switches for JAAS and Kerberos if files exist
-  if [[ -f ${ACCUMULO_JAAS_CONF} ]]; then
-    ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.auth.login.config=${ACCUMULO_JAAS_CONF}"
-  fi
-  if [[ -f ${ACCUMULO_KRB5_CONF} ]]; then
-    ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.krb5.conf=${ACCUMULO_KRB5_CONF}"
-  fi
-
-  # Add appropriate options for process type
-  case "$1" in
-  master)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MASTER_OPTS}" ;;
-  gc)      export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_GC_OPTS}" ;;
-  tserver*) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}" ;;
-  monitor) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MONITOR_OPTS}" ;;
-  shell)   export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_SHELL_OPTS}" ;;
-  *)       export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}" ;;
-  esac
-
-  LOG4J_JAR=$(find -H "${HADOOP_PREFIX}/lib" "${HADOOP_PREFIX}"/share/hadoop/common/lib -name 'log4j*.jar' -print 2>/dev/null | head -1)
-  SLF4J_JARS="${ACCUMULO_LIB_DIR}/slf4j-api.jar:${ACCUMULO_LIB_DIR}/slf4j-log4j12.jar"
-
-  # The `find` command could fail for environmental reasons or bad configuration
-  # Avoid trying to run Accumulo when we can't find the jar
-  if [[ -z "${LOG4J_JAR}" && -z "${CLASSPATH}" ]]; then
-     echo "Could not locate Log4j jar in Hadoop installation at ${HADOOP_PREFIX}"
-     exit 1
-  fi
-
-  if [[ ! "$1" =~ ^(gc|master|monitor|tserver|tracer)$ ]]; then
-    if [[ -f ${ACCUMULO_CONF_DIR}/log4j.properties ]]; then
-      export ACCUMULO_OPTS="${ACCUMULO_OPTS} -Dlog4j.configuration=file:${ACCUMULO_CONF_DIR}/log4j.properties"
+  if [[ ! "$ACCUMULO_CMD" =~ ^(gc|master|monitor|tserver|tracer)$ ]]; then
+    if [[ -f ${conf}/log4j.properties ]]; then
+      export JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=file:${conf}/log4j.properties")
     else
-      export ACCUMULO_OPTS="${ACCUMULO_OPTS} -Dlog4j.configuration=file:${ACCUMULO_CONF_DIR}/examples/log4j.properties"
+      export JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=file:${conf}/examples/log4j.properties")
     fi
   fi
 
-  CLASSPATH="${ACCUMULO_LIB_DIR}/accumulo-start.jar:${ACCUMULO_CONF_DIR}:${SLF4J_JARS}:${LOG4J_JAR}:${CLASSPATH}"
-
-  # This is default for hadoop 2.x;
-  #   for another distribution, specify (DY)LD_LIBRARY_PATH
-  #   explicitly in ${ACCUMULO_CONF_DIR}/accumulo-env.sh
-  #   usually something like:
-  #     ${HADOOP_PREFIX}/lib/native/${PLATFORM}
+  # This is default for hadoop 2.x; for another distribution, specify (DY)LD_LIBRARY_PATH explicitly above
   if [ -e "${HADOOP_PREFIX}/lib/native/libhadoop.so" ]; then
-     LIB_PATH="${HADOOP_PREFIX}/lib/native"
-     LD_LIBRARY_PATH="${LIB_PATH}:${LD_LIBRARY_PATH}"     # For Linux
-     DYLD_LIBRARY_PATH="${LIB_PATH}:${DYLD_LIBRARY_PATH}" # For Mac
+    export LD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${LD_LIBRARY_PATH}"     # For Linux
+    export DYLD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${DYLD_LIBRARY_PATH}" # For Mac
+  fi
+  # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
+  # It also holds the JAR run with the jar command and, if possible, any items in the JAR manifest's Class-Path.
+  if [[ "$ACCUMULO_CMD" = "-add" ]]; then
+    export ACCUMULO_XTRAJARS="$2"
+    shift 2
+  else
+    export ACCUMULO_XTRAJARS=""
+  fi
+  if [[ "$ACCUMULO_CMD" = "jar" && -f "$2" ]]; then
+    if [[ $2 =~ ^/ ]]; then
+      jardir="$(dirname "$2")"
+      jarfile="$2"
+    else
+      jardir="$(pwd)"
+      jarfile="${jardir}/${2}"
+    fi
+    if jar tf "$jarfile" | grep -q META-INF/MANIFEST.MF ; then
+      cp="$(unzip -p "$jarfile" META-INF/MANIFEST.MF | grep ^Class-Path: | sed 's/^Class-Path: *//')"
+      if [[ -n "$cp" ]] ; then
+         for j in $cp; do
+            if [[ "$j" != "Class-Path:" ]] ; then
+               ACCUMULO_XTRAJARS="${jardir}/${j},$ACCUMULO_XTRAJARS"
+            fi
+         done
+      fi
+    fi
+    ACCUMULO_XTRAJARS="${jarfile},$ACCUMULO_XTRAJARS"
   fi
 
-  # Export the variables just in case they are not exported
-  # This makes them available to java
-  export JAVA_HOME HADOOP_PREFIX ZOOKEEPER_HOME LD_LIBRARY_PATH DYLD_LIBRARY_PATH
-
-  # Strip the instance from $1
-  APP=$1
-  # Avoid setting an instance unless it's necessary to ensure consistency in filenames
-  INSTANCE=""
-  # Avoid setting a pointless system property
-  INSTANCE_OPT=""
-  if [[ "$1" =~ ^tserver-[1-9][0-9]*$ ]]; then
-    APP="$(echo "$1" | cut -d'-' -f1)"
-    # Appending the trailing underscore to make single-tserver deploys look how they did
-    INSTANCE="$(echo "$1" | cut -d'-' -f2)_"
-
-    #Rewrite the input arguments
-    set -- "$APP" "${@:2}"
-
-    # The extra system property we'll pass to the java cmd
-    INSTANCE_OPT="-Daccumulo.service.instance=${INSTANCE}"
+  if [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVA="$JAVA_HOME/bin/java"
+  else
+    JAVA=$(which java)
+  fi
+  if [ ! -x "$JAVA" ]; then
+    echo "Could not find any executable java binary. Please set java on your PATH or set JAVA_HOME"
+    exit 1
   fi
 
-  # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
-  JAVA="${JAVA_HOME}/bin/java"
+  if [ -n "$ACCUMULO_JAVA_PREFIX" ]; then
+    JAVA=($ACCUMULO_JAVA_PREFIX $JAVA)
+  fi
+  
+  CLASSPATH="${lib}/accumulo-start.jar:${conf}:${lib}/slf4j-api.jar:${lib}/slf4j-log4j12.jar:${lib}/log4j.jar:${CLASSPATH}"
 
-  ACCUMULO_OPTS_ARRAY=(${ACCUMULO_OPTS})
-  exec "$JAVA" "-Dapp=$1" \
-     $INSTANCE_OPT \
-     "${ACCUMULO_OPTS_ARRAY[@]}" \
+  exec "${JAVA[@]}" "-Dapp=$ACCUMULO_CMD" \
+     "${JAVA_OPTS[@]}" \
      -classpath "${CLASSPATH}" \
-     -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" \
-     -XX:-OmitStackTraceInFastThrow \
-     -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl \
      -Dhadoop.home.dir="${HADOOP_PREFIX}" \
      -Dzookeeper.home.dir="${ZOOKEEPER_HOME}" \
      org.apache.accumulo.start.Main \

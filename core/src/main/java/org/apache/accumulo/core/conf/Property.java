@@ -131,7 +131,7 @@ public enum Property {
   INSTANCE_SECRET("instance.secret", "DEFAULT", PropertyType.STRING,
       "A secret unique to a given instance that all servers must know in order to communicate with one another."
           + "It should be changed prior to the initialization of Accumulo. To change it after Accumulo has been initialized, use the ChangeSecret tool "
-          + "and then update conf/accumulo-site.xml everywhere. Before using the ChangeSecret tool, make sure Accumulo is not running and you are logged "
+          + "and then update accumulo-site.xml everywhere. Before using the ChangeSecret tool, make sure Accumulo is not running and you are logged "
           + "in as the user that controls Accumulo files in HDFS.  To use the ChangeSecret tool, run the command: "
           + "./bin/accumulo org.apache.accumulo.server.util.ChangeSecret"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
