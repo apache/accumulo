@@ -20,12 +20,9 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -84,55 +81,5 @@ public class AccumuloTest {
     replay(fs);
 
     assertEquals(-1, Accumulo.getAccumuloPersistentVersion(fs, path));
-  }
-
-  @Test
-  public void testLocateLogConfig() throws Exception {
-    File confDir = new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
-    String confDirName = confDir.getAbsolutePath();
-    assertTrue("Failed to make test configuration directory", confDir.mkdir());
-    try {
-      File appProps = new File(confDir, "flogger_logger.properties");
-      String appPropsName = String.format("%s/flogger_logger.properties", confDirName);
-      FileUtils.touch(appProps);
-      File genericXml = new File(confDir, "generic_logger.xml");
-      String genericXmlName = String.format("%s/generic_logger.xml", confDirName);
-      FileUtils.touch(genericXml);
-
-      assertEquals(appPropsName, Accumulo.locateLogConfig(confDirName, "flogger"));
-      assertEquals(genericXmlName, Accumulo.locateLogConfig(confDirName, "flagger"));
-
-      assertTrue("Failed to delete log configuration file", appProps.delete());
-      assertEquals(genericXmlName, Accumulo.locateLogConfig(confDirName, "flogger"));
-    } finally {
-      FileUtils.deleteDirectory(confDir);
-    }
-  }
-
-  @Test
-  public void testLocateLogConfig_Default() throws Exception {
-    File confDir = new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
-    String confDirName = confDir.getAbsolutePath();
-    assertTrue("Failed to make test configuration directory", confDir.mkdir());
-    try {
-      String genericXmlName = String.format("%s/examples/generic_logger.xml", confDirName);
-
-      assertEquals(genericXmlName, Accumulo.locateLogConfig(confDirName, "flogger"));
-    } finally {
-      FileUtils.deleteDirectory(confDir);
-    }
-  }
-
-  @Test
-  public void testLocateLogConfig_Explicit() throws Exception {
-    File confDir = new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
-    String confDirName = confDir.getAbsolutePath();
-    System.setProperty("log4j.configuration", "myconfig.xml");
-    try {
-      assertEquals("myconfig.xml", Accumulo.locateLogConfig(confDirName, "flogger"));
-    } finally {
-      FileUtils.deleteDirectory(confDir);
-      System.clearProperty("log4j.configuration");
-    }
   }
 }

@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Map.Entry;
@@ -45,14 +44,12 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.server.watcher.Log4jConfiguration;
 import org.apache.accumulo.server.watcher.MonitorLog4jWatcher;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
-import org.apache.log4j.helpers.LogLog;
 import org.apache.zookeeper.KeeperException;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
@@ -108,69 +105,20 @@ public class Accumulo {
     return ServerConstants.getInstanceIdLocation(v);
   }
 
-  /**
-   * Finds the best log4j configuration file. A generic file is used only if an application-specific file is not available. An XML file is preferred over a
-   * properties file, if possible.
-   *
-   * @param confDir
-   *          directory where configuration files should reside
-   * @param application
-   *          application name for configuration file name
-   * @return configuration file name
-   */
-  static String locateLogConfig(String confDir, String application) {
-    String explicitConfigFile = System.getProperty("log4j.configuration");
-    if (explicitConfigFile != null) {
-      return explicitConfigFile;
-    }
-    String[] configFiles = {String.format("%s/%s_logger.xml", confDir, application), String.format("%s/%s_logger.properties", confDir, application),
-        String.format("%s/examples/%s_logger.xml", confDir, application), String.format("%s/examples/%s_logger.properties", confDir, application),
-        String.format("%s/generic_logger.xml", confDir), String.format("%s/generic_logger.properties", confDir),
-        String.format("%s/examples/generic_logger.xml", confDir), String.format("%s/examples/generic_logger.properties", confDir),};
-    String defaultConfigFile = String.format("%s/examples/generic_logger.xml", confDir);
-    for (String f : configFiles) {
-      if (new File(f).exists()) {
-        return f;
-      }
-    }
-    return defaultConfigFile;
-  }
-
-  public static void setupLogging(String application) throws UnknownHostException {
-    System.setProperty("org.apache.accumulo.core.application", application);
-
-    if (System.getenv("ACCUMULO_LOG_DIR") != null) {
-      System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_LOG_DIR"));
-    }
-
-    String localhost = InetAddress.getLocalHost().getHostName();
-    System.setProperty("org.apache.accumulo.core.ip.localhost.hostname", localhost);
-
-    // Use a specific log config, if it exists
-    String logConfigFile = locateLogConfig(System.getenv("ACCUMULO_CONF_DIR"), application);
-    // Turn off messages about not being able to reach the remote logger... we protect against that.
-    LogLog.setQuietMode(true);
-
-    // Set up local file-based logging right away
-    Log4jConfiguration logConf = new Log4jConfiguration(logConfigFile);
-    logConf.resetLogger();
-  }
-
   public static void init(VolumeManager fs, ServerConfigurationFactory serverConfig, String application) throws IOException {
     final AccumuloConfiguration conf = serverConfig.getConfiguration();
     final Instance instance = serverConfig.getInstance();
 
-    // Use a specific log config, if it exists
-    final String logConfigFile = locateLogConfig(System.getenv("ACCUMULO_CONF_DIR"), application);
-
-    // Set up polling log4j updates and log-forwarding using information advertised in zookeeper by the monitor
-    MonitorLog4jWatcher logConfigWatcher = new MonitorLog4jWatcher(instance.getInstanceID(), logConfigFile);
-    logConfigWatcher.setDelay(5000L);
-    logConfigWatcher.start();
-
-    // Makes sure the log-forwarding to the monitor is configured
-    int[] logPort = conf.getPort(Property.MONITOR_LOG4J_PORT);
-    System.setProperty("org.apache.accumulo.core.host.log.port", Integer.toString(logPort[0]));
+    String logConfigFile = System.getProperty("log4j.configuration");
+    if (logConfigFile != null) {
+      if (logConfigFile.startsWith("file:")) {
+        logConfigFile = logConfigFile.split(":")[1];
+      }
+      // Set up polling log4j updates and log-forwarding using information advertised in zookeeper by the monitor
+      MonitorLog4jWatcher logConfigWatcher = new MonitorLog4jWatcher(instance.getInstanceID(), logConfigFile);
+      logConfigWatcher.setDelay(5000L);
+      logConfigWatcher.start();
+    }
 
     log.info(application + " starting");
     log.info("Instance " + serverConfig.getInstance().getInstanceID());

@@ -144,7 +144,6 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
   public static void main(String[] args) throws UnknownHostException, IOException {
     final String app = "gc";
-    Accumulo.setupLogging(app);
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);

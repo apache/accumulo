@@ -82,21 +82,13 @@
       </excludes>
     </fileSet>
     <fileSet>
-      <directory>./</directory>
-      <outputDirectory>logs</outputDirectory>
-      <directoryMode>0700</directoryMode>
-      <excludes>
-        <exclude>*/**</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
       <directory>conf</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
     </fileSet>
     <fileSet>
       <directory>target/example-configs</directory>
-      <outputDirectory>conf/examples</outputDirectory>
+      <outputDirectory>conf</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
     </fileSet>

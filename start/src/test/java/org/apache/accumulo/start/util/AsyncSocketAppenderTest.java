@@ -14,19 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.util;
-
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+package org.apache.accumulo.start.util;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.net.SocketAppender;
 import org.apache.log4j.spi.LoggingEvent;
+import org.easymock.EasyMock;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,7 +31,7 @@ public class AsyncSocketAppenderTest {
 
   @Before
   public void setUp() throws Exception {
-    sa = createMock(SocketAppender.class);
+    sa = EasyMock.createMock(SocketAppender.class);
   }
 
   @Test
@@ -47,37 +42,37 @@ public class AsyncSocketAppenderTest {
     asa.setPort(1234);
     asa.setReconnectionDelay(56);
     asa.setRemoteHost("remotehost");
-    assertEquals("myapp", asa.getApplication());
-    assertEquals(true, asa.getLocationInfo()); // not really delegating
-    assertEquals(1234, asa.getPort());
-    assertEquals(56, asa.getReconnectionDelay());
-    assertEquals("remotehost", asa.getRemoteHost());
+    Assert.assertEquals("myapp", asa.getApplication());
+    Assert.assertEquals(true, asa.getLocationInfo()); // not really delegating
+    Assert.assertEquals(1234, asa.getPort());
+    Assert.assertEquals(56, asa.getReconnectionDelay());
+    Assert.assertEquals("remotehost", asa.getRemoteHost());
   }
 
   @Test
   public void testSetLocationInfo() {
     sa.setLocationInfo(true);
-    replay(sa);
+    EasyMock.replay(sa);
     asa = new AsyncSocketAppender(sa);
     asa.setLocationInfo(true);
-    verify(sa);
+    EasyMock.verify(sa);
   }
 
   @Test
   public void testAppend() {
     asa = new AsyncSocketAppender(sa);
-    assertFalse(asa.isAttached(sa));
+    Assert.assertFalse(asa.isAttached(sa));
     LoggingEvent event1 = new LoggingEvent("java.lang.String", Logger.getRootLogger(), Level.INFO, "event1", null);
     LoggingEvent event2 = new LoggingEvent("java.lang.Integer", Logger.getRootLogger(), Level.WARN, "event2", null);
     sa.activateOptions();
     sa.doAppend(event1);
     sa.doAppend(event2);
     sa.close();
-    replay(sa);
+    EasyMock.replay(sa);
     asa.doAppend(event1);
     asa.doAppend(event2);
     asa.close(); // forces events to be appended to socket appender
-    assertTrue(asa.isAttached(sa));
-    verify(sa);
+    Assert.assertTrue(asa.isAttached(sa));
+    EasyMock.verify(sa);
   }
 }

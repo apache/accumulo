@@ -46,22 +46,23 @@ with the following command.
 
 If the command fails, its OK to continue with setup and resolve the issue later.
 
-Run the command below to create configuration for Accumulo in `conf/`:
+Accumulo is configured by the files +accumulo-site.xml+ and +accumulo-env.sh+ in the `conf/`
+directory. You can either edit these files for your environment or run the command below which will
+overwrite them with files configured for your environment.
 
     accumulo-util create-config
 
 The script will ask you questions about your set up. Below are some suggestions:
 
-* When the script asks about memory-map type, choose Native if the build native script 
+* When the script asks about memory-map type, choose Native if the build native script
   was successful. Otherwise, choose Java.
 * The script will prompt for memory usage. Please note that the footprints are
   only for the Accumulo system processes, so ample space should be left for other
   processes like Hadoop, Zookeeper, and the Accumulo client code.  If Accumulo
   worker processes are swapped out and unresponsive, they may be killed.
 
-After the `accumulo-util create-config` command is run, the `conf/` directory will contain
-`accumulo-env.sh`, `accumulo-site.xml`, and few a additional files. These files require
-a few edits before starting Accumulo.
+While `accumulo-util create-config` creates  `accumulo-env.sh` and `accumulo-site.xml` files
+targeted for your environment, these files still require a few more edits before starting Accumulo.
 
 ### Secret
 
@@ -83,7 +84,7 @@ must be provided.
    `accumulo-site.xml`.  If your namenode is running at 192.168.1.9:9000
    and you want to store data in `/accumulo` in HDFS, then set
   `instance.volumes` to `hdfs://192.168.1.9:9000/accumulo`.
- * **Location of Zoookeeper and Hadoop jars** :  Setting `ZOOKEEPER_HOME` and
+ * **Location of Zookeeper and Hadoop jars** :  Setting `ZOOKEEPER_HOME` and
    `HADOOP_PREFIX` in `accumulo-env.sh` will help Accumulo find these jars
    when using the default setting for `general.classpaths` in accumulo-site.xml.
 
@@ -143,7 +144,7 @@ changed and the next section should be skipped.
 #### Multi-node configuration
 
 If you are running an Accumulo cluster on multiple nodes, the following files
-in `conf/` should be configured with a newline seperated list of node names:
+in `conf/` should be configured with a newline separated list of node names:
 
  * `masters` : Accumulo primary coordinating process. Must specify one node. Can
                specify a few for fault tolerance.

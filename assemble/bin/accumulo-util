@@ -46,7 +46,7 @@ EOF
 }
 
 function create_config() {
-  TEMPLATE_CONF_DIR="${conf}/examples/templates"
+  TEMPLATE_CONF_DIR="${conf}/templates"
   CONF_DIR="${conf}"
   ACCUMULO_SITE=accumulo-site.xml
   ACCUMULO_ENV=accumulo-env.sh
@@ -299,10 +299,6 @@ function create_config() {
   fi
 
   mkdir -p "${CONF_DIR}" && cp "${TEMPLATE_CONF_DIR}"/* "${CONF_DIR}"/
-
-  if [[ -f "${CONF_DIR}/examples/client.conf" ]]; then
-    cp "${CONF_DIR}"/examples/client.conf "${CONF_DIR}"/
-  fi
 
   #Configure accumulo-env.sh
   sed -e "s/\${tServerHigh_tServerLow}/${!TSERVER}/" \

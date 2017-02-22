@@ -37,8 +37,8 @@ import com.google.common.net.HostAndPort;
 public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
   private static final Logger log = Logger.getLogger(MonitorLog4jWatcher.class);
 
-  private static final String HOST_PROPERTY_NAME = "org.apache.accumulo.core.host.log";
-  private static final String PORT_PROPERTY_NAME = "org.apache.accumulo.core.host.log.port";
+  private static final String HOST_PROPERTY_NAME = "accumulo.monitor.host";
+  private static final String PORT_PROPERTY_NAME = "accumulo.monitor.log.port";
 
   private final Object lock;
   private final Log4jConfiguration logConfig;

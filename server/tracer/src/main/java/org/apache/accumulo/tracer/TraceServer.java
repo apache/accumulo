@@ -378,7 +378,6 @@ public class TraceServer implements Watcher {
 
   public static void main(String[] args) throws Exception {
     final String app = "tracer";
-    Accumulo.setupLogging(app);
     loginTracer(SiteConfiguration.getInstance());
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);

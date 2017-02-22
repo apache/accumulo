@@ -100,22 +100,21 @@ sync, which can cause problems with automatically timestamped data.
 === Configuration
 
 The Accumulo tarball contains a +conf/+ directory where Accumulo looks for configuration. If you
-installed Accumulo using downstream packaging, the +conf/+ could be something else like +/etc/accumulo/+.
+installed Accumulo using downstream packaging, the +conf/+ could be something else like
++/etc/accumulo/+.
 
-Before starting Accumulo, the configuration files +accumulo-env.sh+ and +accumulo-site.xml+ must exist in
-+conf/+ and be properly configured.  You can either copy these files from +conf/examples+ or run
+Before starting Accumulo, the configuration files +accumulo-env.sh+ and +accumulo-site.xml+ must
+exist in +conf/+ and be properly configured. You can either edit the files in +conf/+ or run
 +accumulo-util create-config+ to generate these files. If you are using +accumulo-cluster+ to launch
-a cluster, the `conf/` directory must also contain hosts file for Accumulo services (i.e +gc+, +masters+,
-+monitor+, +tservers+, +tracers+). You can either create these files manually or run 
+a cluster, the `conf/` directory must also contain hosts file for Accumulo services (i.e +gc+,
++masters+, +monitor+, +tservers+, +tracers+). You can either create these files manually or run
 +accumulo-cluster create-config+.
 
-Additional optional configuration files can be copied from `conf/examples` to `conf/`. For example,
-logging is primarily controlled using the log4j configuration files, +generic_logger.xml+ and
-+monitor_logger.xml+ (or their corresponding +.properties+ version if the +.xml+ version is missing).
-The generic logger is used for most server types, and is typically configured to send logs to the
-monitor, as well as log files. The monitor logger is used by the monitor, and is typically configured
-to log only errors the monitor itself generates, rather than all the logs that it receives from other
-server types.
+Logging is configured in +accumulo-env.sh+ to use three log4j configuration files in +conf/+. The
+file used depends on the Accumulo command or service being run. Logging for most Accumulo services
+(i.e Master, TabletServer, Garbage Collector) is configured by +log4j-service.properties+ except for
+the Monitor which is configured by +log4j-monitor.properties+. All Accumulo commands (i.e +init+,
++shell+, etc) are configured by +log4j.properties+.
 
 ==== Configure accumulo-env.sh
 
@@ -178,7 +177,7 @@ also locate the native maps shared library by setting +LD_LIBRARY_PATH+
 
 As mentioned, Accumulo will use the native libraries if they are found in the expected
 location and +tserver.memory.maps.native.enabled+ is set to +true+ (which is the default).
-Using the native maps over JVM Maps nets a noticable improvement in ingest rates; however,
+Using the native maps over JVM Maps nets a noticeable improvement in ingest rates; however,
 certain configuration variables are important to modify when increasing the size of the
 native map.
 
@@ -405,7 +404,6 @@ and BatchScanner passing in the name of the context, app1 in the example above. 
 iterators to load classes from the locations defined by the context. Passing the context name to the scanners allows you to override the table setting
 to load only scan time iterators from a different location. 
 
-
 === Initialization
 
 Accumulo must be initialized to create the structures it uses internally to locate
@@ -466,10 +464,10 @@ Alternatively, you can ssh to each of the hosts you want to remove and run:
 
 Be sure to update your +conf/tservers+ file to
 account for the removal of these hosts. Bear in mind that the monitor will not re-read the
-tservers file automatically, so it will report the decomissioned servers as down; it's
+tservers file automatically, so it will report the decommissioned servers as down; it's
 recommended that you restart the monitor so that the node list is up to date.
 
-The steps described to decomission a node can also be used (without removal of the host
+The steps described to decommission a node can also be used (without removal of the host
 from the +conf/tservers+ file) to gracefully stop a node. This will
 ensure that the tabletserver is cleanly stopped and recovery will not need to be performed
 when the tablets are re-hosted.
@@ -1132,12 +1130,12 @@ can be exacerbated by resource constraints and clock drift.
 ==== Tested Versions
 Each release of Accumulo is built with a specific version of Apache
 Hadoop, Apache ZooKeeper and Apache Thrift.  We expect Accumulo to
-work with versions that are API compatable with those versions.
+work with versions that are API compatible with those versions.
 However this compatibility is not guaranteed because Hadoop, ZooKeeper
 and Thift may not provide guarantees between their own versions. We
 have also found that certain versions of Accumulo and Hadoop included
 bugs that greatly affected overall stability.  Thrift is particularly
-prone to compatablity changes between versions and you must use the
+prone to compatibility changes between versions and you must use the
 same version your Accumulo is built with.
 
 Please check the release notes for your Accumulo version or use the

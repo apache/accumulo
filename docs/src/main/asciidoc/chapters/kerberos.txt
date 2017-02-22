@@ -545,11 +545,11 @@ I don't know what is actually failing.
 This will enable lots of extra debugging at the JVM level which is often sufficient to
 diagnose some high-level configuration problem. Client applications can add this system property by
 hand to the command line and Accumulo server processes or applications started using the `accumulo`
-script by adding the property to +ACCUMULO_GENERAL_OPTS+ in +accumulo-env.sh+.
+script by adding the property to +JAVA_OPTS+ in +accumulo-env.sh+.
 
 Additionally, you can increase the log4j levels on +org.apache.hadoop.security+, which includes the
 Hadoop +UserGroupInformation+ class, which will include some high-level debug statements. This
-can be controlled in your client application, or using +generic_logger.xml+
+can be controlled in your client application, or using +log4j-service.properties+
 
 *Q*: All of my Accumulo processes successfully start and log in with their
 keytab, but they are unable to communicate with each other, showing the

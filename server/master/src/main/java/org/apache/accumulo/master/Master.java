@@ -1436,7 +1436,6 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   public static void main(String[] args) throws Exception {
     try {
       final String app = "master";
-      Accumulo.setupLogging(app);
       SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
       ServerOpts opts = new ServerOpts();

@@ -53,7 +53,7 @@ function main() {
   fi
   if [[ ! -f $conf/accumulo-env.sh || ! -f $conf/accumulo-site.xml ]]; then
     echo "The configuration files 'accumulo-env.sh' & 'accumulo-site.xml' must exist in $conf"
-    echo "Copy them from $conf/examples and edit them for your environment."
+    echo "Run 'accumulo-util create-config' to create them and edit them for your environment."
     exit 1
   fi
   source "$conf/accumulo-env.sh"
@@ -77,14 +77,6 @@ function main() {
   fi
   if [ -f "${conf}/krb5.conf" ]; then
     export JAVA_OPTS=("${JAVA_OPTS[@]}" "-Djava.security.krb5.conf=${conf}/krb5.conf")
-  fi
-
-  if [[ ! "$ACCUMULO_CMD" =~ ^(gc|master|monitor|tserver|tracer)$ ]]; then
-    if [[ -f ${conf}/log4j.properties ]]; then
-      export JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=file:${conf}/log4j.properties")
-    else
-      export JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=file:${conf}/examples/log4j.properties")
-    fi
   fi
 
   # This is default for hadoop 2.x; for another distribution, specify (DY)LD_LIBRARY_PATH explicitly above

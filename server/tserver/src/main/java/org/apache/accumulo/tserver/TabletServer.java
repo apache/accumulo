@@ -2945,7 +2945,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public static void main(String[] args) throws IOException {
     try {
       final String app = "tserver";
-      Accumulo.setupLogging(app);
       SecurityUtil.serverLogin(SiteConfiguration.getInstance());
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);

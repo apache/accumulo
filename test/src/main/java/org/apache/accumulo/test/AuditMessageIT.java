@@ -81,10 +81,6 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
-    File f = new File(cfg.getConfDir(), "auditLog.xml");
-    if (f.delete()) {
-      log.debug("Deleted " + f);
-    }
     cfg.setNumTservers(1);
   }
 

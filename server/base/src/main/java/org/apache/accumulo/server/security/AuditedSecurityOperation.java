@@ -57,7 +57,7 @@ import org.apache.log4j.Logger;
  */
 public class AuditedSecurityOperation extends SecurityOperation {
 
-  public static final String AUDITLOG = "Audit";
+  public static final String AUDITLOG = "org.apache.accumulo.audit";
   public static final Logger audit = Logger.getLogger(AUDITLOG);
 
   public AuditedSecurityOperation(AccumuloServerContext context, Authorizor author, Authenticator authent, PermissionHandler pm) {

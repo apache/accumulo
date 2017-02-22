@@ -41,20 +41,6 @@ function invalid_args {
   exit 1
 }
 
-function get_host {
-  host="$(hostname -f)"
-  if [ "$1" == "-s" ]; then
-    host="$(hostname -s)"
-  fi
-  if [[ -z "$host" ]]; then
-    host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
-    if [[ $? != 0 ]]; then
-      host=$(getent ahosts "$(hostname -f)" | grep DGRAM | cut -f 1 -d ' ')
-    fi
-  fi 
-  echo "$host"
-}
-
 function rotate_log () {
   logfile="$1"
   max_retained="5"
@@ -69,8 +55,6 @@ function rotate_log () {
 }
 
 function start_service() {
-  host="$(get_host -s)"
-
   if [ -f "$pid_file" ]; then
     pid=$(cat "$pid_file")
     if kill -0 "$pid" 2>/dev/null; then
@@ -89,12 +73,6 @@ function start_service() {
   rotate_log "$outfile"
   rotate_log "$errfile"
 
-  export ACCUMULO_MONITOR_BIND_ALL=${ACCUMULO_MONITOR_BIND_ALL:-"true"}
-  extra_args=""
-  if [[ $service == "monitor" && $ACCUMULO_MONITOR_BIND_ALL == "true" ]]; then
-    extra_args=('--address' '0.0.0.0')
-  fi
-
   nohup "${bin}/accumulo" "$service" "${extra_args[@]}" >"$outfile" 2>"$errfile" < /dev/null &
   echo "$!" > "${pid_file}"
 
@@ -110,7 +88,7 @@ function start_service() {
 
 function stop_service() {
   if [ -f "$pid_file" ]; then
-    echo "Stopping $service on $(get_host -s)";
+    echo "Stopping $service on $host";
     kill -s TERM "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
   fi
@@ -118,7 +96,7 @@ function stop_service() {
 
 function kill_service() {
   if [ -f "$pid_file" ]; then
-    echo "Killing $service on $(get_host -s)";
+    echo "Killing $service on $host";
     kill -s KILL "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
   fi
@@ -148,6 +126,10 @@ function main() {
   mkdir -p "$ACCUMULO_LOG_DIR" 2>/dev/null
   mkdir -p "${basedir}/run" 2>/dev/null
 
+  host="$(hostname)"
+  if [[ -z "$host" ]]; then
+    host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+  fi 
   service="$1"
   pid_file="${basedir}/run/accumulo-${service}.pid"
   case "$service" in
