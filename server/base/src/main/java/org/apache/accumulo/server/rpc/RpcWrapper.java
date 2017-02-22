@@ -19,19 +19,11 @@ package org.apache.accumulo.server.rpc;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.accumulo.core.trace.wrappers.RpcServerInvocationHandler;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
-import org.apache.thrift.ProcessFunction;
 import org.apache.thrift.TApplicationException;
-import org.apache.thrift.TBaseProcessor;
 import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class accommodates the changes in THRIFT-1805, which appeared in Thrift 0.9.1 and restricts client-side notification of server-side errors to
@@ -49,23 +41,17 @@ import org.slf4j.LoggerFactory;
  * @since 1.6.1
  */
 public class RpcWrapper {
-  private static final Logger log = LoggerFactory.getLogger(RpcWrapper.class);
 
-  public static <I> I service(final I instance, final TBaseProcessor<I> processor) {
-    final Map<String,ProcessFunction<I,?>> processorView = processor.getProcessMapView();
-    final Set<String> onewayMethods = getOnewayMethods(processorView);
-    log.debug("Found oneway Thrift methods: " + onewayMethods);
-
-    InvocationHandler handler = getInvocationHandler(instance, onewayMethods);
+  public static <I> I service(final I instance) {
+    InvocationHandler handler = getInvocationHandler(instance);
 
     @SuppressWarnings("unchecked")
     I proxiedInstance = (I) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
     return proxiedInstance;
   }
 
-  protected static <T> RpcServerInvocationHandler<T> getInvocationHandler(final T instance, final Set<String> onewayMethods) {
+  protected static <T> RpcServerInvocationHandler<T> getInvocationHandler(final T instance) {
     return new RpcServerInvocationHandler<T>(instance) {
-      private final Logger log = LoggerFactory.getLogger(instance.getClass());
 
       @Override
       public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
@@ -73,56 +59,10 @@ public class RpcWrapper {
         try {
           return super.invoke(obj, method, args);
         } catch (RuntimeException e) {
-          String msg = e.getMessage();
-          log.error(msg, e);
-          if (onewayMethods.contains(method.getName())) {
-            throw e;
-          }
-          throw new TException(msg);
-        } catch (Error e) {
-          String msg = e.getMessage();
-          log.error(msg, e);
-          if (onewayMethods.contains(method.getName())) {
-            throw e;
-          }
-          throw new TException(msg);
+          // thrift will log the exception in ProcessFunction
+          throw new TException(e);
         }
       }
     };
-  }
-
-  protected static Set<String> getOnewayMethods(Map<String,?> processorView) {
-    // Get a handle on the isOnewayMethod and make it accessible
-    final Method isOnewayMethod;
-    try {
-      isOnewayMethod = ProcessFunction.class.getDeclaredMethod("isOneway");
-    } catch (NoSuchMethodException e) {
-      throw new RuntimeException("Could not access isOneway method", e);
-    } catch (SecurityException e) {
-      throw new RuntimeException("Could not access isOneway method", e);
-    }
-    // In java7, this appears to be copying the method, but it's trivial for us to return the object to how it was before.
-    final boolean accessible = isOnewayMethod.isAccessible();
-    isOnewayMethod.setAccessible(true);
-
-    try {
-      final Set<String> onewayMethods = new HashSet<>();
-      for (Entry<String,?> entry : processorView.entrySet()) {
-        try {
-          if ((Boolean) isOnewayMethod.invoke(entry.getValue())) {
-            onewayMethods.add(entry.getKey());
-          }
-        } catch (RuntimeException e) {
-          throw e;
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
-
-      return onewayMethods;
-    } finally {
-      // Reset it back to how it was.
-      isOnewayMethod.setAccessible(accessible);
-    }
   }
 }
