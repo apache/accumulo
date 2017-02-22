@@ -82,7 +82,7 @@ function handleNewData() {
     xmlReturned = true;
     return;
   }
-  var newstats = eval('(' + xmlhttp.responseText + ')');
+  var newstats = JSON.parse(xmlhttp.responseText);
   for (var i in newstats.servers) {
     for (var s in statNames) {
       if (statNames[s])
