@@ -75,7 +75,7 @@ public class ReplicationDriver extends Daemon {
         statusMaker = new StatusMaker(conn);
         workMaker = new WorkMaker(master, conn);
         finishedWorkUpdater = new FinishedWorkUpdater(conn);
-        rcrr = new RemoveCompleteReplicationRecords(conn, master);
+        rcrr = new RemoveCompleteReplicationRecords(master);
       }
 
       Trace.on("masterReplicationDriver", sampler);

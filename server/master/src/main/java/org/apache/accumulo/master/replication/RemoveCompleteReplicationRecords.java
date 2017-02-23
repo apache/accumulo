@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -38,6 +40,7 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -57,16 +60,22 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class RemoveCompleteReplicationRecords implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(RemoveCompleteReplicationRecords.class);
 
-  private Connector conn;
   private Master master;
 
-  public RemoveCompleteReplicationRecords(Connector conn, Master master) {
-    this.conn = conn;
+  public RemoveCompleteReplicationRecords(Master master) {
     this.master = master;
   }
 
   @Override
   public void run() {
+    Connector conn;
+    try {
+          conn = master.getConnector();
+    } catch (AccumuloException | AccumuloSecurityException e) {
+          log.warn("Error trying to get connector to process replication records", e);
+          return;
+    }  
+      
     BatchScanner bs;
     BatchWriter bw;
     try {

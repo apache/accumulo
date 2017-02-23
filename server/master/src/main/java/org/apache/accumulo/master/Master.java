@@ -193,7 +193,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   private ReplicationDriver replicationWorkDriver;
   private WorkDriver replicationWorkAssigner;
   RecoveryManager recoveryManager = null;
-  private AtomicLong replicationLatency = new AtomicLong(0l);
+  private AtomicLong replicationLatency = new AtomicLong(0L);
 
   // Delegation Token classes
   private final boolean delegationTokensAvailable;
