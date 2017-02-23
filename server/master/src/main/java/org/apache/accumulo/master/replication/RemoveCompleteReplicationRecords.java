@@ -41,6 +41,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
@@ -57,9 +58,11 @@ public class RemoveCompleteReplicationRecords implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(RemoveCompleteReplicationRecords.class);
 
   private Connector conn;
+  private Master master;
 
-  public RemoveCompleteReplicationRecords(Connector conn) {
+  public RemoveCompleteReplicationRecords(Connector conn, Master master) {
     this.conn = conn;
+    this.master = master;
   }
 
   @Override
@@ -197,6 +200,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     mutations.add(m);
     for (Entry<String,Long> entry : tableToTimeCreated.entrySet()) {
       log.info("Removing order mutation for table {} at {} for {}", entry.getKey(), entry.getValue(), row.toString());
+      collectLatency(entry.getValue());
       Mutation orderMutation = OrderSection.createMutation(row.toString(), entry.getValue());
       orderMutation.putDelete(OrderSection.NAME, new Text(entry.getKey()));
       mutations.add(orderMutation);
@@ -215,5 +219,14 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     }
 
     return recordsRemoved;
+  }
+
+  /*
+   * Metrics calls snapshot. Largest time stamp will be found for each snapshot then reset.
+   */
+  private void collectLatency(Long createdTime) {
+    long latency = System.currentTimeMillis() - createdTime;
+    if (master.getReplicationLatency() < latency)
+      master.setReplicationLatency(latency);
   }
 }

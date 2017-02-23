@@ -39,7 +39,8 @@ import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
   public static final String NAME = MASTER_NAME + ",sub=Replication", DESCRIPTION = "Data-Center Replication Metrics", CONTEXT = "master",
       RECORD = "MasterReplication";
-  public static final String PENDING_FILES = "filesPendingReplication", NUM_PEERS = "numPeers", MAX_REPLICATION_THREADS = "maxReplicationThreads";
+  public static final String PENDING_FILES = "filesPendingReplication", NUM_PEERS = "numPeers", MAX_REPLICATION_THREADS = "maxReplicationThreads",
+      LATENCY = "replicationLatency";
 
   private final Master master;
   private final MetricsSystem system;
@@ -58,6 +59,7 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
     registry.add(PENDING_FILES, getNumFilesPendingReplication());
     registry.add(NUM_PEERS, getNumConfiguredPeers());
     registry.add(MAX_REPLICATION_THREADS, getMaxReplicationThreads());
+    registry.add(LATENCY, getLatencyInSeconds());
   }
 
   @Override
@@ -123,5 +125,12 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
 
   protected int getMaxReplicationThreads() {
     return replicationUtil.getMaxReplicationThreads(master.getMasterMonitorInfo());
+  }
+
+  protected long getLatencyInSeconds() {
+    long latency = master.getReplicationLatency();
+    master.setReplicationLatency(0l);
+    // convert to seconds
+    return latency / 1000;
   }
 }
