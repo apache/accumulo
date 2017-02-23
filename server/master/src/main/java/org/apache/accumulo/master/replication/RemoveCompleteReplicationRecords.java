@@ -40,7 +40,6 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
-import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -70,12 +69,12 @@ public class RemoveCompleteReplicationRecords implements Runnable {
   public void run() {
     Connector conn;
     try {
-          conn = master.getConnector();
+      conn = master.getConnector();
     } catch (AccumuloException | AccumuloSecurityException e) {
-          log.warn("Error trying to get connector to process replication records", e);
-          return;
-    }  
-      
+      log.warn("Error trying to get connector to process replication records", e);
+      return;
+    }
+
     BatchScanner bs;
     BatchWriter bw;
     try {

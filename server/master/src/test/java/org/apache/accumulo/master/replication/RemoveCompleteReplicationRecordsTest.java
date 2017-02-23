@@ -69,7 +69,7 @@ public class RemoveCompleteReplicationRecordsTest {
     EasyMock.replay(master);
     inst = new MockInstance(test.getMethodName());
     conn = inst.getConnector("root", new PasswordToken(""));
-    rcrr = new RemoveCompleteReplicationRecords(conn, master);
+    rcrr = new RemoveCompleteReplicationRecords(master);
   }
 
   @Test
