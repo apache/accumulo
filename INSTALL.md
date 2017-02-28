@@ -46,7 +46,7 @@ with the following command.
 
 If the command fails, its OK to continue with setup and resolve the issue later.
 
-Accumulo is configured by the files +accumulo-site.xml+ and +accumulo-env.sh+ in the `conf/`
+Accumulo is configured by the files `accumulo-site.xml` and `accumulo-env.sh` in the `conf/`
 directory. You can either edit these files for your environment or run the command below which will
 overwrite them with files configured for your environment.
 
