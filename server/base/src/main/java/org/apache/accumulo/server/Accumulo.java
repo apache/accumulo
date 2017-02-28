@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
@@ -30,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -44,15 +44,12 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.server.watcher.MonitorLog4jWatcher;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class Accumulo {
 
@@ -107,18 +104,6 @@ public class Accumulo {
 
   public static void init(VolumeManager fs, ServerConfigurationFactory serverConfig, String application) throws IOException {
     final AccumuloConfiguration conf = serverConfig.getConfiguration();
-    final Instance instance = serverConfig.getInstance();
-
-    String logConfigFile = System.getProperty("log4j.configuration");
-    if (logConfigFile != null) {
-      if (logConfigFile.startsWith("file:")) {
-        logConfigFile = logConfigFile.split(":")[1];
-      }
-      // Set up polling log4j updates and log-forwarding using information advertised in zookeeper by the monitor
-      MonitorLog4jWatcher logConfigWatcher = new MonitorLog4jWatcher(instance.getInstanceID(), logConfigFile);
-      logConfigWatcher.setDelay(5000L);
-      logConfigWatcher.start();
-    }
 
     log.info(application + " starting");
     log.info("Instance " + serverConfig.getInstance().getInstanceID());
