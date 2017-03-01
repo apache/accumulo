@@ -72,13 +72,6 @@ function main() {
   export HADOOP_HOME=$HADOOP_PREFIX
   export HADOOP_HOME_WARN_SUPPRESS=true
 
-  if [ -f "${conf}/jaas.conf" ]; then
-    export JAVA_OPTS=("${JAVA_OPTS[@]}" "-Djava.security.auth.login.config=${conf}/jaas.conf")
-  fi
-  if [ -f "${conf}/krb5.conf" ]; then
-    export JAVA_OPTS=("${JAVA_OPTS[@]}" "-Djava.security.krb5.conf=${conf}/krb5.conf")
-  fi
-
   # This is default for hadoop 2.x; for another distribution, specify (DY)LD_LIBRARY_PATH explicitly above
   if [ -e "${HADOOP_PREFIX}/lib/native/libhadoop.so" ]; then
     export LD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${LD_LIBRARY_PATH}"     # For Linux
