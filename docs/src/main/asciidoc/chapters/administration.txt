@@ -499,8 +499,9 @@ node. This decision should be made carefully and with much deliberation as Accum
 to be able to scale to using 10's of GB of RAM and 10's of CPU cores.
 
 Accumulo TabletServers bind certain ports on the host to accommodate remote procedure calls to/from
-other nodes. Running more than one TabletServer on a host requires that you add +-Daccumulo.service.instance=<NUM>+
-(replace <NUM> with you instance number) to JAVA_OPTS in your +accumulo-env.sh+ file and set these properties in +accumulo-site.xml+:
+other nodes. Running more than one TabletServer on a host requires that you set the environment variable
++ACCUMULO_SERVICE_INSTANCE+ to an instance number (i.e 1, 2) for each instance that is started. Also, set
+these properties in +accumulo-site.xml+:
 
   <property>
     <name>tserver.port.search</name>
