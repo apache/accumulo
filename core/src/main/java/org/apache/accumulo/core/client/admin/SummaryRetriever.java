@@ -35,37 +35,48 @@ import org.apache.hadoop.io.Text;
 public interface SummaryRetriever {
 
   /**
-   * Summary data is only retrieved from data that has been written to files. Data recently written to Accumulo may be in memory and there will not show up in
-   * summary data. Setting this option to true force tablets in the range to minor compact before summary data is retrieved. By default the table will not be
-   * flushed before retrieving summary data.
+   * Forces a flush of data in memory to files before summary data is retrieved. Data recently written to Accumulo may be in memory. Summary data is only
+   * retrieved from files. Therefore recently written data may not be represented in summaries, unless this options is set to true. This is optional and
+   * defaults to false.
    *
    * @return this
    */
   SummaryRetriever flush(boolean shouldFlush);
 
   /**
-   * Allows optionally setting start row before retrieving data. The start row is not inclusive.
+   * The start row is not inclusive. Calling this method is optional.
    */
   SummaryRetriever startRow(Text startRow);
 
   /**
-   * Allows optionally setting start row before retrieving data. The start row is not inclusive.
+   * The start row is not inclusive. Calling this method is optional.
    */
   SummaryRetriever startRow(CharSequence startRow);
 
   /**
-   * Allows optionally setting end row before retrieving data. The end row is inclusive.
+   * The end row is inclusive. Calling this method is optional.
    */
   SummaryRetriever endRow(Text endRow);
 
   /**
-   * Allows optionally setting end row before retrieving data. The end row is inclusive.
+   * The end row is inclusive. Calling this method is optional.
    */
   SummaryRetriever endRow(CharSequence endRow);
 
   /**
-   * Gets summaries generated with a configuration that matches the given regex. For a given SummarizationConfiguration it is matched in exactly the following
-   * way. This allows the regex to match on classname and options.
+   * Filters which summary data is retrieved. By default all summary data present is retrieved. If only a subset of summary data is needed, then its best to be
+   * selective in order to avoid polluting summary data cache.
+   *
+   * <p>
+   * Each set of summary data is generated using a specific {@link SummarizerConfiguration}. The methods {@link #withConfiguration(Collection)} and
+   * {@link #withConfiguration(SummarizerConfiguration...)} allow selecting sets of summary data based on exact {@link SummarizerConfiguration} matches. This
+   * method enables less exact matching using regular expressions.
+   *
+   * <p>
+   * The regular expression passed to this method is used in the following way on the server side to match {@link SummarizerConfiguration} object. When a
+   * {@link SummarizerConfiguration} matches, the summary data generated using that configuration is returned.
+   *
+   * <p>
    *
    * <pre>
    * <code>
@@ -77,10 +88,6 @@ public interface SummaryRetriever {
    *    }
    * </code>
    * </pre>
-   *
-   * <p>
-   * Using this method to be more selective may pull less data in to the tablet servers summary cache.
-   *
    */
   SummaryRetriever withMatchingConfiguration(String regex);
 

@@ -19,10 +19,20 @@ package org.apache.accumulo.core.client.summary.summarizers;
 
 import java.util.function.UnaryOperator;
 
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.summary.CountingSummarizer;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 
+/**
+ * Counts column visibility labels. Leverages super class to defend against too many. This class is useful for discovering what column visibilities are present
+ * when the expected number of visibilities is small.
+ *
+ * @since 2.0.0
+ *
+ * @see TableOperations#addSummarizers(String, org.apache.accumulo.core.client.summary.SummarizerConfiguration...)
+ * @see TableOperations#getSummaries(String)
+ */
 public class VisibilitySummarizer extends CountingSummarizer<ByteSequence> {
 
   @Override

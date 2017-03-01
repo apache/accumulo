@@ -348,7 +348,11 @@ public abstract class FileOperations {
     /** Set the compression type. */
     public OpenWriterOperationBuilder withCompression(String compression);
 
-    /** determines is Accumulo Start is used to load classes. Defaults to true. */
+    /**
+     * Classes may be instantiated as part of a write operation. For example if BloomFilters, Samplers, or Summarizers are used then classes are loaded. When
+     * running in a tserver, Accumulo start should be used to load classes. When running in a client process, Accumulo start should not be used. This method
+     * makes it possible to specify if Accumulo Start should be used to load classes. Calling this method is optional and the default is true.
+     */
     public OpenWriterOperationBuilder setAccumuloStartEnabled(boolean enableAccumuloStart);
 
     /** Construct the writer. */

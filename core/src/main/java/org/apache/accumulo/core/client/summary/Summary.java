@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
  * from.
  *
  * @see Summarizer
+ * @since 2.0.0
  */
 public class Summary {
 

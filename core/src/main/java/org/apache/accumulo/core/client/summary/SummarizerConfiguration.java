@@ -179,11 +179,13 @@ public class SummarizerConfiguration {
     }
 
     /**
-     * Setting this is optional. If not set, an id is generated using hashing that will likely be unique.
+     * Sets the id used when generating table properties. Setting this is optional. If not set, an id is generated using hashing that will likely be unique.
      *
      * @param propId
-     *          This is id is used when converting a {@link SummarizerConfiguration} to table properties. Since tables can have multiple summarizers, make sure
-     *          its unique.
+     *          This id is used when converting a {@link SummarizerConfiguration} to table properties. Since tables can have multiple summarizers, make sure its
+     *          unique.
+     *
+     * @see SummarizerConfiguration#toTableProperties()
      */
     public Builder setPropertyId(String propId) {
       Preconditions.checkArgument(propId.matches("\\w+"), "Config Id %s is not alphanum", propId);
@@ -191,31 +193,76 @@ public class SummarizerConfiguration {
       return this;
     }
 
+    /**
+     * Adds an option that Summarizers can use when constructing Collectors and Combiners.
+     *
+     * @return this
+     *
+     * @see SummarizerConfiguration#getOptions()
+     */
     public Builder addOption(String key, String value) {
       Preconditions.checkArgument(key.matches("\\w+"), "Option Id %s is not alphanum", key);
       imBuilder.put(key, value);
       return this;
     }
 
+    /**
+     * Adds an option that Summarizers can use when constructing Collectors and Combiners.
+     *
+     * @return this
+     *
+     * @see SummarizerConfiguration#getOptions()
+     */
     public Builder addOption(String key, long value) {
-      return addOption(key, value + "");
+      return addOption(key, Long.toString(value));
     }
 
+    /**
+     * Convenience method for adding multiple options. The following
+     *
+     * <pre>
+     * {@code builder.addOptions("opt1","val1","opt2","val2","opt3","val3")}
+     * </pre>
+     *
+     * <p>
+     * is equivalent to
+     *
+     * <pre>
+     * {@code
+     *   builder.addOption("opt1","val1");
+     *   builder.addOption("opt2","val2");
+     *   builder.addOption("opt3","val3");
+     * }
+     * </pre>
+     *
+     * @param keyValuePairs
+     *          This array must have an even and positive number of elements.
+     * @return this
+     * @see SummarizerConfiguration#getOptions()
+     */
     public Builder addOptions(String... keyValuePairs) {
-      Preconditions.checkArgument(keyValuePairs.length % 2 == 0, "Require an even number of arguments, got %s", keyValuePairs.length);
+      Preconditions.checkArgument(keyValuePairs.length % 2 == 0 && keyValuePairs.length > 0, "Require an even, positive number of arguments, got %s",
+          keyValuePairs.length);
       for (int i = 0; i < keyValuePairs.length; i += 2) {
         addOption(keyValuePairs[i], keyValuePairs[i + 1]);
       }
       return this;
     }
 
-    public SummarizerConfiguration build() {
-      return new SummarizerConfiguration(className, configId, imBuilder.build());
+    /**
+     * @param options
+     *          Each entry in the map is passed to {@link #addOption(String, String)}
+     * @return this
+     *
+     * @see SummarizerConfiguration#getOptions()
+     */
+    public Builder addOptions(Map<String,String> options) {
+      options.entrySet().forEach(e -> addOption(e.getKey(), e.getValue()));
+      return this;
     }
 
-    public void addOptions(Map<String,String> options) {
-      options.entrySet().forEach(e -> addOption(e.getKey(), e.getValue()));
-      ;
+    public SummarizerConfiguration build() {
+      return new SummarizerConfiguration(className, configId, imBuilder.build());
     }
   }
 

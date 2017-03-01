@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.core.client.summary.summarizers;
 
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.data.Value;
  * number of deletes.
  *
  * @since 2.0.0
+ * @see TableOperations#addSummarizers(String, org.apache.accumulo.core.client.summary.SummarizerConfiguration...)
  */
 public class DeletesSummarizer implements Summarizer {
 

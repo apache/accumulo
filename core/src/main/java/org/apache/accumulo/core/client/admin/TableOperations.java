@@ -814,10 +814,10 @@ public interface TableOperations {
   SamplerConfiguration getSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
-   * This is a entry point for retrieving summaries with optional restrictions.
+   * Entry point for retrieving summaries with optional restrictions.
    *
    * <p>
-   * Inorder to retrieve Summaries, the Accumulo user making the request will need the {@link TablePermission#GET_SUMMARIES} table permission.
+   * In order to retrieve Summaries, the Accumulo user making the request will need the {@link TablePermission#GET_SUMMARIES} table permission.
    *
    * <p>
    * Accumulo stores summary data with each file in each tablet. In order to make retrieving it faster there is a per tablet server cache of summary data. The
@@ -828,8 +828,8 @@ public interface TableOperations {
    * Since summary data is cached, its important to use the summary selection options to only read the needed data into the cache.
    *
    * <p>
-   * Summary data will be merged on the tablet servers and then in this client process. Therefore its important that the required summarizers are on the clients
-   * classpath.
+   * Summary data will be merged on the tablet servers and then in this client process. Therefore it's important that the required summarizers are on the
+   * clients classpath.
    *
    * @since 2.0.0
    * @see Summarizer

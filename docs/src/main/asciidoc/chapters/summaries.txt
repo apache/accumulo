@@ -18,7 +18,7 @@
 === Overview
 
 Accumulo has the ability to generate summary statistics about data in a table
-using user define functions.  Currently these statistics are only generated for
+using user defined functions.  Currently these statistics are only generated for
 data written to files.  Data recently written to Accumulo that is still in
 memory will not contribute to summary statistics.
 
@@ -33,7 +33,9 @@ dedicated cache for summary data on each tserver with a configurable size.  In
 order for summary data to fit in cache, it should probably be small.
 
 For information on writing a custom summarizer see the javadoc for
-+org.apache.accumulo.core.client.summary.Summarizer+.
++org.apache.accumulo.core.client.summary.Summarizer+.  The package
++org.apache.accumulo.core.client.summary.summarizers+ contains summarizer
+implementations that ship with Accumulo and can be configured for use.
 
 === Configuring
 

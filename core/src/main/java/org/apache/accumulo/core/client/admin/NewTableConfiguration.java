@@ -49,9 +49,9 @@ public class NewTableConfiguration {
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
 
-  private void checkDisjoint(Map<String,String> props, Map<String,String> sampleProps, Map<String,String> summrizerProps) {
+  private void checkDisjoint(Map<String,String> props, Map<String,String> sampleProps, Map<String,String> summarizerProps) {
     checkArgument(Collections.disjoint(props.keySet(), sampleProps.keySet()), "Properties and derived sampler properties are not disjoint");
-    checkArgument(Collections.disjoint(props.keySet(), summrizerProps.keySet()), "Properties and derived summarizer properties are not disjoint");
+    checkArgument(Collections.disjoint(props.keySet(), summarizerProps.keySet()), "Properties and derived summarizer properties are not disjoint");
   }
 
   /**

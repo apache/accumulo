@@ -139,7 +139,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
 
   /**
-   * Specify a list of summarizer configurations to create summary data in the output file. Each Key Value written will be passed to the configured
+   * Specifies a list of summarizer configurations to create summary data in the output file. Each Key Value written will be passed to the configured
    * {@link Summarizer}'s.
    *
    * @param job
