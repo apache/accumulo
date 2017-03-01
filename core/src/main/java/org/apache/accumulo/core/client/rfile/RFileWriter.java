@@ -210,6 +210,32 @@ public class RFileWriter implements AutoCloseable {
   }
 
   /**
+   * This method has the same behavior as {@link #append(Key, Value)}.
+   *
+   * @param key
+   *          Same restrictions on key as {@link #append(Key, Value)}.
+   * @param value
+   *          this parameter will be UTF-8 encoded. Must be non-null.
+   * @since 2.0.0
+   */
+  public void append(Key key, CharSequence value) throws IOException {
+    append(key, new Value(value));
+  }
+
+  /**
+   * This method has the same behavior as {@link #append(Key, Value)}.
+   *
+   * @param key
+   *          Same restrictions on key as {@link #append(Key, Value)}.
+   * @param value
+   *          Must be non-null.
+   * @since 2.0.0
+   */
+  public void append(Key key, byte[] value) throws IOException {
+    append(key, new Value(value));
+  }
+
+  /**
    * Append the keys and values to the last locality group that was started.
    *
    * @param keyValues

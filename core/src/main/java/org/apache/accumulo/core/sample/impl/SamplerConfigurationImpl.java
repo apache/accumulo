@@ -17,8 +17,6 @@
 
 package org.apache.accumulo.core.sample.impl;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -169,16 +167,6 @@ public class SamplerConfigurationImpl implements Writable {
   @Override
   public String toString() {
     return className + " " + options;
-  }
-
-  public static void checkDisjoint(Map<String,String> props, SamplerConfiguration samplerConfiguration) {
-    if (props.isEmpty() || samplerConfiguration == null) {
-      return;
-    }
-
-    Map<String,String> sampleProps = new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
-
-    checkArgument(Collections.disjoint(props.keySet(), sampleProps.keySet()), "Properties and derived sampler properties are not disjoint");
   }
 
   public static TSamplerConfiguration toThrift(SamplerConfiguration samplerConfig) {

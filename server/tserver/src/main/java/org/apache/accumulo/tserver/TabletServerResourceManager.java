@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
@@ -65,7 +66,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
@@ -86,11 +86,10 @@ public class TabletServerResourceManager {
   private final ExecutorService assignMetaDataPool;
   private final ExecutorService readAheadThreadPool;
   private final ExecutorService defaultReadAheadThreadPool;
+  private final ExecutorService summaryRetrievalPool;
   private final Map<String,ExecutorService> threadPools = new TreeMap<>();
 
   private final ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments;
-
-  private final VolumeManager fs;
 
   private final FileManager fileManager;
 
@@ -100,6 +99,7 @@ public class TabletServerResourceManager {
 
   private final BlockCache _dCache;
   private final BlockCache _iCache;
+  private final BlockCache _sCache;
   private final TabletServer tserver;
   private final ServerConfigurationFactory conf;
 
@@ -141,6 +141,14 @@ public class TabletServerResourceManager {
     return createEs(max, name, new LinkedBlockingQueue<Runnable>());
   }
 
+  private ExecutorService createIdlingEs(Property max, String name, long timeout, TimeUnit timeUnit) {
+    LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    int maxThreads = conf.getConfiguration().getCount(max);
+    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, timeout, timeUnit, queue, new NamingThreadFactory(name));
+    tp.allowCoreThreadTimeOut(true);
+    return addEs(max, name, tp);
+  }
+
   private ExecutorService createEs(Property max, String name, BlockingQueue<Runnable> queue) {
     int maxThreads = conf.getConfiguration().getCount(max);
     ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L, TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name));
@@ -154,7 +162,6 @@ public class TabletServerResourceManager {
   public TabletServerResourceManager(TabletServer tserver, VolumeManager fs) {
     this.tserver = tserver;
     this.conf = tserver.getServerConfigurationFactory();
-    this.fs = fs;
     final AccumuloConfiguration acuConf = conf.getConfiguration();
 
     long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
@@ -163,15 +170,18 @@ public class TabletServerResourceManager {
     long blockSize = acuConf.getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
     long dCacheSize = acuConf.getMemoryInBytes(Property.TSERV_DATACACHE_SIZE);
     long iCacheSize = acuConf.getMemoryInBytes(Property.TSERV_INDEXCACHE_SIZE);
+    long sCacheSize = acuConf.getMemoryInBytes(Property.TSERV_SUMMARYCACHE_SIZE);
     long totalQueueSize = acuConf.getMemoryInBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
     String policy = acuConf.get(Property.TSERV_CACHE_POLICY);
     if (policy.equalsIgnoreCase("LRU")) {
       _iCache = new LruBlockCache(iCacheSize, blockSize);
       _dCache = new LruBlockCache(dCacheSize, blockSize);
+      _sCache = new LruBlockCache(sCacheSize, blockSize);
     } else if (policy.equalsIgnoreCase("TinyLFU")) {
       _iCache = new TinyLfuBlockCache(iCacheSize, blockSize);
       _dCache = new TinyLfuBlockCache(dCacheSize, blockSize);
+      _sCache = new TinyLfuBlockCache(sCacheSize, blockSize);
     } else {
       throw new IllegalArgumentException("Unknown Block cache policy " + policy);
     }
@@ -221,6 +231,8 @@ public class TabletServerResourceManager {
 
     readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
     defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
+
+    summaryRetrievalPool = createIdlingEs(Property.TSERV_SUMMARY_RETRIEVAL_THREADS, "summary retriever", 60, TimeUnit.SECONDS);
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
@@ -657,7 +669,7 @@ public class TabletServerResourceManager {
       CompactionStrategy strategy = Property.createTableInstanceFromPropertyName(tableConf, Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
           new DefaultCompactionStrategy());
       strategy.init(Property.getCompactionStrategyOptions(tableConf));
-      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, TabletServerResourceManager.this.fs, tableConf);
+      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, tableConf);
       request.setFiles(tabletFiles);
       try {
         return strategy.shouldCompact(request);
@@ -760,4 +772,11 @@ public class TabletServerResourceManager {
     return _dCache;
   }
 
+  public BlockCache getSummaryCache() {
+    return _sCache;
+  }
+
+  public ExecutorService getSummaryRetrievalExecutor() {
+    return summaryRetrievalPool;
+  }
 }

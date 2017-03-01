@@ -51,7 +51,7 @@ public class SizeLimitCompactionStrategyTest {
     slcs.init(opts);
 
     KeyExtent ke = new KeyExtent("0", null, null);
-    MajorCompactionRequest mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null, AccumuloConfiguration.getDefaultConfiguration());
+    MajorCompactionRequest mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, AccumuloConfiguration.getDefaultConfiguration());
 
     mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G"));
 

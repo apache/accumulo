@@ -19,14 +19,18 @@ package org.apache.accumulo.core.client.admin;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.Summarizer;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 
 /**
  * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to include default iterators, and user-specified initial
@@ -42,7 +46,13 @@ public class NewTableConfiguration {
   private boolean limitVersion = true;
 
   private Map<String,String> properties = new HashMap<>();
-  private SamplerConfiguration samplerConfiguration;
+  private Map<String,String> samplerProps = Collections.emptyMap();
+  private Map<String,String> summarizerProps = Collections.emptyMap();
+
+  private void checkDisjoint(Map<String,String> props, Map<String,String> sampleProps, Map<String,String> summrizerProps) {
+    checkArgument(Collections.disjoint(props.keySet(), sampleProps.keySet()), "Properties and derived sampler properties are not disjoint");
+    checkArgument(Collections.disjoint(props.keySet(), summrizerProps.keySet()), "Properties and derived summarizer properties are not disjoint");
+  }
 
   /**
    * Configure logical or millisecond time for tables created with this configuration.
@@ -82,15 +92,14 @@ public class NewTableConfiguration {
    * Sets additional properties to be applied to tables created with this configuration. Additional calls to this method replaces properties set by previous
    * calls.
    *
-   * @param prop
+   * @param props
    *          additional properties to add to the table when it is created
    * @return this
    */
-  public NewTableConfiguration setProperties(Map<String,String> prop) {
-    checkArgument(prop != null, "properties is null");
-    SamplerConfigurationImpl.checkDisjoint(prop, samplerConfiguration);
-
-    this.properties = new HashMap<>(prop);
+  public NewTableConfiguration setProperties(Map<String,String> props) {
+    checkArgument(props != null, "properties is null");
+    checkDisjoint(props, samplerProps, summarizerProps);
+    this.properties = new HashMap<>(props);
     return this;
   }
 
@@ -106,10 +115,8 @@ public class NewTableConfiguration {
       propertyMap.putAll(IteratorUtil.generateInitialTableProperties(limitVersion));
     }
 
-    if (samplerConfiguration != null) {
-      propertyMap.putAll(new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap());
-    }
-
+    propertyMap.putAll(summarizerProps);
+    propertyMap.putAll(samplerProps);
     propertyMap.putAll(properties);
     return Collections.unmodifiableMap(propertyMap);
   }
@@ -121,8 +128,22 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration enableSampling(SamplerConfiguration samplerConfiguration) {
     requireNonNull(samplerConfiguration);
-    SamplerConfigurationImpl.checkDisjoint(properties, samplerConfiguration);
-    this.samplerConfiguration = samplerConfiguration;
+    Map<String,String> tmp = new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
+    checkDisjoint(properties, tmp, summarizerProps);
+    this.samplerProps = tmp;
+    return this;
+  }
+
+  /**
+   * Enables creating summary statistics using {@link Summarizer}'s for the new table.
+   *
+   * @since 2.0.0
+   */
+  public NewTableConfiguration enableSummarization(SummarizerConfiguration... configs) {
+    requireNonNull(configs);
+    Map<String,String> tmp = SummarizerConfigurationUtil.toTablePropertiesMap(Arrays.asList(configs));
+    checkDisjoint(properties, samplerProps, tmp);
+    summarizerProps = tmp;
     return this;
   }
 }

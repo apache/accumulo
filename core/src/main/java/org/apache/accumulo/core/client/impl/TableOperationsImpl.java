@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toSet;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -38,6 +39,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
@@ -48,6 +50,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -69,16 +74,23 @@ import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.FindMax;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
+import org.apache.accumulo.core.client.impl.thrift.TRowRange;
+import org.apache.accumulo.core.client.impl.thrift.TSummaries;
+import org.apache.accumulo.core.client.impl.thrift.TSummarizerConfiguration;
+import org.apache.accumulo.core.client.impl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -103,6 +115,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
+import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
@@ -126,6 +140,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 public class TableOperationsImpl extends TableOperationsHelper {
@@ -1660,5 +1675,139 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     return new LoctionsImpl(binnedRanges);
+  }
+
+  @Override
+  public SummaryRetriever getSummaries(String tableName) {
+
+    return new SummaryRetriever() {
+
+      private Text startRow = null;
+      private Text endRow = null;
+      private List<TSummarizerConfiguration> summariesToFetch = Collections.emptyList();
+      private String summarizerClassRegex;
+      private boolean flush = false;
+
+      @Override
+      public SummaryRetriever startRow(Text startRow) {
+        Objects.requireNonNull(startRow);
+        if (endRow != null) {
+          Preconditions.checkArgument(startRow.compareTo(endRow) < 0, "Start row must be less than end row : %s >= %s", startRow, endRow);
+        }
+        this.startRow = startRow;
+        return this;
+      }
+
+      @Override
+      public SummaryRetriever startRow(CharSequence startRow) {
+        return startRow(new Text(startRow.toString()));
+      }
+
+      @Override
+      public List<Summary> retrieve() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+        String tableId = Tables.getTableId(context.getInstance(), tableName);
+        if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
+          throw new TableOfflineException(context.getInstance(), tableId);
+
+        TRowRange range = new TRowRange(TextUtil.getByteBuffer(startRow), TextUtil.getByteBuffer(endRow));
+        TSummaryRequest request = new TSummaryRequest(tableId, range, summariesToFetch, summarizerClassRegex);
+        if (flush) {
+          _flush(tableId, startRow, endRow, true);
+        }
+
+        ClientContext cct = new ClientContext(context.getInstance(), context.getCredentials(), context.getConfiguration()) {
+          @Override
+          public long getClientTimeoutInMillis() {
+            return Math.max(super.getClientTimeoutInMillis(), 60 * 60 * 1000);
+          }
+        };
+        TSummaries ret = ServerClient.execute(cct, c -> c.getSummaries(Tracer.traceInfo(), context.rpcCreds(), request));
+        return new SummaryCollection(ret).getSummaries();
+      }
+
+      @Override
+      public SummaryRetriever endRow(Text endRow) {
+        Objects.requireNonNull(endRow);
+        if (startRow != null) {
+          Preconditions.checkArgument(startRow.compareTo(endRow) < 0, "Start row must be less than end row : %s >= %s", startRow, endRow);
+        }
+        this.endRow = endRow;
+        return this;
+      }
+
+      @Override
+      public SummaryRetriever endRow(CharSequence endRow) {
+        return endRow(new Text(endRow.toString()));
+      }
+
+      @Override
+      public SummaryRetriever withConfiguration(Collection<SummarizerConfiguration> configs) {
+        Objects.requireNonNull(configs);
+        summariesToFetch = configs.stream().map(SummarizerConfigurationUtil::toThrift).collect(Collectors.toList());
+        return this;
+      }
+
+      @Override
+      public SummaryRetriever withConfiguration(SummarizerConfiguration... config) {
+        Objects.requireNonNull(config);
+        return withConfiguration(Arrays.asList(config));
+      }
+
+      @Override
+      public SummaryRetriever withMatchingConfiguration(String regex) {
+        Objects.requireNonNull(regex);
+        // Do a sanity check here to make sure that regex compiles, instead of having it fail on a tserver.
+        Pattern.compile(regex);
+        this.summarizerClassRegex = regex;
+        return this;
+      }
+
+      @Override
+      public SummaryRetriever flush(boolean b) {
+        this.flush = b;
+        return this;
+      }
+    };
+  }
+
+  @Override
+  public void addSummarizers(String tableName, SummarizerConfiguration... newConfigs) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException {
+    HashSet<SummarizerConfiguration> currentConfigs = new HashSet<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
+    HashSet<SummarizerConfiguration> newConfigSet = new HashSet<>(Arrays.asList(newConfigs));
+
+    newConfigSet.removeIf(sc -> currentConfigs.contains(sc));
+
+    Set<String> newIds = newConfigSet.stream().map(sc -> sc.getPropertyId()).collect(toSet());
+
+    for (SummarizerConfiguration csc : currentConfigs) {
+      if (newIds.contains(csc.getPropertyId())) {
+        throw new IllegalArgumentException("Summarizer property id is in use by " + csc);
+      }
+    }
+
+    Set<Entry<String,String>> es = SummarizerConfiguration.toTableProperties(newConfigSet).entrySet();
+    for (Entry<String,String> entry : es) {
+      setProperty(tableName, entry.getKey(), entry.getValue());
+    }
+  }
+
+  @Override
+  public void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate) throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException {
+    Collection<SummarizerConfiguration> summarizerConfigs = SummarizerConfiguration.fromTableProperties(getProperties(tableName));
+    for (SummarizerConfiguration sc : summarizerConfigs) {
+      if (predicate.test(sc)) {
+        Set<String> ks = sc.toTableProperties().keySet();
+        for (String key : ks) {
+          removeProperty(tableName, key);
+        }
+      }
+    }
+  }
+
+  @Override
+  public List<SummarizerConfiguration> listSummarizers(String tableName) throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    return new ArrayList<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
   }
 }

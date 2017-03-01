@@ -292,12 +292,23 @@ public abstract class FileOperations {
       NeedsFileOrOuputStream<OpenWriterOperationBuilder> {
     private String compression;
     private FSDataOutputStream outputStream;
+    private boolean enableAccumuloStart = true;
 
     @Override
     public NeedsTableConfiguration<OpenWriterOperationBuilder> forOutputStream(String extenstion, FSDataOutputStream outputStream, Configuration fsConf) {
       this.outputStream = outputStream;
       setConfiguration(fsConf);
       setFilename("foo" + extenstion);
+      return this;
+    }
+
+    public boolean isAccumuloStartEnabled() {
+      return enableAccumuloStart;
+    }
+
+    @Override
+    public OpenWriterOperation setAccumuloStartEnabled(boolean enableAccumuloStart) {
+      this.enableAccumuloStart = enableAccumuloStart;
       return this;
     }
 
@@ -336,6 +347,9 @@ public abstract class FileOperations {
   public static interface OpenWriterOperationBuilder extends FileIOOperationBuilder<OpenWriterOperationBuilder> {
     /** Set the compression type. */
     public OpenWriterOperationBuilder withCompression(String compression);
+
+    /** determines is Accumulo Start is used to load classes. Defaults to true. */
+    public OpenWriterOperationBuilder setAccumuloStartEnabled(boolean enableAccumuloStart);
 
     /** Construct the writer. */
     public FileSKVWriter build() throws IOException;

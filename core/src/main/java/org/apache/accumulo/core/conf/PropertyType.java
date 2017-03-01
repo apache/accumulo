@@ -19,6 +19,7 @@ package org.apache.accumulo.core.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -28,6 +29,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.lang.math.IntRange;
 import org.apache.hadoop.fs.Path;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Types of {@link Property} values. Each type has a short name, a description, and a regex which valid values match. All of these fields are optional.
@@ -89,11 +92,12 @@ public enum PropertyType {
   URI("uri", x -> true, "A valid URI");
 
   private String shortname, format;
-  private Predicate<String> predicate;
+  // made this transient because findbugs was complaining
+  private transient Predicate<String> predicate;
 
   private PropertyType(String shortname, Predicate<String> predicate, String formatDescription) {
     this.shortname = shortname;
-    this.predicate = predicate;
+    this.predicate = Objects.requireNonNull(predicate);
     this.format = formatDescription;
   }
 
@@ -117,6 +121,7 @@ public enum PropertyType {
    * @return true if value is valid or null, or if this type has no regex
    */
   public boolean isValidFormat(String value) {
+    Preconditions.checkState(predicate != null, "Predicate was null, maybe this enum was serialized????");
     return predicate.test(value);
   }
 
