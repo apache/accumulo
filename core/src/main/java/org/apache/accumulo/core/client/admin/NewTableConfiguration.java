@@ -45,13 +45,12 @@ public class NewTableConfiguration {
 
   private boolean limitVersion = true;
 
-  private Map<String,String> properties = new HashMap<>();
+  private Map<String,String> properties = Collections.emptyMap();
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
 
-  private void checkDisjoint(Map<String,String> props, Map<String,String> sampleProps, Map<String,String> summarizerProps) {
-    checkArgument(Collections.disjoint(props.keySet(), sampleProps.keySet()), "Properties and derived sampler properties are not disjoint");
-    checkArgument(Collections.disjoint(props.keySet(), summarizerProps.keySet()), "Properties and derived summarizer properties are not disjoint");
+  private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps, String kind) {
+    checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()), "Properties and derived %s properties are not disjoint", kind);
   }
 
   /**
@@ -98,7 +97,8 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration setProperties(Map<String,String> props) {
     checkArgument(props != null, "properties is null");
-    checkDisjoint(props, samplerProps, summarizerProps);
+    checkDisjoint(props, samplerProps, "sampler");
+    checkDisjoint(props, summarizerProps, "summarizer");
     this.properties = new HashMap<>(props);
     return this;
   }
@@ -129,7 +129,7 @@ public class NewTableConfiguration {
   public NewTableConfiguration enableSampling(SamplerConfiguration samplerConfiguration) {
     requireNonNull(samplerConfiguration);
     Map<String,String> tmp = new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
-    checkDisjoint(properties, tmp, summarizerProps);
+    checkDisjoint(properties, tmp, "sampler");
     this.samplerProps = tmp;
     return this;
   }
@@ -142,7 +142,7 @@ public class NewTableConfiguration {
   public NewTableConfiguration enableSummarization(SummarizerConfiguration... configs) {
     requireNonNull(configs);
     Map<String,String> tmp = SummarizerConfigurationUtil.toTablePropertiesMap(Arrays.asList(configs));
-    checkDisjoint(properties, samplerProps, tmp);
+    checkDisjoint(properties, tmp, "summarizer");
     summarizerProps = tmp;
     return this;
   }

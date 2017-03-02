@@ -67,16 +67,15 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
 
-  private void checkDisjoint(Map<String,String> props, Map<String,String> sampleProps, Map<String,String> summrizerProps) {
-    checkArgument(Collections.disjoint(props.keySet(), sampleProps.keySet()), "Properties and derived sampler properties are not disjoint");
-    checkArgument(Collections.disjoint(props.keySet(), summrizerProps.keySet()), "Properties and derived summarizer properties are not disjoint");
+  private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps, String kind) {
+    checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()), "Properties and derived %s properties are not disjoint", kind);
   }
 
   @Override
   public WriterOptions withSampler(SamplerConfiguration samplerConf) {
     Objects.requireNonNull(samplerConf);
     Map<String,String> tmp = new SamplerConfigurationImpl(samplerConf).toTablePropertiesMap();
-    checkDisjoint(tableConfig, tmp, summarizerProps);
+    checkDisjoint(tableConfig, tmp, "sampler");
     this.samplerProps = tmp;
     return this;
   }
@@ -139,7 +138,8 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       cfg.put(entry.getKey(), entry.getValue());
     }
 
-    checkDisjoint(cfg, samplerProps, summarizerProps);
+    checkDisjoint(cfg, samplerProps, "sampler");
+    checkDisjoint(cfg, summarizerProps, "summarizer");
     this.tableConfig = cfg;
     return this;
   }
@@ -161,7 +161,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   public WriterOptions withSummarizers(SummarizerConfiguration... summarizerConf) {
     Objects.requireNonNull(summarizerConf);
     Map<String,String> tmp = SummarizerConfiguration.toTableProperties(summarizerConf);
-    checkDisjoint(tableConfig, samplerProps, tmp);
+    checkDisjoint(tableConfig, tmp, "summarizer");
     this.summarizerProps = tmp;
     return this;
   }
