@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import java.io.File;
+import java.net.URL;
 
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.commons.configuration.AbstractFileConfiguration;
@@ -28,12 +28,12 @@ import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.event.ConfigurationEvent;
 import org.apache.commons.configuration.event.ConfigurationListener;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetricsConfiguration {
 
-  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MetricsConfiguration.class);
-
-  private static final String metricsFileName = "accumulo-metrics.xml";
+  private static final Logger log = LoggerFactory.getLogger(MetricsConfiguration.class);
 
   private static boolean alreadyWarned = false;
 
@@ -148,46 +148,35 @@ public class MetricsConfiguration {
   }
 
   private void loadConfiguration() {
-    String accumuloConfDir = getEnvironmentConfiguration().getString("ACCUMULO_CONF_DIR");
-    if (null != accumuloConfDir) {
-      // Try to load the metrics properties file
-      File mFile = new File(accumuloConfDir, metricsFileName);
-      if (mFile.exists()) {
-        if (log.isDebugEnabled())
-          log.debug("Loading config file: " + mFile.getAbsolutePath());
-        try {
-          xConfig = new XMLConfiguration(mFile);
-          xConfig.append(getEnvironmentConfiguration());
-          xConfig.addConfigurationListener(new MetricsConfigListener());
-          xConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
-
-          // Start a background Thread that checks a property from the XMLConfiguration
-          // every so often to force the FileChangedReloadingStrategy to fire.
-          if (null == watcher || !watcher.isAlive()) {
-            watcher = new MetricsConfigWatcher();
-            watcher.start();
-          }
-          notFound = false;
-          alreadyWarned = false;
-        } catch (ConfigurationException ce) {
-          log.error("Error reading accumulo-metrics.xml file.");
-          notFound = true;
-          return;
-        }
-      } else {
-        if (!alreadyWarned)
-          log.warn("Unable to find metrics file: " + mFile.getAbsolutePath());
-        alreadyWarned = true;
-        notFound = true;
-        return;
-      }
-    } else {
+    URL metricsUrl = MetricsConfiguration.class.getClassLoader().getResource("accumulo-metrics.xml");
+    if (metricsUrl == null) {
       if (!alreadyWarned)
-        log.warn("ACCUMULO_CONF_DIR variable not found in environment. Metrics collection will be disabled.");
+        log.warn("accumulo-metrics.xml was not found on classpath. Metrics collection will be disabled.");
       alreadyWarned = true;
       notFound = true;
       return;
     }
+
+    try {
+      xConfig = new XMLConfiguration(metricsUrl);
+      xConfig.append(getEnvironmentConfiguration());
+      xConfig.addConfigurationListener(new MetricsConfigListener());
+      xConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
+
+      // Start a background Thread that checks a property from the XMLConfiguration
+      // every so often to force the FileChangedReloadingStrategy to fire.
+      if (null == watcher || !watcher.isAlive()) {
+        watcher = new MetricsConfigWatcher();
+        watcher.start();
+      }
+      notFound = false;
+      alreadyWarned = false;
+    } catch (ConfigurationException ce) {
+      log.error("Error reading accumulo-metrics.xml file.");
+      notFound = true;
+      return;
+    }
+
     if (xConfig != null) {
       config = xConfig.interpolatedConfiguration();
       // set the enabled boolean from the configuration

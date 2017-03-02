@@ -298,7 +298,7 @@ function create_config() {
     MAVEN_PROJ_BASEDIR="\n  <property>\n    <name>general.maven.project.basedir</name>\n    <value>${BASE_DIR}</value>\n  </property>\n"
   fi
 
-  mkdir -p "${CONF_DIR}" && cp "${TEMPLATE_CONF_DIR}"/* "${CONF_DIR}"/
+  mkdir -p "${CONF_DIR}" && cp "${TEMPLATE_CONF_DIR}"/{$ACCUMULO_SITE,$ACCUMULO_ENV} "${CONF_DIR}"/
 
   #Configure accumulo-env.sh
   sed -e "s/\${tServerHigh_tServerLow}/${!TSERVER}/" \
