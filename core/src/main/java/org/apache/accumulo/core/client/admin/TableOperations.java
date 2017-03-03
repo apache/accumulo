@@ -808,4 +808,11 @@ public interface TableOperations {
    * @since 1.8.0
    */
   SamplerConfiguration getSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * 
+   */
+  default SummaryRetriever summaries(String tableName) {
+    throw new UnsupportedOperationException();
+  };
 }
