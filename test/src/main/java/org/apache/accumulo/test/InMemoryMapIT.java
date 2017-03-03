@@ -83,16 +83,13 @@ public class InMemoryMapIT {
   @BeforeClass
   public static void ensureNativeLibrary() throws FileNotFoundException {
     File nativeMapLocation = NativeMapIT.nativeMapLocation();
-    log.debug("Native map location " + nativeMapLocation);
-    NativeMap.loadNativeLib(Collections.singletonList(nativeMapLocation));
+    System.setProperty("accumulo.native.lib.path", nativeMapLocation.getAbsolutePath());
     if (!NativeMap.isLoaded()) {
       fail("Missing the native library from " + nativeMapLocation.getAbsolutePath() + "\nYou need to build the libaccumulo binary first. "
           + "\nTry running 'mvn clean install -Dit.test=InMemoryMapIT -Dtest=foo -DfailIfNoTests=false -Dfindbugs.skip -Dcheckstyle.skip'");
       // afterwards, you can run the following
       // mvn clean verify -Dit.test=InMemoryMapIT -Dtest=foo -DfailIfNoTests=false -Dfindbugs.skip -Dcheckstyle.skip -pl :accumulo-test
     }
-    log.debug("Native map loaded");
-
   }
 
   @Test

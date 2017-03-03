@@ -411,12 +411,16 @@ function create_config() {
 }
 
 function build_native() {
-  native_tarball="$basedir/lib/accumulo-native.tar.gz"
   final_native_target="$basedir/lib/native"
+  if [ -f "$final_native_target/libaccumulo.so" -o -f "$final_native_target/libaccumulo.dylib" ]; then
+    echo "Accumulo native library already exists in $final_native_target"
+    exit 0
+  fi
 
+  native_tarball="$basedir/lib/accumulo-native.tar.gz"
   if [[ ! -f $native_tarball ]]; then
-      echo "Could not find native code artifact: ${native_tarball}";
-      exit 1
+    echo "Could not find native code artifact: ${native_tarball}" 1>&2
+    exit 1
   fi
 
   # Make the destination for the native library
@@ -512,13 +516,8 @@ function gen_monitor_cert() {
 }
 
 function load_jars_hdfs() {
-  export ACCUMULO_HOME="$basedir"
-
-  if [ -f "${conf}/accumulo-env.sh" ]; then
-    source "$conf/accumulo-env.sh"
-  fi
   if [ -z "$HADOOP_PREFIX" ]; then
-     echo "HADOOP_PREFIX is not set.  Please make sure it's set globally or in $conf/accumulo-env.sh"
+     echo "HADOOP_PREFIX is not set!"
      exit 1
   fi
 
@@ -569,22 +568,15 @@ function load_jars_hdfs() {
   "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
   "$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar" "$lib/."  > /dev/null
   "$HADOOP_PREFIX/bin/hadoop" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar"  > /dev/null
-  for f in $(grep -v '^#' "${conf}/tservers")
-  do
-    rsync -ra --delete "$ACCUMULO_HOME" "$(dirname "$ACCUMULO_HOME")"
-  done
 }
 
 function hadoop_jar() {
-  if [ -f "${conf}/accumulo-env.sh" ]; then
-    source "$conf/accumulo-env.sh"
-  fi
   if [ -z "$HADOOP_PREFIX" ]; then
-     echo "HADOOP_PREFIX is not set.  Please make sure it's set globally or in $conf/accumulo-env.sh"
+     echo "HADOOP_PREFIX must be set!"
      exit 1
   fi
   if [ -z "$ZOOKEEPER_HOME" ]; then
-     echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in $conf/accumulo-env.sh"
+     echo "ZOOKEEPER_HOME must be set!"
      exit 1
   fi
 

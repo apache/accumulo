@@ -114,9 +114,11 @@ function main() {
      SOURCE="$(readlink "${SOURCE}")"
      [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
-  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-  basedir=$( cd -P "${bin}"/.. && pwd )
-  conf="${basedir}/conf"
+  # Set up variables needed by accumulo-env.sh
+  export bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+  export basedir=$( cd -P "${bin}"/.. && pwd )
+  export conf="${basedir}/conf"
+  export lib="${basedir}/lib"
 
   if [ -f "${conf}/accumulo-env.sh" ]; then
     source "${conf}/accumulo-env.sh"
