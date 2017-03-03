@@ -86,14 +86,12 @@ public enum Property {
           + "the configuration file, set this property to true."),
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent across all nodes in an instance)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX, "Properties in this category related to the configuration of SSL keys for RPC. See also instance.ssl.enabled"),
-  RPC_SSL_KEYSTORE_PATH("rpc.javax.net.ssl.keyStore", "$ACCUMULO_CONF_DIR/ssl/keystore.jks", PropertyType.PATH,
-      "Path of the keystore file for the servers' private SSL key"),
+  RPC_SSL_KEYSTORE_PATH("rpc.javax.net.ssl.keyStore", "", PropertyType.PATH, "Path of the keystore file for the servers' priva:q" + "te SSL key"),
   @Sensitive
   RPC_SSL_KEYSTORE_PASSWORD("rpc.javax.net.ssl.keyStorePassword", "", PropertyType.STRING,
       "Password used to encrypt the SSL private keystore. Leave blank to use the Accumulo instance secret"),
   RPC_SSL_KEYSTORE_TYPE("rpc.javax.net.ssl.keyStoreType", "jks", PropertyType.STRING, "Type of SSL keystore"),
-  RPC_SSL_TRUSTSTORE_PATH("rpc.javax.net.ssl.trustStore", "$ACCUMULO_CONF_DIR/ssl/truststore.jks", PropertyType.PATH,
-      "Path of the truststore file for the root cert"),
+  RPC_SSL_TRUSTSTORE_PATH("rpc.javax.net.ssl.trustStore", "", PropertyType.PATH, "Path of the truststore file for the root cert"),
   @Sensitive
   RPC_SSL_TRUSTSTORE_PASSWORD("rpc.javax.net.ssl.trustStorePassword", "", PropertyType.STRING,
       "Password used to encrypt the SSL truststore. Leave blank to use no password"),
