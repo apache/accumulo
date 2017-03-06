@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,7 +37,9 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 
@@ -294,4 +297,35 @@ public class LocalityGroupUtil {
     }
   }
 
+  /**
+   * This method created to help seek an rfile for a locality group obtained from {@link Reader#getLocalityGroupCF()}. This method can possibly return an empty
+   * list for the default locality group. When this happens the default locality group needs to be seeked differently. This method helps do that.
+   *
+   * <p>
+   * For the default locality group will seek using the families of all other locality groups non-inclusive.
+   *
+   * @see Reader#getLocalityGroupCF()
+   */
+  public static void seek(Reader reader, Range range, String lgName, Map<String,ArrayList<ByteSequence>> localityGroupCF) throws IOException {
+
+    Collection<ByteSequence> families;
+    boolean inclusive;
+    if (lgName == null) {
+      // this is the default locality group, create a set of all families not in the default group
+      Set<ByteSequence> nonDefaultFamilies = new HashSet<>();
+      for (Entry<String,ArrayList<ByteSequence>> entry : localityGroupCF.entrySet()) {
+        if (entry.getKey() != null) {
+          nonDefaultFamilies.addAll(entry.getValue());
+        }
+      }
+
+      families = nonDefaultFamilies;
+      inclusive = false;
+    } else {
+      families = localityGroupCF.get(lgName);
+      inclusive = true;
+    }
+
+    reader.seek(range, families, inclusive);
+  }
 }
