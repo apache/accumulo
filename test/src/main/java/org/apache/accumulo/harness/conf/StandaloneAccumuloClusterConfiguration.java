@@ -71,6 +71,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   public static final String ACCUMULO_STANDALONE_HOME = ACCUMULO_STANDALONE_PREFIX + "home";
   public static final String ACCUMULO_STANDALONE_CLIENT_CONF = ACCUMULO_STANDALONE_PREFIX + "client.conf";
   public static final String ACCUMULO_STANDALONE_SERVER_CONF = ACCUMULO_STANDALONE_PREFIX + "server.conf";
+  public static final String ACCUMULO_STANDALONE_CLIENT_CMD_PREFIX = ACCUMULO_STANDALONE_PREFIX + "client.cmd.prefix";
+  public static final String ACCUMULO_STANDALONE_SERVER_CMD_PREFIX = ACCUMULO_STANDALONE_PREFIX + "server.cmd.prefix";
   public static final String ACCUMULO_STANDALONE_HADOOP_CONF = ACCUMULO_STANDALONE_PREFIX + "hadoop.conf";
 
   private Map<String,String> conf;
@@ -222,6 +224,14 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   public String getServerAccumuloConfDir() {
     return conf.get(ACCUMULO_STANDALONE_SERVER_CONF);
+  }
+
+  public String getServerCmdPrefix() {
+    return conf.get(ACCUMULO_STANDALONE_SERVER_CMD_PREFIX);
+  }
+
+  public String getClientCmdPrefix() {
+    return conf.get(ACCUMULO_STANDALONE_CLIENT_CMD_PREFIX);
   }
 
   @Override

@@ -297,7 +297,7 @@ function main() {
   done
   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
   basedir=$( cd -P "${bin}"/.. && pwd )
-  conf="${basedir}/conf"
+  conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
 
   accumulo_cmd="${bin}/accumulo"
   SSH='ssh -qnf -o ConnectTimeout=2'

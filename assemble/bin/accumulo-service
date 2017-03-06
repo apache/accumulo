@@ -117,7 +117,7 @@ function main() {
   # Set up variables needed by accumulo-env.sh
   export bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
   export basedir=$( cd -P "${bin}"/.. && pwd )
-  export conf="${basedir}/conf"
+  export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
   export lib="${basedir}/lib"
 
   if [ -f "${conf}/accumulo-env.sh" ]; then

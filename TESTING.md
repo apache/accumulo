@@ -116,10 +116,12 @@ The following properties can be used to configure a standalone cluster:
 - `accumulo.it.cluster.standalone.admin.keytab`, Required: Keytab for the principal (only valid w/ Kerberos)
 - `accumulo.it.cluster.standalone.zookeepers`, Required: ZooKeeper quorum used by the standalone cluster
 - `accumulo.it.cluster.standalone.instance.name`, Required: Accumulo instance name for the cluster
-- `accumulo.it.cluster.standalone.hadoop.conf`, Required: `HADOOP_CONF_DIR`
-- `accumulo.it.cluster.standalone.home`, Optional: `ACCUMULO_HOME`
-- `accumulo.it.cluster.standalone.conf`, Optional: `ACCUMULO_CONF_DIR`
-- `accumulo.it.cluster.standalone.server.user`, Optional: The user Accumulo is running as (used to sudo when starting/stopping Accumulo). Default "accumulo"
+- `accumulo.it.cluster.standalone.hadoop.conf`, Required: Hadoop configuration directory
+- `accumulo.it.cluster.standalone.home`, Required: Accumulo installation directory on cluster
+- `accumulo.it.cluster.standalone.client.conf`, Required: Accumulo conf directory on client
+- `accumulo.it.cluster.standalone.server.conf`, Required: Accumulo conf directory on server
+- `accumulo.it.cluster.standalone.client.cmd.prefix`, Optional: Prefix that will be added to Accumulo client commands
+- `accumulo.it.cluster.standalone.server.cmd.prefix`, Optional: Prefix that will be added to Accumulo service commands
 
 Additionally, when running with Kerberos enabled, it is required that Kerberos principals already exist
 for the tests to use. As such, a number of properties exist to allow users to be passed down for tests
@@ -140,13 +142,6 @@ specified on the command line override properties set in a file.  For example, t
 what is executed for a standalone cluster.
 
   `mvn verify -Daccumulo.it.properties=/home/user/my_cluster.properties`
-
-For the optional properties, each of them will be extracted from the environment if not explicitly provided.
-Specifically, `ACCUMULO_HOME` and `ACCUMULO_CONF_DIR` are used to ensure the correct version of the bundled
-Accumulo scripts are invoked and, in the event that multiple Accumulo processes exist on the same physical machine,
-but for different instances, the correct version is terminated. `HADOOP_CONF_DIR` is used to ensure that the necessary
-files to construct the FileSystem object for the cluster can be constructed (e.g. core-site.xml and hdfs-site.xml),
-which is typically required to interact with HDFS.
 
 ## MapReduce job for Integration tests
 

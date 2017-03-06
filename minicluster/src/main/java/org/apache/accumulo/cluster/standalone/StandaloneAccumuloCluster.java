@@ -60,18 +60,18 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
   private Path tmp;
   private List<ClusterUser> users;
-  private String serverUser;
+  private String clientCmdPrefix;
+  private String serverCmdPrefix;
 
-  public StandaloneAccumuloCluster(ClientConfiguration clientConf, Path tmp, List<ClusterUser> users, String serverUser) {
-    this(new ZooKeeperInstance(clientConf), clientConf, tmp, users, serverUser);
+  public StandaloneAccumuloCluster(ClientConfiguration clientConf, Path tmp, List<ClusterUser> users) {
+    this(new ZooKeeperInstance(clientConf), clientConf, tmp, users);
   }
 
-  public StandaloneAccumuloCluster(Instance instance, ClientConfiguration clientConf, Path tmp, List<ClusterUser> users, String serverUser) {
+  public StandaloneAccumuloCluster(Instance instance, ClientConfiguration clientConf, Path tmp, List<ClusterUser> users) {
     this.instance = instance;
     this.clientConf = clientConf;
     this.tmp = tmp;
     this.users = users;
-    this.serverUser = serverUser;
   }
 
   public String getAccumuloHome() {
@@ -96,6 +96,14 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   public void setServerAccumuloConfDir(String accumuloConfDir) {
     this.serverAccumuloConfDir = accumuloConfDir;
+  }
+
+  public void setServerCmdPrefix(String serverCmdPrefix) {
+    this.serverCmdPrefix = serverCmdPrefix;
+  }
+
+  public void setClientCmdPrefix(String clientCmdPrefix) {
+    this.clientCmdPrefix = clientCmdPrefix;
   }
 
   public String getHadoopConfDir() {
@@ -134,9 +142,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public StandaloneClusterControl getClusterControl() {
-    return new StandaloneClusterControl(serverUser, null == accumuloHome ? System.getenv("ACCUMULO_HOME") : accumuloHome,
-        null == clientAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : clientAccumuloConfDir,
-        null == serverAccumuloConfDir ? System.getenv("ACCUMULO_CONF_DIR") : serverAccumuloConfDir);
+    return new StandaloneClusterControl(accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir,
+                                        clientCmdPrefix, serverCmdPrefix);
   }
 
   @Override
