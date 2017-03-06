@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
@@ -36,6 +35,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
@@ -60,7 +60,6 @@ import com.google.common.annotations.VisibleForTesting;
  * would be a mistake for long lived NativeMaps. Long lived objects are not garbage collected quickly, therefore a process could easily use too much memory.
  *
  */
-
 public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
   private static final Logger log = LoggerFactory.getLogger(NativeMap.class);
@@ -68,30 +67,36 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
   // Load native library
   static {
-    // Check standard directories
-    List<File> directories = new ArrayList<>(Arrays.asList(new File[] {new File("/usr/lib64"), new File("/usr/lib")}));
-    // Check in ACCUMULO_HOME location, too
-    String accumuloHome = System.getenv("ACCUMULO_HOME");
-    if (accumuloHome != null) {
-      directories.add(new File(accumuloHome + "/lib/native"));
-      directories.add(new File(accumuloHome + "/lib/native/map")); // old location, just in case somebody puts it here
+    // Check in directories set by JVM system property
+    List<File> directories = new ArrayList<>();
+    String accumuloNativeLibDirs = System.getProperty("accumulo.native.lib.path");
+    if (accumuloNativeLibDirs != null) {
+      for (String libDir : accumuloNativeLibDirs.split(":")) {
+        directories.add(new File(libDir));
+      }
     }
     // Attempt to load from these directories, using standard names
     loadNativeLib(directories);
 
     // Check LD_LIBRARY_PATH (DYLD_LIBRARY_PATH on Mac)
     if (!isLoaded()) {
+      log.error("Tried and failed to load Accumulo native library from {}", accumuloNativeLibDirs);
       String ldLibraryPath = System.getProperty("java.library.path");
-      String errMsg = "Tried and failed to load native map library from " + ldLibraryPath;
       try {
         System.loadLibrary("accumulo");
         loadedNativeLibraries.set(true);
         log.info("Loaded native map shared library from " + ldLibraryPath);
-      } catch (Exception e) {
-        log.error(errMsg, e);
-      } catch (UnsatisfiedLinkError e) {
-        log.error(errMsg, e);
+      } catch (Exception | UnsatisfiedLinkError e) {
+        log.error("Tried and failed to load Accumulo native library from {}", ldLibraryPath, e);
       }
+    }
+
+    // Exit if native libraries could not be loaded
+    if (!isLoaded()) {
+      log.error("FATAL! Accumulo native libraries were requested but could not be be loaded. Either set '{}' to false in accumulo-site.xml "
+          + " or make sure native libraries are created in directories set by the JVM system property 'accumulo.native.lib.path' in accumulo-env.sh!",
+          Property.TSERV_NATIVEMAP_ENABLED);
+      System.exit(1);
     }
   }
 
@@ -151,16 +156,13 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   private static boolean loadNativeLib(File libFile) {
     log.debug("Trying to load native map library " + libFile);
     if (libFile.exists() && libFile.isFile()) {
-      String errMsg = "Tried and failed to load native map library " + libFile;
       try {
         System.load(libFile.getAbsolutePath());
         loadedNativeLibraries.set(true);
         log.info("Loaded native map shared library " + libFile);
         return true;
-      } catch (Exception e) {
-        log.error(errMsg, e);
-      } catch (UnsatisfiedLinkError e) {
-        log.error(errMsg, e);
+      } catch (Exception | UnsatisfiedLinkError e) {
+        log.error("Tried and failed to load native map library " + libFile, e);
       }
     } else {
       log.debug("Native map library " + libFile + " not found or is not a file.");
@@ -174,7 +176,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   private final Lock rlock;
   private final Lock wlock;
 
-  int modCount = 0;
+  private int modCount = 0;
 
   private static native long createNM();
 
@@ -201,18 +203,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     if (!init) {
       allocatedNativeMaps = new HashSet<>();
 
-      Runnable r = new Runnable() {
-        @Override
-        public void run() {
-          if (allocatedNativeMaps.size() > 0) {
-            log.info("There are " + allocatedNativeMaps.size() + " allocated native maps");
-          }
-
-          log.debug(totalAllocations + " native maps were allocated");
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        if (allocatedNativeMaps.size() > 0) {
+          log.info("There are " + allocatedNativeMaps.size() + " allocated native maps");
         }
-      };
-
-      Runtime.getRuntime().addShutdownHook(new Thread(r));
+        log.debug(totalAllocations + " native maps were allocated");
+      }));
 
       init = true;
     }
@@ -441,7 +437,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       byte cf[] = new byte[fieldsLens[1]];
       byte cq[] = new byte[fieldsLens[2]];
       byte cv[] = new byte[fieldsLens[3]];
-      boolean deleted = fieldsLens[4] == 0 ? false : true;
+      boolean deleted = fieldsLens[4] != 0;
       byte val[] = new byte[fieldsLens[5]];
 
       nmiGetData(nmiPointer, row, cf, cq, cv, val);

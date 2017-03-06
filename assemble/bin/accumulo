@@ -36,16 +36,12 @@ function main() {
      SOURCE="$(readlink "${SOURCE}")"
      [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
   done
-  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-  basedir=$( cd -P "${bin}"/.. && pwd )
-  conf="${basedir}/conf"
-  lib="${basedir}/lib"
-
-  # Might be needed by accumulo-env.sh, accumulo-site.xml, and other Accumulo configuration
-  export ACCUMULO_HOME="$basedir"
-  export ACCUMULO_CONF_DIR="$conf"
-
-  export ACCUMULO_CMD="$1"
+  # Set up variables needed by accumulo-env.sh
+  export bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+  export basedir=$( cd -P "${bin}"/.. && pwd )
+  export conf="${basedir}/conf"
+  export lib="${basedir}/lib"
+  export cmd="$1"
 
   if [[ -z $conf || ! -d $conf ]]; then
     echo "$conf is not a valid directory.  Please make sure it exists"
@@ -58,6 +54,10 @@ function main() {
   fi
   source "$conf/accumulo-env.sh"
 
+  # Might be needed by accumulo-env.sh, accumulo-site.xml, and other Accumulo configuration
+  export ACCUMULO_HOME="$basedir"
+  export ACCUMULO_CONF_DIR="$conf"
+
   # Verify setting in accumulo-env.sh
 
   : "${JAVA_OPTS:?"variable is not set in accumulo-env.sh"}"
@@ -69,23 +69,15 @@ function main() {
   verify_env_dir "ZOOKEEPER_HOME" "${ZOOKEEPER_HOME}"
   : "${MALLOC_ARENA_MAX:?"variable is not set in accumulo-env.sh"}"
 
-  export HADOOP_HOME=$HADOOP_PREFIX
-  export HADOOP_HOME_WARN_SUPPRESS=true
-
-  # This is default for hadoop 2.x; for another distribution, specify (DY)LD_LIBRARY_PATH explicitly above
-  if [ -e "${HADOOP_PREFIX}/lib/native/libhadoop.so" ]; then
-    export LD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${LD_LIBRARY_PATH}"     # For Linux
-    export DYLD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${DYLD_LIBRARY_PATH}" # For Mac
-  fi
   # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
   # It also holds the JAR run with the jar command and, if possible, any items in the JAR manifest's Class-Path.
-  if [[ "$ACCUMULO_CMD" = "-add" ]]; then
+  if [[ "$cmd" = "-add" ]]; then
     export ACCUMULO_XTRAJARS="$2"
     shift 2
   else
     export ACCUMULO_XTRAJARS=""
   fi
-  if [[ "$ACCUMULO_CMD" = "jar" && -f "$2" ]]; then
+  if [[ "$cmd" = "jar" && -f "$2" ]]; then
     if [[ $2 =~ ^/ ]]; then
       jardir="$(dirname "$2")"
       jarfile="$2"
@@ -122,7 +114,7 @@ function main() {
   
   CLASSPATH="${lib}/accumulo-start.jar:${conf}:${lib}/slf4j-api.jar:${lib}/slf4j-log4j12.jar:${lib}/log4j.jar:${CLASSPATH}"
 
-  exec "${JAVA[@]}" "-Dapp=$ACCUMULO_CMD" \
+  exec "${JAVA[@]}" "-Dapp=$cmd" \
      "${JAVA_OPTS[@]}" \
      -classpath "${CLASSPATH}" \
      -Dhadoop.home.dir="${HADOOP_PREFIX}" \
