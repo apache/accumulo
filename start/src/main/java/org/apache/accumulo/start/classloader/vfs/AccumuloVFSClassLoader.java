@@ -82,14 +82,10 @@ public class AccumuloVFSClassLoader {
   private static List<WeakReference<DefaultFileSystemManager>> vfsInstances = Collections
       .synchronizedList(new ArrayList<WeakReference<DefaultFileSystemManager>>());
 
-  public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
-
-  public static final String DEFAULT_DYNAMIC_CLASSPATH_VALUE = "$ACCUMULO_HOME/lib/ext/[^.].*.jar";
-
+  public static final String DYNAMIC_CLASSPATHS_JVM_PROPERTY = "accumulo.dynamic.classpaths";
+  public static final String DYNAMIC_CLASSPATHS_SITE_PROPERTY = "general.dynamic.classpaths";
   public static final String VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY = "general.vfs.classpaths";
-
   public static final String VFS_CONTEXT_CLASSPATH_PROPERTY = "general.vfs.context.classpath.";
-
   public static final String VFS_CACHE_DIR = "general.vfs.cache.dir";
 
   private static ClassLoader parent = null;
@@ -171,8 +167,27 @@ public class AccumuloVFSClassLoader {
     return classpath.toArray(new FileObject[classpath.size()]);
   }
 
+  protected static String addToClasspath(String classpath, String addition) {
+    boolean cpExists = classpath != null && !classpath.isEmpty();
+    boolean adExists = addition != null && !addition.isEmpty();
+    if (cpExists && adExists) {
+      return classpath + "," + addition;
+    } else if (cpExists) {
+      return classpath;
+    } else if (adExists) {
+      return addition;
+    }
+    return "";
+  }
+
   private static ReloadingClassLoader createDynamicClassloader(final ClassLoader parent) throws FileSystemException, IOException {
-    String dynamicCPath = AccumuloClassLoader.getAccumuloString(DYNAMIC_CLASSPATH_PROPERTY_NAME, DEFAULT_DYNAMIC_CLASSPATH_VALUE);
+    String dynamicClasspathJvm = System.getProperty(DYNAMIC_CLASSPATHS_JVM_PROPERTY, "");
+    String dynamicClasspathSite = AccumuloClassLoader.getAccumuloString(DYNAMIC_CLASSPATHS_SITE_PROPERTY, "");
+    String dynamicCPath = addToClasspath("", dynamicClasspathJvm);
+    dynamicCPath = addToClasspath(dynamicCPath, dynamicClasspathSite);
+    log.info("JVM property {} = {}", DYNAMIC_CLASSPATHS_JVM_PROPERTY, dynamicClasspathJvm);
+    log.info("Config property {} = {}", DYNAMIC_CLASSPATHS_SITE_PROPERTY, dynamicClasspathSite);
+    log.info("Derived dynamic classpath = {}", dynamicCPath);
 
     String envJars = System.getenv("ACCUMULO_XTRAJARS");
     if (null != envJars && !envJars.equals(""))

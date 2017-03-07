@@ -48,7 +48,8 @@ JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
   '-XX:OnOutOfMemoryError=kill -9 %p'
   '-XX:-OmitStackTraceInFastThrow'
   '-Djava.net.preferIPv4Stack=true'
-  "-Daccumulo.native.lib.path=${lib}/native")
+  "-Daccumulo.native.lib.path=${lib}/native"
+  "-Daccumulo.dynamic.classpaths=${lib}/ext/[^.].*.jar")
 
 ## Make sure Accumulo native libraries are built since they are enabled by default
 ${bin}/accumulo-util build-native &> /dev/null
