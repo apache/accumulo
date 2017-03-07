@@ -134,7 +134,7 @@ public abstract class CountingSummarizer<K> implements Summarizer {
    */
   public static final String SEEN_STAT = "seen";
 
-  // this default can not be changed as persisted summary data depends on it
+  // this default can not be changed as persisted summary data depends on it. See the documentation about persistence in the Summarizer class javadoc.
   public static final String MAX_COUNTER_DEFAULT = "1024";
 
   // this default can not be changed as persisted summary data depends on it
