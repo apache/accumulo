@@ -20,11 +20,13 @@
 There are multiple ways to run Java code that uses Accumulo. Below is a list
 of the different ways to execute client code.
 
-* using java executable
-* using the accumulo script
-* using the tool script
+* using the +java+ command
+* using the +accumulo+ command
+* using the +accumulo-util hadoop-jar+ command
 
-In order to run client code written to run against Accumulo, you will need to
+==== Using the java command
+
+To run Accumulo client code using the +java+ command, you will need to
 include the jars that Accumulo depends on in your classpath. Accumulo client
 code depends on Hadoop and Zookeeper. For Hadoop add the hadoop client jar, all
 of the jars in the Hadoop lib directory, and the conf directory to the
@@ -34,13 +36,24 @@ configured Accumulo system to see what its using for its classpath.
 
   accumulo classpath
 
-Another option for running your code is to put a jar file in
-+lib/ext+. After doing this you can use the accumulo
-script to execute your code. For example if you create a jar containing the
-class +com.foo.Client+ and placed that in +lib/ext+, then you could use the command
-+accumulo com.foo.Client+ to execute your code.
+==== Using the accumulo command
 
-If you are writing map reduce job that access Accumulo, then you can use
+Another option for running your code is to use the Accumulo script which can execute a
+main class (if it exists on its classpath):
+
+  accumulo com.foo.Client arg1 arg2
+
+While the Accumulo script will add all of Accumulo's dependencies to the classpath, you
+will need to add any jars that your create or depend on beyond what Accumulo already
+depends on. This can be accomplished by either adding the jars to the +lib/ext+ directory
+of your Accumulo installation or by adding jars to the CLASSPATH variable before calling
+the accumulo command.
+
+  export CLASSPATH=/path/to/my.jar:/path/to/dep.jar; accumulo com.foo.Client arg1 arg2
+
+==== Using the 'accumulo-util hadoop-jar' command
+
+If you are writing map reduce job that accesses Accumulo, then you can use
 +accumulo-util hadoop-jar+ to run those jobs. See the map reduce example.
 
 === Connecting

@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.jar.Attributes;
-import java.util.jar.JarFile;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -208,7 +206,7 @@ public class Main {
     Map<String,KeywordExecutable> executableMap = new TreeMap<>(getExecutables(getClassLoader()));
 
     System.out.println("\nUsage: accumulo <command> (<argument> ...)\n\nCore Commands:");
-    for (String cmd : Arrays.asList("init", "shell", "classpath", "version", "admin", "info", "help", "jar")) {
+    for (String cmd : Arrays.asList("init", "shell", "classpath", "version", "admin", "info", "help")) {
       printCommand(executableMap.remove(cmd));
     }
     System.out.println("  <main class> args              Runs Java <main class> located on Accumulo classpath");
@@ -254,26 +252,4 @@ public class Main {
   private static void warnDuplicate(final KeywordExecutable service) {
     log.warn("Ambiguous duplicate binding for keyword '" + service.keyword() + "' found: " + service.getClass().getName());
   }
-
-  // feature: will work even if main class isn't in the JAR
-  public static Class<?> loadClassFromJar(final String[] args, final JarFile f, final ClassLoader cl) throws ClassNotFoundException, IOException {
-    ClassNotFoundException explicitNotFound = null;
-    if (args.length >= 2) {
-      try {
-        return cl.loadClass(args[1]); // jar-file main-class
-      } catch (ClassNotFoundException cnfe) {
-        // assume this is the first argument, look for main class in JAR manifest
-        explicitNotFound = cnfe;
-      }
-    }
-    String mainClass = f.getManifest().getMainAttributes().getValue(Attributes.Name.MAIN_CLASS);
-    if (mainClass == null) {
-      if (explicitNotFound != null) {
-        throw explicitNotFound;
-      }
-      throw new ClassNotFoundException("No main class was specified, and the JAR manifest does not specify one");
-    }
-    return cl.loadClass(mainClass);
-  }
-
 }

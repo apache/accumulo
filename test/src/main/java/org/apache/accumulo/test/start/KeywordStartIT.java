@@ -37,7 +37,6 @@ import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.util.Classpath;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
-import org.apache.accumulo.core.util.Jar;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.gc.GCExecutable;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -108,7 +107,6 @@ public class KeywordStartIT {
     expectSet.put("help", Help.class);
     expectSet.put("info", Info.class);
     expectSet.put("init", Initialize.class);
-    expectSet.put("jar", Jar.class);
     expectSet.put("login-info", LoginProperties.class);
     expectSet.put("master", MasterExecutable.class);
     expectSet.put("minicluster", MiniClusterExecutable.class);

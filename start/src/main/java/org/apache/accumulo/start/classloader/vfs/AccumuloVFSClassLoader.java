@@ -171,22 +171,10 @@ public class AccumuloVFSClassLoader {
     return classpath.toArray(new FileObject[classpath.size()]);
   }
 
-  private static ReloadingClassLoader createDynamicClassloader(final ClassLoader parent) throws FileSystemException, IOException {
+  private static ReloadingClassLoader createDynamicClassloader(final ClassLoader parent) throws IOException {
     String dynamicCPath = AccumuloClassLoader.getAccumuloString(DYNAMIC_CLASSPATH_PROPERTY_NAME, DEFAULT_DYNAMIC_CLASSPATH_VALUE);
 
-    String envJars = System.getenv("ACCUMULO_XTRAJARS");
-    if (null != envJars && !envJars.equals(""))
-      if (dynamicCPath != null && !dynamicCPath.equals(""))
-        dynamicCPath = dynamicCPath + "," + envJars;
-      else
-        dynamicCPath = envJars;
-
-    ReloadingClassLoader wrapper = new ReloadingClassLoader() {
-      @Override
-      public ClassLoader getClassLoader() {
-        return parent;
-      }
-    };
+    ReloadingClassLoader wrapper = () -> parent;
 
     if (dynamicCPath == null || dynamicCPath.equals(""))
       return wrapper;

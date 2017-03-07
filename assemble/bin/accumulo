@@ -59,44 +59,13 @@ function main() {
   export ACCUMULO_CONF_DIR="$conf"
 
   # Verify setting in accumulo-env.sh
-
   : "${JAVA_OPTS:?"variable is not set in accumulo-env.sh"}"
   : "${ACCUMULO_LOG_DIR:?"variable is not set in accumulo-env.sh"}"
   mkdir -p "${ACCUMULO_LOG_DIR}" 2>/dev/null
-  verify_env_dir "ACCUMULO_LOG_DIR" "${ACCUMULO_LOG_DIR}"
   verify_env_dir "HADOOP_PREFIX" "${HADOOP_PREFIX}"
   verify_env_dir "HADOOP_CONF_DIR" "${HADOOP_CONF_DIR}"
   verify_env_dir "ZOOKEEPER_HOME" "${ZOOKEEPER_HOME}"
   : "${MALLOC_ARENA_MAX:?"variable is not set in accumulo-env.sh"}"
-
-  # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
-  # It also holds the JAR run with the jar command and, if possible, any items in the JAR manifest's Class-Path.
-  if [[ "$cmd" = "-add" ]]; then
-    export ACCUMULO_XTRAJARS="$2"
-    shift 2
-  else
-    export ACCUMULO_XTRAJARS=""
-  fi
-  if [[ "$cmd" = "jar" && -f "$2" ]]; then
-    if [[ $2 =~ ^/ ]]; then
-      jardir="$(dirname "$2")"
-      jarfile="$2"
-    else
-      jardir="$(pwd)"
-      jarfile="${jardir}/${2}"
-    fi
-    if jar tf "$jarfile" | grep -q META-INF/MANIFEST.MF ; then
-      cp="$(unzip -p "$jarfile" META-INF/MANIFEST.MF | grep ^Class-Path: | sed 's/^Class-Path: *//')"
-      if [[ -n "$cp" ]] ; then
-         for j in $cp; do
-            if [[ "$j" != "Class-Path:" ]] ; then
-               ACCUMULO_XTRAJARS="${jardir}/${j},$ACCUMULO_XTRAJARS"
-            fi
-         done
-      fi
-    fi
-    ACCUMULO_XTRAJARS="${jarfile},$ACCUMULO_XTRAJARS"
-  fi
 
   if [ -x "$JAVA_HOME/bin/java" ]; then
     JAVA="$JAVA_HOME/bin/java"
@@ -107,7 +76,6 @@ function main() {
     echo "Could not find any executable java binary. Please set java on your PATH or set JAVA_HOME"
     exit 1
   fi
-
   if [ -n "$ACCUMULO_JAVA_PREFIX" ]; then
     JAVA=($ACCUMULO_JAVA_PREFIX $JAVA)
   fi
