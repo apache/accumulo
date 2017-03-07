@@ -151,7 +151,7 @@ public class DefaultCompactionStrategyTest {
     }
 
     TestCompactionRequest(KeyExtent extent, MajorCompactionReason reason, Map<FileRef,DataFileValue> files) {
-      super(extent, reason, null, dfault);
+      super(extent, reason, dfault);
       setFiles(files);
     }
 

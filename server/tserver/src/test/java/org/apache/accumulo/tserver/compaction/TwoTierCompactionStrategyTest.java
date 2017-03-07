@@ -62,7 +62,7 @@ public class TwoTierCompactionStrategyTest {
     ttcs.init(opts);
     conf = AccumuloConfiguration.getDefaultConfiguration();
     KeyExtent ke = new KeyExtent("0", null, null);
-    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null, conf);
+    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "10M", "f2", "10M", "f3", "10M", "f4", "10M", "f5", "100M", "f6", "100M", "f7", "100M", "f8",
         "100M");
     mcr.setFiles(fileMap);
@@ -81,7 +81,7 @@ public class TwoTierCompactionStrategyTest {
     ttcs.init(opts);
     conf = AccumuloConfiguration.getDefaultConfiguration();
     KeyExtent ke = new KeyExtent("0", null, null);
-    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null, conf);
+    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G");
     mcr.setFiles(fileMap);
 
@@ -110,7 +110,7 @@ public class TwoTierCompactionStrategyTest {
     ttcs.init(opts);
     conf = AccumuloConfiguration.getDefaultConfiguration();
     KeyExtent ke = new KeyExtent("0", null, null);
-    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, null, conf);
+    mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "1G", "f2", "10M", "f3", "10M", "f4", "10M", "f5", "10M", "f6", "10M", "f7", "10M");
     Map<FileRef,DataFileValue> filesToCompactMap = createFileMap("f2", "10M", "f3", "10M", "f4", "10M", "f5", "10M", "f6", "10M", "f7", "10M");
     mcr.setFiles(fileMap);

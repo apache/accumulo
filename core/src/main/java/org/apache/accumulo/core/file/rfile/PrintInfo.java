@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
+import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.hadoop.conf.Configuration;
@@ -58,6 +59,8 @@ public class PrintInfo implements KeywordExecutable {
     boolean histogram = false;
     @Parameter(names = {"--useSample"}, description = "Use sample data for --dump, --vis, --histogram options")
     boolean useSample = false;
+    @Parameter(names = {"--summary"}, description = "Print summary data in file")
+    boolean printSummary = false;
     @Parameter(names = {"--keyStats"}, description = "print key length statistics for index and all data")
     boolean keyStats = false;
     @Parameter(description = " <file> { <file> ... }")
@@ -209,6 +212,10 @@ public class PrintInfo implements KeywordExecutable {
             dataIter.next();
           }
         }
+      }
+
+      if (opts.printSummary) {
+        SummaryReader.print(iter, System.out);
       }
 
       iter.close();

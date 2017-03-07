@@ -63,6 +63,8 @@ include::chapters/kerberos.txt[]
 
 include::chapters/sampling.txt[]
 
+include::chapters/summaries.txt[]
+
 include::chapters/administration.txt[]
 
 include::chapters/multivolume.txt[]

@@ -25,11 +25,13 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class SamplerFactory {
-  public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf) throws IOException {
+  public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf, boolean useAccumuloStart) throws IOException {
     String context = acuconf.get(Property.TABLE_CLASSPATH);
 
     Class<? extends Sampler> clazz;
     try {
+      if (!useAccumuloStart)
+        clazz = SamplerFactory.class.getClassLoader().loadClass(config.getClassName()).asSubclass(Sampler.class);
       if (context != null && !context.equals(""))
         clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, config.getClassName(), Sampler.class);
       else
@@ -44,5 +46,9 @@ public class SamplerFactory {
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf) throws IOException {
+    return newSampler(config, acuconf, true);
   }
 }

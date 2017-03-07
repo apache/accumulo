@@ -54,6 +54,8 @@ import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
+import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -1487,7 +1489,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("systempermissions");
     assertEquals(12, ts.output.get().split("\n").length - 1);
     ts.exec("tablepermissions", true);
-    assertEquals(6, ts.output.get().split("\n").length - 1);
+    assertEquals(7, ts.output.get().split("\n").length - 1);
   }
 
   @Test
@@ -1892,6 +1894,73 @@ public class ShellServerIT extends SharedMiniClusterBase {
     fail("Could not find ID for table: " + tableName);
     // Will never get here
     return null;
+  }
+
+  @Test
+  public void testSummaries() throws Exception {
+    ts.exec("createtable summary");
+    ts.exec("config -t summary -s table.summarizer.del=" + DeletesSummarizer.class.getName());
+    ts.exec("config -t summary -s table.summarizer.fam=" + FamilySummarizer.class.getName());
+    // ts.exec("config -t summary -s table.summarizer.fam.opt."+CountingSummarizer.INGNORE_DELETES_OPT+"=false");
+    ts.exec("addsplits -t summary r1 r2");
+    ts.exec("insert r1 f1 q1 v1");
+    ts.exec("insert r2 f2 q1 v3");
+    ts.exec("insert r2 f2 q2 v4");
+    ts.exec("insert r3 f3 q1 v5");
+    ts.exec("insert r3 f3 q2 v6");
+    ts.exec("insert r3 f3 q3 v7");
+    ts.exec("flush -t summary -w");
+
+    String output = ts.exec("summaries");
+    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+0.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+6.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f1\\s+=\\s+1.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f3\\s+=\\s+3.*$.*"));
+
+    ts.exec("delete r1 f1 q2");
+    ts.exec("delete r2 f2 q1");
+    ts.exec("flush -t summary -w");
+
+    output = ts.exec("summaries");
+    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+2.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+8.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f1\\s+=\\s+1.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f3\\s+=\\s+3.*$.*"));
+
+    output = ts.exec("summaries -e r2");
+    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+2.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+5.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f1\\s+=\\s+1.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
+    Assert.assertFalse(output.contains("c:f3"));
+
+    output = ts.exec("summaries -b r2");
+    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+0.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+3.*$.*"));
+    Assert.assertFalse(output.contains("c:f1"));
+    Assert.assertFalse(output.contains("c:f2"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f3\\s+=\\s+3.*$.*"));
+
+    output = ts.exec("summaries -b r1 -e r2");
+    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+1.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+3.*$.*"));
+    Assert.assertFalse(output.contains("c:f1"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
+    Assert.assertFalse(output.contains("c:f3"));
+
+    output = ts.exec("summaries -sr .*Family.*");
+    Assert.assertFalse(output.contains("deletes "));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f1\\s+=\\s+1.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f3\\s+=\\s+3.*$.*"));
+
+    output = ts.exec("summaries -b r1 -e r2 -sr .*Family.*");
+    Assert.assertFalse(output.contains("deletes "));
+    Assert.assertFalse(output.contains("c:f1"));
+    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
+    Assert.assertFalse(output.contains("c:f3"));
   }
 
 }

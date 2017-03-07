@@ -90,6 +90,8 @@ public class TabletClientService {
 
     public java.util.List<java.lang.String> getActiveLogs(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException;
 
+    public org.apache.accumulo.core.client.impl.thrift.TSummaries getSummariesFromFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request, java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+
   }
 
   public interface AsyncIface extends org.apache.accumulo.core.client.impl.thrift.ClientService .AsyncIface {
@@ -155,6 +157,8 @@ public class TabletClientService {
     public void removeLogs(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, java.util.List<java.lang.String> filenames, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
     public void getActiveLogs(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<java.lang.String>> resultHandler) throws org.apache.thrift.TException;
+
+    public void getSummariesFromFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request, java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.client.impl.thrift.TSummaries> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -932,6 +936,35 @@ public class TabletClientService {
         return result.success;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getActiveLogs failed: unknown result");
+    }
+
+    public org.apache.accumulo.core.client.impl.thrift.TSummaries getSummariesFromFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request, java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      send_getSummariesFromFiles(tinfo, credentials, request, files);
+      return recv_getSummariesFromFiles();
+    }
+
+    public void send_getSummariesFromFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request, java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files) throws org.apache.thrift.TException
+    {
+      getSummariesFromFiles_args args = new getSummariesFromFiles_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setRequest(request);
+      args.setFiles(files);
+      sendBase("getSummariesFromFiles", args);
+    }
+
+    public org.apache.accumulo.core.client.impl.thrift.TSummaries recv_getSummariesFromFiles() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      getSummariesFromFiles_result result = new getSummariesFromFiles_result();
+      receiveBase(result, "getSummariesFromFiles");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getSummariesFromFiles failed: unknown result");
     }
 
   }
@@ -2220,6 +2253,47 @@ public class TabletClientService {
       }
     }
 
+    public void getSummariesFromFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request, java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.client.impl.thrift.TSummaries> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      getSummariesFromFiles_call method_call = new getSummariesFromFiles_call(tinfo, credentials, request, files, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class getSummariesFromFiles_call extends org.apache.thrift.async.TAsyncMethodCall<org.apache.accumulo.core.client.impl.thrift.TSummaries> {
+      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
+      private org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request;
+      private java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files;
+      public getSummariesFromFiles_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request, java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.client.impl.thrift.TSummaries> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.request = request;
+        this.files = files;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getSummariesFromFiles", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getSummariesFromFiles_args args = new getSummariesFromFiles_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setRequest(request);
+        args.setFiles(files);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public org.apache.accumulo.core.client.impl.thrift.TSummaries getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new java.lang.IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_getSummariesFromFiles();
+      }
+    }
+
   }
 
   public static class Processor<I extends Iface> extends org.apache.accumulo.core.client.impl.thrift.ClientService.Processor<I> implements org.apache.thrift.TProcessor {
@@ -2264,6 +2338,7 @@ public class TabletClientService {
       processMap.put("getActiveCompactions", new getActiveCompactions());
       processMap.put("removeLogs", new removeLogs());
       processMap.put("getActiveLogs", new getActiveLogs());
+      processMap.put("getSummariesFromFiles", new getSummariesFromFiles());
       return processMap;
     }
 
@@ -2971,6 +3046,30 @@ public class TabletClientService {
       }
     }
 
+    public static class getSummariesFromFiles<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getSummariesFromFiles_args> {
+      public getSummariesFromFiles() {
+        super("getSummariesFromFiles");
+      }
+
+      public getSummariesFromFiles_args getEmptyArgsInstance() {
+        return new getSummariesFromFiles_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public getSummariesFromFiles_result getResult(I iface, getSummariesFromFiles_args args) throws org.apache.thrift.TException {
+        getSummariesFromFiles_result result = new getSummariesFromFiles_result();
+        try {
+          result.success = iface.getSummariesFromFiles(args.tinfo, args.credentials, args.request, args.files);
+        } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
+        }
+        return result;
+      }
+    }
+
   }
 
   public static class AsyncProcessor<I extends AsyncIface> extends org.apache.accumulo.core.client.impl.thrift.ClientService.AsyncProcessor<I> {
@@ -3015,6 +3114,7 @@ public class TabletClientService {
       processMap.put("getActiveCompactions", new getActiveCompactions());
       processMap.put("removeLogs", new removeLogs());
       processMap.put("getActiveLogs", new getActiveLogs());
+      processMap.put("getSummariesFromFiles", new getSummariesFromFiles());
       return processMap;
     }
 
@@ -4721,6 +4821,71 @@ public class TabletClientService {
 
       public void start(I iface, getActiveLogs_args args, org.apache.thrift.async.AsyncMethodCallback<java.util.List<java.lang.String>> resultHandler) throws org.apache.thrift.TException {
         iface.getActiveLogs(args.tinfo, args.credentials,resultHandler);
+      }
+    }
+
+    public static class getSummariesFromFiles<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getSummariesFromFiles_args, org.apache.accumulo.core.client.impl.thrift.TSummaries> {
+      public getSummariesFromFiles() {
+        super("getSummariesFromFiles");
+      }
+
+      public getSummariesFromFiles_args getEmptyArgsInstance() {
+        return new getSummariesFromFiles_args();
+      }
+
+      public org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.client.impl.thrift.TSummaries> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.client.impl.thrift.TSummaries>() { 
+          public void onComplete(org.apache.accumulo.core.client.impl.thrift.TSummaries o) {
+            getSummariesFromFiles_result result = new getSummariesFromFiles_result();
+            result.success = o;
+            try {
+              fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+            } catch (org.apache.thrift.transport.TTransportException e) {
+              _LOGGER.error("TTransportException writing to internal frame buffer", e);
+              fb.close();
+            } catch (java.lang.Exception e) {
+              _LOGGER.error("Exception writing to internal frame buffer", e);
+              onError(e);
+            }
+          }
+          public void onError(java.lang.Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TSerializable msg;
+            getSummariesFromFiles_result result = new getSummariesFromFiles_result();
+            if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) {
+              result.sec = (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+              _LOGGER.error("TTransportException inside handler", e);
+              fb.close();
+              return;
+            } else if (e instanceof org.apache.thrift.TApplicationException) {
+              _LOGGER.error("TApplicationException inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TApplicationException)e;
+            } else {
+              _LOGGER.error("Exception inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+            } catch (java.lang.Exception ex) {
+              _LOGGER.error("Exception writing to internal frame buffer", ex);
+              fb.close();
+            }
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public void start(I iface, getSummariesFromFiles_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.client.impl.thrift.TSummaries> resultHandler) throws org.apache.thrift.TException {
+        iface.getSummariesFromFiles(args.tinfo, args.credentials, args.request, args.files,resultHandler);
       }
     }
 
@@ -37044,6 +37209,1269 @@ public class TabletClientService {
             }
           }
           struct.setSuccessIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  public static class getSummariesFromFiles_args implements org.apache.thrift.TBase<getSummariesFromFiles_args, getSummariesFromFiles_args._Fields>, java.io.Serializable, Cloneable, Comparable<getSummariesFromFiles_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSummariesFromFiles_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField REQUEST_FIELD_DESC = new org.apache.thrift.protocol.TField("request", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("files", org.apache.thrift.protocol.TType.MAP, (short)4);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getSummariesFromFiles_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getSummariesFromFiles_argsTupleSchemeFactory();
+
+    public org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request; // required
+    public java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      REQUEST((short)3, "request"),
+      FILES((short)4, "files");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // REQUEST
+            return REQUEST;
+          case 4: // FILES
+            return FILES;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.REQUEST, new org.apache.thrift.meta_data.FieldMetaData("request", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.client.impl.thrift.TSummaryRequest.class)));
+      tmpMap.put(_Fields.FILES, new org.apache.thrift.meta_data.FieldMetaData("files", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
+              new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+                  new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.client.impl.thrift.TRowRange.class)))));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getSummariesFromFiles_args.class, metaDataMap);
+    }
+
+    public getSummariesFromFiles_args() {
+    }
+
+    public getSummariesFromFiles_args(
+      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.security.thrift.TCredentials credentials,
+      org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request,
+      java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.request = request;
+      this.files = files;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getSummariesFromFiles_args(getSummariesFromFiles_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetRequest()) {
+        this.request = new org.apache.accumulo.core.client.impl.thrift.TSummaryRequest(other.request);
+      }
+      if (other.isSetFiles()) {
+        java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> __this__files = new java.util.HashMap<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>>(other.files.size());
+        for (java.util.Map.Entry<java.lang.String, java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> other_element : other.files.entrySet()) {
+
+          java.lang.String other_element_key = other_element.getKey();
+          java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange> other_element_value = other_element.getValue();
+
+          java.lang.String __this__files_copy_key = other_element_key;
+
+          java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange> __this__files_copy_value = new java.util.ArrayList<org.apache.accumulo.core.client.impl.thrift.TRowRange>(other_element_value.size());
+          for (org.apache.accumulo.core.client.impl.thrift.TRowRange other_element_value_element : other_element_value) {
+            __this__files_copy_value.add(new org.apache.accumulo.core.client.impl.thrift.TRowRange(other_element_value_element));
+          }
+
+          __this__files.put(__this__files_copy_key, __this__files_copy_value);
+        }
+        this.files = __this__files;
+      }
+    }
+
+    public getSummariesFromFiles_args deepCopy() {
+      return new getSummariesFromFiles_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.request = null;
+      this.files = null;
+    }
+
+    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public getSummariesFromFiles_args setTinfo(org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public getSummariesFromFiles_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public org.apache.accumulo.core.client.impl.thrift.TSummaryRequest getRequest() {
+      return this.request;
+    }
+
+    public getSummariesFromFiles_args setRequest(org.apache.accumulo.core.client.impl.thrift.TSummaryRequest request) {
+      this.request = request;
+      return this;
+    }
+
+    public void unsetRequest() {
+      this.request = null;
+    }
+
+    /** Returns true if field request is set (has been assigned a value) and false otherwise */
+    public boolean isSetRequest() {
+      return this.request != null;
+    }
+
+    public void setRequestIsSet(boolean value) {
+      if (!value) {
+        this.request = null;
+      }
+    }
+
+    public int getFilesSize() {
+      return (this.files == null) ? 0 : this.files.size();
+    }
+
+    public void putToFiles(java.lang.String key, java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange> val) {
+      if (this.files == null) {
+        this.files = new java.util.HashMap<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>>();
+      }
+      this.files.put(key, val);
+    }
+
+    public java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> getFiles() {
+      return this.files;
+    }
+
+    public getSummariesFromFiles_args setFiles(java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> files) {
+      this.files = files;
+      return this;
+    }
+
+    public void unsetFiles() {
+      this.files = null;
+    }
+
+    /** Returns true if field files is set (has been assigned a value) and false otherwise */
+    public boolean isSetFiles() {
+      return this.files != null;
+    }
+
+    public void setFilesIsSet(boolean value) {
+      if (!value) {
+        this.files = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, java.lang.Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+        }
+        break;
+
+      case REQUEST:
+        if (value == null) {
+          unsetRequest();
+        } else {
+          setRequest((org.apache.accumulo.core.client.impl.thrift.TSummaryRequest)value);
+        }
+        break;
+
+      case FILES:
+        if (value == null) {
+          unsetFiles();
+        } else {
+          setFiles((java.util.Map<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>>)value);
+        }
+        break;
+
+      }
+    }
+
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case REQUEST:
+        return getRequest();
+
+      case FILES:
+        return getFiles();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case REQUEST:
+        return isSetRequest();
+      case FILES:
+        return isSetFiles();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getSummariesFromFiles_args)
+        return this.equals((getSummariesFromFiles_args)that);
+      return false;
+    }
+
+    public boolean equals(getSummariesFromFiles_args that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_request = true && this.isSetRequest();
+      boolean that_present_request = true && that.isSetRequest();
+      if (this_present_request || that_present_request) {
+        if (!(this_present_request && that_present_request))
+          return false;
+        if (!this.request.equals(that.request))
+          return false;
+      }
+
+      boolean this_present_files = true && this.isSetFiles();
+      boolean that_present_files = true && that.isSetFiles();
+      if (this_present_files || that_present_files) {
+        if (!(this_present_files && that_present_files))
+          return false;
+        if (!this.files.equals(that.files))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
+      if (isSetTinfo())
+        hashCode = hashCode * 8191 + tinfo.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
+      if (isSetCredentials())
+        hashCode = hashCode * 8191 + credentials.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetRequest()) ? 131071 : 524287);
+      if (isSetRequest())
+        hashCode = hashCode * 8191 + request.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetFiles()) ? 131071 : 524287);
+      if (isSetFiles())
+        hashCode = hashCode * 8191 + files.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(getSummariesFromFiles_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.valueOf(isSetTinfo()).compareTo(other.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetCredentials()).compareTo(other.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetRequest()).compareTo(other.isSetRequest());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetRequest()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.request, other.request);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetFiles()).compareTo(other.isSetFiles());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetFiles()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.files, other.files);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+    }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getSummariesFromFiles_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("request:");
+      if (this.request == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.request);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("files:");
+      if (this.files == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.files);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+      if (request != null) {
+        request.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getSummariesFromFiles_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getSummariesFromFiles_argsStandardScheme getScheme() {
+        return new getSummariesFromFiles_argsStandardScheme();
+      }
+    }
+
+    private static class getSummariesFromFiles_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getSummariesFromFiles_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getSummariesFromFiles_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // REQUEST
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.request = new org.apache.accumulo.core.client.impl.thrift.TSummaryRequest();
+                struct.request.read(iprot);
+                struct.setRequestIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 4: // FILES
+              if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
+                {
+                  org.apache.thrift.protocol.TMap _map340 = iprot.readMapBegin();
+                  struct.files = new java.util.HashMap<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>>(2*_map340.size);
+                  java.lang.String _key341;
+                  java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange> _val342;
+                  for (int _i343 = 0; _i343 < _map340.size; ++_i343)
+                  {
+                    _key341 = iprot.readString();
+                    {
+                      org.apache.thrift.protocol.TList _list344 = iprot.readListBegin();
+                      _val342 = new java.util.ArrayList<org.apache.accumulo.core.client.impl.thrift.TRowRange>(_list344.size);
+                      org.apache.accumulo.core.client.impl.thrift.TRowRange _elem345;
+                      for (int _i346 = 0; _i346 < _list344.size; ++_i346)
+                      {
+                        _elem345 = new org.apache.accumulo.core.client.impl.thrift.TRowRange();
+                        _elem345.read(iprot);
+                        _val342.add(_elem345);
+                      }
+                      iprot.readListEnd();
+                    }
+                    struct.files.put(_key341, _val342);
+                  }
+                  iprot.readMapEnd();
+                }
+                struct.setFilesIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getSummariesFromFiles_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.request != null) {
+          oprot.writeFieldBegin(REQUEST_FIELD_DESC);
+          struct.request.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.files != null) {
+          oprot.writeFieldBegin(FILES_FIELD_DESC);
+          {
+            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, struct.files.size()));
+            for (java.util.Map.Entry<java.lang.String, java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> _iter347 : struct.files.entrySet())
+            {
+              oprot.writeString(_iter347.getKey());
+              {
+                oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter347.getValue().size()));
+                for (org.apache.accumulo.core.client.impl.thrift.TRowRange _iter348 : _iter347.getValue())
+                {
+                  _iter348.write(oprot);
+                }
+                oprot.writeListEnd();
+              }
+            }
+            oprot.writeMapEnd();
+          }
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getSummariesFromFiles_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getSummariesFromFiles_argsTupleScheme getScheme() {
+        return new getSummariesFromFiles_argsTupleScheme();
+      }
+    }
+
+    private static class getSummariesFromFiles_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getSummariesFromFiles_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getSummariesFromFiles_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetRequest()) {
+          optionals.set(2);
+        }
+        if (struct.isSetFiles()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetRequest()) {
+          struct.request.write(oprot);
+        }
+        if (struct.isSetFiles()) {
+          {
+            oprot.writeI32(struct.files.size());
+            for (java.util.Map.Entry<java.lang.String, java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>> _iter349 : struct.files.entrySet())
+            {
+              oprot.writeString(_iter349.getKey());
+              {
+                oprot.writeI32(_iter349.getValue().size());
+                for (org.apache.accumulo.core.client.impl.thrift.TRowRange _iter350 : _iter349.getValue())
+                {
+                  _iter350.write(oprot);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getSummariesFromFiles_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(4);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.request = new org.apache.accumulo.core.client.impl.thrift.TSummaryRequest();
+          struct.request.read(iprot);
+          struct.setRequestIsSet(true);
+        }
+        if (incoming.get(3)) {
+          {
+            org.apache.thrift.protocol.TMap _map351 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
+            struct.files = new java.util.HashMap<java.lang.String,java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange>>(2*_map351.size);
+            java.lang.String _key352;
+            java.util.List<org.apache.accumulo.core.client.impl.thrift.TRowRange> _val353;
+            for (int _i354 = 0; _i354 < _map351.size; ++_i354)
+            {
+              _key352 = iprot.readString();
+              {
+                org.apache.thrift.protocol.TList _list355 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+                _val353 = new java.util.ArrayList<org.apache.accumulo.core.client.impl.thrift.TRowRange>(_list355.size);
+                org.apache.accumulo.core.client.impl.thrift.TRowRange _elem356;
+                for (int _i357 = 0; _i357 < _list355.size; ++_i357)
+                {
+                  _elem356 = new org.apache.accumulo.core.client.impl.thrift.TRowRange();
+                  _elem356.read(iprot);
+                  _val353.add(_elem356);
+                }
+              }
+              struct.files.put(_key352, _val353);
+            }
+          }
+          struct.setFilesIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  public static class getSummariesFromFiles_result implements org.apache.thrift.TBase<getSummariesFromFiles_result, getSummariesFromFiles_result._Fields>, java.io.Serializable, Cloneable, Comparable<getSummariesFromFiles_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSummariesFromFiles_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getSummariesFromFiles_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getSummariesFromFiles_resultTupleSchemeFactory();
+
+    public org.apache.accumulo.core.client.impl.thrift.TSummaries success; // required
+    public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      SEC((short)1, "sec");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // SEC
+            return SEC;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.client.impl.thrift.TSummaries.class)));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException.class)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getSummariesFromFiles_result.class, metaDataMap);
+    }
+
+    public getSummariesFromFiles_result() {
+    }
+
+    public getSummariesFromFiles_result(
+      org.apache.accumulo.core.client.impl.thrift.TSummaries success,
+      org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec)
+    {
+      this();
+      this.success = success;
+      this.sec = sec;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getSummariesFromFiles_result(getSummariesFromFiles_result other) {
+      if (other.isSetSuccess()) {
+        this.success = new org.apache.accumulo.core.client.impl.thrift.TSummaries(other.success);
+      }
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
+      }
+    }
+
+    public getSummariesFromFiles_result deepCopy() {
+      return new getSummariesFromFiles_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.sec = null;
+    }
+
+    public org.apache.accumulo.core.client.impl.thrift.TSummaries getSuccess() {
+      return this.success;
+    }
+
+    public getSummariesFromFiles_result setSuccess(org.apache.accumulo.core.client.impl.thrift.TSummaries success) {
+      this.success = success;
+      return this;
+    }
+
+    public void unsetSuccess() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return this.success != null;
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public getSummariesFromFiles_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, java.lang.Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((org.apache.accumulo.core.client.impl.thrift.TSummaries)value);
+        }
+        break;
+
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      }
+    }
+
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return getSuccess();
+
+      case SEC:
+        return getSec();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      case SEC:
+        return isSetSec();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getSummariesFromFiles_result)
+        return this.equals((getSummariesFromFiles_result)that);
+      return false;
+    }
+
+    public boolean equals(getSummariesFromFiles_result that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
+      if (isSetSuccess())
+        hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(getSummariesFromFiles_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.valueOf(isSetSuccess()).compareTo(other.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.valueOf(isSetSec()).compareTo(other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+      }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("getSummariesFromFiles_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getSummariesFromFiles_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getSummariesFromFiles_resultStandardScheme getScheme() {
+        return new getSummariesFromFiles_resultStandardScheme();
+      }
+    }
+
+    private static class getSummariesFromFiles_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getSummariesFromFiles_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getSummariesFromFiles_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new org.apache.accumulo.core.client.impl.thrift.TSummaries();
+                struct.success.read(iprot);
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getSummariesFromFiles_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          struct.success.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getSummariesFromFiles_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      public getSummariesFromFiles_resultTupleScheme getScheme() {
+        return new getSummariesFromFiles_resultTupleScheme();
+      }
+    }
+
+    private static class getSummariesFromFiles_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getSummariesFromFiles_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getSummariesFromFiles_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        if (struct.isSetSec()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetSuccess()) {
+          struct.success.write(oprot);
+        }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getSummariesFromFiles_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.success = new org.apache.accumulo.core.client.impl.thrift.TSummaries();
+          struct.success.read(iprot);
+          struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
         }
       }
     }

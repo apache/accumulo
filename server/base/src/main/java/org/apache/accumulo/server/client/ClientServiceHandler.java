@@ -41,6 +41,8 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
+import org.apache.accumulo.core.client.impl.thrift.TSummaries;
+import org.apache.accumulo.core.client.impl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -57,6 +59,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -475,5 +478,43 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   public List<BulkImportStatus> getBulkLoadStatus() {
     return bulkImportStatus.getBulkLoadStatus();
+  }
+
+  @Override
+  public TSummaries getSummaries(TInfo tinfo, TCredentials credentials, TSummaryRequest request) throws TException {
+
+    String namespaceId;
+    try {
+      namespaceId = Tables.getNamespaceId(context.getInstance(), request.getTableId());
+    } catch (TableNotFoundException e1) {
+      throw new ThriftTableOperationException(request.getTableId(), null, null, TableOperationExceptionType.NOTFOUND, null);
+    }
+
+    if (!security.canGetSummaries(credentials, request.getTableId(), namespaceId)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    try {
+      ServerConfigurationFactory factory = context.getServerConfigurationFactory();
+      return new Gatherer(context, request, factory.getTableConfiguration(request.getTableId())).gather().toThrift();
+    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public TSummaries getSummariesForPartition(TInfo tinfo, TCredentials credentials, TSummaryRequest request, int modulus, int remainder) throws TException {
+
+    // do not expect users to call this directly, expect other tservers to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    try {
+      ServerConfigurationFactory factory = context.getServerConfigurationFactory();
+      return new Gatherer(context, request, factory.getTableConfiguration(request.getTableId())).processPartition(modulus, remainder).toThrift();
+    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

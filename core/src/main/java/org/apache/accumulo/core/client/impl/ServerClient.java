@@ -36,6 +36,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -79,6 +80,8 @@ public class ServerClient {
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
+      } catch (TApplicationException tae) {
+        throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
         log.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
@@ -99,6 +102,8 @@ public class ServerClient {
         client = pair.getSecond();
         exec.execute(client);
         break;
+      } catch (TApplicationException tae) {
+        throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
         log.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);

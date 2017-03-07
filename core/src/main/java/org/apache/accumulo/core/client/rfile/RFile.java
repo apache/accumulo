@@ -19,12 +19,18 @@ package org.apache.accumulo.core.client.rfile;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.Summarizer;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.client.summary.Summary;
+import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
@@ -181,6 +187,119 @@ public class RFile {
   }
 
   /**
+   * This is an intermediate interface in a larger builder pattern. Supports setting the required input sources for reading summary data from an RFile.
+   *
+   * @since 2.0.0
+   */
+  public static interface SummaryInputArguments {
+    /**
+     * Specify RFiles to read from. When multiple inputs are specified the summary data will be merged.
+     *
+     * @param inputs
+     *          one or more RFiles to read.
+     * @return this
+     */
+    SummaryOptions from(RFileSource... inputs);
+
+    /**
+     * Specify RFiles to read from. When multiple are specified the summary data will be merged.
+     *
+     * @param files
+     *          one or more RFiles to read.
+     * @return this
+     */
+    SummaryFSOptions from(String... files);
+  }
+
+  /**
+   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a FileSystem to read RFile summary data from.
+   *
+   * @since 2.0.0
+   */
+  public static interface SummaryFSOptions extends SummaryOptions {
+    /**
+     * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be constructed using configuration on the classpath.
+     *
+     * @param fs
+     *          use this FileSystem to open files.
+     * @return this
+     */
+    SummaryOptions withFileSystem(FileSystem fs);
+  }
+
+  /**
+   * This is an intermediate interface in a large builder pattern. Allows setting options for retrieving summary data.
+   *
+   * @since 2.0.0
+   */
+  public static interface SummaryOptions {
+    /**
+     * This method allows retrieving a subset of summary data from a file. If a file has lots of separate summaries, reading a subset may be faster.
+     *
+     * @param summarySelector
+     *          Only read summary data that was generated with configuration that this predicate matches.
+     * @return this
+     */
+    SummaryOptions selectSummaries(Predicate<SummarizerConfiguration> summarySelector);
+
+    /**
+     * Summary data may possibly be stored at a more granular level than the entire file. However there is no guarantee of this. If the data was stored at a
+     * more granular level, then this will get a subset of the summary data. The subset will very likely be an inaccurate approximation.
+     *
+     * @param startRow
+     *          A non-null start row. The startRow is used exclusively.
+     * @return this
+     *
+     * @see FileStatistics#getExtra()
+     */
+    SummaryOptions startRow(Text startRow);
+
+    /**
+     * @param startRow
+     *          UTF-8 encodes startRow. The startRow is used exclusively.
+     * @return this
+     * @see #startRow(Text)
+     */
+    SummaryOptions startRow(CharSequence startRow);
+
+    /**
+     * Summary data may possibly be stored at a more granular level than the entire file. However there is no guarantee of this. If the data was stored at a
+     * more granular level, then this will get a subset of the summary data. The subset will very likely be an inaccurate approximation.
+     *
+     * @param endRow
+     *          A non-null end row. The end row is used inclusively.
+     * @return this
+     *
+     * @see FileStatistics#getExtra()
+     */
+    SummaryOptions endRow(Text endRow);
+
+    /**
+     * @param endRow
+     *          UTF-8 encodes endRow. The end row is used inclusively.
+     * @return this
+     * @see #endRow(Text)
+     */
+    SummaryOptions endRow(CharSequence endRow);
+
+    /**
+     * Reads summary data from file.
+     *
+     * @return The summary data in the file that satisfied the selection criteria.
+     */
+    Collection<Summary> read() throws IOException;
+  }
+
+  /**
+   * Entry point for reading summary data from RFiles.
+   *
+   * @since 2.0.0
+   */
+  public static SummaryInputArguments summaries() {
+    return new RFileSummariesRetriever();
+  }
+
+  /**
    * This is an intermediate interface in a larger builder pattern. Supports setting the required output sink to write a RFile to.
    *
    * @since 1.8.0
@@ -224,6 +343,16 @@ public class RFile {
    * @since 1.8.0
    */
   public static interface WriterOptions {
+
+    /**
+     * Enable generating summary data in the created RFile by running {@link Summarizer}'s based on the specified configuration.
+     *
+     * @param summarizerConf
+     *          Configuration for summarizer to run.
+     * @since 2.0.0
+     */
+    public WriterOptions withSummarizers(SummarizerConfiguration... summarizerConf);
+
     /**
      * An option to store sample data in the generated RFile.
      *

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.performance.thrift;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -29,6 +31,9 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.impl.thrift.TRowRange;
+import org.apache.accumulo.core.client.impl.thrift.TSummaries;
+import org.apache.accumulo.core.client.impl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -56,6 +61,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
+import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
@@ -77,9 +83,6 @@ import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.net.HostAndPort;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 
 /**
  * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the metadata location entries for a table to
@@ -235,6 +238,12 @@ public class NullTserver {
 
     @Override
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException { }
+
+    @Override
+    public TSummaries getSummariesFromFiles(TInfo tinfo, TCredentials credentials, TSummaryRequest request, Map<String,List<TRowRange>> files)
+        throws TException {
+      return null;
+    }
   }
 
   static class Opts extends Help {

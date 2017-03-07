@@ -17,12 +17,18 @@
 package org.apache.accumulo.core.client.mapreduce;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.CountingSummarizer;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
+import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -43,6 +49,9 @@ public class AccumuloFileOutputFormatTest {
     samplerConfig.addOption("hasher", "murmur3_32");
     samplerConfig.addOption("modulus", "109");
 
+    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(VisibilitySummarizer.class).addOption(CountingSummarizer.MAX_COUNTERS_OPT, 2048).build();
+    SummarizerConfiguration sc2 = SummarizerConfiguration.builder(FamilySummarizer.class).addOption(CountingSummarizer.MAX_COUNTERS_OPT, 256).build();
+
     Job job1 = Job.getInstance();
     AccumuloFileOutputFormat.setReplication(job1, a);
     AccumuloFileOutputFormat.setFileBlockSize(job1, b);
@@ -50,6 +59,7 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setIndexBlockSize(job1, d);
     AccumuloFileOutputFormat.setCompressionType(job1, e);
     AccumuloFileOutputFormat.setSampler(job1, samplerConfig);
+    AccumuloFileOutputFormat.setSummarizers(job1, sc1, sc2);
 
     AccumuloConfiguration acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
 
@@ -59,6 +69,11 @@ public class AccumuloFileOutputFormatTest {
     assertEquals(10l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("snappy", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
     assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
+
+    Collection<SummarizerConfiguration> summarizerConfigs = SummarizerConfiguration.fromTableProperties(acuconf);
+    assertEquals(2, summarizerConfigs.size());
+    assertTrue(summarizerConfigs.contains(sc1));
+    assertTrue(summarizerConfigs.contains(sc2));
 
     a = 17;
     b = 1300l;
@@ -85,6 +100,9 @@ public class AccumuloFileOutputFormatTest {
     assertEquals(110l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
     assertEquals("lzo", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
     assertEquals(new SamplerConfigurationImpl(samplerConfig), SamplerConfigurationImpl.newSamplerConfig(acuconf));
+
+    summarizerConfigs = SummarizerConfiguration.fromTableProperties(acuconf);
+    assertEquals(0, summarizerConfigs.size());
 
   }
 }

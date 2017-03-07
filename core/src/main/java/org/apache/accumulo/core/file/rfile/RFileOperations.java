@@ -88,7 +88,7 @@ public class RFileOperations extends FileOperations {
     Sampler sampler = null;
 
     if (samplerConfig != null) {
-      sampler = SamplerFactory.newSampler(samplerConfig, acuconf);
+      sampler = SamplerFactory.newSampler(samplerConfig, acuconf, options.isAccumuloStartEnabled());
     }
 
     String compression = options.getCompression();

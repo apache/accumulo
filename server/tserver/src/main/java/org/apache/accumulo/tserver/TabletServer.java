@@ -50,6 +50,7 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -76,6 +77,9 @@ import org.apache.accumulo.core.client.impl.Translator.TKeyExtentTranslator;
 import org.apache.accumulo.core.client.impl.Translator.TRangeTranslator;
 import org.apache.accumulo.core.client.impl.Translators;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.impl.thrift.TRowRange;
+import org.apache.accumulo.core.client.impl.thrift.TSummaries;
+import org.apache.accumulo.core.client.impl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -103,6 +107,7 @@ import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.data.thrift.UpdateErrors;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
@@ -119,6 +124,8 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.summary.Gatherer;
+import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
@@ -1789,6 +1796,23 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {
       log.warn("Garbage collector is attempting to remove logs through the tablet server");
       log.warn("This is probably because your file Garbage Collector is an older version than your tablet servers.\n" + "Restart your file Garbage Collector.");
+    }
+
+    @Override
+    public TSummaries getSummariesFromFiles(TInfo tinfo, TCredentials credentials, TSummaryRequest request, Map<String,List<TRowRange>> files)
+        throws TException {
+
+      // do not expect users to call this directly, expect other tservers to call this method
+      if (!security.canPerformSystemActions(credentials)) {
+        throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      }
+
+      ExecutorService srp = resourceManager.getSummaryRetrievalExecutor();
+      TableConfiguration tableCfg = confFactory.getTableConfiguration(request.getTableId());
+      BlockCache summaryCache = resourceManager.getSummaryCache();
+      BlockCache indexCache = resourceManager.getIndexCache();
+      FileSystemResolver volMgr = p -> fs.getVolumeByPath(p).getFileSystem();
+      return new Gatherer(TabletServer.this, request, tableCfg).processFiles(volMgr, files, summaryCache, indexCache, srp).toThrift();
     }
   }
 
