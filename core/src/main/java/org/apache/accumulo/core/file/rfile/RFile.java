@@ -68,6 +68,7 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
@@ -76,6 +77,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 public class RFile {
 
@@ -1288,17 +1290,25 @@ public class RFile {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
-
     }
 
+    /**
+     * @return map of locality group names to column families. The default locality group will have {@code null} for a name. RFile will only track up to
+     *         {@value Writer#MAX_CF_IN_DLG} families for the default locality group. After this it will stop tracking. For the case where the default group has
+     *         more thn {@value Writer#MAX_CF_IN_DLG} families an empty list of families is returned.
+     * @see LocalityGroupUtil#seek(FileSKVIterator, Range, String, Map)
+     */
     public Map<String,ArrayList<ByteSequence>> getLocalityGroupCF() {
       Map<String,ArrayList<ByteSequence>> cf = new HashMap<>();
 
       for (LocalityGroupMetadata lcg : localityGroups) {
-        ArrayList<ByteSequence> setCF = new ArrayList<>();
+        ArrayList<ByteSequence> setCF;
 
-        for (Entry<ByteSequence,MutableLong> entry : lcg.columnFamilies.entrySet()) {
-          setCF.add(entry.getKey());
+        if (lcg.columnFamilies == null) {
+          Preconditions.checkState(lcg.isDefaultLG, " Group %s has null families. Only expect default locality group to have null families.", lcg.name);
+          setCF = new ArrayList<>();
+        } else {
+          setCF = new ArrayList<>(lcg.columnFamilies.keySet());
         }
 
         cf.put(lcg.name, setCF);
