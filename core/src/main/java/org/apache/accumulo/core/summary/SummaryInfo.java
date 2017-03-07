@@ -23,9 +23,9 @@ import org.apache.hadoop.io.Text;
 
 class SummaryInfo {
 
-  Map<String,Long> summary;
-  Text lastRow;
-  int count = 0;
+  final Map<String,Long> summary;
+  final Text lastRow;
+  final int count;
 
   SummaryInfo(Text row, Map<String,Long> summary, int count) {
     this.lastRow = row;
@@ -41,5 +41,13 @@ class SummaryInfo {
 
   Text getLastRow() {
     return lastRow;
+  }
+
+  Map<String,Long> getSummary() {
+    return summary;
+  }
+
+  int getCount() {
+    return count;
   }
 }

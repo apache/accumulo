@@ -37,6 +37,24 @@ For information on writing a custom summarizer see the javadoc for
 +org.apache.accumulo.core.client.summary.summarizers+ contains summarizer
 implementations that ship with Accumulo and can be configured for use.
 
+=== Inaccuracies
+
+Summary data can be inaccurate when files are missing summary data or when
+files have extra summary data. Files can contain data outside of a tablets
+boundaries. This can happen as result of bulk imported files and tablet splits.
+When this happens, those files could contain extra summary information.
+Accumulo offsets this some by storing summary information for multiple row
+ranges per a file.  However, the ranges are not granular enough to completely
+offset extra data.
+
+Any source of inaccuracies is reported when summary information is requested.
+In the shell examples below this can be seen on the +File Statistics+ line.
+For files missing summary information, the compact command in the shell has a
++--sf-no-summary+ option.  This options compacts files that do not have the
+summary information configured for the table.  The compact command also has the
++--sf-extra-summary+ option which will compact files with extra summary
+information.
+
 === Configuring
 
 The following tablet server and table properties configure summarization.
@@ -209,3 +227,4 @@ root@uno summary_test> summaries
     total                                                        = 6
 root@uno summary_test>   
 ....
+

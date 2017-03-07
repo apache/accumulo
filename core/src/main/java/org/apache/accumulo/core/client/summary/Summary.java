@@ -52,7 +52,8 @@ public class Summary {
 
     /**
      * @return The number of files that did not contain the requested summary information. When this is non-zero, it means that summary counts may be
-     *         incomplete.
+     *         incomplete. In the Accumulo shell, the compact command has a -{@code -sf-no-summary} option to compact files missing summary information. The
+     *         compaction will create the summary information. This could be done over a range of the table to avoid doing the entire table at once.
      */
     public long getMissing() {
       return missing;
@@ -60,7 +61,8 @@ public class Summary {
 
     /**
      * @return The number of files that had summary information outside of a tablet or query range boundaries. When this is non-zero, it means that summary
-     *         counts may be artificially inflated or contain extraneous information.
+     *         counts may be artificially inflated or contain extraneous information. In the Accumulo shell, the compact command has a -{@code -sf-extra-summary}
+     *         option to compact files with extra summary information.
      */
     public long getExtra() {
       return extra;
@@ -114,7 +116,7 @@ public class Summary {
   }
 
   /**
-   * @return The statistics that were generated and merged by the specfied {@link Summarizer}.
+   * @return An immutable map of the statistics that were generated and merged by the specfied {@link Summarizer}.
    */
   public Map<String,Long> getStatistics() {
     return statistics;

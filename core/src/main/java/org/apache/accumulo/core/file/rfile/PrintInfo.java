@@ -215,7 +215,7 @@ public class PrintInfo implements KeywordExecutable {
       }
 
       if (opts.printSummary) {
-        SummaryReader.print(iter);
+        SummaryReader.print(iter, System.out);
       }
 
       iter.close();

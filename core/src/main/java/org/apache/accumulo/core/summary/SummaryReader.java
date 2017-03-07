@@ -181,8 +181,8 @@ public class SummaryReader {
     }
   }
 
-  public static void print(Reader iter) throws IOException {
-    print(iter, "   ", System.out);
+  public static void print(Reader iter, PrintStream out) throws IOException {
+    print(iter, "   ", out);
   }
 
   private static SummarizerConfiguration readConfig(DataInputStream in) throws IOException {

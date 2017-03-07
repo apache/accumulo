@@ -58,9 +58,9 @@ public class MetadataScanner {
 
     ColumnOptions overMetadataTable();
 
-    ColumnOptions overTableId(String tableId);
+    ColumnOptions overUserTableId(String tableId);
 
-    ColumnOptions overTableId(String tableId, Text startRow, Text endRow);
+    ColumnOptions overUserTableId(String tableId, Text startRow, Text endRow);
   }
 
   public static interface ColumnOptions {
@@ -73,6 +73,35 @@ public class MetadataScanner {
     public ColumnOptions fetchLast();
 
     public Iterable<TabletMetadata> build() throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  }
+
+  private static class TabletMetadataIterator implements Iterator<TabletMetadata> {
+
+    private boolean sawLast = false;
+    private Iterator<TabletMetadata> iter;
+    private Text endRow;
+
+    TabletMetadataIterator(Iterator<TabletMetadata> source, Text endRow) {
+      this.iter = source;
+      this.endRow = endRow;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return !sawLast && iter.hasNext();
+    }
+
+    @Override
+    public TabletMetadata next() {
+      if (sawLast) {
+        throw new NoSuchElementException();
+      }
+      TabletMetadata next = iter.next();
+      if (next.getExtent().contains(endRow)) {
+        sawLast = true;
+      }
+      return next;
+    }
   }
 
   private static class Builder implements SourceOptions, TableOptions, ColumnOptions {
@@ -147,28 +176,7 @@ public class MetadataScanner {
         return new Iterable<TabletMetadata>() {
           @Override
           public Iterator<TabletMetadata> iterator() {
-            Iterator<TabletMetadata> iter = tmi.iterator();
-            return new Iterator<TabletMetadata>() {
-
-              private boolean sawLast = false;
-
-              @Override
-              public boolean hasNext() {
-                return !sawLast && iter.hasNext();
-              }
-
-              @Override
-              public TabletMetadata next() {
-                if (sawLast) {
-                  throw new NoSuchElementException();
-                }
-                TabletMetadata next = iter.next();
-                if (next.getExtent().contains(endRow)) {
-                  sawLast = true;
-                }
-                return next;
-              }
-            };
+            return new TabletMetadataIterator(tmi.iterator(), endRow);
           }
         };
       } else {
@@ -190,7 +198,7 @@ public class MetadataScanner {
     }
 
     @Override
-    public ColumnOptions overTableId(String tableId) {
+    public ColumnOptions overUserTableId(String tableId) {
       Preconditions.checkArgument(!tableId.equals(RootTable.ID) && !tableId.equals(MetadataTable.ID));
 
       this.table = MetadataTable.NAME;
@@ -211,7 +219,7 @@ public class MetadataScanner {
     }
 
     @Override
-    public ColumnOptions overTableId(String tableId, Text startRow, Text endRow) {
+    public ColumnOptions overUserTableId(String tableId, Text startRow, Text endRow) {
       this.table = MetadataTable.NAME;
       this.userTableId = tableId;
       this.startRow = startRow;

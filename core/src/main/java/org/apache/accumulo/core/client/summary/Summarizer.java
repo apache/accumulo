@@ -147,6 +147,11 @@ import org.apache.accumulo.core.data.Value;
  * <p>
  * Summary data can be used by Compaction Strategies to decide which files to compact.
  *
+ * <p>
+ * Summary data is persisted, so ideally the same summarizer class with the same options should always produce the same results.  If you need to change the behavior
+ * of a summarizer, then consider doing this by adding a new option.  If the same summarizer is configured twice with different options, then Accumulo will store and 
+ * merge each one separately.  This can allow old and new behavior to coexists simultaneously. 
+ *
  * @since 2.0.0
  *
  * @see TableOperations#getSummaries(String)

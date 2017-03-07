@@ -325,36 +325,35 @@ class SummarySerializer {
 
     private byte[] _save() throws IOException {
 
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      DataOutputStream dos = new DataOutputStream(baos);
-
-      // create a symbol table
-      HashMap<String,Integer> symbolTable = new HashMap<>();
-      ArrayList<String> symbols = new ArrayList<>();
-      for (LgBuilder lg : locGroups) {
-        for (SummaryInfo si : lg.summaries) {
-          for (String symbol : si.summary.keySet()) {
-            if (!symbolTable.containsKey(symbol)) {
-              symbolTable.put(symbol, symbols.size());
-              symbols.add(symbol);
+      try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); DataOutputStream dos = new DataOutputStream(baos)) {
+        // create a symbol table
+        HashMap<String,Integer> symbolTable = new HashMap<>();
+        ArrayList<String> symbols = new ArrayList<>();
+        for (LgBuilder lg : locGroups) {
+          for (SummaryInfo si : lg.summaries) {
+            for (String symbol : si.summary.keySet()) {
+              if (!symbolTable.containsKey(symbol)) {
+                symbolTable.put(symbol, symbols.size());
+                symbols.add(symbol);
+              }
             }
           }
         }
-      }
 
-      // write symbol table
-      WritableUtils.writeVInt(dos, symbols.size());
-      for (String symbol : symbols) {
-        dos.writeUTF(symbol);
-      }
+        // write symbol table
+        WritableUtils.writeVInt(dos, symbols.size());
+        for (String symbol : symbols) {
+          dos.writeUTF(symbol);
+        }
 
-      WritableUtils.writeVInt(dos, locGroups.size());
-      for (LgBuilder lg : locGroups) {
-        lg.save(dos, symbolTable);
-      }
+        WritableUtils.writeVInt(dos, locGroups.size());
+        for (LgBuilder lg : locGroups) {
+          lg.save(dos, symbolTable);
+        }
 
-      dos.close();
-      return baos.toByteArray();
+        dos.close();
+        return baos.toByteArray();
+      }
     }
 
     public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) {

@@ -148,7 +148,7 @@ public class Gatherer {
   private Map<String,Map<String,List<TRowRange>>> getFilesGroupedByLocation(Predicate<String> fileSelector) throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
 
-    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx).overTableId(tableId, startRow, endRow).fetchFiles().fetchLocation().fetchLast()
+    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx).overUserTableId(tableId, startRow, endRow).fetchFiles().fetchLocation().fetchLast()
         .fetchPrev().build();
 
     // get a subset of files
@@ -373,7 +373,7 @@ public class Gatherer {
 
   private int countFiles() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // TODO use a batch scanner + iterator to parallelize counting files
-    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx).overTableId(tableId, startRow, endRow).fetchFiles().fetchPrev().build();
+    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx).overUserTableId(tableId, startRow, endRow).fetchFiles().fetchPrev().build();
     return (int) StreamSupport.stream(tmi.spliterator(), false).mapToInt(tm -> tm.getFiles().size()).sum();
   }
 
