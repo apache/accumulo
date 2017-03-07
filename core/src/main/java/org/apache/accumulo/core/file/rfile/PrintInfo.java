@@ -19,7 +19,6 @@ package org.apache.accumulo.core.file.rfile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -31,6 +30,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.hadoop.conf.Configuration;
@@ -184,9 +184,8 @@ public class PrintInfo implements KeywordExecutable {
           }
         }
 
-        for (Entry<String,ArrayList<ByteSequence>> cf : localityGroupCF.entrySet()) {
-
-          dataIter.seek(new Range((Key) null, (Key) null), cf.getValue(), true);
+        for (String lgName : localityGroupCF.keySet()) {
+          LocalityGroupUtil.seek(dataIter, new Range(), lgName, localityGroupCF);
           while (dataIter.hasTop()) {
             Key key = dataIter.getTopKey();
             Value value = dataIter.getTopValue();
