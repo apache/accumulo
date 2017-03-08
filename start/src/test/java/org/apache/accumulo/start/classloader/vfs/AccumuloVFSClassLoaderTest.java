@@ -204,4 +204,14 @@ public class AccumuloVFSClassLoaderTest {
 
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
   }
+
+  @Test
+  public void testAddToClasspath() {
+    Assert.assertEquals("jar1", AccumuloVFSClassLoader.addToClasspath("", "jar1"));
+    Assert.assertEquals("jar1,jar2", AccumuloVFSClassLoader.addToClasspath("jar1", "jar2"));
+    Assert.assertEquals("", AccumuloVFSClassLoader.addToClasspath("", ""));
+    Assert.assertEquals("", AccumuloVFSClassLoader.addToClasspath("", null));
+    Assert.assertEquals("", AccumuloVFSClassLoader.addToClasspath(null, null));
+    Assert.assertEquals("jar1", AccumuloVFSClassLoader.addToClasspath("jar1", ""));
+  }
 }

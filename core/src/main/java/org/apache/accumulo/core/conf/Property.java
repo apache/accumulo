@@ -174,8 +174,9 @@ public enum Property {
       "A list of all of the places to look for a class. Order does matter, as it will look for the jar "
           + "starting in the first location to the last. Please note, hadoop conf and hadoop lib directories NEED to be here, "
           + "along with accumulo lib and zookeeper directory. Supports full regex on filename alone."), // needs special treatment in accumulo start jar
-  GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME, AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE,
-      PropertyType.STRING, "A list of all of the places where changes in jars or classes will force a reload of the classloader."),
+  GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATHS_SITE_PROPERTY, "", PropertyType.STRING,
+                             "A list of all of the places where changes in jars or classes will force a reload of the classloader. "
+                             + "List will appended to value set by the JVM system property - " + AccumuloVFSClassLoader.DYNAMIC_CLASSPATHS_JVM_PROPERTY),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION, "Time to wait on I/O for simple, short RPC calls"),
   @Experimental
   GENERAL_RPC_SERVER_TYPE("general.rpc.server.type", "", PropertyType.STRING,
