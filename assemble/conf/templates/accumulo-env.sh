@@ -41,7 +41,7 @@ export ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
 ##################################################################
 
 ## JVM options set for all processes. Extra options can be passed in by setting ACCUMULO_JAVA_OPTS to an array of options.
-JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}" 
+JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
   '-XX:+UseConcMarkSweepGC'
   '-XX:CMSInitiatingOccupancyFraction=75'
   '-XX:+CMSClassUnloadingEnabled'
@@ -55,27 +55,44 @@ ${bin}/accumulo-util build-native &> /dev/null
 
 ## JVM options set for individual applications
 case "$cmd" in
-master)  JAVA_OPTS=("${JAVA_OPTS[@]}" ${masterHigh_masterLow}) ;;
-monitor) JAVA_OPTS=("${JAVA_OPTS[@]}" ${monitorHigh_monitorLow}) ;;
-gc)      JAVA_OPTS=("${JAVA_OPTS[@]}" ${gcHigh_gcLow}) ;;
-tserver) JAVA_OPTS=("${JAVA_OPTS[@]}" ${tServerHigh_tServerLow}) ;;
-shell)   JAVA_OPTS=("${JAVA_OPTS[@]}" ${shellHigh_shellLow}) ;;
-*)       JAVA_OPTS=("${JAVA_OPTS[@]}" ${otherHigh_otherLow}) ;;
+  master)  JAVA_OPTS=("${JAVA_OPTS[@]}" ${masterHigh_masterLow}) ;;
+  monitor) JAVA_OPTS=("${JAVA_OPTS[@]}" ${monitorHigh_monitorLow}) ;;
+  gc)      JAVA_OPTS=("${JAVA_OPTS[@]}" ${gcHigh_gcLow}) ;;
+  tserver) JAVA_OPTS=("${JAVA_OPTS[@]}" ${tServerHigh_tServerLow}) ;;
+  shell)   JAVA_OPTS=("${JAVA_OPTS[@]}" ${shellHigh_shellLow}) ;;
+  *)       JAVA_OPTS=("${JAVA_OPTS[@]}" ${otherHigh_otherLow}) ;;
 esac
 
-## JVM options set for logging.  Review logj4 properties files to see how they are used.
-JAVA_OPTS=("${JAVA_OPTS[@]}" 
+## JVM options set for logging. Review logj4 properties files to see how they are used.
+JAVA_OPTS=("${JAVA_OPTS[@]}"
   "-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
-  "-Daccumulo.service.id=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
-  "-Daccumulo.audit.log=$(hostname).audit")
+  "-Daccumulo.application=${ACCUMULO_CMD}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)")
 
 case "$cmd" in
-monitor)                    JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=file:${conf}/log4j-monitor.properties") ;;
-gc|master|tserver|tracer)   JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=file:${conf}/log4j-service.properties") ;;
-*)                          JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=file:${conf}/log4j.properties") ;;
+  monitor)
+    JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=log4j-monitor.properties")
+    ;;
+  gc|master|tserver|tracer)
+    JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=log4j-service.properties")
+    ;;
+  *)
+    # let log4j use its default behavior (log4j.xml, log4j.properties)
+    true
+    ;;
 esac
 
 export JAVA_OPTS
+
+## External class path items for Java system class loader (dependencies not included with Accumulo)
+CLASSPATH="$(find "$ZOOKEEPER_HOME"/{,lib} "$HADOOP_PREFIX"/share/hadoop/{common,common/lib,hdfs,mapreduce,yarn} -maxdepth 1 -name '*.jar' \
+  -and -not -name '*slf4j*' \
+  -and -not -name '*fatjar*' \
+  -and -not -name '*-javadoc*' \
+  -and -not -name '*-sources*.jar' \
+  -and -not -name '*-test*.jar' \
+  -print0 | tr '\0' ':')$CLASSPATH"
+CLASSPATH="${HADOOP_CONF_DIR}:${CLASSPATH}"
+export CLASSPATH
 
 ############################
 # Variables set to a default
@@ -83,9 +100,9 @@ export JAVA_OPTS
 
 export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-1}
 ## Add Hadoop native libraries to shared library paths given operating system
-case "$(uname)" in 
-Darwin) export DYLD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${DYLD_LIBRARY_PATH}" ;; 
-*)      export LD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${LD_LIBRARY_PATH}" ;;
+case "$(uname)" in
+  Darwin) export DYLD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${DYLD_LIBRARY_PATH}" ;;
+  *)      export LD_LIBRARY_PATH="${HADOOP_PREFIX}/lib/native:${LD_LIBRARY_PATH}" ;;
 esac
 
 ###############################################

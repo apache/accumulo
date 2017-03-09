@@ -111,14 +111,12 @@ function main() {
   if [ -n "$ACCUMULO_JAVA_PREFIX" ]; then
     JAVA=($ACCUMULO_JAVA_PREFIX $JAVA)
   fi
-  
-  CLASSPATH="${lib}/accumulo-start.jar:${conf}:${lib}/slf4j-api.jar:${lib}/slf4j-log4j12.jar:${lib}/log4j.jar:${CLASSPATH}"
 
-  exec "${JAVA[@]}" "-Dapp=$cmd" \
+  CLASSPATH="${conf}:${lib}/*:${CLASSPATH}"
+  export CLASSPATH
+
+  exec "${JAVA[@]}" \
      "${JAVA_OPTS[@]}" \
-     -classpath "${CLASSPATH}" \
-     -Dhadoop.home.dir="${HADOOP_PREFIX}" \
-     -Dzookeeper.home.dir="${ZOOKEEPER_HOME}" \
      org.apache.accumulo.start.Main \
      "$@"
 }
