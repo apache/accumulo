@@ -18,10 +18,13 @@ package org.apache.accumulo.monitor.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -30,16 +33,19 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.AsyncAppender;
 import org.apache.log4j.net.SocketAppender;
 import org.apache.zookeeper.data.Stat;
 
 import com.google.common.net.HostAndPort;
 
-public class AccumuloMonitorAppender extends AsyncAppender {
+public class AccumuloMonitorAppender extends AsyncAppender implements AutoCloseable {
 
-  private final ScheduledExecutorService executorService;
-  private final AtomicBoolean trackerScheduled;
+  final ScheduledExecutorService executorService;
+  final AtomicBoolean trackerScheduled;
+  private int frequency = 0;
+  private MonitorTracker tracker = null;
 
   /**
    * A Log4j Appender which follows the registered location of the active Accumulo monitor service, and forwards log messages to it
@@ -54,12 +60,33 @@ public class AccumuloMonitorAppender extends AsyncAppender {
     });
   }
 
+  public void setFrequency(int millis) {
+    if (millis > 0) {
+      frequency = millis;
+    }
+  }
+
+  public int getFrequency() {
+    return frequency;
+  }
+
+  // this is just for testing
+  void setTracker(MonitorTracker monitorTracker) {
+    tracker = monitorTracker;
+  }
+
   @Override
   public void activateOptions() {
     // only schedule it once (in case options get activated more than once); not sure if this is possible
     if (trackerScheduled.compareAndSet(false, true)) {
-      // wait 5 seconds, then run every 5 seconds
-      executorService.scheduleAtFixedRate(new MonitorTracker(), 5, 5, TimeUnit.SECONDS);
+      if (frequency <= 0) {
+        // use default rate of 5 seconds between each check
+        frequency = 5000;
+      }
+      if (tracker == null) {
+        tracker = new MonitorTracker(this, new ZooCacheLocationSupplier(), new SocketAppenderFactory());
+      }
+      executorService.scheduleWithFixedDelay(tracker, frequency, frequency, TimeUnit.MILLISECONDS);
     }
     super.activateOptions();
   }
@@ -72,80 +99,122 @@ public class AccumuloMonitorAppender extends AsyncAppender {
     super.close();
   }
 
-  private class MonitorTracker implements Runnable {
+  static class MonitorLocation {
+    private final String location;
+    private final long modId;
 
-    private String path;
-    private ZooCache zooCache;
+    public MonitorLocation(long modId, byte[] location) {
+      this.modId = modId;
+      this.location = location == null ? null : new String(location, UTF_8);
+    }
 
-    private long lastModifiedTransactionId;
-    private SocketAppender lastSocketAppender;
+    public boolean hasLocation() {
+      return location != null;
+    }
 
-    public MonitorTracker() {
+    public String getLocation() {
+      return location;
+    }
 
-      // path and zooCache are lazily set the first time this tracker is run
-      // this allows the tracker to be constructed and scheduled during log4j initialization without
-      // triggering any actual logs from the Accumulo or ZooKeeper code
-      this.path = null;
-      this.zooCache = null;
+    @Override
+    public boolean equals(Object obj) {
+      if (obj != null && obj instanceof MonitorLocation) {
+        MonitorLocation other = (MonitorLocation) obj;
+        return modId == other.modId && Objects.equals(location, other.location);
+      }
+      return false;
+    }
 
-      this.lastModifiedTransactionId = 0;
+    @Override
+    public int hashCode() {
+      return Long.hashCode(modId);
+    }
+  }
+
+  private static class ZooCacheLocationSupplier implements Supplier<MonitorLocation> {
+
+    // path and zooCache are lazily set the first time this tracker is run
+    // this allows the tracker to be constructed and scheduled during log4j initialization without
+    // triggering any actual logs from the Accumulo or ZooKeeper code
+    private String path = null;
+    private ZooCache zooCache = null;
+
+    @Override
+    public MonitorLocation get() {
+      // lazily set up path and zooCache (see comment in constructor)
+      if (this.zooCache == null) {
+        Instance instance = HdfsZooInstance.getInstance();
+        this.path = ZooUtil.getRoot(instance) + Constants.ZMONITOR_LOG4J_ADDR;
+        this.zooCache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+      }
+
+      // get the current location from the cache and update if necessary
+      Stat stat = new Stat();
+      byte[] loc = zooCache.get(path, stat);
+      // mzxid is 0 if location does not exist and the non-zero transaction id of the last modification otherwise
+      return new MonitorLocation(stat.getMzxid(), loc);
+    }
+  }
+
+  private static class SocketAppenderFactory implements Function<MonitorLocation,AppenderSkeleton> {
+    @Override
+    public AppenderSkeleton apply(MonitorLocation loc) {
+      int defaultPort = Integer.parseUnsignedInt(Property.MONITOR_LOG4J_PORT.getDefaultValue());
+      HostAndPort remote = HostAndPort.fromString(loc.getLocation());
+
+      SocketAppender socketAppender = new SocketAppender();
+      socketAppender.setApplication(System.getProperty("accumulo.application", "unknown"));
+      socketAppender.setRemoteHost(remote.getHostText());
+      socketAppender.setPort(remote.getPortOrDefault(defaultPort));
+
+      return socketAppender;
+    }
+  }
+
+  static class MonitorTracker implements Runnable {
+
+    private final AccumuloMonitorAppender parentAsyncAppender;
+    private final Supplier<MonitorLocation> currentLocationSupplier;
+    private final Function<MonitorLocation,AppenderSkeleton> appenderFactory;
+
+    private MonitorLocation lastLocation;
+    private AppenderSkeleton lastSocketAppender;
+
+    public MonitorTracker(AccumuloMonitorAppender appender, Supplier<MonitorLocation> currentLocationSupplier,
+        Function<MonitorLocation,AppenderSkeleton> appenderFactory) {
+      this.parentAsyncAppender = Objects.requireNonNull(appender);
+      this.appenderFactory = Objects.requireNonNull(appenderFactory);
+      this.currentLocationSupplier = Objects.requireNonNull(currentLocationSupplier);
+
+      this.lastLocation = new MonitorLocation(0, null);
       this.lastSocketAppender = null;
     }
 
     @Override
     public void run() {
       try {
-        // lazily set up path and zooCache (see comment in constructor)
-        if (this.zooCache == null) {
-          Instance instance = HdfsZooInstance.getInstance();
-          this.path = ZooUtil.getRoot(instance) + Constants.ZMONITOR_LOG4J_ADDR;
-          this.zooCache = new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-        }
-
-        // get the current location from the cache and update if necessary
-        Stat stat = new Stat();
-        byte[] loc = zooCache.get(path, stat);
-        long modifiedTransactionId = stat.getMzxid();
-
-        // modifiedTransactionId will be 0 if no current location
-        // lastModifiedTransactionId will be 0 if we've never seen a location
-        if (modifiedTransactionId != lastModifiedTransactionId) {
-          // replace old socket on every change, even if new location is the same as old location
-          // if modifiedTransactionId changed, then the monitor restarted and the old socket is dead now
-          switchAppender(loc, modifiedTransactionId);
+        MonitorLocation currentLocation = currentLocationSupplier.get();
+        // detect change
+        if (!currentLocation.equals(lastLocation)) {
+          // clean up old appender
+          if (lastSocketAppender != null) {
+            parentAsyncAppender.removeAppender(lastSocketAppender);
+            lastSocketAppender.close();
+            lastSocketAppender = null;
+          }
+          // create a new one
+          if (currentLocation.hasLocation()) {
+            lastSocketAppender = appenderFactory.apply(currentLocation);
+            lastSocketAppender.activateOptions();
+            parentAsyncAppender.addAppender(lastSocketAppender);
+          }
+          // update the last location only if switching was successful
+          lastLocation = currentLocation;
         }
       } catch (Exception e) {
         // dump any non-fatal problems to the console, but let it run again
         e.printStackTrace();
       }
-    }
-
-    private void switchAppender(byte[] newLocation, long newModifiedTransactionId) {
-      // remove and close the last one, if it was non-null
-      if (lastSocketAppender != null) {
-        AccumuloMonitorAppender.this.removeAppender(lastSocketAppender);
-        lastSocketAppender.close();
-      }
-
-      // create a new SocketAppender, if new location is non-null
-      if (newLocation != null) {
-
-        int defaultPort = Integer.parseUnsignedInt(Property.MONITOR_LOG4J_PORT.getDefaultValue());
-        HostAndPort remote = HostAndPort.fromString(new String(newLocation, UTF_8));
-
-        SocketAppender socketAppender = new SocketAppender();
-        socketAppender.setApplication(System.getProperty("accumulo.application", "unknown"));
-        socketAppender.setRemoteHost(remote.getHostText());
-        socketAppender.setPort(remote.getPortOrDefault(defaultPort));
-
-        socketAppender.activateOptions();
-        AccumuloMonitorAppender.this.addAppender(socketAppender);
-
-        lastSocketAppender = socketAppender;
-      }
-
-      // update lastModifiedTransactionId, even if the new one is 0 (no new location)
-      lastModifiedTransactionId = newModifiedTransactionId;
     }
 
   }
