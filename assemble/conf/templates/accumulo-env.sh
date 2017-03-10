@@ -51,7 +51,7 @@ JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
   "-Daccumulo.native.lib.path=${lib}/native")
 
 ## Make sure Accumulo native libraries are built since they are enabled by default
-${bin}/accumulo-util build-native &> /dev/null
+"${bin}"/accumulo-util build-native &> /dev/null
 
 ## JVM options set for individual applications
 case "$cmd" in

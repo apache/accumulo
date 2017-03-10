@@ -169,7 +169,7 @@ public class Admin implements KeywordExecutable {
 
     AdminOpts opts = new AdminOpts();
     JCommander cl = new JCommander(opts);
-    cl.setProgramName(Admin.class.getName());
+    cl.setProgramName("accumulo admin");
 
     CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
     cl.addCommand("checkTablets", checkTabletsCommand);

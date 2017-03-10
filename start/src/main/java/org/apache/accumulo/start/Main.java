@@ -205,7 +205,7 @@ public class Main {
   public static void printUsage() {
     Map<String,KeywordExecutable> executableMap = new TreeMap<>(getExecutables(getClassLoader()));
 
-    System.out.println("\nUsage: accumulo <command> (<argument> ...)\n\nCore Commands:");
+    System.out.println("\nUsage: accumulo <command> [-h] (<argument> ...)\n\n  -h   Prints usage for specified command\n\nCore Commands:");
     for (String cmd : Arrays.asList("init", "shell", "classpath", "version", "admin", "info", "help")) {
       printCommand(executableMap.remove(cmd));
     }

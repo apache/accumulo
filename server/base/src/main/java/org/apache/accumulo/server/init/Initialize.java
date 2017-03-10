@@ -758,7 +758,7 @@ public class Initialize implements KeywordExecutable {
   @Override
   public void execute(final String[] args) {
     Opts opts = new Opts();
-    opts.parseArgs(Initialize.class.getName(), args);
+    opts.parseArgs("accumulo init", args);
 
     try {
       zoo = ZooReaderWriter.getInstance();

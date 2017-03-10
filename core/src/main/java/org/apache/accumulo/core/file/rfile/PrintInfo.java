@@ -124,7 +124,7 @@ public class PrintInfo implements KeywordExecutable {
   @Override
   public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(PrintInfo.class.getName(), args);
+    opts.parseArgs("accumulo rfile-info", args);
     if (opts.files.isEmpty()) {
       System.err.println("No files were given");
       System.exit(-1);

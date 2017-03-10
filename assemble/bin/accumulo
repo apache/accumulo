@@ -83,10 +83,7 @@ function main() {
   CLASSPATH="${conf}:${lib}/*:${CLASSPATH}"
   export CLASSPATH
 
-  exec "${JAVA[@]}" \
-     "${JAVA_OPTS[@]}" \
-     org.apache.accumulo.start.Main \
-     "$@"
+  exec "${JAVA[@]}" "${JAVA_OPTS[@]}" org.apache.accumulo.start.Main "$@"
 }
 
 main "$@"
