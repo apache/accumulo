@@ -59,6 +59,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
@@ -483,7 +484,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    *          ClientConfiguration instance
    * @return The ZooKeepers to connect to
    */
-  static String getZooKeepers(String keepers, ClientConfiguration clientConfig, AccumuloConfiguration conf) {
+  static String getZooKeepers(String keepers, ClientConfiguration clientConfig) {
     if (null != keepers) {
       return keepers;
     }
@@ -492,7 +493,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return clientConfig.get(ClientProperty.INSTANCE_ZK_HOST);
     }
 
-    return conf.get(Property.INSTANCE_ZK_HOST);
+    return SiteConfiguration.getInstance(ClientContext.convertClientConfig(clientConfig)).get(Property.INSTANCE_ZK_HOST);
   }
 
   /*
@@ -504,9 +505,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     if (instanceName == null) {
       instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
     }
-    AccumuloConfiguration conf = ClientContext.convertClientConfig(clientConfig);
-    String keepers = getZooKeepers(keepersOption, clientConfig, conf);
+
+    String keepers = getZooKeepers(keepersOption, clientConfig);
     if (instanceName == null) {
+      AccumuloConfiguration conf = SiteConfiguration.getInstance(ClientContext.convertClientConfig(clientConfig));
       Path instanceDir = new Path(VolumeConfiguration.getVolumeUris(conf)[0], "instance_id");
       instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));
     }
