@@ -66,7 +66,7 @@ esac
 ## JVM options set for logging. Review logj4 properties files to see how they are used.
 JAVA_OPTS=("${JAVA_OPTS[@]}"
   "-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
-  "-Daccumulo.application=${ACCUMULO_CMD}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)")
+  "-Daccumulo.application=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)")
 
 case "$cmd" in
   monitor)
