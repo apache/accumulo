@@ -77,6 +77,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
         summaryConfigured = false;
       } else {
         Set<SummarizerConfiguration> configsSet = configs instanceof Set ? (Set<SummarizerConfiguration>) configs : new HashSet<>(configs);
+        okFiles = new HashSet<>();
 
         for (FileRef fref : request.getFiles().keySet()) {
           Map<SummarizerConfiguration,Summary> sMap = new HashMap<>();

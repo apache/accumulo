@@ -28,8 +28,8 @@ import org.apache.accumulo.core.data.Value;
 public class BasicSummarizer implements Summarizer {
 
   public static final String DELETES_STAT = "deletes";
-  public static final String MIN_STAMP_STAT = "minStamp";
-  public static final String MAX_STAMP_STAT = "maxStamp";
+  public static final String MIN_TIMESTAMP_STAT = "minTimestamp";
+  public static final String MAX_TIMESTAMP_STAT = "maxTimestamp";
   public static final String TOTAL_STAT = "total";
 
   @Override
@@ -60,8 +60,8 @@ public class BasicSummarizer implements Summarizer {
 
       @Override
       public void summarize(StatisticConsumer sc) {
-        sc.accept(MIN_STAMP_STAT, minStamp);
-        sc.accept(MAX_STAMP_STAT, maxStamp);
+        sc.accept(MIN_TIMESTAMP_STAT, minStamp);
+        sc.accept(MAX_TIMESTAMP_STAT, maxStamp);
         sc.accept(DELETES_STAT, deletes);
         sc.accept(TOTAL_STAT, total);
       }
@@ -73,8 +73,8 @@ public class BasicSummarizer implements Summarizer {
     return (stats1, stats2) -> {
       stats1.merge(DELETES_STAT, stats2.get(DELETES_STAT), Long::sum);
       stats1.merge(TOTAL_STAT, stats2.get(TOTAL_STAT), Long::sum);
-      stats1.merge(MIN_STAMP_STAT, stats2.get(MIN_STAMP_STAT), Long::min);
-      stats1.merge(MAX_STAMP_STAT, stats2.get(MAX_STAMP_STAT), Long::max);
+      stats1.merge(MIN_TIMESTAMP_STAT, stats2.get(MIN_TIMESTAMP_STAT), Long::min);
+      stats1.merge(MAX_TIMESTAMP_STAT, stats2.get(MAX_TIMESTAMP_STAT), Long::max);
     };
   }
 }

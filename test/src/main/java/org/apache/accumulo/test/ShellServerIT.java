@@ -1896,12 +1896,20 @@ public class ShellServerIT extends SharedMiniClusterBase {
     return null;
   }
 
+  private static void assertMatches(String output, String pattern) {
+    Assert.assertTrue("Pattern " + pattern + " did not match output : " + output, output.matches(pattern));
+  }
+
+  private static void assertNotContains(String output, String subsequence) {
+    Assert.assertFalse("Expected '" + subsequence + "' would not occur in output : " + output, output.contains(subsequence));
+  }
+
   @Test
   public void testSummaries() throws Exception {
     ts.exec("createtable summary");
     ts.exec("config -t summary -s table.summarizer.del=" + DeletesSummarizer.class.getName());
     ts.exec("config -t summary -s table.summarizer.fam=" + FamilySummarizer.class.getName());
-    // ts.exec("config -t summary -s table.summarizer.fam.opt."+CountingSummarizer.INGNORE_DELETES_OPT+"=false");
+
     ts.exec("addsplits -t summary r1 r2");
     ts.exec("insert r1 f1 q1 v1");
     ts.exec("insert r2 f2 q1 v3");
@@ -1912,55 +1920,105 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("flush -t summary -w");
 
     String output = ts.exec("summaries");
-    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+0.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+6.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f1\\s+=\\s+1.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f3\\s+=\\s+3.*$.*"));
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+0.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+6.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+3.*$.*");
 
     ts.exec("delete r1 f1 q2");
     ts.exec("delete r2 f2 q1");
     ts.exec("flush -t summary -w");
 
     output = ts.exec("summaries");
-    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+2.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+8.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f1\\s+=\\s+1.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f3\\s+=\\s+3.*$.*"));
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+8.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+3.*$.*");
 
     output = ts.exec("summaries -e r2");
-    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+2.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+5.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f1\\s+=\\s+1.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
-    Assert.assertFalse(output.contains("c:f3"));
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+5.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertNotContains(output, "c:f3");
 
     output = ts.exec("summaries -b r2");
-    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+0.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+3.*$.*"));
-    Assert.assertFalse(output.contains("c:f1"));
-    Assert.assertFalse(output.contains("c:f2"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f3\\s+=\\s+3.*$.*"));
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+0.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+3.*$.*");
+    assertNotContains(output, "c:f1");
+    assertNotContains(output, "c:f2");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+3.*$.*");
 
     output = ts.exec("summaries -b r1 -e r2");
-    Assert.assertTrue(output.matches("(?sm).*^.*deletes\\s+=\\s+1.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*total\\s+=\\s+3.*$.*"));
-    Assert.assertFalse(output.contains("c:f1"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
-    Assert.assertFalse(output.contains("c:f3"));
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+3.*$.*");
+    assertNotContains(output, "c:f1");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertNotContains(output, "c:f3");
 
     output = ts.exec("summaries -sr .*Family.*");
-    Assert.assertFalse(output.contains("deletes "));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f1\\s+=\\s+1.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f3\\s+=\\s+3.*$.*"));
+    assertNotContains(output, "deletes ");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+3.*$.*");
 
     output = ts.exec("summaries -b r1 -e r2 -sr .*Family.*");
-    Assert.assertFalse(output.contains("deletes "));
-    Assert.assertFalse(output.contains("c:f1"));
-    Assert.assertTrue(output.matches("(?sm).*^.*c:f2\\s+=\\s+2.*$.*"));
-    Assert.assertFalse(output.contains("c:f3"));
+    assertNotContains(output, "deletes ");
+    assertNotContains(output, "c:f1");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertNotContains(output, "c:f3");
   }
 
+  @Test
+  public void testSummarySelection() throws Exception {
+    ts.exec("createtable summary2");
+    // will create a few files and do not want them compacted
+    ts.exec("config -t summary2 -s " + Property.TABLE_MAJC_RATIO + "=10");
+
+    ts.exec("insert r1 f1 q1 v1");
+    ts.exec("insert r2 f2 q1 v2");
+    ts.exec("flush -t summary2 -w");
+
+    ts.exec("config -t summary2 -s table.summarizer.fam=" + FamilySummarizer.class.getName());
+
+    ts.exec("insert r1 f2 q1 v3");
+    ts.exec("insert r3 f3 q1 v4");
+    ts.exec("flush -t summary2 -w");
+
+    String output = ts.exec("summaries");
+    assertNotContains(output, "c:f1");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+1.*$.*");
+    // check that there are two files, with one missing summary info
+    assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]1[,]\\s+extra[:]0.*$.*");
+
+    // compact only the file missing summary info
+    ts.exec("compact -t summary2 --sf-no-summary -w");
+    output = ts.exec("summaries");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+1.*$.*");
+    // check that there are two files, with none missing summary info
+    assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
+
+    // create a situation where files has summary data outside of tablet
+    ts.exec("addsplits -t summary2 r2");
+    output = ts.exec("summaries -e r2");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+1.*$.*");
+    // check that there are two files, with one having extra summary info
+    assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]1.*$.*");
+
+    // compact only the files with extra summary info
+    ts.exec("compact -t summary2 --sf-extra-summary -w");
+    output = ts.exec("summaries -e r2");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertNotContains(output, "c:f3");
+    // check that there are two files, with none having extra summary info
+    assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
+  }
 }

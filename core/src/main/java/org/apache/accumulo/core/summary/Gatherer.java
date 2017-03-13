@@ -330,14 +330,12 @@ public class Gatherer {
           filesGBL = getFilesGroupedByLocation(fileSelector);
           UtilWaitThread.sleep(250);
         } else {
-          break;
+          return partitionSummaries;
         }
       }
     } finally {
       execSrv.shutdownNow();
     }
-
-    return partitionSummaries;
   }
 
   public static interface FileSystemResolver {
@@ -363,7 +361,10 @@ public class Gatherer {
     for (Future<SummaryCollection> future : futures) {
       try {
         fileSummaries.merge(future.get(), factory);
-      } catch (ExecutionException | InterruptedException e) {
+      } catch (ExecutionException e) {
+        throw new RuntimeException(e);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }
@@ -428,7 +429,10 @@ public class Gatherer {
       for (Future<SummaryCollection> future : futures) {
         try {
           allSummaries.merge(future.get(), factory);
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (ExecutionException e) {
+          throw new AccumuloException(e);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new AccumuloException(e);
         }
       }
