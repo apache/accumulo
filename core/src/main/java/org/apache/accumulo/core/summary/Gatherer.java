@@ -397,7 +397,8 @@ public class Gatherer {
       ClientContext cct = new ClientContext(ctx.getInstance(), ctx.getCredentials(), ctx.getConfiguration()) {
         @Override
         public long getClientTimeoutInMillis() {
-          return Math.max(super.getClientTimeoutInMillis(), 10 * 60 * 1000);
+          //its expected that gathering metrics could take a while when not in cache, so disable timeout
+          return 0;
         }
       };
 

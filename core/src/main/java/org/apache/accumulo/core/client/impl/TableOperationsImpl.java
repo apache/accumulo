@@ -1718,7 +1718,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         ClientContext cct = new ClientContext(context.getInstance(), context.getCredentials(), context.getConfiguration()) {
           @Override
           public long getClientTimeoutInMillis() {
-            return Math.max(super.getClientTimeoutInMillis(), 60 * 60 * 1000);
+            //its expected that gathering metrics could take a while when not in cache, so disable timeout
+            return 0;
           }
         };
         TSummaries ret = ServerClient.execute(cct, c -> c.getSummaries(Tracer.traceInfo(), context.rpcCreds(), request));
