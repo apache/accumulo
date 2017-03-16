@@ -362,8 +362,14 @@ public enum Property {
       "The number of threads available to load tablets. Recoveries are still performed serially."),
   TSERV_SLOW_FLUSH_MILLIS("tserver.slow.flush.time", "100ms", PropertyType.TIMEDURATION,
       "If a flush to the write-ahead log takes longer than this period of time, debugging information will written, and may result in a log rollover."),
+  TSERV_SUMMARY_PARTITION_THREADS("tserver.summary.partition.threads", "10", PropertyType.COUNT,
+      "Summary data must be retreied from files.  For a large number of files, the files are broken into partitions of 100K files.  This setting determines "
+          + "how many of these groups of 100K files will be processed concurrently."),
+  TSERV_SUMMARY_REMOTE_THREADS("tserver.summary.remote.threads", "128", PropertyType.COUNT,
+      "For a partitioned group of 100K files, those files are grouped by tablet server.  Then a remote tablet server is asked to gather summary data.  This "
+          + "setting determines how many concurrent request are made per partition."),
   TSERV_SUMMARY_RETRIEVAL_THREADS("tserver.summary.retrieval.threads", "10", PropertyType.COUNT,
-      "The number of threads available to retrieve summary data, that is not currently in cache, from RFiles on each tablet server."),
+      "The number of threads on each tablet server available to retrieve summary data, that is not currently in cache, from RFiles."),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the accumulo garbage collector."),

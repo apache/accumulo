@@ -37,6 +37,8 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TServiceClient;
+import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -48,8 +50,13 @@ public class ServerClient {
   private static final Logger log = LoggerFactory.getLogger(ServerClient.class);
 
   public static <T> T execute(ClientContext context, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+    return execute(context, new ClientService.Client.Factory(), exec);
+  }
+
+  public static <CT extends TServiceClient,RT> RT execute(ClientContext context, TServiceClientFactory<CT> factory, ClientExecReturn<RT,CT> exec)
+      throws AccumuloException, AccumuloSecurityException {
     try {
-      return executeRaw(context, exec);
+      return executeRaw(context, factory, exec);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (AccumuloException e) {
@@ -72,11 +79,16 @@ public class ServerClient {
   }
 
   public static <T> T executeRaw(ClientContext context, ClientExecReturn<T,ClientService.Client> exec) throws Exception {
+    return executeRaw(context, new ClientService.Client.Factory(), exec);
+  }
+
+  public static <CT extends TServiceClient,RT> RT executeRaw(ClientContext context, TServiceClientFactory<CT> factory, ClientExecReturn<RT,CT> exec)
+      throws Exception {
     while (true) {
-      ClientService.Client client = null;
+      CT client = null;
       String server = null;
       try {
-        Pair<String,Client> pair = ServerClient.getConnection(context);
+        Pair<String,CT> pair = ServerClient.getConnection(context, factory);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -120,12 +132,21 @@ public class ServerClient {
     return getConnection(context, true);
   }
 
+  public static <CT extends TServiceClient> Pair<String,CT> getConnection(ClientContext context, TServiceClientFactory<CT> factory) throws TTransportException {
+    return getConnection(context, factory, true, context.getClientTimeoutInMillis());
+  }
+
   public static Pair<String,ClientService.Client> getConnection(ClientContext context, boolean preferCachedConnections) throws TTransportException {
     return getConnection(context, preferCachedConnections, context.getClientTimeoutInMillis());
   }
 
   public static Pair<String,ClientService.Client> getConnection(ClientContext context, boolean preferCachedConnections, long rpcTimeout)
       throws TTransportException {
+    return getConnection(context, new ClientService.Client.Factory(), preferCachedConnections, rpcTimeout);
+  }
+
+  public static <CT extends TServiceClient> Pair<String,CT> getConnection(ClientContext context, TServiceClientFactory<CT> factory,
+      boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
     checkArgument(context != null, "context is null");
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();
@@ -146,7 +167,7 @@ public class ServerClient {
     boolean opened = false;
     try {
       Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
-      ClientService.Client client = ThriftUtil.createClient(new ClientService.Client.Factory(), pair.getSecond());
+      CT client = ThriftUtil.createClient(factory, pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
       return new Pair<>(pair.getFirst(), client);
@@ -164,7 +185,7 @@ public class ServerClient {
     }
   }
 
-  public static void close(ClientService.Client client) {
+  public static void close(TServiceClient client) {
     if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
       ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
     } else {

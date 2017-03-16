@@ -29,12 +29,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -44,31 +47,34 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ServerClient;
-import org.apache.accumulo.core.client.impl.thrift.TRowRange;
-import org.apache.accumulo.core.client.impl.thrift.TSummaries;
-import org.apache.accumulo.core.client.impl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.thrift.TRowRange;
+import org.apache.accumulo.core.data.thrift.TSummaries;
+import org.apache.accumulo.core.data.thrift.TSummaryRequest;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.util.CancelFlagFuture;
+import org.apache.accumulo.core.util.CompletableFutureUtil;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -236,22 +242,38 @@ public class Gatherer {
       this.summaries = new SummaryCollection();
       this.failedFiles = new HashSet<>();
     }
+
+    public ProcessedFiles(SummaryCollection summaries, SummarizerFactory factory) {
+      this();
+      this.summaries.merge(summaries, factory);
+    }
+
+    static ProcessedFiles merge(ProcessedFiles pf1, ProcessedFiles pf2, SummarizerFactory factory) {
+      ProcessedFiles ret = new ProcessedFiles();
+      ret.failedFiles.addAll(pf1.failedFiles);
+      ret.failedFiles.addAll(pf2.failedFiles);
+      ret.summaries.merge(pf1.summaries, factory);
+      ret.summaries.merge(pf2.summaries, factory);
+      return ret;
+    }
   }
 
-  private class FilesProcessor implements Callable<ProcessedFiles> {
+  private class FilesProcessor implements Supplier<ProcessedFiles> {
 
     HostAndPort location;
     Map<String,List<TRowRange>> allFiles;
     private TInfo tinfo;
+    private AtomicBoolean cancelFlag;
 
-    public FilesProcessor(TInfo tinfo, HostAndPort location, Map<String,List<TRowRange>> allFiles) {
+    public FilesProcessor(TInfo tinfo, HostAndPort location, Map<String,List<TRowRange>> allFiles, AtomicBoolean cancelFlag) {
       this.location = location;
       this.allFiles = allFiles;
       this.tinfo = tinfo;
+      this.cancelFlag = cancelFlag;
     }
 
     @Override
-    public ProcessedFiles call() throws Exception {
+    public ProcessedFiles get() {
       ProcessedFiles pfiles = new ProcessedFiles();
 
       Client client = null;
@@ -265,77 +287,186 @@ public class Gatherer {
             continue;
           }
 
-          TSummaries tSums = null;
           try {
-            tSums = client.getSummariesFromFiles(tinfo, ctx.rpcCreds(), getRequest(), files);
+            TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(), getRequest(), files);
+            while (!tSums.finished && !cancelFlag.get()) {
+              tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
+            }
+
+            pfiles.summaries.merge(new SummaryCollection(tSums), factory);
           } catch (TApplicationException tae) {
-            throw tae;
+            throw new RuntimeException(tae);
           } catch (TTransportException e) {
             pfiles.failedFiles.addAll(files.keySet());
             continue;
+          } catch (TException e) {
+            throw new RuntimeException(e);
           }
 
-          pfiles.summaries.merge(new SummaryCollection(tSums), factory);
         }
+      } catch (TTransportException e1) {
+        pfiles.failedFiles.addAll(allFiles.keySet());
       } finally {
         ThriftUtil.returnClient(client);
+      }
+
+      if (cancelFlag.get()) {
+        throw new RuntimeException("Operation canceled");
       }
 
       return pfiles;
     }
   }
 
-  /**
-   * This methods reads a subset of file paths into memory and groups them by location. Then it request sumaries for files from each location/tablet server.
-   */
-  public SummaryCollection processPartition(int modulus, int remainder) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  private class PartitionFuture implements Future<SummaryCollection> {
 
-    Predicate<String> hashingFileSelector = file -> Math.abs(Hashing.murmur3_32().hashString(file).asInt()) % modulus == remainder;
+    private CompletableFuture<ProcessedFiles> future;
+    private int modulus;
+    private int remainder;
+    private ExecutorService execSrv;
+    private TInfo tinfo;
+    private AtomicBoolean cancelFlag = new AtomicBoolean(false);
 
-    Map<String,Map<String,List<TRowRange>>> filesGBL = getFilesGroupedByLocation(hashingFileSelector);
+    PartitionFuture(TInfo tinfo, ExecutorService execSrv, int modulus, int remainder) {
+      this.tinfo = tinfo;
+      this.execSrv = execSrv;
+      this.modulus = modulus;
+      this.remainder = remainder;
+    }
 
-    SummaryCollection partitionSummaries = new SummaryCollection();
+    private synchronized void initiateProcessing(ProcessedFiles previousWork) {
+      try {
+        Predicate<String> fileSelector = file -> Math.abs(Hashing.murmur3_32().hashString(file).asInt()) % modulus == remainder;
+        if (previousWork != null) {
+          fileSelector = fileSelector.and(file -> previousWork.failedFiles.contains(file));
+        }
+        Map<String,Map<String,List<TRowRange>>> filesGBL;
+        filesGBL = getFilesGroupedByLocation(fileSelector);
 
-    ExecutorService execSrv = Executors.newCachedThreadPool();
-    try {
-      TInfo tinfo = Tracer.traceInfo();
-      while (true) {
-        Set<String> failedFiles = new HashSet<>();
+        List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>();
+        if (previousWork != null) {
+          futures.add(CompletableFuture.completedFuture(new ProcessedFiles(previousWork.summaries, factory)));
+        }
 
-        List<Future<ProcessedFiles>> futures = new ArrayList<>();
         for (Entry<String,Map<String,List<TRowRange>>> entry : filesGBL.entrySet()) {
           HostAndPort location = HostAndPort.fromString(entry.getKey());
           Map<String,List<TRowRange>> allFiles = entry.getValue();
 
-          Future<ProcessedFiles> future = execSrv.submit(new FilesProcessor(tinfo, location, allFiles));
-          futures.add(future);
+          futures.add(CompletableFuture.supplyAsync(new FilesProcessor(tinfo, location, allFiles, cancelFlag), execSrv));
         }
 
-        for (Future<ProcessedFiles> future : futures) {
-          try {
-            ProcessedFiles pfiles = future.get();
-            if (pfiles.summaries.getTotalFiles() > 0) {
-              partitionSummaries.merge(pfiles.summaries, factory);
-            }
+        future = CompletableFutureUtil.merge(futures, (pf1, pf2) -> ProcessedFiles.merge(pf1, pf2, factory), ProcessedFiles::new);
 
-            failedFiles.addAll(pfiles.failedFiles);
-          } catch (InterruptedException | ExecutionException e) {
-            throw new AccumuloException(e);
+        // when all processing is done, check for failed files... and if found starting processing again
+        future.thenRun(() -> updateFuture());
+      } catch (Exception e) {
+        future = CompletableFuture.completedFuture(new ProcessedFiles());
+        // force future to have this exception
+        future.obtrudeException(e);
+      }
+    }
+
+    private ProcessedFiles _get() {
+      try {
+        return future.get();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
+      } catch (ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private synchronized CompletableFuture<ProcessedFiles> updateFuture() {
+      if (future.isDone()) {
+        if (!future.isCancelled() && !future.isCompletedExceptionally()) {
+          ProcessedFiles pf = _get();
+          if (pf.failedFiles.size() > 0) {
+            initiateProcessing(pf);
           }
         }
+      }
 
-        if (failedFiles.size() > 0) {
-          // get new locations just for failed files
-          Predicate<String> fileSelector = hashingFileSelector.and(file -> failedFiles.contains(file));
-          filesGBL = getFilesGroupedByLocation(fileSelector);
-          UtilWaitThread.sleep(250);
+      return future;
+    }
+
+    synchronized void initiateProcessing() {
+      Preconditions.checkState(future == null);
+      initiateProcessing(null);
+    }
+
+    @Override
+    public synchronized boolean cancel(boolean mayInterruptIfRunning) {
+      boolean canceled = future.cancel(mayInterruptIfRunning);
+      if (canceled) {
+        cancelFlag.set(true);
+      }
+      return canceled;
+    }
+
+    @Override
+    public synchronized boolean isCancelled() {
+      return future.isCancelled();
+    }
+
+    @Override
+    public synchronized boolean isDone() {
+      updateFuture();
+      if (future.isDone()) {
+        if (future.isCancelled() || future.isCompletedExceptionally()) {
+          return true;
+        }
+
+        ProcessedFiles pf = _get();
+        if (pf.failedFiles.size() == 0) {
+          return true;
         } else {
-          return partitionSummaries;
+          updateFuture();
         }
       }
-    } finally {
-      execSrv.shutdownNow();
+
+      return false;
     }
+
+    @Override
+    public SummaryCollection get() throws InterruptedException, ExecutionException {
+      CompletableFuture<ProcessedFiles> futureRef = updateFuture();
+      ProcessedFiles processedFiles = futureRef.get();
+      while (processedFiles.failedFiles.size() > 0) {
+        futureRef = updateFuture();
+        processedFiles = futureRef.get();
+      }
+      return processedFiles.summaries;
+    }
+
+    @Override
+    public SummaryCollection get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+      long nanosLeft = unit.toNanos(timeout);
+      long t1, t2;
+      CompletableFuture<ProcessedFiles> futureRef = updateFuture();
+      t1 = System.nanoTime();
+      ProcessedFiles processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
+      t2 = System.nanoTime();
+      nanosLeft -= (t2 - t1);
+      while (processedFiles.failedFiles.size() > 0) {
+        futureRef = updateFuture();
+        t1 = System.nanoTime();
+        processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
+        t2 = System.nanoTime();
+        nanosLeft -= (t2 - t1);
+      }
+      return processedFiles.summaries;
+    }
+
+  }
+
+  /**
+   * This methods reads a subset of file paths into memory and groups them by location. Then it request sumaries for files from each location/tablet server.
+   */
+  public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus, int remainder) {
+    PartitionFuture future = new PartitionFuture(Tracer.traceInfo(), execSrv, modulus, remainder);
+    future.initiateProcessing();
+    return future;
   }
 
   public static interface FileSystemResolver {
@@ -345,31 +476,17 @@ public class Gatherer {
   /**
    * This method will read summaries from a set of files.
    */
-  public SummaryCollection processFiles(FileSystemResolver volMgr, Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
+  public Future<SummaryCollection> processFiles(FileSystemResolver volMgr, Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       ExecutorService srp) {
-    SummaryCollection fileSummaries = new SummaryCollection();
-
-    List<Future<SummaryCollection>> futures = new ArrayList<>();
+    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
-      Future<SummaryCollection> future = srp.submit(() -> {
+      futures.add(CompletableFuture.supplyAsync(() -> {
         List<RowRange> rrl = Lists.transform(entry.getValue(), RowRange::new);
         return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache);
-      });
-      futures.add(future);
+      }, srp));
     }
 
-    for (Future<SummaryCollection> future : futures) {
-      try {
-        fileSummaries.merge(future.get(), factory);
-      } catch (ExecutionException e) {
-        throw new RuntimeException(e);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
-      }
-    }
-
-    return fileSummaries;
+    return CompletableFutureUtil.merge(futures, (sc1, sc2) -> SummaryCollection.merge(sc1, sc2, factory), SummaryCollection::new);
   }
 
   private int countFiles() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
@@ -378,70 +495,73 @@ public class Gatherer {
     return (int) StreamSupport.stream(tmi.spliterator(), false).mapToInt(tm -> tm.getFiles().size()).sum();
   }
 
-  private class GatherRequest implements Callable<SummaryCollection> {
+  private class GatherRequest implements Supplier<SummaryCollection> {
 
     private int remainder;
     private int modulus;
     private TInfo tinfo;
+    private AtomicBoolean cancelFlag;
 
-    GatherRequest(TInfo tinfo, int remainder, int modulus) {
+    GatherRequest(TInfo tinfo, int remainder, int modulus, AtomicBoolean cancelFlag) {
       this.remainder = remainder;
       this.modulus = modulus;
       this.tinfo = tinfo;
+      this.cancelFlag = cancelFlag;
     }
 
     @Override
-    public SummaryCollection call() throws Exception {
+    public SummaryCollection get() {
       TSummaryRequest req = getRequest();
 
-      ClientContext cct = new ClientContext(ctx.getInstance(), ctx.getCredentials(), ctx.getConfiguration()) {
-        @Override
-        public long getClientTimeoutInMillis() {
-          //its expected that gathering metrics could take a while when not in cache, so disable timeout
-          return 0;
-        }
-      };
+      TSummaries tSums;
+      try {
+        tSums = ServerClient.execute(ctx, new TabletClientService.Client.Factory(), client -> {
+          TSummaries tsr = client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
+          while (!tsr.finished && !cancelFlag.get()) {
+            tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
+          }
+          return tsr;
+        });
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new RuntimeException(e);
+      }
 
-      TSummaries tSums = ServerClient.execute(cct, c -> c.getSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder));
+      if (cancelFlag.get()) {
+        throw new RuntimeException("Operation canceled");
+      }
+
       return new SummaryCollection(tSums);
     }
   }
 
-  public SummaryCollection gather() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-
-    ExecutorService es = Executors.newFixedThreadPool(ctx.getConnector().instanceOperations().getTabletServers().size());
+  public Future<SummaryCollection> gather(ExecutorService es) {
+    int numFiles;
     try {
-
-      int numFiles = countFiles();
-
-      log.debug("Gathering summaries from {} files", numFiles);
-
-      // have each tablet server process ~100K files
-      int numRequest = Math.max(numFiles / 100_000, 1);
-
-      List<Future<SummaryCollection>> futures = new ArrayList<>();
-
-      TInfo tinfo = Tracer.traceInfo();
-      for (int i = 0; i < numRequest; i++) {
-        futures.add(es.submit(new GatherRequest(tinfo, i, numRequest)));
-      }
-
-      SummaryCollection allSummaries = new SummaryCollection();
-      for (Future<SummaryCollection> future : futures) {
-        try {
-          allSummaries.merge(future.get(), factory);
-        } catch (ExecutionException e) {
-          throw new AccumuloException(e);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new AccumuloException(e);
-        }
-      }
-
-      return allSummaries;
-    } finally {
-      es.shutdownNow();
+      numFiles = countFiles();
+    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException(e);
     }
+
+    log.debug("Gathering summaries from {} files", numFiles);
+
+    if (numFiles == 0) {
+      return CompletableFuture.completedFuture(new SummaryCollection());
+    }
+
+    // have each tablet server process ~100K files
+    int numRequest = Math.max(numFiles / 100_000, 1);
+
+    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
+
+    AtomicBoolean cancelFlag = new AtomicBoolean(false);
+
+    TInfo tinfo = Tracer.traceInfo();
+    for (int i = 0; i < numRequest; i++) {
+      futures.add(CompletableFuture.supplyAsync(new GatherRequest(tinfo, i, numRequest, cancelFlag), es));
+    }
+
+    Future<SummaryCollection> future = CompletableFutureUtil.merge(futures, (sc1, sc2) -> SummaryCollection.merge(sc1, sc2, factory), SummaryCollection::new);
+    return new CancelFlagFuture<>(future, cancelFlag);
   }
 
   private static Text removeTrailingZeroFromRow(Key k) {

@@ -39,7 +39,9 @@ import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
@@ -62,9 +64,11 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.summary.CounterSummary;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
+import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.data.Key;
@@ -769,5 +773,45 @@ public class SummaryIT extends AccumuloClusterHarness {
       c.tableOperations().getSummaries("foo").retrieve();
       Assert.fail();
     } catch (TableOfflineException e) {}
+  }
+
+  @Test
+  public void testManyFiles() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    Connector c = getConnector();
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build());
+    c.tableOperations().create(table, ntc);
+
+    Random rand = new Random(42);
+    int q = 0;
+
+    SortedSet<Text> partitionKeys = new TreeSet<>();
+    for (int split = 100000; split < 1000000; split += 100000) {
+      partitionKeys.add(new Text(String.format("%06d", split)));
+    }
+    c.tableOperations().addSplits(table, partitionKeys);
+    Map<String,Long> famCounts = new HashMap<>();
+
+    for (int t = 0; t < 20; t++) {
+      // this loop should cause a varying number of files and compactions
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        for (int i = 0; i < 10000; i++) {
+          String row = String.format("%06d", rand.nextInt(1000000));
+          String fam = String.format("%03d", rand.nextInt(100));
+          String qual = String.format("%06d", q++);
+          write(bw, row, fam, qual, "val");
+          famCounts.merge(fam, 1L, Long::sum);
+        }
+      }
+
+      List<Summary> summaries = c.tableOperations().getSummaries(table).flush(true).retrieve();
+      Assert.assertEquals(1, summaries.size());
+      CounterSummary cs = new CounterSummary(summaries.get(0));
+      Assert.assertEquals(famCounts, cs.getCounters());
+      FileStatistics fileStats = summaries.get(0).getFileStatistics();
+      Assert.assertEquals(0, fileStats.getInaccurate());
+      Assert.assertTrue("Saw " + fileStats.getTotal() + " files expected >=10", fileStats.getTotal() >= 10);
+    }
   }
 }

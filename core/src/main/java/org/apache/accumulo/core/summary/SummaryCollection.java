@@ -24,12 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.impl.thrift.TSummaries;
-import org.apache.accumulo.core.client.impl.thrift.TSummarizerConfiguration;
-import org.apache.accumulo.core.client.impl.thrift.TSummary;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
+import org.apache.accumulo.core.data.thrift.TSummaries;
+import org.apache.accumulo.core.data.thrift.TSummarizerConfiguration;
+import org.apache.accumulo.core.data.thrift.TSummary;
 
 /**
  * This class facilitates merging, storing, and serializing (to/from thrift) intermediate summary information.
@@ -139,6 +139,13 @@ public class SummaryCollection {
     this.totalFiles += other.totalFiles;
   }
 
+  public static SummaryCollection merge(SummaryCollection sc1, SummaryCollection sc2, SummarizerFactory factory) {
+    SummaryCollection ret = new SummaryCollection();
+    ret.merge(sc1, factory);
+    ret.merge(sc2, factory);
+    return ret;
+  }
+
   public List<Summary> getSummaries() {
     ArrayList<Summary> ret = new ArrayList<>(mergedSummaries.size());
 
@@ -162,6 +169,6 @@ public class SummaryCollection {
       summaries.add(entry.getValue().toThrift(entry.getKey()));
     }
 
-    return new TSummaries(totalFiles, summaries);
+    return new TSummaries(true, -1l, totalFiles, summaries);
   }
 }

@@ -60,6 +60,8 @@ information.
 The following tablet server and table properties configure summarization.
 
 * <<appendices/config.txt#_tserver_cache_summary_size>>
+* <<appendices/config.txt#_tserver_summary_partition_threads>>
+* <<appendices/config.txt#_tserver_summary_remote_threads>>
 * <<appendices/config.txt#_tserver_summary_retrieval_threads>>
 * <<appendices/config.txt#TABLE_SUMMARIZER_PREFIX>>
 * <<appendices/config.txt#_table_file_summary_maxsize>>

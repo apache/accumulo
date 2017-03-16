@@ -81,10 +81,6 @@ import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
-import org.apache.accumulo.core.client.impl.thrift.TRowRange;
-import org.apache.accumulo.core.client.impl.thrift.TSummaries;
-import org.apache.accumulo.core.client.impl.thrift.TSummarizerConfiguration;
-import org.apache.accumulo.core.client.impl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
@@ -102,6 +98,10 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.impl.TabletIdImpl;
+import org.apache.accumulo.core.data.thrift.TRowRange;
+import org.apache.accumulo.core.data.thrift.TSummaries;
+import org.apache.accumulo.core.data.thrift.TSummarizerConfiguration;
+import org.apache.accumulo.core.data.thrift.TSummaryRequest;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -1715,14 +1715,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
           _flush(tableId, startRow, endRow, true);
         }
 
-        ClientContext cct = new ClientContext(context.getInstance(), context.getCredentials(), context.getConfiguration()) {
-          @Override
-          public long getClientTimeoutInMillis() {
-            //its expected that gathering metrics could take a while when not in cache, so disable timeout
-            return 0;
+        TSummaries ret = ServerClient.execute(context, new TabletClientService.Client.Factory(), client -> {
+          TSummaries tsr = client.startGetSummaries(Tracer.traceInfo(), context.rpcCreds(), request);
+          while (!tsr.finished) {
+            tsr = client.contiuneGetSummaries(Tracer.traceInfo(), tsr.sessionId);
           }
-        };
-        TSummaries ret = ServerClient.execute(cct, c -> c.getSummaries(Tracer.traceInfo(), context.rpcCreds(), request));
+          return tsr;
+        });
         return new SummaryCollection(ret).getSummaries();
       }
 

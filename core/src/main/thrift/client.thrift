@@ -103,37 +103,6 @@ struct TDiskUsage {
   2:i64 usage
 }
 
-struct TSummarizerConfiguration {
-  1:string classname
-  2:map<string, string> options
-  3:string configId
-}
-
-struct TSummary {
-   1:map<string, i64> summary
-   2:TSummarizerConfiguration config
-   3:i64 filesContaining
-   4:i64 filesExceeding
-   5:i64 filesLarge
-}
-
-struct TSummaries {
-   1:i64 totalFiles
-   2:list<TSummary> summaries
-}
-
-struct TRowRange {
-  1:binary startRow
-  2:binary endRow
-}
-
-struct TSummaryRequest {
-  1:string tableId
-  2:TRowRange bounds
-  3:list<TSummarizerConfiguration> summarizers
-  4:string summarizerPattern
-}
-
 service ClientService {
 
   // system management methods
@@ -181,9 +150,6 @@ service ClientService {
   bool checkClass(1:trace.TInfo tinfo, 4:security.TCredentials credentials, 2:string className, 3:string interfaceMatch);
   bool checkTableClass(1:trace.TInfo tinfo, 5:security.TCredentials credentials, 2:string tableId, 3:string className, 4:string interfaceMatch) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope);
   bool checkNamespaceClass(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string namespaceId, 4:string className, 5:string interfaceMatch) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope);
-
-  TSummaries getSummaries(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:TSummaryRequest request) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-  TSummaries getSummariesForPartition(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:TSummaryRequest request, 4:i32 modulus, 5:i32 remainder) throws (1:ThriftSecurityException sec)
 }
 
 // Only used for a unit test

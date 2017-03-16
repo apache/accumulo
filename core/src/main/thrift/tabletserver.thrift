@@ -231,7 +231,10 @@ service TabletClientService extends client.ClientService {
   oneway void removeLogs(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:list<string> filenames)
   list<string> getActiveLogs(1:trace.TInfo tinfo, 2:security.TCredentials credentials)
 
-  client.TSummaries getSummariesFromFiles(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:client.TSummaryRequest request, 4:map<string,list<client.TRowRange>> files) throws (1:client.ThriftSecurityException sec)
+  data.TSummaries startGetSummaries(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:data.TSummaryRequest request) throws (1:client.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
+  data.TSummaries startGetSummariesForPartition(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:data.TSummaryRequest request, 4:i32 modulus, 5:i32 remainder) throws (1:client.ThriftSecurityException sec)
+  data.TSummaries startGetSummariesFromFiles(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:data.TSummaryRequest request, 4:map<string,list<data.TRowRange>> files) throws (1:client.ThriftSecurityException sec)
+  data.TSummaries contiuneGetSummaries(1:trace.TInfo tinfo, 2:i64 sessionId) throws (1:NoSuchScanIDException nssi)
 }
 
 typedef i32 TabletID

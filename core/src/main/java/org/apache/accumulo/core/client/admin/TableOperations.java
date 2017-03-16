@@ -820,9 +820,10 @@ public interface TableOperations {
    * In order to retrieve Summaries, the Accumulo user making the request will need the {@link TablePermission#GET_SUMMARIES} table permission.
    *
    * <p>
-   * Accumulo stores summary data with each file in each tablet. In order to make retrieving it faster there is a per tablet server cache of summary data. The
-   * size of this cache is determined by the property {code tserver.cache.summary.size}. When summary data for a file is not present, it will be retrieved using
-   * threads on the tserver. The property {@code tserver.summary.retrieval.threads} determines the max number of threads the tserver will use for this.
+   * Accumulo stores summary data with each file in each tablet. In order to make retrieving it faster there is a per tablet server cache of summary data. When
+   * summary data for a file is not present, it will be retrieved using threads on the tserver. The tablet server properties
+   * {@code tserver.summary.partition.threads}, {@code tserver.summary.remote.threads}, {@code tserver.summary.retrieval.threads}, and
+   * {@code tserver.cache.summary.size} impact the performance of retrieving summaries.
    *
    * <p>
    * Since summary data is cached, its important to use the summary selection options to only read the needed data into the cache.

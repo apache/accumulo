@@ -87,6 +87,8 @@ public class TabletServerResourceManager {
   private final ExecutorService readAheadThreadPool;
   private final ExecutorService defaultReadAheadThreadPool;
   private final ExecutorService summaryRetrievalPool;
+  private final ExecutorService summaryParitionPool;
+  private final ExecutorService summaryRemotePool;
   private final Map<String,ExecutorService> threadPools = new TreeMap<>();
 
   private final ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments;
@@ -232,7 +234,9 @@ public class TabletServerResourceManager {
     readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
     defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
 
-    summaryRetrievalPool = createIdlingEs(Property.TSERV_SUMMARY_RETRIEVAL_THREADS, "summary retriever", 60, TimeUnit.SECONDS);
+    summaryRetrievalPool = createIdlingEs(Property.TSERV_SUMMARY_RETRIEVAL_THREADS, "summary file retriever", 60, TimeUnit.SECONDS);
+    summaryRemotePool = createIdlingEs(Property.TSERV_SUMMARY_REMOTE_THREADS, "summary remote", 60, TimeUnit.SECONDS);
+    summaryParitionPool = createIdlingEs(Property.TSERV_SUMMARY_PARTITION_THREADS, "summary partition", 60, TimeUnit.SECONDS);
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
@@ -778,5 +782,13 @@ public class TabletServerResourceManager {
 
   public ExecutorService getSummaryRetrievalExecutor() {
     return summaryRetrievalPool;
+  }
+
+  public ExecutorService getSummaryPartitionExecutor() {
+    return summaryParitionPool;
+  }
+
+  public ExecutorService getSummaryRemoteExecutor() {
+    return summaryRemotePool;
   }
 }

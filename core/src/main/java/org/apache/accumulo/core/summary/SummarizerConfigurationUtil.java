@@ -27,11 +27,11 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.impl.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration.Builder;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.thrift.TSummarizerConfiguration;
 
 public class SummarizerConfigurationUtil {
 

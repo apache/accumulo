@@ -51,6 +51,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -77,10 +78,9 @@ import org.apache.accumulo.core.client.impl.Translator.TKeyExtentTranslator;
 import org.apache.accumulo.core.client.impl.Translator.TRangeTranslator;
 import org.apache.accumulo.core.client.impl.Translators;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.client.impl.thrift.TRowRange;
-import org.apache.accumulo.core.client.impl.thrift.TSummaries;
-import org.apache.accumulo.core.client.impl.thrift.TSummaryRequest;
+import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -106,6 +106,9 @@ import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TKeyValue;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.data.thrift.TRange;
+import org.apache.accumulo.core.data.thrift.TRowRange;
+import org.apache.accumulo.core.data.thrift.TSummaries;
+import org.apache.accumulo.core.data.thrift.TSummaryRequest;
 import org.apache.accumulo.core.data.thrift.UpdateErrors;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
@@ -126,6 +129,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
+import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
@@ -242,6 +246,7 @@ import org.apache.accumulo.tserver.session.MultiScanSession;
 import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
+import org.apache.accumulo.tserver.session.SummarySession;
 import org.apache.accumulo.tserver.session.UpdateSession;
 import org.apache.accumulo.tserver.tablet.BulkImportCacheCleaner;
 import org.apache.accumulo.tserver.tablet.CommitSession;
@@ -1798,10 +1803,77 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       log.warn("This is probably because your file Garbage Collector is an older version than your tablet servers.\n" + "Restart your file Garbage Collector.");
     }
 
-    @Override
-    public TSummaries getSummariesFromFiles(TInfo tinfo, TCredentials credentials, TSummaryRequest request, Map<String,List<TRowRange>> files)
-        throws TException {
+    private TSummaries getSummaries(Future<SummaryCollection> future) throws TimeoutException {
+      try {
+        SummaryCollection sc = future.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
+        return sc.toThrift();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
+      } catch (ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+    }
 
+    private TSummaries handleTimeout(long sessionId) {
+      long timeout = TabletServer.this.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
+      sessionManager.removeIfNotAccessed(sessionId, timeout);
+      return new TSummaries(false, sessionId, -1, null);
+    }
+
+    private TSummaries startSummaryOperation(TCredentials credentials, Future<SummaryCollection> future) {
+      try {
+        return getSummaries(future);
+      } catch (TimeoutException e) {
+        long sid = sessionManager.createSession(new SummarySession(credentials, future), false);
+        while (sid == 0) {
+          sessionManager.removeSession(sid);
+          sid = sessionManager.createSession(new SummarySession(credentials, future), false);
+        }
+        return handleTimeout(sid);
+      }
+    }
+
+    @Override
+    public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials, TSummaryRequest request) throws ThriftSecurityException,
+        ThriftTableOperationException, NoSuchScanIDException, TException {
+      String namespaceId;
+      try {
+        namespaceId = Tables.getNamespaceId(TabletServer.this.getInstance(), request.getTableId());
+      } catch (TableNotFoundException e1) {
+        throw new ThriftTableOperationException(request.getTableId(), null, null, TableOperationExceptionType.NOTFOUND, null);
+      }
+
+      if (!security.canGetSummaries(credentials, request.getTableId(), namespaceId)) {
+        throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      }
+
+      ServerConfigurationFactory factory = TabletServer.this.getServerConfigurationFactory();
+      ExecutorService es = resourceManager.getSummaryPartitionExecutor();
+      Future<SummaryCollection> future = new Gatherer(TabletServer.this, request, factory.getTableConfiguration(request.getTableId())).gather(es);
+
+      return startSummaryOperation(credentials, future);
+    }
+
+    @Override
+    public TSummaries startGetSummariesForPartition(TInfo tinfo, TCredentials credentials, TSummaryRequest request, int modulus, int remainder)
+        throws ThriftSecurityException, NoSuchScanIDException, TException {
+      // do not expect users to call this directly, expect other tservers to call this method
+      if (!security.canPerformSystemActions(credentials)) {
+        throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      }
+
+      ServerConfigurationFactory factory = TabletServer.this.getServerConfigurationFactory();
+      ExecutorService spe = resourceManager.getSummaryRemoteExecutor();
+      Future<SummaryCollection> future = new Gatherer(TabletServer.this, request, factory.getTableConfiguration(request.getTableId())).processPartition(spe,
+          modulus, remainder);
+
+      return startSummaryOperation(credentials, future);
+    }
+
+    @Override
+    public TSummaries startGetSummariesFromFiles(TInfo tinfo, TCredentials credentials, TSummaryRequest request, Map<String,List<TRowRange>> files)
+        throws ThriftSecurityException, NoSuchScanIDException, TException {
       // do not expect users to call this directly, expect other tservers to call this method
       if (!security.canPerformSystemActions(credentials)) {
         throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED).asThriftException();
@@ -1812,7 +1884,26 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       BlockCache summaryCache = resourceManager.getSummaryCache();
       BlockCache indexCache = resourceManager.getIndexCache();
       FileSystemResolver volMgr = p -> fs.getVolumeByPath(p).getFileSystem();
-      return new Gatherer(TabletServer.this, request, tableCfg).processFiles(volMgr, files, summaryCache, indexCache, srp).toThrift();
+      Future<SummaryCollection> future = new Gatherer(TabletServer.this, request, tableCfg).processFiles(volMgr, files, summaryCache, indexCache, srp);
+
+      return startSummaryOperation(credentials, future);
+    }
+
+    @Override
+    public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId) throws NoSuchScanIDException, TException {
+      SummarySession session = (SummarySession) sessionManager.getSession(sessionId);
+      if (session == null) {
+        throw new NoSuchScanIDException();
+      }
+
+      Future<SummaryCollection> future = session.getFuture();
+      try {
+        TSummaries tsums = getSummaries(future);
+        sessionManager.removeSession(sessionId);
+        return tsums;
+      } catch (TimeoutException e) {
+        return handleTimeout(sessionId);
+      }
     }
   }
 

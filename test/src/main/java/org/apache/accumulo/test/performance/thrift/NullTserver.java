@@ -31,10 +31,8 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.client.impl.thrift.TRowRange;
-import org.apache.accumulo.core.client.impl.thrift.TSummaries;
-import org.apache.accumulo.core.client.impl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -53,6 +51,9 @@ import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.data.thrift.TRange;
+import org.apache.accumulo.core.data.thrift.TRowRange;
+import org.apache.accumulo.core.data.thrift.TSummaries;
+import org.apache.accumulo.core.data.thrift.TSummaryRequest;
 import org.apache.accumulo.core.data.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -240,8 +241,25 @@ public class NullTserver {
     public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException { }
 
     @Override
-    public TSummaries getSummariesFromFiles(TInfo tinfo, TCredentials credentials, TSummaryRequest request, Map<String,List<TRowRange>> files)
-        throws TException {
+    public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials, TSummaryRequest request)
+        throws ThriftSecurityException, ThriftTableOperationException, NoSuchScanIDException, TException {
+      return null;
+    }
+
+    @Override
+    public TSummaries startGetSummariesForPartition(TInfo tinfo, TCredentials credentials, TSummaryRequest request, int modulus, int remainder)
+        throws ThriftSecurityException, NoSuchScanIDException, TException {
+      return null;
+    }
+
+    @Override
+    public TSummaries startGetSummariesFromFiles(TInfo tinfo, TCredentials credentials, TSummaryRequest request, Map<String,List<TRowRange>> files)
+        throws ThriftSecurityException, NoSuchScanIDException, TException {
+      return null;
+    }
+
+    @Override
+    public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId) throws NoSuchScanIDException, TException {
       return null;
     }
   }

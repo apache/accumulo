@@ -88,10 +88,6 @@ public class ClientService {
 
     public boolean checkNamespaceClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, java.lang.String namespaceId, java.lang.String className, java.lang.String interfaceMatch) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public TSummaries getSummaries(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
-
-    public TSummaries getSummariesForPartition(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request, int modulus, int remainder) throws ThriftSecurityException, org.apache.thrift.TException;
-
   }
 
   public interface AsyncIface {
@@ -155,10 +151,6 @@ public class ClientService {
     public void checkTableClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, java.lang.String tableId, java.lang.String className, java.lang.String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
     public void checkNamespaceClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, java.lang.String namespaceId, java.lang.String className, java.lang.String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
-
-    public void getSummaries(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request, org.apache.thrift.async.AsyncMethodCallback<TSummaries> resultHandler) throws org.apache.thrift.TException;
-
-    public void getSummariesForPartition(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request, int modulus, int remainder, org.apache.thrift.async.AsyncMethodCallback<TSummaries> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -1011,67 +1003,6 @@ public class ClientService {
         throw result.tope;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "checkNamespaceClass failed: unknown result");
-    }
-
-    public TSummaries getSummaries(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
-    {
-      send_getSummaries(tinfo, credentials, request);
-      return recv_getSummaries();
-    }
-
-    public void send_getSummaries(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request) throws org.apache.thrift.TException
-    {
-      getSummaries_args args = new getSummaries_args();
-      args.setTinfo(tinfo);
-      args.setCredentials(credentials);
-      args.setRequest(request);
-      sendBase("getSummaries", args);
-    }
-
-    public TSummaries recv_getSummaries() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
-    {
-      getSummaries_result result = new getSummaries_result();
-      receiveBase(result, "getSummaries");
-      if (result.isSetSuccess()) {
-        return result.success;
-      }
-      if (result.sec != null) {
-        throw result.sec;
-      }
-      if (result.tope != null) {
-        throw result.tope;
-      }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getSummaries failed: unknown result");
-    }
-
-    public TSummaries getSummariesForPartition(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request, int modulus, int remainder) throws ThriftSecurityException, org.apache.thrift.TException
-    {
-      send_getSummariesForPartition(tinfo, credentials, request, modulus, remainder);
-      return recv_getSummariesForPartition();
-    }
-
-    public void send_getSummariesForPartition(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request, int modulus, int remainder) throws org.apache.thrift.TException
-    {
-      getSummariesForPartition_args args = new getSummariesForPartition_args();
-      args.setTinfo(tinfo);
-      args.setCredentials(credentials);
-      args.setRequest(request);
-      args.setModulus(modulus);
-      args.setRemainder(remainder);
-      sendBase("getSummariesForPartition", args);
-    }
-
-    public TSummaries recv_getSummariesForPartition() throws ThriftSecurityException, org.apache.thrift.TException
-    {
-      getSummariesForPartition_result result = new getSummariesForPartition_result();
-      receiveBase(result, "getSummariesForPartition");
-      if (result.isSetSuccess()) {
-        return result.success;
-      }
-      if (result.sec != null) {
-        throw result.sec;
-      }
-      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getSummariesForPartition failed: unknown result");
     }
 
   }
@@ -2268,88 +2199,6 @@ public class ClientService {
       }
     }
 
-    public void getSummaries(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request, org.apache.thrift.async.AsyncMethodCallback<TSummaries> resultHandler) throws org.apache.thrift.TException {
-      checkReady();
-      getSummaries_call method_call = new getSummaries_call(tinfo, credentials, request, resultHandler, this, ___protocolFactory, ___transport);
-      this.___currentMethod = method_call;
-      ___manager.call(method_call);
-    }
-
-    public static class getSummaries_call extends org.apache.thrift.async.TAsyncMethodCall<TSummaries> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
-      private TSummaryRequest request;
-      public getSummaries_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request, org.apache.thrift.async.AsyncMethodCallback<TSummaries> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
-        super(client, protocolFactory, transport, resultHandler, false);
-        this.tinfo = tinfo;
-        this.credentials = credentials;
-        this.request = request;
-      }
-
-      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getSummaries", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        getSummaries_args args = new getSummaries_args();
-        args.setTinfo(tinfo);
-        args.setCredentials(credentials);
-        args.setRequest(request);
-        args.write(prot);
-        prot.writeMessageEnd();
-      }
-
-      public TSummaries getResult() throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException {
-        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
-          throw new java.lang.IllegalStateException("Method call not finished!");
-        }
-        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_getSummaries();
-      }
-    }
-
-    public void getSummariesForPartition(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request, int modulus, int remainder, org.apache.thrift.async.AsyncMethodCallback<TSummaries> resultHandler) throws org.apache.thrift.TException {
-      checkReady();
-      getSummariesForPartition_call method_call = new getSummariesForPartition_call(tinfo, credentials, request, modulus, remainder, resultHandler, this, ___protocolFactory, ___transport);
-      this.___currentMethod = method_call;
-      ___manager.call(method_call);
-    }
-
-    public static class getSummariesForPartition_call extends org.apache.thrift.async.TAsyncMethodCall<TSummaries> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
-      private TSummaryRequest request;
-      private int modulus;
-      private int remainder;
-      public getSummariesForPartition_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, TSummaryRequest request, int modulus, int remainder, org.apache.thrift.async.AsyncMethodCallback<TSummaries> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
-        super(client, protocolFactory, transport, resultHandler, false);
-        this.tinfo = tinfo;
-        this.credentials = credentials;
-        this.request = request;
-        this.modulus = modulus;
-        this.remainder = remainder;
-      }
-
-      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getSummariesForPartition", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        getSummariesForPartition_args args = new getSummariesForPartition_args();
-        args.setTinfo(tinfo);
-        args.setCredentials(credentials);
-        args.setRequest(request);
-        args.setModulus(modulus);
-        args.setRemainder(remainder);
-        args.write(prot);
-        prot.writeMessageEnd();
-      }
-
-      public TSummaries getResult() throws ThriftSecurityException, org.apache.thrift.TException {
-        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
-          throw new java.lang.IllegalStateException("Method call not finished!");
-        }
-        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_getSummariesForPartition();
-      }
-    }
-
   }
 
   public static class Processor<I extends Iface> extends org.apache.thrift.TBaseProcessor<I> implements org.apache.thrift.TProcessor {
@@ -2393,8 +2242,6 @@ public class ClientService {
       processMap.put("checkClass", new checkClass());
       processMap.put("checkTableClass", new checkTableClass());
       processMap.put("checkNamespaceClass", new checkNamespaceClass());
-      processMap.put("getSummaries", new getSummaries());
-      processMap.put("getSummariesForPartition", new getSummariesForPartition());
       return processMap;
     }
 
@@ -3123,56 +2970,6 @@ public class ClientService {
       }
     }
 
-    public static class getSummaries<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getSummaries_args> {
-      public getSummaries() {
-        super("getSummaries");
-      }
-
-      public getSummaries_args getEmptyArgsInstance() {
-        return new getSummaries_args();
-      }
-
-      protected boolean isOneway() {
-        return false;
-      }
-
-      public getSummaries_result getResult(I iface, getSummaries_args args) throws org.apache.thrift.TException {
-        getSummaries_result result = new getSummaries_result();
-        try {
-          result.success = iface.getSummaries(args.tinfo, args.credentials, args.request);
-        } catch (ThriftSecurityException sec) {
-          result.sec = sec;
-        } catch (ThriftTableOperationException tope) {
-          result.tope = tope;
-        }
-        return result;
-      }
-    }
-
-    public static class getSummariesForPartition<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getSummariesForPartition_args> {
-      public getSummariesForPartition() {
-        super("getSummariesForPartition");
-      }
-
-      public getSummariesForPartition_args getEmptyArgsInstance() {
-        return new getSummariesForPartition_args();
-      }
-
-      protected boolean isOneway() {
-        return false;
-      }
-
-      public getSummariesForPartition_result getResult(I iface, getSummariesForPartition_args args) throws org.apache.thrift.TException {
-        getSummariesForPartition_result result = new getSummariesForPartition_result();
-        try {
-          result.success = iface.getSummariesForPartition(args.tinfo, args.credentials, args.request, args.modulus, args.remainder);
-        } catch (ThriftSecurityException sec) {
-          result.sec = sec;
-        }
-        return result;
-      }
-    }
-
   }
 
   public static class AsyncProcessor<I extends AsyncIface> extends org.apache.thrift.TBaseAsyncProcessor<I> {
@@ -3216,8 +3013,6 @@ public class ClientService {
       processMap.put("checkClass", new checkClass());
       processMap.put("checkTableClass", new checkTableClass());
       processMap.put("checkNamespaceClass", new checkNamespaceClass());
-      processMap.put("getSummaries", new getSummaries());
-      processMap.put("getSummariesForPartition", new getSummariesForPartition());
       return processMap;
     }
 
@@ -5182,140 +4977,6 @@ public class ClientService {
 
       public void start(I iface, checkNamespaceClass_args args, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
         iface.checkNamespaceClass(args.tinfo, args.credentials, args.namespaceId, args.className, args.interfaceMatch,resultHandler);
-      }
-    }
-
-    public static class getSummaries<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getSummaries_args, TSummaries> {
-      public getSummaries() {
-        super("getSummaries");
-      }
-
-      public getSummaries_args getEmptyArgsInstance() {
-        return new getSummaries_args();
-      }
-
-      public org.apache.thrift.async.AsyncMethodCallback<TSummaries> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
-        final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<TSummaries>() { 
-          public void onComplete(TSummaries o) {
-            getSummaries_result result = new getSummaries_result();
-            result.success = o;
-            try {
-              fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
-            } catch (org.apache.thrift.transport.TTransportException e) {
-              _LOGGER.error("TTransportException writing to internal frame buffer", e);
-              fb.close();
-            } catch (java.lang.Exception e) {
-              _LOGGER.error("Exception writing to internal frame buffer", e);
-              onError(e);
-            }
-          }
-          public void onError(java.lang.Exception e) {
-            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
-            org.apache.thrift.TSerializable msg;
-            getSummaries_result result = new getSummaries_result();
-            if (e instanceof ThriftSecurityException) {
-              result.sec = (ThriftSecurityException) e;
-              result.setSecIsSet(true);
-              msg = result;
-            } else if (e instanceof ThriftTableOperationException) {
-              result.tope = (ThriftTableOperationException) e;
-              result.setTopeIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
-              _LOGGER.error("TTransportException inside handler", e);
-              fb.close();
-              return;
-            } else if (e instanceof org.apache.thrift.TApplicationException) {
-              _LOGGER.error("TApplicationException inside handler", e);
-              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
-              msg = (org.apache.thrift.TApplicationException)e;
-            } else {
-              _LOGGER.error("Exception inside handler", e);
-              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
-              msg = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
-            }
-            try {
-              fcall.sendResponse(fb,msg,msgType,seqid);
-            } catch (java.lang.Exception ex) {
-              _LOGGER.error("Exception writing to internal frame buffer", ex);
-              fb.close();
-            }
-          }
-        };
-      }
-
-      protected boolean isOneway() {
-        return false;
-      }
-
-      public void start(I iface, getSummaries_args args, org.apache.thrift.async.AsyncMethodCallback<TSummaries> resultHandler) throws org.apache.thrift.TException {
-        iface.getSummaries(args.tinfo, args.credentials, args.request,resultHandler);
-      }
-    }
-
-    public static class getSummariesForPartition<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getSummariesForPartition_args, TSummaries> {
-      public getSummariesForPartition() {
-        super("getSummariesForPartition");
-      }
-
-      public getSummariesForPartition_args getEmptyArgsInstance() {
-        return new getSummariesForPartition_args();
-      }
-
-      public org.apache.thrift.async.AsyncMethodCallback<TSummaries> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
-        final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<TSummaries>() { 
-          public void onComplete(TSummaries o) {
-            getSummariesForPartition_result result = new getSummariesForPartition_result();
-            result.success = o;
-            try {
-              fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
-            } catch (org.apache.thrift.transport.TTransportException e) {
-              _LOGGER.error("TTransportException writing to internal frame buffer", e);
-              fb.close();
-            } catch (java.lang.Exception e) {
-              _LOGGER.error("Exception writing to internal frame buffer", e);
-              onError(e);
-            }
-          }
-          public void onError(java.lang.Exception e) {
-            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
-            org.apache.thrift.TSerializable msg;
-            getSummariesForPartition_result result = new getSummariesForPartition_result();
-            if (e instanceof ThriftSecurityException) {
-              result.sec = (ThriftSecurityException) e;
-              result.setSecIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
-              _LOGGER.error("TTransportException inside handler", e);
-              fb.close();
-              return;
-            } else if (e instanceof org.apache.thrift.TApplicationException) {
-              _LOGGER.error("TApplicationException inside handler", e);
-              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
-              msg = (org.apache.thrift.TApplicationException)e;
-            } else {
-              _LOGGER.error("Exception inside handler", e);
-              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
-              msg = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
-            }
-            try {
-              fcall.sendResponse(fb,msg,msgType,seqid);
-            } catch (java.lang.Exception ex) {
-              _LOGGER.error("Exception writing to internal frame buffer", ex);
-              fb.close();
-            }
-          }
-        };
-      }
-
-      protected boolean isOneway() {
-        return false;
-      }
-
-      public void start(I iface, getSummariesForPartition_args args, org.apache.thrift.async.AsyncMethodCallback<TSummaries> resultHandler) throws org.apache.thrift.TException {
-        iface.getSummariesForPartition(args.tinfo, args.credentials, args.request, args.modulus, args.remainder,resultHandler);
       }
     }
 
@@ -7986,13 +7647,13 @@ public class ClientService {
             case 5: // FILES
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list44 = iprot.readListBegin();
-                  struct.files = new java.util.ArrayList<java.lang.String>(_list44.size);
-                  java.lang.String _elem45;
-                  for (int _i46 = 0; _i46 < _list44.size; ++_i46)
+                  org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
+                  struct.files = new java.util.ArrayList<java.lang.String>(_list8.size);
+                  java.lang.String _elem9;
+                  for (int _i10 = 0; _i10 < _list8.size; ++_i10)
                   {
-                    _elem45 = iprot.readString();
-                    struct.files.add(_elem45);
+                    _elem9 = iprot.readString();
+                    struct.files.add(_elem9);
                   }
                   iprot.readListEnd();
                 }
@@ -8049,9 +7710,9 @@ public class ClientService {
           oprot.writeFieldBegin(FILES_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.files.size()));
-            for (java.lang.String _iter47 : struct.files)
+            for (java.lang.String _iter11 : struct.files)
             {
-              oprot.writeString(_iter47);
+              oprot.writeString(_iter11);
             }
             oprot.writeListEnd();
           }
@@ -8125,9 +7786,9 @@ public class ClientService {
         if (struct.isSetFiles()) {
           {
             oprot.writeI32(struct.files.size());
-            for (java.lang.String _iter48 : struct.files)
+            for (java.lang.String _iter12 : struct.files)
             {
-              oprot.writeString(_iter48);
+              oprot.writeString(_iter12);
             }
           }
         }
@@ -8163,13 +7824,13 @@ public class ClientService {
         }
         if (incoming.get(4)) {
           {
-            org.apache.thrift.protocol.TList _list49 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.files = new java.util.ArrayList<java.lang.String>(_list49.size);
-            java.lang.String _elem50;
-            for (int _i51 = 0; _i51 < _list49.size; ++_i51)
+            org.apache.thrift.protocol.TList _list13 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.files = new java.util.ArrayList<java.lang.String>(_list13.size);
+            java.lang.String _elem14;
+            for (int _i15 = 0; _i15 < _list13.size; ++_i15)
             {
-              _elem50 = iprot.readString();
-              struct.files.add(_elem50);
+              _elem14 = iprot.readString();
+              struct.files.add(_elem14);
             }
           }
           struct.setFilesIsSet(true);
@@ -8663,13 +8324,13 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list52 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<java.lang.String>(_list52.size);
-                  java.lang.String _elem53;
-                  for (int _i54 = 0; _i54 < _list52.size; ++_i54)
+                  org.apache.thrift.protocol.TList _list16 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<java.lang.String>(_list16.size);
+                  java.lang.String _elem17;
+                  for (int _i18 = 0; _i18 < _list16.size; ++_i18)
                   {
-                    _elem53 = iprot.readString();
-                    struct.success.add(_elem53);
+                    _elem17 = iprot.readString();
+                    struct.success.add(_elem17);
                   }
                   iprot.readListEnd();
                 }
@@ -8715,9 +8376,9 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.lang.String _iter55 : struct.success)
+            for (java.lang.String _iter19 : struct.success)
             {
-              oprot.writeString(_iter55);
+              oprot.writeString(_iter19);
             }
             oprot.writeListEnd();
           }
@@ -8764,9 +8425,9 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.lang.String _iter56 : struct.success)
+            for (java.lang.String _iter20 : struct.success)
             {
-              oprot.writeString(_iter56);
+              oprot.writeString(_iter20);
             }
           }
         }
@@ -8784,13 +8445,13 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list57 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new java.util.ArrayList<java.lang.String>(_list57.size);
-            java.lang.String _elem58;
-            for (int _i59 = 0; _i59 < _list57.size; ++_i59)
+            org.apache.thrift.protocol.TList _list21 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new java.util.ArrayList<java.lang.String>(_list21.size);
+            java.lang.String _elem22;
+            for (int _i23 = 0; _i23 < _list21.size; ++_i23)
             {
-              _elem58 = iprot.readString();
-              struct.success.add(_elem58);
+              _elem22 = iprot.readString();
+              struct.success.add(_elem22);
             }
           }
           struct.setSuccessIsSet(true);
@@ -10766,13 +10427,13 @@ public class ClientService {
             case 2: // TABLES
               if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
-                  org.apache.thrift.protocol.TSet _set60 = iprot.readSetBegin();
-                  struct.tables = new java.util.HashSet<java.lang.String>(2*_set60.size);
-                  java.lang.String _elem61;
-                  for (int _i62 = 0; _i62 < _set60.size; ++_i62)
+                  org.apache.thrift.protocol.TSet _set24 = iprot.readSetBegin();
+                  struct.tables = new java.util.HashSet<java.lang.String>(2*_set24.size);
+                  java.lang.String _elem25;
+                  for (int _i26 = 0; _i26 < _set24.size; ++_i26)
                   {
-                    _elem61 = iprot.readString();
-                    struct.tables.add(_elem61);
+                    _elem25 = iprot.readString();
+                    struct.tables.add(_elem25);
                   }
                   iprot.readSetEnd();
                 }
@@ -10814,9 +10475,9 @@ public class ClientService {
           oprot.writeFieldBegin(TABLES_FIELD_DESC);
           {
             oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.tables.size()));
-            for (java.lang.String _iter63 : struct.tables)
+            for (java.lang.String _iter27 : struct.tables)
             {
-              oprot.writeString(_iter63);
+              oprot.writeString(_iter27);
             }
             oprot.writeSetEnd();
           }
@@ -10850,9 +10511,9 @@ public class ClientService {
         if (struct.isSetTables()) {
           {
             oprot.writeI32(struct.tables.size());
-            for (java.lang.String _iter64 : struct.tables)
+            for (java.lang.String _iter28 : struct.tables)
             {
-              oprot.writeString(_iter64);
+              oprot.writeString(_iter28);
             }
           }
         }
@@ -10867,13 +10528,13 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TSet _set65 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.tables = new java.util.HashSet<java.lang.String>(2*_set65.size);
-            java.lang.String _elem66;
-            for (int _i67 = 0; _i67 < _set65.size; ++_i67)
+            org.apache.thrift.protocol.TSet _set29 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.tables = new java.util.HashSet<java.lang.String>(2*_set29.size);
+            java.lang.String _elem30;
+            for (int _i31 = 0; _i31 < _set29.size; ++_i31)
             {
-              _elem66 = iprot.readString();
-              struct.tables.add(_elem66);
+              _elem30 = iprot.readString();
+              struct.tables.add(_elem30);
             }
           }
           struct.setTablesIsSet(true);
@@ -11367,14 +11028,14 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list68 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<TDiskUsage>(_list68.size);
-                  TDiskUsage _elem69;
-                  for (int _i70 = 0; _i70 < _list68.size; ++_i70)
+                  org.apache.thrift.protocol.TList _list32 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<TDiskUsage>(_list32.size);
+                  TDiskUsage _elem33;
+                  for (int _i34 = 0; _i34 < _list32.size; ++_i34)
                   {
-                    _elem69 = new TDiskUsage();
-                    _elem69.read(iprot);
-                    struct.success.add(_elem69);
+                    _elem33 = new TDiskUsage();
+                    _elem33.read(iprot);
+                    struct.success.add(_elem33);
                   }
                   iprot.readListEnd();
                 }
@@ -11420,9 +11081,9 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (TDiskUsage _iter71 : struct.success)
+            for (TDiskUsage _iter35 : struct.success)
             {
-              _iter71.write(oprot);
+              _iter35.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -11469,9 +11130,9 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (TDiskUsage _iter72 : struct.success)
+            for (TDiskUsage _iter36 : struct.success)
             {
-              _iter72.write(oprot);
+              _iter36.write(oprot);
             }
           }
         }
@@ -11489,14 +11150,14 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list73 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-            struct.success = new java.util.ArrayList<TDiskUsage>(_list73.size);
-            TDiskUsage _elem74;
-            for (int _i75 = 0; _i75 < _list73.size; ++_i75)
+            org.apache.thrift.protocol.TList _list37 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+            struct.success = new java.util.ArrayList<TDiskUsage>(_list37.size);
+            TDiskUsage _elem38;
+            for (int _i39 = 0; _i39 < _list37.size; ++_i39)
             {
-              _elem74 = new TDiskUsage();
-              _elem74.read(iprot);
-              struct.success.add(_elem74);
+              _elem38 = new TDiskUsage();
+              _elem38.read(iprot);
+              struct.success.add(_elem38);
             }
           }
           struct.setSuccessIsSet(true);
@@ -12387,13 +12048,13 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
-                  org.apache.thrift.protocol.TSet _set76 = iprot.readSetBegin();
-                  struct.success = new java.util.HashSet<java.lang.String>(2*_set76.size);
-                  java.lang.String _elem77;
-                  for (int _i78 = 0; _i78 < _set76.size; ++_i78)
+                  org.apache.thrift.protocol.TSet _set40 = iprot.readSetBegin();
+                  struct.success = new java.util.HashSet<java.lang.String>(2*_set40.size);
+                  java.lang.String _elem41;
+                  for (int _i42 = 0; _i42 < _set40.size; ++_i42)
                   {
-                    _elem77 = iprot.readString();
-                    struct.success.add(_elem77);
+                    _elem41 = iprot.readString();
+                    struct.success.add(_elem41);
                   }
                   iprot.readSetEnd();
                 }
@@ -12430,9 +12091,9 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.lang.String _iter79 : struct.success)
+            for (java.lang.String _iter43 : struct.success)
             {
-              oprot.writeString(_iter79);
+              oprot.writeString(_iter43);
             }
             oprot.writeSetEnd();
           }
@@ -12471,9 +12132,9 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.lang.String _iter80 : struct.success)
+            for (java.lang.String _iter44 : struct.success)
             {
-              oprot.writeString(_iter80);
+              oprot.writeString(_iter44);
             }
           }
         }
@@ -12488,13 +12149,13 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TSet _set81 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new java.util.HashSet<java.lang.String>(2*_set81.size);
-            java.lang.String _elem82;
-            for (int _i83 = 0; _i83 < _set81.size; ++_i83)
+            org.apache.thrift.protocol.TSet _set45 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new java.util.HashSet<java.lang.String>(2*_set45.size);
+            java.lang.String _elem46;
+            for (int _i47 = 0; _i47 < _set45.size; ++_i47)
             {
-              _elem82 = iprot.readString();
-              struct.success.add(_elem82);
+              _elem46 = iprot.readString();
+              struct.success.add(_elem46);
             }
           }
           struct.setSuccessIsSet(true);
@@ -18159,13 +17820,13 @@ public class ClientService {
             case 3: // AUTHORIZATIONS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list84 = iprot.readListBegin();
-                  struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list84.size);
-                  java.nio.ByteBuffer _elem85;
-                  for (int _i86 = 0; _i86 < _list84.size; ++_i86)
+                  org.apache.thrift.protocol.TList _list48 = iprot.readListBegin();
+                  struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list48.size);
+                  java.nio.ByteBuffer _elem49;
+                  for (int _i50 = 0; _i50 < _list48.size; ++_i50)
                   {
-                    _elem85 = iprot.readBinary();
-                    struct.authorizations.add(_elem85);
+                    _elem49 = iprot.readBinary();
+                    struct.authorizations.add(_elem49);
                   }
                   iprot.readListEnd();
                 }
@@ -18198,9 +17859,9 @@ public class ClientService {
           oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.authorizations.size()));
-            for (java.nio.ByteBuffer _iter87 : struct.authorizations)
+            for (java.nio.ByteBuffer _iter51 : struct.authorizations)
             {
-              oprot.writeBinary(_iter87);
+              oprot.writeBinary(_iter51);
             }
             oprot.writeListEnd();
           }
@@ -18259,9 +17920,9 @@ public class ClientService {
         if (struct.isSetAuthorizations()) {
           {
             oprot.writeI32(struct.authorizations.size());
-            for (java.nio.ByteBuffer _iter88 : struct.authorizations)
+            for (java.nio.ByteBuffer _iter52 : struct.authorizations)
             {
-              oprot.writeBinary(_iter88);
+              oprot.writeBinary(_iter52);
             }
           }
         }
@@ -18287,13 +17948,13 @@ public class ClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TList _list89 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list89.size);
-            java.nio.ByteBuffer _elem90;
-            for (int _i91 = 0; _i91 < _list89.size; ++_i91)
+            org.apache.thrift.protocol.TList _list53 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list53.size);
+            java.nio.ByteBuffer _elem54;
+            for (int _i55 = 0; _i55 < _list53.size; ++_i55)
             {
-              _elem90 = iprot.readBinary();
-              struct.authorizations.add(_elem90);
+              _elem54 = iprot.readBinary();
+              struct.authorizations.add(_elem54);
             }
           }
           struct.setAuthorizationsIsSet(true);
@@ -19642,13 +19303,13 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list92 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<java.nio.ByteBuffer>(_list92.size);
-                  java.nio.ByteBuffer _elem93;
-                  for (int _i94 = 0; _i94 < _list92.size; ++_i94)
+                  org.apache.thrift.protocol.TList _list56 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<java.nio.ByteBuffer>(_list56.size);
+                  java.nio.ByteBuffer _elem57;
+                  for (int _i58 = 0; _i58 < _list56.size; ++_i58)
                   {
-                    _elem93 = iprot.readBinary();
-                    struct.success.add(_elem93);
+                    _elem57 = iprot.readBinary();
+                    struct.success.add(_elem57);
                   }
                   iprot.readListEnd();
                 }
@@ -19685,9 +19346,9 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.nio.ByteBuffer _iter95 : struct.success)
+            for (java.nio.ByteBuffer _iter59 : struct.success)
             {
-              oprot.writeBinary(_iter95);
+              oprot.writeBinary(_iter59);
             }
             oprot.writeListEnd();
           }
@@ -19726,9 +19387,9 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.nio.ByteBuffer _iter96 : struct.success)
+            for (java.nio.ByteBuffer _iter60 : struct.success)
             {
-              oprot.writeBinary(_iter96);
+              oprot.writeBinary(_iter60);
             }
           }
         }
@@ -19743,13 +19404,13 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list97 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new java.util.ArrayList<java.nio.ByteBuffer>(_list97.size);
-            java.nio.ByteBuffer _elem98;
-            for (int _i99 = 0; _i99 < _list97.size; ++_i99)
+            org.apache.thrift.protocol.TList _list61 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new java.util.ArrayList<java.nio.ByteBuffer>(_list61.size);
+            java.nio.ByteBuffer _elem62;
+            for (int _i63 = 0; _i63 < _list61.size; ++_i63)
             {
-              _elem98 = iprot.readBinary();
-              struct.success.add(_elem98);
+              _elem62 = iprot.readBinary();
+              struct.success.add(_elem62);
             }
           }
           struct.setSuccessIsSet(true);
@@ -31633,15 +31294,15 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map100 = iprot.readMapBegin();
-                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map100.size);
-                  java.lang.String _key101;
-                  java.lang.String _val102;
-                  for (int _i103 = 0; _i103 < _map100.size; ++_i103)
+                  org.apache.thrift.protocol.TMap _map64 = iprot.readMapBegin();
+                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map64.size);
+                  java.lang.String _key65;
+                  java.lang.String _val66;
+                  for (int _i67 = 0; _i67 < _map64.size; ++_i67)
                   {
-                    _key101 = iprot.readString();
-                    _val102 = iprot.readString();
-                    struct.success.put(_key101, _val102);
+                    _key65 = iprot.readString();
+                    _val66 = iprot.readString();
+                    struct.success.put(_key65, _val66);
                   }
                   iprot.readMapEnd();
                 }
@@ -31669,10 +31330,10 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter104 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter68 : struct.success.entrySet())
             {
-              oprot.writeString(_iter104.getKey());
-              oprot.writeString(_iter104.getValue());
+              oprot.writeString(_iter68.getKey());
+              oprot.writeString(_iter68.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -31703,10 +31364,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter105 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter69 : struct.success.entrySet())
             {
-              oprot.writeString(_iter105.getKey());
-              oprot.writeString(_iter105.getValue());
+              oprot.writeString(_iter69.getKey());
+              oprot.writeString(_iter69.getValue());
             }
           }
         }
@@ -31718,15 +31379,15 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map106 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map106.size);
-            java.lang.String _key107;
-            java.lang.String _val108;
-            for (int _i109 = 0; _i109 < _map106.size; ++_i109)
+            org.apache.thrift.protocol.TMap _map70 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map70.size);
+            java.lang.String _key71;
+            java.lang.String _val72;
+            for (int _i73 = 0; _i73 < _map70.size; ++_i73)
             {
-              _key107 = iprot.readString();
-              _val108 = iprot.readString();
-              struct.success.put(_key107, _val108);
+              _key71 = iprot.readString();
+              _val72 = iprot.readString();
+              struct.success.put(_key71, _val72);
             }
           }
           struct.setSuccessIsSet(true);
@@ -32708,15 +32369,15 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map110 = iprot.readMapBegin();
-                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map110.size);
-                  java.lang.String _key111;
-                  java.lang.String _val112;
-                  for (int _i113 = 0; _i113 < _map110.size; ++_i113)
+                  org.apache.thrift.protocol.TMap _map74 = iprot.readMapBegin();
+                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map74.size);
+                  java.lang.String _key75;
+                  java.lang.String _val76;
+                  for (int _i77 = 0; _i77 < _map74.size; ++_i77)
                   {
-                    _key111 = iprot.readString();
-                    _val112 = iprot.readString();
-                    struct.success.put(_key111, _val112);
+                    _key75 = iprot.readString();
+                    _val76 = iprot.readString();
+                    struct.success.put(_key75, _val76);
                   }
                   iprot.readMapEnd();
                 }
@@ -32753,10 +32414,10 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter114 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter78 : struct.success.entrySet())
             {
-              oprot.writeString(_iter114.getKey());
-              oprot.writeString(_iter114.getValue());
+              oprot.writeString(_iter78.getKey());
+              oprot.writeString(_iter78.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -32795,10 +32456,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter115 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter79 : struct.success.entrySet())
             {
-              oprot.writeString(_iter115.getKey());
-              oprot.writeString(_iter115.getValue());
+              oprot.writeString(_iter79.getKey());
+              oprot.writeString(_iter79.getValue());
             }
           }
         }
@@ -32813,15 +32474,15 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map116 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map116.size);
-            java.lang.String _key117;
-            java.lang.String _val118;
-            for (int _i119 = 0; _i119 < _map116.size; ++_i119)
+            org.apache.thrift.protocol.TMap _map80 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map80.size);
+            java.lang.String _key81;
+            java.lang.String _val82;
+            for (int _i83 = 0; _i83 < _map80.size; ++_i83)
             {
-              _key117 = iprot.readString();
-              _val118 = iprot.readString();
-              struct.success.put(_key117, _val118);
+              _key81 = iprot.readString();
+              _val82 = iprot.readString();
+              struct.success.put(_key81, _val82);
             }
           }
           struct.setSuccessIsSet(true);
@@ -33808,15 +33469,15 @@ public class ClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map120 = iprot.readMapBegin();
-                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map120.size);
-                  java.lang.String _key121;
-                  java.lang.String _val122;
-                  for (int _i123 = 0; _i123 < _map120.size; ++_i123)
+                  org.apache.thrift.protocol.TMap _map84 = iprot.readMapBegin();
+                  struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map84.size);
+                  java.lang.String _key85;
+                  java.lang.String _val86;
+                  for (int _i87 = 0; _i87 < _map84.size; ++_i87)
                   {
-                    _key121 = iprot.readString();
-                    _val122 = iprot.readString();
-                    struct.success.put(_key121, _val122);
+                    _key85 = iprot.readString();
+                    _val86 = iprot.readString();
+                    struct.success.put(_key85, _val86);
                   }
                   iprot.readMapEnd();
                 }
@@ -33853,10 +33514,10 @@ public class ClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter124 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter88 : struct.success.entrySet())
             {
-              oprot.writeString(_iter124.getKey());
-              oprot.writeString(_iter124.getValue());
+              oprot.writeString(_iter88.getKey());
+              oprot.writeString(_iter88.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -33895,10 +33556,10 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter125 : struct.success.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter89 : struct.success.entrySet())
             {
-              oprot.writeString(_iter125.getKey());
-              oprot.writeString(_iter125.getValue());
+              oprot.writeString(_iter89.getKey());
+              oprot.writeString(_iter89.getValue());
             }
           }
         }
@@ -33913,15 +33574,15 @@ public class ClientService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TMap _map126 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map126.size);
-            java.lang.String _key127;
-            java.lang.String _val128;
-            for (int _i129 = 0; _i129 < _map126.size; ++_i129)
+            org.apache.thrift.protocol.TMap _map90 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map90.size);
+            java.lang.String _key91;
+            java.lang.String _val92;
+            for (int _i93 = 0; _i93 < _map90.size; ++_i93)
             {
-              _key127 = iprot.readString();
-              _val128 = iprot.readString();
-              struct.success.put(_key127, _val128);
+              _key91 = iprot.readString();
+              _val92 = iprot.readString();
+              struct.success.put(_key91, _val92);
             }
           }
           struct.setSuccessIsSet(true);
@@ -37694,2424 +37355,6 @@ public class ClientService {
           struct.tope = new ThriftTableOperationException();
           struct.tope.read(iprot);
           struct.setTopeIsSet(true);
-        }
-      }
-    }
-
-    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
-      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
-    }
-  }
-
-  public static class getSummaries_args implements org.apache.thrift.TBase<getSummaries_args, getSummaries_args._Fields>, java.io.Serializable, Cloneable, Comparable<getSummaries_args>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSummaries_args");
-
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField REQUEST_FIELD_DESC = new org.apache.thrift.protocol.TField("request", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getSummaries_argsStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getSummaries_argsTupleSchemeFactory();
-
-    public org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
-    public TSummaryRequest request; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)1, "tinfo"),
-      CREDENTIALS((short)2, "credentials"),
-      REQUEST((short)3, "request");
-
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
-
-      static {
-        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 1: // TINFO
-            return TINFO;
-          case 2: // CREDENTIALS
-            return CREDENTIALS;
-          case 3: // REQUEST
-            return REQUEST;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(java.lang.String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final java.lang.String _fieldName;
-
-      _Fields(short thriftId, java.lang.String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public java.lang.String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
-      tmpMap.put(_Fields.REQUEST, new org.apache.thrift.meta_data.FieldMetaData("request", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TSummaryRequest.class)));
-      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getSummaries_args.class, metaDataMap);
-    }
-
-    public getSummaries_args() {
-    }
-
-    public getSummaries_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.TCredentials credentials,
-      TSummaryRequest request)
-    {
-      this();
-      this.tinfo = tinfo;
-      this.credentials = credentials;
-      this.request = request;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public getSummaries_args(getSummaries_args other) {
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
-      }
-      if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
-      }
-      if (other.isSetRequest()) {
-        this.request = new TSummaryRequest(other.request);
-      }
-    }
-
-    public getSummaries_args deepCopy() {
-      return new getSummaries_args(this);
-    }
-
-    @Override
-    public void clear() {
-      this.tinfo = null;
-      this.credentials = null;
-      this.request = null;
-    }
-
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public getSummaries_args setTinfo(org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
-    }
-
-    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
-      return this.credentials;
-    }
-
-    public getSummaries_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
-      this.credentials = credentials;
-      return this;
-    }
-
-    public void unsetCredentials() {
-      this.credentials = null;
-    }
-
-    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredentials() {
-      return this.credentials != null;
-    }
-
-    public void setCredentialsIsSet(boolean value) {
-      if (!value) {
-        this.credentials = null;
-      }
-    }
-
-    public TSummaryRequest getRequest() {
-      return this.request;
-    }
-
-    public getSummaries_args setRequest(TSummaryRequest request) {
-      this.request = request;
-      return this;
-    }
-
-    public void unsetRequest() {
-      this.request = null;
-    }
-
-    /** Returns true if field request is set (has been assigned a value) and false otherwise */
-    public boolean isSetRequest() {
-      return this.request != null;
-    }
-
-    public void setRequestIsSet(boolean value) {
-      if (!value) {
-        this.request = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, java.lang.Object value) {
-      switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
-        }
-        break;
-
-      case REQUEST:
-        if (value == null) {
-          unsetRequest();
-        } else {
-          setRequest((TSummaryRequest)value);
-        }
-        break;
-
-      }
-    }
-
-    public java.lang.Object getFieldValue(_Fields field) {
-      switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case REQUEST:
-        return getRequest();
-
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new java.lang.IllegalArgumentException();
-      }
-
-      switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case REQUEST:
-        return isSetRequest();
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(java.lang.Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof getSummaries_args)
-        return this.equals((getSummaries_args)that);
-      return false;
-    }
-
-    public boolean equals(getSummaries_args that) {
-      if (that == null)
-        return false;
-      if (this == that)
-        return true;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
-
-      boolean this_present_credentials = true && this.isSetCredentials();
-      boolean that_present_credentials = true && that.isSetCredentials();
-      if (this_present_credentials || that_present_credentials) {
-        if (!(this_present_credentials && that_present_credentials))
-          return false;
-        if (!this.credentials.equals(that.credentials))
-          return false;
-      }
-
-      boolean this_present_request = true && this.isSetRequest();
-      boolean that_present_request = true && that.isSetRequest();
-      if (this_present_request || that_present_request) {
-        if (!(this_present_request && that_present_request))
-          return false;
-        if (!this.request.equals(that.request))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      int hashCode = 1;
-
-      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
-      if (isSetTinfo())
-        hashCode = hashCode * 8191 + tinfo.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
-      if (isSetCredentials())
-        hashCode = hashCode * 8191 + credentials.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetRequest()) ? 131071 : 524287);
-      if (isSetRequest())
-        hashCode = hashCode * 8191 + request.hashCode();
-
-      return hashCode;
-    }
-
-    @Override
-    public int compareTo(getSummaries_args other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-
-      lastComparison = java.lang.Boolean.valueOf(isSetTinfo()).compareTo(other.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetCredentials()).compareTo(other.isSetCredentials());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetCredentials()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetRequest()).compareTo(other.isSetRequest());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetRequest()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.request, other.request);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      scheme(iprot).read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      scheme(oprot).write(oprot, this);
-    }
-
-    @Override
-    public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getSummaries_args(");
-      boolean first = true;
-
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("credentials:");
-      if (this.credentials == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.credentials);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("request:");
-      if (this.request == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.request);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
-      if (credentials != null) {
-        credentials.validate();
-      }
-      if (request != null) {
-        request.validate();
-      }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class getSummaries_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getSummaries_argsStandardScheme getScheme() {
-        return new getSummaries_argsStandardScheme();
-      }
-    }
-
-    private static class getSummaries_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getSummaries_args> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getSummaries_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 1: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 2: // CREDENTIALS
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
-                struct.credentials.read(iprot);
-                struct.setCredentialsIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 3: // REQUEST
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.request = new TSummaryRequest();
-                struct.request.read(iprot);
-                struct.setRequestIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getSummaries_args struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.credentials != null) {
-          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
-          struct.credentials.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.request != null) {
-          oprot.writeFieldBegin(REQUEST_FIELD_DESC);
-          struct.request.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class getSummaries_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getSummaries_argsTupleScheme getScheme() {
-        return new getSummaries_argsTupleScheme();
-      }
-    }
-
-    private static class getSummaries_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getSummaries_args> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getSummaries_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetTinfo()) {
-          optionals.set(0);
-        }
-        if (struct.isSetCredentials()) {
-          optionals.set(1);
-        }
-        if (struct.isSetRequest()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
-        if (struct.isSetCredentials()) {
-          struct.credentials.write(oprot);
-        }
-        if (struct.isSetRequest()) {
-          struct.request.write(oprot);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getSummaries_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(3);
-        if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
-          struct.credentials.read(iprot);
-          struct.setCredentialsIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.request = new TSummaryRequest();
-          struct.request.read(iprot);
-          struct.setRequestIsSet(true);
-        }
-      }
-    }
-
-    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
-      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
-    }
-  }
-
-  public static class getSummaries_result implements org.apache.thrift.TBase<getSummaries_result, getSummaries_result._Fields>, java.io.Serializable, Cloneable, Comparable<getSummaries_result>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSummaries_result");
-
-    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
-    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getSummaries_resultStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getSummaries_resultTupleSchemeFactory();
-
-    public TSummaries success; // required
-    public ThriftSecurityException sec; // required
-    public ThriftTableOperationException tope; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec"),
-      TOPE((short)2, "tope");
-
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
-
-      static {
-        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 0: // SUCCESS
-            return SUCCESS;
-          case 1: // SEC
-            return SEC;
-          case 2: // TOPE
-            return TOPE;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(java.lang.String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final java.lang.String _fieldName;
-
-      _Fields(short thriftId, java.lang.String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public java.lang.String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TSummaries.class)));
-      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TOPE, new org.apache.thrift.meta_data.FieldMetaData("tope", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTableOperationException.class)));
-      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getSummaries_result.class, metaDataMap);
-    }
-
-    public getSummaries_result() {
-    }
-
-    public getSummaries_result(
-      TSummaries success,
-      ThriftSecurityException sec,
-      ThriftTableOperationException tope)
-    {
-      this();
-      this.success = success;
-      this.sec = sec;
-      this.tope = tope;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public getSummaries_result(getSummaries_result other) {
-      if (other.isSetSuccess()) {
-        this.success = new TSummaries(other.success);
-      }
-      if (other.isSetSec()) {
-        this.sec = new ThriftSecurityException(other.sec);
-      }
-      if (other.isSetTope()) {
-        this.tope = new ThriftTableOperationException(other.tope);
-      }
-    }
-
-    public getSummaries_result deepCopy() {
-      return new getSummaries_result(this);
-    }
-
-    @Override
-    public void clear() {
-      this.success = null;
-      this.sec = null;
-      this.tope = null;
-    }
-
-    public TSummaries getSuccess() {
-      return this.success;
-    }
-
-    public getSummaries_result setSuccess(TSummaries success) {
-      this.success = success;
-      return this;
-    }
-
-    public void unsetSuccess() {
-      this.success = null;
-    }
-
-    /** Returns true if field success is set (has been assigned a value) and false otherwise */
-    public boolean isSetSuccess() {
-      return this.success != null;
-    }
-
-    public void setSuccessIsSet(boolean value) {
-      if (!value) {
-        this.success = null;
-      }
-    }
-
-    public ThriftSecurityException getSec() {
-      return this.sec;
-    }
-
-    public getSummaries_result setSec(ThriftSecurityException sec) {
-      this.sec = sec;
-      return this;
-    }
-
-    public void unsetSec() {
-      this.sec = null;
-    }
-
-    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
-    public boolean isSetSec() {
-      return this.sec != null;
-    }
-
-    public void setSecIsSet(boolean value) {
-      if (!value) {
-        this.sec = null;
-      }
-    }
-
-    public ThriftTableOperationException getTope() {
-      return this.tope;
-    }
-
-    public getSummaries_result setTope(ThriftTableOperationException tope) {
-      this.tope = tope;
-      return this;
-    }
-
-    public void unsetTope() {
-      this.tope = null;
-    }
-
-    /** Returns true if field tope is set (has been assigned a value) and false otherwise */
-    public boolean isSetTope() {
-      return this.tope != null;
-    }
-
-    public void setTopeIsSet(boolean value) {
-      if (!value) {
-        this.tope = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, java.lang.Object value) {
-      switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((TSummaries)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((ThriftSecurityException)value);
-        }
-        break;
-
-      case TOPE:
-        if (value == null) {
-          unsetTope();
-        } else {
-          setTope((ThriftTableOperationException)value);
-        }
-        break;
-
-      }
-    }
-
-    public java.lang.Object getFieldValue(_Fields field) {
-      switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
-      case TOPE:
-        return getTope();
-
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new java.lang.IllegalArgumentException();
-      }
-
-      switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
-      case TOPE:
-        return isSetTope();
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(java.lang.Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof getSummaries_result)
-        return this.equals((getSummaries_result)that);
-      return false;
-    }
-
-    public boolean equals(getSummaries_result that) {
-      if (that == null)
-        return false;
-      if (this == that)
-        return true;
-
-      boolean this_present_success = true && this.isSetSuccess();
-      boolean that_present_success = true && that.isSetSuccess();
-      if (this_present_success || that_present_success) {
-        if (!(this_present_success && that_present_success))
-          return false;
-        if (!this.success.equals(that.success))
-          return false;
-      }
-
-      boolean this_present_sec = true && this.isSetSec();
-      boolean that_present_sec = true && that.isSetSec();
-      if (this_present_sec || that_present_sec) {
-        if (!(this_present_sec && that_present_sec))
-          return false;
-        if (!this.sec.equals(that.sec))
-          return false;
-      }
-
-      boolean this_present_tope = true && this.isSetTope();
-      boolean that_present_tope = true && that.isSetTope();
-      if (this_present_tope || that_present_tope) {
-        if (!(this_present_tope && that_present_tope))
-          return false;
-        if (!this.tope.equals(that.tope))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      int hashCode = 1;
-
-      hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
-      if (isSetSuccess())
-        hashCode = hashCode * 8191 + success.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
-      if (isSetSec())
-        hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTope()) ? 131071 : 524287);
-      if (isSetTope())
-        hashCode = hashCode * 8191 + tope.hashCode();
-
-      return hashCode;
-    }
-
-    @Override
-    public int compareTo(getSummaries_result other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-
-      lastComparison = java.lang.Boolean.valueOf(isSetSuccess()).compareTo(other.isSetSuccess());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSuccess()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetSec()).compareTo(other.isSetSec());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSec()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetTope()).compareTo(other.isSetTope());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTope()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tope, other.tope);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      scheme(iprot).read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      scheme(oprot).write(oprot, this);
-      }
-
-    @Override
-    public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getSummaries_result(");
-      boolean first = true;
-
-      sb.append("success:");
-      if (this.success == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.success);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("sec:");
-      if (this.sec == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tope:");
-      if (this.tope == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tope);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-      if (success != null) {
-        success.validate();
-      }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class getSummaries_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getSummaries_resultStandardScheme getScheme() {
-        return new getSummaries_resultStandardScheme();
-      }
-    }
-
-    private static class getSummaries_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getSummaries_result> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getSummaries_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 0: // SUCCESS
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.success = new TSummaries();
-                struct.success.read(iprot);
-                struct.setSuccessIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 1: // SEC
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new ThriftSecurityException();
-                struct.sec.read(iprot);
-                struct.setSecIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 2: // TOPE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tope = new ThriftTableOperationException();
-                struct.tope.read(iprot);
-                struct.setTopeIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getSummaries_result struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.success != null) {
-          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
-          struct.success.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.sec != null) {
-          oprot.writeFieldBegin(SEC_FIELD_DESC);
-          struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tope != null) {
-          oprot.writeFieldBegin(TOPE_FIELD_DESC);
-          struct.tope.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class getSummaries_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getSummaries_resultTupleScheme getScheme() {
-        return new getSummaries_resultTupleScheme();
-      }
-    }
-
-    private static class getSummaries_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getSummaries_result> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getSummaries_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetSuccess()) {
-          optionals.set(0);
-        }
-        if (struct.isSetSec()) {
-          optionals.set(1);
-        }
-        if (struct.isSetTope()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
-        if (struct.isSetSuccess()) {
-          struct.success.write(oprot);
-        }
-        if (struct.isSetSec()) {
-          struct.sec.write(oprot);
-        }
-        if (struct.isSetTope()) {
-          struct.tope.write(oprot);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getSummaries_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(3);
-        if (incoming.get(0)) {
-          struct.success = new TSummaries();
-          struct.success.read(iprot);
-          struct.setSuccessIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.sec = new ThriftSecurityException();
-          struct.sec.read(iprot);
-          struct.setSecIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.tope = new ThriftTableOperationException();
-          struct.tope.read(iprot);
-          struct.setTopeIsSet(true);
-        }
-      }
-    }
-
-    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
-      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
-    }
-  }
-
-  public static class getSummariesForPartition_args implements org.apache.thrift.TBase<getSummariesForPartition_args, getSummariesForPartition_args._Fields>, java.io.Serializable, Cloneable, Comparable<getSummariesForPartition_args>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSummariesForPartition_args");
-
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField REQUEST_FIELD_DESC = new org.apache.thrift.protocol.TField("request", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField MODULUS_FIELD_DESC = new org.apache.thrift.protocol.TField("modulus", org.apache.thrift.protocol.TType.I32, (short)4);
-    private static final org.apache.thrift.protocol.TField REMAINDER_FIELD_DESC = new org.apache.thrift.protocol.TField("remainder", org.apache.thrift.protocol.TType.I32, (short)5);
-
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getSummariesForPartition_argsStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getSummariesForPartition_argsTupleSchemeFactory();
-
-    public org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
-    public TSummaryRequest request; // required
-    public int modulus; // required
-    public int remainder; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)1, "tinfo"),
-      CREDENTIALS((short)2, "credentials"),
-      REQUEST((short)3, "request"),
-      MODULUS((short)4, "modulus"),
-      REMAINDER((short)5, "remainder");
-
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
-
-      static {
-        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 1: // TINFO
-            return TINFO;
-          case 2: // CREDENTIALS
-            return CREDENTIALS;
-          case 3: // REQUEST
-            return REQUEST;
-          case 4: // MODULUS
-            return MODULUS;
-          case 5: // REMAINDER
-            return REMAINDER;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(java.lang.String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final java.lang.String _fieldName;
-
-      _Fields(short thriftId, java.lang.String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public java.lang.String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    private static final int __MODULUS_ISSET_ID = 0;
-    private static final int __REMAINDER_ISSET_ID = 1;
-    private byte __isset_bitfield = 0;
-    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
-      tmpMap.put(_Fields.REQUEST, new org.apache.thrift.meta_data.FieldMetaData("request", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TSummaryRequest.class)));
-      tmpMap.put(_Fields.MODULUS, new org.apache.thrift.meta_data.FieldMetaData("modulus", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-      tmpMap.put(_Fields.REMAINDER, new org.apache.thrift.meta_data.FieldMetaData("remainder", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getSummariesForPartition_args.class, metaDataMap);
-    }
-
-    public getSummariesForPartition_args() {
-    }
-
-    public getSummariesForPartition_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.TCredentials credentials,
-      TSummaryRequest request,
-      int modulus,
-      int remainder)
-    {
-      this();
-      this.tinfo = tinfo;
-      this.credentials = credentials;
-      this.request = request;
-      this.modulus = modulus;
-      setModulusIsSet(true);
-      this.remainder = remainder;
-      setRemainderIsSet(true);
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public getSummariesForPartition_args(getSummariesForPartition_args other) {
-      __isset_bitfield = other.__isset_bitfield;
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
-      }
-      if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
-      }
-      if (other.isSetRequest()) {
-        this.request = new TSummaryRequest(other.request);
-      }
-      this.modulus = other.modulus;
-      this.remainder = other.remainder;
-    }
-
-    public getSummariesForPartition_args deepCopy() {
-      return new getSummariesForPartition_args(this);
-    }
-
-    @Override
-    public void clear() {
-      this.tinfo = null;
-      this.credentials = null;
-      this.request = null;
-      setModulusIsSet(false);
-      this.modulus = 0;
-      setRemainderIsSet(false);
-      this.remainder = 0;
-    }
-
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public getSummariesForPartition_args setTinfo(org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
-    }
-
-    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
-      return this.credentials;
-    }
-
-    public getSummariesForPartition_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
-      this.credentials = credentials;
-      return this;
-    }
-
-    public void unsetCredentials() {
-      this.credentials = null;
-    }
-
-    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredentials() {
-      return this.credentials != null;
-    }
-
-    public void setCredentialsIsSet(boolean value) {
-      if (!value) {
-        this.credentials = null;
-      }
-    }
-
-    public TSummaryRequest getRequest() {
-      return this.request;
-    }
-
-    public getSummariesForPartition_args setRequest(TSummaryRequest request) {
-      this.request = request;
-      return this;
-    }
-
-    public void unsetRequest() {
-      this.request = null;
-    }
-
-    /** Returns true if field request is set (has been assigned a value) and false otherwise */
-    public boolean isSetRequest() {
-      return this.request != null;
-    }
-
-    public void setRequestIsSet(boolean value) {
-      if (!value) {
-        this.request = null;
-      }
-    }
-
-    public int getModulus() {
-      return this.modulus;
-    }
-
-    public getSummariesForPartition_args setModulus(int modulus) {
-      this.modulus = modulus;
-      setModulusIsSet(true);
-      return this;
-    }
-
-    public void unsetModulus() {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __MODULUS_ISSET_ID);
-    }
-
-    /** Returns true if field modulus is set (has been assigned a value) and false otherwise */
-    public boolean isSetModulus() {
-      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __MODULUS_ISSET_ID);
-    }
-
-    public void setModulusIsSet(boolean value) {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __MODULUS_ISSET_ID, value);
-    }
-
-    public int getRemainder() {
-      return this.remainder;
-    }
-
-    public getSummariesForPartition_args setRemainder(int remainder) {
-      this.remainder = remainder;
-      setRemainderIsSet(true);
-      return this;
-    }
-
-    public void unsetRemainder() {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __REMAINDER_ISSET_ID);
-    }
-
-    /** Returns true if field remainder is set (has been assigned a value) and false otherwise */
-    public boolean isSetRemainder() {
-      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __REMAINDER_ISSET_ID);
-    }
-
-    public void setRemainderIsSet(boolean value) {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __REMAINDER_ISSET_ID, value);
-    }
-
-    public void setFieldValue(_Fields field, java.lang.Object value) {
-      switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
-        }
-        break;
-
-      case REQUEST:
-        if (value == null) {
-          unsetRequest();
-        } else {
-          setRequest((TSummaryRequest)value);
-        }
-        break;
-
-      case MODULUS:
-        if (value == null) {
-          unsetModulus();
-        } else {
-          setModulus((java.lang.Integer)value);
-        }
-        break;
-
-      case REMAINDER:
-        if (value == null) {
-          unsetRemainder();
-        } else {
-          setRemainder((java.lang.Integer)value);
-        }
-        break;
-
-      }
-    }
-
-    public java.lang.Object getFieldValue(_Fields field) {
-      switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case REQUEST:
-        return getRequest();
-
-      case MODULUS:
-        return getModulus();
-
-      case REMAINDER:
-        return getRemainder();
-
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new java.lang.IllegalArgumentException();
-      }
-
-      switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case REQUEST:
-        return isSetRequest();
-      case MODULUS:
-        return isSetModulus();
-      case REMAINDER:
-        return isSetRemainder();
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(java.lang.Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof getSummariesForPartition_args)
-        return this.equals((getSummariesForPartition_args)that);
-      return false;
-    }
-
-    public boolean equals(getSummariesForPartition_args that) {
-      if (that == null)
-        return false;
-      if (this == that)
-        return true;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
-
-      boolean this_present_credentials = true && this.isSetCredentials();
-      boolean that_present_credentials = true && that.isSetCredentials();
-      if (this_present_credentials || that_present_credentials) {
-        if (!(this_present_credentials && that_present_credentials))
-          return false;
-        if (!this.credentials.equals(that.credentials))
-          return false;
-      }
-
-      boolean this_present_request = true && this.isSetRequest();
-      boolean that_present_request = true && that.isSetRequest();
-      if (this_present_request || that_present_request) {
-        if (!(this_present_request && that_present_request))
-          return false;
-        if (!this.request.equals(that.request))
-          return false;
-      }
-
-      boolean this_present_modulus = true;
-      boolean that_present_modulus = true;
-      if (this_present_modulus || that_present_modulus) {
-        if (!(this_present_modulus && that_present_modulus))
-          return false;
-        if (this.modulus != that.modulus)
-          return false;
-      }
-
-      boolean this_present_remainder = true;
-      boolean that_present_remainder = true;
-      if (this_present_remainder || that_present_remainder) {
-        if (!(this_present_remainder && that_present_remainder))
-          return false;
-        if (this.remainder != that.remainder)
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      int hashCode = 1;
-
-      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
-      if (isSetTinfo())
-        hashCode = hashCode * 8191 + tinfo.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
-      if (isSetCredentials())
-        hashCode = hashCode * 8191 + credentials.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetRequest()) ? 131071 : 524287);
-      if (isSetRequest())
-        hashCode = hashCode * 8191 + request.hashCode();
-
-      hashCode = hashCode * 8191 + modulus;
-
-      hashCode = hashCode * 8191 + remainder;
-
-      return hashCode;
-    }
-
-    @Override
-    public int compareTo(getSummariesForPartition_args other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-
-      lastComparison = java.lang.Boolean.valueOf(isSetTinfo()).compareTo(other.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetCredentials()).compareTo(other.isSetCredentials());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetCredentials()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetRequest()).compareTo(other.isSetRequest());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetRequest()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.request, other.request);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetModulus()).compareTo(other.isSetModulus());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetModulus()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.modulus, other.modulus);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetRemainder()).compareTo(other.isSetRemainder());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetRemainder()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.remainder, other.remainder);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      scheme(iprot).read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      scheme(oprot).write(oprot, this);
-    }
-
-    @Override
-    public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getSummariesForPartition_args(");
-      boolean first = true;
-
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("credentials:");
-      if (this.credentials == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.credentials);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("request:");
-      if (this.request == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.request);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("modulus:");
-      sb.append(this.modulus);
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("remainder:");
-      sb.append(this.remainder);
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
-      if (credentials != null) {
-        credentials.validate();
-      }
-      if (request != null) {
-        request.validate();
-      }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
-      try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bitfield = 0;
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class getSummariesForPartition_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getSummariesForPartition_argsStandardScheme getScheme() {
-        return new getSummariesForPartition_argsStandardScheme();
-      }
-    }
-
-    private static class getSummariesForPartition_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<getSummariesForPartition_args> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getSummariesForPartition_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 1: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 2: // CREDENTIALS
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
-                struct.credentials.read(iprot);
-                struct.setCredentialsIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 3: // REQUEST
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.request = new TSummaryRequest();
-                struct.request.read(iprot);
-                struct.setRequestIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 4: // MODULUS
-              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-                struct.modulus = iprot.readI32();
-                struct.setModulusIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 5: // REMAINDER
-              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-                struct.remainder = iprot.readI32();
-                struct.setRemainderIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getSummariesForPartition_args struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.credentials != null) {
-          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
-          struct.credentials.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.request != null) {
-          oprot.writeFieldBegin(REQUEST_FIELD_DESC);
-          struct.request.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldBegin(MODULUS_FIELD_DESC);
-        oprot.writeI32(struct.modulus);
-        oprot.writeFieldEnd();
-        oprot.writeFieldBegin(REMAINDER_FIELD_DESC);
-        oprot.writeI32(struct.remainder);
-        oprot.writeFieldEnd();
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class getSummariesForPartition_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getSummariesForPartition_argsTupleScheme getScheme() {
-        return new getSummariesForPartition_argsTupleScheme();
-      }
-    }
-
-    private static class getSummariesForPartition_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<getSummariesForPartition_args> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getSummariesForPartition_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetTinfo()) {
-          optionals.set(0);
-        }
-        if (struct.isSetCredentials()) {
-          optionals.set(1);
-        }
-        if (struct.isSetRequest()) {
-          optionals.set(2);
-        }
-        if (struct.isSetModulus()) {
-          optionals.set(3);
-        }
-        if (struct.isSetRemainder()) {
-          optionals.set(4);
-        }
-        oprot.writeBitSet(optionals, 5);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
-        if (struct.isSetCredentials()) {
-          struct.credentials.write(oprot);
-        }
-        if (struct.isSetRequest()) {
-          struct.request.write(oprot);
-        }
-        if (struct.isSetModulus()) {
-          oprot.writeI32(struct.modulus);
-        }
-        if (struct.isSetRemainder()) {
-          oprot.writeI32(struct.remainder);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getSummariesForPartition_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(5);
-        if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
-          struct.credentials.read(iprot);
-          struct.setCredentialsIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.request = new TSummaryRequest();
-          struct.request.read(iprot);
-          struct.setRequestIsSet(true);
-        }
-        if (incoming.get(3)) {
-          struct.modulus = iprot.readI32();
-          struct.setModulusIsSet(true);
-        }
-        if (incoming.get(4)) {
-          struct.remainder = iprot.readI32();
-          struct.setRemainderIsSet(true);
-        }
-      }
-    }
-
-    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
-      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
-    }
-  }
-
-  public static class getSummariesForPartition_result implements org.apache.thrift.TBase<getSummariesForPartition_result, getSummariesForPartition_result._Fields>, java.io.Serializable, Cloneable, Comparable<getSummariesForPartition_result>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSummariesForPartition_result");
-
-    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
-    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getSummariesForPartition_resultStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getSummariesForPartition_resultTupleSchemeFactory();
-
-    public TSummaries success; // required
-    public ThriftSecurityException sec; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
-
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
-
-      static {
-        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 0: // SUCCESS
-            return SUCCESS;
-          case 1: // SEC
-            return SEC;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      public static _Fields findByName(java.lang.String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final java.lang.String _fieldName;
-
-      _Fields(short thriftId, java.lang.String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      public java.lang.String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TSummaries.class)));
-      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
-      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getSummariesForPartition_result.class, metaDataMap);
-    }
-
-    public getSummariesForPartition_result() {
-    }
-
-    public getSummariesForPartition_result(
-      TSummaries success,
-      ThriftSecurityException sec)
-    {
-      this();
-      this.success = success;
-      this.sec = sec;
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public getSummariesForPartition_result(getSummariesForPartition_result other) {
-      if (other.isSetSuccess()) {
-        this.success = new TSummaries(other.success);
-      }
-      if (other.isSetSec()) {
-        this.sec = new ThriftSecurityException(other.sec);
-      }
-    }
-
-    public getSummariesForPartition_result deepCopy() {
-      return new getSummariesForPartition_result(this);
-    }
-
-    @Override
-    public void clear() {
-      this.success = null;
-      this.sec = null;
-    }
-
-    public TSummaries getSuccess() {
-      return this.success;
-    }
-
-    public getSummariesForPartition_result setSuccess(TSummaries success) {
-      this.success = success;
-      return this;
-    }
-
-    public void unsetSuccess() {
-      this.success = null;
-    }
-
-    /** Returns true if field success is set (has been assigned a value) and false otherwise */
-    public boolean isSetSuccess() {
-      return this.success != null;
-    }
-
-    public void setSuccessIsSet(boolean value) {
-      if (!value) {
-        this.success = null;
-      }
-    }
-
-    public ThriftSecurityException getSec() {
-      return this.sec;
-    }
-
-    public getSummariesForPartition_result setSec(ThriftSecurityException sec) {
-      this.sec = sec;
-      return this;
-    }
-
-    public void unsetSec() {
-      this.sec = null;
-    }
-
-    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
-    public boolean isSetSec() {
-      return this.sec != null;
-    }
-
-    public void setSecIsSet(boolean value) {
-      if (!value) {
-        this.sec = null;
-      }
-    }
-
-    public void setFieldValue(_Fields field, java.lang.Object value) {
-      switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((TSummaries)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((ThriftSecurityException)value);
-        }
-        break;
-
-      }
-    }
-
-    public java.lang.Object getFieldValue(_Fields field) {
-      switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new java.lang.IllegalArgumentException();
-      }
-
-      switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(java.lang.Object that) {
-      if (that == null)
-        return false;
-      if (that instanceof getSummariesForPartition_result)
-        return this.equals((getSummariesForPartition_result)that);
-      return false;
-    }
-
-    public boolean equals(getSummariesForPartition_result that) {
-      if (that == null)
-        return false;
-      if (this == that)
-        return true;
-
-      boolean this_present_success = true && this.isSetSuccess();
-      boolean that_present_success = true && that.isSetSuccess();
-      if (this_present_success || that_present_success) {
-        if (!(this_present_success && that_present_success))
-          return false;
-        if (!this.success.equals(that.success))
-          return false;
-      }
-
-      boolean this_present_sec = true && this.isSetSec();
-      boolean that_present_sec = true && that.isSetSec();
-      if (this_present_sec || that_present_sec) {
-        if (!(this_present_sec && that_present_sec))
-          return false;
-        if (!this.sec.equals(that.sec))
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      int hashCode = 1;
-
-      hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
-      if (isSetSuccess())
-        hashCode = hashCode * 8191 + success.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
-      if (isSetSec())
-        hashCode = hashCode * 8191 + sec.hashCode();
-
-      return hashCode;
-    }
-
-    @Override
-    public int compareTo(getSummariesForPartition_result other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-
-      lastComparison = java.lang.Boolean.valueOf(isSetSuccess()).compareTo(other.isSetSuccess());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSuccess()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetSec()).compareTo(other.isSetSec());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSec()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      scheme(iprot).read(iprot, this);
-    }
-
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      scheme(oprot).write(oprot, this);
-      }
-
-    @Override
-    public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("getSummariesForPartition_result(");
-      boolean first = true;
-
-      sb.append("success:");
-      if (this.success == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.success);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("sec:");
-      if (this.sec == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.sec);
-      }
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-      if (success != null) {
-        success.validate();
-      }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
-      try {
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class getSummariesForPartition_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getSummariesForPartition_resultStandardScheme getScheme() {
-        return new getSummariesForPartition_resultStandardScheme();
-      }
-    }
-
-    private static class getSummariesForPartition_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<getSummariesForPartition_result> {
-
-      public void read(org.apache.thrift.protocol.TProtocol iprot, getSummariesForPartition_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 0: // SUCCESS
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.success = new TSummaries();
-                struct.success.read(iprot);
-                struct.setSuccessIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 1: // SEC
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new ThriftSecurityException();
-                struct.sec.read(iprot);
-                struct.setSecIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      public void write(org.apache.thrift.protocol.TProtocol oprot, getSummariesForPartition_result struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.success != null) {
-          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
-          struct.success.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.sec != null) {
-          oprot.writeFieldBegin(SEC_FIELD_DESC);
-          struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class getSummariesForPartition_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      public getSummariesForPartition_resultTupleScheme getScheme() {
-        return new getSummariesForPartition_resultTupleScheme();
-      }
-    }
-
-    private static class getSummariesForPartition_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<getSummariesForPartition_result> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, getSummariesForPartition_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetSuccess()) {
-          optionals.set(0);
-        }
-        if (struct.isSetSec()) {
-          optionals.set(1);
-        }
-        oprot.writeBitSet(optionals, 2);
-        if (struct.isSetSuccess()) {
-          struct.success.write(oprot);
-        }
-        if (struct.isSetSec()) {
-          struct.sec.write(oprot);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, getSummariesForPartition_result struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
-        if (incoming.get(0)) {
-          struct.success = new TSummaries();
-          struct.success.read(iprot);
-          struct.setSuccessIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.sec = new ThriftSecurityException();
-          struct.sec.read(iprot);
-          struct.setSecIsSet(true);
         }
       }
     }
