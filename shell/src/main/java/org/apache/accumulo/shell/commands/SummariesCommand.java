@@ -53,7 +53,7 @@ public class SummariesCommand extends TableOperation {
   protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException {
     Connector conn = shellState.getConnector();
-    SummaryRetriever retriever = conn.tableOperations().getSummaries(tableName).withMatchingConfiguration(selectionRegex);
+    SummaryRetriever retriever = conn.tableOperations().summarize(tableName).withMatchingConfiguration(selectionRegex);
     if (startRow != null) {
       retriever.startRow(startRow);
     }

@@ -1678,7 +1678,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public SummaryRetriever getSummaries(String tableName) {
+  public SummaryRetriever summarize(String tableName) {
 
     return new SummaryRetriever() {
 

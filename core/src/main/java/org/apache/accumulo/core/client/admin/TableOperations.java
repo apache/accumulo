@@ -835,7 +835,7 @@ public interface TableOperations {
    * @since 2.0.0
    * @see Summarizer
    */
-  SummaryRetriever getSummaries(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  SummaryRetriever summarize(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
    * Enables summary generation for this table for future compactions.

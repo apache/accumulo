@@ -90,10 +90,10 @@ import com.google.common.net.HostAndPort;
  * Below is a rough outline of the RPC process.
  *
  * <ol>
- * <li>Clients pick a random tserver and make an RPC to remotely execute {@link #gather()}.
- * <li> {@link #gather()} will call make RPC calls to multiple tservers to remotely execute {@link #processPartition(int, int)}
- * <li> {@link #processPartition(int, int)} will make RPC calls to multiple tserver to remotely execute
- * {@link #processFiles(FileSystemResolver, Map, BlockCache, BlockCache, ExecutorService)}
+ * <li>Clients pick a random tserver and make an RPC to remotely execute {@link #gather(ExecutorService)}.
+ * <li> {@link #gather(ExecutorService)} will call make RPC calls to multiple tservers to remotely execute {@link #processPartition(ExecutorService, int, int)}
+ * <li> {@link #processPartition(ExecutorService, int, int)} will make RPC calls to multiple tserver to remotely execute
+ * <li> {@link #processFiles(FileSystemResolver, Map, BlockCache, BlockCache, ExecutorService)}
  * </ol>
  */
 public class Gatherer {

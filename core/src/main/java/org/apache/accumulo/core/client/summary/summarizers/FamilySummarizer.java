@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.ByteSequence;
  * @since 2.0.0
  *
  * @see TableOperations#addSummarizers(String, org.apache.accumulo.core.client.summary.SummarizerConfiguration...)
- * @see TableOperations#getSummaries(String)
+ * @see TableOperations#summarize(String)
  */
 public class FamilySummarizer extends CountingSummarizer<ByteSequence> {
 

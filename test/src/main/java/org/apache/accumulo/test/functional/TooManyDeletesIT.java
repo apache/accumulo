@@ -64,7 +64,7 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       }
     }
 
-    List<Summary> summaries = c.tableOperations().getSummaries(table).flush(true).withConfiguration(sc).retrieve();
+    List<Summary> summaries = c.tableOperations().summarize(table).flush(true).withConfiguration(sc).retrieve();
     Assert.assertEquals(1, summaries.size());
 
     Summary summary = summaries.get(0);
@@ -80,7 +80,7 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       }
     }
 
-    summaries = c.tableOperations().getSummaries(table).flush(true).withConfiguration(sc).retrieve();
+    summaries = c.tableOperations().summarize(table).flush(true).withConfiguration(sc).retrieve();
     Assert.assertEquals(1, summaries.size());
 
     summary = summaries.get(0);
@@ -103,7 +103,7 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
     // wait for the compaction to happen
     while (true) {
       // the flush should cause
-      summaries = c.tableOperations().getSummaries(table).flush(false).withConfiguration(sc).retrieve();
+      summaries = c.tableOperations().summarize(table).flush(false).withConfiguration(sc).retrieve();
       Assert.assertEquals(1, summaries.size());
 
       summary = summaries.get(0);

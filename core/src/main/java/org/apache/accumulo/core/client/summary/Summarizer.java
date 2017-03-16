@@ -154,7 +154,7 @@ import org.apache.accumulo.core.data.Value;
  *
  * @since 2.0.0
  *
- * @see TableOperations#getSummaries(String)
+ * @see TableOperations#summarize(String)
  * @see TableOperations#addSummarizers(String, SummarizerConfiguration...)
  * @see TableOperations#listSummarizers(String)
  * @see TableOperations#removeSummarizers(String, java.util.function.Predicate)
@@ -186,7 +186,7 @@ public interface Summarizer {
      *
      * <p>
      * In order for summary data to be useful for decision making about data, it needs to be quickly accessible. In order to be quickly accessible, it needs to
-     * fit in the tablet server cache as described in {@link TableOperations#getSummaries(String)} and the compaction strategy documentation. Therefore its
+     * fit in the tablet server cache as described in {@link TableOperations#summarize(String)} and the compaction strategy documentation. Therefore its
      * advisable to generate small summaries. If the summary data generated is too large it will not be stored. The maximum summary size is set using the per
      * table property {@code table.file.summary.maxSize}. The number of files that exceeded the summary size is reported by
      * {@link Summary.FileStatistics#getLarge()}.

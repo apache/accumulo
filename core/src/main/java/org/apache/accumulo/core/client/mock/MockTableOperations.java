@@ -507,7 +507,7 @@ class MockTableOperations extends TableOperationsHelper {
   }
 
   @Override
-  public SummaryRetriever getSummaries(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  public SummaryRetriever summarize(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     throw new UnsupportedOperationException();
   }
 

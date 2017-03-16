@@ -76,8 +76,6 @@ public interface SummaryRetriever {
    * The regular expression passed to this method is used in the following way on the server side to match {@link SummarizerConfiguration} object. When a
    * {@link SummarizerConfiguration} matches, the summary data generated using that configuration is returned.
    *
-   * <p>
-   *
    * <pre>
    * <code>
    *    boolean doesConfigurationMatch(SummarizerConfiguration conf, String regex) {
