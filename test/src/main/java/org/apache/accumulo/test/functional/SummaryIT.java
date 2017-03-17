@@ -117,6 +117,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     Assert.assertEquals("total wrong", total, summary.getFileStatistics().getTotal());
     Assert.assertEquals("missing wrong", missing, summary.getFileStatistics().getMissing());
     Assert.assertEquals("extra wrong", extra, summary.getFileStatistics().getExtra());
+    Assert.assertEquals("deleted wrong", 0, summary.getFileStatistics().getDeleted());
     Assert.assertEquals(sc, summary.getSummarizerConfiguration());
     Map<String,Long> expected = new HashMap<>();
     for (int i = 0; i < kvs.length; i += 2) {
@@ -620,6 +621,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     Assert.assertEquals(1, summary.getFileStatistics().getLarge());
     Assert.assertEquals(0, summary.getFileStatistics().getMissing());
     Assert.assertEquals(0, summary.getFileStatistics().getExtra());
+    Assert.assertEquals(0, summary.getFileStatistics().getDeleted());
     Assert.assertEquals(1, summary.getFileStatistics().getInaccurate());
     Assert.assertEquals(1, summary.getFileStatistics().getTotal());
     Assert.assertEquals(Collections.emptyMap(), summary.getStatistics());
@@ -632,6 +634,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     Assert.assertEquals(1, summary.getFileStatistics().getLarge());
     Assert.assertEquals(0, summary.getFileStatistics().getMissing());
     Assert.assertEquals(0, summary.getFileStatistics().getExtra());
+    Assert.assertEquals(0, summary.getFileStatistics().getDeleted());
     Assert.assertEquals(1, summary.getFileStatistics().getInaccurate());
     Assert.assertEquals(2, summary.getFileStatistics().getTotal());
 

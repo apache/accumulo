@@ -1818,7 +1818,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     private TSummaries handleTimeout(long sessionId) {
       long timeout = TabletServer.this.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
       sessionManager.removeIfNotAccessed(sessionId, timeout);
-      return new TSummaries(false, sessionId, -1, null);
+      return new TSummaries(false, sessionId, -1, -1, null);
     }
 
     private TSummaries startSummaryOperation(TCredentials credentials, Future<SummaryCollection> future) {

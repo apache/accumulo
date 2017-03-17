@@ -17,8 +17,6 @@
 
 package org.apache.accumulo.core.summary;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -626,13 +624,8 @@ public class Gatherer {
   }
 
   private SummaryCollection getSummaries(FileSystemResolver volMgr, String file, List<RowRange> ranges, BlockCache summaryCache, BlockCache indexCache) {
-
-    try {
-      Path path = new Path(file);
-      Configuration conf = CachedConfiguration.getInstance();
-      return SummaryReader.load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path, summarySelector, summaryCache, indexCache).getSummaries(ranges);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    Path path = new Path(file);
+    Configuration conf = CachedConfiguration.getInstance();
+    return SummaryReader.load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path, summarySelector, summaryCache, indexCache).getSummaries(ranges);
   }
 }

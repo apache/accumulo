@@ -35,12 +35,14 @@ public class Summary {
     private final long missing;
     private final long extra;
     private final long large;
+    private final long deleted;
 
-    private FileStatistics(long total, long missing, long extra, long large) {
+    private FileStatistics(long total, long missing, long extra, long large, long deleted) {
       this.total = total;
       this.missing = missing;
       this.extra = extra;
       this.large = large;
+      this.deleted = deleted;
     }
 
     /**
@@ -78,16 +80,26 @@ public class Summary {
     }
 
     /**
+     * @return The number of files that were deleted after the summary retrieval operations started. This is a rare race condition where a compaction causes a
+     *         file to be deleted while retrieving summaries. When this happens, the file that replaced the deleted file can not be used because it may contain
+     *         duplication summary information for other files. Avoiding this race condition would be expensive, so reporting it was chosen. If this condition
+     *         must be avoided, then compactions must be stopped. Compactions could be stopped on a cloned table to avoid this.
+     */
+    public long getDeleted() {
+      return deleted;
+    }
+
+    /**
      * @return The total number of files that had some kind of issue which would cause summary statistics to be inaccurate. This is the sum of
-     *         {@link #getMissing()}, {@link #getExtra()}, and {{@link #getLarge()}.
+     *         {@link #getMissing()}, {@link #getExtra()}, {{@link #getLarge()}, and {@link #getDeleted()}.
      */
     public long getInaccurate() {
-      return getMissing() + getExtra() + getLarge();
+      return getMissing() + getExtra() + getLarge() + getDeleted();
     }
 
     @Override
     public String toString() {
-      return String.format("[total:%,d, missing:%,d, extra:%,d, large:%,d]", total, missing, extra, large);
+      return String.format("[total:%,d, missing:%,d, extra:%,d, large:%,d, deleted:%,d]", total, missing, extra, large, deleted);
     }
   }
 
@@ -95,10 +107,11 @@ public class Summary {
   private final SummarizerConfiguration config;
   private final FileStatistics fileStats;
 
-  public Summary(Map<String,Long> summary, SummarizerConfiguration config, long totalFiles, long filesMissingSummary, long filesWithExtra, long filesWithLarge) {
+  public Summary(Map<String,Long> summary, SummarizerConfiguration config, long totalFiles, long filesMissingSummary, long filesWithExtra, long filesWithLarge,
+      long deletedFiles) {
     this.statistics = ImmutableMap.copyOf(summary);
     this.config = config;
-    this.fileStats = new FileStatistics(totalFiles, filesMissingSummary, filesWithExtra, filesWithLarge);
+    this.fileStats = new FileStatistics(totalFiles, filesMissingSummary, filesWithExtra, filesWithLarge, deletedFiles);
   }
 
   /**
@@ -116,7 +129,7 @@ public class Summary {
   }
 
   /**
-   * @return An immutable map of the statistics that were generated and merged by the specfied {@link Summarizer}.
+   * @return An immutable map of the statistics that were generated and merged by the specified {@link Summarizer}.
    */
   public Map<String,Long> getStatistics() {
     return statistics;

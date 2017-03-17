@@ -167,7 +167,8 @@ struct TSummaries {
    1:bool finished
    2:i64 sessionId
    3:i64 totalFiles
-   4:list<TSummary> summaries
+   4:i64 deletedFiles
+   5:list<TSummary> summaries
 }
 
 struct TRowRange {

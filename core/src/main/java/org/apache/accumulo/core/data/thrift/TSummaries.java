@@ -30,7 +30,8 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
   private static final org.apache.thrift.protocol.TField FINISHED_FIELD_DESC = new org.apache.thrift.protocol.TField("finished", org.apache.thrift.protocol.TType.BOOL, (short)1);
   private static final org.apache.thrift.protocol.TField SESSION_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("sessionId", org.apache.thrift.protocol.TType.I64, (short)2);
   private static final org.apache.thrift.protocol.TField TOTAL_FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("totalFiles", org.apache.thrift.protocol.TType.I64, (short)3);
-  private static final org.apache.thrift.protocol.TField SUMMARIES_FIELD_DESC = new org.apache.thrift.protocol.TField("summaries", org.apache.thrift.protocol.TType.LIST, (short)4);
+  private static final org.apache.thrift.protocol.TField DELETED_FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("deletedFiles", org.apache.thrift.protocol.TType.I64, (short)4);
+  private static final org.apache.thrift.protocol.TField SUMMARIES_FIELD_DESC = new org.apache.thrift.protocol.TField("summaries", org.apache.thrift.protocol.TType.LIST, (short)5);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TSummariesStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TSummariesTupleSchemeFactory();
@@ -38,6 +39,7 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
   public boolean finished; // required
   public long sessionId; // required
   public long totalFiles; // required
+  public long deletedFiles; // required
   public java.util.List<TSummary> summaries; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -45,7 +47,8 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     FINISHED((short)1, "finished"),
     SESSION_ID((short)2, "sessionId"),
     TOTAL_FILES((short)3, "totalFiles"),
-    SUMMARIES((short)4, "summaries");
+    DELETED_FILES((short)4, "deletedFiles"),
+    SUMMARIES((short)5, "summaries");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -66,7 +69,9 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
           return SESSION_ID;
         case 3: // TOTAL_FILES
           return TOTAL_FILES;
-        case 4: // SUMMARIES
+        case 4: // DELETED_FILES
+          return DELETED_FILES;
+        case 5: // SUMMARIES
           return SUMMARIES;
         default:
           return null;
@@ -111,6 +116,7 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
   private static final int __FINISHED_ISSET_ID = 0;
   private static final int __SESSIONID_ISSET_ID = 1;
   private static final int __TOTALFILES_ISSET_ID = 2;
+  private static final int __DELETEDFILES_ISSET_ID = 3;
   private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -120,6 +126,8 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     tmpMap.put(_Fields.SESSION_ID, new org.apache.thrift.meta_data.FieldMetaData("sessionId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.TOTAL_FILES, new org.apache.thrift.meta_data.FieldMetaData("totalFiles", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.DELETED_FILES, new org.apache.thrift.meta_data.FieldMetaData("deletedFiles", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.SUMMARIES, new org.apache.thrift.meta_data.FieldMetaData("summaries", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
@@ -135,6 +143,7 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     boolean finished,
     long sessionId,
     long totalFiles,
+    long deletedFiles,
     java.util.List<TSummary> summaries)
   {
     this();
@@ -144,6 +153,8 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     setSessionIdIsSet(true);
     this.totalFiles = totalFiles;
     setTotalFilesIsSet(true);
+    this.deletedFiles = deletedFiles;
+    setDeletedFilesIsSet(true);
     this.summaries = summaries;
   }
 
@@ -155,6 +166,7 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     this.finished = other.finished;
     this.sessionId = other.sessionId;
     this.totalFiles = other.totalFiles;
+    this.deletedFiles = other.deletedFiles;
     if (other.isSetSummaries()) {
       java.util.List<TSummary> __this__summaries = new java.util.ArrayList<TSummary>(other.summaries.size());
       for (TSummary other_element : other.summaries) {
@@ -176,6 +188,8 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     this.sessionId = 0;
     setTotalFilesIsSet(false);
     this.totalFiles = 0;
+    setDeletedFilesIsSet(false);
+    this.deletedFiles = 0;
     this.summaries = null;
   }
 
@@ -248,6 +262,29 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __TOTALFILES_ISSET_ID, value);
   }
 
+  public long getDeletedFiles() {
+    return this.deletedFiles;
+  }
+
+  public TSummaries setDeletedFiles(long deletedFiles) {
+    this.deletedFiles = deletedFiles;
+    setDeletedFilesIsSet(true);
+    return this;
+  }
+
+  public void unsetDeletedFiles() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __DELETEDFILES_ISSET_ID);
+  }
+
+  /** Returns true if field deletedFiles is set (has been assigned a value) and false otherwise */
+  public boolean isSetDeletedFiles() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __DELETEDFILES_ISSET_ID);
+  }
+
+  public void setDeletedFilesIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __DELETEDFILES_ISSET_ID, value);
+  }
+
   public int getSummariesSize() {
     return (this.summaries == null) ? 0 : this.summaries.size();
   }
@@ -313,6 +350,14 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
       }
       break;
 
+    case DELETED_FILES:
+      if (value == null) {
+        unsetDeletedFiles();
+      } else {
+        setDeletedFiles((java.lang.Long)value);
+      }
+      break;
+
     case SUMMARIES:
       if (value == null) {
         unsetSummaries();
@@ -335,6 +380,9 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     case TOTAL_FILES:
       return getTotalFiles();
 
+    case DELETED_FILES:
+      return getDeletedFiles();
+
     case SUMMARIES:
       return getSummaries();
 
@@ -355,6 +403,8 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
       return isSetSessionId();
     case TOTAL_FILES:
       return isSetTotalFiles();
+    case DELETED_FILES:
+      return isSetDeletedFiles();
     case SUMMARIES:
       return isSetSummaries();
     }
@@ -403,6 +453,15 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
         return false;
     }
 
+    boolean this_present_deletedFiles = true;
+    boolean that_present_deletedFiles = true;
+    if (this_present_deletedFiles || that_present_deletedFiles) {
+      if (!(this_present_deletedFiles && that_present_deletedFiles))
+        return false;
+      if (this.deletedFiles != that.deletedFiles)
+        return false;
+    }
+
     boolean this_present_summaries = true && this.isSetSummaries();
     boolean that_present_summaries = true && that.isSetSummaries();
     if (this_present_summaries || that_present_summaries) {
@@ -424,6 +483,8 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(sessionId);
 
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(totalFiles);
+
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(deletedFiles);
 
     hashCode = hashCode * 8191 + ((isSetSummaries()) ? 131071 : 524287);
     if (isSetSummaries())
@@ -470,6 +531,16 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.valueOf(isSetDeletedFiles()).compareTo(other.isSetDeletedFiles());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetDeletedFiles()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.deletedFiles, other.deletedFiles);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     lastComparison = java.lang.Boolean.valueOf(isSetSummaries()).compareTo(other.isSetSummaries());
     if (lastComparison != 0) {
       return lastComparison;
@@ -510,6 +581,10 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     if (!first) sb.append(", ");
     sb.append("totalFiles:");
     sb.append(this.totalFiles);
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("deletedFiles:");
+    sb.append(this.deletedFiles);
     first = false;
     if (!first) sb.append(", ");
     sb.append("summaries:");
@@ -588,7 +663,15 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 4: // SUMMARIES
+          case 4: // DELETED_FILES
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.deletedFiles = iprot.readI64();
+              struct.setDeletedFilesIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 5: // SUMMARIES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list114 = iprot.readListBegin();
@@ -631,6 +714,9 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
       oprot.writeFieldBegin(TOTAL_FILES_FIELD_DESC);
       oprot.writeI64(struct.totalFiles);
       oprot.writeFieldEnd();
+      oprot.writeFieldBegin(DELETED_FILES_FIELD_DESC);
+      oprot.writeI64(struct.deletedFiles);
+      oprot.writeFieldEnd();
       if (struct.summaries != null) {
         oprot.writeFieldBegin(SUMMARIES_FIELD_DESC);
         {
@@ -670,10 +756,13 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
       if (struct.isSetTotalFiles()) {
         optionals.set(2);
       }
-      if (struct.isSetSummaries()) {
+      if (struct.isSetDeletedFiles()) {
         optionals.set(3);
       }
-      oprot.writeBitSet(optionals, 4);
+      if (struct.isSetSummaries()) {
+        optionals.set(4);
+      }
+      oprot.writeBitSet(optionals, 5);
       if (struct.isSetFinished()) {
         oprot.writeBool(struct.finished);
       }
@@ -682,6 +771,9 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
       }
       if (struct.isSetTotalFiles()) {
         oprot.writeI64(struct.totalFiles);
+      }
+      if (struct.isSetDeletedFiles()) {
+        oprot.writeI64(struct.deletedFiles);
       }
       if (struct.isSetSummaries()) {
         {
@@ -697,7 +789,7 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TSummaries struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(4);
+      java.util.BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
         struct.finished = iprot.readBool();
         struct.setFinishedIsSet(true);
@@ -711,6 +803,10 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
         struct.setTotalFilesIsSet(true);
       }
       if (incoming.get(3)) {
+        struct.deletedFiles = iprot.readI64();
+        struct.setDeletedFilesIsSet(true);
+      }
+      if (incoming.get(4)) {
         {
           org.apache.thrift.protocol.TList _list119 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
           struct.summaries = new java.util.ArrayList<TSummary>(_list119.size);

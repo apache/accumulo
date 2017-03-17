@@ -31,6 +31,8 @@ import org.apache.accumulo.core.data.thrift.TSummaries;
 import org.apache.accumulo.core.data.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.data.thrift.TSummary;
 
+import com.google.common.base.Preconditions;
+
 /**
  * This class facilitates merging, storing, and serializing (to/from thrift) intermediate summary information.
  */
@@ -79,6 +81,7 @@ public class SummaryCollection {
 
   private Map<SummarizerConfiguration,MergedSummary> mergedSummaries;
   private long totalFiles;
+  private long deletedFiles;
 
   public SummaryCollection() {
     mergedSummaries = new HashMap<>();
@@ -93,14 +96,23 @@ public class SummaryCollection {
     }
 
     totalFiles = tsums.getTotalFiles();
+    deletedFiles = tsums.getDeletedFiles();
   }
 
   SummaryCollection(Collection<FileSummary> initialEntries) {
+    this(initialEntries, false);
+  }
+
+  SummaryCollection(Collection<FileSummary> initialEntries, boolean deleted) {
+    if (deleted) {
+      Preconditions.checkArgument(initialEntries.size() == 0);
+    }
     mergedSummaries = new HashMap<>();
     for (FileSummary entry : initialEntries) {
       mergedSummaries.put(entry.conf, new MergedSummary(entry));
     }
     totalFiles = 1;
+    this.deletedFiles = deleted ? 1 : 0;
   }
 
   static class FileSummary {
@@ -137,6 +149,7 @@ public class SummaryCollection {
     }
 
     this.totalFiles += other.totalFiles;
+    this.deletedFiles += other.deletedFiles;
   }
 
   public static SummaryCollection merge(SummaryCollection sc1, SummaryCollection sc2, SummarizerFactory factory) {
@@ -153,7 +166,8 @@ public class SummaryCollection {
       SummarizerConfiguration config = entry.getKey();
       MergedSummary ms = entry.getValue();
 
-      ret.add(new Summary(ms.summary, config, totalFiles, totalFiles - ms.filesContaining, ms.filesExceedingBoundry, ms.filesLarge));
+      ret.add(new Summary(ms.summary, config, totalFiles, (totalFiles - deletedFiles) - ms.filesContaining, ms.filesExceedingBoundry, ms.filesLarge,
+          deletedFiles));
     }
 
     return ret;
@@ -169,6 +183,6 @@ public class SummaryCollection {
       summaries.add(entry.getValue().toThrift(entry.getKey()));
     }
 
-    return new TSummaries(true, -1l, totalFiles, summaries);
+    return new TSummaries(true, -1l, totalFiles, deletedFiles, summaries);
   }
 }

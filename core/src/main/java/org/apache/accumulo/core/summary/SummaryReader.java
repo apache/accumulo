@@ -18,6 +18,7 @@
 package org.apache.accumulo.core.summary;
 
 import java.io.DataInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -146,7 +147,7 @@ public class SummaryReader {
   }
 
   public static SummaryReader load(FileSystem fs, Configuration conf, AccumuloConfiguration aConf, SummarizerFactory factory, Path file,
-      Predicate<SummarizerConfiguration> summarySelector, BlockCache summaryCache, BlockCache indexCache) throws IllegalArgumentException, IOException {
+      Predicate<SummarizerConfiguration> summarySelector, BlockCache summaryCache, BlockCache indexCache) {
     CachableBlockFile.Reader bcReader = null;
 
     try {
@@ -154,7 +155,22 @@ public class SummaryReader {
       CompositeCache compositeCache = new CompositeCache(summaryCache, indexCache);
       bcReader = new CachableBlockFile.Reader(fs, file, conf, null, compositeCache, aConf);
       return load(bcReader, summarySelector, factory);
+    } catch (FileNotFoundException fne) {
+      SummaryReader sr = new SummaryReader();
+      sr.factory = factory;
+      sr.summaryStores = Collections.emptyList();
+      sr.deleted = true;
+      return sr;
     } catch (IOException e) {
+      try {
+        if (!fs.exists(file)) {
+          SummaryReader sr = new SummaryReader();
+          sr.factory = factory;
+          sr.summaryStores = Collections.emptyList();
+          sr.deleted = true;
+          return sr;
+        }
+      } catch (IOException e1) {}
       throw new UncheckedIOException(e);
     } finally {
       if (bcReader != null) {
@@ -218,9 +234,14 @@ public class SummaryReader {
 
   private SummarizerFactory factory;
 
+  private boolean deleted;
+
   public SummaryCollection getSummaries(List<RowRange> ranges) {
 
     List<SummaryCollection.FileSummary> initial = new ArrayList<>();
+    if (deleted) {
+      return new SummaryCollection(initial, true);
+    }
     for (SummarySerializer summaryStore : summaryStores) {
       if (summaryStore.exceededMaxSize()) {
         initial.add(new SummaryCollection.FileSummary(summaryStore.getSummarizerConfiguration()));
