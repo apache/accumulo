@@ -30,6 +30,9 @@ import com.google.common.collect.ImmutableMap;
  */
 public class Summary {
 
+  /**
+   * @since 2.0.0
+   */
   public static class FileStatistics {
     private final long total;
     private final long missing;
