@@ -193,12 +193,12 @@ public class TabletServerResourceManager {
       // Still check block cache sizes when using native maps.
       if (dCacheSize + iCacheSize + sCacheSize + totalQueueSize > runtime.maxMemory()) {
         throw new IllegalArgumentException(String.format("Block cache sizes %,d and mutation queue size %,d is too large for this JVM configuration %,d",
-            dCacheSize + iCacheSize, totalQueueSize, runtime.maxMemory()));
+            dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
       }
     } else if (maxMemory + dCacheSize + iCacheSize + sCacheSize + totalQueueSize > runtime.maxMemory()) {
       throw new IllegalArgumentException(String.format(
           "Maximum tablet server map memory %,d block cache sizes %,d and mutation queue size %,d is too large for this JVM configuration %,d", maxMemory,
-          dCacheSize + iCacheSize, totalQueueSize, runtime.maxMemory()));
+          dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
     }
     runtime.gc();
 
