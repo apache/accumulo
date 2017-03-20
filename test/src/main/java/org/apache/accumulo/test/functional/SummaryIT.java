@@ -790,7 +790,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     int q = 0;
 
     SortedSet<Text> partitionKeys = new TreeSet<>();
-    for (int split = 100000; split < 1000000; split += 100000) {
+    for (int split = 100_000; split < 1_000_000; split += 100_000) {
       partitionKeys.add(new Text(String.format("%06d", split)));
     }
     c.tableOperations().addSplits(table, partitionKeys);
@@ -800,7 +800,7 @@ public class SummaryIT extends AccumuloClusterHarness {
       // this loop should cause a varying number of files and compactions
       try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
         for (int i = 0; i < 10000; i++) {
-          String row = String.format("%06d", rand.nextInt(1000000));
+          String row = String.format("%06d", rand.nextInt(1_000_000));
           String fam = String.format("%03d", rand.nextInt(100));
           String qual = String.format("%06d", q++);
           write(bw, row, fam, qual, "val");
