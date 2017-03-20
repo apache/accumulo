@@ -274,6 +274,11 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
+  public boolean mkdirs(Path path, FsPermission permission) throws IOException {
+    return getVolumeByPath(path).getFileSystem().mkdirs(path, permission);
+  }
+
+  @Override
   public FSDataInputStream open(Path path) throws IOException {
     return getVolumeByPath(path).getFileSystem().open(path);
   }

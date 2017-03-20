@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 
 /**
  * A wrapper around multiple hadoop FileSystem objects, which are assumed to be different volumes. This also concentrates a bunch of meta-operations like
@@ -123,6 +124,9 @@ public interface VolumeManager {
 
   // forward to the appropriate FileSystem object
   boolean mkdirs(Path directory) throws IOException;
+
+  // forward to the appropriate FileSystem object
+  boolean mkdirs(Path path, FsPermission permission) throws IOException;
 
   // forward to the appropriate FileSystem object
   FSDataInputStream open(Path path) throws IOException;
