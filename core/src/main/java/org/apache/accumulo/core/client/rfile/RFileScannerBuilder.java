@@ -112,12 +112,14 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
 
   @Override
   public ScannerOptions from(RFileSource... inputs) {
+    Objects.requireNonNull(inputs);
     opts.in = new InputArgs(inputs);
     return this;
   }
 
   @Override
   public ScannerFSOptions from(String... files) {
+    Objects.requireNonNull(files);
     opts.in = new InputArgs(files);
     return this;
   }

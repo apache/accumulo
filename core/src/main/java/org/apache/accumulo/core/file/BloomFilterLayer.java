@@ -97,12 +97,12 @@ public class BloomFilterLayer {
     private boolean closed = false;
     private long length = -1;
 
-    Writer(FileSKVWriter writer, AccumuloConfiguration acuconf) {
+    Writer(FileSKVWriter writer, AccumuloConfiguration acuconf, boolean useAccumuloStart) {
       this.writer = writer;
-      initBloomFilter(acuconf);
+      initBloomFilter(acuconf, useAccumuloStart);
     }
 
-    private synchronized void initBloomFilter(AccumuloConfiguration acuconf) {
+    private synchronized void initBloomFilter(AccumuloConfiguration acuconf, boolean useAccumuloStart) {
 
       numKeys = acuconf.getCount(Property.TABLE_BLOOM_SIZE);
       // vector size should be <code>-kn / (ln(1 - c^(1/k)))</code> bits for
@@ -121,7 +121,9 @@ public class BloomFilterLayer {
         String context = acuconf.get(Property.TABLE_CLASSPATH);
         String classname = acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR);
         Class<? extends KeyFunctor> clazz;
-        if (context != null && !context.equals(""))
+        if (!useAccumuloStart)
+          clazz = Writer.class.getClassLoader().loadClass(classname).asSubclass(KeyFunctor.class);
+        else if (context != null && !context.equals(""))
           clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, classname, KeyFunctor.class);
         else
           clazz = AccumuloVFSClassLoader.loadClass(classname, KeyFunctor.class);

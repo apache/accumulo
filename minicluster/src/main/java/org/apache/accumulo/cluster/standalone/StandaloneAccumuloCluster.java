@@ -142,8 +142,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public StandaloneClusterControl getClusterControl() {
-    return new StandaloneClusterControl(accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir,
-                                        clientCmdPrefix, serverCmdPrefix);
+    return new StandaloneClusterControl(accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, clientCmdPrefix, serverCmdPrefix);
   }
 
   @Override

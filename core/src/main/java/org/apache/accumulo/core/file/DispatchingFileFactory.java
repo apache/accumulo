@@ -23,6 +23,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.map.MapFileOperations;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
+import org.apache.accumulo.core.summary.SummaryWriter;
 import org.apache.hadoop.fs.Path;
 
 class DispatchingFileFactory extends FileOperations {
@@ -73,10 +74,10 @@ class DispatchingFileFactory extends FileOperations {
   protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
     FileSKVWriter writer = findFileFactory(options).openWriter(options);
     if (options.getTableConfiguration().getBoolean(Property.TABLE_BLOOM_ENABLED)) {
-      return new BloomFilterLayer.Writer(writer, options.getTableConfiguration());
-    } else {
-      return writer;
+      writer = new BloomFilterLayer.Writer(writer, options.getTableConfiguration(), options.isAccumuloStartEnabled());
     }
+
+    return SummaryWriter.wrap(writer, options.getTableConfiguration(), options.isAccumuloStartEnabled());
   }
 
   @Override

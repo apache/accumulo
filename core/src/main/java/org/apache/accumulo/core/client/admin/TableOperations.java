@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -34,9 +35,12 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.Summarizer;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -808,4 +812,65 @@ public interface TableOperations {
    * @since 1.8.0
    */
   SamplerConfiguration getSamplerConfiguration(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Entry point for retrieving summaries with optional restrictions.
+   *
+   * <p>
+   * In order to retrieve Summaries, the Accumulo user making the request will need the {@link TablePermission#GET_SUMMARIES} table permission.
+   *
+   * <p>
+   * Accumulo stores summary data with each file in each tablet. In order to make retrieving it faster there is a per tablet server cache of summary data. When
+   * summary data for a file is not present, it will be retrieved using threads on the tserver. The tablet server properties
+   * {@code tserver.summary.partition.threads}, {@code tserver.summary.remote.threads}, {@code tserver.summary.retrieval.threads}, and
+   * {@code tserver.cache.summary.size} impact the performance of retrieving summaries.
+   *
+   * <p>
+   * Since summary data is cached, its important to use the summary selection options to only read the needed data into the cache.
+   *
+   * <p>
+   * Summary data will be merged on the tablet servers and then in this client process. Therefore it's important that the required summarizers are on the
+   * clients classpath.
+   *
+   * @since 2.0.0
+   * @see Summarizer
+   */
+  SummaryRetriever summaries(String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Enables summary generation for this table for future compactions.
+   *
+   * @param tableName
+   *          add summarizers to this table
+   * @param summarizers
+   *          summarizers to add
+   * @throws IllegalArgumentException
+   *           When new summarizers have the same property id as each other, or when the same summarizers previously added.
+   * @since 2.0.0
+   * @see SummarizerConfiguration#toTableProperties()
+   * @see SummarizerConfiguration#toTableProperties(SummarizerConfiguration...)
+   * @see SummarizerConfiguration#toTableProperties(Collection)
+   */
+  void addSummarizers(String tableName, SummarizerConfiguration... summarizers) throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Removes summary generation for this table for the matching summarizers.
+   *
+   * @param tableName
+   *          remove summarizers from this table
+   * @param predicate
+   *          removes all summarizers whose configuration that matches this predicate
+   * @since 2.0.0
+   */
+  void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate) throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException;
+
+  /**
+   * @param tableName
+   *          list summarizers for this table
+   * @return the summarizers currently configured for the table
+   * @since 2.0.0
+   * @see SummarizerConfiguration#fromTableProperties(Map)
+   */
+  List<SummarizerConfiguration> listSummarizers(String tableName) throws AccumuloException, TableNotFoundException, AccumuloSecurityException;
 }

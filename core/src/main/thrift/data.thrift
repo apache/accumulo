@@ -149,6 +149,40 @@ struct TConditionalSession {
         3:i64 ttl;
 }
 
+struct TSummarizerConfiguration {
+  1:string classname
+  2:map<string, string> options
+  3:string configId
+}
+
+struct TSummary {
+   1:map<string, i64> summary
+   2:TSummarizerConfiguration config
+   3:i64 filesContaining
+   4:i64 filesExceeding
+   5:i64 filesLarge
+}
+
+struct TSummaries {
+   1:bool finished
+   2:i64 sessionId
+   3:i64 totalFiles
+   4:i64 deletedFiles
+   5:list<TSummary> summaries
+}
+
+struct TRowRange {
+  1:binary startRow
+  2:binary endRow
+}
+
+struct TSummaryRequest {
+  1:string tableId
+  2:TRowRange bounds
+  3:list<TSummarizerConfiguration> summarizers
+  4:string summarizerPattern
+}
+
 typedef map<TKeyExtent,list<TConditionalMutation>> CMBatch
 
 typedef map<TKeyExtent,list<TMutation>> UpdateBatch

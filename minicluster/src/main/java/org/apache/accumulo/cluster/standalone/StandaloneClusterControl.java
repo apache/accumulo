@@ -63,7 +63,8 @@ public class StandaloneClusterControl implements ClusterControl {
 
   protected String accumuloServicePath, accumuloPath, accumuloUtilPath;
 
-  public StandaloneClusterControl(String accumuloHome, String clientAccumuloConfDir, String serverAccumuloConfDir, String clientCmdPrefix, String serverCmdPrefix) {
+  public StandaloneClusterControl(String accumuloHome, String clientAccumuloConfDir, String serverAccumuloConfDir, String clientCmdPrefix,
+      String serverCmdPrefix) {
     this.options = new RemoteShellOptions();
     this.accumuloHome = accumuloHome;
     this.clientAccumuloConfDir = clientAccumuloConfDir;

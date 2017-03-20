@@ -292,12 +292,23 @@ public abstract class FileOperations {
       NeedsFileOrOuputStream<OpenWriterOperationBuilder> {
     private String compression;
     private FSDataOutputStream outputStream;
+    private boolean enableAccumuloStart = true;
 
     @Override
     public NeedsTableConfiguration<OpenWriterOperationBuilder> forOutputStream(String extenstion, FSDataOutputStream outputStream, Configuration fsConf) {
       this.outputStream = outputStream;
       setConfiguration(fsConf);
       setFilename("foo" + extenstion);
+      return this;
+    }
+
+    public boolean isAccumuloStartEnabled() {
+      return enableAccumuloStart;
+    }
+
+    @Override
+    public OpenWriterOperation setAccumuloStartEnabled(boolean enableAccumuloStart) {
+      this.enableAccumuloStart = enableAccumuloStart;
       return this;
     }
 
@@ -336,6 +347,13 @@ public abstract class FileOperations {
   public static interface OpenWriterOperationBuilder extends FileIOOperationBuilder<OpenWriterOperationBuilder> {
     /** Set the compression type. */
     public OpenWriterOperationBuilder withCompression(String compression);
+
+    /**
+     * Classes may be instantiated as part of a write operation. For example if BloomFilters, Samplers, or Summarizers are used then classes are loaded. When
+     * running in a tserver, Accumulo start should be used to load classes. When running in a client process, Accumulo start should not be used. This method
+     * makes it possible to specify if Accumulo Start should be used to load classes. Calling this method is optional and the default is true.
+     */
+    public OpenWriterOperationBuilder setAccumuloStartEnabled(boolean enableAccumuloStart);
 
     /** Construct the writer. */
     public FileSKVWriter build() throws IOException;

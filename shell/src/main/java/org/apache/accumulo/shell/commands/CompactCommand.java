@@ -38,7 +38,7 @@ public class CompactCommand extends TableOperation {
 
   // file selection and file output options
   private Option enameOption, epathOption, sizeLtOption, sizeGtOption, minFilesOption, outBlockSizeOpt, outHdfsBlockSizeOpt, outIndexBlockSizeOpt,
-      outCompressionOpt, outReplication, enoSampleOption;
+      outCompressionOpt, outReplication, enoSampleOption, extraSummaryOption, enoSummaryOption;
 
   private CompactionConfig compactionConfig = null;
 
@@ -89,6 +89,8 @@ public class CompactCommand extends TableOperation {
   private Map<String,String> getConfigurableCompactionStrategyOpts(CommandLine cl) {
     Map<String,String> opts = new HashMap<>();
 
+    put(cl, opts, extraSummaryOption, CompactionSettings.SF_EXTRA_SUMMARY);
+    put(cl, opts, enoSummaryOption, CompactionSettings.SF_NO_SUMMARY);
     put(cl, opts, enoSampleOption, CompactionSettings.SF_NO_SAMPLE);
     put(cl, opts, enameOption, CompactionSettings.SF_NAME_RE_OPT);
     put(cl, opts, epathOption, CompactionSettings.SF_PATH_RE_OPT);
@@ -191,6 +193,10 @@ public class CompactCommand extends TableOperation {
     cancelOpt = new Option(null, "cancel", false, "cancel user initiated compactions");
     opts.addOption(cancelOpt);
 
+    enoSummaryOption = new Option(null, "sf-no-summary", false, "Select files that do not have the summaries specified in the table configuration.");
+    opts.addOption(enoSummaryOption);
+    extraSummaryOption = new Option(null, "sf-extra-summary", false, "Select files that have summary information which exceeds the tablets boundries.");
+    opts.addOption(extraSummaryOption);
     enoSampleOption = new Option(null, "sf-no-sample", false,
         "Select files that have no sample data or sample data that differes from the table configuration.");
     opts.addOption(enoSampleOption);

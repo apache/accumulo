@@ -33,11 +33,12 @@ public enum TablePermission {
   BULK_IMPORT((byte) 4),
   ALTER_TABLE((byte) 5),
   GRANT((byte) 6),
-  DROP_TABLE((byte) 7);
+  DROP_TABLE((byte) 7),
+  GET_SUMMARIES((byte) 8);
 
   final private byte permID;
 
-  final private static TablePermission mapping[] = new TablePermission[8];
+  final private static TablePermission mapping[] = new TablePermission[9];
   static {
     for (TablePermission perm : TablePermission.values())
       mapping[perm.permID] = perm;

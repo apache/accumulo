@@ -845,4 +845,9 @@ public class SecurityOperation {
     authenticate(credentials);
     return hasSystemPermission(credentials, SystemPermission.OBTAIN_DELEGATION_TOKEN, false);
   }
+
+  public boolean canGetSummaries(TCredentials credentials, String tableId, String namespaceId) throws ThriftSecurityException {
+    authenticate(credentials);
+    return hasTablePermission(credentials, tableId, namespaceId, TablePermission.GET_SUMMARIES, false);
+  }
 }

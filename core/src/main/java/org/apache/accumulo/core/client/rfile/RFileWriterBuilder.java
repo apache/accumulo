@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.client.rfile;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
@@ -28,6 +30,7 @@ import java.util.Objects;
 import org.apache.accumulo.core.client.rfile.RFile.WriterFSOptions;
 import org.apache.accumulo.core.client.rfile.RFile.WriterOptions;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.file.FileOperations;
@@ -59,15 +62,21 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   }
 
   private OutputArgs out;
-  private SamplerConfiguration sampler = null;
   private Map<String,String> tableConfig = Collections.emptyMap();
   private int visCacheSize = 1000;
+  private Map<String,String> samplerProps = Collections.emptyMap();
+  private Map<String,String> summarizerProps = Collections.emptyMap();
+
+  private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps, String kind) {
+    checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()), "Properties and derived %s properties are not disjoint", kind);
+  }
 
   @Override
   public WriterOptions withSampler(SamplerConfiguration samplerConf) {
     Objects.requireNonNull(samplerConf);
-    SamplerConfigurationImpl.checkDisjoint(tableConfig, samplerConf);
-    this.sampler = samplerConf;
+    Map<String,String> tmp = new SamplerConfigurationImpl(samplerConf).toTablePropertiesMap();
+    checkDisjoint(tableConfig, tmp, "sampler");
+    this.samplerProps = tmp;
     return this;
   }
 
@@ -76,10 +85,10 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
     FileOperations fileops = FileOperations.getInstance();
     AccumuloConfiguration acuconf = AccumuloConfiguration.getDefaultConfiguration();
     HashMap<String,String> userProps = new HashMap<>();
-    if (sampler != null) {
-      userProps.putAll(new SamplerConfigurationImpl(sampler).toTablePropertiesMap());
-    }
+
     userProps.putAll(tableConfig);
+    userProps.putAll(summarizerProps);
+    userProps.putAll(samplerProps);
 
     if (userProps.size() > 0) {
       acuconf = new ConfigurationCopy(Iterables.concat(acuconf, userProps.entrySet()));
@@ -92,10 +101,11 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       } else {
         fsdo = new FSDataOutputStream(out.getOutputStream(), new FileSystem.Statistics("foo"));
       }
-      return new RFileWriter(fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf()).withTableConfiguration(acuconf).build(), visCacheSize);
+      return new RFileWriter(fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf()).withTableConfiguration(acuconf)
+          .setAccumuloStartEnabled(false).build(), visCacheSize);
     } else {
       return new RFileWriter(fileops.newWriterBuilder().forFile(out.path.toString(), out.getFileSystem(), out.getConf()).withTableConfiguration(acuconf)
-          .build(), visCacheSize);
+          .setAccumuloStartEnabled(false).build(), visCacheSize);
     }
   }
 
@@ -128,7 +138,8 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       cfg.put(entry.getKey(), entry.getValue());
     }
 
-    SamplerConfigurationImpl.checkDisjoint(cfg, sampler);
+    checkDisjoint(cfg, samplerProps, "sampler");
+    checkDisjoint(cfg, summarizerProps, "summarizer");
     this.tableConfig = cfg;
     return this;
   }
@@ -143,6 +154,15 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   public WriterOptions withVisibilityCacheSize(int maxSize) {
     Preconditions.checkArgument(maxSize > 0);
     this.visCacheSize = maxSize;
+    return this;
+  }
+
+  @Override
+  public WriterOptions withSummarizers(SummarizerConfiguration... summarizerConf) {
+    Objects.requireNonNull(summarizerConf);
+    Map<String,String> tmp = SummarizerConfiguration.toTableProperties(summarizerConf);
+    checkDisjoint(tableConfig, tmp, "summarizer");
+    this.summarizerProps = tmp;
     return this;
   }
 }

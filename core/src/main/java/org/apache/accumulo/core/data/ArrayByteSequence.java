@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
@@ -99,6 +100,23 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
       this.data = ByteBufferUtil.toBytes(buffer);
       this.length = data.length;
     }
+  }
+
+  private static byte[] copy(ByteSequence bs) {
+    if (bs.isBackedByArray()) {
+      return Arrays.copyOfRange(bs.getBackingArray(), bs.offset(), bs.offset() + bs.length());
+    } else {
+      return bs.toArray();
+    }
+  }
+
+  /**
+   * Copy constructor. Copies contents of byteSequence.
+   *
+   * @since 2.0.0
+   */
+  public ArrayByteSequence(ByteSequence byteSequence) {
+    this(copy(byteSequence));
   }
 
   @Override

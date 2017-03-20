@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -205,6 +206,14 @@ public class FileOutputConfigurator extends ConfiguratorBase {
 
     Set<Entry<String,String>> es = props.entrySet();
     for (Entry<String,String> entry : es) {
+      conf.set(enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "." + entry.getKey(), entry.getValue());
+    }
+  }
+
+  public static void setSummarizers(Class<?> implementingClass, Configuration conf, SummarizerConfiguration[] sumarizerConfigs) {
+    Map<String,String> props = SummarizerConfiguration.toTableProperties(sumarizerConfigs);
+
+    for (Entry<String,String> entry : props.entrySet()) {
       conf.set(enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "." + entry.getKey(), entry.getValue());
     }
   }
