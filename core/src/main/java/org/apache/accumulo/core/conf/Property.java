@@ -54,7 +54,7 @@ public enum Property {
   CRYPTO_CIPHER_ALGORITHM_NAME("crypto.cipher.algorithm.name", "NullCipher", PropertyType.STRING,
       "States the name of the algorithm used in the corresponding cipher suite. Do not make these different, unless you enjoy mysterious exceptions and bugs."),
   @Experimental
-  CRYPTO_BLOCK_STREAM_SIZE("crypto.block.stream.size", "1K", PropertyType.MEMORY,
+  CRYPTO_BLOCK_STREAM_SIZE("crypto.block.stream.size", "1K", PropertyType.BYTES,
       "The size of the buffer above the cipher stream. Used for reading files and padding walog entries."),
   @Experimental
   CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
@@ -170,10 +170,13 @@ public enum Property {
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but do not have to be consistent throughout a cloud."),
-  GENERAL_CLASSPATHS(AccumuloClassLoader.CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.ACCUMULO_CLASSPATH_VALUE, PropertyType.STRING,
-      "A list of all of the places to look for a class. Order does matter, as it will look for the jar "
-          + "starting in the first location to the last. Please note, hadoop conf and hadoop lib directories NEED to be here, "
-          + "along with accumulo lib and zookeeper directory. Supports full regex on filename alone."), // needs special treatment in accumulo start jar
+  @Deprecated
+  GENERAL_CLASSPATHS(
+      AccumuloClassLoader.CLASSPATH_PROPERTY_NAME,
+      "",
+      PropertyType.STRING,
+      "This property is deprecated as classpath should be configured accumulo-env.sh. A list of all of the places to look for a class. Order does matter, as it will look for the jar "
+          + "starting in the first location to the last. Supports full regex on filename alone."),
   GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME, AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE,
       PropertyType.STRING, "A list of all of the places where changes in jars or classes will force a reload of the classloader."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION, "Time to wait on I/O for simple, short RPC calls"),
@@ -185,7 +188,7 @@ public enum Property {
       + "replaced by the machines hostname in the hostname portion of the principal. Leave blank if not using kerberoized hdfs"),
   GENERAL_KERBEROS_RENEWAL_PERIOD("general.kerberos.renewal.period", "30s", PropertyType.TIMEDURATION, "The amount of time between attempts to perform "
       + "Kerberos ticket renewals. This does not equate to how often tickets are actually renewed (which is performed at 80% of the ticket lifetime)."),
-  GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.MEMORY, "The maximum size of a message that can be sent to a server."),
+  GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.BYTES, "The maximum size of a message that can be sent to a server."),
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1", PropertyType.COUNT, "The number of threads to use for "
       + "server-internal scheduled tasks"),
   // If you update the default type, be sure to update the default used for initialization failures in VolumeManagerImpl
@@ -240,26 +243,26 @@ public enum Property {
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the tablet servers"),
   TSERV_CLIENT_TIMEOUT("tserver.client.timeout", "3s", PropertyType.TIMEDURATION, "Time to wait for clients to continue scans before closing a session."),
-  TSERV_DEFAULT_BLOCKSIZE("tserver.default.blocksize", "1M", PropertyType.MEMORY, "Specifies a default blocksize for the tserver caches"),
+  TSERV_DEFAULT_BLOCKSIZE("tserver.default.blocksize", "1M", PropertyType.BYTES, "Specifies a default blocksize for the tserver caches"),
   TSERV_CACHE_POLICY("tserver.cache.policy", "LRU", PropertyType.STRING, "Specifies the eviction policy of the file data caches (LRU or TinyLFU)."),
-  TSERV_DATACACHE_SIZE("tserver.cache.data.size", "128M", PropertyType.MEMORY, "Specifies the size of the cache for file data blocks."),
-  TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "512M", PropertyType.MEMORY, "Specifies the size of the cache for file indices."),
-  TSERV_SUMMARYCACHE_SIZE("tserver.cache.summary.size", "128M", PropertyType.MEMORY, "Specifies the size of the cache for summary data on each tablet server."),
+  TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY, "Specifies the size of the cache for file data blocks."),
+  TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "25%", PropertyType.MEMORY, "Specifies the size of the cache for file indices."),
+  TSERV_SUMMARYCACHE_SIZE("tserver.cache.summary.size", "10%", PropertyType.MEMORY, "Specifies the size of the cache for summary data on each tablet server."),
   TSERV_PORTSEARCH("tserver.port.search", "false", PropertyType.BOOLEAN, "if the ports above are in use, search higher ports until one is available"),
   TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT, "The port used for handling client connections on the tablet servers"),
   @Deprecated
-  TSERV_MUTATION_QUEUE_MAX("tserver.mutation.queue.max", "1M", PropertyType.MEMORY, "This setting is deprecated. See tserver.total.mutation.queue.max. "
+  TSERV_MUTATION_QUEUE_MAX("tserver.mutation.queue.max", "1M", PropertyType.BYTES, "This setting is deprecated. See tserver.total.mutation.queue.max. "
       + "The amount of memory to use to store write-ahead-log mutations-per-session before flushing them. Since the buffer is per write session, consider the"
       + " max number of concurrent writer when configuring. When using Hadoop 2, Accumulo will call hsync() on the WAL . For a small number of "
       + "concurrent writers, increasing this buffer size decreases the frequncy of hsync calls. For a large number of concurrent writers a small buffers "
       + "size is ok because of group commit."),
-  TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "50M", PropertyType.MEMORY,
+  TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them."),
   TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "300", PropertyType.COUNT,
       "To find a tablets split points, all index files are opened. This setting determines how many index "
           + "files can be opened at once. When there are more index files than this setting multiple passes "
           + "must be made, which is slower. However opening too many files at once can cause problems."),
-  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.MEMORY,
+  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1g", PropertyType.BYTES,
       "The maximum size for each write-ahead log. See comment for property tserver.memory.maps.max"),
   TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION, "The maximum age for each write-ahead log."),
   TSERV_WALOG_TOLERATED_CREATION_FAILURES("tserver.walog.tolerated.creation.failures", "50", PropertyType.COUNT,
@@ -280,7 +283,7 @@ public enum Property {
       + "This setting determines how much time an unused file should be kept open until it is closed."),
   TSERV_NATIVEMAP_ENABLED("tserver.memory.maps.native.enabled", "true", PropertyType.BOOLEAN,
       "An in-memory data store for accumulo implemented in c++ that increases the amount of data accumulo can hold in memory and avoids Java GC pauses."),
-  TSERV_MAXMEM("tserver.memory.maps.max", "1G", PropertyType.MEMORY,
+  TSERV_MAXMEM("tserver.memory.maps.max", "33%", PropertyType.MEMORY,
       "Maximum amount of memory that can be used to buffer data written to a tablet server. There are two other properties that can effectively limit memory"
           + " usage table.compaction.minor.logs.threshold and tserver.walog.max.size. Ensure that table.compaction.minor.logs.threshold *"
           + " tserver.walog.max.size >= this property."),
@@ -300,7 +303,7 @@ public enum Property {
       "The maximum number of concurrent tablet migrations for a tablet server"),
   TSERV_MAJC_MAXCONCURRENT("tserver.compaction.major.concurrent.max", "3", PropertyType.COUNT,
       "The maximum number of concurrent major compactions for a tablet server"),
-  TSERV_MAJC_THROUGHPUT("tserver.compaction.major.throughput", "0B", PropertyType.MEMORY,
+  TSERV_MAJC_THROUGHPUT("tserver.compaction.major.throughput", "0B", PropertyType.BYTES,
       "Maximum number of bytes to read or write per second over all major compactions on a TabletServer, or 0B for unlimited."),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
       "The maximum number of concurrent minor compactions for a tablet server"),
@@ -329,18 +332,18 @@ public enum Property {
   TSERV_BULK_TIMEOUT("tserver.bulk.timeout", "5m", PropertyType.TIMEDURATION, "The time to wait for a tablet server to process a bulk import request."),
   TSERV_MINTHREADS("tserver.server.threads.minimum", "20", PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests."),
   TSERV_THREADCHECK("tserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool."),
-  TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.MEMORY, "The maximum size of a message that can be sent to a tablet server."),
+  TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.BYTES, "The maximum size of a message that can be sent to a tablet server."),
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state. If the tablet server cannot write out memory"
           + " in this much time, it will assume there is some failure local to its node, and quit. A value of zero is equivalent to forever."),
-  TSERV_WAL_BLOCKSIZE("tserver.wal.blocksize", "0", PropertyType.MEMORY,
+  TSERV_WAL_BLOCKSIZE("tserver.wal.blocksize", "0", PropertyType.BYTES,
       "The size of the HDFS blocks used to write to the Write-Ahead log. If zero, it will be 110% of tserver.walog.max.size (that is, try to use just one"
           + " block)"),
   TSERV_WAL_REPLICATION("tserver.wal.replication", "0", PropertyType.COUNT,
       "The replication to use when writing the Write-Ahead log to HDFS. If zero, it will use the HDFS default replication setting."),
   TSERV_RECOVERY_MAX_CONCURRENT("tserver.recovery.concurrent.max", "2", PropertyType.COUNT, "The maximum number of threads to use to sort logs during"
       + " recovery"),
-  TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "200M", PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery."),
+  TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "10%", PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery."),
   TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN, "Keep copies of the WALOGs for debugging purposes"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed work queue. These threads are used for copying failed bulk files."),
@@ -354,7 +357,7 @@ public enum Property {
       "Allows configuration of implementation used to apply replicated data"),
   TSERV_REPLICATION_DEFAULT_HANDLER("tserver.replication.default.replayer", "org.apache.accumulo.tserver.replication.BatchWriterReplicationReplayer",
       PropertyType.CLASSNAME, "Default AccumuloReplicationReplayer implementation"),
-  TSERV_REPLICATION_BW_REPLAYER_MEMORY("tserver.replication.batchwriter.replayer.memory", "50M", PropertyType.MEMORY,
+  TSERV_REPLICATION_BW_REPLAYER_MEMORY("tserver.replication.batchwriter.replayer.memory", "50M", PropertyType.BYTES,
       "Memory to provide to batchwriter to replay mutations for replication"),
   TSERV_ASSIGNMENT_MAXCONCURRENT("tserver.assignment.concurrent.max", "2", PropertyType.COUNT,
       "The number of threads available to load tablets. Recoveries are still performed serially."),
@@ -420,7 +423,7 @@ public enum Property {
   TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING, "The password for the user used to store distributed traces"),
   @Sensitive
   TRACE_TOKEN_PROPERTY_PREFIX("trace.token.property.", null, PropertyType.PREFIX,
-      "The prefix used to create a token for storing distributed traces. For each propetry required by trace.token.type, place this prefix in front of it."),
+      "The prefix used to create a token for storing distributed traces. For each property required by trace.token.type, place this prefix in front of it."),
   TRACE_TOKEN_TYPE("trace.token.type", PasswordToken.class.getName(), PropertyType.CLASSNAME, "An AuthenticationToken type supported by the authorizer"),
 
   // per table properties
@@ -440,29 +443,29 @@ public enum Property {
           + "of its files compacted into one. There is no guarantee an idle tablet will be compacted. "
           + "Compactions of idle tablets are only started when regular compactions are not running. Idle "
           + "compactions only take place for tablets that have one or more files."),
-  TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.MEMORY, "When combined size of files exceeds this amount a tablet is split."),
-  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.MEMORY, "Maximum size of end row"),
+  TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.BYTES, "When combined size of files exceeds this amount a tablet is split."),
+  TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.BYTES, "Maximum size of end row"),
   TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
       "When there are more than this many write-ahead logs against a tablet, it will be minor compacted. See comment for property tserver.memory.maps.max"),
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may have its "
           + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle " + "tablet will be compacted."),
-  TABLE_MINC_MAX_MERGE_FILE_SIZE("table.compaction.minor.merge.file.size.max", "0", PropertyType.MEMORY,
+  TABLE_MINC_MAX_MERGE_FILE_SIZE("table.compaction.minor.merge.file.size.max", "0", PropertyType.BYTES,
       "The max file size used for a merging minor compaction. The default value of 0 disables a max file size."),
-  TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.MEMORY,
+  TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client."),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.STRING, "Change the type of file a table writes"),
   TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.server.master.balancer.DefaultLoadBalancer", PropertyType.STRING,
       "This property can be set to allow the LoadBalanceByTable load balancer to change the called Load Balancer for this table"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING, "One of gz,lzo,none"),
-  TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.MEMORY,
+  TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.BYTES,
       "Similar to the hadoop io.seqfile.compress.blocksize setting, so that files have better query performance. The maximum value for this is "
           + Integer.MAX_VALUE + ". (This setting is the size threshold prior to compression, and applies even compression is disabled.)"),
-  TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K", PropertyType.MEMORY,
+  TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K", PropertyType.BYTES,
       "Determines how large index blocks can be in files that support multilevel indexes. The maximum value for this is " + Integer.MAX_VALUE + "."
           + " (This setting is the size threshold prior to compression, and applies even compression is disabled.)"),
-  TABLE_FILE_BLOCK_SIZE("table.file.blocksize", "0B", PropertyType.MEMORY,
+  TABLE_FILE_BLOCK_SIZE("table.file.blocksize", "0B", PropertyType.BYTES,
       "Overrides the hadoop dfs.block.size setting so that files have better query performance. The maximum value for this is " + Integer.MAX_VALUE),
   TABLE_FILE_REPLICATION("table.file.replication", "0", PropertyType.COUNT, "Determines how many replicas to keep of a tables' files in HDFS. "
       + "When this value is LTE 0, HDFS defaults are used."),
@@ -470,7 +473,7 @@ public enum Property {
       "Determines the max # of files each tablet in a table can have. When adjusting this property you may want to consider adjusting"
           + " table.compaction.major.ratio also. Setting this property to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a"
           + " tablet from having more files than can be opened. Setting this property low may throttle ingest and increase query performance."),
-  TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256K", PropertyType.MEMORY, "The maximum size summary that will be stored. The number of"
+  TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256K", PropertyType.BYTES, "The maximum size summary that will be stored. The number of"
       + " files that had summary data exceeding this threshold is reported by Summary.getFileStatistics().getLarge().  When adjusting this"
       + " consider the expected number files with summaries on each tablet server and the summary cache size."),
   @Deprecated
@@ -607,7 +610,7 @@ public enum Property {
   REPLICATION_MIN_THREADS("replication.receiver.min.threads", "1", PropertyType.COUNT, "Minimum number of threads for replication"),
   REPLICATION_THREADCHECK("replication.receiver.threadcheck.time", "30s", PropertyType.TIMEDURATION,
       "The time between adjustments of the replication thread pool."),
-  REPLICATION_MAX_UNIT_SIZE("replication.max.unit.size", "64M", PropertyType.MEMORY, "Maximum size of data to send in a replication message"),
+  REPLICATION_MAX_UNIT_SIZE("replication.max.unit.size", "64M", PropertyType.BYTES, "Maximum size of data to send in a replication message"),
   REPLICATION_WORK_ASSIGNER("replication.work.assigner", "org.apache.accumulo.master.replication.UnorderedWorkAssigner", PropertyType.CLASSNAME,
       "Replication WorkAssigner implementation to use"),
   REPLICATION_DRIVER_DELAY("replication.driver.delay", "0s", PropertyType.TIMEDURATION,

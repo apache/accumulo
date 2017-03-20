@@ -43,7 +43,7 @@ public class DatafileManagerTest {
   private SortedMap<FileRef,DataFileValue> createFileMap(String... sa) {
     SortedMap<FileRef,DataFileValue> ret = new TreeMap<>();
     for (int i = 0; i < sa.length; i += 2) {
-      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]), new DataFileValue(AccumuloConfiguration.getMemoryInBytes(sa[i + 1]), 1));
+      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]), new DataFileValue(AccumuloConfiguration.getFixedMemoryAsBytes(sa[i + 1]), 1));
     }
     return ret;
   }

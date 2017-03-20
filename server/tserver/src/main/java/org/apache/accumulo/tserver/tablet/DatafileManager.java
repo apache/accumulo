@@ -299,7 +299,7 @@ class DatafileManager {
       // find the smallest file
 
       long maxFileSize = Long.MAX_VALUE;
-      maxMergingMinorCompactionFileSize = AccumuloConfiguration.getMemoryInBytes(tablet.getTableConfiguration().get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE));
+      maxMergingMinorCompactionFileSize = AccumuloConfiguration.getFixedMemoryAsBytes(tablet.getTableConfiguration().get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE));
       if (maxMergingMinorCompactionFileSize > 0) {
         maxFileSize = maxMergingMinorCompactionFileSize;
       }
@@ -469,7 +469,7 @@ class DatafileManager {
     else
       log.log(TLevel.TABLET_HIST, tablet.getExtent() + " MinC [memory] -> " + newDatafile);
     log.debug(String.format("MinC finish lock %.2f secs %s", (t2 - t1) / 1000.0, tablet.getExtent().toString()));
-    long splitSize = tablet.getTableConfiguration().getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
+    long splitSize = tablet.getTableConfiguration().getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     if (dfv.getSize() > splitSize) {
       log.debug(String.format("Minor Compaction wrote out file larger than split threshold.  split threshold = %,d  file size = %,d", splitSize, dfv.getSize()));
     }

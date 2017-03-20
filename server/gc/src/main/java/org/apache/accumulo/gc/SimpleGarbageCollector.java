@@ -710,7 +710,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
     int port[] = getConfiguration().getPort(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
-    long maxMessageSize = getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
+    long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
       ServerAddress server = TServerUtils.startTServer(getConfiguration(), getThriftServerType(), processor, this.getClass().getSimpleName(),
           "GC Monitor Service", 2, getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000, maxMessageSize, getServerSslParams(),

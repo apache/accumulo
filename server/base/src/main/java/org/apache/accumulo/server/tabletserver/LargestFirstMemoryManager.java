@@ -127,7 +127,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   @Override
   public void init(ServerConfiguration conf) {
     this.config = conf;
-    maxMemory = conf.getConfiguration().getMemoryInBytes(Property.TSERV_MAXMEM);
+    maxMemory = conf.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
     maxConcurrentMincs = conf.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT);
     numWaitingMultiplier = TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER;
   }

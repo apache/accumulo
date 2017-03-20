@@ -129,7 +129,7 @@ public class LogSorter {
         this.input = inputStreams.getOriginalInput();
         this.decryptingInput = inputStreams.getDecryptingInputStream();
 
-        final long bufferSize = conf.getMemoryInBytes(Property.TSERV_SORT_BUFFER_SIZE);
+        final long bufferSize = conf.getAsBytes(Property.TSERV_SORT_BUFFER_SIZE);
         Thread.currentThread().setName("Sorting " + name + " for recovery");
         while (true) {
           final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
@@ -242,7 +242,7 @@ public class LogSorter {
         RecoveryStatus status = new RecoveryStatus();
         status.name = entries.getKey();
         try {
-          status.progress = entries.getValue().getBytesCopied() / (0.0 + conf.getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE));
+          status.progress = entries.getValue().getBytesCopied() / (0.0 + conf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE));
         } catch (IOException ex) {
           log.warn("Error getting bytes read");
         }

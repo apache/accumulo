@@ -23,7 +23,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 class SizeType implements Type {
   @Override
   public String convert(String str) {
-    long size = AccumuloConfiguration.getMemoryInBytes(str);
+    long size = AccumuloConfiguration.getFixedMemoryAsBytes(str);
     checkArgument(size > 0);
     return Long.toString(size);
   }

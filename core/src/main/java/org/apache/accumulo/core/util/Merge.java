@@ -90,7 +90,7 @@ public class Merge {
       }
       if (opts.goalSize == null || opts.goalSize < 1) {
         AccumuloConfiguration tableConfig = new ConfigurationCopy(conn.tableOperations().getProperties(opts.getTableName()));
-        opts.goalSize = tableConfig.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
+        opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
       }
 
       message("Merging tablets in table %s to %d bytes", opts.getTableName(), opts.goalSize);

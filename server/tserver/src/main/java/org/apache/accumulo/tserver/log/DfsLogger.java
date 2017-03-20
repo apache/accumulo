@@ -447,9 +447,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
       if (replication == 0)
         replication = fs.getDefaultReplication(new Path(logPath));
-      long blockSize = conf.getConfiguration().getMemoryInBytes(Property.TSERV_WAL_BLOCKSIZE);
+      long blockSize = conf.getConfiguration().getAsBytes(Property.TSERV_WAL_BLOCKSIZE);
       if (blockSize == 0)
-        blockSize = (long) (conf.getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
+        blockSize = (long) (conf.getConfiguration().getAsBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
       if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC))
         logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
       else

@@ -68,7 +68,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         return;
 
       TableConfiguration acuTableConf = server.getTableConfiguration(session.threadPoolExtent);
-      long maxResultsSize = acuTableConf.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
+      long maxResultsSize = acuTableConf.getAsBytes(Property.TABLE_SCAN_MAXMEM);
 
       runState.set(ScanRunState.RUNNING);
       Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser() + " Start: " + session.startTime + " Table: ");

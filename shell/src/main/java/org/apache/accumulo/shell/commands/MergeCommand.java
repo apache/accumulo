@@ -49,7 +49,7 @@ public class MergeCommand extends Command {
       all = true;
     }
     if (cl.hasOption(sizeOpt.getOpt())) {
-      size = AccumuloConfiguration.getMemoryInBytes(cl.getOptionValue(sizeOpt.getOpt()));
+      size = AccumuloConfiguration.getFixedMemoryAsBytes(cl.getOptionValue(sizeOpt.getOpt()));
     }
     if (startRow == null && endRow == null && size < 0 && !all) {
       shellState.getReader().flush();

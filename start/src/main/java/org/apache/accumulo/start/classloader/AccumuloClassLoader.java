@@ -42,50 +42,14 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-/**
- *
- */
 public class AccumuloClassLoader {
 
   public static final String CLASSPATH_PROPERTY_NAME = "general.classpaths";
-
-  /* @formatter:off */
-  public static final String ACCUMULO_CLASSPATH_VALUE =
-      "$ACCUMULO_CONF_DIR,\n" +
-          "$ACCUMULO_HOME/lib/[^.].*.jar,\n" +
-          "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" +
-          "$HADOOP_CONF_DIR,\n" +
-          "$HADOOP_PREFIX/[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/lib/(?!slf4j)[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/common/[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/common/lib/(?!slf4j)[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/hdfs/[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/mapreduce/[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/yarn/[^.].*.jar,\n" +
-          "$HADOOP_PREFIX/share/hadoop/yarn/lib/jersey.*.jar,\n" +
-          "/usr/hdp/current/hadoop-client/[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-client/lib/(?!slf4j)[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-hdfs-client/[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-mapreduce-client/[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-yarn-client/[^.].*.jar,\n" +
-          "/usr/hdp/current/hadoop-yarn-client/lib/jersey.*.jar,\n" +
-          "/usr/hdp/current/hive-client/lib/hive-accumulo-handler.jar\n" +
-          "/usr/lib/hadoop/[^.].*.jar,\n" +
-          "/usr/lib/hadoop/lib/[^.].*.jar,\n" +
-          "/usr/lib/hadoop-hdfs/[^.].*.jar,\n" +
-          "/usr/lib/hadoop-mapreduce/[^.].*.jar,\n" +
-          "/usr/lib/hadoop-yarn/[^.].*.jar,\n" +
-          "/usr/lib/hadoop-yarn/lib/jersey.*.jar,\n"
-          ;
-  /* @formatter:on */
-
   public static final String MAVEN_PROJECT_BASEDIR_PROPERTY_NAME = "general.maven.project.basedir";
   public static final String DEFAULT_MAVEN_PROJECT_BASEDIR_VALUE = "";
 
   private static String SITE_CONF;
-
   private static URLClassLoader classloader;
-
   private static final Logger log = LoggerFactory.getLogger(AccumuloClassLoader.class);
 
   static {
@@ -219,7 +183,7 @@ public class AccumuloClassLoader {
   }
 
   private static ArrayList<URL> findAccumuloURLs() throws IOException {
-    String cp = getAccumuloString(AccumuloClassLoader.CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.ACCUMULO_CLASSPATH_VALUE);
+    String cp = getAccumuloString(AccumuloClassLoader.CLASSPATH_PROPERTY_NAME, null);
     if (cp == null)
       return new ArrayList<>();
     String[] cps = replaceEnvVars(cp, System.getenv()).split(",");

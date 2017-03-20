@@ -36,6 +36,22 @@ export HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-${HADOOP_PREFIX}/etc/hadoop}"
 ## Zookeeper installation
 export ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
 
+##########################
+# Build CLASSPATH variable
+##########################
+
+## Adds external Hadoop & Zookeeper dependencies to CLASSPATH. See "Vendor configuration" section of Accumulo user manual
+## for different settings if you installed vendor's distribution of Hadoop or Zookeeper.
+CLASSPATH="$(find "$ZOOKEEPER_HOME"/ "$HADOOP_PREFIX"/share/hadoop/{common,common/lib,hdfs,mapreduce,yarn} -maxdepth 1 -name '*.jar' \
+  -and -not -name '*slf4j*' \
+  -and -not -name '*fatjar*' \
+  -and -not -name '*-javadoc*' \
+  -and -not -name '*-sources*.jar' \
+  -and -not -name '*-test*.jar' \
+  -print0 | tr '\0' ':')$CLASSPATH"
+CLASSPATH="${conf}:${lib}/*:${HADOOP_CONF_DIR}:${CLASSPATH}"
+export CLASSPATH
+
 ##################################################################
 # Build JAVA_OPTS variable. Defaults below work but can be edited.
 ##################################################################
@@ -55,12 +71,11 @@ JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
 
 ## JVM options set for individual applications
 case "$cmd" in
-  master)  JAVA_OPTS=("${JAVA_OPTS[@]}" ${masterHigh_masterLow}) ;;
-  monitor) JAVA_OPTS=("${JAVA_OPTS[@]}" ${monitorHigh_monitorLow}) ;;
-  gc)      JAVA_OPTS=("${JAVA_OPTS[@]}" ${gcHigh_gcLow}) ;;
-  tserver) JAVA_OPTS=("${JAVA_OPTS[@]}" ${tServerHigh_tServerLow}) ;;
-  shell)   JAVA_OPTS=("${JAVA_OPTS[@]}" ${shellHigh_shellLow}) ;;
-  *)       JAVA_OPTS=("${JAVA_OPTS[@]}" ${otherHigh_otherLow}) ;;
+  master)  JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
+  monitor) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
+  gc)      JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
+  tserver) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx768m' '-Xms768m') ;;
+  *)       JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms64m') ;;
 esac
 
 ## JVM options set for logging. Review logj4 properties files to see how they are used.
@@ -82,17 +97,6 @@ case "$cmd" in
 esac
 
 export JAVA_OPTS
-
-## External class path items for Java system class loader (dependencies not included with Accumulo)
-CLASSPATH="$(find "$ZOOKEEPER_HOME"/{,lib} "$HADOOP_PREFIX"/share/hadoop/{common,common/lib,hdfs,mapreduce,yarn} -maxdepth 1 -name '*.jar' \
-  -and -not -name '*slf4j*' \
-  -and -not -name '*fatjar*' \
-  -and -not -name '*-javadoc*' \
-  -and -not -name '*-sources*.jar' \
-  -and -not -name '*-test*.jar' \
-  -print0 | tr '\0' ':')$CLASSPATH"
-CLASSPATH="${HADOOP_CONF_DIR}:${CLASSPATH}"
-export CLASSPATH
 
 ############################
 # Variables set to a default

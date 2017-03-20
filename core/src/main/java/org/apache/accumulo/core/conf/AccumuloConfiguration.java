@@ -165,30 +165,32 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Gets a property of type {@link PropertyType#MEMORY}, interpreting the value properly.
+   * Gets a property of type {@link PropertyType#BYTES} or {@link PropertyType#MEMORY}, interpreting
+   * the value properly.
    *
-   * @param property
-   *          property to get
+   * @param property Property to get
    * @return property value
-   * @throws IllegalArgumentException
-   *           if the property is of the wrong type
-   * @see #getMemoryInBytes(String)
+   * @throws IllegalArgumentException if the property is of the wrong type
    */
-  public long getMemoryInBytes(Property property) {
-    checkType(property, PropertyType.MEMORY);
-
+  public long getAsBytes(Property property) {
     String memString = get(property);
-    return getMemoryInBytes(memString);
+    if (property.getType() == PropertyType.MEMORY) {
+      return getMemoryAsBytes(memString);
+    } else if (property.getType() == PropertyType.BYTES) {
+      return getFixedMemoryAsBytes(memString);
+    } else {
+      throw new IllegalArgumentException(property.getKey() + " is not of BYTES or MEMORY type");
+    }
   }
 
   /**
-   * Interprets a string specifying a memory size. A memory size is specified as a long integer followed by an optional B (bytes), K (KB), M (MB), or G (GB).
+   * Interprets a string specifying bytes. A bytes type is specified as a long integer followed by an optional B (bytes), K (KB), M (MB), or G (GB).
    *
    * @param str
-   *          string value
-   * @return interpreted memory size
+   *          String value
+   * @return interpreted memory size in bytes
    */
-  static public long getMemoryInBytes(String str) {
+  static public long getFixedMemoryAsBytes(String str) {
     char lastChar = str.charAt(str.length() - 1);
 
     if (lastChar == 'b') {
@@ -215,8 +217,32 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
     } catch (Exception ex) {
       throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting. A valid value would a number "
-          + "possibily followed by an optional 'G', 'M', 'K', or 'B'.");
+          + "possibly followed by an optional 'G', 'M', 'K', or 'B'.");
     }
+  }
+
+  /**
+   * Interprets a string specifying a Memory type which is specified as a long integer followed by an optional B (bytes), K (KB), M (MB), G (GB) or %
+   * (percentage).
+   *
+   * @param str
+   *          String value
+   * @return interpreted memory size in bytes
+   */
+  static public long getMemoryAsBytes(String str) {
+    char lastChar = str.charAt(str.length() - 1);
+    if (lastChar == '%') {
+      try {
+        int percent = Integer.parseInt(str.substring(0, str.length() - 1));
+        if (percent <= 0 || percent >= 100) {
+          throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting.");
+        }
+        return Runtime.getRuntime().maxMemory() * percent / 100;
+      } catch (Exception ex) {
+        throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting.");
+      }
+    }
+    return getFixedMemoryAsBytes(str);
   }
 
   /**

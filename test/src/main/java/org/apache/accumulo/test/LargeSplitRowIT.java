@@ -78,7 +78,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // Create a split point that is too large to be an end row and fill it with all 'm'
     SortedSet<Text> partitionKeys = new TreeSet<>();
-    byte data[] = new byte[(int) (TableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+    byte data[] = new byte[(int) (TableConfiguration.getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
     for (int i = 0; i < data.length; i++) {
       data[i] = 'm';
     }
@@ -123,7 +123,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     // Create a BatchWriter and key for a table entry that is longer than the allowed size for an end row
     // Fill this key with all m's except the last spot
     BatchWriter batchWriter = conn.createBatchWriter(tableName, new BatchWriterConfig());
-    byte data[] = new byte[(int) (TableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+    byte data[] = new byte[(int) (TableConfiguration.getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
     for (int i = 0; i < data.length - 1; i++) {
       data[i] = (byte) 'm';
     }
@@ -233,7 +233,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // Create a BatchWriter and key for a table entry that is longer than the allowed size for an end row
     BatchWriter batchWriter = conn.createBatchWriter(tableName, new BatchWriterConfig());
-    byte data[] = new byte[(int) (TableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+    byte data[] = new byte[(int) (TableConfiguration.getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
 
     // Fill key with all j's except for last spot which alternates through 1 through 10 for every j value
     for (int j = 0; j < max; j += spacing) {

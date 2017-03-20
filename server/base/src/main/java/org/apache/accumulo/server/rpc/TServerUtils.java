@@ -131,7 +131,7 @@ public class TServerUtils {
 
     long maxMessageSize = 10 * 1000 * 1000;
     if (maxMessageSizeProperty != null)
-      maxMessageSize = config.getMemoryInBytes(maxMessageSizeProperty);
+      maxMessageSize = config.getAsBytes(maxMessageSizeProperty);
 
     boolean portSearch = false;
     if (portSearchProperty != null)

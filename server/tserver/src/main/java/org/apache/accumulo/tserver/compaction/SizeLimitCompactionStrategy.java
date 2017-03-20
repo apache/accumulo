@@ -35,7 +35,7 @@ public class SizeLimitCompactionStrategy extends DefaultCompactionStrategy {
 
   @Override
   public void init(Map<String,String> options) {
-    limit = AccumuloConfiguration.getMemoryInBytes(options.get(SIZE_LIMIT_OPT));
+    limit = AccumuloConfiguration.getFixedMemoryAsBytes(options.get(SIZE_LIMIT_OPT));
   }
 
   private MajorCompactionRequest filterFiles(MajorCompactionRequest mcr) {

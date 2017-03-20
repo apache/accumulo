@@ -58,7 +58,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
       AccumuloSecurityException {
     final LogFileKey key = new LogFileKey();
     final LogFileValue value = new LogFileValue();
-    final long memoryInBytes = context.getConfiguration().getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
+    final long memoryInBytes = context.getConfiguration().getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
 
     BatchWriter bw = null;
     long mutationsApplied = 0l;

@@ -151,7 +151,7 @@ public class SummaryWriter implements FileSKVWriter {
       factory = new SummarizerFactory();
     }
 
-    long maxSize = tableConfig.getMemoryInBytes(Property.TABLE_FILE_SUMMARY_MAX_SIZE);
+    long maxSize = tableConfig.getAsBytes(Property.TABLE_FILE_SUMMARY_MAX_SIZE);
     return new SummaryWriter(writer, factory, configs, maxSize);
   }
 }

@@ -120,7 +120,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     }
 
     if (options.containsKey(MAX_BUFFER_SIZE_OPT)) {
-      maxBufferSize = AccumuloConfiguration.getMemoryInBytes(options.get(MAX_BUFFER_SIZE_OPT));
+      maxBufferSize = AccumuloConfiguration.getFixedMemoryAsBytes(options.get(MAX_BUFFER_SIZE_OPT));
     } else {
       maxBufferSize = DEFAULT_MAX_BUFFER_SIZE;
     }
@@ -150,7 +150,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
         if (option.getKey().equals(AUTH_OPT)) {
           new Authorizations(option.getValue().getBytes(UTF_8));
         } else if (option.getKey().equals(MAX_BUFFER_SIZE_OPT)) {
-          AccumuloConfiguration.getMemoryInBytes(option.getValue());
+          AccumuloConfiguration.getFixedMemoryAsBytes(option.getValue());
         }
       } catch (Exception e) {
         throw new IllegalArgumentException("Failed to parse opt " + option.getKey() + " " + option.getValue(), e);

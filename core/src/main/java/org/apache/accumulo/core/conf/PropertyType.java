@@ -45,10 +45,18 @@ public enum PropertyType {
           + "Examples of invalid durations are '1w', '1h30m', '1s 200ms', 'ms', '', and 'a'.\n"
           + "Unless otherwise stated, the max value for the duration represented in milliseconds is " + Long.MAX_VALUE),
 
-  MEMORY("memory", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G"),
-      "A positive integer optionally followed by a unit of memory (whitespace disallowed), as in 2G.\n"
-          + "If no unit is specified, bytes are assumed. Valid units are 'B', 'K', 'M', 'G', for bytes, kilobytes, megabytes, and gigabytes.\n"
-          + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G'.\n"
+  BYTES("bytes", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G"),
+      "A positive integer optionally followed by a unit of memory (whitespace disallowed).\n"
+          + "If no unit is specified, bytes are assumed. Valid units are 'B', 'K', 'M' or 'G' for bytes, kilobytes, megabytes, gigabytes.\n"
+          + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G', '20%'.\n"
+          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G', '1,024K', '', and 'a'.\n"
+          + "Unless otherwise stated, the max value for the memory represented in bytes is " + Long.MAX_VALUE),
+
+  MEMORY("memory", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G", "%"),
+      "A positive integer optionally followed by a unit of memory or a percentage (whitespace disallowed).\n"
+          + "If a percentage is specified, memory will be a percentage of the max memory allocated to a Java process (set by the JVM option -Xmx).\n"
+          + "If no unit is specified, bytes are assumed. Valid units are 'B', 'K', 'M', 'G', '%' for bytes, kilobytes, megabytes, gigabytes, and percentage.\n"
+          + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G', '20%'.\n"
           + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G', '1,024K', '', and 'a'.\n"
           + "Unless otherwise stated, the max value for the memory represented in bytes is " + Long.MAX_VALUE),
 

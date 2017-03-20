@@ -712,7 +712,7 @@ public class Tablet implements TabletCommitter {
     long resultSize = 0L;
     long resultBytes = 0L;
 
-    long maxResultsSize = tableConfiguration.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
+    long maxResultsSize = tableConfiguration.getAsBytes(Property.TABLE_SCAN_MAXMEM);
 
     if (columns.size() == 0) {
       iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
@@ -1464,8 +1464,8 @@ public class Tablet implements TabletCommitter {
     // check if we already decided that we can never split
     // check to see if we're big enough to split
 
-    long splitThreshold = tableConfiguration.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
-    long maxEndRow = tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE);
+    long splitThreshold = tableConfiguration.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
+    long maxEndRow = tableConfiguration.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
 
     if (extent.isRootTablet() || estimateTabletSize() <= splitThreshold) {
       return null;
@@ -2066,7 +2066,7 @@ public class Tablet implements TabletCommitter {
       throw new IllegalArgumentException();
     }
 
-    if (sp != null && sp.length > tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE)) {
+    if (sp != null && sp.length > tableConfiguration.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE)) {
       String msg = "Cannot split tablet " + extent + ", selected split point too long.  Length :  " + sp.length;
       log.warn(msg);
       throw new IOException(msg);

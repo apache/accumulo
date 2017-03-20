@@ -81,8 +81,8 @@ public class RFileOperations extends FileOperations {
 
     AccumuloConfiguration acuconf = options.getTableConfiguration();
 
-    long blockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
-    long indexBlockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
+    long blockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
+    long indexBlockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
 
     SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl.newSamplerConfig(acuconf);
     Sampler sampler = null;
@@ -106,7 +106,7 @@ public class RFileOperations extends FileOperations {
         rep = trep;
       }
       long hblock = conf.getLong("dfs.block.size", 1 << 26);
-      long tblock = acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
+      long tblock = acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
       long block = hblock;
       if (tblock > 0)
         block = tblock;

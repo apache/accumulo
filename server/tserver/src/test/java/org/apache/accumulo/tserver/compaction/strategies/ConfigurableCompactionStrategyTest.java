@@ -70,9 +70,9 @@ public class ConfigurableCompactionStrategyTest {
 
     plan = ccs.getCompactionPlan(mcr);
 
-    Assert.assertEquals(AccumuloConfiguration.getMemoryInBytes("64K"), plan.writeParameters.getBlockSize());
-    Assert.assertEquals(AccumuloConfiguration.getMemoryInBytes("256M"), plan.writeParameters.getHdfsBlockSize());
-    Assert.assertEquals(AccumuloConfiguration.getMemoryInBytes("32K"), plan.writeParameters.getIndexBlockSize());
+    Assert.assertEquals(AccumuloConfiguration.getFixedMemoryAsBytes("64K"), plan.writeParameters.getBlockSize());
+    Assert.assertEquals(AccumuloConfiguration.getFixedMemoryAsBytes("256M"), plan.writeParameters.getHdfsBlockSize());
+    Assert.assertEquals(AccumuloConfiguration.getFixedMemoryAsBytes("32K"), plan.writeParameters.getIndexBlockSize());
     Assert.assertEquals(5, plan.writeParameters.getReplication());
     Assert.assertEquals("snappy", plan.writeParameters.getCompressType());
 

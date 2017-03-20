@@ -143,8 +143,14 @@ public class PropertyTypeTest {
   }
 
   @Test
-  public void testTypeMEMORY() {
+  public void testTypeBYTES() {
     valid(null, "1024", "20B", "100K", "1500M", "2G");
+    invalid("1M500K", "1M 2K", "1MB", "1.5G", "1,024K", "", "a", "10%");
+  }
+
+  @Test
+  public void testTypeMEMORY() {
+    valid(null, "1024", "20B", "100K", "1500M", "2G", "10%");
     invalid("1M500K", "1M 2K", "1MB", "1.5G", "1,024K", "", "a");
   }
 

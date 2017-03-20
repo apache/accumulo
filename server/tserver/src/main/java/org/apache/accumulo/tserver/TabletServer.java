@@ -372,7 +372,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
     }, 5000, 5000);
 
-    final long walogMaxSize = aconf.getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE);
+    final long walogMaxSize = aconf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE);
     final long walogMaxAge = aconf.getTimeInMillis(Property.TSERV_WALOG_MAX_AGE);
     final long minBlockSize = CachedConfiguration.getInstance().getLong("dfs.namenode.fs-limits.min-block-size", 0);
     if (minBlockSize != 0 && minBlockSize > walogMaxSize)
@@ -854,7 +854,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           }
           us.queuedMutationSize += additionalMutationSize;
           long totalQueued = updateTotalQueuedMutationSize(additionalMutationSize);
-          long total = TabletServer.this.getConfiguration().getMemoryInBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
+          long total = TabletServer.this.getConfiguration().getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
           if (totalQueued > total) {
             try {
               flush(us);
@@ -3257,7 +3257,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final SharedRateLimiterFactory.RateProvider rateProvider = new SharedRateLimiterFactory.RateProvider() {
     @Override
     public long getDesiredRate() {
-      return getConfiguration().getMemoryInBytes(Property.TSERV_MAJC_THROUGHPUT);
+      return getConfiguration().getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
     }
   };
 

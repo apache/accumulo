@@ -104,8 +104,7 @@ installed Accumulo using downstream packaging, the +conf/+ could be something el
 +/etc/accumulo/+.
 
 Before starting Accumulo, the configuration files +accumulo-env.sh+ and +accumulo-site.xml+ must
-exist in +conf/+ and be properly configured. You can either edit the files in +conf/+ or run
-+accumulo-util create-config+ to generate these files. If you are using +accumulo-cluster+ to launch
+exist in +conf/+ and be properly configured. If you are using +accumulo-cluster+ to launch
 a cluster, the `conf/` directory must also contain hosts file for Accumulo services (i.e +gc+,
 +masters+, +monitor+, +tservers+, +tracers+). You can either create these files manually or run
 +accumulo-cluster create-config+.
@@ -124,6 +123,12 @@ and specify the following:
 . Enter the location of Hadoop for +$HADOOP_PREFIX+
 . Enter the location of ZooKeeper for +$ZOOKEEPER_HOME+
 . Optionally, choose a different location for Accumulo logs using +$ACCUMULO_LOG_DIR+
+
+Accumulo uses +HADOOP_PREFIX+ and +ZOOKEEPER_HOME+ to locate Hadoop and Zookeeper jars
+and add them the +CLASSPATH+ variable. If you are running a vendor-specific release of Hadoop
+or Zookeeper, you may need to change how your +CLASSPATH+ is built in +accumulo-env.sh+. If
+Accumulo has problems later on finding jars, run +accumulo classpath -d+ to debug and print
+Accumulo's classpath.
 
 You may want to change the default memory settings for Accumulo's TabletServer which are
 by set in the +JAVA_OPTS+ settings for 'tservers' in +accumulo-env.sh+. Note the
@@ -244,18 +249,6 @@ Some settings can be modified via the Accumulo shell and take effect immediately
 some settings require a process restart to take effect. See the configuration documentation
 (available in the docs directory of the tarball and in <<configuration>>) for details.
 
-One aspect of Accumulo's configuration which is different as compared to the rest of the Hadoop
-ecosystem is that the server-process classpath is determined in part by multiple values. A
-bootstrap classpath is based soley on the `accumulo-start.jar`, Log4j and `/path/to/accumulo/conf`.
-
-A second classloader is used to dynamically load all of the resources specified by `general.classpaths`
-in `accumulo-site.xml`. This value is a comma-separated list of regular-expression
-paths which are all loaded into a secondary classloader. This includes Hadoop, Accumulo and ZooKeeper
-jars necessary to run Accumulo. When this value is not defined, a default value is used which attempts
-to load Hadoop from multiple potential locations depending on how Hadoop was installed. It is strongly
-recommended that `general.classpaths` is defined and limited to only the necessary jars to prevent
-extra jars from being unintentionally loaded into Accumulo processes.
-
 ==== Hostnames in configuration files
 
 Accumulo has a number of configuration files which can contain references to other hosts in your
@@ -364,16 +357,18 @@ consideration. There is no enforcement of these warnings via the API.
 
 ==== Configuring the ClassLoader
 
-Accumulo loads classes from the locations specified in the +general.classpaths+ property. Additionally, Accumulo will load classes
-from the locations specified in the +general.dynamic.classpaths+ property and will monitor and reload them if they change. The reloading 
-feature is useful during the development and testing of iterators as new or modified iterator classes can be deployed to Accumulo without
-having to restart the database.
-
+Accumulo builds its Java classpath in +accumulo-env.sh+.  After an Accumulo application has started, it will load classes from the locations
+specified in the deprecated +general.classpaths+ property. Additionally, Accumulo will load classes from the locations specified in the
++general.dynamic.classpaths+ property and will monitor and reload them if they change. The reloading  feature is useful during the development
+and testing of iterators as new or modified iterator classes can be deployed to Accumulo without having to restart the database.
+/
 Accumulo also has an alternate configuration for the classloader which will allow it to load classes from remote locations. This mechanism
 uses Apache Commons VFS which enables locations such as http and hdfs to be used. This alternate configuration also uses the
 +general.classpaths+ property in the same manner described above. It differs in that you need to configure the
 +general.vfs.classpaths+ property instead of the +general.dynamic.classpath+ property. As in the default configuration, this alternate
 configuration will also monitor the vfs locations for changes and reload if necessary.
+
+The Accumulo classpath can be viewed in human readable format by running +accumulo classpath -d+.
 
 ===== ClassLoader Contexts
 
@@ -934,8 +929,9 @@ Time  Start  Service@Location       Name
 ----
 
 === Logging
-Accumulo processes each write to a set of log files. By default these are found under
-+$ACCUMULO/logs/+.
+
+Accumulo processes each write to a set of log files. By default, these logs are found at directory
+set by +ACCUMULO_LOG_DIR+ in +accumulo-env.sh+.
 
 === Recovery
 

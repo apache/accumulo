@@ -518,7 +518,7 @@ public class RFile {
     private Sampler sampler;
 
     public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
-      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
+      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
     }
 
     public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize, SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {

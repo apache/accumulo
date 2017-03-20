@@ -68,7 +68,7 @@ public class SplitLarge {
         String smallName = file.substring(0, file.length() - 3) + "_small.rf";
         String largeName = file.substring(0, file.length() - 3) + "_large.rf";
 
-        int blockSize = (int) aconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
+        int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
         try (Writer small = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(smallName), "gz", null, conf, aconf), blockSize);
             Writer large = new RFile.Writer(new CachableBlockFile.Writer(fs, new Path(largeName), "gz", null, conf, aconf), blockSize)) {
           small.startDefaultLocalityGroup();

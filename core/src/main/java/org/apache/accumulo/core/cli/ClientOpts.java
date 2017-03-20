@@ -72,7 +72,7 @@ public class ClientOpts extends Help {
   public static class MemoryConverter implements IStringConverter<Long> {
     @Override
     public Long convert(String value) {
-      return AccumuloConfiguration.getMemoryInBytes(value);
+      return AccumuloConfiguration.getFixedMemoryAsBytes(value);
     }
   }
 

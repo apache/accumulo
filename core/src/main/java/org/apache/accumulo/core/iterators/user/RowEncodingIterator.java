@@ -155,7 +155,7 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     sourceIter = source;
     if (options.containsKey(MAX_BUFFER_SIZE_OPT)) {
-      maxBufferSize = AccumuloConfiguration.getMemoryInBytes(options.get(MAX_BUFFER_SIZE_OPT));
+      maxBufferSize = AccumuloConfiguration.getFixedMemoryAsBytes(options.get(MAX_BUFFER_SIZE_OPT));
     }
   }
 
@@ -172,7 +172,7 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
   public boolean validateOptions(Map<String,String> options) {
     String maxBufferSizeStr = options.get(MAX_BUFFER_SIZE_OPT);
     try {
-      AccumuloConfiguration.getMemoryInBytes(maxBufferSizeStr);
+      AccumuloConfiguration.getFixedMemoryAsBytes(maxBufferSizeStr);
     } catch (Exception e) {
       throw new IllegalArgumentException("Failed to parse opt " + MAX_BUFFER_SIZE_OPT + " " + maxBufferSizeStr, e);
     }

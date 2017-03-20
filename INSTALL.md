@@ -36,62 +36,49 @@ to manage Accumulo:
 These scripts will be used in the remaining instructions to configure and run Accumulo.
 For convenience, consider adding `accumulo-X.Y.Z/bin/` to your shell's path.
 
-## Configuring
+## Configuring Accumulo
 
-Accumulo has some optional native code that improves its performance and
-stability. Before configuring Accumulo, attempt to build this native code
-with the following command.
+Accumulo requires running [Zookeeper][3] and [HDFS][4] instances which should be set up
+before configuring Accumulo.
 
-    accumulo-util build-native
+The primary configuration files for Accumulo are `accumulo-env.sh` and `accumulo-site.xml`
+which are located in the `conf/` directory.
 
-If the command fails, its OK to continue with setup and resolve the issue later.
+Follow the steps below to configure `accumulo-site.xml`:
 
-Accumulo is configured by the files `accumulo-site.xml` and `accumulo-env.sh` in the `conf/`
-directory. You can either edit these files for your environment or run the command below which will
-overwrite them with files configured for your environment.
+1. Run `accumulo-util build-native` to build native code.  If this command fails, disable
+   native maps by setting `tserver.memory.maps.native.enabled` to `false`.
 
-    accumulo-util create-config
+2. Set `instance.volumes` to HDFS location where Accumulo will store data. If your namenode
+   is running at 192.168.1.9:8020 and you want to store data in `/accumulo` in HDFS, then set
+   `instance.volumes` to `hdfs://192.168.1.9:8020/accumulo`.
 
-The script will ask you questions about your set up. Below are some suggestions:
+3. Set `instance.zookeeper.host` to the location of your Zookeepers
 
-* When the script asks about memory-map type, choose Native if the build native script
-  was successful. Otherwise, choose Java.
-* The script will prompt for memory usage. Please note that the footprints are
-  only for the Accumulo system processes, so ample space should be left for other
-  processes like Hadoop, Zookeeper, and the Accumulo client code.  If Accumulo
-  worker processes are swapped out and unresponsive, they may be killed.
+4. (Optional) Change `instance.secret` (which is used by Accumulo processes to communicate)
+   from the default. This value should match on all servers.
 
-While `accumulo-util create-config` creates  `accumulo-env.sh` and `accumulo-site.xml` files
-targeted for your environment, these files still require a few more edits before starting Accumulo.
+Follow the steps below to configure `accumulo-env.sh`:
 
-### Secret
+1. Set `HADOOP_PREFIX` and `ZOOKEEPER_HOME` to the location of your Hadoop and Zookeeper
+   installations. Accumulo will use these locations to find Hadoop and Zookeeper jars and add
+   them to your `CLASSPATH` variable.  If you you are running a vendor-specific release of
+   Hadoop or Zookeeper, you may need to modify how the `CLASSPATH` variable is built in
+   `accumulo-env.sh`. If Accumulo has problems loading classes when you start it, run 
+   `accumulo classpath -d` to debug and print Accumulo's classpath.
 
-Accumulo coordination and worker processes can only communicate with each other
-if they share the same secret key.  To change the secret key set
-`instance.secret` in `accumulo-site.xml`.  Changing this secret key from
-the default is highly recommended.
+2. Accumulo tablet servers are configured by default to use 1GB of memory (768MB is allocated to
+   JVM and 256MB is allocated for native maps). Native maps are allocated memory equal to 33% of
+   the tserver JVM heap. The table below can be used if you would like to change tsever memory
+   usage in the `JAVA_OPTS` section of `accumulo-env.sh`:
 
-### Dependencies
+    | Native? | 512MB             | 1GB               | 2GB                 | 3GB           |
+    |---------|-------------------|-------------------|---------------------|---------------|
+    | Yes     | -Xmx384m -Xms384m | -Xmx768m -Xms768m | -Xmx1536m -Xms1536m | -Xmx2g -Xms2g |
+    | No      | -Xmx512m -Xms512m | -Xmx1g -Xms1g     | -Xmx2g -Xms2g       | -Xmx3g -Xms3g |
 
-Accumulo requires running [Zookeeper][3] and [HDFS][4] instances.  Also, the
-Accumulo binary distribution does not include jars for Zookeeper and Hadoop.
-When configuring Accumulo the following information about these dependencies
-must be provided.
-
- * **Location of Zookeepers** :  Provide this by setting `instance.zookeeper.host`
-   in `accumulo-site.xml`.
- * **Where to store data** :  Provide this by setting `instance.volumes` in
-   `accumulo-site.xml`.  If your namenode is running at 192.168.1.9:9000
-   and you want to store data in `/accumulo` in HDFS, then set
-  `instance.volumes` to `hdfs://192.168.1.9:9000/accumulo`.
- * **Location of Zookeeper and Hadoop jars** :  Setting `ZOOKEEPER_HOME` and
-   `HADOOP_PREFIX` in `accumulo-env.sh` will help Accumulo find these jars
-   when using the default setting for `general.classpaths` in accumulo-site.xml.
-
-If Accumulo has problems later on finding jars, then run `bin/accumulo
-classpath` to print out info about where Accumulo is finding jars.  If the
-settings mentioned above are correct, then inspect `general.classpaths` in
-`accumulo-site.xml`.
+3. (Optional) Review the memory settings for the Accumulo master, garbage collector, and monitor
+   in the `JAVA_OPTS` section of `accumulo-env.sh`.
 
 ## Initialization
 
@@ -112,15 +99,26 @@ The initialization command will prompt for the following information.
 
 There are several methods for running Accumulo:
 
-1. Run individual Accumulo services using `accumulo-service`. Useful if you are
-   using a cluster management tool (i.e Ansible, Salt, etc) or init.d scripts to
-   start Accumulo.
+1. Run Accumulo processes using `accumulo` command which runs processes in foreground and
+   will not redirect stderr/stdout. Useful for creating init.d scripts that run Accumulo.
+
+2. Run Accumulo processes as services using `accumulo-service` which uses `accumulo`
+   command but backgrounds processes, redirects stderr/stdout and manages pid files.
+   Useful if you are using a cluster management tool (i.e Ansible, Salt, etc).
 
 2. Run an Accumulo cluster on one or more nodes using `accumulo-cluster` (which
    uses `accumulo-service` to run services). Useful for local development and
    testing or if you are not using a cluster management tool in production.
 
 Each method above has instructions below.
+
+### Run Accumulo processes
+
+Start Accumulo processes (tserver, master, moniitor, etc) using command below:
+
+    accumulo tserver
+
+The process will run in the foreground. Use ctrl-c to quit.
 
 ### Run Accumulo services
 

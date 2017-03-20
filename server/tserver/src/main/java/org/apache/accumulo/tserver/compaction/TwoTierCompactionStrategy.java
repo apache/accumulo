@@ -82,7 +82,7 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
     String threshold = options.get(LARGE_FILE_COMPRESSION_THRESHOLD);
     largeFileCompressionType = options.get(LARGE_FILE_COMPRESSION_TYPE);
     verifyRequiredProperties(threshold, largeFileCompressionType);
-    largeFileCompressionThreshold = AccumuloConfiguration.getMemoryInBytes(threshold);
+    largeFileCompressionThreshold = AccumuloConfiguration.getFixedMemoryAsBytes(threshold);
   }
 
   @Override

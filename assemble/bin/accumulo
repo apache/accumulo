@@ -15,19 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function verify_env_dir() {
-  property=$1
-  directory=$2
-  if [[ -z "$directory" ]]; then
-    echo "$property is not set. Please make sure it's set globally or in $conf/accumulo-env.sh"
-    exit 1
-  fi
-  if [[ ! -d "$directory" ]]; then
-    echo "$property=$directory is not a valid directory. Please make sure it's set correctly globally or in $conf/accumulo-env.sh"
-    exit 1
-  fi
-}
-
 function main() {
 
   SOURCE="${BASH_SOURCE[0]}"
@@ -49,7 +36,6 @@ function main() {
   fi
   if [[ ! -f $conf/accumulo-env.sh || ! -f $conf/accumulo-site.xml ]]; then
     echo "The configuration files 'accumulo-env.sh' & 'accumulo-site.xml' must exist in $conf"
-    echo "Run 'accumulo-util create-config' to create them and edit them for your environment."
     exit 1
   fi
   source "$conf/accumulo-env.sh"
@@ -60,11 +46,9 @@ function main() {
 
   # Verify setting in accumulo-env.sh
   : "${JAVA_OPTS:?"variable is not set in accumulo-env.sh"}"
+  : "${CLASSPATH:?"variable is not set in accumulo-env.sh"}"
   : "${ACCUMULO_LOG_DIR:?"variable is not set in accumulo-env.sh"}"
   mkdir -p "${ACCUMULO_LOG_DIR}" 2>/dev/null
-  verify_env_dir "HADOOP_PREFIX" "${HADOOP_PREFIX}"
-  verify_env_dir "HADOOP_CONF_DIR" "${HADOOP_CONF_DIR}"
-  verify_env_dir "ZOOKEEPER_HOME" "${ZOOKEEPER_HOME}"
   : "${MALLOC_ARENA_MAX:?"variable is not set in accumulo-env.sh"}"
 
   if [ -x "$JAVA_HOME/bin/java" ]; then
@@ -79,9 +63,6 @@ function main() {
   if [ -n "$ACCUMULO_JAVA_PREFIX" ]; then
     JAVA=($ACCUMULO_JAVA_PREFIX $JAVA)
   fi
-
-  CLASSPATH="${conf}:${lib}/*:${CLASSPATH}"
-  export CLASSPATH
 
   exec "${JAVA[@]}" "${JAVA_OPTS[@]}" org.apache.accumulo.start.Main "$@"
 }

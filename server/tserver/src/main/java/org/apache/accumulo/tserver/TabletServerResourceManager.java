@@ -166,14 +166,14 @@ public class TabletServerResourceManager {
     this.conf = tserver.getServerConfigurationFactory();
     final AccumuloConfiguration acuConf = conf.getConfiguration();
 
-    long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
+    long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
 
-    long blockSize = acuConf.getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
-    long dCacheSize = acuConf.getMemoryInBytes(Property.TSERV_DATACACHE_SIZE);
-    long iCacheSize = acuConf.getMemoryInBytes(Property.TSERV_INDEXCACHE_SIZE);
-    long sCacheSize = acuConf.getMemoryInBytes(Property.TSERV_SUMMARYCACHE_SIZE);
-    long totalQueueSize = acuConf.getMemoryInBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
+    long blockSize = acuConf.getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
+    long dCacheSize = acuConf.getAsBytes(Property.TSERV_DATACACHE_SIZE);
+    long iCacheSize = acuConf.getAsBytes(Property.TSERV_INDEXCACHE_SIZE);
+    long sCacheSize = acuConf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
+    long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
     String policy = acuConf.get(Property.TSERV_CACHE_POLICY);
     if (policy.equalsIgnoreCase("LRU")) {
@@ -359,7 +359,7 @@ public class TabletServerResourceManager {
     MemoryManagementFramework() {
       tabletReports = Collections.synchronizedMap(new HashMap<KeyExtent,TabletStateImpl>());
       memUsageReports = new LinkedBlockingQueue<>();
-      maxMem = conf.getConfiguration().getMemoryInBytes(Property.TSERV_MAXMEM);
+      maxMem = conf.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
 
       Runnable r1 = new Runnable() {
         @Override

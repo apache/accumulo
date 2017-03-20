@@ -278,7 +278,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
         // We have a tserver on the remote -- send the data its way.
         Status finalStatus;
-        final long sizeLimit = conf.getMemoryInBytes(Property.REPLICATION_MAX_UNIT_SIZE);
+        final long sizeLimit = conf.getAsBytes(Property.REPLICATION_MAX_UNIT_SIZE);
         try {
           if (p.getName().endsWith(RFILE_SUFFIX)) {
             span = Trace.start("RFile replication");

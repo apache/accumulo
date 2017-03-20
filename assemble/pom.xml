@@ -243,16 +243,6 @@
               <executable>${basedir}/src/main/scripts/generate-versions-listing.sh</executable>
             </configuration>
           </execution>
-          <execution>
-            <id>generate-example-configs</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <executable>${basedir}/src/main/scripts/generate-example-configs.sh</executable>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
       <plugin>
