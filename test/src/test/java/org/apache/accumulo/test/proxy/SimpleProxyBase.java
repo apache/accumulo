@@ -1362,6 +1362,23 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   }
 
   @Test
+  public void testNamespaceOps() throws Exception {
+    String testNamespace = "testnamespace";
+    String testNamespace2 = "testnamespace2";
+    assertEquals("", client.defaultNamespace(creds));
+    assertEquals("accumulo", client.systemNamespace(creds));
+    client.createNamespace(creds, testNamespace);
+    assertTrue(client.namespaceExists(creds, testNamespace));
+    Set<String> nSpaces = client.listNamespaces(creds);
+    assertTrue(nSpaces.contains(testNamespace));
+    client.renameNamespace(creds, testNamespace, testNamespace2);
+    assertTrue(client.namespaceExists(creds, testNamespace2));
+    assertFalse(client.namespaceExists(creds, testNamespace));
+    client.deleteNamespace(creds, testNamespace2);
+    assertFalse(client.namespaceExists(creds, testNamespace2));
+  }
+
+  @Test
   public void testBatchWriter() throws Exception {
     client.addConstraint(creds, table, NumericValueConstraint.class.getName());
     // zookeeper propagation time

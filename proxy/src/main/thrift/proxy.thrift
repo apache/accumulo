@@ -301,6 +301,18 @@ exception MutationsRejectedException {
   1:string msg
 }
 
+exception NamespaceExistsException {
+  1:string msg
+}
+
+exception NamespaceNotFoundException {
+  1:string msg
+}
+
+exception NamespaceNotEmptyException {
+  1:string msg
+}
+
 service AccumuloProxy
 {
   // get an authentication token
@@ -332,6 +344,7 @@ service AccumuloProxy
   void flushTable (1:binary login, 2:string tableName, 3:binary startRow, 4:binary endRow, 
                    5:bool wait)
                                                                                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+
   //since 1.6.0                                                                                                       
   list<DiskUsage> getDiskUsage(1:binary login, 2:set<string> tables)                                   throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
   map<string,set<string>> getLocalityGroups (1:binary login, 2:string tableName)                       throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
@@ -368,6 +381,19 @@ service AccumuloProxy
   map<string,string> tableIdMap (1:binary login);
   bool testTableClassLoad (1:binary login, 2:string tableName, 3:string className                     
                            , 4:string asTypeName)                                                      throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+
+  //namespace operations
+  string systemNamespace (1:binary login);
+  string defaultNamespace (1:binary login);
+  bool namespaceExists (1:binary login, 2:string namespaceName)                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  set<string> listNamespaces (1:binary login)                                                          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void createNamespace (1:binary login, 2:string namespaceName)                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:NamespaceExistsException ouch3);
+  void deleteNamespace (1:binary login, 2:string namespaceName)                                        throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:NamespaceNotFoundException ouch3, 4:NamespaceNotEmptyException ouch4);
+  void renameNamespace (1:binary login, 2:string oldNamespace, 3:string newNamespace)                  throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:NamespaceNotFoundException ouch3, 4:NamespaceExistsException ouch4);
+  void setNamespaceProperty (1:binary login, 2:string namespaceName, 3:string property, 4:string value)throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:NamespaceNotFoundException ouch3);
+  void removeNamespaceProperty (1:binary login, 2:string namespaceName, 3:string property)             throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:NamespaceNotFoundException ouch3);
+  map<string,string> getNamespaceProperties (1:binary login, 2:string namespaceName)                   throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:NamespaceNotFoundException ouch3);
+  map<string,string> namespaceIdMap (1:binary login)                                                   throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
 
   // instance operations
   void pingTabletServer(1:binary login, 2:string tserver)                                            throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
