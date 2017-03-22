@@ -119,9 +119,7 @@ import org.apache.thrift.server.TServer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1369,6 +1367,12 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     String testNamespace2 = "testnamespace2";
     assertEquals("", client.defaultNamespace(creds));
     assertEquals("accumulo", client.systemNamespace(creds));
+    Set<String> namespaceList = client.listNamespaces(creds);
+    for (String ns : namespaceList) {
+      System.out.println("Found NS: " + ns);
+    }
+    assertEquals(2, namespaceList.size());
+    assertEquals(2, client.namespaceIdMap(creds).size());
     client.createNamespace(creds, testNamespace);
     assertTrue(client.namespaceExists(creds, testNamespace));
     assertTrue(client.listNamespaces(creds).contains(testNamespace));
@@ -1377,10 +1381,21 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     assertFalse(client.namespaceExists(creds, testNamespace));
     client.deleteNamespace(creds, testNamespace2);
     assertFalse(client.namespaceExists(creds, testNamespace2));
-  }
 
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
+    // Test Namespace properties
+    client.createNamespace(creds, testNamespace);
+    String systemTableSplitThreshold = client.getSystemConfiguration(creds).get("table.split.threshold");
+    Map<String,String> orig = client.getNamespaceProperties(creds, testNamespace);
+    client.setNamespaceProperty(creds, testNamespace, "table.split.threshold", "500M");
+    // Get the new namespace property value
+    Map<String,String> update = client.getNamespaceProperties(creds, testNamespace);
+    assertEquals(update.get("table.split.threshold"), "500M");
+    // Namespace level properties shouldn't affect system level values
+    assertEquals(systemTableSplitThreshold, client.getSystemConfiguration(creds).get("table.split.threshold"));
+    client.removeNamespaceProperty(creds, testNamespace, "table.split.threshold");
+    update = client.getNamespaceProperties(creds, testNamespace);
+    assertEquals(orig, update);
+  }
 
   @Test
   public void testNamespacePermissions() throws Exception {
@@ -1397,7 +1412,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE));
     assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE));
 
-    //create namespace test
+    // create namespace test
     client.grantSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE);
     assertTrue(client.hasSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE));
     client.createNamespace(user, testNamespace);
@@ -1407,10 +1422,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE));
     try {
       client.createNamespace(user, testNamespace2);
-      fail("AccumuloSecurityException should have been thrown");
+      fail("AccumuloSecurityException should have been thrown client.createNamespace()");
     } catch (AccumuloSecurityException e) {}
 
-    //drop namespace test
+    // drop namespace test
     client.grantSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE);
     assertTrue(client.hasSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE));
     client.deleteNamespace(user, testNamespace);
@@ -1421,10 +1436,10 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     client.createNamespace(creds, testNamespace2);
     try {
       client.deleteNamespace(user, testNamespace2);
-      fail("AccumuloSecurityException should have been thrown");
+      fail("AccumuloSecurityException should have been thrown client.deleteNamespace()");
     } catch (AccumuloSecurityException e) {}
 
-    //alter namespace test
+    // alter namespace test
     client.grantSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE);
     assertTrue(client.hasSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE));
     client.renameNamespace(user, testNamespace2, testNamespace);
@@ -1434,9 +1449,12 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE));
     try {
       client.renameNamespace(user, testNamespace, testNamespace2);
-      fail("AccumuloSecurityException should have been thrown");
+      fail("AccumuloSecurityException should have been thrown in client.renameNamespace()");
     } catch (AccumuloSecurityException e) {}
 
+    // clean up
+    client.deleteNamespace(creds, testNamespace);
+    assertFalse(client.namespaceExists(creds, testNamespace));
   }
 
   @Test
