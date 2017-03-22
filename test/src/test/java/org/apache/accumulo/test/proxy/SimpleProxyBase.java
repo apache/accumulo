@@ -119,7 +119,9 @@ import org.apache.thrift.server.TServer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1369,13 +1371,72 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
     assertEquals("accumulo", client.systemNamespace(creds));
     client.createNamespace(creds, testNamespace);
     assertTrue(client.namespaceExists(creds, testNamespace));
-    Set<String> nSpaces = client.listNamespaces(creds);
-    assertTrue(nSpaces.contains(testNamespace));
+    assertTrue(client.listNamespaces(creds).contains(testNamespace));
     client.renameNamespace(creds, testNamespace, testNamespace2);
     assertTrue(client.namespaceExists(creds, testNamespace2));
     assertFalse(client.namespaceExists(creds, testNamespace));
     client.deleteNamespace(creds, testNamespace2);
     assertFalse(client.namespaceExists(creds, testNamespace2));
+  }
+
+  @Rule
+  public final ExpectedException thrown = ExpectedException.none();
+
+  @Test
+  public void testNamespacePermissions() throws Exception {
+    String userName = getUniqueNames(1)[0];
+    String testNamespace = "userns";
+    String testNamespace2 = "userns2";
+    ByteBuffer password = s2bb("password");
+    ByteBuffer user;
+
+    // create a user
+    client.createLocalUser(creds, userName, password);
+    user = client.login(userName, s2pp(new String(password.array(), password.position(), password.limit())));
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE));
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE));
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE));
+
+    //create namespace test
+    client.grantSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE);
+    assertTrue(client.hasSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE));
+    client.createNamespace(user, testNamespace);
+    assertTrue(client.namespaceExists(creds, testNamespace));
+    // revoke permissions and try again
+    client.revokeSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE);
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE));
+    try {
+      client.createNamespace(user, testNamespace2);
+      fail("AccumuloSecurityException should have been thrown");
+    } catch (AccumuloSecurityException e) {}
+
+    //drop namespace test
+    client.grantSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE);
+    assertTrue(client.hasSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE));
+    client.deleteNamespace(user, testNamespace);
+    assertFalse(client.namespaceExists(creds, testNamespace));
+    // revoke permissions and try again
+    client.revokeSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE);
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE));
+    client.createNamespace(creds, testNamespace2);
+    try {
+      client.deleteNamespace(user, testNamespace2);
+      fail("AccumuloSecurityException should have been thrown");
+    } catch (AccumuloSecurityException e) {}
+
+    //alter namespace test
+    client.grantSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE);
+    assertTrue(client.hasSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE));
+    client.renameNamespace(user, testNamespace2, testNamespace);
+    assertTrue(client.namespaceExists(creds, testNamespace));
+    // revoke permissions and try again
+    client.revokeSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE);
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE));
+    try {
+      client.renameNamespace(user, testNamespace, testNamespace2);
+      fail("AccumuloSecurityException should have been thrown");
+    } catch (AccumuloSecurityException e) {}
+
   }
 
   @Test
