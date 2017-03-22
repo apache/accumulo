@@ -386,6 +386,94 @@ class Iface:
     """
     pass
 
+  def systemNamespace(self, login):
+    """
+    Parameters:
+     - login
+    """
+    pass
+
+  def defaultNamespace(self, login):
+    """
+    Parameters:
+     - login
+    """
+    pass
+
+  def namespaceExists(self, login, namespaceName):
+    """
+    Parameters:
+     - login
+     - namespaceName
+    """
+    pass
+
+  def listNamespaces(self, login):
+    """
+    Parameters:
+     - login
+    """
+    pass
+
+  def createNamespace(self, login, namespaceName):
+    """
+    Parameters:
+     - login
+     - namespaceName
+    """
+    pass
+
+  def deleteNamespace(self, login, namespaceName):
+    """
+    Parameters:
+     - login
+     - namespaceName
+    """
+    pass
+
+  def renameNamespace(self, login, oldNamespace, newNamespace):
+    """
+    Parameters:
+     - login
+     - oldNamespace
+     - newNamespace
+    """
+    pass
+
+  def setNamespaceProperty(self, login, namespaceName, property, value):
+    """
+    Parameters:
+     - login
+     - namespaceName
+     - property
+     - value
+    """
+    pass
+
+  def removeNamespaceProperty(self, login, namespaceName, property):
+    """
+    Parameters:
+     - login
+     - namespaceName
+     - property
+    """
+    pass
+
+  def getNamespaceProperties(self, login, namespaceName):
+    """
+    Parameters:
+     - login
+     - namespaceName
+    """
+    pass
+
+  def namespaceIdMap(self, login):
+    """
+    Parameters:
+     - login
+    """
+    pass
+
   def pingTabletServer(self, login, tserver):
     """
     Parameters:
@@ -2193,6 +2281,400 @@ class Client(Iface):
       raise result.ouch3
     raise TApplicationException(TApplicationException.MISSING_RESULT, "testTableClassLoad failed: unknown result");
 
+  def systemNamespace(self, login):
+    """
+    Parameters:
+     - login
+    """
+    self.send_systemNamespace(login)
+    return self.recv_systemNamespace()
+
+  def send_systemNamespace(self, login):
+    self._oprot.writeMessageBegin('systemNamespace', TMessageType.CALL, self._seqid)
+    args = systemNamespace_args()
+    args.login = login
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_systemNamespace(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = systemNamespace_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "systemNamespace failed: unknown result");
+
+  def defaultNamespace(self, login):
+    """
+    Parameters:
+     - login
+    """
+    self.send_defaultNamespace(login)
+    return self.recv_defaultNamespace()
+
+  def send_defaultNamespace(self, login):
+    self._oprot.writeMessageBegin('defaultNamespace', TMessageType.CALL, self._seqid)
+    args = defaultNamespace_args()
+    args.login = login
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_defaultNamespace(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = defaultNamespace_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "defaultNamespace failed: unknown result");
+
+  def namespaceExists(self, login, namespaceName):
+    """
+    Parameters:
+     - login
+     - namespaceName
+    """
+    self.send_namespaceExists(login, namespaceName)
+    return self.recv_namespaceExists()
+
+  def send_namespaceExists(self, login, namespaceName):
+    self._oprot.writeMessageBegin('namespaceExists', TMessageType.CALL, self._seqid)
+    args = namespaceExists_args()
+    args.login = login
+    args.namespaceName = namespaceName
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_namespaceExists(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = namespaceExists_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "namespaceExists failed: unknown result");
+
+  def listNamespaces(self, login):
+    """
+    Parameters:
+     - login
+    """
+    self.send_listNamespaces(login)
+    return self.recv_listNamespaces()
+
+  def send_listNamespaces(self, login):
+    self._oprot.writeMessageBegin('listNamespaces', TMessageType.CALL, self._seqid)
+    args = listNamespaces_args()
+    args.login = login
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_listNamespaces(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = listNamespaces_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "listNamespaces failed: unknown result");
+
+  def createNamespace(self, login, namespaceName):
+    """
+    Parameters:
+     - login
+     - namespaceName
+    """
+    self.send_createNamespace(login, namespaceName)
+    self.recv_createNamespace()
+
+  def send_createNamespace(self, login, namespaceName):
+    self._oprot.writeMessageBegin('createNamespace', TMessageType.CALL, self._seqid)
+    args = createNamespace_args()
+    args.login = login
+    args.namespaceName = namespaceName
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_createNamespace(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = createNamespace_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    if result.ouch3 is not None:
+      raise result.ouch3
+    return
+
+  def deleteNamespace(self, login, namespaceName):
+    """
+    Parameters:
+     - login
+     - namespaceName
+    """
+    self.send_deleteNamespace(login, namespaceName)
+    self.recv_deleteNamespace()
+
+  def send_deleteNamespace(self, login, namespaceName):
+    self._oprot.writeMessageBegin('deleteNamespace', TMessageType.CALL, self._seqid)
+    args = deleteNamespace_args()
+    args.login = login
+    args.namespaceName = namespaceName
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_deleteNamespace(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = deleteNamespace_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    if result.ouch3 is not None:
+      raise result.ouch3
+    if result.ouch4 is not None:
+      raise result.ouch4
+    return
+
+  def renameNamespace(self, login, oldNamespace, newNamespace):
+    """
+    Parameters:
+     - login
+     - oldNamespace
+     - newNamespace
+    """
+    self.send_renameNamespace(login, oldNamespace, newNamespace)
+    self.recv_renameNamespace()
+
+  def send_renameNamespace(self, login, oldNamespace, newNamespace):
+    self._oprot.writeMessageBegin('renameNamespace', TMessageType.CALL, self._seqid)
+    args = renameNamespace_args()
+    args.login = login
+    args.oldNamespace = oldNamespace
+    args.newNamespace = newNamespace
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_renameNamespace(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = renameNamespace_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    if result.ouch3 is not None:
+      raise result.ouch3
+    if result.ouch4 is not None:
+      raise result.ouch4
+    return
+
+  def setNamespaceProperty(self, login, namespaceName, property, value):
+    """
+    Parameters:
+     - login
+     - namespaceName
+     - property
+     - value
+    """
+    self.send_setNamespaceProperty(login, namespaceName, property, value)
+    self.recv_setNamespaceProperty()
+
+  def send_setNamespaceProperty(self, login, namespaceName, property, value):
+    self._oprot.writeMessageBegin('setNamespaceProperty', TMessageType.CALL, self._seqid)
+    args = setNamespaceProperty_args()
+    args.login = login
+    args.namespaceName = namespaceName
+    args.property = property
+    args.value = value
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_setNamespaceProperty(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = setNamespaceProperty_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    if result.ouch3 is not None:
+      raise result.ouch3
+    return
+
+  def removeNamespaceProperty(self, login, namespaceName, property):
+    """
+    Parameters:
+     - login
+     - namespaceName
+     - property
+    """
+    self.send_removeNamespaceProperty(login, namespaceName, property)
+    self.recv_removeNamespaceProperty()
+
+  def send_removeNamespaceProperty(self, login, namespaceName, property):
+    self._oprot.writeMessageBegin('removeNamespaceProperty', TMessageType.CALL, self._seqid)
+    args = removeNamespaceProperty_args()
+    args.login = login
+    args.namespaceName = namespaceName
+    args.property = property
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_removeNamespaceProperty(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = removeNamespaceProperty_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    if result.ouch3 is not None:
+      raise result.ouch3
+    return
+
+  def getNamespaceProperties(self, login, namespaceName):
+    """
+    Parameters:
+     - login
+     - namespaceName
+    """
+    self.send_getNamespaceProperties(login, namespaceName)
+    return self.recv_getNamespaceProperties()
+
+  def send_getNamespaceProperties(self, login, namespaceName):
+    self._oprot.writeMessageBegin('getNamespaceProperties', TMessageType.CALL, self._seqid)
+    args = getNamespaceProperties_args()
+    args.login = login
+    args.namespaceName = namespaceName
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_getNamespaceProperties(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = getNamespaceProperties_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    if result.ouch3 is not None:
+      raise result.ouch3
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "getNamespaceProperties failed: unknown result");
+
+  def namespaceIdMap(self, login):
+    """
+    Parameters:
+     - login
+    """
+    self.send_namespaceIdMap(login)
+    return self.recv_namespaceIdMap()
+
+  def send_namespaceIdMap(self, login):
+    self._oprot.writeMessageBegin('namespaceIdMap', TMessageType.CALL, self._seqid)
+    args = namespaceIdMap_args()
+    args.login = login
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_namespaceIdMap(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = namespaceIdMap_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.ouch1 is not None:
+      raise result.ouch1
+    if result.ouch2 is not None:
+      raise result.ouch2
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "namespaceIdMap failed: unknown result");
+
   def pingTabletServer(self, login, tserver):
     """
     Parameters:
@@ -3618,6 +4100,17 @@ class Processor(Iface, TProcessor):
     self._processMap["tableExists"] = Processor.process_tableExists
     self._processMap["tableIdMap"] = Processor.process_tableIdMap
     self._processMap["testTableClassLoad"] = Processor.process_testTableClassLoad
+    self._processMap["systemNamespace"] = Processor.process_systemNamespace
+    self._processMap["defaultNamespace"] = Processor.process_defaultNamespace
+    self._processMap["namespaceExists"] = Processor.process_namespaceExists
+    self._processMap["listNamespaces"] = Processor.process_listNamespaces
+    self._processMap["createNamespace"] = Processor.process_createNamespace
+    self._processMap["deleteNamespace"] = Processor.process_deleteNamespace
+    self._processMap["renameNamespace"] = Processor.process_renameNamespace
+    self._processMap["setNamespaceProperty"] = Processor.process_setNamespaceProperty
+    self._processMap["removeNamespaceProperty"] = Processor.process_removeNamespaceProperty
+    self._processMap["getNamespaceProperties"] = Processor.process_getNamespaceProperties
+    self._processMap["namespaceIdMap"] = Processor.process_namespaceIdMap
     self._processMap["pingTabletServer"] = Processor.process_pingTabletServer
     self._processMap["getActiveScans"] = Processor.process_getActiveScans
     self._processMap["getActiveCompactions"] = Processor.process_getActiveCompactions
@@ -4328,6 +4821,188 @@ class Processor(Iface, TProcessor):
     except TableNotFoundException, ouch3:
       result.ouch3 = ouch3
     oprot.writeMessageBegin("testTableClassLoad", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_systemNamespace(self, seqid, iprot, oprot):
+    args = systemNamespace_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = systemNamespace_result()
+    result.success = self._handler.systemNamespace(args.login)
+    oprot.writeMessageBegin("systemNamespace", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_defaultNamespace(self, seqid, iprot, oprot):
+    args = defaultNamespace_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = defaultNamespace_result()
+    result.success = self._handler.defaultNamespace(args.login)
+    oprot.writeMessageBegin("defaultNamespace", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_namespaceExists(self, seqid, iprot, oprot):
+    args = namespaceExists_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = namespaceExists_result()
+    try:
+      result.success = self._handler.namespaceExists(args.login, args.namespaceName)
+    except AccumuloException, ouch1:
+      result.ouch1 = ouch1
+    except AccumuloSecurityException, ouch2:
+      result.ouch2 = ouch2
+    oprot.writeMessageBegin("namespaceExists", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_listNamespaces(self, seqid, iprot, oprot):
+    args = listNamespaces_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = listNamespaces_result()
+    try:
+      result.success = self._handler.listNamespaces(args.login)
+    except AccumuloException, ouch1:
+      result.ouch1 = ouch1
+    except AccumuloSecurityException, ouch2:
+      result.ouch2 = ouch2
+    oprot.writeMessageBegin("listNamespaces", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_createNamespace(self, seqid, iprot, oprot):
+    args = createNamespace_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = createNamespace_result()
+    try:
+      self._handler.createNamespace(args.login, args.namespaceName)
+    except AccumuloException, ouch1:
+      result.ouch1 = ouch1
+    except AccumuloSecurityException, ouch2:
+      result.ouch2 = ouch2
+    except NamespaceExistsException, ouch3:
+      result.ouch3 = ouch3
+    oprot.writeMessageBegin("createNamespace", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_deleteNamespace(self, seqid, iprot, oprot):
+    args = deleteNamespace_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = deleteNamespace_result()
+    try:
+      self._handler.deleteNamespace(args.login, args.namespaceName)
+    except AccumuloException, ouch1:
+      result.ouch1 = ouch1
+    except AccumuloSecurityException, ouch2:
+      result.ouch2 = ouch2
+    except NamespaceNotFoundException, ouch3:
+      result.ouch3 = ouch3
+    except NamespaceNotEmptyException, ouch4:
+      result.ouch4 = ouch4
+    oprot.writeMessageBegin("deleteNamespace", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_renameNamespace(self, seqid, iprot, oprot):
+    args = renameNamespace_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = renameNamespace_result()
+    try:
+      self._handler.renameNamespace(args.login, args.oldNamespace, args.newNamespace)
+    except AccumuloException, ouch1:
+      result.ouch1 = ouch1
+    except AccumuloSecurityException, ouch2:
+      result.ouch2 = ouch2
+    except NamespaceNotFoundException, ouch3:
+      result.ouch3 = ouch3
+    except NamespaceExistsException, ouch4:
+      result.ouch4 = ouch4
+    oprot.writeMessageBegin("renameNamespace", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_setNamespaceProperty(self, seqid, iprot, oprot):
+    args = setNamespaceProperty_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = setNamespaceProperty_result()
+    try:
+      self._handler.setNamespaceProperty(args.login, args.namespaceName, args.property, args.value)
+    except AccumuloException, ouch1:
+      result.ouch1 = ouch1
+    except AccumuloSecurityException, ouch2:
+      result.ouch2 = ouch2
+    except NamespaceNotFoundException, ouch3:
+      result.ouch3 = ouch3
+    oprot.writeMessageBegin("setNamespaceProperty", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_removeNamespaceProperty(self, seqid, iprot, oprot):
+    args = removeNamespaceProperty_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = removeNamespaceProperty_result()
+    try:
+      self._handler.removeNamespaceProperty(args.login, args.namespaceName, args.property)
+    except AccumuloException, ouch1:
+      result.ouch1 = ouch1
+    except AccumuloSecurityException, ouch2:
+      result.ouch2 = ouch2
+    except NamespaceNotFoundException, ouch3:
+      result.ouch3 = ouch3
+    oprot.writeMessageBegin("removeNamespaceProperty", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_getNamespaceProperties(self, seqid, iprot, oprot):
+    args = getNamespaceProperties_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = getNamespaceProperties_result()
+    try:
+      result.success = self._handler.getNamespaceProperties(args.login, args.namespaceName)
+    except AccumuloException, ouch1:
+      result.ouch1 = ouch1
+    except AccumuloSecurityException, ouch2:
+      result.ouch2 = ouch2
+    except NamespaceNotFoundException, ouch3:
+      result.ouch3 = ouch3
+    oprot.writeMessageBegin("getNamespaceProperties", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_namespaceIdMap(self, seqid, iprot, oprot):
+    args = namespaceIdMap_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = namespaceIdMap_result()
+    try:
+      result.success = self._handler.namespaceIdMap(args.login)
+    except AccumuloException, ouch1:
+      result.ouch1 = ouch1
+    except AccumuloSecurityException, ouch2:
+      result.ouch2 = ouch2
+    oprot.writeMessageBegin("namespaceIdMap", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -11826,6 +12501,1758 @@ class testTableClassLoad_result:
   def __ne__(self, other):
     return not (self == other)
 
+class systemNamespace_args:
+  """
+  Attributes:
+   - login
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+  )
+
+  def __init__(self, login=None,):
+    self.login = login
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('systemNamespace_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class systemNamespace_result:
+  """
+  Attributes:
+   - success
+  """
+
+  thrift_spec = (
+    (0, TType.STRING, 'success', None, None, ), # 0
+  )
+
+  def __init__(self, success=None,):
+    self.success = success
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.STRING:
+          self.success = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('systemNamespace_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.STRING, 0)
+      oprot.writeString(self.success)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class defaultNamespace_args:
+  """
+  Attributes:
+   - login
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+  )
+
+  def __init__(self, login=None,):
+    self.login = login
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('defaultNamespace_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class defaultNamespace_result:
+  """
+  Attributes:
+   - success
+  """
+
+  thrift_spec = (
+    (0, TType.STRING, 'success', None, None, ), # 0
+  )
+
+  def __init__(self, success=None,):
+    self.success = success
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.STRING:
+          self.success = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('defaultNamespace_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.STRING, 0)
+      oprot.writeString(self.success)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class namespaceExists_args:
+  """
+  Attributes:
+   - login
+   - namespaceName
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'namespaceName', None, None, ), # 2
+  )
+
+  def __init__(self, login=None, namespaceName=None,):
+    self.login = login
+    self.namespaceName = namespaceName
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.namespaceName = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('namespaceExists_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.namespaceName is not None:
+      oprot.writeFieldBegin('namespaceName', TType.STRING, 2)
+      oprot.writeString(self.namespaceName)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class namespaceExists_result:
+  """
+  Attributes:
+   - success
+   - ouch1
+   - ouch2
+  """
+
+  thrift_spec = (
+    (0, TType.BOOL, 'success', None, None, ), # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, success=None, ouch1=None, ouch2=None,):
+    self.success = success
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.BOOL:
+          self.success = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('namespaceExists_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.BOOL, 0)
+      oprot.writeBool(self.success)
+      oprot.writeFieldEnd()
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class listNamespaces_args:
+  """
+  Attributes:
+   - login
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+  )
+
+  def __init__(self, login=None,):
+    self.login = login
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('listNamespaces_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class listNamespaces_result:
+  """
+  Attributes:
+   - success
+   - ouch1
+   - ouch2
+  """
+
+  thrift_spec = (
+    (0, TType.SET, 'success', (TType.STRING,None), None, ), # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, success=None, ouch1=None, ouch2=None,):
+    self.success = success
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.SET:
+          self.success = set()
+          (_etype324, _size321) = iprot.readSetBegin()
+          for _i325 in xrange(_size321):
+            _elem326 = iprot.readString();
+            self.success.add(_elem326)
+          iprot.readSetEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('listNamespaces_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.SET, 0)
+      oprot.writeSetBegin(TType.STRING, len(self.success))
+      for iter327 in self.success:
+        oprot.writeString(iter327)
+      oprot.writeSetEnd()
+      oprot.writeFieldEnd()
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class createNamespace_args:
+  """
+  Attributes:
+   - login
+   - namespaceName
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'namespaceName', None, None, ), # 2
+  )
+
+  def __init__(self, login=None, namespaceName=None,):
+    self.login = login
+    self.namespaceName = namespaceName
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.namespaceName = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('createNamespace_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.namespaceName is not None:
+      oprot.writeFieldBegin('namespaceName', TType.STRING, 2)
+      oprot.writeString(self.namespaceName)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class createNamespace_result:
+  """
+  Attributes:
+   - ouch1
+   - ouch2
+   - ouch3
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'ouch3', (NamespaceExistsException, NamespaceExistsException.thrift_spec), None, ), # 3
+  )
+
+  def __init__(self, ouch1=None, ouch2=None, ouch3=None,):
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+    self.ouch3 = ouch3
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.ouch3 = NamespaceExistsException()
+          self.ouch3.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('createNamespace_result')
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch3 is not None:
+      oprot.writeFieldBegin('ouch3', TType.STRUCT, 3)
+      self.ouch3.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class deleteNamespace_args:
+  """
+  Attributes:
+   - login
+   - namespaceName
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'namespaceName', None, None, ), # 2
+  )
+
+  def __init__(self, login=None, namespaceName=None,):
+    self.login = login
+    self.namespaceName = namespaceName
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.namespaceName = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('deleteNamespace_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.namespaceName is not None:
+      oprot.writeFieldBegin('namespaceName', TType.STRING, 2)
+      oprot.writeString(self.namespaceName)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class deleteNamespace_result:
+  """
+  Attributes:
+   - ouch1
+   - ouch2
+   - ouch3
+   - ouch4
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'ouch3', (NamespaceNotFoundException, NamespaceNotFoundException.thrift_spec), None, ), # 3
+    (4, TType.STRUCT, 'ouch4', (NamespaceNotEmptyException, NamespaceNotEmptyException.thrift_spec), None, ), # 4
+  )
+
+  def __init__(self, ouch1=None, ouch2=None, ouch3=None, ouch4=None,):
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+    self.ouch3 = ouch3
+    self.ouch4 = ouch4
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.ouch3 = NamespaceNotFoundException()
+          self.ouch3.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.STRUCT:
+          self.ouch4 = NamespaceNotEmptyException()
+          self.ouch4.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('deleteNamespace_result')
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch3 is not None:
+      oprot.writeFieldBegin('ouch3', TType.STRUCT, 3)
+      self.ouch3.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch4 is not None:
+      oprot.writeFieldBegin('ouch4', TType.STRUCT, 4)
+      self.ouch4.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class renameNamespace_args:
+  """
+  Attributes:
+   - login
+   - oldNamespace
+   - newNamespace
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'oldNamespace', None, None, ), # 2
+    (3, TType.STRING, 'newNamespace', None, None, ), # 3
+  )
+
+  def __init__(self, login=None, oldNamespace=None, newNamespace=None,):
+    self.login = login
+    self.oldNamespace = oldNamespace
+    self.newNamespace = newNamespace
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.oldNamespace = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.newNamespace = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('renameNamespace_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.oldNamespace is not None:
+      oprot.writeFieldBegin('oldNamespace', TType.STRING, 2)
+      oprot.writeString(self.oldNamespace)
+      oprot.writeFieldEnd()
+    if self.newNamespace is not None:
+      oprot.writeFieldBegin('newNamespace', TType.STRING, 3)
+      oprot.writeString(self.newNamespace)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class renameNamespace_result:
+  """
+  Attributes:
+   - ouch1
+   - ouch2
+   - ouch3
+   - ouch4
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'ouch3', (NamespaceNotFoundException, NamespaceNotFoundException.thrift_spec), None, ), # 3
+    (4, TType.STRUCT, 'ouch4', (NamespaceExistsException, NamespaceExistsException.thrift_spec), None, ), # 4
+  )
+
+  def __init__(self, ouch1=None, ouch2=None, ouch3=None, ouch4=None,):
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+    self.ouch3 = ouch3
+    self.ouch4 = ouch4
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.ouch3 = NamespaceNotFoundException()
+          self.ouch3.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.STRUCT:
+          self.ouch4 = NamespaceExistsException()
+          self.ouch4.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('renameNamespace_result')
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch3 is not None:
+      oprot.writeFieldBegin('ouch3', TType.STRUCT, 3)
+      self.ouch3.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch4 is not None:
+      oprot.writeFieldBegin('ouch4', TType.STRUCT, 4)
+      self.ouch4.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class setNamespaceProperty_args:
+  """
+  Attributes:
+   - login
+   - namespaceName
+   - property
+   - value
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'namespaceName', None, None, ), # 2
+    (3, TType.STRING, 'property', None, None, ), # 3
+    (4, TType.STRING, 'value', None, None, ), # 4
+  )
+
+  def __init__(self, login=None, namespaceName=None, property=None, value=None,):
+    self.login = login
+    self.namespaceName = namespaceName
+    self.property = property
+    self.value = value
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.namespaceName = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.property = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.STRING:
+          self.value = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('setNamespaceProperty_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.namespaceName is not None:
+      oprot.writeFieldBegin('namespaceName', TType.STRING, 2)
+      oprot.writeString(self.namespaceName)
+      oprot.writeFieldEnd()
+    if self.property is not None:
+      oprot.writeFieldBegin('property', TType.STRING, 3)
+      oprot.writeString(self.property)
+      oprot.writeFieldEnd()
+    if self.value is not None:
+      oprot.writeFieldBegin('value', TType.STRING, 4)
+      oprot.writeString(self.value)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class setNamespaceProperty_result:
+  """
+  Attributes:
+   - ouch1
+   - ouch2
+   - ouch3
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'ouch3', (NamespaceNotFoundException, NamespaceNotFoundException.thrift_spec), None, ), # 3
+  )
+
+  def __init__(self, ouch1=None, ouch2=None, ouch3=None,):
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+    self.ouch3 = ouch3
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.ouch3 = NamespaceNotFoundException()
+          self.ouch3.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('setNamespaceProperty_result')
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch3 is not None:
+      oprot.writeFieldBegin('ouch3', TType.STRUCT, 3)
+      self.ouch3.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class removeNamespaceProperty_args:
+  """
+  Attributes:
+   - login
+   - namespaceName
+   - property
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'namespaceName', None, None, ), # 2
+    (3, TType.STRING, 'property', None, None, ), # 3
+  )
+
+  def __init__(self, login=None, namespaceName=None, property=None,):
+    self.login = login
+    self.namespaceName = namespaceName
+    self.property = property
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.namespaceName = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.property = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('removeNamespaceProperty_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.namespaceName is not None:
+      oprot.writeFieldBegin('namespaceName', TType.STRING, 2)
+      oprot.writeString(self.namespaceName)
+      oprot.writeFieldEnd()
+    if self.property is not None:
+      oprot.writeFieldBegin('property', TType.STRING, 3)
+      oprot.writeString(self.property)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class removeNamespaceProperty_result:
+  """
+  Attributes:
+   - ouch1
+   - ouch2
+   - ouch3
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'ouch3', (NamespaceNotFoundException, NamespaceNotFoundException.thrift_spec), None, ), # 3
+  )
+
+  def __init__(self, ouch1=None, ouch2=None, ouch3=None,):
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+    self.ouch3 = ouch3
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.ouch3 = NamespaceNotFoundException()
+          self.ouch3.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('removeNamespaceProperty_result')
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch3 is not None:
+      oprot.writeFieldBegin('ouch3', TType.STRUCT, 3)
+      self.ouch3.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getNamespaceProperties_args:
+  """
+  Attributes:
+   - login
+   - namespaceName
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+    (2, TType.STRING, 'namespaceName', None, None, ), # 2
+  )
+
+  def __init__(self, login=None, namespaceName=None,):
+    self.login = login
+    self.namespaceName = namespaceName
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.namespaceName = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getNamespaceProperties_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    if self.namespaceName is not None:
+      oprot.writeFieldBegin('namespaceName', TType.STRING, 2)
+      oprot.writeString(self.namespaceName)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getNamespaceProperties_result:
+  """
+  Attributes:
+   - success
+   - ouch1
+   - ouch2
+   - ouch3
+  """
+
+  thrift_spec = (
+    (0, TType.MAP, 'success', (TType.STRING,None,TType.STRING,None), None, ), # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'ouch3', (NamespaceNotFoundException, NamespaceNotFoundException.thrift_spec), None, ), # 3
+  )
+
+  def __init__(self, success=None, ouch1=None, ouch2=None, ouch3=None,):
+    self.success = success
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+    self.ouch3 = ouch3
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.MAP:
+          self.success = {}
+          (_ktype329, _vtype330, _size328 ) = iprot.readMapBegin()
+          for _i332 in xrange(_size328):
+            _key333 = iprot.readString();
+            _val334 = iprot.readString();
+            self.success[_key333] = _val334
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.ouch3 = NamespaceNotFoundException()
+          self.ouch3.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getNamespaceProperties_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.MAP, 0)
+      oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.success))
+      for kiter335,viter336 in self.success.items():
+        oprot.writeString(kiter335)
+        oprot.writeString(viter336)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch3 is not None:
+      oprot.writeFieldBegin('ouch3', TType.STRUCT, 3)
+      self.ouch3.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class namespaceIdMap_args:
+  """
+  Attributes:
+   - login
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'login', None, None, ), # 1
+  )
+
+  def __init__(self, login=None,):
+    self.login = login
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.login = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('namespaceIdMap_args')
+    if self.login is not None:
+      oprot.writeFieldBegin('login', TType.STRING, 1)
+      oprot.writeString(self.login)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class namespaceIdMap_result:
+  """
+  Attributes:
+   - success
+   - ouch1
+   - ouch2
+  """
+
+  thrift_spec = (
+    (0, TType.MAP, 'success', (TType.STRING,None,TType.STRING,None), None, ), # 0
+    (1, TType.STRUCT, 'ouch1', (AccumuloException, AccumuloException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'ouch2', (AccumuloSecurityException, AccumuloSecurityException.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, success=None, ouch1=None, ouch2=None,):
+    self.success = success
+    self.ouch1 = ouch1
+    self.ouch2 = ouch2
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.MAP:
+          self.success = {}
+          (_ktype338, _vtype339, _size337 ) = iprot.readMapBegin()
+          for _i341 in xrange(_size337):
+            _key342 = iprot.readString();
+            _val343 = iprot.readString();
+            self.success[_key342] = _val343
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.ouch1 = AccumuloException()
+          self.ouch1.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.ouch2 = AccumuloSecurityException()
+          self.ouch2.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('namespaceIdMap_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.MAP, 0)
+      oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.success))
+      for kiter344,viter345 in self.success.items():
+        oprot.writeString(kiter344)
+        oprot.writeString(viter345)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    if self.ouch1 is not None:
+      oprot.writeFieldBegin('ouch1', TType.STRUCT, 1)
+      self.ouch1.write(oprot)
+      oprot.writeFieldEnd()
+    if self.ouch2 is not None:
+      oprot.writeFieldBegin('ouch2', TType.STRUCT, 2)
+      self.ouch2.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class pingTabletServer_args:
   """
   Attributes:
@@ -12075,11 +14502,11 @@ class getActiveScans_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype324, _size321) = iprot.readListBegin()
-          for _i325 in xrange(_size321):
-            _elem326 = ActiveScan()
-            _elem326.read(iprot)
-            self.success.append(_elem326)
+          (_etype349, _size346) = iprot.readListBegin()
+          for _i350 in xrange(_size346):
+            _elem351 = ActiveScan()
+            _elem351.read(iprot)
+            self.success.append(_elem351)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -12108,8 +14535,8 @@ class getActiveScans_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRUCT, len(self.success))
-      for iter327 in self.success:
-        iter327.write(oprot)
+      for iter352 in self.success:
+        iter352.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.ouch1 is not None:
@@ -12241,11 +14668,11 @@ class getActiveCompactions_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype331, _size328) = iprot.readListBegin()
-          for _i332 in xrange(_size328):
-            _elem333 = ActiveCompaction()
-            _elem333.read(iprot)
-            self.success.append(_elem333)
+          (_etype356, _size353) = iprot.readListBegin()
+          for _i357 in xrange(_size353):
+            _elem358 = ActiveCompaction()
+            _elem358.read(iprot)
+            self.success.append(_elem358)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -12274,8 +14701,8 @@ class getActiveCompactions_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRUCT, len(self.success))
-      for iter334 in self.success:
-        iter334.write(oprot)
+      for iter359 in self.success:
+        iter359.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.ouch1 is not None:
@@ -12395,11 +14822,11 @@ class getSiteConfiguration_result:
       if fid == 0:
         if ftype == TType.MAP:
           self.success = {}
-          (_ktype336, _vtype337, _size335 ) = iprot.readMapBegin()
-          for _i339 in xrange(_size335):
-            _key340 = iprot.readString();
-            _val341 = iprot.readString();
-            self.success[_key340] = _val341
+          (_ktype361, _vtype362, _size360 ) = iprot.readMapBegin()
+          for _i364 in xrange(_size360):
+            _key365 = iprot.readString();
+            _val366 = iprot.readString();
+            self.success[_key365] = _val366
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -12428,9 +14855,9 @@ class getSiteConfiguration_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.MAP, 0)
       oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.success))
-      for kiter342,viter343 in self.success.items():
-        oprot.writeString(kiter342)
-        oprot.writeString(viter343)
+      for kiter367,viter368 in self.success.items():
+        oprot.writeString(kiter367)
+        oprot.writeString(viter368)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     if self.ouch1 is not None:
@@ -12550,11 +14977,11 @@ class getSystemConfiguration_result:
       if fid == 0:
         if ftype == TType.MAP:
           self.success = {}
-          (_ktype345, _vtype346, _size344 ) = iprot.readMapBegin()
-          for _i348 in xrange(_size344):
-            _key349 = iprot.readString();
-            _val350 = iprot.readString();
-            self.success[_key349] = _val350
+          (_ktype370, _vtype371, _size369 ) = iprot.readMapBegin()
+          for _i373 in xrange(_size369):
+            _key374 = iprot.readString();
+            _val375 = iprot.readString();
+            self.success[_key374] = _val375
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -12583,9 +15010,9 @@ class getSystemConfiguration_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.MAP, 0)
       oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.success))
-      for kiter351,viter352 in self.success.items():
-        oprot.writeString(kiter351)
-        oprot.writeString(viter352)
+      for kiter376,viter377 in self.success.items():
+        oprot.writeString(kiter376)
+        oprot.writeString(viter377)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     if self.ouch1 is not None:
@@ -12699,10 +15126,10 @@ class getTabletServers_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype356, _size353) = iprot.readListBegin()
-          for _i357 in xrange(_size353):
-            _elem358 = iprot.readString();
-            self.success.append(_elem358)
+          (_etype381, _size378) = iprot.readListBegin()
+          for _i382 in xrange(_size378):
+            _elem383 = iprot.readString();
+            self.success.append(_elem383)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -12719,8 +15146,8 @@ class getTabletServers_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRING, len(self.success))
-      for iter359 in self.success:
-        oprot.writeString(iter359)
+      for iter384 in self.success:
+        oprot.writeString(iter384)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -13256,11 +15683,11 @@ class authenticateUser_args:
       elif fid == 3:
         if ftype == TType.MAP:
           self.properties = {}
-          (_ktype361, _vtype362, _size360 ) = iprot.readMapBegin()
-          for _i364 in xrange(_size360):
-            _key365 = iprot.readString();
-            _val366 = iprot.readString();
-            self.properties[_key365] = _val366
+          (_ktype386, _vtype387, _size385 ) = iprot.readMapBegin()
+          for _i389 in xrange(_size385):
+            _key390 = iprot.readString();
+            _val391 = iprot.readString();
+            self.properties[_key390] = _val391
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -13285,9 +15712,9 @@ class authenticateUser_args:
     if self.properties is not None:
       oprot.writeFieldBegin('properties', TType.MAP, 3)
       oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.properties))
-      for kiter367,viter368 in self.properties.items():
-        oprot.writeString(kiter367)
-        oprot.writeString(viter368)
+      for kiter392,viter393 in self.properties.items():
+        oprot.writeString(kiter392)
+        oprot.writeString(viter393)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -13435,10 +15862,10 @@ class changeUserAuthorizations_args:
       elif fid == 3:
         if ftype == TType.SET:
           self.authorizations = set()
-          (_etype372, _size369) = iprot.readSetBegin()
-          for _i373 in xrange(_size369):
-            _elem374 = iprot.readString();
-            self.authorizations.add(_elem374)
+          (_etype397, _size394) = iprot.readSetBegin()
+          for _i398 in xrange(_size394):
+            _elem399 = iprot.readString();
+            self.authorizations.add(_elem399)
           iprot.readSetEnd()
         else:
           iprot.skip(ftype)
@@ -13463,8 +15890,8 @@ class changeUserAuthorizations_args:
     if self.authorizations is not None:
       oprot.writeFieldBegin('authorizations', TType.SET, 3)
       oprot.writeSetBegin(TType.STRING, len(self.authorizations))
-      for iter375 in self.authorizations:
-        oprot.writeString(iter375)
+      for iter400 in self.authorizations:
+        oprot.writeString(iter400)
       oprot.writeSetEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -14124,10 +16551,10 @@ class getUserAuthorizations_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype379, _size376) = iprot.readListBegin()
-          for _i380 in xrange(_size376):
-            _elem381 = iprot.readString();
-            self.success.append(_elem381)
+          (_etype404, _size401) = iprot.readListBegin()
+          for _i405 in xrange(_size401):
+            _elem406 = iprot.readString();
+            self.success.append(_elem406)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -14156,8 +16583,8 @@ class getUserAuthorizations_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRING, len(self.success))
-      for iter382 in self.success:
-        oprot.writeString(iter382)
+      for iter407 in self.success:
+        oprot.writeString(iter407)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.ouch1 is not None:
@@ -14984,10 +17411,10 @@ class listLocalUsers_result:
       if fid == 0:
         if ftype == TType.SET:
           self.success = set()
-          (_etype386, _size383) = iprot.readSetBegin()
-          for _i387 in xrange(_size383):
-            _elem388 = iprot.readString();
-            self.success.add(_elem388)
+          (_etype411, _size408) = iprot.readSetBegin()
+          for _i412 in xrange(_size408):
+            _elem413 = iprot.readString();
+            self.success.add(_elem413)
           iprot.readSetEnd()
         else:
           iprot.skip(ftype)
@@ -15022,8 +17449,8 @@ class listLocalUsers_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.SET, 0)
       oprot.writeSetBegin(TType.STRING, len(self.success))
-      for iter389 in self.success:
-        oprot.writeString(iter389)
+      for iter414 in self.success:
+        oprot.writeString(iter414)
       oprot.writeSetEnd()
       oprot.writeFieldEnd()
     if self.ouch1 is not None:
@@ -16388,17 +18815,17 @@ class updateAndFlush_args:
       elif fid == 3:
         if ftype == TType.MAP:
           self.cells = {}
-          (_ktype391, _vtype392, _size390 ) = iprot.readMapBegin()
-          for _i394 in xrange(_size390):
-            _key395 = iprot.readString();
-            _val396 = []
-            (_etype400, _size397) = iprot.readListBegin()
-            for _i401 in xrange(_size397):
-              _elem402 = ColumnUpdate()
-              _elem402.read(iprot)
-              _val396.append(_elem402)
+          (_ktype416, _vtype417, _size415 ) = iprot.readMapBegin()
+          for _i419 in xrange(_size415):
+            _key420 = iprot.readString();
+            _val421 = []
+            (_etype425, _size422) = iprot.readListBegin()
+            for _i426 in xrange(_size422):
+              _elem427 = ColumnUpdate()
+              _elem427.read(iprot)
+              _val421.append(_elem427)
             iprot.readListEnd()
-            self.cells[_key395] = _val396
+            self.cells[_key420] = _val421
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -16423,11 +18850,11 @@ class updateAndFlush_args:
     if self.cells is not None:
       oprot.writeFieldBegin('cells', TType.MAP, 3)
       oprot.writeMapBegin(TType.STRING, TType.LIST, len(self.cells))
-      for kiter403,viter404 in self.cells.items():
-        oprot.writeString(kiter403)
-        oprot.writeListBegin(TType.STRUCT, len(viter404))
-        for iter405 in viter404:
-          iter405.write(oprot)
+      for kiter428,viter429 in self.cells.items():
+        oprot.writeString(kiter428)
+        oprot.writeListBegin(TType.STRUCT, len(viter429))
+        for iter430 in viter429:
+          iter430.write(oprot)
         oprot.writeListEnd()
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
@@ -16766,17 +19193,17 @@ class update_args:
       elif fid == 2:
         if ftype == TType.MAP:
           self.cells = {}
-          (_ktype407, _vtype408, _size406 ) = iprot.readMapBegin()
-          for _i410 in xrange(_size406):
-            _key411 = iprot.readString();
-            _val412 = []
-            (_etype416, _size413) = iprot.readListBegin()
-            for _i417 in xrange(_size413):
-              _elem418 = ColumnUpdate()
-              _elem418.read(iprot)
-              _val412.append(_elem418)
+          (_ktype432, _vtype433, _size431 ) = iprot.readMapBegin()
+          for _i435 in xrange(_size431):
+            _key436 = iprot.readString();
+            _val437 = []
+            (_etype441, _size438) = iprot.readListBegin()
+            for _i442 in xrange(_size438):
+              _elem443 = ColumnUpdate()
+              _elem443.read(iprot)
+              _val437.append(_elem443)
             iprot.readListEnd()
-            self.cells[_key411] = _val412
+            self.cells[_key436] = _val437
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -16797,11 +19224,11 @@ class update_args:
     if self.cells is not None:
       oprot.writeFieldBegin('cells', TType.MAP, 2)
       oprot.writeMapBegin(TType.STRING, TType.LIST, len(self.cells))
-      for kiter419,viter420 in self.cells.items():
-        oprot.writeString(kiter419)
-        oprot.writeListBegin(TType.STRUCT, len(viter420))
-        for iter421 in viter420:
-          iter421.write(oprot)
+      for kiter444,viter445 in self.cells.items():
+        oprot.writeString(kiter444)
+        oprot.writeListBegin(TType.STRUCT, len(viter445))
+        for iter446 in viter445:
+          iter446.write(oprot)
         oprot.writeListEnd()
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
@@ -17503,12 +19930,12 @@ class updateRowsConditionally_args:
       elif fid == 2:
         if ftype == TType.MAP:
           self.updates = {}
-          (_ktype423, _vtype424, _size422 ) = iprot.readMapBegin()
-          for _i426 in xrange(_size422):
-            _key427 = iprot.readString();
-            _val428 = ConditionalUpdates()
-            _val428.read(iprot)
-            self.updates[_key427] = _val428
+          (_ktype448, _vtype449, _size447 ) = iprot.readMapBegin()
+          for _i451 in xrange(_size447):
+            _key452 = iprot.readString();
+            _val453 = ConditionalUpdates()
+            _val453.read(iprot)
+            self.updates[_key452] = _val453
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -17529,9 +19956,9 @@ class updateRowsConditionally_args:
     if self.updates is not None:
       oprot.writeFieldBegin('updates', TType.MAP, 2)
       oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.updates))
-      for kiter429,viter430 in self.updates.items():
-        oprot.writeString(kiter429)
-        viter430.write(oprot)
+      for kiter454,viter455 in self.updates.items():
+        oprot.writeString(kiter454)
+        viter455.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -17586,11 +20013,11 @@ class updateRowsConditionally_result:
       if fid == 0:
         if ftype == TType.MAP:
           self.success = {}
-          (_ktype432, _vtype433, _size431 ) = iprot.readMapBegin()
-          for _i435 in xrange(_size431):
-            _key436 = iprot.readString();
-            _val437 = iprot.readI32();
-            self.success[_key436] = _val437
+          (_ktype457, _vtype458, _size456 ) = iprot.readMapBegin()
+          for _i460 in xrange(_size456):
+            _key461 = iprot.readString();
+            _val462 = iprot.readI32();
+            self.success[_key461] = _val462
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -17625,9 +20052,9 @@ class updateRowsConditionally_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.MAP, 0)
       oprot.writeMapBegin(TType.STRING, TType.I32, len(self.success))
-      for kiter438,viter439 in self.success.items():
-        oprot.writeString(kiter438)
-        oprot.writeI32(viter439)
+      for kiter463,viter464 in self.success.items():
+        oprot.writeString(kiter463)
+        oprot.writeI32(viter464)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     if self.ouch1 is not None:
