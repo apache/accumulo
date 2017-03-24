@@ -18,10 +18,10 @@
 function main() {
 
   SOURCE="${BASH_SOURCE[0]}"
-  while [ -h "${SOURCE}" ]; do # resolve $SOURCE until the file is no longer a symlink
+  while [ -h "${SOURCE}" ]; do
      bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
      SOURCE="$(readlink "${SOURCE}")"
-     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
   # Set up variables needed by accumulo-env.sh
   export bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
@@ -34,13 +34,13 @@ function main() {
     echo "$conf is not a valid directory.  Please make sure it exists"
     exit 1
   fi
-  if [[ ! -f $conf/accumulo-env.sh || ! -f $conf/accumulo-site.xml ]]; then
-    echo "The configuration files 'accumulo-env.sh' & 'accumulo-site.xml' must exist in $conf"
+  if [ ! -f "$conf/accumulo-env.sh" ]; then
+    echo "accumulo-env.sh must exist in $conf"
     exit 1
   fi
   source "$conf/accumulo-env.sh"
 
-  # Might be needed by accumulo-env.sh, accumulo-site.xml, and other Accumulo configuration
+  # Accumulo is moving away from these variables but they still might be needed
   export ACCUMULO_HOME="$basedir"
   export ACCUMULO_CONF_DIR="$conf"
 

@@ -79,7 +79,7 @@ public class AccumuloVFSClassLoaderTest {
     out.append("</configuration>\n");
     out.close();
 
-    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
+    Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
     Assert.assertTrue((acl instanceof VFSClassLoader));
@@ -112,7 +112,7 @@ public class AccumuloVFSClassLoaderTest {
     out.append("</configuration>\n");
     out.close();
 
-    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
+    Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
     Assert.assertTrue((acl instanceof VFSClassLoader));
@@ -147,7 +147,7 @@ public class AccumuloVFSClassLoaderTest {
     out.append("</configuration>\n");
     out.close();
 
-    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
+    Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     AccumuloVFSClassLoader.getClassLoader();
     FileSystemManager manager = AccumuloVFSClassLoader.generateVfs();
@@ -190,7 +190,7 @@ public class AccumuloVFSClassLoaderTest {
     out.append("</configuration>\n");
     out.close();
 
-    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
+    Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     AccumuloVFSClassLoader.getClassLoader();
     FileSystemManager manager = AccumuloVFSClassLoader.generateVfs();

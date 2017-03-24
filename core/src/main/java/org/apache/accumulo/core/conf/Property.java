@@ -172,7 +172,7 @@ public enum Property {
       "Properties in this category affect the behavior of accumulo overall, but do not have to be consistent throughout a cloud."),
   @Deprecated
   GENERAL_CLASSPATHS(
-      AccumuloClassLoader.CLASSPATH_PROPERTY_NAME,
+      AccumuloClassLoader.GENERAL_CLASSPATHS,
       "",
       PropertyType.STRING,
       "This property is deprecated as classpath should be configured accumulo-env.sh. A list of all of the places to look for a class. Order does matter, as it will look for the jar "

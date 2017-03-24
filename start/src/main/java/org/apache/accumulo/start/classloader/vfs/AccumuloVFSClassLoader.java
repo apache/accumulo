@@ -172,7 +172,7 @@ public class AccumuloVFSClassLoader {
   }
 
   private static ReloadingClassLoader createDynamicClassloader(final ClassLoader parent) throws IOException {
-    String dynamicCPath = AccumuloClassLoader.getAccumuloString(DYNAMIC_CLASSPATH_PROPERTY_NAME, DEFAULT_DYNAMIC_CLASSPATH_VALUE);
+    String dynamicCPath = AccumuloClassLoader.getAccumuloProperty(DYNAMIC_CLASSPATH_PROPERTY_NAME, DEFAULT_DYNAMIC_CLASSPATH_VALUE);
 
     ReloadingClassLoader wrapper = () -> parent;
 
@@ -196,7 +196,7 @@ public class AccumuloVFSClassLoader {
             parent = AccumuloClassLoader.getClassLoader();
           }
 
-          FileObject[] vfsCP = resolve(vfs, AccumuloClassLoader.getAccumuloString(VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, ""));
+          FileObject[] vfsCP = resolve(vfs, AccumuloClassLoader.getAccumuloProperty(VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, ""));
 
           if (vfsCP.length == 0) {
             localLoader = createDynamicClassloader(parent);
@@ -274,7 +274,7 @@ public class AccumuloVFSClassLoader {
   }
 
   private static File computeTopCacheDir() {
-    String cacheDirPath = AccumuloClassLoader.getAccumuloString(VFS_CACHE_DIR, System.getProperty("java.io.tmpdir"));
+    String cacheDirPath = AccumuloClassLoader.getAccumuloProperty(VFS_CACHE_DIR, System.getProperty("java.io.tmpdir"));
     String procName = ManagementFactory.getRuntimeMXBean().getName();
     return new File(cacheDirPath, "accumulo-vfs-cache-" + procName + "-" + System.getProperty("user.name", "nouser"));
   }
