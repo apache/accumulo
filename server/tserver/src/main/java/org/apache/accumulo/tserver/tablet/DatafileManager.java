@@ -299,7 +299,8 @@ class DatafileManager {
       // find the smallest file
 
       long maxFileSize = Long.MAX_VALUE;
-      maxMergingMinorCompactionFileSize = AccumuloConfiguration.getFixedMemoryAsBytes(tablet.getTableConfiguration().get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE));
+      maxMergingMinorCompactionFileSize = AccumuloConfiguration.getFixedMemoryAsBytes(tablet.getTableConfiguration().get(
+          Property.TABLE_MINC_MAX_MERGE_FILE_SIZE));
       if (maxMergingMinorCompactionFileSize > 0) {
         maxFileSize = maxMergingMinorCompactionFileSize;
       }

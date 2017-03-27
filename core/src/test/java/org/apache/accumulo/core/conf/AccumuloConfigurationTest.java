@@ -29,9 +29,8 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetMemoryInBytes() throws Exception {
-    List<Function<String,Long>> funcs = Arrays.asList(AccumuloConfiguration::getFixedMemoryAsBytes,
-                                                      AccumuloConfiguration::getMemoryAsBytes);
-    for(Function<String,Long> memFunc : funcs) {
+    List<Function<String,Long>> funcs = Arrays.asList(AccumuloConfiguration::getFixedMemoryAsBytes, AccumuloConfiguration::getMemoryAsBytes);
+    for (Function<String,Long> memFunc : funcs) {
       assertEquals(42l, memFunc.apply("42").longValue());
       assertEquals(42l, memFunc.apply("42b").longValue());
       assertEquals(42l, memFunc.apply("42B").longValue());

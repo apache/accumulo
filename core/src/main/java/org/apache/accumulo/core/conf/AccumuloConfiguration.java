@@ -165,12 +165,13 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Gets a property of type {@link PropertyType#BYTES} or {@link PropertyType#MEMORY}, interpreting
-   * the value properly.
+   * Gets a property of type {@link PropertyType#BYTES} or {@link PropertyType#MEMORY}, interpreting the value properly.
    *
-   * @param property Property to get
+   * @param property
+   *          Property to get
    * @return property value
-   * @throws IllegalArgumentException if the property is of the wrong type
+   * @throws IllegalArgumentException
+   *           if the property is of the wrong type
    */
   public long getAsBytes(Property property) {
     String memString = get(property);

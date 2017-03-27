@@ -40,8 +40,17 @@ export ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
 # Build CLASSPATH variable
 ##########################
 
-## Adds external Hadoop & Zookeeper dependencies to CLASSPATH. See "Vendor configuration" section of Accumulo user manual
-## for different settings if you installed vendor's distribution of Hadoop or Zookeeper.
+## Verify that Hadoop & Zookeeper installation directories exist
+if [ ! -d "$ZOOKEEPER_HOME" ]; then
+  echo "ZOOKEEPER_HOME=$ZOOKEEPER_HOME is not set to a valid directory in accumulo-env.sh"
+  exit 1
+fi
+if [ ! -d "$HADOOP_PREFIX" ]; then
+  echo "HADOOP_PREFIX=$HADOOP_PREFIX is not set to a valid directory in accumulo-env.sh"
+  exit 1
+fi
+
+## Add external Hadoop & Zookeeper dependencies to CLASSPATH.
 CLASSPATH="$(find "$ZOOKEEPER_HOME"/ "$HADOOP_PREFIX"/share/hadoop/{common,common/lib,hdfs,mapreduce,yarn} -maxdepth 1 -name '*.jar' \
   -and -not -name '*slf4j*' \
   -and -not -name '*fatjar*' \
