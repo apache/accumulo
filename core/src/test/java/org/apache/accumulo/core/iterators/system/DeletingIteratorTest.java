@@ -250,19 +250,19 @@ public class DeletingIteratorTest extends TestCase {
 
   public void testClose() throws Exception {
     TreeMap<Key,Value> tm = new TreeMap<>();
-    nkv(tm, "r000", 3, false, "v3");
-    nkv(tm, "r000", 2, false, "v2");
-    nkv(tm, "r000", 2, true, "");
-    nkv(tm, "r000", 1, false, "v1");
+    newKeyValue(tm, "r000", 3, false, "v3");
+    newKeyValue(tm, "r000", 2, false, "v2");
+    newKeyValue(tm, "r000", 2, true, "");
+    newKeyValue(tm, "r000", 1, false, "v1");
 
     CloseTestIter closeIter = new CloseTestIter(tm);
     DeletingIterator it = new DeletingIterator(closeIter, false);
 
-    it.seek(nr("r000", 3), EMPTY_COL_FAMS, false);
+    it.seek(newRange("r000", 3), EMPTY_COL_FAMS, false);
 
     assertEquals(0, closeIter.closeCallCount);
     assertTrue(it.hasTop());
-    assertEquals(nk("r000", 3), it.getTopKey());
+    assertEquals(newKey("r000", 3), it.getTopKey());
     assertEquals("v3", it.getTopValue().toString());
 
     it.next();

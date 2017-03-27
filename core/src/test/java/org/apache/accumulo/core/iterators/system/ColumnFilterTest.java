@@ -96,17 +96,17 @@ public class ColumnFilterTest extends TestCase {
 
   public void testClose() throws Exception {
     TreeMap<Key,Value> tm = new TreeMap<>();
-    tm.put(nk("r1", "cf1", "cq1"), new Value("val1".getBytes()));
-    tm.put(nk("r2", "cf2", "cq1"), new Value("val2".getBytes()));
+    tm.put(newKey("r1", "cf1", "cq1"), new Value("val1".getBytes()));
+    tm.put(newKey("r2", "cf2", "cq1"), new Value("val2".getBytes()));
     HashSet<Column> columns = new HashSet<>();
-    columns.add(nc("cf2", "cq1"));
+    columns.add(newColumn("cf2", "cq1"));
 
     CloseTestIter closeIter = new CloseTestIter(tm);
     ColumnQualifierFilter cf = new ColumnQualifierFilter(closeIter, columns);
 
     assertEquals(0, closeIter.closeCallCount);
-    assertTrue(cf.accept(nk("r1", "cf2", "cq1"), new Value(new byte[0])));
-    assertFalse(cf.accept(nk("r1", "cf2", "cq2"), new Value(new byte[0])));
+    assertTrue(cf.accept(newKey("r1", "cf2", "cq1"), new Value(new byte[0])));
+    assertFalse(cf.accept(newKey("r1", "cf2", "cq2"), new Value(new byte[0])));
 
     System.out.println("Closing ColumnQualifierFilter");
     cf.close();

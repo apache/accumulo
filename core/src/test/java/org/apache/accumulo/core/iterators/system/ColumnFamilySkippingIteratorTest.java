@@ -269,8 +269,8 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
     HashSet<ByteSequence> colfams = new HashSet<>();
     colfams.add(new ArrayByteSequence("cf2"));
     cfi.seek(new Range(), colfams, true);
-    aten(cfi, "r2", "cf2", "cq4", 5, "v4");
-    aten(cfi, "r2", "cf2", "cq5", 5, "v5");
+    testAndCallnext(cfi, "r2", "cf2", "cq4", 5, "v4");
+    testAndCallnext(cfi, "r2", "cf2", "cq5", 5, "v5");
     assertFalse(cfi.hasTop());
 
     System.out.println("Closing ColumnFamilySkippingIterator");

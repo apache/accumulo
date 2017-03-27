@@ -422,9 +422,9 @@ public class MultiIteratorTest extends TestCase {
   public void testDoNothingClose() throws Exception {
 
     TreeMap<Key,Value> tm = new TreeMap<>();
-    nkv(tm, 0, 3, false, "1");
-    nkv(tm, 0, 2, false, "2");
-    nkv(tm, 0, 1, false, "3");
+    newKeyValue(tm, 0, 3, false, "1");
+    newKeyValue(tm, 0, 2, false, "2");
+    newKeyValue(tm, 0, 1, false, "3");
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(1);
 
     CloseTestIter closeIter1 = new CloseTestIter("closeIter1", tm);

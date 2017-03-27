@@ -158,6 +158,7 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    *              if not supported
    * @exception RuntimeException
    *              if another type of error occurs
+   * @since 2.0.0
    */
   @Override
   default void close() {
