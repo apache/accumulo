@@ -182,6 +182,12 @@ early programming assignments which implement their own tree data structures. `d
 copy on its sources (the children), copies itself, attaches the copies of the children, and
 then returns itself.
 
+==== `close`
+
+This method should close any resources created by the iterator.  In particular, this method should call `close`
+on the `source` provided by the first argument of the `init` method.  By default this method will do nothing.
+If the iterator does not have a `source` or any other resources to close, then the the default implementation will suffice.
+
 === TabletServer invocation of Iterators
 
 The following code is a general outline for how TabletServers invoke Iterators.
