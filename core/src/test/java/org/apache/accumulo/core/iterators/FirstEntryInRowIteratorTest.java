@@ -17,31 +17,33 @@
 package org.apache.accumulo.core.iterators;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.system.CountingIterator;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.junit.Test;
 
 public class FirstEntryInRowIteratorTest {
 
   @SuppressWarnings("unchecked")
-  private static long process(TreeMap<Key,Value> sourceMap, TreeMap<Key,Value> resultMap, Range range, int numScans) throws IOException {
+  private static long process(TreeMap<Key,Value> sourceMap, TreeMap<Key,Value> resultMap, Range range, IteratorSetting iteratorSetting) throws IOException {
     org.apache.accumulo.core.iterators.SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);
     FirstEntryInRowIterator feiri = new FirstEntryInRowIterator();
     IteratorEnvironment env = new BaseIteratorEnvironment();
 
-    feiri.init(counter, Collections.singletonMap(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME, Integer.toString(numScans)), env);
+    feiri.init(counter, iteratorSetting.getOptions(), env);
 
-    feiri.seek(range, Collections.EMPTY_SET, false);
+    feiri.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
     while (feiri.hasTop()) {
       resultMap.put(feiri.getTopKey(), feiri.getTopValue());
       feiri.next();
@@ -53,12 +55,15 @@ public class FirstEntryInRowIteratorTest {
   public void test() throws IOException {
     TreeMap<Key,Value> sourceMap = new TreeMap<>();
     Value emptyValue = new Value("".getBytes());
+    IteratorSetting iteratorSetting = new IteratorSetting(1, FirstEntryInRowIterator.class);
+    FirstEntryInRowIterator.setNumScansBeforeSeek(iteratorSetting, 10);
+    assertTrue(iteratorSetting.getOptions().containsKey(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME));
     sourceMap.put(new Key("r1", "cf", "cq"), emptyValue);
     sourceMap.put(new Key("r2", "cf", "cq"), emptyValue);
     sourceMap.put(new Key("r3", "cf", "cq"), emptyValue);
     TreeMap<Key,Value> resultMap = new TreeMap<>();
     long numSourceEntries = sourceMap.size();
-    long numNexts = process(sourceMap, resultMap, new Range(), 10);
+    long numNexts = process(sourceMap, resultMap, new Range(), iteratorSetting);
     assertEquals(numNexts, numSourceEntries);
     assertEquals(sourceMap.size(), resultMap.size());
 
@@ -66,17 +71,18 @@ public class FirstEntryInRowIteratorTest {
       sourceMap.put(new Key("r2", "cf", "cq" + i), emptyValue);
     }
     resultMap.clear();
-    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), (new Key("r2")).followingKey(PartialKey.ROW)), 10);
+
+    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), (new Key("r2")).followingKey(PartialKey.ROW)), iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 2);
 
     resultMap.clear();
-    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r2", "cf2")), 10);
+    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r2", "cf2")), iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 2);
 
     resultMap.clear();
-    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r4")), 10);
+    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r4")), iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 3);
   }

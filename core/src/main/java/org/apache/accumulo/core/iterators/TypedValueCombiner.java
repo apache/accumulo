@@ -131,11 +131,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
       @SuppressWarnings("unchecked")
       Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) AccumuloVFSClassLoader.loadClass(encoderClass, Encoder.class);
       encoder = clazz.newInstance();
-    } catch (ClassNotFoundException e) {
-      throw new IllegalArgumentException(e);
-    } catch (InstantiationException e) {
-      throw new IllegalArgumentException(e);
-    } catch (IllegalAccessException e) {
+    } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
       throw new IllegalArgumentException(e);
     }
   }
@@ -190,10 +186,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
 
   private void setLossyness(Map<String,String> options) {
     String loss = options.get(LOSSY);
-    if (loss == null)
-      lossy = false;
-    else
-      lossy = Boolean.parseBoolean(loss);
+    lossy = loss != null && Boolean.parseBoolean(loss);
   }
 
   @Override

@@ -48,6 +48,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
+import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -921,5 +922,50 @@ public class CombinerTest {
     runDeleteHandlingTest(input, expected, false, paritalMajcIe, ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
     runDeleteHandlingTest(input, expected, null, paritalMajcIe, ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
     runDeleteHandlingTest(input, expected, null, fullMajcIe, ".*ERROR.*SummingCombiner.*ACCUMULO-2232.*");
+  }
+
+  /**
+   * Tests the Lossy option will ignore errors in TypedValueCombiner. Uses SummingArrayCombiner to generate error.
+   */
+  @Test
+  public void testLossyOption() throws IOException, IllegalAccessException, InstantiationException {
+    Encoder<List<Long>> encoder = new SummingArrayCombiner.VarLongArrayEncoder();
+
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
+
+    // keys that aggregate
+    tm1.put(newKey(1, 1, 1, 1, false), new Value("badValue"));
+    newKeyValue(tm1, 1, 1, 1, 2, false, nal(3l, 4l, 5l), encoder);
+    newKeyValue(tm1, 1, 1, 1, 3, false, nal(), encoder);
+
+    SummingArrayCombiner summingArrayCombiner = new SummingArrayCombiner();
+    IteratorSetting iteratorSetting = new IteratorSetting(1, SummingArrayCombiner.class);
+    SummingArrayCombiner.setEncodingType(iteratorSetting, SummingArrayCombiner.Type.VARLEN);
+    Combiner.setColumns(iteratorSetting, Collections.singletonList(new IteratorSetting.Column("cf001")));
+
+    // lossy = true so ignore bad value
+    TypedValueCombiner.setLossyness(iteratorSetting, true);
+    assertTrue(summingArrayCombiner.validateOptions(iteratorSetting.getOptions()));
+
+    summingArrayCombiner.init(new SortedMapIterator(tm1), iteratorSetting.getOptions(), SCAN_IE);
+    summingArrayCombiner.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    assertTrue(summingArrayCombiner.hasTop());
+    assertEquals(newKey(1, 1, 1, 3), summingArrayCombiner.getTopKey());
+    assertBytesEqual(encoder.encode(nal(3l, 4l, 5l)), summingArrayCombiner.getTopValue().get());
+
+    summingArrayCombiner.next();
+
+    assertFalse(summingArrayCombiner.hasTop());
+
+    // lossy = false throw error for bad value
+    TypedValueCombiner.setLossyness(iteratorSetting, false);
+    assertTrue(summingArrayCombiner.validateOptions(iteratorSetting.getOptions()));
+
+    summingArrayCombiner.init(new SortedMapIterator(tm1), iteratorSetting.getOptions(), SCAN_IE);
+    try {
+      summingArrayCombiner.seek(new Range(), EMPTY_COL_FAMS, false);
+      Assert.fail("ValueFormatException should have been thrown");
+    } catch (ValueFormatException e) {}
   }
 }

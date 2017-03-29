@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
+import org.apache.commons.lang.math.NumberUtils;
 
 public class FirstEntryInRowIterator extends SkippingIterator implements OptionDescriber {
 
@@ -75,7 +76,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   // this is only ever called immediately after getting "next" entry
   @Override
   protected void consume() throws IOException {
-    if (finished == true || lastRowFound == null)
+    if (finished || lastRowFound == null)
       return;
     int count = 0;
     while (getSource().hasTop() && lastRowFound.equals(getSource().getTopKey().getRow())) {
@@ -139,13 +140,9 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    try {
-      String o = options.get(NUM_SCANS_STRING_NAME);
-      if (o != null)
-        Integer.parseInt(o);
-    } catch (Exception e) {
-      throw new IllegalArgumentException("bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME), e);
-    }
+    String o = options.get(NUM_SCANS_STRING_NAME);
+    if (o != null && !NumberUtils.isNumber(o))
+      throw new IllegalArgumentException("bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME));
     return true;
   }
 
