@@ -73,7 +73,7 @@ function start_service() {
   rotate_log "$outfile"
   rotate_log "$errfile"
 
-  nohup "${bin}/accumulo" "$service" "${extra_args[@]}" >"$outfile" 2>"$errfile" < /dev/null &
+  nohup "${bin}/accumulo" "$service" >"$outfile" 2>"$errfile" < /dev/null &
   echo "$!" > "${pid_file}"
 
   # Check the max open files limit and selectively warn
