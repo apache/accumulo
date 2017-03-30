@@ -16,7 +16,12 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,8 +37,8 @@ import org.slf4j.LoggerFactory;
  * An {@link AccumuloConfiguration} which loads properties from an XML file, usually accumulo-site.xml. This implementation supports defaulting undefined
  * property values to a parent configuration's definitions.
  * <p>
- * The system property "org.apache.accumulo.config.file" can be used to specify the location of the XML configuration file on the classpath. If the system
- * property is not defined, it defaults to "accumulo-site.xml".
+ * The system property "accumulo.configuration" can be used to specify the location of the XML configuration file on the classpath or filesystem if the path is
+ * prefixed with 'file://'. If the system property is not defined, it defaults to "accumulo-site.xml" and will look on classpath for file.
  * <p>
  * This class is a singleton.
  * <p>
@@ -94,14 +99,30 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   synchronized private static Configuration getXmlConfig() {
-    String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
     if (xmlConfig == null) {
       xmlConfig = new Configuration(false);
-
-      if (SiteConfiguration.class.getClassLoader().getResource(configFile) == null)
-        log.warn(configFile + " not found on classpath", new Throwable());
-      else
-        xmlConfig.addResource(configFile);
+      String configFile = System.getProperty("accumulo.configuration", "accumulo-site.xml");
+      if (configFile.startsWith("file://")) {
+        try {
+          File f = new File(new URI(configFile));
+          if (f.exists() && !f.isDirectory()) {
+            xmlConfig.addResource(f.toURI().toURL());
+            log.info("Loaded configuration from filesystem at {}", configFile);
+          } else {
+            log.warn("Failed to load Accumulo configuration from " + configFile, new Throwable());
+          }
+        } catch (MalformedURLException | URISyntaxException e) {
+          log.warn("Failed to load Accumulo configuration from " + configFile, e);
+        }
+      } else {
+        URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
+        if (accumuloConfigUrl == null) {
+          log.warn("Accumulo configuration '" + configFile + "' is not on classpath", new Throwable());
+        } else {
+          xmlConfig.addResource(accumuloConfigUrl);
+          log.info("Loaded configuration from classpath at {}", accumuloConfigUrl.getFile());
+        }
+      }
     }
     return xmlConfig;
   }

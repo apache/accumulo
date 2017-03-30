@@ -355,7 +355,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       confMap.putAll(config.getSiteConfig());
       confMap.putAll(configOverrides);
       writeConfig(siteFile, confMap.entrySet());
-      jvmOpts.add("-Dorg.apache.accumulo.config.file=" + siteFile.getName());
+      jvmOpts.add("-Daccumulo.configuration=" + siteFile.getName());
     }
 
     if (config.isJDWPEnabled()) {

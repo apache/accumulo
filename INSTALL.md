@@ -31,7 +31,7 @@ to manage Accumulo:
 1. `accumulo` - Runs Accumulo command-line tools and starts Accumulo processes
 2. `accumulo-service` - Runs Accumulo processes as services
 3. `accumulo-cluster` - Manages Accumulo cluster on a single node or several nodes
-4. `accumulo-util` - Accumulo utilities for creating configuration, native libraries, etc.
+4. `accumulo-util` - Accumulo utilities for building native libraries, running jars, etc.
 
 These scripts will be used in the remaining instructions to configure and run Accumulo.
 For convenience, consider adding `accumulo-X.Y.Z/bin/` to your shell's path.
@@ -62,7 +62,7 @@ Follow the steps below to configure `accumulo-env.sh`:
 
 1. Set `HADOOP_PREFIX` and `ZOOKEEPER_HOME` to the location of your Hadoop and Zookeeper
    installations. Accumulo will use these locations to find Hadoop and Zookeeper jars and add
-   them to your `CLASSPATH` variable.  If you you are running a vendor-specific release of
+   them to your `CLASSPATH` variable. If you you are running a vendor-specific release of
    Hadoop or Zookeeper, you may need to modify how the `CLASSPATH` variable is built in
    `accumulo-env.sh`. If Accumulo has problems loading classes when you start it, run 
    `accumulo classpath -d` to debug and print Accumulo's classpath.
@@ -193,4 +193,3 @@ When finished, use the following commands to stop Accumulo:
 [5]: https://code.google.com/p/pdsh/
 [6]: https://code.google.com/p/parallel-ssh/
 [7]: https://www.google.com/search?q=hadoop+passwordless+ssh&ie=utf-8&oe=utf-8
-

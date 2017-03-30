@@ -647,7 +647,7 @@ public class MiniAccumuloConfigImpl {
 
     this.existingInstance = Boolean.TRUE;
 
-    System.setProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
+    System.setProperty("accumulo.configuration", "accumulo-site.xml");
     this.hadoopConfDir = hadoopConfDir;
     hadoopConf = new Configuration(false);
     accumuloConf = new Configuration(false);
