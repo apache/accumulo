@@ -29,10 +29,10 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SkippingIterator;
+import org.apache.accumulo.core.iterators.ServerSkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-public class ColumnFamilySkippingIterator extends SkippingIterator implements InterruptibleIterator {
+public class ColumnFamilySkippingIterator extends ServerSkippingIterator implements InterruptibleIterator {
 
   protected Set<ByteSequence> colFamSet = null;
   protected TreeSet<ByteSequence> sortedColFams = null;
@@ -41,7 +41,7 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
   protected Range range;
 
   public ColumnFamilySkippingIterator(SortedKeyValueIterator<Key,Value> source) {
-    this.setSource(source);
+    super(source);
   }
 
   protected ColumnFamilySkippingIterator(SortedKeyValueIterator<Key,Value> source, Set<ByteSequence> colFamSet, boolean inclusive) {
@@ -55,33 +55,33 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
     int count = 0;
 
     if (inclusive)
-      while (getSource().hasTop() && !colFamSet.contains(getSource().getTopKey().getColumnFamilyData())) {
+      while (source.hasTop() && !colFamSet.contains(source.getTopKey().getColumnFamilyData())) {
         if (count < 10) {
           // it is quicker to call next if we are close, but we never know if we are close
           // so give next a try a few times
-          getSource().next();
+          source.next();
           count++;
         } else {
-          ByteSequence higherCF = sortedColFams.higher(getSource().getTopKey().getColumnFamilyData());
+          ByteSequence higherCF = sortedColFams.higher(source.getTopKey().getColumnFamilyData());
           if (higherCF == null) {
             // seek to the next row
-            reseek(getSource().getTopKey().followingKey(PartialKey.ROW));
+            reseek(source.getTopKey().followingKey(PartialKey.ROW));
           } else {
             // seek to the next column family in the sorted list of column families
-            reseek(new Key(getSource().getTopKey().getRowData().toArray(), higherCF.toArray(), new byte[0], new byte[0], Long.MAX_VALUE));
+            reseek(new Key(source.getTopKey().getRowData().toArray(), higherCF.toArray(), new byte[0], new byte[0], Long.MAX_VALUE));
           }
 
           count = 0;
         }
       }
     else if (colFamSet != null && colFamSet.size() > 0)
-      while (getSource().hasTop() && colFamSet.contains(getSource().getTopKey().getColumnFamilyData())) {
+      while (source.hasTop() && colFamSet.contains(source.getTopKey().getColumnFamilyData())) {
         if (count < 10) {
-          getSource().next();
+          source.next();
           count++;
         } else {
           // seek to the next column family in the data
-          reseek(getSource().getTopKey().followingKey(PartialKey.ROW_COLFAM));
+          reseek(source.getTopKey().followingKey(PartialKey.ROW_COLFAM));
           count = 0;
         }
       }
@@ -90,16 +90,16 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
   private void reseek(Key key) throws IOException {
     if (range.afterEndKey(key)) {
       range = new Range(range.getEndKey(), true, range.getEndKey(), range.isEndKeyInclusive());
-      getSource().seek(range, colFamSet, inclusive);
+      source.seek(range, colFamSet, inclusive);
     } else {
       range = new Range(key, true, range.getEndKey(), range.isEndKeyInclusive());
-      getSource().seek(range, colFamSet, inclusive);
+      source.seek(range, colFamSet, inclusive);
     }
   }
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new ColumnFamilySkippingIterator(getSource().deepCopy(env), colFamSet, inclusive);
+    return new ColumnFamilySkippingIterator(source.deepCopy(env), colFamSet, inclusive);
   }
 
   @Override
@@ -125,7 +125,7 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
 
   @Override
   public void setInterruptFlag(AtomicBoolean flag) {
-    ((InterruptibleIterator) getSource()).setInterruptFlag(flag);
+    ((InterruptibleIterator) source).setInterruptFlag(flag);
   }
 
 }
