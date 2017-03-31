@@ -746,50 +746,45 @@ public class RFile {
     @Override
     public void next() throws IOException {
       try {
-        _next();
+        if (!hasTop)
+          throw new IllegalStateException();
+
+        if (entriesLeft == 0) {
+          currBlock.close();
+          if (metricsGatherer != null)
+            metricsGatherer.startBlock();
+
+          if (iiter.hasNext()) {
+            IndexEntry indexEntry = iiter.next();
+            entriesLeft = indexEntry.getNumEntries();
+            currBlock = getDataBlock(indexEntry);
+
+            checkRange = range.afterEndKey(indexEntry.getKey());
+            if (!checkRange)
+              hasTop = true;
+
+          } else {
+            rk = null;
+            val = null;
+            hasTop = false;
+            return;
+          }
+        }
+
+        prevKey = rk.getKey();
+        rk.readFields(currBlock);
+        val.readFields(currBlock);
+
+        if (metricsGatherer != null)
+          metricsGatherer.addMetric(rk.getKey(), val);
+
+        entriesLeft--;
+        if (checkRange)
+          hasTop = !range.afterEndKey(rk.getKey());
       } catch (IOException ioe) {
         reset();
         throw ioe;
       }
-    }
-
-    private void _next() throws IOException {
-
-      if (!hasTop)
-        throw new IllegalStateException();
-
-      if (entriesLeft == 0) {
-        currBlock.close();
-        if (metricsGatherer != null)
-          metricsGatherer.startBlock();
-
-        if (iiter.hasNext()) {
-          IndexEntry indexEntry = iiter.next();
-          entriesLeft = indexEntry.getNumEntries();
-          currBlock = getDataBlock(indexEntry);
-
-          checkRange = range.afterEndKey(indexEntry.getKey());
-          if (!checkRange)
-            hasTop = true;
-
-        } else {
-          rk = null;
-          val = null;
-          hasTop = false;
-          return;
-        }
-      }
-
-      prevKey = rk.getKey();
-      rk.readFields(currBlock);
-      val.readFields(currBlock);
-
-      if (metricsGatherer != null)
-        metricsGatherer.addMetric(rk.getKey(), val);
-
-      entriesLeft--;
-      if (checkRange)
-        hasTop = !range.afterEndKey(rk.getKey());
     }
 
     private ABlockReader getDataBlock(IndexEntry indexEntry) throws IOException {

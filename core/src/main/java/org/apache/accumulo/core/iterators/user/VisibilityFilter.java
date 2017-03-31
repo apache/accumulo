@@ -22,21 +22,30 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
+import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.commons.collections.map.LRUMap;
-import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 /**
  *
  */
-public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.VisibilityFilter {
+public class VisibilityFilter extends Filter implements OptionDescriber {
+
+  protected VisibilityEvaluator ve;
+  protected LRUMap cache;
+
+  private static final Logger log = Logger.getLogger(VisibilityFilter.class);
 
   private static final String AUTHS = "auths";
   private static final String FILTER_INVALID_ONLY = "filterInvalid";
@@ -46,9 +55,7 @@ public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.
   /**
    *
    */
-  public VisibilityFilter() {
-    super();
-  }
+  public VisibilityFilter() {}
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
@@ -60,29 +67,45 @@ public class VisibilityFilter extends org.apache.accumulo.core.iterators.system.
       String auths = options.get(AUTHS);
       Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations() : new Authorizations(auths.getBytes(UTF_8));
       this.ve = new VisibilityEvaluator(authObj);
-      this.defaultVisibility = new Text();
     }
     this.cache = new LRUMap(1000);
-    this.tmpVis = new Text();
   }
 
   @Override
   public boolean accept(Key k, Value v) {
+    ByteSequence testVis = k.getColumnVisibilityData();
     if (filterInvalid) {
-      Text testVis = k.getColumnVisibility(tmpVis);
       Boolean b = (Boolean) cache.get(testVis);
       if (b != null)
         return b;
       try {
-        new ColumnVisibility(testVis);
-        cache.put(new Text(testVis), true);
+        new ColumnVisibility(testVis.toArray());
+        cache.put(testVis, true);
         return true;
       } catch (BadArgumentException e) {
-        cache.put(new Text(testVis), false);
+        cache.put(testVis, false);
         return false;
       }
     } else {
-      return super.accept(k, v);
+      if (testVis.length() == 0) {
+        return true;
+      }
+
+      Boolean b = (Boolean) cache.get(testVis);
+      if (b != null)
+        return b;
+
+      try {
+        Boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
+        cache.put(testVis, bb);
+        return bb;
+      } catch (VisibilityParseException e) {
+        log.error("Parse Error", e);
+        return false;
+      } catch (BadArgumentException e) {
+        log.error("Parse Error", e);
+        return false;
+      }
     }
   }
 

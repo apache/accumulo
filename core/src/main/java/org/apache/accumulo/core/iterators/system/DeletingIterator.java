@@ -27,10 +27,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.ServerWrappingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.WrappingIterator;
 
-public class DeletingIterator extends WrappingIterator {
+public class DeletingIterator extends ServerWrappingIterator {
   private boolean propogateDeletes;
   private Key workKey = new Key();
 
@@ -40,23 +40,21 @@ public class DeletingIterator extends WrappingIterator {
   }
 
   public DeletingIterator(DeletingIterator other, IteratorEnvironment env) {
-    setSource(other.getSource().deepCopy(env));
+    super(other.source.deepCopy(env));
     propogateDeletes = other.propogateDeletes;
   }
 
-  public DeletingIterator() {}
-
   public DeletingIterator(SortedKeyValueIterator<Key,Value> iterator, boolean propogateDeletes) throws IOException {
-    this.setSource(iterator);
+    super(iterator);
     this.propogateDeletes = propogateDeletes;
   }
 
   @Override
   public void next() throws IOException {
-    if (super.getTopKey().isDeleted())
+    if (source.getTopKey().isDeleted())
       skipRowColumn();
     else
-      getSource().next();
+      source.next();
     findTop();
   }
 
@@ -65,11 +63,11 @@ public class DeletingIterator extends WrappingIterator {
     // do not want to seek to the middle of a row
     Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
 
-    super.seek(seekRange, columnFamilies, inclusive);
+    source.seek(seekRange, columnFamilies, inclusive);
     findTop();
 
     if (range.getStartKey() != null) {
-      while (getSource().hasTop() && getSource().getTopKey().compareTo(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) < 0) {
+      while (source.hasTop() && source.getTopKey().compareTo(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) < 0) {
         next();
       }
 
@@ -81,20 +79,20 @@ public class DeletingIterator extends WrappingIterator {
 
   private void findTop() throws IOException {
     if (!propogateDeletes) {
-      while (getSource().hasTop() && getSource().getTopKey().isDeleted()) {
+      while (source.hasTop() && source.getTopKey().isDeleted()) {
         skipRowColumn();
       }
     }
   }
 
   private void skipRowColumn() throws IOException {
-    workKey.set(getSource().getTopKey());
+    workKey.set(source.getTopKey());
 
     Key keyToSkip = workKey;
-    getSource().next();
+    source.next();
 
-    while (getSource().hasTop() && getSource().getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
-      getSource().next();
+    while (source.hasTop() && source.getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
+      source.next();
     }
   }
 
