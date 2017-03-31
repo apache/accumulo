@@ -133,9 +133,8 @@ xmlhttp.onreadystatechange = function() {
   handleNewData();
 };
 
-function refresh() {
-  self.setInterval('getXML()', 5000);
-}
+self.setInterval('getXML()', 5000);
+
 //self.setInterval('drawDots()',20);
 
 window.requestAnimFrame = (function(callback) {

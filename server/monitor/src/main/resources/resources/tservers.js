@@ -40,13 +40,10 @@ function refreshTServers() {
 }
 
 /**
- * Used to set the refresh interval to 5 seconds
+ * Used to redraw the page
  */
 function refresh() {
-  clearInterval(TIMER);
-  if (sessionStorage.autoRefresh == 'true') {
-    TIMER = setInterval('refreshTServers()', 5000);
-  }
+  refreshTServers();
 }
 
 /**

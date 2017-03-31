@@ -36,16 +36,11 @@ function refreshSidebar() {
   refreshSideBarNotifications();
 }
 
-var timer;
 /**
- * Used to set the refresh interval to 5 seconds
+ * Used to redraw the navbar
  */
 function refreshNavBar() {
-  if (sessionStorage.autoRefresh == 'true') {
-    timer = setInterval('refreshSidebar()', 5000);
-  } else {
-    clearInterval(timer);
-  }
+  refreshSidebar();
 }
 
 /**

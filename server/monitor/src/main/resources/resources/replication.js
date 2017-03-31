@@ -38,13 +38,10 @@ function refreshReplication() {
 }
 
 /**
- * Used to set the refresh interval to 5 seconds
+ * Used to redraw the page
  */
 function refresh() {
-  clearInterval(TIMER);
-  if (sessionStorage.autoRefresh == 'true') {
-    TIMER = setInterval('refreshReplication()', 5000);
-  }
+  refreshReplication();
 }
 
 /**

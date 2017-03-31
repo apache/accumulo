@@ -30,13 +30,10 @@ function refreshTraceShow() {
 }
 
 /**
- * Used to set the refresh interval to 5 seconds
+ * Used to redraw the page
  */
 function refresh() {
-  clearInterval(TIMER);
-  if (sessionStorage.autoRefresh == 'true') {
-    TIMER = setInterval('refreshTraceShow()', 5000);
-  }
+  refreshTraceShow();
 }
 
 /**

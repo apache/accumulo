@@ -52,13 +52,10 @@ function refreshOverview() {
 }
 
 /**
- * Used to set the refresh interval to 10 seconds
+ * Used to redraw the page
  */
 function refresh() {
-  clearInterval(TIMER);
-  if (sessionStorage.autoRefresh == 'true') {
-    TIMER = setInterval('refreshOverview()', 10000);
-  }
+  refreshOverview();
 }
 
 /**

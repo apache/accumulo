@@ -21,21 +21,20 @@ var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 var SIZE_SUFFIX = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'];
 
 /**
- * Toggles Auto Refresh, and creates listeners for auto refresh
+ * Initializes Auto Refresh to false if it is not set,
+ * and creates listeners for auto refresh
  */
 function setupAutoRefresh() {
   // Sets auto refresh to true or false
   if (!sessionStorage.autoRefresh) {
     sessionStorage.autoRefresh = 'false';
   }
+  // Need this to set the initial value for the autorefresh on page load
   if (sessionStorage.autoRefresh == 'false') {
     $('.auto-refresh').parent().removeClass('active');
   } else {
     $('.auto-refresh').parent().addClass('active');
   }
-  refresh();
-  refreshNavBar();
-
   // Initializes the auto refresh on click listener
   $('.auto-refresh').click(function(e) {
     if ($(this).parent().attr('class') == 'active') {
@@ -45,9 +44,26 @@ function setupAutoRefresh() {
       $(this).parent().addClass('active');
       sessionStorage.autoRefresh = 'true';
     }
+  });
+}
+
+/**
+ * Global timer that checks for auto refresh status every 5 seconds
+ */
+TIMER = setInterval(function() {
+  if (sessionStorage.autoRefresh == 'true') {
+    $('.auto-refresh').parent().addClass('active');
     refresh();
     refreshNavBar();
-  });
+  } else {
+    $('.auto-refresh').parent().removeClass('active');
+  }
+}, 5000);
+
+/**
+ * Empty function in case there is no refresh implementation
+ */
+function refresh() {
 }
 
 /**

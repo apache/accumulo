@@ -38,17 +38,15 @@ function refreshTables() {
 }
 
 /**
- * Used to set the refresh interval to 5 seconds
+ * Used to redraw the page
  */
 function refresh() {
-  clearInterval(TIMER);
-  if (sessionStorage.autoRefresh == 'true' && !hasMaster) {
-    TIMER = setInterval('refreshTables()', 5000);
-  } else if (sessionStorage.autoRefresh == 'true' && hasMaster) {
-    TIMER = setInterval(function() {
-      refreshMaster();
-      refreshTables();
-    },  5000);
+  // If tables are in master page, refresh master and tables
+  if (!hasMaster) {
+    refreshTables();
+  } else {
+    refreshMaster();
+    refreshTables();
   }
 }
 

@@ -46,13 +46,10 @@ function refreshMaster() {
  * If tables are removed from Master, uncomment this function
  */
 /**
- * Used to set the refresh interval to 5 seconds
+ * Used to redraw the page
  */
 /*function refresh() {
-  clearInterval(TIMER);
-  if (sessionStorage.autoRefresh == 'true') {
-    TIMER = setInterval('refreshMaster()', 5000);
-  }
+  refreshMaster();
 }*/
 
 /**

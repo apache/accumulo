@@ -30,13 +30,10 @@ function refreshSummary() {
 }
 
 /**
- * Used to set the refresh interval to 5 seconds
+ * Used to redraw the page
  */
 function refresh() {
-  clearInterval(TIMER);
-  if (sessionStorage.autoRefresh == 'true') {
-    TIMER = setInterval('refreshSummary()', 5000);
-  }
+  refreshSummary();
 }
 
 /**
