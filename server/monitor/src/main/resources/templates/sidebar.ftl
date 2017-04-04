@@ -64,7 +64,7 @@
               </a>
               <ul class="dropdown-menu">
                 <li><a href="/xml">XML</a></li>
-                <li><a href="/rest/json">JSON</a></li>
+                <li><a href="/rest/tservers">JSON</a></li>
               </ul>
             </li>
             <#if is_ssl>

@@ -42,61 +42,71 @@ function refresh() {
 function refreshTraceShowTable() {
   clearTable('trace');
   $('#trace caption span span').remove();
-  var data = JSON.parse(sessionStorage.traceShow);
+  var data = sessionStorage.traceShow === undefined ?
+      [] : JSON.parse(sessionStorage.traceShow);
 
-  var date = new Date(data.start);
-  $('#caption').append('<span>' + date.toLocaleString() + '</span>');
+  if (data.traces.length !== 0) {
+    var date = new Date(data.start);
+    $('#caption').append('<span>' + date.toLocaleString() + '</span>');
 
-  $.each(data.traces, function(key, val) {
-    var id = val.spanID.toString(16);
-    var items = [];
+    $.each(data.traces, function(key, val) {
+      var id = val.spanID.toString(16);
+      var items = [];
 
-    items.push('<tr>');
-    items.push('<td class="right">' + val.time + '+</td>');
-    items.push('<td class="left">' + val.start + '</td>');
-    items.push('<td style="text-indent: ' + val.level + '0px">' +
-        val.location + '</td>');
-    items.push('<td>' + val.name + '</td>');
+      items.push('<tr>');
+      items.push('<td class="right">' + val.time + '+</td>');
+      items.push('<td class="left">' + val.start + '</td>');
+      items.push('<td style="text-indent: ' + val.level + '0px">' +
+          val.location + '</td>');
+      items.push('<td>' + val.name + '</td>');
 
-    if (val.addlData.data.length !== 0 ||
-        val.addlData.annotations.length !== 0) {
+      if (val.addlData.data.length !== 0 ||
+          val.addlData.annotations.length !== 0) {
 
-      items.push('<td><input type="checkbox" id="' + id +
-          '_checkbox" onclick="toggle(\'' + id + '\')"></td>');
+        items.push('<td><input type="checkbox" id="' + id +
+            '_checkbox" onclick="toggle(\'' + id + '\')"></td>');
+        items.push('</tr>');
+        items.push('<tr id="' + id + '" style="display:none">');
+        items.push('<td colspan="5">');
+        items.push('<table class="table table-bordered table-striped' +
+            ' table-condensed">');
+
+        if (val.addlData.data.length !== 0) {
+          items.push('<tr><th>Key</th><th>Value</th></tr>');
+
+          $.each(val.addlData.data, function(key2, val2) {
+            items.push('<tr><td>' + val2.key + '</td><td>' + val2.value +
+                '</td></tr>');
+          });
+        }
+
+        if (val.addlData.annotations.length !== 0) {
+          items.push('<tr><th>Annotation</th><th>Time Offset</th></tr>');
+
+          $.each(val.addlData.annotations, function(key2, val2) {
+            items.push('<tr><td>' + val2.annotation + '</td><td>' + val2.time +
+                '</td></tr>');
+          });
+        }
+
+        items.push('</table>');
+        items.push('</td>');
+      } else {
+        items.push('<td></td>');
+      }
+
       items.push('</tr>');
-      items.push('<tr id="' + id + '" style="display:none">');
-      items.push('<td colspan="5">');
-      items.push('<table class="table table-bordered table-striped' +
-          ' table-condensed">');
 
-      if (val.addlData.data.length !== 0) {
-        items.push('<tr><th>Key</th><th>Value</th></tr>');
-
-        $.each(val.addlData.data, function(key2, val2) {
-          items.push('<tr><td>' + val2.key + '</td><td>' + val2.value +
-              '</td></tr>');
-        });
-      }
-
-      if (val.addlData.annotations.length !== 0) {
-        items.push('<tr><th>Annotation</th><th>Time Offset</th></tr>');
-
-        $.each(val.addlData.annotations, function(key2, val2) {
-          items.push('<tr><td>' + val2.annotation + '</td><td>' + val2.time +
-              '</td></tr>');
-        });
-      }
-
-      items.push('</table>');
-      items.push('</td>');
-    } else {
-      items.push('<td></td>');
-    }
-
-    items.push('</tr>');
-
-    $('#trace').append(items.join(''));
-  });
+      $('#trace').append(items.join(''));
+    });
+  } else {
+      var items = [];
+      items.push('<tr>');
+      items.push('<td class="center" colspan="5"><i>No trace information for ID ' +
+      id + '</i></td>');
+      items.push('</tr>');
+      $('#trace').append(items.join(''));
+  }
 
 }
 

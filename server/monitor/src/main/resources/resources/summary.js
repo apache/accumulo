@@ -44,9 +44,10 @@ function refresh() {
 function refreshTraceSummaryTable(minutes) {
   clearTable('traceSummary');
 
-  var data = JSON.parse(sessionStorage.traceSummary);
+  var data = sessionStorage.traceSummary === undefined ?
+      [] : JSON.parse(sessionStorage.traceSummary);
 
-  if (data.recentTraces.length === 0) {
+  if (data.length === 0 || data.recentTraces.length === 0) {
     var items = [];
     items.push('<td class="center" colspan="6"><i>No traces in the last ' +
         minutes + ' minute(s)</i></td>');
