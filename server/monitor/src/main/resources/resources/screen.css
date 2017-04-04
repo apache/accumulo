@@ -96,9 +96,12 @@ html,body {
   /*left: 11em;*/
   left: 0;
   right: 0;
-  bottom: 1.5em;
+  bottom: 0;
   padding: 0.6em;
   /*overflow: scroll;*/
+  margin-left: auto;
+  margin-right: auto;
+  width: 90%;
 }
 
 #nav {
@@ -163,15 +166,15 @@ hr {
 }
 
 table {
-  margin-left: auto;
+  /*margin-left: auto;
   margin-right: auto;
-  min-width: 60%;
-  border: 1px #333333 solid;
+  min-width: 60%;*/
+  /*border: 1px #333333 solid;
   border-spacing-top: 0;
-  border-spacing-bottom: 0;
+  border-spacing-bottom: 0;*/
   font-size: 9pt;
-  border: 1px #333333 solid;
-  border: 1px #333333 solid;
+  /*border: 1px #333333 solid;
+  border: 1px #333333 solid;*/
 }
 
 /*
@@ -289,8 +292,26 @@ pre.logevent {
   border-right: 0;
 }
 
-.noborder td {
+.overview-table {
+    width: 100%;
+    border: 0;
+    border-spacing: 0;
+    border-bottom: 0;
+    border-right: 0;
+}
+
+.overview-table td {
   vertical-align: top;
+  width: 50%;
+}
+
+/**
+ * Need this to only apply the previous CSS to the top child
+ * could probably do a selector
+ */
+.overview-table td td {
+  vertical-align: inherit;
+  width: 0;
 }
 
 .table-caption {
@@ -440,7 +461,7 @@ pre.logevent {
 }
 
 .center-block {
-  width: 80%;
+  width: 100%;
 }
 
 .nav-pills > li > a {

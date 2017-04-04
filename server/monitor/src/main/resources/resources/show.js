@@ -89,6 +89,8 @@ function refreshTraceShowTable() {
 
       items.push('</table>');
       items.push('</td>');
+    } else {
+      items.push('<td></td>');
     }
 
     items.push('</tr>');

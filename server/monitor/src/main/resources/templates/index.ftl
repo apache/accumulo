@@ -62,7 +62,7 @@
           <#include "/templates/sidebar.ftl">
         </div>
 
-        <div id="main" style="bottom:0">
+        <div id="main">
           <#include "/templates/${template}">
           
         </div>

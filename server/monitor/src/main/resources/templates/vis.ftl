@@ -26,13 +26,13 @@
             &nbsp;&nbsp;
             <span class="viscontrol">Color: <select id="color" onchange="setColor(this)"></select></span>
           </div>
+          <br>
+          <span>Hover for info, click for details</span>
           <div id="hoverable">
             <div id="vishoverinfo"></div>
-            <br />
+            <br>
             <canvas id="visCanvas" width="640" height="640">Browser does not support canvas.</canvas>
           </div>
-          <br />
-          <span>Hover for info, click for details</span>
         </div>
       </div>
       
