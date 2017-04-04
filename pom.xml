@@ -120,6 +120,7 @@
     <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
     <bouncycastle.version>1.54</bouncycastle.version>
+    <commons.httpclient.version>3.1</commons.httpclient.version>
     <!-- Curator version -->
     <curator.version>2.11.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -133,7 +134,7 @@
     <forkCount>1</forkCount>
     <hadoop.version>2.6.4</hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
-    <httpclient.version>3.1</httpclient.version>
+    <httpclient.version>4.3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- jetty 9.2 is the last version to support jdk less than 1.8 -->
     <jetty.version>9.2.17.v20160517</jetty.version>
@@ -213,7 +214,7 @@
       <dependency>
         <groupId>commons-httpclient</groupId>
         <artifactId>commons-httpclient</artifactId>
-        <version>${httpclient.version}</version>
+        <version>${commons.httpclient.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -422,7 +423,7 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>4.3.1</version>
+        <version>${httpclient.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
@@ -515,6 +516,11 @@
         <version>${jetty.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest-core</artifactId>
+        <version>1.3</version>
+      </dependency>
+      <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-api-easymock</artifactId>
         <version>${powermock.version}</version>
@@ -548,6 +554,11 @@
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-nop</artifactId>
         <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>xml-apis</groupId>
+        <artifactId>xml-apis</artifactId>
+        <version>1.3.04</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -839,6 +850,40 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <goals>
+              <goal>analyze-only</goal>
+            </goals>
+            <configuration>
+              <failOnWarning>true</failOnWarning>
+              <ignoredUsedUndeclaredDependencies>
+                <!-- used/undeclared child jars brought in by parents below -->
+                <usedUndeclaredDependency>org.apache.curator:curator-client:jar:${curator.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.hadoop:hadoop-common:jar:${hadoop.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.hadoop:hadoop-hdfs:*:${hadoop.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.hadoop:hadoop-mapreduce-client-core:jar:${hadoop.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.hadoop:hadoop-auth:jar:${hadoop.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.powermock:powermock-core:jar:${powermock.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:${powermock.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
+              </ignoredUsedUndeclaredDependencies>
+              <ignoredUnusedDeclaredDependencies>
+                <!-- unused/declared parent jars that bring in children. slf4j-log4j12 provides implementation -->
+                <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:${hadoop.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.hadoop:hadoop-minicluster:jar:${hadoop.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:${powermock.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.slf4j:slf4j-log4j12:jar:${slf4j.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.httpcomponents:httpclient:jar:${httpclient.version}</unusedDeclaredDependency>
+              </ignoredUnusedDeclaredDependencies>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
