@@ -46,7 +46,7 @@ $ accumulo shell --fake -u root -p ''
 
 Shell - Apache Accumulo Interactive Shell
 -
-- version: 1.6
+- version: 2.x.x
 - instance name: fake
 - instance id: mock-instance-id
 -

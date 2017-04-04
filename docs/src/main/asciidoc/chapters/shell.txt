@@ -27,12 +27,13 @@ and then display the following prompt:
 
   Shell - Apache Accumulo Interactive Shell
   -
-  - version 1.6
+  - version: 2.x.x
   - instance name: myinstance
   - instance id: 00000000-0000-0000-0000-000000000000
   -
   - type 'help' for a list of available commands
   -
+  root@myinstance>
 
 === Basic Administration
 
