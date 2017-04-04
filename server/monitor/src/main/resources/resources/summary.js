@@ -49,7 +49,7 @@ function refreshTraceSummaryTable(minutes) {
 
   if (data.length === 0 || data.recentTraces.length === 0) {
     var items = [];
-    items.push('<td class="center" colspan="6"><i>No traces in the last ' +
+    items.push('<td class="center" colspan="6"><i>No traces available for the last ' +
         minutes + ' minute(s)</i></td>');
     $('<tr/>', {
       html: items.join('')
