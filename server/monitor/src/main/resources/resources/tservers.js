@@ -54,6 +54,7 @@ function refreshBadTServersTable() {
       [] : JSON.parse(sessionStorage.tservers);
 
   $('#badtservers tr').remove();
+  $('#badtservers caption').remove();
 
   if (data.length === 0 || data.badServers.length === 0) {
 
@@ -106,6 +107,7 @@ function refreshDeadTServersTable() {
       [] : JSON.parse(sessionStorage.tservers);
 
   $('#deadtservers tr').remove();
+  $('#deadtservers caption').remove();
 
   if (data.length === 0 || data.deadServers.length === 0) {
 
