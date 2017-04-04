@@ -128,7 +128,7 @@ public class TabletServerResource extends BasicResource {
         for (RecoveryStatus recovery : server.logSorts) {
           recoveryObj.put("server", AddressUtil.parseAddress(server.name, false).getHostText());
           recoveryObj.put("log", recovery.name);
-          recoveryObj.put("time", Long.toString((long) recovery.runtime));
+          recoveryObj.put("time", Long.toString(recovery.runtime));
           recoveryObj.put("copySort", Double.toString(recovery.progress));
 
           recoveryList.add(recoveryObj);

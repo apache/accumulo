@@ -22,13 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
-import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -47,9 +47,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.api.BasicResource;
-import org.apache.accumulo.monitor.servlets.trace.NullScanner;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tracer.SpanTree;
@@ -79,22 +79,22 @@ public class TracesResource extends BasicResource {
    */
   @Path("/summary/{minutes}")
   @GET
-  public RecentTracesList getTraces(@PathParam("minutes") int minutes) throws Exception {
+  public RecentTracesList getTraces(@DefaultValue("10") @PathParam("minutes") int minutes) throws Exception {
 
     RecentTracesList recentTraces = new RecentTracesList();
 
-    Entry<Scanner,UserGroupInformation> pair = getScanner();
-    final Scanner scanner = pair.getKey();
+    Pair<Scanner,UserGroupInformation> pair = getScanner();
+    final Scanner scanner = pair.getFirst();
     if (scanner == null) {
-      return null;
+      return recentTraces;
     }
 
     Range range = getRangeForTrace(minutes);
     scanner.setRange(range);
 
     final Map<String,RecentTracesInformation> summary = new TreeMap<>();
-    if (null != pair.getValue()) {
-      pair.getValue().doAs(new PrivilegedAction<Void>() {
+    if (null != pair.getSecond()) {
+      pair.getSecond().doAs(new PrivilegedAction<Void>() {
         @Override
         public Void run() {
           parseSpans(scanner, summary);
@@ -128,18 +128,18 @@ public class TracesResource extends BasicResource {
 
     TraceType typeTraces = new TraceType(type);
 
-    Entry<Scanner,UserGroupInformation> pair = getScanner();
-    final Scanner scanner = pair.getKey();
+    Pair<Scanner,UserGroupInformation> pair = getScanner();
+    final Scanner scanner = pair.getFirst();
     if (scanner == null) {
-      return null;
+      return typeTraces;
     }
 
     Range range = getRangeForTrace(minutes);
 
     scanner.setRange(range);
 
-    if (null != pair.getValue()) {
-      pair.getValue().doAs(new PrivilegedAction<Void>() {
+    if (null != pair.getSecond()) {
+      pair.getSecond().doAs(new PrivilegedAction<Void>() {
         @Override
         public Void run() {
           for (Entry<Key,Value> entry : scanner) {
@@ -179,10 +179,10 @@ public class TracesResource extends BasicResource {
       return null;
     }
 
-    Entry<Scanner,UserGroupInformation> entry = getScanner();
-    final Scanner scanner = entry.getKey();
+    Pair<Scanner,UserGroupInformation> entry = getScanner();
+    final Scanner scanner = entry.getFirst();
     if (scanner == null) {
-      return null;
+      return traces;
     }
 
     Range range = new Range(new Text(id));
@@ -190,8 +190,8 @@ public class TracesResource extends BasicResource {
     final SpanTree tree = new SpanTree();
     long start;
 
-    if (null != entry.getValue()) {
-      start = entry.getValue().doAs(new PrivilegedAction<Long>() {
+    if (null != entry.getSecond()) {
+      start = entry.getSecond().doAs(new PrivilegedAction<Long>() {
         @Override
         public Long run() {
           return addSpans(scanner, tree, Long.MAX_VALUE);
@@ -273,7 +273,7 @@ public class TracesResource extends BasicResource {
     }
   }
 
-  protected Entry<Scanner,UserGroupInformation> getScanner() throws AccumuloException, AccumuloSecurityException {
+  protected Pair<Scanner,UserGroupInformation> getScanner() throws AccumuloException, AccumuloSecurityException {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     final boolean saslEnabled = conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
     UserGroupInformation traceUgi = null;
@@ -343,21 +343,18 @@ public class TracesResource extends BasicResource {
       scanner = getScanner(table, principal, at);
     }
 
-    return new AbstractMap.SimpleEntry<>(scanner, traceUgi);
+    return new Pair<>(scanner, traceUgi);
   }
 
   private Scanner getScanner(String table, String principal, AuthenticationToken at) throws AccumuloException, AccumuloSecurityException {
     try {
       Connector conn = HdfsZooInstance.getInstance().getConnector(principal, at);
       if (!conn.tableOperations().exists(table)) {
-        return new NullScanner();
+        return null;
       }
-      Scanner scanner = conn.createScanner(table, conn.securityOperations().getUserAuthorizations(principal));
-      return scanner;
-    } catch (AccumuloSecurityException ex) {
+      return conn.createScanner(table, conn.securityOperations().getUserAuthorizations(principal));
+    } catch (AccumuloSecurityException | TableNotFoundException ex) {
       return null;
-    } catch (TableNotFoundException ex) {
-      return new NullScanner();
     }
   }
 

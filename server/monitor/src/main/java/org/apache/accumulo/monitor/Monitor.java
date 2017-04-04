@@ -64,8 +64,6 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.monitor.servlets.ShellServlet;
-import org.apache.accumulo.monitor.servlets.StaticWebResourcesServlet;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -84,15 +82,15 @@ import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
+import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.resource.Resource;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.mvc.MvcFeature;
 import org.glassfish.jersey.server.mvc.freemarker.FreemarkerMvcFeature;
 import org.glassfish.jersey.servlet.ServletContainer;
-import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -466,11 +464,7 @@ public class Monitor implements HighlyAvailableService {
       try {
         log.debug("Creating monitor on port " + port);
         server = new EmbeddedWebServer(hostname, port);
-        server.addServlet(StaticWebResourcesServlet.class, "/resources/*");
-        // server.addServlet(OperationServlet.class, "/op");
-        // server.addServlet(ProblemServlet.class, "/problems");
-        if (server.isUsingSsl())
-          server.addServlet(ShellServlet.class, "/shell");
+        server.addServlet(getDefaultServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/*");
         server.start();
         break;
@@ -551,13 +545,22 @@ public class Monitor implements HighlyAvailableService {
     monitorInitialized.set(true);
   }
 
+  private ServletHolder getDefaultServlet() {
+    return new ServletHolder(new DefaultServlet() {
+      private static final long serialVersionUID = 1L;
+
+      @Override
+      public Resource getResource(String pathInContext) {
+        return Resource.newClassPathResource(pathInContext);
+      }
+    });
+  }
+
   private ServletHolder getRestServlet() {
     final ResourceConfig rc = new ResourceConfig().register(FreemarkerMvcFeature.class)
         .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class)
-        .packages("org.apache.accumulo.monitor.rest").property(MvcFeature.TEMPLATE_BASE_PATH, "/templates").property(ServerProperties.TRACING, "ALL")
-        .property(ServletProperties.FILTER_STATIC_CONTENT_REGEX, "/resources/.*");
-    ServletHolder holder = new ServletHolder(new ServletContainer(rc));
-    return holder;
+        .packages("org.apache.accumulo.monitor.rest").property(MvcFeature.TEMPLATE_BASE_PATH, "/templates");
+    return new ServletHolder(new ServletContainer(rc));
   }
 
   public static class ScanStats {
@@ -848,10 +851,6 @@ public class Monitor implements HighlyAvailableService {
     }
   }
 
-  public static boolean isUsingSsl() {
-    return server.isUsingSsl();
-  }
-
   public static AccumuloServerContext getContext() {
     return context;
   }
@@ -860,4 +859,5 @@ public class Monitor implements HighlyAvailableService {
   public boolean isActiveService() {
     return monitorInitialized.get();
   }
+
 }
