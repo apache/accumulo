@@ -188,7 +188,7 @@ function refreshMasterTable() {
  *
  * @param {number} n Column number to sort by
  */
-function sortTable(n) {
+function sortMasterTable(n) {
   if (sessionStorage.tableColumnSort !== undefined &&
       sessionStorage.tableColumnSort == n &&
       sessionStorage.direction !== undefined) {
@@ -226,37 +226,37 @@ function createHeader() {
    * Adds the columns, add sortTable function on click,
    * if the column has a description, add title taken from the global.js
    */
-  items.push('<th class="firstcell" onclick="sortTable(0)" title="' +
+  items.push('<th class="firstcell" onclick="sortMasterTable(0)" title="' +
       descriptions['Master'] + '">Master&nbsp;</th>');
 
-  items.push('<th onclick="sortTable(1)" title="' +
+  items.push('<th onclick="sortMasterTable(1)" title="' +
       descriptions['# Online Tablet Servers'] +
       '">#&nbsp;Online<br />Tablet&nbsp;Servers&nbsp;</th>');
 
-  items.push('<th onclick="sortTable(2)" title="' +
+  items.push('<th onclick="sortMasterTable(2)" title="' +
       descriptions['# Total Tablet Servers'] +
       '">#&nbsp;Total<br />Tablet&nbsp;Servers&nbsp;</th>');
 
-  items.push('<th onclick="sortTable(3)" title="' +
+  items.push('<th onclick="sortMasterTable(3)" title="' +
       descriptions['Last GC'] + '">Last&nbsp;GC&nbsp;</th>');
 
-  items.push('<th onclick="sortTable(4)" title="' +
+  items.push('<th onclick="sortMasterTable(4)" title="' +
       descriptions['# Tablets'] + '">#&nbsp;Tablets&nbsp;</th>');
 
-  items.push('<th onclick="sortTable(5)">#&nbsp;Unassigned' +
+  items.push('<th onclick="sortMasterTable(5)">#&nbsp;Unassigned' +
       '<br />Tablets&nbsp;</th>');
-  items.push('<th onclick="sortTable(6)" title="' +
+  items.push('<th onclick="sortMasterTable(6)" title="' +
       descriptions['Total Entries'] + '">Entries&nbsp;</th>');
-  items.push('<th onclick="sortTable(7)" title="' +
+  items.push('<th onclick="sortMasterTable(7)" title="' +
       descriptions['Total Ingest'] + '">Ingest&nbsp;</th>');
-  items.push('<th onclick="sortTable(8)" title="' +
+  items.push('<th onclick="sortMasterTable(8)" title="' +
       descriptions['Total Entries Read'] + '">Entries<br />Read&nbsp;</th>');
-  items.push('<th onclick="sortTable(9)" title="' +
+  items.push('<th onclick="sortMasterTable(9)" title="' +
       descriptions['Total Entries Returned'] +
       '">Entries<br />Returned&nbsp;</th>');
-  items.push('<th onclick="sortTable(10)" title="' +
+  items.push('<th onclick="sortMasterTable(10)" title="' +
       descriptions['Max Hold Time'] + '">Hold&nbsp;Time&nbsp;</th>');
-  items.push('<th onclick="sortTable(11)" title="' +
+  items.push('<th onclick="sortMasterTable(11)" title="' +
       descriptions['OS Load'] + '">OS&nbsp;Load&nbsp;</th>');
 
   $('<tr/>', {
