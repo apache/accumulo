@@ -318,9 +318,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     private String tableId;
     private ExecutorService executor;
     private CountDownLatch latch;
-    private AtomicReference<Exception> exception;
+    private AtomicReference<Throwable> exception;
 
-    SplitEnv(String tableName, String tableId, ExecutorService executor, CountDownLatch latch, AtomicReference<Exception> exception) {
+    SplitEnv(String tableName, String tableId, ExecutorService executor, CountDownLatch latch, AtomicReference<Throwable> exception) {
       this.tableName = tableName;
       this.tableId = tableId;
       this.executor = executor;
@@ -359,11 +359,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         addSplits(env.tableName, new TreeSet<>(splits.subList(mid, mid + 1)), env.tableId);
         env.latch.countDown();
 
-        env.executor.submit(new SplitTask(env, splits.subList(0, mid)));
-        env.executor.submit(new SplitTask(env, splits.subList(mid + 1, splits.size())));
+        env.executor.execute(new SplitTask(env, splits.subList(0, mid)));
+        env.executor.execute(new SplitTask(env, splits.subList(mid + 1, splits.size())));
 
-      } catch (Exception e) {
-        env.exception.compareAndSet(null, e);
+      } catch (Throwable t) {
+        env.exception.compareAndSet(null, t);
       }
     }
 
@@ -379,24 +379,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Collections.sort(splits);
 
     CountDownLatch latch = new CountDownLatch(splits.size());
-    AtomicReference<Exception> exception = new AtomicReference<>(null);
+    AtomicReference<Throwable> exception = new AtomicReference<>(null);
 
     ExecutorService executor = Executors.newFixedThreadPool(16, new NamingThreadFactory("addSplits"));
     try {
-      executor.submit(new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
+      executor.execute(new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
 
       while (!latch.await(100, TimeUnit.MILLISECONDS)) {
         if (exception.get() != null) {
           executor.shutdownNow();
-          Exception excep = exception.get();
+          Throwable excep = exception.get();
           if (excep instanceof TableNotFoundException)
             throw (TableNotFoundException) excep;
           else if (excep instanceof AccumuloException)
             throw (AccumuloException) excep;
           else if (excep instanceof AccumuloSecurityException)
             throw (AccumuloSecurityException) excep;
-          else if (excep instanceof RuntimeException)
-            throw (RuntimeException) excep;
           else
             throw new RuntimeException(excep);
         }
