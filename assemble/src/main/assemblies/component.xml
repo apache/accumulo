@@ -59,7 +59,6 @@
         <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider</include>
         <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations</include>
         <include>javax.annotation:javax.annotation-api</include>
-        <include>javax.inject:javax.inject</include>
         <include>javax.validation:validation-api</include>
         <include>javax.ws.rs:javax.ws.rs-api</include>
         <include>org.freemarker:freemarker</include>

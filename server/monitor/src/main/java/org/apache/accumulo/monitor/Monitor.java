@@ -443,18 +443,6 @@ public class Monitor implements HighlyAvailableService {
     }
   }
 
-  public static void setConfig(ServerConfigurationFactory newConfig) {
-    config = newConfig;
-  }
-
-  public static void setInstance(Instance newInstance) {
-    instance = newInstance;
-  }
-
-  public static void setContext(AccumuloServerContext newContext) {
-    context = newContext;
-  }
-
   private static long START_TIME;
 
   public void run(String hostname) {
@@ -465,7 +453,8 @@ public class Monitor implements HighlyAvailableService {
         log.debug("Creating monitor on port " + port);
         server = new EmbeddedWebServer(hostname, port);
         server.addServlet(getDefaultServlet(), "/resources/*");
-        server.addServlet(getRestServlet(), "/*");
+        server.addServlet(getRestServlet(), "/rest/*");
+        server.addServlet(getViewServlet(), "/*");
         server.start();
         break;
       } catch (Throwable ex) {
@@ -556,10 +545,16 @@ public class Monitor implements HighlyAvailableService {
     });
   }
 
+  private ServletHolder getViewServlet() {
+    final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.view")
+        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(FreemarkerMvcFeature.class)
+        .property(MvcFeature.TEMPLATE_BASE_PATH, "/templates");
+    return new ServletHolder(new ServletContainer(rc));
+  }
+
   private ServletHolder getRestServlet() {
-    final ResourceConfig rc = new ResourceConfig().register(FreemarkerMvcFeature.class)
-        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class)
-        .packages("org.apache.accumulo.monitor.rest").property(MvcFeature.TEMPLATE_BASE_PATH, "/templates");
+    final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest")
+        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class);
     return new ServletHolder(new ServletContainer(rc));
   }
 
@@ -782,39 +777,27 @@ public class Monitor implements HighlyAvailableService {
   }
 
   public static List<Pair<Long,Double>> getLoadOverTime() {
-    synchronized (loadOverTime) {
-      return new ArrayList<>(loadOverTime);
-    }
+    return new ArrayList<>(loadOverTime);
   }
 
   public static List<Pair<Long,Double>> getIngestRateOverTime() {
-    synchronized (ingestRateOverTime) {
-      return new ArrayList<>(ingestRateOverTime);
-    }
+    return new ArrayList<>(ingestRateOverTime);
   }
 
   public static List<Pair<Long,Double>> getIngestByteRateOverTime() {
-    synchronized (ingestByteRateOverTime) {
-      return new ArrayList<>(ingestByteRateOverTime);
-    }
+    return new ArrayList<>(ingestByteRateOverTime);
   }
 
   public static List<Pair<Long,Integer>> getMinorCompactionsOverTime() {
-    synchronized (minorCompactionsOverTime) {
-      return new ArrayList<>(minorCompactionsOverTime);
-    }
+    return new ArrayList<>(minorCompactionsOverTime);
   }
 
   public static List<Pair<Long,Integer>> getMajorCompactionsOverTime() {
-    synchronized (majorCompactionsOverTime) {
-      return new ArrayList<>(majorCompactionsOverTime);
-    }
+    return new ArrayList<>(majorCompactionsOverTime);
   }
 
   public static List<Pair<Long,Double>> getLookupsOverTime() {
-    synchronized (lookupsOverTime) {
-      return new ArrayList<>(lookupsOverTime);
-    }
+    return new ArrayList<>(lookupsOverTime);
   }
 
   public static double getLookupRate() {
@@ -822,33 +805,23 @@ public class Monitor implements HighlyAvailableService {
   }
 
   public static List<Pair<Long,Integer>> getQueryRateOverTime() {
-    synchronized (queryRateOverTime) {
-      return new ArrayList<>(queryRateOverTime);
-    }
+    return new ArrayList<>(queryRateOverTime);
   }
 
   public static List<Pair<Long,Integer>> getScanRateOverTime() {
-    synchronized (scanRateOverTime) {
-      return new ArrayList<>(scanRateOverTime);
-    }
+    return new ArrayList<>(scanRateOverTime);
   }
 
   public static List<Pair<Long,Double>> getQueryByteRateOverTime() {
-    synchronized (queryByteRateOverTime) {
-      return new ArrayList<>(queryByteRateOverTime);
-    }
+    return new ArrayList<>(queryByteRateOverTime);
   }
 
   public static List<Pair<Long,Double>> getIndexCacheHitRateOverTime() {
-    synchronized (indexCacheHitRateOverTime) {
-      return new ArrayList<>(indexCacheHitRateOverTime);
-    }
+    return new ArrayList<>(indexCacheHitRateOverTime);
   }
 
   public static List<Pair<Long,Double>> getDataCacheHitRateOverTime() {
-    synchronized (dataCacheHitRateOverTime) {
-      return new ArrayList<>(dataCacheHitRateOverTime);
-    }
+    return new ArrayList<>(dataCacheHitRateOverTime);
   }
 
   public static AccumuloServerContext getContext() {
