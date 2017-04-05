@@ -389,14 +389,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (exception.get() != null) {
           executor.shutdownNow();
           Throwable excep = exception.get();
-          if (excep instanceof TableNotFoundException)
-            throw (TableNotFoundException) excep;
-          else if (excep instanceof AccumuloException)
-            throw (AccumuloException) excep;
-          else if (excep instanceof AccumuloSecurityException)
-            throw (AccumuloSecurityException) excep;
+          if (excep instanceof TableNotFoundException) {
+            TableNotFoundException tnfe = (TableNotFoundException) excep;
+            throw new TableNotFoundException(tableId, tableName, "Table not found by background thread", tnfe);
+          } else if (excep instanceof AccumuloSecurityException) {
+            // base == background accumulo security exception
+            AccumuloSecurityException base = (AccumuloSecurityException) excep;
+            throw new AccumuloSecurityException(base.getUser(), base.asThriftException().getCode(), base.getTableInfo(), excep);
+          } else if (excep instanceof Error)
+            throw new Error(excep);
           else
-            throw new RuntimeException(excep);
+            throw new AccumuloException(excep);
         }
       }
     } catch (InterruptedException e) {
