@@ -21,8 +21,6 @@ import java.util.EnumSet;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jetty.security.ConstraintMapping;
-import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.AbstractConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
@@ -30,7 +28,6 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 public class EmbeddedWebServer {
@@ -47,9 +44,6 @@ public class EmbeddedWebServer {
 
     handler = new ServletContextHandler(ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
     handler.setContextPath("/");
-
-    // constraint security handler gets instantiated as the default when retrieved
-    ((ConstraintSecurityHandler) handler.getSecurityHandler()).addConstraintMapping(disableTraceConstraint("/"));
   }
 
   private static AbstractConnectionFactory getConnectionFactory(AccumuloConfiguration conf) {
@@ -87,19 +81,6 @@ public class EmbeddedWebServer {
 
   public void addServlet(ServletHolder restServlet, String where) {
     handler.addServlet(restServlet, where);
-  }
-
-  private static ConstraintMapping disableTraceConstraint(String where) {
-    Constraint constraint = new Constraint();
-    constraint.setName("Disable TRACE");
-    constraint.setAuthenticate(true); // require auth, but no roles defined, so it'll never match
-
-    ConstraintMapping mapping = new ConstraintMapping();
-    mapping.setConstraint(constraint);
-    mapping.setMethod("TRACE");
-    mapping.setPathSpec(where);
-
-    return mapping;
   }
 
   public int getPort() {
