@@ -148,6 +148,7 @@
     <powermock.version>1.6.5</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
+    <servlet.api.version>3.1.0</servlet.api.version>
     <slf4j.version>1.7.21</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -265,7 +266,7 @@
       <dependency>
         <groupId>javax.servlet</groupId>
         <artifactId>javax.servlet-api</artifactId>
-        <version>3.1.0</version>
+        <version>${servlet.api.version}</version>
       </dependency>
       <dependency>
         <groupId>javax.validation</groupId>
@@ -1014,17 +1015,24 @@
                 <usedUndeclaredDependency>org.apache.hadoop:hadoop-hdfs:*:${hadoop.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.apache.hadoop:hadoop-mapreduce-client-core:jar:${hadoop.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.apache.hadoop:hadoop-auth:jar:${hadoop.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.glassfish.jersey.ext:jersey-mvc:jar:${jersey.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-server:jar:${jersey.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-common:jar:${jersey.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:${powermock.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:${powermock.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
-                <!-- unused/declared parent jars that bring in children. slf4j-log4j12 provides implementation -->
+                <!-- unused/declared implementation jars or parent jars that bring in children -->
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:${hadoop.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-minicluster:jar:${hadoop.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.httpcomponents:httpclient:jar:${httpclient.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.glassfish.jersey.containers:jersey-container-jetty-http:jar:${jersey.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:${powermock.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.slf4j:slf4j-log4j12:jar:${slf4j.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.httpcomponents:httpclient:jar:${httpclient.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>junit:junit:jar:4.12</unusedDeclaredDependency>
+                <unusedDeclaredDependency>javax.servlet:javax.servlet-api:jar:${servlet.api.version}</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
