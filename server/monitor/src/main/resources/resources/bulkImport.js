@@ -125,9 +125,11 @@ function refreshServerBulkTable() {
 /**
  * Sorts the bulkImportStatus table on the selected column
  *
+ * @param {string} table Table ID to sort
  * @param {number} n Column number to sort by
  */
-function sortTable(n) {
+function sortTable(table, n) {
+  var tableIDs = ['bulkImportStatus', 'masterBulkImportStatus'];
 
   if (sessionStorage.tableColumnSort !== undefined &&
       sessionStorage.tableColumnSort == n &&
@@ -137,8 +139,9 @@ function sortTable(n) {
     direction = sessionStorage.direction === undefined ?
         'asc' : sessionStorage.direction;
   }
+  sessionStorage.tableColumn = tableIDs[table];
   sessionStorage.tableColumnSort = n;
-  sortTables('bulkImportStatus', direction, n);
+  sortTables(tableIDs[table], direction, n);
 }
 
 /**
@@ -165,13 +168,13 @@ function createBulkImportHeader() {
    * Adds the columns, add sortTable function on click,
    * if the column has a description, add title taken from the global.js
    */
-  items.push('<th class="firstcell" onclick="sortTable(0)" >Directory&nbsp;' +
+  items.push('<th class="firstcell" onclick="sortTable(1,0)" >Directory&nbsp;' +
       '</th>');
 
-  items.push('<th onclick="sortTable(1)" title="' +
+  items.push('<th onclick="sortTable(1,1)" title="' +
       descriptions['Import Age'] + '">Age&nbsp;</th>');
 
-  items.push('<th onclick="sortTable(2)" title="' +
+  items.push('<th onclick="sortTable(1,2)" title="' +
       descriptions['Import State'] + '">State&nbsp;</th>');
 
   $('<tr/>', {
@@ -198,10 +201,10 @@ function createServerBulkHeader() {
    * Adds the columns, add sortTable function on click,
    * if the column has a description, add title taken from the global.js
    */
-  items.push('<th class="firstcell" onclick="sortTable(0)">Server&nbsp;</th>');
-  items.push('<th onclick="sortTable(1)" title="' + descriptions['# Imports'] +
+  items.push('<th class="firstcell" onclick="sortTable(0,0)">Server&nbsp;</th>');
+  items.push('<th onclick="sortTable(0,1)" title="' + descriptions['# Imports'] +
       '">#&nbsp;</th>');
-  items.push('<th onclick="sortTable(2)" title="' + descriptions['Oldest Age'] +
+  items.push('<th onclick="sortTable(0,2)" title="' + descriptions['Oldest Age'] +
       '">Oldest&nbsp;Age&nbsp;</th>');
 
   $('<tr/>', {

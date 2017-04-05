@@ -76,9 +76,9 @@ function refreshBadTServersTable() {
 
     var items = [];
 
-    items.push('<th class="firstcell" onclick="sortTable(0)">' +
+    items.push('<th class="firstcell" onclick="sortTable(0,0)">' +
         'Tablet&nbsp;Server&nbsp;</th>');
-    items.push('<th onclick="sortTable(1)">Tablet&nbsp;Server&nbsp;' +
+    items.push('<th onclick="sortTable(0,1)">Tablet&nbsp;Server&nbsp;' +
         'Status&nbsp;</th>');
 
     $('<tr/>', {
@@ -130,10 +130,10 @@ function refreshDeadTServersTable() {
 
     var items = [];
 
-    items.push('<th class="firstcell" onclick="sortTable(0)">' +
+    items.push('<th class="firstcell" onclick="sortTable(1,0)">' +
         'Server&nbsp;</th>');
-    items.push('<th onclick="sortTable(1)">Last&nbsp;Updated&nbsp;</th>');
-    items.push('<th onclick="sortTable(2)">Event&nbsp;</th>');
+    items.push('<th onclick="sortTable(1,1)">Last&nbsp;Updated&nbsp;</th>');
+    items.push('<th onclick="sortTable(1,2)">Event&nbsp;</th>');
     items.push('<th>Clear</th>');
 
     $('<tr/>', {
@@ -254,9 +254,12 @@ function refreshTServersTable() {
 /**
  * Sorts the tservers table on the selected column
  *
+ * @param {string} table Table ID to sort
  * @param {number} n Column number to sort by
  */
-function sortTable(n) {
+function sortTable(table, n) {
+  var tableIDs = ['badtservers', 'deadtservers', 'tservers'];
+
   if (sessionStorage.tableColumnSort !== undefined &&
       sessionStorage.tableColumnSort == n &&
       sessionStorage.direction !== undefined) {
@@ -265,8 +268,9 @@ function sortTable(n) {
     direction = sessionStorage.direction === undefined ?
         'asc' : sessionStorage.direction;
   }
+  sessionStorage.tableColumn = tableIDs[table];
   sessionStorage.tableColumnSort = n;
-  sortTables('tservers', direction, n);
+  sortTables(tableIDs[table], direction, n);
 }
 
 /**
@@ -286,32 +290,32 @@ function createHeader() {
 
   var items = [];
 
-  items.push('<th class="firstcell" onclick="sortTable(0)">Server&nbsp;</th>');
-  items.push('<th onclick="sortTable(1)">Hosted&nbsp;Tablets&nbsp;</th>');
-  items.push('<th onclick="sortTable(2)">Last&nbsp;Contact&nbsp;</th>');
-  items.push('<th onclick="sortTable(3)" title="' +
+  items.push('<th class="firstcell" onclick="sortTable(2,0)">Server&nbsp;</th>');
+  items.push('<th onclick="sortTable(2,1)">Hosted&nbsp;Tablets&nbsp;</th>');
+  items.push('<th onclick="sortTable(2,2)">Last&nbsp;Contact&nbsp;</th>');
+  items.push('<th onclick="sortTable(2,3)" title="' +
       descriptions['Entries'] + '">Entries&nbsp;</th>');
-  items.push('<th onclick="sortTable(4)" title="' +
+  items.push('<th onclick="sortTable(2,4)" title="' +
       descriptions['Ingest'] + '">Ingest&nbsp;</th>');
-  items.push('<th onclick="sortTable(5)" title="' +
+  items.push('<th onclick="sortTable(2,5)" title="' +
       descriptions['Query'] + '">Query&nbsp;</th>');
-  items.push('<th onclick="sortTable(6)" title="' +
+  items.push('<th onclick="sortTable(2,6)" title="' +
       descriptions['Hold Time'] + '">Hold&nbsp;Time&nbsp;</th>');
-  items.push('<th onclick="sortTable(7)" title="' +
+  items.push('<th onclick="sortTable(2,7)" title="' +
       descriptions['Running Scans'] + '">Running<br />Scans&nbsp;</th>');
-  items.push('<th onclick="sortTable(8)" title="' +
+  items.push('<th onclick="sortTable(2,8)" title="' +
       descriptions['Minor Compactions'] +
       '">Minor<br />Compactions&nbsp;</th>');
-  items.push('<th onclick="sortTable(9)" title="' +
+  items.push('<th onclick="sortTable(2,9)" title="' +
       descriptions['Major Compactions'] +
       '">Major<br />Compactions&nbsp;</th>');
-  items.push('<th onclick="sortTable(10)" title="' +
+  items.push('<th onclick="sortTable(2,10)" title="' +
       descriptions['Index Cache Hit Rate'] +
       '">Index Cache<br />Hit Rate&nbsp;</th>');
-  items.push('<th onclick="sortTable(11)" title="' +
+  items.push('<th onclick="sortTable(2,11)" title="' +
       descriptions['Data Cache Hit Rate'] +
       '">Data Cache<br />Hit Rate&nbsp;</th>');
-  items.push('<th onclick="sortTable(12)" title="' +
+  items.push('<th onclick="sortTable(2,12)" title="' +
       descriptions['OS Load'] + '">OS&nbsp;Load&nbsp;</th>');
 
   $('<tr/>', {
