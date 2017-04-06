@@ -28,6 +28,9 @@ function refreshListType() {
     async: true
   });
   refreshTypeTraceTable(minutes);
+
+  // Create tooltip for table column information
+  $(document).tooltip();
 }
 
 /**
@@ -97,13 +100,6 @@ function sortTable(n) {
   sessionStorage.tableColumnSort = n;
   sortTables('trace', direction, n);
 }
-
-/**
- * Create tooltip for table column information
- */
-$(function() {
-  $(document).tooltip();
-});
 
 /**
  * Creates the trace type header

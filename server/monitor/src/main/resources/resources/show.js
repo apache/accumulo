@@ -129,13 +129,6 @@ function sortTable(n) {
 }
 
 /**
- * Create tooltip for table column information
- */
-$(function() {
-  $(document).tooltip();
-});
-
-/**
  * Creates the trace show header
  *
  * @param {string} ID ID of the trace

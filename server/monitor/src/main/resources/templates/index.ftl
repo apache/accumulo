@@ -50,16 +50,15 @@
     <#if js??>
       <script src="/resources/${js}"></script>
     </#if>
-    <script src="/resources/sidebar.js"></script>
+    <script src="/resources/navbar.js"></script>
   </head>
 
   <body>
     <#include "/templates/modals.ftl">
     <div id="content-wrapper">
       <div id="content">
-        <div id="sidebar" class="navbar navbar-inverse navbar-fixed-top">
-          <!--<#include "/templates/header.ftl">-->
-          <#include "/templates/sidebar.ftl">
+        <div id="navbar" class="navbar navbar-inverse navbar-fixed-top">
+          <#include "/templates/navbar.ftl">
         </div>
 
         <div id="main">

@@ -36,6 +36,9 @@ function refreshGC() {
     async: true
   });
   refreshGCTable();
+
+  // Create tooltip for table column information
+  $(document).tooltip();
 }
 
 /**
@@ -236,13 +239,6 @@ function sortTable(n) {
   sessionStorage.tableColumnSort = n;
   sortTables('gcActivity', direction, n);
 }
-
-/**
- * Create tooltip for table column information
- */
-$(function() {
-  $(document).tooltip();
-});
 
 /**
  * Creates the garbage collector header

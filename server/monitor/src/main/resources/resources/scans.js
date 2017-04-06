@@ -21,6 +21,9 @@
 $(document).ready(function() {
   createHeader();
   refreshScans();
+
+  // Create tooltip for table column information
+  $(document).tooltip();
 });
 
 /**
@@ -97,13 +100,6 @@ function sortTable(n) {
   sessionStorage.tableColumnSort = n;
   sortTables('scanStatus', direction, n);
 }
-
-/**
- * Create tooltip for table column information
- */
-$(function() {
-  $(document).tooltip();
-});
 
 /**
  * Creates the scans header

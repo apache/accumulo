@@ -21,6 +21,9 @@
         $(document).ready(function() {
           createHeader('${minutes}');
           refreshSummary();
+
+          // Create tooltip for table column information
+          $(document).tooltip();
         });
       </script>
             

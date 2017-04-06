@@ -22,6 +22,9 @@ $(document).ready(function() {
   createBulkImportHeader();
   createServerBulkHeader();
   refreshBulkImport();
+
+  // Create tooltip for table column information
+  $(document).tooltip();
 });
 
 /**
@@ -143,13 +146,6 @@ function sortTable(table, n) {
   sessionStorage.tableColumnSort = n;
   sortTables(tableIDs[table], direction, n);
 }
-
-/**
- * Create tooltip for table column information
- */
-$(function() {
-  $(document).tooltip();
-});
 
 /**
  * Creates the bulk import header

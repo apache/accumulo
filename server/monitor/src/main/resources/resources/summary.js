@@ -105,13 +105,6 @@ function sortTable(n) {
 }
 
 /**
- * Create tooltip for table column information
- */
-$(function() {
-  $(document).tooltip();
-});
-
-/**
  * Creates the trace summary header
  *
  * @param {string} min Minutes to display trace

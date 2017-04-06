@@ -305,13 +305,6 @@ function sortTable(n) {
 }
 
 /**
- * Create tooltip for table column information
- */
-$(function() {
-  $(document).tooltip();
-});
-
-/**
  * Creates the tables header
  */
 function createTablesHeader() {

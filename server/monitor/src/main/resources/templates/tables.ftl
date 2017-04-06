@@ -24,6 +24,9 @@
           <#if tablesJs??>
             toggleMaster(true);
           </#if>
+
+          // Create tooltip for table column information
+          $(document).tooltip();
         });
       </script>
       <div><h3>${tablesTitle}</h3></div>

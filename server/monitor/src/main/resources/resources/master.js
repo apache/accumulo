@@ -22,6 +22,9 @@ $(document).ready(function() {
   createHeader();
   doBanner('masterBanner', 'danger', 'Master Server Not Running');
   refreshMaster();
+
+  // Create tooltip for table column information
+  $(document).tooltip();
 });
 
 /**
@@ -200,13 +203,6 @@ function sortMasterTable(n) {
   sessionStorage.tableColumnSort = n;
   sortTables('masterStatus', direction, n);
 }
-
-/**
- * Create tooltip for table column information
- */
-$(function() {
-  $(document).tooltip();
-});
 
 /**
  * Creates the master header
