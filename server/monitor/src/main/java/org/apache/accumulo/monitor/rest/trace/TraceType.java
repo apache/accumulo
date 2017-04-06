@@ -30,11 +30,9 @@ public class TraceType {
 
   // Variable names become JSON objects
   public String traceType;
-  public List<TracesForTypeInformation> traces;
+  public List<TracesForTypeInformation> traces = new ArrayList<>();
 
-  public TraceType() {
-    traces = new ArrayList<>();
-  }
+  public TraceType() {}
 
   /**
    * Creates a new list grouped by type

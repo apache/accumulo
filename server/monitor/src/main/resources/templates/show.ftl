@@ -25,10 +25,12 @@
          */
         $(document).ready(function() {
           createHeader('${id}');
-          
           refreshTraceShow();
+
+          // Create tooltip for table column information
+          $(document).tooltip();
         });
-        
+
         /**
          * Toggles row
          *
@@ -42,7 +44,7 @@
             elt.style.display='none';
           }
         }
-        
+
         /**
          * Selects where to display the row
          */
@@ -60,6 +62,6 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="trace" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
       </div>

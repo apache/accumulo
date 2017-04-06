@@ -29,14 +29,12 @@ import java.util.List;
 public class ZKInformation {
 
   // Variable names become JSON keys
-  public List<ZooKeeper> zkServers;
+  public List<ZooKeeper> zkServers = new ArrayList<>();
 
   /**
    * Initializes zk servers list
    */
-  public ZKInformation() {
-    zkServers = new ArrayList<>();
-  }
+  public ZKInformation() {}
 
   /**
    * Adds a new zk server to the list

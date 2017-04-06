@@ -29,14 +29,12 @@ import java.util.List;
 public class TablesList {
 
   // Variable names become JSON keys
-  public List<TableNamespace> tables;
+  public List<TableNamespace> tables = new ArrayList<>();
 
   /**
    * Initializes array list
    */
-  public TablesList() {
-    tables = new ArrayList<>();
-  }
+  public TablesList() {}
 
   /**
    * Add a table to the list

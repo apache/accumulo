@@ -28,18 +28,34 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 public class TableInformation {
 
   // Variable names become JSON keys
-  public String tablename, tableId, tableState;
+  public String tablename;
+  public String tableId;
+  public String tableState;
 
-  public int tablets, onlineTablets;
-  public long recs, recsInMemory;
+  public int tablets;
+  public int onlineTablets;
+  public long recs;
+  public long recsInMemory;
 
-  public double ingest, ingestByteRate, query, queryByteRate;
+  public double ingest;
+  public double ingestByteRate;
+  public double query;
+  public double queryByteRate;
 
-  public CompactionsList majorCompactions, minorCompactions, scans;
+  public CompactionsList majorCompactions;
+  public CompactionsList minorCompactions;
+  public CompactionsList scans;
 
-  private int queuedMajorCompactions, runningMajorCompactions, queuedMinorCompactions, runningMinorCompactions, queuedScans, runningScans;
+  private int queuedMajorCompactions;
+  private int runningMajorCompactions;
+  private int queuedMinorCompactions;
+  private int runningMinorCompactions;
+  private int queuedScans;
+  private int runningScans;
 
-  public double entriesRead, entriesReturned;
+  public double entriesRead;
+  public double entriesReturned;
+
   public Double holdTime;
 
   public int offlineTablets;

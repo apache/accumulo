@@ -71,7 +71,31 @@ public class TablesResource {
    *          Namespace used to filter the tables
    * @return Table list
    */
-  private TablesList generateTables(String namespace) {
+  private static TablesList generateTables(String namespace) {
+    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
+
+    TablesList tableNamespace = new TablesList();
+
+    /*
+     * Add the tables that have the selected namespace Asterisk = All namespaces Hyphen = Default namespace
+     */
+    for (String key : namespaces.keySet()) {
+      if (namespace.equals("*") || namespace.equals(key) || (key.isEmpty() && namespace.equals("-"))) {
+        tableNamespace.addTable(new TableNamespace(key));
+      }
+    }
+
+    return generateTables(tableNamespace);
+  }
+
+  /**
+   * Generates a table list based on the list of namespaces
+   *
+   * @param tableNamespace
+   *          Namespace list
+   * @return Table list
+   */
+  private static TablesList generateTables(TablesList tableNamespace) {
     Instance inst = Monitor.getContext().getInstance();
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(inst);
     SortedMap<String,TableInfo> tableStats = new TreeMap<>();
@@ -79,21 +103,9 @@ public class TablesResource {
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
       for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
         tableStats.put(Tables.getPrintableTableNameFromId(tidToNameMap, te.getKey()), te.getValue());
-
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
-
-    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
-
-    TablesList tableNamespace = new TablesList();
     List<TableInformation> tables = new ArrayList<>();
-
-    // Add the tables that have the selected namespace
-    for (String key : namespaces.keySet()) {
-      if (namespace.equals("*") || namespace.equals(key) || (key.equals("") && namespace.equals("-"))) {
-        tableNamespace.addTable(new TableNamespace(key));
-      }
-    }
 
     // Add tables to the list
     for (Entry<String,String> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
@@ -106,17 +118,16 @@ public class TablesResource {
 
         for (TableNamespace name : tableNamespace.tables) {
           // Check if table has the default namespace
-          if (!tableName.contains(".") && name.namespace.equals("")) {
+          if (!tableName.contains(".") && name.namespace.isEmpty()) {
             name.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
           } else if (tableName.startsWith(name.namespace + ".")) {
             name.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
           }
         }
-
         tables.add(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
       } else {
         for (TableNamespace name : tableNamespace.tables) {
-          if (!tableName.contains(".") && name.namespace.equals("")) {
+          if (!tableName.contains(".") && name.namespace.isEmpty()) {
             name.addTable(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
           } else if (tableName.startsWith(name.namespace + ".")) {
             name.addTable(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
@@ -127,7 +138,6 @@ public class TablesResource {
     }
 
     return tableNamespace;
-
   }
 
   /**
@@ -136,7 +146,7 @@ public class TablesResource {
    * @return list with all tables
    */
   @GET
-  public TablesList getTables() {
+  public static TablesList getTables() {
     return generateTables("*");
   }
 
@@ -154,6 +164,33 @@ public class TablesResource {
   }
 
   /**
+   * Generates a list with the list of namespaces
+   *
+   * @param namespaceList
+   *          List of namespaces separated by a comma
+   * @return list with selected tables
+   */
+  @GET
+  @Path("namespaces/{namespaces}")
+  public TablesList getTableWithNamespace(@PathParam("namespaces") String namespaceList) {
+    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
+
+    TablesList tableNamespace = new TablesList();
+    /*
+     * Add the tables that have the selected namespace Asterisk = All namespaces Hyphen = Default namespace
+     */
+    for (String namespace : namespaceList.split(",")) {
+      for (String key : namespaces.keySet()) {
+        if (namespace.equals("*") || namespace.equals(key) || (key.isEmpty() && namespace.equals("-"))) {
+          tableNamespace.addTable(new TableNamespace(key));
+        }
+      }
+    }
+
+    return generateTables(tableNamespace);
+  }
+
+  /**
    * Generates a list of participating tservers for a table
    *
    * @param tableId
@@ -164,6 +201,8 @@ public class TablesResource {
   @GET
   public TabletServers getParticipatingTabletServers(@PathParam("tableId") String tableId) throws Exception {
     Instance instance = Monitor.getContext().getInstance();
+
+    TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
 
     TreeSet<String> locs = new TreeSet<>();
     if (RootTable.ID.equals(tableId)) {
@@ -178,13 +217,14 @@ public class TablesResource {
         if (state.current != null) {
           try {
             locs.add(state.current.hostPort());
-          } catch (Exception ex) {}
+          } catch (Exception ex) {
+            scanner.close();
+            return tabletServers;
+          }
         }
       }
       scanner.close();
     }
-
-    TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
 
     List<TabletServerStatus> tservers = new ArrayList<>();
     if (Monitor.getMmi() != null) {
@@ -193,7 +233,7 @@ public class TablesResource {
           if (tss.name != null && locs.contains(tss.name))
             tservers.add(tss);
         } catch (Exception ex) {
-
+          return tabletServers;
         }
       }
     }

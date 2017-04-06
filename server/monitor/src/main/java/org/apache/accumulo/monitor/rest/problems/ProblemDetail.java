@@ -14,36 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor.rest.tservers;
+package org.apache.accumulo.monitor.rest.problems;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  *
- * Generates a list of bad tservers
+ * Stores a new problem detail object
  *
  * @since 2.0.0
  *
  */
-public class BadTabletServers {
+public class ProblemDetail {
 
   // Variable names become JSON keys
-  public List<BadTabletServerInformation> badTabletServer = new ArrayList<>();
+  public List<ProblemDetailInformation> problemDetails = new ArrayList<>();
 
   /**
-   * Initializes bad tserver list
+   * Creates the array list
    */
-  public BadTabletServers() {}
+  public ProblemDetail() {}
 
   /**
-   * Adds a new bad tserver to the list
+   * Adds a new problem detail to the list
    *
-   * @param badTabletServer
-   *          Bad tserver to add
+   * @param problemDetail
+   *          problem detail to add
    */
-  public void addBadServer(BadTabletServerInformation badTabletServer) {
-    this.badTabletServer.add(badTabletServer);
+  public void addProblemDetail(ProblemDetailInformation problemDetail) {
+    this.problemDetails.add(problemDetail);
   }
-
 }

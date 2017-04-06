@@ -29,14 +29,12 @@ import java.util.List;
 public class ServerStats {
 
   // Variable names become JSON keys
-  public List<ServerStat> serverStats;
+  public List<ServerStat> serverStats = new ArrayList<>();
 
   /**
    * Initializes stats list
    */
-  public ServerStats() {
-    serverStats = new ArrayList<>();
-  }
+  public ServerStats() {}
 
   /**
    * Adds a new stat to the list

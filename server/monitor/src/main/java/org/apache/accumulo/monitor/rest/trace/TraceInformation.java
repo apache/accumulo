@@ -27,7 +27,8 @@ public class TraceInformation {
 
   // Variable names become JSON keys
   public int level;
-  public long time, start;
+  public long time;
+  public long start;
   public long spanID;
   public String location, name;
   public AddlInformation addlData;

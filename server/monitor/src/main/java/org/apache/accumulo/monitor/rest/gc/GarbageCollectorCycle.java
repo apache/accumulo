@@ -27,14 +27,17 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
  */
 public class GarbageCollectorCycle {
 
-  public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+  private static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
 
   // Variable names become JSON key
-  public long started, finished, candidates, inUse, deleted, errors;
+  public long started = 0l;
+  public long finished = 0l;
+  public long candidates = 0l;
+  public long inUse = 0l;
+  public long deleted = 0l;
+  public long errors = 0l;
 
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
-  }
+  public GarbageCollectorCycle() {}
 
   /**
    * Creates a new garbage collector cycle
@@ -49,5 +52,9 @@ public class GarbageCollectorCycle {
     this.inUse = thriftStats.inUse;
     this.deleted = thriftStats.deleted;
     this.errors = thriftStats.errors;
+  }
+
+  public static GarbageCollectorCycle getEmpty() {
+    return EMPTY;
   }
 }

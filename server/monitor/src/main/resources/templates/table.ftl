@@ -21,6 +21,9 @@
         $(document).ready(function() {
           createHeader('${table}', '${tableID}');
           refreshTable();
+
+          // Create tooltip for table column information
+          $(document).tooltip();
         });
       </script>
       <div><h3>${title}</h3></div>

@@ -26,12 +26,10 @@ package org.apache.accumulo.monitor.rest.tables;
 public class CompactionsList {
 
   // Variable names become JSON keys
-  public Integer running, queued;
+  public Integer running = null;
+  public Integer queued = null;
 
-  public CompactionsList() {
-    running = null;
-    queued = null;
-  }
+  public CompactionsList() {}
 
   /**
    * Generate a compation list

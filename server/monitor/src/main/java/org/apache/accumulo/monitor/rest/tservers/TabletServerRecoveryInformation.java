@@ -16,34 +16,39 @@
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  *
- * Generates a list of bad tservers
+ * Generates a tserver recovery information
  *
  * @since 2.0.0
  *
  */
-public class BadTabletServers {
+public class TabletServerRecoveryInformation {
 
   // Variable names become JSON keys
-  public List<BadTabletServerInformation> badTabletServer = new ArrayList<>();
+  public String server = "";
+  public String log = "";
+  public int time = 0;
+  public double copySort = 0d;
+
+  public TabletServerRecoveryInformation() {}
 
   /**
-   * Initializes bad tserver list
-   */
-  public BadTabletServers() {}
-
-  /**
-   * Adds a new bad tserver to the list
+   * Stores a tserver recovery
    *
-   * @param badTabletServer
-   *          Bad tserver to add
+   * @param server
+   *          Name of the tserver
+   * @param log
+   *          Log of the tserver
+   * @param time
+   *          Recovery runtime
+   * @param copySort
+   *          Recovery progress
    */
-  public void addBadServer(BadTabletServerInformation badTabletServer) {
-    this.badTabletServer.add(badTabletServer);
+  public TabletServerRecoveryInformation(String server, String log, int time, double copySort) {
+    this.server = server;
+    this.log = log;
+    this.time = time;
+    this.copySort = copySort;
   }
-
 }

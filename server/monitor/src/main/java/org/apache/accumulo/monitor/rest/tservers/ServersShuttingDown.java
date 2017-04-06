@@ -29,14 +29,12 @@ import java.util.List;
 public class ServersShuttingDown {
 
   // Variable names become JSON keys
-  public List<ServerShuttingDownInformation> server;
+  public List<ServerShuttingDownInformation> server = new ArrayList<>();
 
   /**
    * Initalizes tservers list
    */
-  public ServersShuttingDown() {
-    server = new ArrayList<>();
-  }
+  public ServersShuttingDown() {}
 
   /**
    * Adds a new tserver to the list

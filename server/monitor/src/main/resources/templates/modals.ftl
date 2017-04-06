@@ -17,7 +17,6 @@
     <!-- Modal -->
     <div id="aboutModal" data-target="#aboutModal" class="modal fade" role="dialog">
       <div class="modal-dialog" role="document">
-        
         <!-- Modal content -->
         <div class="modal-content">
           <div class="modal-header">

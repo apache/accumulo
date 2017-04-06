@@ -18,12 +18,12 @@
       <div id="masterBanner"></div>
       <div class="center-block">
         <table id="masterStatus" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
         <table id="recoveryList" class="table table-bordered table-striped table-condensed">
 
         </table>
       </div>
-      <br />
-      <script src="/resources/${tablesJs}"></script>
+      <br>
+      <script src="/resources/js/${tablesJs}"></script>
       <#include "/templates/${tablesTemplate}">

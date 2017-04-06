@@ -29,14 +29,12 @@ import java.util.List;
 public class Scans {
 
   // Variable names become JSON keys
-  public List<ScanInformation> scans;
+  public List<ScanInformation> scans = new ArrayList<>();
 
   /**
    * Initializes the array list
    */
-  public Scans() {
-    scans = new ArrayList<>();
-  }
+  public Scans() {}
 
   /**
    * Adds a new scan to the list

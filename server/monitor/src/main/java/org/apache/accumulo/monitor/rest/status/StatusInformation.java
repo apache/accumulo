@@ -26,20 +26,15 @@ package org.apache.accumulo.monitor.rest.status;
 public class StatusInformation {
 
   // Variable names become JSON keys
-  public String masterStatus, gcStatus, tServerStatus;
+  public String masterStatus = null;
+  public String gcStatus = null;
+  public String tServerStatus = null;
 
-  public Integer logNumber;
-  public boolean logsHaveError;
-  public Integer problemNumber;
+  public Integer logNumber = 0;
+  public boolean logsHaveError = false;
+  public Integer problemNumber = 0;
 
-  public StatusInformation() {
-    this.masterStatus = null;
-    this.gcStatus = null;
-    this.tServerStatus = null;
-    this.logNumber = 0;
-    this.logsHaveError = false;
-    this.problemNumber = 0;
-  }
+  public StatusInformation() {}
 
   /**
    * Generate the status report for the services

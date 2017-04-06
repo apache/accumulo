@@ -21,13 +21,15 @@
         $(document).ready(function() {
           createHeader('${minutes}');
           refreshSummary();
+
+          // Create tooltip for table column information
+          $(document).tooltip();
         });
       </script>
-            
+
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="traceSummary" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
       </div>
-

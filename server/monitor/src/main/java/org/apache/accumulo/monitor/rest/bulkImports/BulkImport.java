@@ -28,16 +28,10 @@ import java.util.List;
 public class BulkImport {
 
   // Variable names become JSON key
-  public List<BulkImportInformation> bulkImport;
-  public List<TabletServerBulkImportInformation> tabletServerBulkImport;
+  public List<BulkImportInformation> bulkImport = new ArrayList<>();
+  public List<TabletServerBulkImportInformation> tabletServerBulkImport = new ArrayList<>();
 
-  /**
-   * Constructor to create the bulk import and tserver bulk import arrays
-   */
-  public BulkImport() {
-    bulkImport = new ArrayList<>();
-    tabletServerBulkImport = new ArrayList<>();
-  }
+  public BulkImport() {}
 
   /**
    * Adds a new bulk import to the array

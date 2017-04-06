@@ -31,11 +31,9 @@ public class TraceList {
   // Variable names become JSON keys
   public String id;
   public Long start;
-  public List<TraceInformation> traces;
+  public List<TraceInformation> traces = new ArrayList<>();
 
-  public TraceList() {
-    traces = new ArrayList<>();
-  }
+  public TraceList() {}
 
   /**
    * Creates a new trace list grouped by ID

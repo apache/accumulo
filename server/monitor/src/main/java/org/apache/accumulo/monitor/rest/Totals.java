@@ -26,14 +26,12 @@ package org.apache.accumulo.monitor.rest;
 public class Totals {
 
   // Variable names become JSON keys
-  public double ingestrate, queryrate, diskrate = 0.0;
-  public long numentries;
+  public double ingestrate = 0.0;
+  public double queryrate = 0.0;
+  public double diskrate = 0.0;
+  public long numentries = 0l;
 
-  public Totals() {
-    ingestrate = 0.0;
-    queryrate = 0.0;
-    numentries = 0l;
-  }
+  public Totals() {}
 
   /**
    * Initializes totals

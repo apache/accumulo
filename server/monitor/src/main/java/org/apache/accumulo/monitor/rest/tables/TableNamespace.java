@@ -30,9 +30,7 @@ public class TableNamespace {
 
   // Variable names become JSON keys
   public String namespace;
-  public List<TableInformation> table;
-
-  public TableNamespace() {}
+  public List<TableInformation> table = new ArrayList<>();
 
   /**
    * Creates a new namespace group with an empty list
@@ -42,7 +40,6 @@ public class TableNamespace {
    */
   public TableNamespace(String name) {
     namespace = name;
-    table = new ArrayList<>();
   }
 
   /**

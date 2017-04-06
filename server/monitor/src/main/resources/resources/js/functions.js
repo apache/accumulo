@@ -169,6 +169,15 @@ function timeDuration(time) {
 }
 
 /**
+ * Changes + to %2B in the URL
+ *
+ * @param {string} url URL to sanitize
+ */
+function sanitize(url) {
+  return url.split('+').join('%2B');
+}
+
+/**
  * Sorts the selected table by column in the direction chosen
  *
  * @param {string} tableID Table to sort
@@ -279,6 +288,120 @@ function clearTable(tableID) {
   $('#' + tableID).find('tr:not(:first)').remove();
 }
 
+function createFirstCell(sortValue, showValue) {
+  return createTableCell(0, sortValue, showValue);
+}
+
+function createRightCell(sortValue, showValue) {
+  return createTableCell(1, sortValue, showValue);
+}
+
+function createCenterCell(sortValue, showValue) {
+  return createTableCell(2, sortValue, showValue);
+}
+
+function createLeftCell(sortValue, showValue) {
+  return createTableCell(3, sortValue, showValue);
+}
+
+/**
+ * Creates a row specifying the column span and a message
+ *
+ * @param {number} col Number of columns
+ * @param {string} msg Message to display
+ */
+function createEmptyRow(col, msg) {
+  return '<td class="center" colspan="' + col + '"><i>' + msg + '</i></td>';
+}
+
+/**
+ * Creates a string with the value to sort and the value to display
+ * Options are 0 = firstcell left, 1 = right, 2 = center, 3 = left
+ *
+ * @param {string} index Index for class to use for cell
+ * @param {string} sortValue Value used for sorting
+ * @param {string} showValue Value to display
+ */
+function createTableCell(index, sortValue, showValue) {
+  var valueClass = ['firstcell left', 'right', 'center', 'left', ''];
+
+  return '<td class="'+ valueClass[index] + '" data-value="' + sortValue +
+      '">' + showValue + '</td>';
+}
+
+/**
+ * Creates a cell for the header
+ *
+ * @param {boolean} firstCell Defines a first cell
+ * @param {string} onClick Function to select on click
+ * @param {string} title Title for tooltip
+ * @param {string} showValue Value for the cell
+ */
+function createHeaderCell(firstCell, onClick, title, showValue) {
+  var cellClass = firstCell ? ' class="firstcell"' : '';
+  var clickFunc = onClick != '' ? (' onclick="' + onClick + '"') : '';
+  var cellTitle = title != '' ? (' title="' + title + '"') : '';
+
+  return '<th' + cellClass + clickFunc + cellTitle + '>' + showValue + '</th>';
+}
+
+/**
+ * Creates a plot on the selected id, with the data
+ * The type of the plot depends on the type:
+ * type = 0 -> Single lines plot
+ * type = 1 -> Single points plot
+ * type = 2 -> Double lines plot
+ *
+ * @param {string} id Canvas ID
+ * @param {object|array} inData Data to plot
+ * @param {number} type Type of plot
+ */
+function makePlot(id, inData, type) {
+  var d = new Date();
+  var n = d.getTimezoneOffset() * 60000; // Converts offset to milliseconds
+  var tz = new Date().toLocaleTimeString('en-us',
+      {timeZoneName: 'short'}).split(' ')[2]; // Short version of timezone
+  var tzFormat = '%H:%M<br>' + tz;
+
+  var dataInfo = [];
+
+  // Select the type of plot
+  switch (type) {
+    // Single lines plot
+    case 0:
+      dataInfo.push({ data: inData,
+          lines: { show: true },
+          color: '#d9534f' });
+      break;
+    // Single points plot
+    case 1:
+      dataInfo.push({ data: inData,
+          points: { show: true, radius: 1 },
+          color: '#d9534f' });
+      break;
+    // Double lines plot
+    case 2:
+      dataInfo.push({ label: 'Read',
+          data: inData.Read,
+          lines: { show: true },
+          color: '#d9534f' })
+      dataInfo.push({ label: 'Returned',
+          data: inData.Returned,
+          lines: { show: true },
+          color: '#337ab7' });
+      break;
+    default:
+      dataInfo = [];
+  }
+
+  // Format the plot axis
+  var plotInfo = {yaxis: {}, xaxis: {mode: 'time', minTickSize: [1, 'minute'],
+  timeFormat: tzFormat, ticks: 3}};
+
+  // Plot the data
+  $.plot($('#' + id), dataInfo, plotInfo);
+}
+
 ///// REST Calls /////////////
 
 /**
@@ -319,29 +442,22 @@ function getNamespaces() {
 function getNamespaceTables(namespaces) {
 
   // Creates a JSON object to store the tables
-  var jsonObj = {};
-  jsonObj.tables = [];
+  var namespaceList = "";
 
-  /* If the namespace array include *, get all tables, otherwise,
+  /* 
+   * If the namespace array include *, get all tables, otherwise,
    * get tables from specific namespaces
    */
   if (namespaces.indexOf('*') != -1) {
     getTables();
   } else {
-    $.each(namespaces, function(key, val) {
-      /* Makes the rest call for each of the namespaces in the array,
-       * stores them on the JSON object
-       */
-      if (val !== '*') {
-        var call = '/rest/tables/namespace/' + val;
-        $.getJSON(call, function(data) {
-          $.each(data.tables, function(key2, val2) {
-            jsonObj.tables.push(val2);
-          });
-        });
-      }
+    // Convert the list to a string for the REST call
+    namespaceList = namespaces.toString();
+
+    var call = '/rest/tables/namespaces/' + namespaceList;
+    $.getJSON(call, function(data) {
+      sessionStorage.tables = JSON.stringify(data);
     });
-    sessionStorage.tables = JSON.stringify(jsonObj);
   }
 }
 
@@ -513,7 +629,7 @@ function getProblems() {
 function clearTableProblems(tableID) {
   var call = '/rest/problems/summary?s=' + tableID;
   // Change plus sign to use ASCII value to send it as a URL query parameter
-  call = call.split('+').join('%2B');
+  call = sanitize(call);
   $.post(call);
 }
 
@@ -528,7 +644,7 @@ function clearDetailsProblems(table, resource, type) {
   var call = '/rest/problems/details?table=' + table + '&resource=' +
    resource + '&ptype=' + type;
   // Changes plus sign to use ASCII value to send it as a URL query parameter
-  call = call.split('+').join('%2B');
+  call = sanitize(call);
   $.post(call);
 }
 

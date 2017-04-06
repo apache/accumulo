@@ -28,8 +28,11 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 public class TracesForTypeInformation {
 
   // Variable names become JSON keys
-  public String id, source;
-  public Long start, ms;
+  public String id;
+  public String source;
+
+  public Long start;
+  public Long ms;
 
   public TracesForTypeInformation() {}
 

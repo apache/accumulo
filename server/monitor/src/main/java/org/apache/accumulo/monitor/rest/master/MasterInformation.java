@@ -31,15 +31,29 @@ import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
 public class MasterInformation {
 
   // Variable names become JSON keys
-  public String master, lastGC, gcStatus, masterGoalState, masterState;
+  public String master = "No Masters running";
+  public String lastGC = "0";
+  public String gcStatus;
+  public String masterGoalState;
+  public String masterState;
 
-  public Integer onlineTabletServers, totalTabletServers, tablets, unassignedTablets;
-  public long numentries;
-  public double osload, ingestrate, entriesRead, queryrate; // entriesReturned same as queryrate
-  public long holdTime;
+  public Integer onlineTabletServers = 0;
+  public Integer totalTabletServers = 0;
+  public Integer tablets = 0;
+  public Integer unassignedTablets = 0;
 
-  public int tables, deadTabletServersCount;
-  public long lookups, uptime;
+  public long numentries = 0l;
+  public double osload = 0l;
+  public double ingestrate = 0d;
+  public double entriesRead = 0d;
+  public double queryrate = 0d; // entriesReturned same as queryrate
+
+  public long holdTime = 0l;
+
+  public int tables;
+  public int deadTabletServersCount;
+  public long lookups;
+  public long uptime;
 
   public BadTabletServers badTabletServers;
   public ServersShuttingDown tabletServersShuttingDown;
@@ -49,20 +63,7 @@ public class MasterInformation {
   /**
    * Creates an empty master JSON object
    */
-  public MasterInformation() {
-    this.master = "No Masters running";
-    this.onlineTabletServers = 0;
-    this.totalTabletServers = 0;
-    this.lastGC = "0";
-    this.tablets = 0;
-    this.unassignedTablets = 0;
-    this.numentries = 0l;
-    this.ingestrate = 0d;
-    this.entriesRead = 0d;
-    this.queryrate = 0d;
-    this.holdTime = 0;
-    this.osload = 0l;
-  }
+  public MasterInformation() {}
 
   public MasterInformation(String master) {
     this.master = master;

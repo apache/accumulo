@@ -26,7 +26,8 @@ package org.apache.accumulo.monitor.rest.trace;
 public class DataInformation {
 
   // Variable names become JSON keys
-  public String key, value;
+  public String key;
+  public String value;
 
   public DataInformation() {}
 

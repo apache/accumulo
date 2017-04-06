@@ -141,7 +141,7 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/main/resources/resources/flot/**/*.js</exclude>
+              <exclude>src/main/resources/resources/js/flot/**/*.js</exclude>
             </excludes>
           </configuration>
         </plugin>

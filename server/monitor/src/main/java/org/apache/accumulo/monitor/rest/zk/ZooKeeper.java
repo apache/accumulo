@@ -26,7 +26,9 @@ package org.apache.accumulo.monitor.rest.zk;
 public class ZooKeeper {
 
   // Variable names become JSON keys
-  public String server, mode;
+  public String server;
+  public String mode;
+
   public Integer clients;
 
   public ZooKeeper() {}

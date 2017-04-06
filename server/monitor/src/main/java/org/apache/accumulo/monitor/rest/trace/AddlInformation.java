@@ -29,16 +29,13 @@ import java.util.List;
 public class AddlInformation {
 
   // Variable names become JSON keys
-  public List<DataInformation> data;
-  public List<AnnotationInformation> annotations;
+  public List<DataInformation> data = new ArrayList<>();
+  public List<AnnotationInformation> annotations = new ArrayList<>();
 
   /**
    * Initializes data and annotation array lists
    */
-  public AddlInformation() {
-    data = new ArrayList<>();
-    annotations = new ArrayList<>();
-  }
+  public AddlInformation() {}
 
   /**
    * Add a new data

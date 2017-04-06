@@ -21,29 +21,29 @@ import java.util.List;
 
 /**
  *
- * Generates a list of bad tservers
+ * Generates a list of tservers recoveries
  *
  * @since 2.0.0
  *
  */
-public class BadTabletServers {
+public class TabletServersRecovery {
 
   // Variable names become JSON keys
-  public List<BadTabletServerInformation> badTabletServer = new ArrayList<>();
+  public List<TabletServerRecoveryInformation> recoveryList = new ArrayList<>();
 
   /**
-   * Initializes bad tserver list
+   * Initializes tserver recovery list
    */
-  public BadTabletServers() {}
+  public TabletServersRecovery() {}
 
   /**
-   * Adds a new bad tserver to the list
+   * Adds a new tserver recovery to the list
    *
-   * @param badTabletServer
-   *          Bad tserver to add
+   * @param tabletServerRecovery
+   *          TServer recovery to add
    */
-  public void addBadServer(BadTabletServerInformation badTabletServer) {
-    this.badTabletServer.add(badTabletServer);
+  public void addRecovery(TabletServerRecoveryInformation tabletServerRecovery) {
+    this.recoveryList.add(tabletServerRecovery);
   }
 
 }

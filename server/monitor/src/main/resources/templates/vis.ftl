@@ -35,7 +35,7 @@
           </div>
         </div>
       </div>
-      
+
       <script type="text/javascript">
         /**
          * Creates initial visualization table, passes the shape, size, motion, and color from the template
@@ -48,11 +48,11 @@
           $.ajaxSetup({
             async: true
           });
-          
+
           setStats();
           setOptions('${shape}', '${size}', '${motion}', '${color}');
           setState();
-          
+
           drawGrid();
           getXML();
           refresh();
@@ -62,11 +62,11 @@
       <script type="text/javascript">
         // Populates variables to be used in the visualization
         var numCores = 8;
-        var jsonurl = '/rest/json';
+        var jsonurl = '/rest/tservers';
         var visurl = '/vis';
         var serverurl = '/tservers?s=';
 
         var numNormalStats = 8;
       </script>
-      
-      <script src="/resources/vis.js"></script>
+
+      <script src="/resources/js/vis.js"></script>

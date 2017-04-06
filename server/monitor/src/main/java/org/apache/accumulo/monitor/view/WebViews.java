@@ -44,7 +44,7 @@ import org.glassfish.jersey.server.mvc.Template;
  */
 @Path("/")
 @Produces(MediaType.TEXT_HTML)
-public class Indexes {
+public class WebViews {
 
   private Map<String,Object> getModel() {
 
@@ -61,7 +61,7 @@ public class Indexes {
    * @return Overview model
    */
   @GET
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> get() {
 
     Map<String,Object> model = getModel();
@@ -79,7 +79,7 @@ public class Indexes {
    */
   @GET
   @Path("{parameter: master|monitor}")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getMaster() {
 
     List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
@@ -104,7 +104,7 @@ public class Indexes {
    */
   @GET
   @Path("tservers")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getTabletServers(@QueryParam("s") String server) {
 
     Map<String,Object> model = getModel();
@@ -127,7 +127,7 @@ public class Indexes {
    */
   @GET
   @Path("scans")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getScans() {
 
     Map<String,Object> model = getModel();
@@ -145,7 +145,7 @@ public class Indexes {
    */
   @GET
   @Path("bulkImports")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getBulkImports() {
 
     Map<String,Object> model = getModel();
@@ -163,7 +163,7 @@ public class Indexes {
    */
   @GET
   @Path("gc")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getGC() {
 
     Map<String,Object> model = getModel();
@@ -189,7 +189,7 @@ public class Indexes {
    */
   @GET
   @Path("vis")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getServerActivity(@QueryParam("shape") @DefaultValue("circles") String shape, @QueryParam("size") @DefaultValue("40") String size,
       @QueryParam("motion") @DefaultValue("") String motion, @QueryParam("color") @DefaultValue("allavg") String color) {
 
@@ -212,7 +212,7 @@ public class Indexes {
    */
   @GET
   @Path("tables")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getTables() throws TableNotFoundException {
 
     Map<String,Object> model = getModel();
@@ -233,7 +233,7 @@ public class Indexes {
    */
   @GET
   @Path("tables/{tableID}")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getTables(@PathParam("tableID") String tableID) throws TableNotFoundException {
 
     String table = Tables.getTableName(Monitor.getContext().getInstance(), tableID);
@@ -258,7 +258,7 @@ public class Indexes {
    */
   @GET
   @Path("trace/summary")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getTracesSummary(@QueryParam("minutes") @DefaultValue("10") String minutes) {
 
     Map<String,Object> model = getModel();
@@ -282,7 +282,7 @@ public class Indexes {
    */
   @GET
   @Path("trace/listType")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getTracesForType(@QueryParam("type") String type, @QueryParam("minutes") @DefaultValue("10") String minutes) {
 
     Map<String,Object> model = getModel();
@@ -305,7 +305,7 @@ public class Indexes {
    */
   @GET
   @Path("trace/show")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getTraceShow(@QueryParam("id") String id) {
 
     Map<String,Object> model = getModel();
@@ -325,7 +325,7 @@ public class Indexes {
    */
   @GET
   @Path("log")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getLogs() {
 
     Map<String,Object> model = getModel();
@@ -346,7 +346,7 @@ public class Indexes {
    */
   @GET
   @Path("problems")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getProblems(@QueryParam("table") String table) {
 
     Map<String,Object> model = getModel();
@@ -369,7 +369,7 @@ public class Indexes {
    */
   @GET
   @Path("replication")
-  @Template(name = "/index.ftl")
+  @Template(name = "/default.ftl")
   public Map<String,Object> getReplication() {
 
     Map<String,Object> model = getModel();

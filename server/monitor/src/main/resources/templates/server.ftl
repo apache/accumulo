@@ -29,21 +29,21 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="tServerDetail" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
       </div>
       <div class="center-block">
         <table id="opHistoryDetails" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
       </div>
       <div class="center-block">
         <table id="currentTabletOps" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
       </div>
       <div class="center-block">
         <table id="perTabletResults" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
       </div>
