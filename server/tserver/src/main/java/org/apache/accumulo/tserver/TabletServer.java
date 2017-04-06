@@ -347,7 +347,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   public TabletServer(Instance instance, ServerConfigurationFactory confFactory, VolumeManager fs) throws IOException {
     super(instance, confFactory);
-    this.version = Constants.VERSION;
     this.confFactory = confFactory;
     this.fs = fs;
     final AccumuloConfiguration aconf = getConfiguration();
