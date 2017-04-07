@@ -31,13 +31,11 @@ import org.apache.accumulo.monitor.rest.master.MasterInformation;
 public class TabletServers {
 
   // Variable names become JSON keys
-  public List<TabletServerInformation> servers;
-  public List<BadTabletServerInformation> badServers;
-  public List<DeadServerInformation> deadServers;
+  public List<TabletServerInformation> servers = new ArrayList<>();
+  public List<BadTabletServerInformation> badServers = new ArrayList<>();
+  public List<DeadServerInformation> deadServers = new ArrayList<>();
 
-  public TabletServers() {
-    servers = new ArrayList<>();
-  }
+  public TabletServers() {}
 
   public TabletServers(int size) {
     servers = new ArrayList<>(size);

@@ -43,7 +43,7 @@ import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 public class XMLInformation {
 
   // Variable names become JSON keys
-  public List<TabletServer> servers;
+  public List<TabletServer> servers = new ArrayList<>();
 
   public String masterGoalState, masterState;
 
@@ -58,9 +58,7 @@ public class XMLInformation {
 
   public Totals totals;
 
-  public XMLInformation() {
-    servers = new ArrayList<>();
-  }
+  public XMLInformation() {}
 
   /**
    * Stores Monitor information as XML

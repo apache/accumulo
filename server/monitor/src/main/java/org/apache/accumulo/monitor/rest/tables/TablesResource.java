@@ -80,7 +80,7 @@ public class TablesResource {
      * Add the tables that have the selected namespace Asterisk = All namespaces Hyphen = Default namespace
      */
     for (String key : namespaces.keySet()) {
-      if (namespace.equals("*") || namespace.equals(key) || (key.equals("") && namespace.equals("-"))) {
+      if (namespace.equals("*") || namespace.equals(key) || (key.isEmpty() && namespace.equals("-"))) {
         tableNamespace.addTable(new TableNamespace(key));
       }
     }
@@ -118,7 +118,7 @@ public class TablesResource {
 
         for (TableNamespace name : tableNamespace.tables) {
           // Check if table has the default namespace
-          if (!tableName.contains(".") && name.namespace.equals("")) {
+          if (!tableName.contains(".") && name.namespace.isEmpty()) {
             name.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
           } else if (tableName.startsWith(name.namespace + ".")) {
             name.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
@@ -127,7 +127,7 @@ public class TablesResource {
         tables.add(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
       } else {
         for (TableNamespace name : tableNamespace.tables) {
-          if (!tableName.contains(".") && name.namespace.equals("")) {
+          if (!tableName.contains(".") && name.namespace.isEmpty()) {
             name.addTable(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
           } else if (tableName.startsWith(name.namespace + ".")) {
             name.addTable(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
@@ -181,7 +181,7 @@ public class TablesResource {
      */
     for (String namespace : namespaceList.split(",")) {
       for (String key : namespaces.keySet()) {
-        if (namespace.equals("*") || namespace.equals(key) || (key.equals("") && namespace.equals("-"))) {
+        if (namespace.equals("*") || namespace.equals(key) || (key.isEmpty() && namespace.equals("-"))) {
           tableNamespace.addTable(new TableNamespace(key));
         }
       }

@@ -31,6 +31,8 @@ public class TabletServerWithTableInformation {
   public TabletServerInformation tserver;
   public TableInformation table;
 
+  public TabletServerWithTableInformation() {}
+
   /**
    * Stores a new tserver
    *

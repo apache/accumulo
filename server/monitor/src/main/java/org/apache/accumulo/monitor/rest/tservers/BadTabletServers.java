@@ -29,14 +29,12 @@ import java.util.List;
 public class BadTabletServers {
 
   // Variable names become JSON keys
-  public List<BadTabletServerInformation> badTabletServer;
+  public List<BadTabletServerInformation> badTabletServer = new ArrayList<>();
 
   /**
    * Initializes bad tserver list
    */
-  public BadTabletServers() {
-    badTabletServer = new ArrayList<>();
-  }
+  public BadTabletServers() {}
 
   /**
    * Adds a new bad tserver to the list

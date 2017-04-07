@@ -62,7 +62,7 @@
       <script type="text/javascript">
         // Populates variables to be used in the visualization
         var numCores = 8;
-        var jsonurl = '/rest/json';
+        var jsonurl = '/rest/tservers';
         var visurl = '/vis';
         var serverurl = '/tservers?s=';
 

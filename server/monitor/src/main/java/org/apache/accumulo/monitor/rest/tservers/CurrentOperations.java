@@ -26,10 +26,18 @@ package org.apache.accumulo.monitor.rest.tservers;
 public class CurrentOperations {
 
   // Variable names become JSON keys
-  public String name, tablet, tableID;
+  public String name;
+  public String tablet;
+  public String tableID;
   public long entries;
-  public double ingest, query;
-  public Double minorStdDev, minorAvgES, majorStdDev, majorAvgES, minorAvg, majorAvg;
+  public double ingest;
+  public double query;
+  public Double minorStdDev;
+  public Double minorAvgES;
+  public Double majorStdDev;
+  public Double majorAvgES;
+  public Double minorAvg;
+  public Double majorAvg;
 
   public CurrentOperations() {}
 

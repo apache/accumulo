@@ -29,11 +29,9 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 public class TabletServer {
 
   // Variable names become JSON keys
-  public TabletServerInformation server;
+  public TabletServerInformation server = new TabletServerInformation();
 
-  public TabletServer() {
-    server = new TabletServerInformation();
-  }
+  public TabletServer() {}
 
   public TabletServer(TabletServerInformation server) {
     this.server = server;

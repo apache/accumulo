@@ -26,7 +26,10 @@ package org.apache.accumulo.monitor.rest.tservers;
 public class TabletServerDetailInformation {
 
   // Variable names become JSON keys
-  public int hostedTablets, minors, majors, splits;
+  public int hostedTablets;
+  public int minors;
+  public int majors;
+  public int splits;
   public long entries;
 
   public TabletServerDetailInformation() {}

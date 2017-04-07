@@ -70,7 +70,8 @@ import com.google.common.net.HostAndPort;
 public class TabletServerResource {
 
   // Variable names become JSON keys
-  private TabletStats total, historical;
+  private TabletStats total;
+  private TabletStats historical;
 
   /**
    * Generates tserver summary

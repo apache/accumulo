@@ -118,7 +118,7 @@ public class ProblemsResource {
   @Path("details")
   public Map<String,List<ProblemDetailInformation>> getDetails() {
 
-    Map<String,List<ProblemDetailInformation>> jsonObj = new HashMap<String,List<ProblemDetailInformation>>();
+    Map<String,List<ProblemDetailInformation>> jsonObj = new HashMap<>();
 
     List<ProblemDetailInformation> problems = new ArrayList<>();
 

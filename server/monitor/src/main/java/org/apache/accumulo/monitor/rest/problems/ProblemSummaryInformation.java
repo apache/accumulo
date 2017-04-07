@@ -26,8 +26,12 @@ package org.apache.accumulo.monitor.rest.problems;
 public class ProblemSummaryInformation {
 
   // Variable names become JSON keys
-  public String tableName, tableID;
-  public Integer fileRead, fileWrite, tableLoad;
+  public String tableName;
+  public String tableID;
+
+  public Integer fileRead;
+  public Integer fileWrite;
+  public Integer tableLoad;
 
   public ProblemSummaryInformation() {}
 

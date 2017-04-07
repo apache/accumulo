@@ -29,7 +29,10 @@ public class BadTabletServerInformation {
 
   // Variable names become JSON keys
   @XmlAttribute
-  public String id, status;
+  public String id;
+
+  @XmlAttribute
+  public String status;
 
   public BadTabletServerInformation() {}
 

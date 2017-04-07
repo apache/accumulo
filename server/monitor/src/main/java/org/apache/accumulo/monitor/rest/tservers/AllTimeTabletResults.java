@@ -27,9 +27,13 @@ public class AllTimeTabletResults {
 
   // Variable names become JSON keys
   public String operation;
-  public int success, failure;
-  public Double queueStdDev, avgQueueTime, avgTime;
-  public double timeSpent, stdDev;
+  public int success;
+  public int failure;
+  public Double queueStdDev;
+  public Double avgQueueTime;
+  public Double avgTime;
+  public double timeSpent;
+  public double stdDev;
 
   public AllTimeTabletResults() {}
 

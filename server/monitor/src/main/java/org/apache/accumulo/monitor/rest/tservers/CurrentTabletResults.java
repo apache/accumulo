@@ -26,7 +26,10 @@ package org.apache.accumulo.monitor.rest.tservers;
 public class CurrentTabletResults {
 
   // Variable names become JSON keys
-  public Double currentMinorAvg, currentMinorStdDev, currentMajorAvg, currentMajorStdDev;
+  public Double currentMinorAvg;
+  public Double currentMinorStdDev;
+  public Double currentMajorAvg;
+  public Double currentMajorStdDev;
 
   public CurrentTabletResults() {}
 

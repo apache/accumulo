@@ -50,7 +50,10 @@ public class TabletServerInformation {
   public CompactionsTypes compactions;
 
   public int tablets;
-  public double ingest, query, ingestMB, queryMB;
+  public double ingest;
+  public double query;
+  public double ingestMB;
+  public double queryMB;
   public Integer scans; // For backwards compatibility, has same information as scansRunning
   public Double scansessions;
   public Double scanssessions; // For backwards compatibility
@@ -59,10 +62,23 @@ public class TabletServerInformation {
   // New variables
 
   public String ip;
-  private Integer scansRunning, scansQueued, minorRunning, minorQueued, majorRunning, majorQueued;
-  private CompactionsList scansCompacting, major, minor; // if scans is removed, change scansCompacting to scans
-  public long entries, lookups, indexCacheHits, indexCacheRequests, dataCacheHits, dataCacheRequests;
-  public double indexCacheHitRate, dataCacheHitRate;
+  private Integer scansRunning;
+  private Integer scansQueued;
+  private Integer minorRunning;
+  private Integer minorQueued;
+  private Integer majorRunning;
+  private Integer majorQueued;
+  private CompactionsList scansCompacting; // if scans is removed, change scansCompacting to scans
+  private CompactionsList major;
+  private CompactionsList minor;
+  public long entries;
+  public long lookups;
+  public long indexCacheHits;
+  public long indexCacheRequests;
+  public long dataCacheHits;
+  public long dataCacheRequests;
+  public double indexCacheHitRate;
+  public double dataCacheHitRate;
   public List<RecoveryStatusInformation> logRecoveries;
 
   public TabletServerInformation() {}

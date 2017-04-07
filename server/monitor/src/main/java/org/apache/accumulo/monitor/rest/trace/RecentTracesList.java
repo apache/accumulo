@@ -29,14 +29,12 @@ import java.util.List;
 public class RecentTracesList {
 
   // Variable names become JSON keys
-  public List<RecentTracesInformation> recentTraces;
+  public List<RecentTracesInformation> recentTraces = new ArrayList<>();
 
   /**
    * Initializes recent traces array list
    */
-  public RecentTracesList() {
-    recentTraces = new ArrayList<>();
-  }
+  public RecentTracesList() {}
 
   /**
    * Adds a new trace to the list

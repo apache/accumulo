@@ -26,7 +26,11 @@ package org.apache.accumulo.monitor.rest.replication;
 public class ReplicationInformation {
 
   // Variable names become JSON keys
-  public String tableName, peerName, remoteIdentifier, replicaSystemType;
+  public String tableName;
+  public String peerName;
+  public String remoteIdentifier;
+  public String replicaSystemType;
+
   public long filesNeedingReplication;
 
   public ReplicationInformation() {}

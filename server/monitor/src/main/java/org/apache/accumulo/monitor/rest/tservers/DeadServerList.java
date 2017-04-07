@@ -29,14 +29,12 @@ import java.util.List;
 public class DeadServerList {
 
   // Variable names become JSON keys
-  public List<DeadServerInformation> deadTabletServer;
+  public List<DeadServerInformation> deadTabletServer = new ArrayList<>();
 
   /**
    * Initializes the dead tserver list
    */
-  public DeadServerList() {
-    deadTabletServer = new ArrayList<>();
-  }
+  public DeadServerList() {}
 
   /**
    * Adds a new dead tserver to the list

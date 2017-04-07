@@ -26,9 +26,14 @@ package org.apache.accumulo.monitor.rest.problems;
 public class ProblemDetailInformation {
 
   // Variable names become JSON keys
-  public String tableName, tableID, type, server;
+  public String tableName;
+  public String tableID;
+  public String type;
+  public String server;
+
   public Long time;
-  public String resource, exception;
+  public String resource;
+  public String exception;
 
   public ProblemDetailInformation() {}
 

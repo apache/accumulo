@@ -29,14 +29,12 @@ import java.util.List;
 public class DeadLoggerList {
 
   // Variable names become JSON keys
-  public List<DeadLoggerInformation> deadLogger;
+  public List<DeadLoggerInformation> deadLogger = new ArrayList<>();
 
   /**
    * Creates the array list
    */
-  public DeadLoggerList() {
-    deadLogger = new ArrayList<>();
-  }
+  public DeadLoggerList() {}
 
   /**
    * Adds a new dead logger to the list

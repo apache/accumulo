@@ -27,6 +27,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -70,17 +71,19 @@ public class MasterResource {
   public MasterInformation getTables() {
 
     MasterInformation masterInformation;
+    MasterMonitorInfo mmi = Monitor.getMmi();
 
-    if (Monitor.getMmi() != null) {
+    if (mmi != null) {
+      GCStatus gcStatusObj = Monitor.getGcStatus();
       String gcStatus = "Waiting";
       String label = "";
-      if (Monitor.getGcStatus() != null) {
+      if (gcStatusObj != null) {
         long start = 0;
-        if (Monitor.getGcStatus().current.started != 0 || Monitor.getGcStatus().currentLog.started != 0) {
-          start = Math.max(Monitor.getGcStatus().current.started, Monitor.getGcStatus().currentLog.started);
+        if (gcStatusObj.current.started != 0 || gcStatusObj.currentLog.started != 0) {
+          start = Math.max(gcStatusObj.current.started, gcStatusObj.currentLog.started);
           label = "Running";
-        } else if (Monitor.getGcStatus().lastLog.finished != 0) {
-          start = Monitor.getGcStatus().lastLog.finished;
+        } else if (gcStatusObj.lastLog.finished != 0) {
+          start = gcStatusObj.lastLog.finished;
         }
         if (start != 0) {
           gcStatus = String.valueOf(start);
@@ -90,19 +93,19 @@ public class MasterResource {
       }
 
       List<String> tservers = new ArrayList<>();
-      for (TabletServerStatus up : Monitor.getMmi().tServerInfo) {
+      for (TabletServerStatus up : mmi.tServerInfo) {
         tservers.add(up.name);
       }
-      for (DeadServer down : Monitor.getMmi().deadTabletServers) {
+      for (DeadServer down : mmi.deadTabletServers) {
         tservers.add(down.server);
       }
       List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
 
       String master = masters.size() == 0 ? "Down" : AddressUtil.parseAddress(masters.get(0), false).getHostText();
-      Integer onlineTabletServers = Monitor.getMmi().tServerInfo.size();
+      Integer onlineTabletServers = mmi.tServerInfo.size();
       Integer totalTabletServers = tservers.size();
       Integer tablets = Monitor.getTotalTabletCount();
-      Integer unassignedTablets = Monitor.getMmi().unassignedTablets;
+      Integer unassignedTablets = mmi.unassignedTablets;
       long entries = Monitor.getTotalEntries();
       double ingest = Monitor.getTotalIngestRate();
       double entriesRead = Monitor.getTotalScanRate();
@@ -111,7 +114,7 @@ public class MasterResource {
       double osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
 
       int tables = Monitor.getTotalTables();
-      int deadTabletServers = Monitor.getMmi().deadTabletServers.size();
+      int deadTabletServers = mmi.deadTabletServers.size();
       long lookups = Monitor.getTotalLookups();
       long uptime = System.currentTimeMillis() - Monitor.getStartTime();
 

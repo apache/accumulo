@@ -26,13 +26,11 @@ package org.apache.accumulo.monitor.rest.tables;
 public class CompactionsTypes {
 
   // Variable names become JSON objects
-  public CompactionsList scans, major, minor;
+  public CompactionsList scans = new CompactionsList();
+  public CompactionsList major = new CompactionsList();
+  public CompactionsList minor = new CompactionsList();
 
-  public CompactionsTypes() {
-    scans = new CompactionsList();
-    major = new CompactionsList();
-    minor = new CompactionsList();
-  }
+  public CompactionsTypes() {}
 
   /**
    * Create a new compaction list based on types

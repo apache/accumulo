@@ -30,11 +30,14 @@ public class GarbageCollectorCycle {
   public static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
 
   // Variable names become JSON key
-  public long started, finished, candidates, inUse, deleted, errors;
+  public long started = 0l;
+  public long finished = 0l;
+  public long candidates = 0l;
+  public long inUse = 0l;
+  public long deleted = 0l;
+  public long errors = 0l;
 
-  public GarbageCollectorCycle() {
-    started = finished = candidates = inUse = deleted = errors = 0l;
-  }
+  public GarbageCollectorCycle() {}
 
   /**
    * Creates a new garbage collector cycle
