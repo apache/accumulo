@@ -319,29 +319,22 @@ function getNamespaces() {
 function getNamespaceTables(namespaces) {
 
   // Creates a JSON object to store the tables
-  var jsonObj = {};
-  jsonObj.tables = [];
+  var namespaceList = "";
 
-  /* If the namespace array include *, get all tables, otherwise,
+  /* 
+   * If the namespace array include *, get all tables, otherwise,
    * get tables from specific namespaces
    */
   if (namespaces.indexOf('*') != -1) {
     getTables();
   } else {
-    $.each(namespaces, function(key, val) {
-      /* Makes the rest call for each of the namespaces in the array,
-       * stores them on the JSON object
-       */
-      if (val !== '*') {
-        var call = '/rest/tables/namespace/' + val;
-        $.getJSON(call, function(data) {
-          $.each(data.tables, function(key2, val2) {
-            jsonObj.tables.push(val2);
-          });
-        });
-      }
+    // Convert the list to a string for the REST call
+    namespaceList = namespaces.toString();
+
+    var call = '/rest/tables/namespaces/' + namespaceList;
+    $.getJSON(call, function(data) {
+      sessionStorage.tables = JSON.stringify(data);
     });
-    sessionStorage.tables = JSON.stringify(jsonObj);
   }
 }
 

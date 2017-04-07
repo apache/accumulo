@@ -72,6 +72,30 @@ public class TablesResource {
    * @return Table list
    */
   private TablesList generateTables(String namespace) {
+    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
+
+    TablesList tableNamespace = new TablesList();
+
+    /*
+     * Add the tables that have the selected namespace Asterisk = All namespaces Hyphen = Default namespace
+     */
+    for (String key : namespaces.keySet()) {
+      if (namespace.equals("*") || namespace.equals(key) || (key.equals("") && namespace.equals("-"))) {
+        tableNamespace.addTable(new TableNamespace(key));
+      }
+    }
+
+    return generateTables(tableNamespace);
+  }
+
+  /**
+   * Generates a table list based on the list of namespaces
+   *
+   * @param tableNamespace
+   *          Namespace list
+   * @return Table list
+   */
+  private TablesList generateTables(TablesList tableNamespace) {
     Instance inst = Monitor.getContext().getInstance();
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(inst);
     SortedMap<String,TableInfo> tableStats = new TreeMap<>();
@@ -79,21 +103,9 @@ public class TablesResource {
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
       for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
         tableStats.put(Tables.getPrintableTableNameFromId(tidToNameMap, te.getKey()), te.getValue());
-
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
-
-    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
-
-    TablesList tableNamespace = new TablesList();
     List<TableInformation> tables = new ArrayList<>();
-
-    // Add the tables that have the selected namespace
-    for (String key : namespaces.keySet()) {
-      if (namespace.equals("*") || namespace.equals(key) || (key.equals("") && namespace.equals("-"))) {
-        tableNamespace.addTable(new TableNamespace(key));
-      }
-    }
 
     // Add tables to the list
     for (Entry<String,String> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
@@ -112,7 +124,6 @@ public class TablesResource {
             name.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
           }
         }
-
         tables.add(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
       } else {
         for (TableNamespace name : tableNamespace.tables) {
@@ -127,7 +138,6 @@ public class TablesResource {
     }
 
     return tableNamespace;
-
   }
 
   /**
@@ -151,6 +161,33 @@ public class TablesResource {
   @Path("namespace/{namespace}")
   public TablesList getTable(@PathParam("namespace") String namespace) {
     return generateTables(namespace);
+  }
+
+  /**
+   * Generates a list with the list of namespaces
+   *
+   * @param namespaceList
+   *          List of namespaces separated by a comma
+   * @return list with selected tables
+   */
+  @GET
+  @Path("namespaces/{namespaces}")
+  public TablesList getTableWithNamespace(@PathParam("namespaces") String namespaceList) {
+    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
+
+    TablesList tableNamespace = new TablesList();
+    /*
+     * Add the tables that have the selected namespace Asterisk = All namespaces Hyphen = Default namespace
+     */
+    for (String namespace : namespaceList.split(",")) {
+      for (String key : namespaces.keySet()) {
+        if (namespace.equals("*") || namespace.equals(key) || (key.equals("") && namespace.equals("-"))) {
+          tableNamespace.addTable(new TableNamespace(key));
+        }
+      }
+    }
+
+    return generateTables(tableNamespace);
   }
 
   /**
