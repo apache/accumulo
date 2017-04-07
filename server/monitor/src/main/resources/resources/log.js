@@ -91,8 +91,8 @@ function createLogsTable() {
           bigNumberForQuantity(val.count) + '</td>');
       items.push('<td class="center" data-value="' + val.level + '">' +
           levelFormat(val.level) + '</td>');
-      items.push('<td class="center" data-value="' + val.message + '">' +
-          val.message + '</td>');
+      items.push('<td class="center" data-value="' + val.message + '"><pre class="logevent">' +
+          val.message + '</pre></td>');
 
       $('<tr/>', {
         html: items.join('')

@@ -67,7 +67,7 @@ function refreshTraceSummaryTable(minutes) {
       items.push('<td class="right">' + timeDuration(val.max) + '</td>');
       items.push('<td class="right">' + timeDuration(val.avg) + '</td>');
       items.push('<td class="left">');
-      items.push('<table>');
+      items.push('<table style="width: 100%;">');
       items.push('<tr>');
 
       $.each(val.histogram, function(key2, val2) {

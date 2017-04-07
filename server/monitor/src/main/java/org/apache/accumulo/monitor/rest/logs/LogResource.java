@@ -50,23 +50,34 @@ public class LogResource {
     List<DedupedLogEvent> dedupedLogEvents = LogService.getInstance().getEvents();
     ArrayList<LogEvent> logEvents = new ArrayList<>(dedupedLogEvents.size());
 
-    final StringBuilder msg = new StringBuilder(64);
     for (DedupedLogEvent dev : dedupedLogEvents) {
-      msg.setLength(0);
-      final LoggingEvent ev = dev.getEvent();
+      LoggingEvent ev = dev.getEvent();
       Object application = ev.getMDC("application");
       if (application == null)
         application = "";
-
-      msg.append(ev.getMessage().toString());
+      String msg = ev.getMessage().toString();
+      StringBuilder text = new StringBuilder();
+      for (int i = 0; i < msg.length(); i++) {
+        char c = msg.charAt(i);
+        int type = Character.getType(c);
+        boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR || type == Character.NON_SPACING_MARK
+            || type == Character.PRIVATE_USE;
+        text.append(notPrintable ? '?' : c);
+      }
+      StringBuilder builder = new StringBuilder(text.toString());
       if (ev.getThrowableStrRep() != null)
         for (String line : ev.getThrowableStrRep())
-          msg.append("\n\t").append(line);
+          builder.append("\n\t").append(line);
+      msg = sanitize(builder.toString().trim());
 
       // Add a new log event to the list
       logEvents.add(new LogEvent(ev.getTimeStamp(), application, dev.getCount(), ev.getLevel().toString(), msg.toString().trim()));
     }
     return logEvents;
+  }
+
+  private String sanitize(String xml) {
+    return xml.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   }
 
   /**
