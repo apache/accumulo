@@ -18,9 +18,12 @@ package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
@@ -30,36 +33,78 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * An iterator that handles "OR" query constructs on the server side. This code has been adapted/merged from Heap and Multi Iterators.
+ * An iterator that provides a sorted-iteration of column qualifiers for a set of column families in a row. It is important to note that this iterator
+ * <em>does not</em> adhere to the contract set forth by the {@link SortedKeyValueIterator}. It returns Keys in {@code row+colqual} order instead of
+ * {@code row+colfam+colqual} order. This is required for the implementation of this iterator (to work in conjunction with the {@code IntersectingIterator}) but
+ * is a code-smell. This iterator should only be used at query time, never at compaction time.
+ *
+ * The table structure should have the following form:
+ *
+ * <pre>
+ * row term:docId =&gt; value
+ * </pre>
+ *
+ * Users configuring this iterator must set the option {@link #COLUMNS_KEY}. This value is a comma-separated list of column families that should be "OR"'ed
+ * together.
+ *
+ * For example, given the following data and a value of {@code or.iterator.columns="steve,bob"} in the iterator options map:
+ *
+ * <pre>
+ * row1 bob:4
+ * row1 george:2
+ * row1 steve:3
+ * row2 bob:9
+ * row2 frank:8
+ * row2 steve:12
+ * row3 michael:15
+ * row3 steve:20
+ * </pre>
+ *
+ * Would return:
+ *
+ * <pre>
+ * row1 steve:3
+ * row1 bob:4
+ * row2 bob:9
+ * row2 steve:12
+ * row3 steve:20
+ * </pre>
  */
 
-public class OrIterator implements SortedKeyValueIterator<Key,Value> {
+public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
+  private static final Logger LOG = LoggerFactory.getLogger(OrIterator.class);
+  public static final String COLUMNS_KEY = "or.iterator.columns";
 
   private TermSource currentTerm;
-  private ArrayList<TermSource> sources;
+  private List<TermSource> sources;
   private PriorityQueue<TermSource> sorted = new PriorityQueue<>(5);
-  private static final Text nullText = new Text();
-  private static final Key nullKey = new Key();
 
   protected static class TermSource implements Comparable<TermSource> {
-    public SortedKeyValueIterator<Key,Value> iter;
-    public Text term;
-    public Collection<ByteSequence> seekColfams;
+    private final SortedKeyValueIterator<Key,Value> iter;
+    private final Text term;
+    private final Collection<ByteSequence> seekColfams;
+    private Range currentRange;
 
     public TermSource(TermSource other) {
-      this.iter = other.iter;
-      this.term = other.term;
-      this.seekColfams = other.seekColfams;
+      this.iter = Objects.requireNonNull(other.iter);
+      this.term = Objects.requireNonNull(other.term);
+      this.seekColfams = Objects.requireNonNull(other.seekColfams);
+      this.currentRange = Objects.requireNonNull(other.currentRange);
     }
 
     public TermSource(SortedKeyValueIterator<Key,Value> iter, Text term) {
-      this.iter = iter;
-      this.term = term;
+      this.iter = Objects.requireNonNull(iter);
+      this.term = Objects.requireNonNull(term);
       // The desired column families for this source is the term itself
       this.seekColfams = Collections.<ByteSequence> singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      // No current range until we're seek()'ed for the first time
+      this.currentRange = null;
     }
 
     @Override
@@ -69,7 +114,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
 
     @Override
     public boolean equals(Object obj) {
-      return obj == this || (obj != null && obj instanceof TermSource && 0 == compareTo((TermSource) obj));
+      return obj == this || (obj instanceof TermSource && 0 == compareTo((TermSource) obj));
     }
 
     @Override
@@ -80,17 +125,54 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
       // sorted after they have been determined to be valid.
       return this.iter.getTopKey().compareColumnQualifier(o.iter.getTopKey().getColumnQualifier());
     }
+
+    /**
+     * Converts the given {@code Range} into the correct {@code Range} for this TermSource (per this expected table structure) and then seeks this TermSource's
+     * SKVI.
+     */
+    public void seek(Range originalRange) throws IOException {
+      // the infinite start key is equivalent to a null startKey on the Range.
+      if (!originalRange.isInfiniteStartKey()) {
+        Key originalStartKey = originalRange.getStartKey();
+        // Pivot the provided range into the range for this term
+        Key newKey = new Key(originalStartKey.getRow(), term, originalStartKey.getColumnQualifier(), originalStartKey.getTimestamp());
+        // Construct the new range, preserving the other attributes on the provided range.
+        currentRange = new Range(newKey, originalRange.isStartKeyInclusive(), originalRange.getEndKey(), originalRange.isEndKeyInclusive());
+      } else {
+        currentRange = originalRange;
+      }
+      LOG.trace("Seeking {} to {}", this, currentRange);
+      iter.seek(currentRange, seekColfams, true);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append("TermSource{term=").append(term).append(", currentRange=").append(currentRange).append("}");
+      return sb.toString();
+    }
+
+    /**
+     * @return True if there is a valid topKey which falls into the range this TermSource's iterator was last seeked to, false otherwise.
+     */
+    boolean hasEntryForTerm() {
+      if (!iter.hasTop()) {
+        return false;
+      }
+      return currentRange.contains(iter.getTopKey());
+    }
   }
 
   public OrIterator() {
-    this.sources = new ArrayList<>();
+    this.sources = Collections.emptyList();
   }
 
   private OrIterator(OrIterator other, IteratorEnvironment env) {
-    this.sources = new ArrayList<>();
+    ArrayList<TermSource> copiedSources = new ArrayList<>();
 
     for (TermSource TS : other.sources)
-      this.sources.add(new TermSource(TS.iter.deepCopy(env), TS.term));
+      copiedSources.add(new TermSource(TS.iter.deepCopy(env), new Text(TS.term)));
+    this.sources = Collections.unmodifiableList(copiedSources);
   }
 
   @Override
@@ -98,41 +180,48 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
     return new OrIterator(this, env);
   }
 
-  public void addTerm(SortedKeyValueIterator<Key,Value> source, Text term, IteratorEnvironment env) {
-    this.sources.add(new TermSource(source.deepCopy(env), term));
+  public void setTerms(SortedKeyValueIterator<Key,Value> source, Collection<String> terms, IteratorEnvironment env) {
+    ArrayList<TermSource> newTerms = new ArrayList<>();
+    for (String term : terms) {
+      newTerms.add(new TermSource(source.deepCopy(env), new Text(term)));
+    }
+    this.sources = Collections.unmodifiableList(newTerms);
   }
 
   @Override
   final public void next() throws IOException {
-
+    LOG.trace("next()");
     if (currentTerm == null)
       return;
 
     // Advance currentTerm
     currentTerm.iter.next();
 
-    // See if currentTerm is still valid, remove if not
-    if (!(currentTerm.iter.hasTop()) || ((currentTerm.term != null) && (currentTerm.term.compareTo(currentTerm.iter.getTopKey().getColumnFamily()) != 0)))
-      currentTerm = null;
+    // Avoid computing this multiple times
+    final boolean currentTermHasMoreEntries = currentTerm.hasEntryForTerm();
 
     // optimization.
     // if size == 0, currentTerm is the only item left,
     // OR there are no items left.
     // In either case, we don't need to use the PriorityQueue
-    if (sorted.size() > 0) {
-      // sort the term back in
-      if (currentTerm != null)
+    if (!sorted.isEmpty()) {
+      // Add the currentTerm back to the heap to let it sort it with the rest
+      if (currentTermHasMoreEntries) {
         sorted.add(currentTerm);
-      // and get the current top item out.
+      }
+      // Let the heap return the next value to inspect
       currentTerm = sorted.poll();
-    }
+    } else if (!currentTermHasMoreEntries) {
+      // This currentTerm source was our last TermSource and it ran out of results
+      currentTerm = null;
+    } // else, currentTerm is the last TermSource and it has more results
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-
+    LOG.trace("seek() range={}", range);
     // If sources.size is 0, there is nothing to process, so just return.
-    if (sources.size() == 0) {
+    if (sources.isEmpty()) {
       currentTerm = null;
       return;
     }
@@ -141,32 +230,13 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
     // Yes, this is lots of duplicate code, but the speed works...
     // and we don't have a priority queue of size 0 or 1.
     if (sources.size() == 1) {
+      currentTerm = sources.get(0);
+      currentTerm.seek(range);
 
-      if (currentTerm == null)
-        currentTerm = sources.get(0);
-      Range newRange = null;
-
-      if (range != null) {
-        if ((range.getStartKey() == null) || (range.getStartKey().getRow() == null))
-          newRange = range;
-        else {
-          Key newKey = null;
-          if (range.getStartKey().getColumnQualifier() == null)
-            newKey = new Key(range.getStartKey().getRow(), (currentTerm.term == null) ? nullText : currentTerm.term);
-          else
-            newKey = new Key(range.getStartKey().getRow(), (currentTerm.term == null) ? nullText : currentTerm.term, range.getStartKey().getColumnQualifier());
-          newRange = new Range((newKey == null) ? nullKey : newKey, true, range.getEndKey(), false);
-        }
-      }
-      currentTerm.iter.seek(newRange, currentTerm.seekColfams, true);
-
-      // If there is no top key
-      // OR we are:
-      // 1) NOT an iterator
-      // 2) we have seeked into the next term (ie: seek man, get man001)
-      // then ignore it as a valid source
-      if (!(currentTerm.iter.hasTop()) || ((currentTerm.term != null) && (currentTerm.term.compareTo(currentTerm.iter.getTopKey().getColumnFamily()) != 0)))
+      if (!currentTerm.hasEntryForTerm()) {
+        // Signifies that there are no possible results for this range.
         currentTerm = null;
+      }
 
       // Otherwise, source is valid.
       return;
@@ -175,78 +245,69 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
     // Clear the PriorityQueue so that we can re-populate it.
     sorted.clear();
 
-    // This check is put in here to guard against the "initial seek"
-    // crashing us because the topkey term does not match.
-    // Note: It is safe to do the "sources.size() == 1" above
-    // because an Or must have at least two elements.
-    if (currentTerm == null) {
-      for (TermSource TS : sources) {
-        TS.iter.seek(range, TS.seekColfams, true);
-
-        if ((TS.iter.hasTop()) && ((TS.term != null) && (TS.term.compareTo(TS.iter.getTopKey().getColumnFamily()) == 0)))
-          sorted.add(TS);
-      }
-      currentTerm = sorted.poll();
-      return;
-    }
-
-    TermSource TS = null;
     Iterator<TermSource> iter = sources.iterator();
     // For each term, seek forward.
     // if a hit is not found, delete it from future searches.
     while (iter.hasNext()) {
-      TS = iter.next();
-      Range newRange = null;
+      TermSource ts = iter.next();
+      // Pivot the provided range into the correct range for this TermSource and seek the TS.
+      ts.seek(range);
 
-      if (range != null) {
-        if ((range.getStartKey() == null) || (range.getStartKey().getRow() == null))
-          newRange = range;
-        else {
-          Key newKey = null;
-          if (range.getStartKey().getColumnQualifier() == null)
-            newKey = new Key(range.getStartKey().getRow(), (TS.term == null) ? nullText : TS.term);
-          else
-            newKey = new Key(range.getStartKey().getRow(), (TS.term == null) ? nullText : TS.term, range.getStartKey().getColumnQualifier());
-          newRange = new Range((newKey == null) ? nullKey : newKey, true, range.getEndKey(), false);
-        }
+      if (ts.hasEntryForTerm()) {
+        LOG.trace("Retaining TermSource for {}", ts);
+        // Otherwise, source is valid. Add it to the sources.
+        sorted.add(ts);
+      } else {
+        LOG.trace("Not adding TermSource to heap for {}", ts);
       }
-
-      // Seek only to the term for this source as a column family
-      TS.iter.seek(newRange, TS.seekColfams, true);
-
-      // If there is no top key
-      // OR we are:
-      // 1) NOT an iterator
-      // 2) we have seeked into the next term (ie: seek man, get man001)
-      // then ignore it as a valid source
-      if (!(TS.iter.hasTop()) || ((TS.term != null) && (TS.term.compareTo(TS.iter.getTopKey().getColumnFamily()) != 0)))
-        iter.remove();
-
-      // Otherwise, source is valid. Add it to the sources.
-      sorted.add(TS);
     }
 
     // And set currentTerm = the next valid key/term.
+    // If the heap is empty, it returns null which signals iteration to cease
     currentTerm = sorted.poll();
   }
 
   @Override
   final public Key getTopKey() {
-    return currentTerm.iter.getTopKey();
+    final Key k = currentTerm.iter.getTopKey();
+    LOG.trace("getTopKey() = {}", k);
+    return k;
   }
 
   @Override
   final public Value getTopValue() {
-    return currentTerm.iter.getTopValue();
+    final Value v = currentTerm.iter.getTopValue();
+    LOG.trace("getTopValue() = {}", v);
+    return v;
   }
 
   @Override
   final public boolean hasTop() {
+    LOG.trace("hasTop()");
     return currentTerm != null;
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-    throw new UnsupportedOperationException();
+    LOG.trace("init()");
+    String columnsValue = options.get(COLUMNS_KEY);
+    if (null == columnsValue) {
+      throw new IllegalArgumentException(COLUMNS_KEY + " was not provided in the iterator configuration");
+    }
+    String[] columns = StringUtils.split(columnsValue, ',');
+    setTerms(source, Arrays.asList(columns), env);
+    LOG.trace("Set sources: {}", this.sources);
+  }
+
+  @Override
+  public IteratorOptions describeOptions() {
+    Map<String,String> options = new HashMap<>();
+    options.put(COLUMNS_KEY, "A comma-separated list of families");
+    return new IteratorOptions("OrIterator", "Produces a sorted stream of qualifiers based on families", options, Collections.<String> emptyList());
+  }
+
+  @Override
+  public boolean validateOptions(Map<String,String> options) {
+    return null != options.get(COLUMNS_KEY);
   }
 }
