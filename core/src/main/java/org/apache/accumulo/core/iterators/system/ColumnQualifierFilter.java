@@ -30,11 +30,10 @@ import org.apache.accumulo.core.iterators.ServerFilter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class ColumnQualifierFilter extends ServerFilter {
-  private final boolean scanColumns;
   private HashSet<ByteSequence> columnFamilies;
   private HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers;
 
-  public ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, Set<Column> columns) {
+  private ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, Set<Column> columns) {
     super(iterator);
     this.columnFamilies = new HashSet<>();
     this.columnsQualifiers = new HashMap<>();
@@ -54,24 +53,17 @@ public class ColumnQualifierFilter extends ServerFilter {
         columnFamilies.add(new ArrayByteSequence(col.columnFamily));
       }
     }
-
-    // only take action when column qualifies are present
-    scanColumns = this.columnsQualifiers.size() > 0;
   }
 
-  public ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, HashSet<ByteSequence> columnFamilies,
-      HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers, boolean scanColumns) {
+  private ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, HashSet<ByteSequence> columnFamilies,
+      HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers) {
     super(iterator);
     this.columnFamilies = columnFamilies;
     this.columnsQualifiers = columnsQualifiers;
-    this.scanColumns = scanColumns;
   }
 
   @Override
   public boolean accept(Key key, Value v) {
-    if (!scanColumns)
-      return true;
-
     if (columnFamilies.contains(key.getColumnFamilyData()))
       return true;
 
@@ -84,6 +76,22 @@ public class ColumnQualifierFilter extends ServerFilter {
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new ColumnQualifierFilter(source.deepCopy(env), columnFamilies, columnsQualifiers, scanColumns);
+    return new ColumnQualifierFilter(source.deepCopy(env), columnFamilies, columnsQualifiers);
+  }
+
+  public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source, Set<Column> cols) {
+    boolean sawNonNullQual = false;
+    for (Column col : cols) {
+      if (col.getColumnQualifier() != null) {
+        sawNonNullQual = true;
+        break;
+      }
+    }
+
+    if (sawNonNullQual) {
+      return new ColumnQualifierFilter(source, cols);
+    } else {
+      return source;
+    }
   }
 }

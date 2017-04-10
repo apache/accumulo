@@ -81,7 +81,7 @@ public class TransformingIteratorTest {
   private void setUpTransformIterator(Class<? extends TransformingIterator> clazz, boolean setupAuths) throws IOException {
     SortedMapIterator source = new SortedMapIterator(data);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(source);
-    VisibilityFilter visFilter = new VisibilityFilter(cfsi, authorizations, new byte[0]);
+    SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(cfsi, authorizations, new byte[0]);
     ReuseIterator reuserIter = new ReuseIterator();
     reuserIter.init(visFilter, EMPTY_OPTS, null);
     try {

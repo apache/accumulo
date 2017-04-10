@@ -79,27 +79,28 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     if (finished || lastRowFound == null)
       return;
     int count = 0;
-    while (getSource().hasTop() && lastRowFound.equals(getSource().getTopKey().getRow())) {
+    SortedKeyValueIterator<Key,Value> source = getSource();
+    while (source.hasTop() && lastRowFound.equals(source.getTopKey().getRow())) {
 
       // try to efficiently jump to the next matching key
       if (count < numscans) {
         ++count;
-        getSource().next(); // scan
+        source.next(); // scan
       } else {
         // too many scans, just seek
         count = 0;
 
         // determine where to seek to, but don't go beyond the user-specified range
-        Key nextKey = getSource().getTopKey().followingKey(PartialKey.ROW);
+        Key nextKey = source.getTopKey().followingKey(PartialKey.ROW);
         if (!latestRange.afterEndKey(nextKey))
-          getSource().seek(new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()), latestColumnFamilies, latestInclusive);
+          source.seek(new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()), latestColumnFamilies, latestInclusive);
         else {
           finished = true;
           break;
         }
       }
     }
-    lastRowFound = getSource().hasTop() ? getSource().getTopKey().getRow(lastRowFound) : null;
+    lastRowFound = source.hasTop() ? source.getTopKey().getRow(lastRowFound) : null;
   }
 
   private boolean finished = true;

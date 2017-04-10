@@ -358,19 +358,19 @@ public class FilterTest {
     }
     assertEquals(1000, tm.size());
 
-    ColumnQualifierFilter a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
+    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(1000, size(a));
 
     hsc = new HashSet<>();
     hsc.add(new Column("a".getBytes(), "b".getBytes(), null));
-    a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
+    a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
     assertEquals(500, size);
 
     hsc = new HashSet<>();
-    a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
+    a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(a);
     assertEquals(1000, size);
@@ -394,20 +394,20 @@ public class FilterTest {
     }
     assertEquals(1000, tm.size());
 
-    VisibilityFilter a = new VisibilityFilter(new SortedMapIterator(tm), auths, le2.getExpression());
+    SortedKeyValueIterator<Key,Value> a = VisibilityFilter.wrap(new SortedMapIterator(tm), auths, le2.getExpression());
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
     assertEquals(750, size);
   }
 
-  private ColumnQualifierFilter ncqf(TreeMap<Key,Value> tm, Column... columns) throws IOException {
+  private SortedKeyValueIterator<Key,Value> ncqf(TreeMap<Key,Value> tm, Column... columns) throws IOException {
     HashSet<Column> hsc = new HashSet<>();
 
     for (Column column : columns) {
       hsc.add(column);
     }
 
-    ColumnQualifierFilter a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
+    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     return a;
   }

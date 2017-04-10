@@ -16,14 +16,20 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 
 public class ColumnFilterTest extends TestCase {
 
@@ -40,39 +46,60 @@ public class ColumnFilterTest extends TestCase {
   }
 
   public void test1() {
-    HashSet<Column> columns = new HashSet<>();
+    TreeMap<Key,Value> data = new TreeMap<Key,Value>();
+    data.put(newKey("r1", "cf1", "cq1"), new Value(""));
+    data.put(newKey("r1", "cf2", "cq1"), new Value(""));
 
+    HashSet<Column> columns = new HashSet<>();
     columns.add(newColumn("cf1"));
 
-    ColumnQualifierFilter cf = new ColumnQualifierFilter(null, columns);
+    SortedMapIterator smi = new SortedMapIterator(data);
+    SortedKeyValueIterator<Key,Value> cf = ColumnQualifierFilter.wrap(smi, columns);
 
-    assertTrue(cf.accept(newKey("r1", "cf1", "cq1"), new Value(new byte[0])));
-    assertTrue(cf.accept(newKey("r1", "cf2", "cq1"), new Value(new byte[0])));
-
+    Assert.assertSame(smi, cf);
   }
 
-  public void test2() {
+  public void test2() throws Exception {
+
+    TreeMap<Key,Value> data = new TreeMap<Key,Value>();
+    data.put(newKey("r1", "cf1", "cq1"), new Value(""));
+    data.put(newKey("r1", "cf2", "cq1"), new Value(""));
+    data.put(newKey("r1", "cf2", "cq2"), new Value(""));
+
     HashSet<Column> columns = new HashSet<>();
 
     columns.add(newColumn("cf1"));
     columns.add(newColumn("cf2", "cq1"));
 
-    ColumnQualifierFilter cf = new ColumnQualifierFilter(null, columns);
+    SortedKeyValueIterator<Key,Value> cf = ColumnQualifierFilter.wrap(new SortedMapIterator(data), columns);
+    cf.seek(new Range(), Collections.emptySet(), false);
 
-    assertTrue(cf.accept(newKey("r1", "cf1", "cq1"), new Value(new byte[0])));
-    assertTrue(cf.accept(newKey("r1", "cf2", "cq1"), new Value(new byte[0])));
-    assertFalse(cf.accept(newKey("r1", "cf2", "cq2"), new Value(new byte[0])));
+    Assert.assertTrue(cf.hasTop());
+    Assert.assertEquals(newKey("r1", "cf1", "cq1"), cf.getTopKey());
+    cf.next();
+    Assert.assertTrue(cf.hasTop());
+    Assert.assertEquals(newKey("r1", "cf2", "cq1"), cf.getTopKey());
+    cf.next();
+    Assert.assertFalse(cf.hasTop());
   }
 
-  public void test3() {
+  public void test3() throws Exception {
+
+    TreeMap<Key,Value> data = new TreeMap<Key,Value>();
+    data.put(newKey("r1", "cf1", "cq1"), new Value(""));
+    data.put(newKey("r1", "cf2", "cq1"), new Value(""));
+    data.put(newKey("r1", "cf2", "cq2"), new Value(""));
+
     HashSet<Column> columns = new HashSet<>();
 
     columns.add(newColumn("cf2", "cq1"));
 
-    ColumnQualifierFilter cf = new ColumnQualifierFilter(null, columns);
+    SortedKeyValueIterator<Key,Value> cf = ColumnQualifierFilter.wrap(new SortedMapIterator(data), columns);
+    cf.seek(new Range(), Collections.emptySet(), false);
 
-    assertFalse(cf.accept(newKey("r1", "cf1", "cq1"), new Value(new byte[0])));
-    assertTrue(cf.accept(newKey("r1", "cf2", "cq1"), new Value(new byte[0])));
-    assertFalse(cf.accept(newKey("r1", "cf2", "cq2"), new Value(new byte[0])));
+    Assert.assertTrue(cf.hasTop());
+    Assert.assertEquals(newKey("r1", "cf2", "cq1"), cf.getTopKey());
+    cf.next();
+    Assert.assertFalse(cf.hasTop());
   }
 }
