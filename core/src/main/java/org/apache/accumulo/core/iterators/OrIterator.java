@@ -39,29 +39,44 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An iterator that handles "OR" query constructs on the server side. This code has been adapted/merged from Heap and Multi Iterators.
+ * An iterator that provides a sorted-iteration of column qualifiers for a set of column families in a row.
+ * It is important to note that this iterator <em>does not</em> adhere to the contract set forth by the
+ * {@link SortedKeyValueIterator}. It returns Keys in {@code row+colqual} order instead of
+ * {@code row+colfam+colqual} order. This is required for the implementation of this iterator (to work
+ * in conjunction with the {@code IntersectingIterator}) but is a code-smell. This iterator should only
+ * be used at query time, never at compaction time.
  *
  * The table structure should have the following form:
  *
  * <pre>
- * row term:docId =&lt; value
+ * row term:docId =&gt; value
  * </pre>
  *
- * This Iterator will return a sorted iteration of docIDs for a given set of terms.
+ * Users configuring this iterator must set the option {@link #COLUMNS_KEY}. This value is a comma-separated
+ * list of column families that should be "OR"'ed together.
  *
- * For example, given the data and an OR'ing of "bob,steve":
+ * For example, given the following data and a value of {@code or.iterator.columns="steve,bob"} in
+ * the iterator options map:
  *
  * <pre>
  * row1 bob:4
  * row1 george:2
  * row1 steve:3
+ * row2 bob:9
+ * row2 frank:8
+ * row2 steve:12
+ * row3 michael:15
+ * row3 steve:20
  * </pre>
  *
- * This Iterator will return:
+ * Would return:
  *
  * <pre>
  * row1 steve:3
  * row1 bob:4
+ * row2 bob:9
+ * row2 steve:12
+ * row3 steve:20
  * </pre>
  */
 
