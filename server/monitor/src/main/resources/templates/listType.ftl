@@ -23,7 +23,7 @@
           refreshListType();
         });
       </script>
-           
+
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="trace" class="table table-bordered table-striped table-condensed">

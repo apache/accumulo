@@ -23,10 +23,10 @@
     <link rel="shortcut icon" type="image/jng" href="/resources/favicon.png" />
     <script src="/resources/global.js" type="text/javascript"></script>
     <script src="/resources/functions.js" type="text/javascript"></script>
-    
+
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-    
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
@@ -37,7 +37,7 @@
     <script language="javascript" type="text/javascript" src="/resources/flot/jquery.flot.time.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js"></script>
-    
+
     <link rel="stylesheet" type="text/css" href="/resources/screen.css" media="screen" />
     <script>
       /**
@@ -63,7 +63,7 @@
 
         <div id="main">
           <#include "/templates/${template}">
-          
+
         </div>
       </div>
     </div>

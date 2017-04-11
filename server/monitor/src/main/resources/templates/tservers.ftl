@@ -17,13 +17,12 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="badtservers" class="table table-bordered table-striped table-condensed">
-        
+
         </table>
         <table id="deadtservers" class="table table-bordered table-striped table-condensed">
-        
+
         </table>
         <table id="tservers" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
       </div>
-        

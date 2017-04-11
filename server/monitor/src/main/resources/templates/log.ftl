@@ -13,10 +13,10 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
--->       
+-->
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="logTable" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
       </div>

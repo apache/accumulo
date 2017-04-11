@@ -18,7 +18,7 @@
       <div id="masterBanner"></div>
       <div class="center-block">
         <table id="masterStatus" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
         <table id="recoveryList" class="table table-bordered table-striped table-condensed">
 

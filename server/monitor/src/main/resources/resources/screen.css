@@ -166,15 +166,7 @@ hr {
 }
 
 table {
-  /*margin-left: auto;
-  margin-right: auto;
-  min-width: 60%;*/
-  /*border: 1px #333333 solid;
-  border-spacing-top: 0;
-  border-spacing-bottom: 0;*/
   font-size: 9pt;
-  /*border: 1px #333333 solid;
-  border: 1px #333333 solid;*/
 }
 
 /*
@@ -196,15 +188,6 @@ table.sortable {
   border-top: 1px #333333 dotted;
   border-bottom: 1px #333333 dotted;
 }
-
-/*
-table.sortable tbody tr:nth-child(2n) td {
-  background: #ffffff;
-}
-
-table.sortable tbody tr:nth-child(2n+1) td {
-  background: #cef4b5;
-}*/
 
 td {
   border-top: 0;
@@ -290,28 +273,6 @@ pre.logevent {
   border-spacing: 0;
   border-bottom: 0;
   border-right: 0;
-}
-
-.overview-table {
-    width: 100%;
-    border: 0;
-    border-spacing: 0;
-    border-bottom: 0;
-    border-right: 0;
-}
-
-.overview-table td {
-  vertical-align: top;
-  width: 50%;
-}
-
-/**
- * Need this to only apply the previous CSS to the top child
- * could probably do a selector
- */
-.overview-table td td {
-  vertical-align: inherit;
-  width: 0;
 }
 
 .table-caption {

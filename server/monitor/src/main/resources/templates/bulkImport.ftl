@@ -17,12 +17,12 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="masterBulkImportStatus" class="table table-bordered table-striped table-condensed">
-          
+
         </table>
       </div>
 
       <div class="center-block">
         <table id="bulkImportStatus" class="table table-bordered table-striped table-condensed">
-         
+
         </table>
       </div>
