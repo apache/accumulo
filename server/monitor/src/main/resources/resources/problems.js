@@ -71,28 +71,24 @@ function refreshProblemSummaryTable() {
 
   if (data.length === 0 || Object.keys(data.problemSummary).length === 0) {
     var items = [];
-    items.push('<td class="center" colspan="5"><i>Empty</i></td>');
+    items.push(createEmptyRow(5, 'Empty'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#problemSummary');
   } else {
     $.each(data.problemSummary, function(key, val) {
       var items = [];
-      items.push('<td class="firstcell left"><a href="/problems?table=' +
+      items.push(createFirstCell('', '<a href="/problems?table=' +
           val.tableID.split('+').join('%2B') + '">' + val.tableName +
-          '</a></td>');
+          '</a>'));
 
-      items.push('<td class="right">' + bigNumberForQuantity(val.fileRead) +
-          '</td>');
+      items.push(createRightCell('', bigNumberForQuantity(val.fileRead)));
 
-      items.push('<td class="right">' + bigNumberForQuantity(val.fileWrite) +
-          '</td>');
+      items.push(createRightCell('', bigNumberForQuantity(val.fileWrite)));
 
-      items.push('<td class="right">' + bigNumberForQuantity(val.tableLoad) +
-          '</td>');
-      items.push('<td><a href="javascript:clearTableProblemsTable(\'' +
-          val.tableID + '\');">clear ALL ' + val.tableName +
-          ' problems</a></td>');
+      items.push(createRightCell('', bigNumberForQuantity(val.tableLoad)));
+      items.push(createLeftCell('', '<a href="javascript:clearTableProblemsTable(\'' +
+          val.tableID + '\');">clear ALL ' + val.tableName + ' problems</a>'));
 
       $('<tr/>', {
         html: items.join('')
@@ -111,7 +107,7 @@ function refreshProblemDetailsTable() {
 
   if (data.length === 0 || Object.keys(data.problemDetails).length === 0) {
     var items = [];
-    items.push('<td class="center" colspan="7"><i>Empty</i></td>');
+    items.push(createEmptyRow(7, 'Empty'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#problemDetails');
@@ -120,29 +116,24 @@ function refreshProblemDetailsTable() {
       var items = [];
       // Filters the details problems for the selected tableID
       if (tableID === val.tableID || tableID === '') {
-        items.push('<td class="firstcell left" data-value="' + val.tableName +
-            '"><a href="/tables/' + val.tableID + '">' + val.tableName +
-            '</a></td>');
+        items.push(createFirstCell(val.tableName,
+            '<a href="/tables/' + val.tableID + '">' + val.tableName + '</a>'));
 
-        items.push('<td class="right" data-value="' + val.type + '">' +
-            val.type + '</td>');
+        items.push(createRightCell(val.type, val.type));
 
-        items.push('<td class="right" data-value="' + val.server + '">' +
-            val.server + '</td>');
+        items.push(createRightCell(val.server, val.server));
 
         var date = new Date(val.time);
-        items.push('<td class="right" data-value="' + val.time + '">' +
-            date.toLocaleString() + '</td>');
+        items.push(createRightCell(val.time, date.toLocaleString()));
 
-        items.push('<td class="right" data-value="' + val.resource + '">' +
-            val.resource + '</td>');
+        items.push(createRightCell(val.resource, val.resource));
 
-        items.push('<td class="right" data-value="' + val.exception + '">' +
-            val.exception + '</td>');
+        items.push(createRightCell(val.exception, val.exception));
 
-        items.push('<td><a href="javascript:clearDetailsProblemsTable(\'' +
+        items.push(createLeftCell('', 
+            '<a href="javascript:clearDetailsProblemsTable(\'' +
             val.tableID + '\', \'' + val.resource + '\', \'' + val.type +
-            '\')">clear this problem</a></td>');
+            '\')">clear this problem</a>'));
       }
 
       $('<tr/>', {
@@ -179,7 +170,7 @@ function sortTable(n) {
 function createSummaryHeader() {
   var caption = [];
 
-  caption.push('<span class="table-caption">Problem&nbsp;Summary</span><br />');
+  caption.push('<span class="table-caption">Problem&nbsp;Summary</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -187,11 +178,13 @@ function createSummaryHeader() {
 
   var items = [];
 
-  items.push('<th class="firstcell">Table&nbsp;</th>');
-  items.push('<th>FILE_READ&nbsp;</th>');
-  items.push('<th>FILE_WRITE&nbsp;</th>');
-  items.push('<th>TABLET_LOAD&nbsp;</th>');
-  items.push('<th>Operations&nbsp;</th>');
+  columns = ['Table&nbsp;', 'FILE_READ&nbsp;', 'FILE_WRITE&nbsp;',
+      'TABLET_LOAD&nbsp;', 'Operations&nbsp;']
+
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, '', '', columns[i]));
+  }
 
   $('<tr/>', {
       html: items.join('')
@@ -208,9 +201,9 @@ function createDetailsHeader(table) {
   tableID = table;
   var caption = [];
 
-  caption.push('<span class="table-caption">Problem&nbsp;Details</span><br />');
+  caption.push('<span class="table-caption">Problem&nbsp;Details</span><br>');
   caption.push('<span class="table-subcaption">Problems' +
-      '&nbsp;identified&nbsp;with&nbsp;tables.</span><br />');
+      '&nbsp;identified&nbsp;with&nbsp;tables.</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -218,13 +211,15 @@ function createDetailsHeader(table) {
 
   var items = [];
 
-  items.push('<th class="firstcell" onclick="sortTable(0)">Table&nbsp;</th>');
-  items.push('<th onclick="sortTable(1)">Problem&nbsp;Type&nbsp;</th>');
-  items.push('<th onclick="sortTable(2)">Server&nbsp;</th>');
-  items.push('<th onclick="sortTable(3)">Time&nbsp;</th>');
-  items.push('<th onclick="sortTable(4)">Resource&nbsp;</th>');
-  items.push('<th onclick="sortTable(5)">Exception&nbsp;</th>');
-  items.push('<th>Operations&nbsp;</th>');
+  var columns = ['Table&nbsp;', 'Problem&nbsp;Type&nbsp;', 'Server&nbsp;',
+      'Time&nbsp;', 'Resource&nbsp;', 'Exception&nbsp;', 'Operations&nbsp;'];
+
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    var sort = i == columns.length - 1 ? '' , 'sortTable(' + i + ')';
+
+    items.push(createHeaderCell(first, sort, '', columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

@@ -54,11 +54,11 @@ function refreshTraceShowTable() {
       var items = [];
 
       items.push('<tr>');
-      items.push('<td class="right">' + val.time + '+</td>');
-      items.push('<td class="left">' + val.start + '</td>');
+      items.push(createRightCell('', val.time + '+'));
+      items.push(createLeftCell('', val.start));
       items.push('<td style="text-indent: ' + val.level + '0px">' +
           val.location + '</td>');
-      items.push('<td>' + val.name + '</td>');
+      items.push(createLeftCell('', val.name));
 
       if (val.addlData.data.length !== 0 ||
           val.addlData.annotations.length !== 0) {
@@ -102,8 +102,7 @@ function refreshTraceShowTable() {
   } else {
       var items = [];
       items.push('<tr>');
-      items.push('<td class="center" colspan="5"><i>No trace information for ID ' +
-      id + '</i></td>');
+      items.push(createEmptyRow(5, 'No trace information for ID ' + id));
       items.push('</tr>');
       $('#trace').append(items.join(''));
   }
@@ -146,11 +145,12 @@ function createHeader(ID) {
 
   var items = [];
 
-  items.push('<th>Time&nbsp;</th>');
-  items.push('<th>Start&nbsp;</th>');
-  items.push('<th>Service@Location&nbsp;</th>');
-  items.push('<th>Name&nbsp;</th>');
-  items.push('<th>Addl&nbsp;Data&nbsp;</th>');
+  var columns = ['Time&nbsp;', 'Start&nbsp;', 'Service@Location&nbsp;',
+      'Name&nbsp;', 'Addl&nbsp;Data&nbsp;'];
+
+  for (i = 0; i < columns.length; i++) {
+    items.push(createHeaderCell(false, '', '', columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

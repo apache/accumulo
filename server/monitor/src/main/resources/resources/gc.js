@@ -74,149 +74,47 @@ function refreshGCTable() {
         data.files.currentCycle.started <= 0 &&
         data.wals.lastCycle.finished <= 0 &&
         data.wals.currentCycle.started <= 0) {
-      var item = '<td class="center" colspan="7"><i>No Collection Activity' +
-          '</i></td>';
+      var item = createEmptyRow(7, 'No Collection Activity');
 
       $('<tr/>', {
         html: item
       }).appendTo('#gcActivity');
     } else {
 
-      // File Collection Last Cycle row
-      if (data.files.lastCycle.finished > 0) {
-        var items = [];
+      var gc = {'File&nbsp;Collection,&nbsp;Last&nbsp;Cycle' : data.files.lastCycle,
+          'File&nbsp;Collection,&nbsp;Running' : data.files.currentCycle,
+          'WAL&nbsp;Collection,&nbsp;Last&nbsp;Cycle' : data.wals.lastCycle,
+          'WAL&nbsp;Collection,&nbsp;Running' : data.wals.currentCycle};
 
-        var working = data.files.lastCycle;
+      $.each(gc, function(key, val) {
+        if (val.finished > 0) {
+          var items = [];
 
-        items.push('<td class="firstcell left" data-value="File Collection' +
-            ' Last Cycle">File&nbsp;Collection,&nbsp;Last&nbsp;Cycle</td>"');
+          items.push(createFirstCell(key, key));
 
-        var date = new Date(working.finished);
-        items.push('<td class="right" data-value="' + working.finished +
-            '">' + date.toLocaleString() + '</td>');
+          var date = new Date(val.finished);
+          items.push(createRightCell(val.finished, date.toLocaleString()));
 
-        items.push('<td class="right" data-value="' + working.candidates +
-            '">' + bigNumberForQuantity(working.candidates) + '</td>');
+          items.push(createRightCell(val.candidates,
+              bigNumberForQuantity(val.candidates)));
 
-        items.push('<td class="right" data-value="' + working.deleted +
-            '">' + bigNumberForQuantity(working.deleted) + '</td>');
+          items.push(createRightCell(val.deleted,
+              bigNumberForQuantity(val.deleted)));
 
-        items.push('<td class="right" data-value="' + working.inUse +
-            '">' + bigNumberForQuantity(working.inUse) + '</td>');
+          items.push(createRightCell(val.inUse,
+              bigNumberForQuantity(val.inUse)));
 
-        items.push('<td class="right" data-value="' + working.errors +
-            '">' + bigNumberForQuantity(working.errors) + '</td>');
+          items.push(createRightCell(val.errors,
+              bigNumberForQuantity(val.errors)));
 
-        items.push('<td class="right" data-value="' +
-            (working.finished - working.started) + '">' +
-            timeDuration(working.finished - working.started) + '</td>');
+          items.push(createRightCell((val.finished - val.started),
+              timeDuration(val.finished - val.started)));
 
-        $('<tr/>', {
-          html: items.join('')
-        }).appendTo('#gcActivity');
-      }
-
-      // File Collection Running row
-      if (data.files.currentCycle.started > 0) {
-        var items = [];
-
-        var working = data.files.currentCycle;
-
-        items.push('<td class="firstcell left" data-value="File Collection' +
-            ' Running">File&nbsp;Collection,&nbsp;Running</td>');
-
-        var date = new Date(working.finished);
-        items.push('<td class="right" data-value="' + working.finished +
-            '">' + date.toLocaleString() + '</td>');
-
-        items.push('<td class="right" data-value="' + working.candidates +
-            '">' + bigNumberForQuantity(working.candidates) + '</td>');
-
-        items.push('<td class="right" data-value="' + working.deleted +
-            '">' + bigNumberForQuantity(working.deleted) + '</td>');
-
-        items.push('<td class="right" data-value="' + working.inUse +
-            '">' + bigNumberForQuantity(working.inUse) + '</td>');
-
-        items.push('<td class="right" data-value="' + working.errors +
-            '">' + bigNumberForQuantity(working.errors) + '</td>');
-
-        items.push('<td class="right" data-value="' +
-            (working.finished - working.started) + '">' +
-            timeDuration(working.finished - working.started) + '</td>');
-
-        $('<tr/>', {
-          html: items.join('')
-        }).appendTo('#gcActivity');
-      }
-
-      // WAL Collection Last Cycle row
-      if (data.wals.lastCycle.finished > 0) {
-        var items = [];
-
-        var working = data.wals.lastCycle;
-
-        items.push('<td class="firstcell left" data-value="WAL Collection' +
-            ' Last Cycle">WAL&nbsp;Collection,&nbsp;Last&nbsp;Cycle</td>');
-
-        var date = new Date(working.finished);
-        items.push('<td class="right" data-value="' + working.finished +
-            '">' + date.toLocaleString() + '</td>');
-
-        items.push('<td class="right" data-value="' + working.candidates +
-            '">' + bigNumberForQuantity(working.candidates) + '</td>');
-
-        items.push('<td class="right" data-value="' + working.deleted +
-            '">' + bigNumberForQuantity(working.deleted) + '</td>');
-
-        items.push('<td class="right" data-value="' + working.inUse +
-            '">' + bigNumberForQuantity(working.inUse) + '</td>');
-
-        items.push('<td class="right" data-value="' + working.errors +
-            '">' + bigNumberForQuantity(working.errors) + '</td>');
-
-        items.push('<td class="right" data-value="' +
-            (working.finished - working.started) + '">' +
-            timeDuration(working.finished - working.started) + '</td>');
-
-        $('<tr/>', {
-          html: items.join('')
-        }).appendTo('#gcActivity');
-      }
-
-      // WAL Collection Running row
-      if (data.wals.currentCycle.started > 0) {
-        var items = [];
-
-        var working = data.wals.currentCycle;
-
-        items.push('<td class="firstcell left" data-value="WAL Collection' +
-            ' Running">WAL&nbsp;Collection,&nbsp;Running</td>');
-
-        var date = new Date(working.finished);
-        items.push('<td class="right" data-value="' + working.finished +
-            '">' + date.toLocaleString() + '</td>');
-
-        items.push('<td class="right" data-value="' + working.candidates +
-            '">' + bigNumberForQuantity(working.candidates) + '</td>');
-
-        items.push('<td class="right" data-value="' + working.deleted +
-            '">' + bigNumberForQuantity(working.deleted) + '</td>');
-
-        items.push('<td class="right" data-value="' + working.inUse +
-            '">' + bigNumberForQuantity(working.inUse) + '</td>');
-
-        items.push('<td class="right" data-value="' + working.errors +
-            '">' + bigNumberForQuantity(working.errors) + '</td>');
-
-        items.push('<td class="right" data-value="' +
-            (working.finished - working.started) + '">' +
-            timeDuration(working.finished - working.started) + '</td>');
-
-        $('<tr/>', {
-          html: items.join('')
-        }).appendTo('#gcActivity');
-      }
+          $('<tr/>', {
+            html: items.join('')
+          }).appendTo('#gcActivity');
+        }
+      });
     }
   }
 }
@@ -247,7 +145,7 @@ function createHeader() {
   var caption = [];
 
   caption.push('<span class="table-caption">Collection&nbsp;' +
-      'Activity</span><br />');
+      'Activity</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -255,18 +153,17 @@ function createHeader() {
 
   var items = [];
 
+  var columns = ['Activity&nbsp;', 'Finished&nbsp;', 'Candidates&nbsp;',
+      'Deleted&nbsp;', 'In&nbsp;Use&nbsp;', 'Errors&nbsp;', 'Duration&nbsp;'];
+
   /*
    * Adds the columns, add sortTable function on click,
    * if the column has a description, add title taken from the global.js
    */
-  items.push('<th class="firstcell" onclick="sortTable(0)">Activity' +
-      '&nbsp;</th>');
-  items.push('<th onclick="sortTable(1)">Finished&nbsp;</th>');
-  items.push('<th onclick="sortTable(2)">Candidates&nbsp;</th>');
-  items.push('<th onclick="sortTable(3)">Deleted&nbsp;</th>');
-  items.push('<th onclick="sortTable(4)">In&nbsp;Use&nbsp;</th>');
-  items.push('<th onclick="sortTable(5)">Errors&nbsp;</th>');
-  items.push('<th onclick="sortTable(6)">Duration&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(' + i + ')', '', columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

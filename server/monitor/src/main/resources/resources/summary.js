@@ -49,8 +49,8 @@ function refreshTraceSummaryTable(minutes) {
 
   if (data.length === 0 || data.recentTraces.length === 0) {
     var items = [];
-    items.push('<td class="center" colspan="6"><i>No traces available for the last ' +
-        minutes + ' minute(s)</i></td>');
+    items.push(createEmptyRow(6, 'No traces available for the last ' +
+        minutes + ' minute(s)'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#traceSummary');
@@ -59,13 +59,12 @@ function refreshTraceSummaryTable(minutes) {
 
       var items = [];
 
-      items.push('<td class="firstcell left"><a href="/trace/listType?type=' +
-          val.type + '&minutes=' + minutes + '">' + val.type + '</a></td>');
-      items.push('<td class ="right">' + bigNumberForQuantity(val.total) +
-          '</td>');
-      items.push('<td class="right">' + timeDuration(val.min) + '</td>');
-      items.push('<td class="right">' + timeDuration(val.max) + '</td>');
-      items.push('<td class="right">' + timeDuration(val.avg) + '</td>');
+      items.push(createFirstCell('', '<a href="/trace/listType?type=' +
+          val.type + '&minutes=' + minutes + '">' + val.type + '</a>'));
+      items.push(createRightCell('', bigNumberForQuantity(val.total)));
+      items.push(createRightCell('', timeDuration(val.min)));
+      items.push(createRightCell('', timeDuration(val.max)));
+      items.push(createRightCell('', timeDuration(val.avg)));
       items.push('<td class="left">');
       items.push('<table style="width: 100%;">');
       items.push('<tr>');
@@ -113,7 +112,7 @@ function createHeader(min) {
   minutes = min;
   var caption = [];
 
-  caption.push('<span class="table-caption">All Traces</span><br />');
+  caption.push('<span class="table-caption">All Traces</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -121,23 +120,17 @@ function createHeader(min) {
 
   var items = [];
 
-  items.push('<th class="firstcell" title="' + descriptions['Trace Type'] +
-      '">Type&nbsp;</th>');
+  var columns = ['Type&nbsp;', 'Total&nbsp;', 'min&nbsp;', 'max&nbsp;',
+      'avg&nbsp;', 'Histogram&nbsp;'];
 
-  items.push('<th title="' + descriptions['Total Spans'] +
-      '">Total&nbsp;</th>');
+  var titles = [descriptions['Trace Type'], descriptions['Total Spans'],
+      descriptions['Short Span'], descriptions['Long Span'],
+      descriptions['Avg Span'], descriptions['Histogram']];
 
-  items.push('<th title="' + descriptions['Short Span'] +
-      '">min&nbsp;</th>');
-
-  items.push('<th title="' + descriptions['Long Span'] +
-      '">max&nbsp;</th>');
-
-  items.push('<th title="' + descriptions['Avg Span'] +
-      '">avg&nbsp;</th>');
-
-  items.push('<th title="' + descriptions['Histogram'] +
-      '">Histogram&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, '', titles[i], columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

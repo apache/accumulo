@@ -69,9 +69,9 @@ function refreshBadTServersTable() {
     var caption = [];
 
     caption.push('<span class="table-caption">Non-Functioning&nbsp;' +
-        'Tablet&nbsp;Servers</span><br />');
+        'Tablet&nbsp;Servers</span><br>');
     caption.push('<span class="table-subcaption">The following tablet' +
-        ' servers reported a status other than Online</span><br />');
+        ' servers reported a status other than Online</span><br>');
 
     $('<caption/>', {
       html: caption.join('')
@@ -79,10 +79,14 @@ function refreshBadTServersTable() {
 
     var items = [];
 
-    items.push('<th class="firstcell" onclick="sortTable(0,0)">' +
-        'Tablet&nbsp;Server&nbsp;</th>');
-    items.push('<th onclick="sortTable(0,1)">Tablet&nbsp;Server&nbsp;' +
-        'Status&nbsp;</th>');
+    var columns = ['Tablet&nbsp;Server&nbsp;',
+        'Tablet&nbsp;Server&nbsp;Status&nbsp;'];
+
+    for (i = 0; i < columns.length; i++) {
+      var first = i == 0 ? true : false;
+      items.push(createHeaderCell(first, 'sortTable(0,' + i + ')',
+          '', columns[i]));
+    }
 
     $('<tr/>', {
       html: items.join('')
@@ -90,10 +94,8 @@ function refreshBadTServersTable() {
 
     $.each(data.badServers, function(key, val) {
       var items = [];
-      items.push('<td class="firstcell left" data-value="' + val.id +
-          '">' + val.id + '</td>');
-      items.push('<td class="right" data-value="' + val.status +
-          '">' + val.status + '</td>');
+      items.push(createFirstCell(val.id, val.id));
+      items.push(createRightCell(val.status, val.status));
 
       $('<tr/>', {
         html: items.join('')
@@ -123,9 +125,9 @@ function refreshDeadTServersTable() {
     var caption = [];
 
     caption.push('<span class="table-caption">Dead&nbsp;' +
-        'Tablet&nbsp;Servers</span><br />');
+        'Tablet&nbsp;Servers</span><br>');
     caption.push('<span class="table-subcaption">The following' +
-        ' tablet servers are no longer reachable.</span><br />');
+        ' tablet servers are no longer reachable.</span><br>');
 
     $('<caption/>', {
       html: caption.join('')
@@ -133,11 +135,14 @@ function refreshDeadTServersTable() {
 
     var items = [];
 
-    items.push('<th class="firstcell" onclick="sortTable(1,0)">' +
-        'Server&nbsp;</th>');
-    items.push('<th onclick="sortTable(1,1)">Last&nbsp;Updated&nbsp;</th>');
-    items.push('<th onclick="sortTable(1,2)">Event&nbsp;</th>');
-    items.push('<th>Clear</th>');
+    var columns = ['Server&nbsp;', 'Last&nbsp;Updated&nbsp;', 'Event&nbsp;',
+        'Clear'];
+
+    for (i = 0; i < columns.length; i++) {
+      var first = i == 0 ? true : false;
+      var sort = i == columns.length - 1 ? '' : 'sortTable(1,' + i + ')';
+      items.push(createHeaderCell(first, sort, '', columns[i]));
+    }
 
     $('<tr/>', {
       html: items.join('')
@@ -145,18 +150,14 @@ function refreshDeadTServersTable() {
 
     $.each(data.deadServers, function(key, val) {
       var items = [];
-      items.push('<td class="firstcell left" data-value="' + val.server +
-          '">' + val.server + '</td>');
+      items.push(createFirstCell(val.server, val.server));
 
       var date = new Date(val.lastStatus);
       date = date.toLocaleString().split(' ').join('&nbsp;');
-      items.push('<td class="right" data-value="' + val.lastStatus +
-          '">' + date + '</td>');
-      items.push('<td class="right" data-value="' + val.status +
-          '">' + val.status + '</td>');
-      items.push('<td class="right"> ' +
-          '<a href="javascript:clearDeadTServers(\'' +
-          val.server + '\');">clear</a></td>');
+      items.push(createRightCell(val.lastStatus, date));
+      items.push(createRightCell(val.status, val.status));
+      items.push(createRightCell('', '<a href="javascript:clearDeadTServers(\'' +
+          val.server + '\');">clear</a>'));
 
       $('<tr/>', {
         html: items.join('')
@@ -186,7 +187,7 @@ function refreshTServersTable() {
   $('#tservers tr:gt(0)').remove();
 
   if (data.length === 0 || data.servers.length === 0) {
-    var item = '<td class="center" colspan="13"><i>Empty</i></td>';
+    var item = createEmptyRow(13, 'Empty');
 
     $('<tr/>', {
       html: item
@@ -195,57 +196,52 @@ function refreshTServersTable() {
 
     $.each(data.servers, function(key, val) {
       var items = [];
-      items.push('<td class="firstcell left" data-value="' + val.hostname +
-          '"><a href="/tservers?s=' + val.id + '">' + val.hostname +
-          '</a></td>');
+      items.push(createFirstCell(val.hostname,
+          '<a href="/tservers?s=' + val.id + '">' + val.hostname + '</a>'));
 
-      items.push('<td class="right" data-value="' + val.tablets +
-          '">' + bigNumberForQuantity(val.tablets) + '</td>');
+      items.push(createRightCell(val.tablets,
+          bigNumberForQuantity(val.tablets)));
 
-      items.push('<td class="right" data-value="' + val.lastContact +
-          '">' + timeDuration(val.lastContact) + '</td>');
+      items.push(createRightCell(val.lastContact,
+          timeDuration(val.lastContact)));
 
-      items.push('<td class="right" data-value="' + val.entries +
-          '">' + bigNumberForQuantity(val.entries) + '</td>');
+      items.push(createRightCell(val.entries,
+          bigNumberForQuantity(val.entries)));
 
-      items.push('<td class="right" data-value="' + val.ingest +
-          '">' + bigNumberForQuantity(Math.floor(val.ingest)) + '</td>');
+      items.push(createRightCell(val.ingest,
+          bigNumberForQuantity(Math.floor(val.ingest))));
 
-      items.push('<td class="right" data-value="' + val.query +
-          '">' + bigNumberForQuantity(Math.floor(val.query)) + '</td>');
+      items.push(createRightCell(val.query,
+          bigNumberForQuantity(Math.floor(val.query))));
 
-      items.push('<td class="right" data-value="' + val.holdtime +
-          '">' + timeDuration(val.holdtime) + '</td>');
+      items.push(createRightCell(val.holdtime,
+          timeDuration(val.holdtime)));
 
-      items.push('<td class="right" data-value="' +
-          (val.compactions.scans.running + val.compactions.scans.queued) +
-          '">' + bigNumberForQuantity(val.compactions.scans.running) +
+      items.push(createRightCell((val.compactions.scans.running +
+          val.compactions.scans.queued),
+          bigNumberForQuantity(val.compactions.scans.running) +
           '&nbsp;(' + bigNumberForQuantity(val.compactions.scans.queued) +
-          ')</td>');
+          ')'));
 
-      items.push('<td class="right" data-value="' +
-          (val.compactions.minor.running + val.compactions.minor.queued) +
-          '">' + bigNumberForQuantity(val.compactions.minor.running) +
+      items.push(createRightCell((val.compactions.minor.running +
+          val.compactions.minor.queued),
+          bigNumberForQuantity(val.compactions.minor.running) +
           '&nbsp;(' + bigNumberForQuantity(val.compactions.minor.queued) +
-          ')</td>');
+          ')'));
 
-      items.push('<td class="right" data-value="' +
-          (val.compactions.major.running + val.compactions.major.queued) +
-          '">' + bigNumberForQuantity(val.compactions.major.running) +
+      items.push(createRightCell((val.compactions.major.running +
+          val.compactions.major.queued),
+          bigNumberForQuantity(val.compactions.major.running) +
           '&nbsp;(' + bigNumberForQuantity(val.compactions.major.queued) +
-          ')</td>');
+          ')'));
 
-      items.push('<td class="right" data-value="' +
-          val.indexCacheHitRate * 100 + '">' +
-          Math.round(val.indexCacheHitRate * 100) +
-          '%</td>');
+      items.push(createRightCell(val.indexCacheHitRate * 100,
+          Math.round(val.indexCacheHitRate * 100) + '%'));
 
-      items.push('<td class="right" data-value="' + val.dataCacheHitRate * 100 +
-          '">' + Math.round(val.dataCacheHitRate * 100) +
-          '%</td>');
+      items.push(createRightCell(val.dataCacheHitRate * 100,
+          Math.round(val.dataCacheHitRate * 100) + '%'));
 
-      items.push('<td class="right" data-value="' + val.osload +
-          '">' + bigNumberForQuantity(val.osload) + '</td>');
+      items.push(createRightCell(val.osload, bigNumberForQuantity(val.osload)));
 
       $('<tr/>', {
         html: items.join('')
@@ -282,10 +278,10 @@ function sortTable(table, n) {
 function createHeader() {
   var caption = [];
 
-  caption.push('<span class="table-caption">Tablet&nbsp;Servers</span><br />');
+  caption.push('<span class="table-caption">Tablet&nbsp;Servers</span><br>');
   caption.push('<span class="table-subcaption">Click on the ' +
       '<span style="color: #0000ff;">server address</span> to ' +
-      'view detailed performance statistics for that server.</span><br />');
+      'view detailed performance statistics for that server.</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -293,33 +289,24 @@ function createHeader() {
 
   var items = [];
 
-  items.push('<th class="firstcell" onclick="sortTable(2,0)">Server&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,1)">Hosted&nbsp;Tablets&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,2)">Last&nbsp;Contact&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,3)" title="' +
-      descriptions['Entries'] + '">Entries&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,4)" title="' +
-      descriptions['Ingest'] + '">Ingest&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,5)" title="' +
-      descriptions['Query'] + '">Query&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,6)" title="' +
-      descriptions['Hold Time'] + '">Hold&nbsp;Time&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,7)" title="' +
-      descriptions['Running Scans'] + '">Running<br />Scans&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,8)" title="' +
-      descriptions['Minor Compactions'] +
-      '">Minor<br />Compactions&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,9)" title="' +
-      descriptions['Major Compactions'] +
-      '">Major<br />Compactions&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,10)" title="' +
-      descriptions['Index Cache Hit Rate'] +
-      '">Index Cache<br />Hit Rate&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,11)" title="' +
-      descriptions['Data Cache Hit Rate'] +
-      '">Data Cache<br />Hit Rate&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,12)" title="' +
-      descriptions['OS Load'] + '">OS&nbsp;Load&nbsp;</th>');
+  var columns = ['Server&nbsp;', 'Hosted&nbsp;Tablets&nbsp;',
+      'Last&nbsp;Contact&nbsp;', 'Entries&nbsp;', 'Ingest&nbsp;',
+      'Query&nbsp;', 'Hold&nbsp;Time&nbsp;', 'Running<br>Scans&nbsp;',
+      'Minor<br>Compactions&nbsp;', 'Major<br>Compactions&nbsp;',
+      'Index Cache<br>Hit Rate&nbsp;', 'Data Cache<br>Hit Rate&nbsp;',
+      'OS&nbsp;Load&nbsp;'];
+
+  var titles = ['', '', '', descriptions['Entries'], descriptions['Ingest'],
+      descriptions['Query'], descriptions['Hold Time'],
+      descriptions['Running Scans'], descriptions['Minor Compactions'],
+      descriptions['Major Compactions'], descriptions['Index Cache Hit Rate'],
+      descriptions['Data Cache Hit Rate'], descriptions['OS Load']];
+
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(2,' + i + ')',
+        titles[i], columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

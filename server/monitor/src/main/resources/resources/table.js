@@ -48,7 +48,7 @@ function refreshTableServersTable() {
 
   if (data.length === 0 || data.servers.length === 0) {
     var items = [];
-    items.push('<td class="center" colspan="13"><i>Empty</i></td>');
+    items.push(createEmptyRow(13, 'Empty'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#participatingTServers');
@@ -56,69 +56,59 @@ function refreshTableServersTable() {
 
     $.each(data.servers, function(key, val) {
       var items = [];
-      items.push('<td class="firstcell left" data-value="' + val.hostname +
-          '"><a href="/tservers?s=' + val.id +
-          '">' + val.hostname + '</a></td>');
+      items.push(createFirstCell(val.hostname, '<a href="/tservers?s=' +
+          val.id + '">' + val.hostname + '</a>'));
 
-      items.push('<td class="right" data-value="' + val.tablets +
-          '">' + bigNumberForQuantity(val.tablets) + '</td>');
+      items.push(createRightCell(val.tablets,
+          bigNumberForQuantity(val.tablets)));
 
-      items.push('<td class="right" data-value="' + val.lastContact +
-          '">' + timeDuration(val.lastContact) + '</td>');
+      items.push(createRightCell(val.lastContact,
+          timeDuration(val.lastContact)));
 
-      items.push('<td class="right" data-value="' + val.entries +
-          '">' + bigNumberForQuantity(val.entries) + '</td>');
+      items.push(createRightCell(val.entries,
+          bigNumberForQuantity(val.entries)));
 
-      items.push('<td class="right" data-value="' + val.ingest +
-          '">' + bigNumberForQuantity(Math.floor(val.ingest)) + '</td>');
+      items.push(createRightCell(val.ingest,
+          bigNumberForQuantity(Math.floor(val.ingest))));
 
-      items.push('<td class="right" data-value="' + val.query +
-          '">' + bigNumberForQuantity(Math.floor(val.query)) + '</td>');
+      items.push(createRightCell(val.query,
+          bigNumberForQuantity(Math.floor(val.query))));
 
-      items.push('<td class="right" data-value="' + val.holdtime +
-          '">' + timeDuration(val.holdtime) + '</td>');
+      items.push(createRightCell(val.holdtime,
+          timeDuration(val.holdtime)));
 
-      items.push('<td class="right" data-value="' +
-          (val.compactions.scans.running + val.compactions.scans.queued) +
-          '">' + bigNumberForQuantity(val.compactions.scans.running) +
+      items.push(createRightCell((val.compactions.scans.running +
+          val.compactions.scans.queued),
+          bigNumberForQuantity(val.compactions.scans.running) +
           '&nbsp;(' + bigNumberForQuantity(val.compactions.scans.queued) +
-          ')</td>');
+          ')'));
 
-      items.push('<td class="right" data-value="' +
-          (val.compactions.minor.running + val.compactions.minor.queued) +
-          '">' + bigNumberForQuantity(val.compactions.minor.running) +
+      items.push(createRightCell((val.compactions.minor.running +
+          val.compactions.minor.queued),
+          bigNumberForQuantity(val.compactions.minor.running) +
           '&nbsp;(' + bigNumberForQuantity(val.compactions.minor.queued) +
-          ')</td>');
+          ')'));
 
-      items.push('<td class="right" data-value="' +
-          (val.compactions.major.running + val.compactions.major.queued) +
-          '">' + bigNumberForQuantity(val.compactions.major.running) +
+      items.push(createRightCell((val.compactions.major.running +
+          val.compactions.major.queued),
+          bigNumberForQuantity(val.compactions.major.running) +
           '&nbsp;(' + bigNumberForQuantity(val.compactions.major.queued) +
-          ')</td>');
+          ')'));
 
-      items.push('<td class="right" data-value="' +
-          val.indexCacheHitRate * 100 +
-          '">' + Math.round(val.indexCacheHitRate * 100) + '%</td>');
+      items.push(createRightCell(val.indexCacheHitRate * 100,
+          Math.round(val.indexCacheHitRate * 100) + '%'));
 
-      items.push('<td class="right" data-value="' + val.dataCacheHitRate * 100 +
-          '">' + Math.round(val.dataCacheHitRate * 100) + '%</td>');
+      items.push(createRightCell(val.dataCacheHitRate * 100,
+          Math.round(val.dataCacheHitRate * 100) + '%'));
 
-      items.push('<td class="right" data-value="' + val.osload +
-          '">' + bigNumberForQuantity(val.osload) + '</td>');
+      items.push(createRightCell(val.osload,
+          bigNumberForQuantity(val.osload)));
 
       $('<tr/>', {
         html: items.join('')
       }).appendTo('#participatingTServers');
 
     });
-    if (data.servers.length === 0) {
-      var items = [];
-      items.push('<td class="center" colspan="13"><i>Empty</i></td>');
-
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#participatingTServers');
-    }
   }
 }
 
@@ -153,8 +143,8 @@ function createHeader(table, tabID) {
   var caption = [];
 
   caption.push('<span class="table-caption">Participating&nbsp;' +
-      'Tablet&nbsp;Servers</span><br />');
-  caption.push('<span class="table-subcaption">' + table + '</span><br />');
+      'Tablet&nbsp;Servers</span><br>');
+  caption.push('<span class="table-subcaption">' + table + '</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -162,45 +152,24 @@ function createHeader(table, tabID) {
 
   var items = [];
 
-  items.push('<th class="firstcell" onclick="sortTable(0)">Server&nbsp;</th>');
+  var columns = ['Server&nbsp;', 'Hosted&nbsp;Tablets&nbsp;',
+      'Last&nbsp;Contact&nbsp;', 'Entries&nbsp;', 'Ingest&nbsp;',
+      'Query&nbsp;', 'Hold&nbsp;Time&nbsp;', 'Running<br>Scans&nbsp;',
+      'Minor<br>Compactions&nbsp;', 'Major<br>Compactions&nbsp;',
+      'Index Cache<br>Hit Rate&nbsp;', 'Data Cache<br>Hit Rate&nbsp;',
+      'OS&nbsp;Load&nbsp;'];
 
-  items.push('<th onclick="sortTable(1)">Hosted&nbsp;Tablets&nbsp;</th>');
+  var titles = ['', '', '', descriptions['Entries'], descriptions['Ingest'],
+      descriptions['Query'], descriptions['Hold Time'],
+      descriptions['Running Scans'], descriptions['Minor Compactions'],
+      descriptions['Major Compactions'], descriptions['Index Cache Hit Rate'],
+      descriptions['Data Cache Hit Rate'], descriptions['OS Load']];
 
-  items.push('<th onclick="sortTable(2)">Last&nbsp;Contact&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(3)" title="' + descriptions['Entries'] +
-      '">Entries&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(4)" title="' + descriptions['Ingest'] +
-      '">Ingest&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(5)" title="' + descriptions['Query'] +
-      '">Query&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(6)" title="' + descriptions['Hold Time'] +
-      '">Hold&nbsp;Time&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(7)" title="' +
-      descriptions['Running Scans'] + '">Running<br />Scans&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(8)" title="' +
-      descriptions['Minor Compactions'] +
-      '">Minor<br />Compactions&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(9)" title="' +
-      descriptions['Major Compactions'] +
-      '">Major<br />Compactions&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(10)" title="' +
-      descriptions['Index Cache Hit Rate'] +
-      '">Index Cache<br />Hit Rate&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(11)" title="' +
-      descriptions['Data Cache Hit Rate'] +
-      '">Data Cache<br />Hit Rate&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(12)" title="' +
-      descriptions['OS Load'] + '">OS&nbsp;Load&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(' + i + ')',
+        titles[i], columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

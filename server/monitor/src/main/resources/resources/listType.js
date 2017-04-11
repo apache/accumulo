@@ -60,8 +60,8 @@ function refreshTypeTraceTable(minutes) {
    */
   if (data.length === 0 || data.traces.length === 0) {
     var items = [];
-    items.push('<td class="center" colspan="3"><i>No traces in the last ' +
-        minutes + ' minute(s)</i></td>');
+    items.push(createEmptyRow(3, 'No traces for the last ' +
+        minutes + ' minute(s)'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#trace');
@@ -71,10 +71,10 @@ function refreshTypeTraceTable(minutes) {
 
       // Convert start value to a date
       var date = new Date(val.start);
-      items.push('<td class="firstcell left"><a href="/trace/show?id=' +
-          val.id + '">' + date.toLocaleString() + '</a></td>');
-      items.push('<td class ="right">' + timeDuration(val.ms) + '</td>');
-      items.push('<td class="left">' + val.source + '</td>');
+      items.push(createFirstCell('', '<a href="/trace/show?id=' +
+          val.id + '">' + date.toLocaleString() + '</a>'));
+      items.push(createRightCell('', timeDuration(val.ms)));
+      items.push(createLeftCell('', val.source));
 
       $('<tr/>', {
         html: items.join('')
@@ -113,7 +113,7 @@ function createHeader(type2, minutes2) {
   minutes = minutes2;
 
   caption.push('<span class="table-caption">Traces for ' +
-      type + '</span><br />');
+      type + '</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -121,14 +121,18 @@ function createHeader(type2, minutes2) {
 
   var items = [];
 
+  var titles = [descriptions['Trace Start'], descriptions['Span Time'],
+      descriptions['Source']];
+
+  var columns = ['Start&nbsp;', 'ms&nbsp;', 'Source&nbsp;'];
   /*
    * Adds the columns, add sortTable function on click,
    * if the column has a description, add title taken from the global.js
    */
-  items.push('<th class="firstcell" title="' + descriptions['Trace Start'] +
-      '">Start&nbsp;</th>');
-  items.push('<th title="' + descriptions['Span Time'] + '">ms&nbsp;</th>');
-  items.push('<th title="' + descriptions['Source'] + '">Source&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, '', titles[i], columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

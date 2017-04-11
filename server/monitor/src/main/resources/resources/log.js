@@ -73,7 +73,7 @@ function createLogsTable() {
    */
   if (data.length === 0) {
     var items = [];
-    items.push('<td class="center" colspan="5"><i>Empty</i></td>');
+    items.push(createEmptyRow(5, 'Empty'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#logTable');
@@ -81,18 +81,19 @@ function createLogsTable() {
     $.each(data, function(key, val) {
       var items = [];
       var date = new Date(val.timestamp);
-      items.push('<td class="firstcell left" data-value="' + val.timestamp +
-          '">' + date.toLocaleString().split(' ').join('&nbsp;') + '</td>');
+      items.push(createFirstCell(val.timestamp,
+          date.toLocaleString().split(' ').join('&nbsp;')));
 
-      items.push('<td class="center" data-value="' + val.application + '">' +
-          val.application + '</td>');
+      items.push(createCenterCell(val.application,
+          val.application));
 
-      items.push('<td class="right" data-value="' + val.count + '">' +
-          bigNumberForQuantity(val.count) + '</td>');
-      items.push('<td class="center" data-value="' + val.level + '">' +
-          levelFormat(val.level) + '</td>');
-      items.push('<td class="center" data-value="' + val.message + '"><pre class="logevent">' +
-          val.message + '</pre></td>');
+      items.push(createRightCell(val.count,
+          bigNumberForQuantity(val.count)));
+
+      items.push(createCenterCell(val.level,
+          levelFormat(val.level)));
+      items.push(createCenterCell(val.message, '<pre class="logevent">' +
+          val.message + '</pre>'));
 
       $('<tr/>', {
         html: items.join('')
@@ -142,7 +143,7 @@ function createHeader() {
   $('#logTable caption').remove();
   var caption = [];
 
-  caption.push('<span class="table-caption">Recent Logs</span><br />');
+  caption.push('<span class="table-caption">Recent Logs</span><br>');
 
   var data = sessionStorage.logs === undefined ?
       [] : JSON.parse(sessionStorage.logs);
@@ -157,15 +158,17 @@ function createHeader() {
 
   var items = [];
 
+  var columns = ['Time&nbsp;', 'Application&nbsp;', 'Count&nbsp;', 'Level&nbsp;',
+      'Message&nbsp;'];
+
   /*
    * Adds the columns, add sortTable function on click,
    * if the column has a description, add title taken from the global.js
    */
-  items.push('<th class="firstcell" onclick="sortTable(0)">Time&nbsp;</th>');
-  items.push('<th onclick="sortTable(1)">Application&nbsp;</th>');
-  items.push('<th onclick="sortTable(2)">Count&nbsp;</th>');
-  items.push('<th onclick="sortTable(3)">Level&nbsp;</th>');
-  items.push('<th onclick="sortTable(4)">Message&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(' + i + ')', '', columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

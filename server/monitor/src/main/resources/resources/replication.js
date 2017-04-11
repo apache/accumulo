@@ -55,29 +55,23 @@ function refreshReplicationsTable() {
 
   if (data.length === 0) {
     var items = [];
-    items.push('<td class="center" colspan="5"><i>Replication ' +
-        'table is offline</i></td>');
+    items.push(createEmptyRow(5, 'Replication table is offline'));
     $('<tr/>', {
       html: items.join('')
     }).appendTo('#replicationStats');
   } else {
     $.each(data, function(key, val) {
       var items = [];
-      items.push('<td class="firstcell left" data-value="' + val.tableName +
-          '">' + val.tableName + '</td>');
+      items.push(createFirstCell(val.tableName, val.tableName));
 
-      items.push('<td class="right" data-value="' + val.peerName +
-          '">' + val.peerName + '</td>');
+      items.push(createRightCell(val.peerName, val.peerName));
 
-      items.push('<td class="right" data-value="' + val.remoteIdentifier +
-          '">' + val.remoteIdentifier + '</td>');
+      items.push(createRightCell(val.remoteIdentifier, val.remoteIdentifier));
 
-      items.push('<td class="right" data-value="' + val.replicaSystemType +
-          '">' + val.replicaSystemType + '</td>');
+      items.push(createRightCell(val.replicaSystemType, val.replicaSystemType));
 
-      items.push('<td class="right" data-value="' +
-          val.filesNeedingReplication + '">' +
-          bigNumberForQuantity(val.filesNeedingReplication) + '</td>');
+      items.push(createRightCell(val.filesNeedingReplication,
+          bigNumberForQuantity(val.filesNeedingReplication)));
 
       $('<tr/>', {
         html: items.join('')
@@ -112,7 +106,7 @@ function sortTable(n) {
 function createHeader() {
   var caption = [];
 
-  caption.push('<span class="table-caption">Replication Status</span><br />');
+  caption.push('<span class="table-caption">Replication Status</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -120,16 +114,16 @@ function createHeader() {
 
   var items = [];
 
+  var columns = ['Table&nbsp;', 'Peer&nbsp;', 'Remote&nbsp;Identifier&nbsp;',
+      'Replica&nbsp;System&nbsp;Type&nbsp;',
+      'Files&nbsp;needing&nbsp;replication&nbsp;'];
   /*
    * Adds the columns, add sortTable function on click
    */
-  items.push('<th class="firstcell" onclick="sortTable(0)">Table&nbsp;</th>');
-  items.push('<th onclick="sortTable(1)">Peer&nbsp;</th>');
-  items.push('<th onclick="sortTable(2)">Remote&nbsp;Identifier&nbsp;</th>');
-  items.push('<th onclick="sortTable(3)">Replica&nbsp;' +
-      'System&nbsp;Type&nbsp;</th>');
-  items.push('<th onclick="sortTable(4)">Files&nbsp;' +
-      'needing&nbsp;replication&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(' + i + ')', '', columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

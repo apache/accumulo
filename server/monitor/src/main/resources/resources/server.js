@@ -53,27 +53,22 @@ function refreshDetailTable() {
   var items = [];
 
   if (data.length === 0 || data.details === undefined) {
-    items.push('<td class="center" colspan="5"><i>Empty</i></td>');
+    items.push(createEmptyRow(5, 'Empty'));
   } else {
-    items.push('<td class="firstcell right" data-value="' +
-        data.details.hostedTablets + '">' +
-        bigNumberForQuantity(data.details.hostedTablets) + '</td>');
+    items.push(createFirstCell(data.details.hostedTablets,
+        bigNumberForQuantity(data.details.hostedTablets)));
 
-    items.push('<td class="right" data-value="' +
-        data.details.entries + '">' +
-        bigNumberForQuantity(data.details.entries) + '</td>');
+    items.push(createRightCell(data.details.entries,
+        bigNumberForQuantity(data.details.entries)));
 
-    items.push('<td class="right" data-value="' +
-        data.details.minors + '">' +
-        bigNumberForQuantity(data.details.minors) + '</td>');
+    items.push(createRightCell(data.details.minors,
+        bigNumberForQuantity(data.details.minors)));
 
-    items.push('<td class="right" data-value="' +
-        data.details.majors + '">' +
-        bigNumberForQuantity(data.details.majors) + '</td>');
+    items.push(createRightCell(data.details.majors,
+        bigNumberForQuantity(data.details.majors)));
 
-    items.push('<td class="right" data-value="' +
-        data.details.splits + '">' +
-        bigNumberForQuantity(data.details.splits) + '</td>');
+    items.push(createRightCell(data.details.splits,
+        bigNumberForQuantity(data.details.splits)));
   }
 
   $('<tr/>', {
@@ -94,7 +89,7 @@ function refreshHistoryTable() {
   if (data.length === 0 || data.allTimeTabletResults === undefined) {
     var row = [];
 
-    row.push('<td class="center" colspan="8"><i>Empty</i></td>');
+    row.push(createEmptyRow(8, 'Empty'));
 
     $('<tr/>', {
       html: row.join('')
@@ -109,41 +104,39 @@ function refreshHistoryTable() {
     $.each(data.allTimeTabletResults, function(key, val) {
       var row = [];
 
-      row.push('<td class="firstcell left" data-value="' + val.operation +
-          '">' + val.operation + '</td>');
+      row.push(createFirstCell(val.operation, val.operation));
 
-      row.push('<td class="right" data-value="' + val.success +
-          '">' + bigNumberForQuantity(val.success) + '</td>');
+      row.push(createRightCell(val.success, bigNumberForQuantity(val.success)));
 
-      row.push('<td class="right" data-value="' + val.failure +
-          '">' + bigNumberForQuantity(val.failure) + '</td>');
+      row.push(createRightCell(val.failure,
+          bigNumberForQuantity(val.failure)));
 
-      row.push('<td class="right" data-value="' +
-          (val.avgQueueTime == null ? '-' : val.avgQueueTime * 1000.0) +
-          '">' + (val.avgQueueTime == null ?
-          '&mdash;' : timeDuration(val.avgQueueTime * 1000.0)) + '</td>');
+      row.push(createRightCell((val.avgQueueTime == null ?
+          '-' : val.avgQueueTime * 1000.0),
+          (val.avgQueueTime == null ?
+          '&mdash;' : timeDuration(val.avgQueueTime * 1000.0))));
 
-      row.push('<td class="right" data-value="' +
-          (val.queueStdDev == null ? '-' : val.queueStdDev * 1000.0) +
-          '">' + (val.queueStdDev == null ?
-          '&mdash;' : timeDuration(val.queueStdDev * 1000.0)) + '</td>');
+      row.push(createRightCell((val.queueStdDev == null ?
+          '-' : val.queueStdDev * 1000.0),
+          (val.queueStdDev == null ?
+          '&mdash;' : timeDuration(val.queueStdDev * 1000.0))));
 
-      row.push('<td class="right" data-value="' +
-          (val.avgTime == null ? '-' : val.avgTime * 1000.0) +
-          '">' + (val.avgTime == null ?
-          '&mdash;' : timeDuration(val.avgTime * 1000.0)) + '</td>');
+      row.push(createRightCell((val.avgTime == null ?
+          '-' : val.avgTime * 1000.0),
+          (val.avgTime == null ?
+          '&mdash;' : timeDuration(val.avgTime * 1000.0))));
 
-      row.push('<td class="right" data-value="' +
-          (val.stdDev == null ? '-' : val.stdDev * 1000.0) +
-          '">' + (val.stdDev == null ?
-          '&mdash;' : timeDuration(val.stdDev * 1000.0)) + '</td>');
+      row.push(createRightCell((val.stdDev == null ?
+          '-' : val.stdDev * 1000.0),
+          (val.stdDev == null ?
+          '&mdash;' : timeDuration(val.stdDev * 1000.0))));
 
-      row.push('<td class="right" data-value="' +
-          ((val.timeSpent / totalTimeSpent) * 100) +
-          '"><div class="progress"><div class="progress-bar"' +
+      row.push(createRightCell(((val.timeSpent / totalTimeSpent) * 100),
+          '<div class="progress"><div class="progress-bar"' +
           ' role="progressbar" style="min-width: 2em; width:' +
           Math.floor((val.timeSpent / totalTimeSpent) * 100) +
-          '%;">' + Math.floor((val.timeSpent / totalTimeSpent) * 100) + '%</div></div></td>');
+          '%;">' + Math.floor((val.timeSpent / totalTimeSpent) * 100) +
+          '%</div></div>'));
 
       $('<tr/>', {
         html: row.join('')
@@ -165,37 +158,29 @@ function refreshCurrentTable() {
 
   var items = [];
   if (data.length === 0 || data.currentTabletOperationResults === undefined) {
-    items.push('<td class="center" colspan="4"><i>Empty</i></td>');
+    items.push(createEmptyRow(4, 'Empty'));
   } else {
     var current = data.currentTabletOperationResults;
 
-    items.push('<td class="firstcell right" data-value="' +
+    items.push(createFirstCell((current.currentMinorAvg == null ?
+        '-' : current.currentMinorAvg * 1000.0),
         (current.currentMinorAvg == null ?
-        '-' : current.currentMinorAvg * 1000.0) + '">' +
-        (current.currentMinorAvg == null ?
-        '&mdash;' : timeDuration(current.currentMinorAvg * 1000.0)) +
-        '</td>');
+        '&mdash;' : timeDuration(current.currentMinorAvg * 1000.0))));
 
-    items.push('<td class="right" data-value="' +
+    items.push(createRightCell((current.currentMinorStdDev == null ?
+        '-' : current.currentMinorStdDev * 1000.0),
         (current.currentMinorStdDev == null ?
-        '-' : current.currentMinorStdDev * 1000.0) + '">' +
-        (current.currentMinorStdDev == null ?
-        '&mdash;' : timeDuration(current.currentMinorStdDev * 1000.0)) +
-        '</td>');
+        '&mdash;' : timeDuration(current.currentMinorStdDev * 1000.0))));
 
-    items.push('<td class="right" data-value="' +
+    items.push(createRightCell((current.currentMajorAvg == null ?
+        '-' : current.currentMajorAvg * 1000.0),
         (current.currentMajorAvg == null ?
-        '-' : current.currentMajorAvg * 1000.0) + '">' +
-        (current.currentMajorAvg == null ?
-        '&mdash;' : timeDuration(current.currentMajorAvg * 1000.0)) +
-        '</td>');
+        '&mdash;' : timeDuration(current.currentMajorAvg * 1000.0))));
 
-    items.push('<td class="right" data-value="' +
+    items.push(createRightCell((current.currentMajorStdDev == null ?
+        '-' : current.currentMajorStdDev * 1000.0),
         (current.currentMajorStdDev == null ?
-        '-' : current.currentMajorStdDev * 1000.0) + '">' +
-        (current.currentMajorStdDev == null ?
-        '&mdash;' : timeDuration(current.currentMajorStdDev * 1000.0)) +
-        '</td>');
+        '&mdash;' : timeDuration(current.currentMajorStdDev * 1000.0))));
   }
 
   $('<tr/>', {
@@ -217,7 +202,7 @@ function refreshResultsTable() {
   if (data.length === 0 || data.currentOperations === undefined) {
     var row = [];
 
-    row.push('<td class="center" colspan="11"><i>Empty</i></td>');
+    row.push(createEmptyRow(11, 'Empty'));
 
     $('<tr/>', {
       html: row.join('')
@@ -226,51 +211,46 @@ function refreshResultsTable() {
     $.each(data.currentOperations, function(key, val) {
       var row = [];
 
-      row.push('<td class="firstcell left" data-value="' + val.name +
-          '"><a href="/tables/' + val.tableID + '">' + val.name + '</a></td>');
+      row.push(createFirstCell(val.name,
+          '<a href="/tables/' + val.tableID + '">' + val.name + '</a>'));
 
-      row.push('<td class="left" data-value="' + val.tablet + '"><code>' +
-          val.tablet + '</code></td>');
+      row.push(createLeftCell(val.tablet, '<code>' + val.tablet + '</code>'));
 
-      row.push('<td class="right" data-value="' +
-          (val.entries == null ? 0 : val.entries) + '">' +
-          bigNumberForQuantity(val.entries) + '</td>');
+      row.push(createRightCell((val.entries == null ? 0 : val.entries),
+          bigNumberForQuantity(val.entries)));
 
-      row.push('<td class="right" data-value="' +
-          (val.ingest == null ? 0 : val.ingest) + '">' +
-          bigNumberForQuantity(Math.floor(val.ingest)) + '</td>');
+      row.push(createRightCell((val.ingest == null ? 0 : val.ingest),
+          bigNumberForQuantity(Math.floor(val.ingest))));
 
-      row.push('<td class="right" data-value="' +
-          (val.query == null ? 0 : val.query) + '">' +
-          bigNumberForQuantity(Math.floor(val.query)) + '</td>');
+      row.push(createRightCell((val.query == null ? 0 : val.query),
+          bigNumberForQuantity(Math.floor(val.query))));
 
-      row.push('<td class="right" data-value="' +
-          (val.minorAvg == null ? '-' : val.minorAvg * 1000.0) + '">' +
+      row.push(createRightCell((val.minorAvg == null ?
+          '-' : val.minorAvg * 1000.0),
           (val.minorAvg == null ?
-          '&mdash;' : timeDuration(val.minorAvg * 1000.0)) + '</td>');
+          '&mdash;' : timeDuration(val.minorAvg * 1000.0))));
 
-      row.push('<td class="right" data-value="' +
-          (val.minorStdDev == null ? '-' : val.minorStdDev * 1000.0) + '">' +
+      row.push(createRightCell((val.minorStdDev == null ?
+          '-' : val.minorStdDev * 1000.0),
           (val.minorStdDev == null ?
-          '&mdash;' : timeDuration(val.minorStdDev * 1000.0)) + '</td>');
+          '&mdash;' : timeDuration(val.minorStdDev * 1000.0))));
 
-      row.push('<td class="right" data-value="' +
-          (val.minorAvgES == null ? 0 : val.minorAvgES) + '">' +
-          bigNumberForQuantity(Math.floor(val.minorAvgES)) + '</td>');
+      row.push(createRightCell((val.minorAvgES == null ? 0 : val.minorAvgES),
+          bigNumberForQuantity(Math.floor(val.minorAvgES))));
 
-      row.push('<td class="right" data-value="' +
-          (val.majorAvg == null ? '-' : val.majorAvg * 1000.0) + '">' +
+      row.push(createRightCell((val.majorAvg == null ?
+          '-' : val.majorAvg * 1000.0),
           (val.majorAvg == null ?
-          '&mdash;' : timeDuration(val.majorAvg * 1000.0)) + '</td>');
+          '&mdash;' : timeDuration(val.majorAvg * 1000.0))));
 
-      row.push('<td class="right" data-value="' +
-          (val.majorStdDev == null ? '-' : val.majorStdDev * 1000.0) + '">' +
+      row.push(createRightCell((val.majorStdDev == null ?
+          '-' : val.majorStdDev * 1000.0),
           (val.majorStdDev == null ?
-          '&mdash;' : timeDuration(val.majorStdDev * 1000.0)) + '</td>');
+          '&mdash;' : timeDuration(val.majorStdDev * 1000.0))));
 
-      row.push('<td class="right" data-value="' +
-          (val.majorAvgES == null ? 0 : val.majorAvgES) + '">' +
-          bigNumberForQuantity(Math.floor(val.majorAvgES)) + '</td>');
+      row.push(createRightCell((val.majorAvgES == null ?
+          0 : val.majorAvgES),
+          bigNumberForQuantity(Math.floor(val.majorAvgES))));
 
       $('<tr/>', {
         html: row.join('')
@@ -312,8 +292,8 @@ function createDetailHeader(server) {
   var caption = [];
   serv = server;
 
-  caption.push('<span class="table-caption">Details</span><br />');
-  caption.push('<span class="table-subcaption">' + server + '</span><br />');
+  caption.push('<span class="table-caption">Details</span><br>');
+  caption.push('<span class="table-subcaption">' + server + '</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -321,12 +301,15 @@ function createDetailHeader(server) {
 
   var items = [];
 
-  items.push('<th class="firstcell" onclick="sortTable(0,0)">Hosted&nbsp;' +
-      'Tablets&nbsp;</th>');
-  items.push('<th onclick="sortTable(0,1)">Entries&nbsp;</th>');
-  items.push('<th onclick="sortTable(0,2)">Minor&nbsp;Compacting&nbsp;</th>');
-  items.push('<th onclick="sortTable(0,3)">Major&nbsp;Compacting&nbsp;</th>');
-  items.push('<th onclick="sortTable(0,4)">Splitting&nbsp;</th>');
+  var columns = ['Hosted&nbsp;Tablets&nbsp;', 'Entries&nbsp;',
+      'Minor&nbsp;Compacting&nbsp;', 'Major&nbsp;Compacting&nbsp;',
+      'Splitting&nbsp;'];
+
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(0,' + i + ')',
+      '', columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')
@@ -340,7 +323,7 @@ function createHistoryHeader() {
   var caption = [];
 
   caption.push('<span class="table-caption">All-Time&nbsp;Tablet&nbsp;' +
-      'Operation&nbsp;Results</span><br />');
+      'Operation&nbsp;Results</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -348,19 +331,17 @@ function createHistoryHeader() {
 
   var items = [];
 
-  items.push('<th class="firstcell" onclick="sortTable(1,0)">' +
-      'Operation&nbsp;</th>');
-  items.push('<th onclick="sortTable(1,1)">Success&nbsp;</th>');
-  items.push('<th onclick="sortTable(1,2)">Failure&nbsp;</th>');
-  items.push('<th onclick="sortTable(1,3)">Average<br />Queue&nbsp;' +
-      'Time&nbsp;</th>');
-  items.push('<th onclick="sortTable(1,4)">Std.&nbsp;Dev.<br />Queue&nbsp;' +
-      'Time&nbsp;</th>');
-  items.push('<th onclick="sortTable(1,5)">Average<br />Time&nbsp;</th>');
-  items.push('<th onclick="sortTable(1,6)">Std.&nbsp;Dev.<br />Time' +
-      '&nbsp;</th>');
-  items.push('<th onclick="sortTable(1,7)">Percentage&nbsp;Time&nbsp;' +
-      'Spent&nbsp;');
+  var columns = ['Operation&nbsp;', 'Success&nbsp;', 'Failure&nbsp;',
+      'Average<br>Queue&nbsp;Time&nbsp;',
+      'Std.&nbsp;Dev.<br>Queue&nbsp;Time&nbsp;',
+      'Average<br>Time&nbsp;', 'Std.&nbsp;Dev.<br>Time&nbsp;',
+      'Percentage&nbsp;Time&nbsp;Spent&nbsp;'];
+
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(1,' + i + ')',
+      '', columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')
@@ -374,7 +355,7 @@ function createCurrentHeader() {
   var caption = [];
 
   caption.push('<span class="table-caption">Current&nbsp;Tablet&nbsp;' +
-      'Operation&nbsp;Results</span><br />');
+      'Operation&nbsp;Results</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -382,11 +363,14 @@ function createCurrentHeader() {
 
   var items = [];
 
-  items.push('<th class="firstcell" onclick="sortTable(2,0)">Minor&nbsp;' +
-      'Average&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,1)">Minor&nbsp;Std&nbsp;Dev&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,2)">Major&nbsp;Avg&nbsp;</th>');
-  items.push('<th onclick="sortTable(2,3)">Major&nbsp;Std&nbsp;Dev&nbsp;</th>');
+  var columns = ['Minor&nbsp;Average&nbsp;', 'Minor&nbsp;Std&nbsp;Dev&nbsp;',
+      'Major&nbsp;Avg&nbsp;', 'Major&nbsp;Std&nbsp;Dev&nbsp;'];
+
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(2,' + i + ')',
+      '', columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')
@@ -400,9 +384,9 @@ function createResultsHeader() {
   var caption = [];
 
   caption.push('<span class="table-caption">Detailed&nbsp;Current&nbsp;' +
-      'Operations</span><br />');
+      'Operations</span><br>');
   caption.push('<span class="table-subcaption">Per-tablet&nbsp;' +
-      'Details</span><br />');
+      'Details</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -410,18 +394,17 @@ function createResultsHeader() {
 
   var items = [];
 
-  items.push('<th class="firstcell" onclick="sortTable(3,0)">Table&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,1)">Tablet&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,2)">Entries&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,3)">Ingest&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,4)">Query&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,5)">Minor&nbsp;Avg&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,6)">Minor&nbsp;Std&nbsp;Dev&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,7)">Minor&nbsp;Avg&nbsp;e/s&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,8)">Major&nbsp;Avg&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,9)">Major&nbsp;Std&nbsp;Dev&nbsp;</th>');
-  items.push('<th onclick="sortTable(3,10)">Major&nbsp;' +
-      'Avg&nbsp;e/s&nbsp;</th>');
+  var columns = ['Table&nbsp;', 'Tablet&nbsp;', 'Entries&nbsp;',
+      'Ingest&nbsp;', 'Query&nbsp;', 'Minor&nbsp;Avg&nbsp;',
+      'Minor&nbsp;Std&nbsp;Dev&nbsp;', 'Minor&nbsp;Avg&nbsp;e/s&nbsp;',
+      'Major&nbsp;Avg&nbsp;', 'Major&nbsp;Std&nbsp;Dev&nbsp;',
+      'Major&nbsp;Avg&nbsp;e/s&nbsp;'];
+
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(3,' + i + ')',
+      '', columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

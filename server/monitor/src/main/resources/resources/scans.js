@@ -57,7 +57,7 @@ function refreshScansTable() {
       [] : JSON.parse(sessionStorage.scans);
 
   if (data.length === 0 || data.scans.length === 0) {
-    var items = '<td class="center" colspan="3"><i>Empty</i></td>';
+    var items = createEmptyRow(3, 'Empty');
 
     $('<tr/>', {
       html: items
@@ -66,15 +66,13 @@ function refreshScansTable() {
     $.each(data.scans, function(key, val) {
       var items = [];
 
-      items.push('<td class="firstcell left" data-value="' + val.server +
-          '"><a href="/tservers?s=' + val.server + '">' + val.server +
-          '</a></td>');
+      items.push(createFirstCell(val.server,
+          '<a href="/tservers?s=' + val.server + '">' + val.server +
+          '</a>'));
 
-      items.push('<td class="right" data-value="' + val.scanCount + '">' +
-          val.scanCount + '</td>');
+      items.push(createRightCell(val.scanCount, val.scanCount));
 
-      items.push('<td class="right" data-value="' + val.oldestScan + '">' +
-          timeDuration(val.oldestScan) + '</td>');
+      items.push(createRightCell(val.oldestScan, timeDuration(val.oldestScan)));
 
       $('<tr/>', {
         html: items.join('')
@@ -107,7 +105,7 @@ function sortTable(n) {
 function createHeader() {
   var caption = [];
 
-  caption.push('<span class="table-caption">Scan&nbsp;Status</span><br />');
+  caption.push('<span class="table-caption">Scan&nbsp;Status</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -115,13 +113,15 @@ function createHeader() {
 
   var items = [];
 
-  items.push('<th class="firstcell" onclick="sortTable(0)">Server&nbsp;</th>');
+  var columns = ['Server&nbsp;', '#&nbsp;', 'Oldest&nbsp;Age&nbsp;'];
 
-  items.push('<th onclick="sortTable(1)" title="' +
-      descriptions['# Scans'] + '">#&nbsp;</th>');
+  var titles = ['', descriptions['# Scans'], descriptions['Oldest Scan']];
 
-  items.push('<th onclick="sortTable(2)" title="' +
-      descriptions['Oldest Scan'] + '">Oldest&nbsp;Age&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(' + i + ')',
+      titles[i], columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

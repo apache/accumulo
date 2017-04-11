@@ -76,10 +76,10 @@ function recoveryList() {
 
     var caption = [];
 
-    caption.push('<span class="table-caption">Log&nbsp;Recovery</span><br />');
+    caption.push('<span class="table-caption">Log&nbsp;Recovery</span><br>');
     caption.push('<span class="table-subcaption">Some tablets were unloaded' +
         ' in an unsafe manner. Write-ahead logs are being' +
-        ' recovered.</span><br />');
+        ' recovered.</span><br>');
 
     $('<caption/>', {
       html: caption.join('')
@@ -87,16 +87,18 @@ function recoveryList() {
 
     var items = [];
 
+    var columns = ['Server&nbsp;', 'Log&nbsp;', 'Time&nbsp;', 'Copy/Sort&nbsp;'];
+
     /*
      * Create the header for the recovery list table
      * Adds the columns, add sortTable function on click,
      * if the column has a description, add title taken from the global.js
      */
-    items.push('<th class="firstcell" onclick="sortTable(0)">' +
-        'Server&nbsp;</th>');
-    items.push('<th onclick="sortTable(1)">Log&nbsp;</th>');
-    items.push('<th onclick="sortTable(2)">Time&nbsp;</th>');
-    items.push('<th onclick="sortTable(3)">Copy/Sort&nbsp;</th>');
+    for (i = 0; i < columns.length; i++) {
+      var first = i == 0 ? true : false;
+      items.push(createHeaderCell(first, 'sortTable(' + i + ')',
+          '', columns[i]));
+    }
 
     $('<tr/>', {
       html: items.join('')
@@ -105,16 +107,12 @@ function recoveryList() {
     // Creates the table for the recovery list
     $.each(data.recoveryList, function(key, val) {
       var items = [];
-      items.push('<td class="firstcell left" data-value="' + val.server + '">' +
-          val.server + '</td>');
-      items.push('<td class="right" data-value="' + val.log + '">' + val.log +
-          '</td>');
+      items.push(createFirstCell(val.server, val.server));
+      items.push(createRightCell(val.log, val.log));
       var date = new Date(parseInt(val.time));
       date = date.toLocaleString().split(' ').join('&nbsp;');
-      items.push('<td class="right" data-value="' + val.time + '">' + date +
-          '</td>');
-      items.push('<td class="right" data-value="' + val.copySort + '">' +
-          val.copySort + '</td>');
+      items.push(createRightCell(val.time, date));
+      items.push(createRightCell(val.copySort, val.copySort));
 
       $('<tr/>', {
         html: items.join('')
@@ -142,43 +140,39 @@ function refreshMasterTable() {
     $('#masterStatus').show();
     var data = JSON.parse(sessionStorage.master);
     var items = [];
-    items.push('<td class="firstcell left" data-value="' + data.master +
-        '">' + data.master + '</td>');
+    items.push(createFirstCell(data.master, data.master));
 
-    items.push('<td class="right" data-value="' + data.onlineTabletServers +
-        '">' + data.onlineTabletServers + '</td>');
+    items.push(createRightCell(data.onlineTabletServers,
+        data.onlineTabletServers));
 
-    items.push('<td class="right" data-value="' + data.totalTabletServers +
-        '">' + data.totalTabletServers + '</td>');
+    items.push(createRightCell(data.totalTabletServers,
+        data.totalTabletServers));
 
     var date = new Date(parseInt(data.lastGC));
     date = date.toLocaleString().split(' ').join('&nbsp;');
-    items.push('<td class="left" data-value="' + data.lasGC +
-        '"><a href="/gc">' + date + '</a></td>');
+    items.push(createLeftCell(data.lasGC, '<a href="/gc">' + date + '</a>'));
 
-    items.push('<td class="right" data-value="' + data.tablets +
-        '">' + bigNumberForQuantity(data.tablets) + '</td>');
+    items.push(createRightCell(data.tablets,
+        bigNumberForQuantity(data.tablets)));
 
-    items.push('<td class="right" data-value="' + data.unassignedTablets +
-        '">' + bigNumberForQuantity(data.unassignedTablets) + '</td>');
+    items.push(createRightCell(data.unassignedTablets,
+        bigNumberForQuantity(data.unassignedTablets)));
 
-    items.push('<td class="right" data-value="' + data.numentries +
-        '">' + bigNumberForQuantity(data.numentries) + '</td>');
+    items.push(createRightCell(data.numentries,
+        bigNumberForQuantity(data.numentries)));
 
-    items.push('<td class="right" data-value="' + data.ingestrate +
-        '">' + bigNumberForQuantity(Math.round(data.ingestrate)) + '</td>');
+    items.push(createRightCell(data.ingestrate,
+        bigNumberForQuantity(Math.round(data.ingestrate))));
 
-    items.push('<td class="right" data-value="' + data.entriesRead +
-        '">' + bigNumberForQuantity(Math.round(data.entriesRead)) + '</td>');
+    items.push(createRightCell(data.entriesRead,
+        bigNumberForQuantity(Math.round(data.entriesRead))));
 
-    items.push('<td class="right" data-value="' + data.queryrate +
-        '">' + bigNumberForQuantity(Math.round(data.queryrate)) + '</td>');
+    items.push(createRightCell(data.queryrate,
+        bigNumberForQuantity(Math.round(data.queryrate))));
 
-    items.push('<td class="right" data-value="' + data.holdTime +
-        '">' + timeDuration(data.holdTime) + '</td>');
+    items.push(createRightCell(data.holdTime, timeDuration(data.holdTime)));
 
-    items.push('<td class="right" data-value="' + data.osload +
-        '">' + bigNumberForQuantity(data.osload) + '</td>');
+    items.push(createRightCell(data.osload, bigNumberForQuantity(data.osload)));
 
     $('<tr/>', {
      html: items.join('')
@@ -210,7 +204,7 @@ function sortMasterTable(n) {
 function createHeader() {
   var caption = [];
 
-  caption.push('<span class="table-caption">Master&nbsp;Status</span><br />');
+  caption.push('<span class="table-caption">Master&nbsp;Status</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -218,42 +212,29 @@ function createHeader() {
 
   var items = [];
 
+  var columns = ['Master&nbsp;', '#&nbsp;Online<br>Tablet&nbsp;Servers&nbsp;',
+      '#&nbsp;Total<br>Tablet&nbsp;Servers&nbsp;', 'Last&nbsp;GC&nbsp;',
+      '#&nbsp;Tablets&nbsp;', '#&nbsp;Unassigned<br>Tablets&nbsp;',
+      'Entries&nbsp;', 'Ingest&nbsp;', 'Entries<br>Read&nbsp;',
+      'Entries<br>Returned&nbsp;', 'Hold&nbsp;Time&nbsp;',
+      'OS&nbsp;Load&nbsp;'];
+
+  var titles = [descriptions['Master'], descriptions['# Online Tablet Servers'],
+      descriptions['# Total Tablet Servers'], descriptions['Last GC'],
+      descriptions['# Tablets'], '', descriptions['Total Entries'],
+      descriptions['Total Ingest'], descriptions['Total Entries Read'],
+      descriptions['Total Entries Returned'], descriptions['Max Hold Time'],
+      descriptions['OS Load']];
+
   /*
    * Adds the columns, add sortTable function on click,
    * if the column has a description, add title taken from the global.js
    */
-  items.push('<th class="firstcell" onclick="sortMasterTable(0)" title="' +
-      descriptions['Master'] + '">Master&nbsp;</th>');
-
-  items.push('<th onclick="sortMasterTable(1)" title="' +
-      descriptions['# Online Tablet Servers'] +
-      '">#&nbsp;Online<br />Tablet&nbsp;Servers&nbsp;</th>');
-
-  items.push('<th onclick="sortMasterTable(2)" title="' +
-      descriptions['# Total Tablet Servers'] +
-      '">#&nbsp;Total<br />Tablet&nbsp;Servers&nbsp;</th>');
-
-  items.push('<th onclick="sortMasterTable(3)" title="' +
-      descriptions['Last GC'] + '">Last&nbsp;GC&nbsp;</th>');
-
-  items.push('<th onclick="sortMasterTable(4)" title="' +
-      descriptions['# Tablets'] + '">#&nbsp;Tablets&nbsp;</th>');
-
-  items.push('<th onclick="sortMasterTable(5)">#&nbsp;Unassigned' +
-      '<br />Tablets&nbsp;</th>');
-  items.push('<th onclick="sortMasterTable(6)" title="' +
-      descriptions['Total Entries'] + '">Entries&nbsp;</th>');
-  items.push('<th onclick="sortMasterTable(7)" title="' +
-      descriptions['Total Ingest'] + '">Ingest&nbsp;</th>');
-  items.push('<th onclick="sortMasterTable(8)" title="' +
-      descriptions['Total Entries Read'] + '">Entries<br />Read&nbsp;</th>');
-  items.push('<th onclick="sortMasterTable(9)" title="' +
-      descriptions['Total Entries Returned'] +
-      '">Entries<br />Returned&nbsp;</th>');
-  items.push('<th onclick="sortMasterTable(10)" title="' +
-      descriptions['Max Hold Time'] + '">Hold&nbsp;Time&nbsp;</th>');
-  items.push('<th onclick="sortMasterTable(11)" title="' +
-      descriptions['OS Load'] + '">OS&nbsp;Load&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortMasterTable(' + i + ')',
+        titles[i], columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')

@@ -68,17 +68,12 @@ function refreshBulkImportTable() {
    * create the rows for the table
    */
   if (data.length === 0 || data.bulkImport.length === 0) {
-    items.push('<td class="center" colspan="3"><i>Empty</i></td>');
+    items.push(createEmptyRow(3, 'Empty'));
   } else {
     $.each(data.bulkImport, function(key, val) {
-      items.push('<td class="firstcell left" data-value="' + val.filename +
-          '">' + val.filename + '</td>');
-
-      items.push('<td class="right" data-value="' + val.age + '">' + val.age +
-          '</td>');
-
-      items.push('<td class="right" data-value="' + val.state + '">' +
-          val.state + '</td>');
+      items.push(createFirstCell(val.filename, val.filename));
+      items.push(createRightCell(val.age, val.age));
+      items.push(createRightCell(val.state, val.state));
     });
   }
 
@@ -105,18 +100,14 @@ function refreshServerBulkTable() {
    * create the rows for the table
    */
   if (data.length === 0 || data.tabletServerBulkImport.length === 0) {
-    items.push('<td class="center" colspan="3"><i>Empty</i></td>');
+    items.push(createEmptyRow(3, 'Empty'));
   } else {
     $.each(data.tabletServerBulkImport, function(key, val) {
-      items.push('<td class="firstcell left" data-value="' + val.server +
-          '"><a href="/tservers?s=' + val.server + '">' + val.server +
-          '</a></td>');
-
-      items.push('<td class="right" data-value="' + val.importSize + '">' +
-          val.importSize + '</td>');
-
-      items.push('<td class="right" data-value="' + val.oldestAge + '">' +
-          (val.oldestAge > 0 ? val.oldestAge : '&mdash;') + '</td>');
+      items.push(createFirstCell(val.server, '<a href="/tservers?s=' +
+          val.server + '">' + val.server + '</a>'));
+      items.push(createRightCell(val.importSize, val.importSize));
+      items.push(createRightCell(val.oldestAge, (val.oldestAge > 0 ?
+          val.oldestAge : '&mdash;')));
     });
   }
 
@@ -152,7 +143,7 @@ function sortTable(table, n) {
  */
 function createBulkImportHeader() {
   var caption = '<span class="table-caption">Bulk&nbsp;Import' +
-      '&nbsp;Status</span><br />';
+      '&nbsp;Status</span><br>';
 
   $('<caption/>', {
     html: caption
@@ -160,18 +151,19 @@ function createBulkImportHeader() {
 
   var items = [];
 
+  var columns = ['Directory&nbsp;', 'Age&nbsp;', 'State&nbsp;'];
+
+  var titles = ['', descriptions['Import Age'], descriptions['Import State']];
+
   /*
    * Adds the columns, add sortTable function on click,
    * if the column has a description, add title taken from the global.js
    */
-  items.push('<th class="firstcell" onclick="sortTable(1,0)" >Directory&nbsp;' +
-      '</th>');
-
-  items.push('<th onclick="sortTable(1,1)" title="' +
-      descriptions['Import Age'] + '">Age&nbsp;</th>');
-
-  items.push('<th onclick="sortTable(1,2)" title="' +
-      descriptions['Import State'] + '">State&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(1,' + i + ')',
+        titles[i], columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')
@@ -185,7 +177,7 @@ function createServerBulkHeader() {
   var caption = [];
 
   caption.push('<span class="table-caption">TabletServer&nbsp;Bulk&nbsp;' +
-      'Import&nbsp;Status</span><br />');
+      'Import&nbsp;Status</span><br>');
 
   $('<caption/>', {
     html: caption.join('')
@@ -193,15 +185,19 @@ function createServerBulkHeader() {
 
   var items = [];
 
+  var columns = ['Server&nbsp;', '#&nbsp;', 'Oldest&nbsp;Age&nbsp;'];
+
+  var titles = ['', descriptions['# Imports'], descriptions['Oldest Age']];
+
   /*
    * Adds the columns, add sortTable function on click,
    * if the column has a description, add title taken from the global.js
    */
-  items.push('<th class="firstcell" onclick="sortTable(0,0)">Server&nbsp;</th>');
-  items.push('<th onclick="sortTable(0,1)" title="' + descriptions['# Imports'] +
-      '">#&nbsp;</th>');
-  items.push('<th onclick="sortTable(0,2)" title="' + descriptions['Oldest Age'] +
-      '">Oldest&nbsp;Age&nbsp;</th>');
+  for (i = 0; i < columns.length; i++) {
+    var first = i == 0 ? true : false;
+    items.push(createHeaderCell(first, 'sortTable(0,' + i + ')',
+        titles[i], columns[i]));
+  }
 
   $('<tr/>', {
     html: items.join('')
