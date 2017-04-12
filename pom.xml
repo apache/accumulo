@@ -80,24 +80,24 @@
     <maven>${maven.min-version}</maven>
   </prerequisites>
   <modules>
-    <module>assemble</module>
-    <module>core</module>
-    <module>docs</module>
-    <module>fate</module>
-    <module>iterator-test-harness</module>
-    <module>maven-plugin</module>
-    <module>minicluster</module>
-    <module>proxy</module>
-    <module>server/base</module>
-    <module>server/gc</module>
-    <module>server/master</module>
-    <module>server/monitor</module>
-    <module>server/native</module>
-    <module>server/tracer</module>
-    <module>server/tserver</module>
-    <module>shell</module>
-    <module>start</module>
-    <module>test</module>
+    <module>modules/assemble</module>
+    <module>modules/core</module>
+    <module>modules/docs</module>
+    <module>modules/fate</module>
+    <module>modules/iterator-test-harness</module>
+    <module>modules/maven-plugin</module>
+    <module>modules/minicluster</module>
+    <module>modules/proxy</module>
+    <module>modules/base</module>
+    <module>modules/gc</module>
+    <module>modules/master</module>
+    <module>modules/monitor</module>
+    <module>modules/native</module>
+    <module>modules/tracer</module>
+    <module>modules/tserver</module>
+    <module>modules/shell</module>
+    <module>modules/start</module>
+    <module>modules/test</module>
   </modules>
   <scm>
     <connection>scm:git:git://git.apache.org/accumulo.git</connection>
