@@ -55,7 +55,7 @@ public class GarbageCollectorResource {
   public GarbageCollection getFileStatus() {
     GCStatus gcStatus = Monitor.getGcStatus();
     if (null == gcStatus) {
-      return GarbageCollection.EMPTY;
+      return GarbageCollection.getEmpty();
     }
     return new GarbageCollection(gcStatus.last, gcStatus.current);
   }
@@ -70,7 +70,7 @@ public class GarbageCollectorResource {
   public GarbageCollectorCycle getLastCycle() {
     GCStatus status = Monitor.getGcStatus();
     if (null == status) {
-      return GarbageCollectorCycle.EMPTY;
+      return GarbageCollectorCycle.getEmpty();
     }
     return new GarbageCollectorCycle(status.last);
   }
@@ -85,7 +85,7 @@ public class GarbageCollectorResource {
   public GarbageCollectorCycle getCurrentCycle() {
     GCStatus status = Monitor.getGcStatus();
     if (null == status) {
-      return GarbageCollectorCycle.EMPTY;
+      return GarbageCollectorCycle.getEmpty();
     }
     return new GarbageCollectorCycle(status.current);
   }
@@ -100,7 +100,7 @@ public class GarbageCollectorResource {
   public GarbageCollection getWalStatus() {
     GCStatus gcStatus = Monitor.getGcStatus();
     if (null == gcStatus) {
-      return GarbageCollection.EMPTY;
+      return GarbageCollection.getEmpty();
     }
     return new GarbageCollection(gcStatus.lastLog, gcStatus.currentLog);
   }
@@ -115,7 +115,7 @@ public class GarbageCollectorResource {
   public GarbageCollectorCycle getLastWalCycle() {
     GCStatus status = Monitor.getGcStatus();
     if (null == status) {
-      return GarbageCollectorCycle.EMPTY;
+      return GarbageCollectorCycle.getEmpty();
     }
     return new GarbageCollectorCycle(status.lastLog);
   }
@@ -130,7 +130,7 @@ public class GarbageCollectorResource {
   public GarbageCollectorCycle getCurrentWalCycle() {
     GCStatus status = Monitor.getGcStatus();
     if (null == status) {
-      return GarbageCollectorCycle.EMPTY;
+      return GarbageCollectorCycle.getEmpty();
     }
     return new GarbageCollectorCycle(status.currentLog);
   }

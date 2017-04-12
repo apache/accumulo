@@ -202,6 +202,8 @@ public class TablesResource {
   public TabletServers getParticipatingTabletServers(@PathParam("tableId") String tableId) throws Exception {
     Instance instance = Monitor.getContext().getInstance();
 
+    TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
+
     TreeSet<String> locs = new TreeSet<>();
     if (RootTable.ID.equals(tableId)) {
       locs.add(instance.getRootTabletLocation());
@@ -215,13 +217,14 @@ public class TablesResource {
         if (state.current != null) {
           try {
             locs.add(state.current.hostPort());
-          } catch (Exception ex) {}
+          } catch (Exception ex) {
+            scanner.close();
+            return tabletServers;
+          }
         }
       }
       scanner.close();
     }
-
-    TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
 
     List<TabletServerStatus> tservers = new ArrayList<>();
     if (Monitor.getMmi() != null) {
@@ -230,7 +233,7 @@ public class TablesResource {
           if (tss.name != null && locs.contains(tss.name))
             tservers.add(tss);
         } catch (Exception ex) {
-
+          return tabletServers;
         }
       }
     }

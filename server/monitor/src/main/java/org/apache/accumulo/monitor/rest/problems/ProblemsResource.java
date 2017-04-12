@@ -17,9 +17,7 @@
 package org.apache.accumulo.monitor.rest.problems;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -58,11 +56,9 @@ public class ProblemsResource {
    */
   @GET
   @Path("summary")
-  public Map<String,List<ProblemSummaryInformation>> getSummary() {
+  public ProblemSummary getSummary() {
 
-    Map<String,List<ProblemSummaryInformation>> jsonObj = new HashMap<String,List<ProblemSummaryInformation>>();
-
-    List<ProblemSummaryInformation> problems = new ArrayList<>();
+    ProblemSummary problems = new ProblemSummary();
 
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
 
@@ -83,12 +79,10 @@ public class ProblemsResource {
 
         String tableName = Tables.getPrintableTableNameFromId(tidToNameMap, entry.getKey());
 
-        problems.add(new ProblemSummaryInformation(tableName, entry.getKey(), readCount, writeCount, loadCount));
+        problems.addProblemSummary(new ProblemSummaryInformation(tableName, entry.getKey(), readCount, writeCount, loadCount));
       }
     }
-    jsonObj.put("problemSummary", problems);
-
-    return jsonObj;
+    return problems;
   }
 
   /**
@@ -116,11 +110,9 @@ public class ProblemsResource {
    */
   @GET
   @Path("details")
-  public Map<String,List<ProblemDetailInformation>> getDetails() {
+  public ProblemDetail getDetails() {
 
-    Map<String,List<ProblemDetailInformation>> jsonObj = new HashMap<>();
-
-    List<ProblemDetailInformation> problems = new ArrayList<>();
+    ProblemDetail problems = new ProblemDetail();
 
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
 
@@ -134,14 +126,12 @@ public class ProblemsResource {
         for (ProblemReport pr : problemReports) {
           String tableName = Tables.getPrintableTableNameFromId(tidToNameMap, pr.getTableName());
 
-          problems.add(new ProblemDetailInformation(tableName, entry.getKey(), pr.getProblemType().name(), pr.getServer(), pr.getTime(), pr.getResource(), pr
-              .getException()));
+          problems.addProblemDetail(new ProblemDetailInformation(tableName, entry.getKey(), pr.getProblemType().name(), pr.getServer(), pr.getTime(), pr
+              .getResource(), pr.getException()));
         }
       }
     }
-    jsonObj.put("problemDetails", problems);
-
-    return jsonObj;
+    return problems;
   }
 
   /**

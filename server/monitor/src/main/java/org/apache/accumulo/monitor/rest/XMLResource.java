@@ -59,7 +59,7 @@ public class XMLResource {
 
     // Add tserver information
     for (TabletServerStatus status : mmi.tServerInfo) {
-      xml.addTablet(new TabletServer(status));
+      xml.addTabletServer(new TabletServer(status));
     }
 
     return xml;

@@ -27,7 +27,7 @@ import org.apache.accumulo.core.gc.thrift.GCStatus;
  */
 public class GarbageCollectorStatus {
 
-  public static final GarbageCollectorStatus EMPTY = new GarbageCollectorStatus();
+  private static final GarbageCollectorStatus EMPTY = new GarbageCollectorStatus();
 
   // variable names become JSON key
   public GarbageCollection files = new GarbageCollection();
@@ -46,5 +46,9 @@ public class GarbageCollectorStatus {
       files = new GarbageCollection(status.last, status.current);
       wals = new GarbageCollection(status.lastLog, status.currentLog);
     }
+  }
+
+  public static GarbageCollectorStatus getEmpty() {
+    return EMPTY;
   }
 }

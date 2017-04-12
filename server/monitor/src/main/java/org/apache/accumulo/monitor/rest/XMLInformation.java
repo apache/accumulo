@@ -93,7 +93,7 @@ public class XMLInformation {
    * @param tablet
    *          Tablet to add
    */
-  public void addTablet(TabletServer tablet) {
+  public void addTabletServer(TabletServer tablet) {
     servers.add(tablet);
   }
 

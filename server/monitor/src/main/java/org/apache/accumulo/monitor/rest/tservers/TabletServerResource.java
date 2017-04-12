@@ -20,7 +20,6 @@ import java.lang.management.ManagementFactory;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -115,11 +114,8 @@ public class TabletServerResource {
    */
   @Path("recovery")
   @GET
-  public Map<String,List<Map<String,String>>> getTserverRecovery() {
-
-    Map<String,List<Map<String,String>>> jsonObj = new HashMap<String,List<Map<String,String>>>();
-    List<Map<String,String>> recoveryList = new ArrayList<>();
-    Map<String,String> recoveryObj = new HashMap<String,String>();
+  public TabletServersRecovery getTserverRecovery() {
+    TabletServersRecovery recoveryList = new TabletServersRecovery();
 
     MasterMonitorInfo mmi = Monitor.getMmi();
     if (null == mmi) {
@@ -129,19 +125,17 @@ public class TabletServerResource {
     for (TabletServerStatus server : mmi.tServerInfo) {
       if (server.logSorts != null) {
         for (RecoveryStatus recovery : server.logSorts) {
-          recoveryObj.put("server", AddressUtil.parseAddress(server.name, false).getHostText());
-          recoveryObj.put("log", recovery.name);
-          recoveryObj.put("time", Long.toString(recovery.runtime));
-          recoveryObj.put("copySort", Double.toString(recovery.progress));
+          String serv = AddressUtil.parseAddress(server.name, false).getHostText();
+          String log = recovery.name;
+          int time = recovery.runtime;
+          double copySort = recovery.progress;
 
-          recoveryList.add(recoveryObj);
+          recoveryList.addRecovery(new TabletServerRecoveryInformation(serv, log, time, copySort));
         }
       }
     }
 
-    jsonObj.put("recoveryList", recoveryList);
-
-    return jsonObj;
+    return recoveryList;
   }
 
   /**
