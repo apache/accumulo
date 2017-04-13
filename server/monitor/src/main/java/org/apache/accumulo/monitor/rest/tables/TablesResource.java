@@ -71,7 +71,7 @@ public class TablesResource {
    *          Namespace used to filter the tables
    * @return Table list
    */
-  private TablesList generateTables(String namespace) {
+  private static TablesList generateTables(String namespace) {
     SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
 
     TablesList tableNamespace = new TablesList();
@@ -95,7 +95,7 @@ public class TablesResource {
    *          Namespace list
    * @return Table list
    */
-  private TablesList generateTables(TablesList tableNamespace) {
+  private static TablesList generateTables(TablesList tableNamespace) {
     Instance inst = Monitor.getContext().getInstance();
     Map<String,String> tidToNameMap = Tables.getIdToNameMap(inst);
     SortedMap<String,TableInfo> tableStats = new TreeMap<>();
@@ -146,7 +146,7 @@ public class TablesResource {
    * @return list with all tables
    */
   @GET
-  public TablesList getTables() {
+  public static TablesList getTables() {
     return generateTables("*");
   }
 

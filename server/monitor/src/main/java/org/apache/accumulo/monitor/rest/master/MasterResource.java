@@ -58,7 +58,7 @@ public class MasterResource {
   /**
    * Gets the MasterMonitorInfo, allowing for mocking frameworks for testability
    */
-  protected MasterMonitorInfo getMmi() {
+  protected static MasterMonitorInfo getMmi() {
     return Monitor.getMmi();
   }
 
@@ -68,7 +68,7 @@ public class MasterResource {
    * @return master JSON object
    */
   @GET
-  public MasterInformation getTables() {
+  public static MasterInformation getTables() {
 
     MasterInformation masterInformation;
     MasterMonitorInfo mmi = Monitor.getMmi();
@@ -132,7 +132,7 @@ public class MasterResource {
    *
    * @return master state
    */
-  public String getState() {
+  public static String getState() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
       return NO_MASTERS;
@@ -145,7 +145,7 @@ public class MasterResource {
    *
    * @return master goal state
    */
-  public String getGoalState() {
+  public static String getGoalState() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
       return NO_MASTERS;
@@ -158,7 +158,7 @@ public class MasterResource {
    *
    * @return dead server list
    */
-  public DeadServerList getDeadTservers() {
+  public static DeadServerList getDeadTservers() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
       return new DeadServerList();
@@ -177,7 +177,7 @@ public class MasterResource {
    *
    * @return dead logger list
    */
-  public DeadLoggerList getDeadLoggers() {
+  public static DeadLoggerList getDeadLoggers() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
       return new DeadLoggerList();
@@ -196,7 +196,7 @@ public class MasterResource {
    *
    * @return bad tserver list
    */
-  public BadTabletServers getNumBadTservers() {
+  public static BadTabletServers getNumBadTservers() {
     MasterMonitorInfo mmi = getMmi();
     if (null == mmi) {
       return new BadTabletServers();
@@ -226,7 +226,7 @@ public class MasterResource {
    *
    * @return servers shutting down list
    */
-  public ServersShuttingDown getServersShuttingDown() {
+  public static ServersShuttingDown getServersShuttingDown() {
     ServersShuttingDown servers = new ServersShuttingDown();
     // Add new servers to the list
     for (String server : Monitor.getMmi().serversShuttingDown) {
