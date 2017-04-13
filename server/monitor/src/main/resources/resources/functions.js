@@ -169,6 +169,15 @@ function timeDuration(time) {
 }
 
 /**
+ * Changes + to %2B in the URL
+ *
+ * @param {string} url URL to sanitize
+ */
+function sanitize(url) {
+  return url.split('+').join('%2B');
+}
+
+/**
  * Sorts the selected table by column in the direction chosen
  *
  * @param {string} tableID Table to sort
@@ -620,7 +629,7 @@ function getProblems() {
 function clearTableProblems(tableID) {
   var call = '/rest/problems/summary?s=' + tableID;
   // Change plus sign to use ASCII value to send it as a URL query parameter
-  call = call.split('+').join('%2B');
+  call = sanitize(call);
   $.post(call);
 }
 
@@ -635,7 +644,7 @@ function clearDetailsProblems(table, resource, type) {
   var call = '/rest/problems/details?table=' + table + '&resource=' +
    resource + '&ptype=' + type;
   // Changes plus sign to use ASCII value to send it as a URL query parameter
-  call = call.split('+').join('%2B');
+  call = sanitize(call);
   $.post(call);
 }
 
