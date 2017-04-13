@@ -216,7 +216,7 @@ function createDetailsHeader(table) {
 
   for (i = 0; i < columns.length; i++) {
     var first = i == 0 ? true : false;
-    var sort = i == columns.length - 1 ? '' , 'sortTable(' + i + ')';
+    var sort = i == columns.length - 1 ? '' : 'sortTable(' + i + ')';
 
     items.push(createHeaderCell(first, sort, '', columns[i]));
   }

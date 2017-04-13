@@ -69,4 +69,4 @@
         var numNormalStats = 8;
       </script>
 
-      <script src="/resources/vis.js"></script>
+      <script src="/resources/js/vis.js"></script>
