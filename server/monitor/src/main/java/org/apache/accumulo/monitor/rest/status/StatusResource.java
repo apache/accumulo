@@ -42,6 +42,10 @@ import org.apache.log4j.Level;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class StatusResource {
 
+  public enum Status {
+    OK, ERROR, WARN;
+  }
+
   /**
    * Generates the JSON object with the status
    *
@@ -51,15 +55,15 @@ public class StatusResource {
   public StatusInformation getTables() {
 
     StatusInformation status;
-    String masterStatus;
-    String gcStatus;
-    String tServerStatus = "ERROR";
+    Status masterStatus;
+    Status gcStatus;
+    Status tServerStatus = Status.ERROR;
 
     if (Monitor.getMmi() != null) {
       if (Monitor.getGcStatus() != null) {
-        gcStatus = "OK";
+        gcStatus = Status.OK;
       } else {
-        gcStatus = "ERROR";
+        gcStatus = Status.ERROR;
       }
 
       List<String> tservers = new ArrayList<>();
@@ -71,7 +75,7 @@ public class StatusResource {
       }
       List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
 
-      masterStatus = masters.size() == 0 ? "ERROR" : "OK";
+      masterStatus = masters.size() == 0 ? Status.ERROR : Status.OK;
 
       int tServerUp = Monitor.getMmi().getTServerInfoSize();
       int tServerDown = Monitor.getMmi().getDeadTabletServersSize();
@@ -82,20 +86,20 @@ public class StatusResource {
        * status is WARN, otherwise, the status is an error.
        */
       if ((tServerDown > 0 || tServerBad > 0) && tServerUp > 0) {
-        tServerStatus = "WARN";
+        tServerStatus = Status.WARN;
       } else if ((tServerDown == 0 || tServerBad == 0) && tServerUp > 0) {
-        tServerStatus = "OK";
+        tServerStatus = Status.OK;
       } else if (tServerUp == 0) {
-        tServerStatus = "ERROR";
+        tServerStatus = Status.ERROR;
       }
     } else {
-      masterStatus = "ERROR";
+      masterStatus = Status.ERROR;
       if (null == Monitor.getGcStatus()) {
-        gcStatus = "ERROR";
+        gcStatus = Status.ERROR;
       } else {
-        gcStatus = "OK";
+        gcStatus = Status.OK;
       }
-      tServerStatus = "ERROR";
+      tServerStatus = Status.ERROR;
     }
 
     List<DedupedLogEvent> logs = LogService.getInstance().getEvents();
@@ -109,7 +113,7 @@ public class StatusResource {
 
     int numProblems = Monitor.getProblemSummary().entrySet().size();
 
-    status = new StatusInformation(masterStatus, gcStatus, tServerStatus, logs.size(), logsHaveError, numProblems);
+    status = new StatusInformation(masterStatus.toString(), gcStatus.toString(), tServerStatus.toString(), logs.size(), logsHaveError, numProblems);
 
     return status;
   }
