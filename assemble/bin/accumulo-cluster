@@ -21,6 +21,7 @@ Usage: accumulo-cluster <command> (<argument> ...)
 
 Commands:
   create-config       Creates cluster config
+  restart             Restarts the Accumulo cluster
   start               Starts Accumulo cluster
   stop                Stops Accumulo cluster
   start-non-tservers  Starts all services except tservers
@@ -309,6 +310,13 @@ function main() {
       echo "localhost" > "$conf/monitor"
       echo "localhost" > "$conf/tracers"
       echo "localhost" > "$conf/tservers"
+      ;;
+    restart)
+      verify_config
+      stop_all
+      # Make sure the JVM has a chance to fully exit
+      sleep 1
+      start_all
       ;;
     start)
       verify_config
