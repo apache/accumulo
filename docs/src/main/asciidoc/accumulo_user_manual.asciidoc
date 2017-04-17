@@ -18,7 +18,7 @@ Apache Accumulo® User Manual Version ${parsedVersion.majorVersion}.${parsedVers
 :author: Apache Accumulo Project
 :email: dev@accumulo.apache.org
 :toc2:
-:toclevels: 4
+:toclevels: 2
 :toc-title: Apache Accumulo ${parsedVersion.majorVersion}.${parsedVersion.minorVersion}
 :numbered:
 :website: https://accumulo.apache.org/
