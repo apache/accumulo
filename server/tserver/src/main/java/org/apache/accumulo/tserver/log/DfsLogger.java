@@ -440,6 +440,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     VolumeManager fs = conf.getFileSystem();
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.empty());
+    chooserEnv.setScope("logger");
     logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR
         + filename;
 

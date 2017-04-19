@@ -21,6 +21,8 @@ import java.util.Optional;
 public class VolumeChooserEnvironment {
 
   private final Optional<String> tableId;
+  // scope is meant for non-table identifiers
+  private String scope;
 
   public VolumeChooserEnvironment(Optional<String> tableId) {
     this.tableId = tableId;
@@ -32,6 +34,18 @@ public class VolumeChooserEnvironment {
 
   public String getTableId() {
     return tableId.get();
+  }
+
+  public void setScope(String scope) {
+    this.scope = scope;
+  }
+
+  public String getScope() {
+    return this.scope;
+  }
+
+  public boolean hasScope() {
+    return this.scope != null;
   }
 
   @Override
@@ -52,11 +66,17 @@ public class VolumeChooserEnvironment {
     if (!other.getTableId().equals(this.getTableId())) {
       return false;
     }
+    if (other.hasScope() != this.hasScope()) {
+      return false;
+    }
+    if (other.hasScope() && !other.getScope().equals(this.getScope())) {
+      return false;
+    }
     return true;
   }
 
   @Override
   public int hashCode() {
-    return tableId.hashCode();
+    return tableId.hashCode() * 31 + (this.scope == null ? 17 : this.scope.hashCode());
   }
 }
