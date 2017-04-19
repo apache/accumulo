@@ -19,6 +19,8 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Map;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +31,9 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import com.google.common.collect.MapMaker;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -48,12 +52,13 @@ public final class TinyLfuBlockCache implements BlockCache {
   private final Cache<String,Block> cache;
   private final Policy.Eviction<String,Block> policy;
   private final ScheduledExecutorService statsExecutor;
+  private final Map<String,CacheEntry> weakEvictionMap = new MapMaker().weakValues().makeMap();
 
   public TinyLfuBlockCache(long maxSize, long blockSize) {
     cache = Caffeine.newBuilder().initialCapacity((int) Math.ceil(1.2 * maxSize / blockSize)).weigher((String blockName, Block block) -> {
       int keyWeight = ClassSize.align(blockName.length()) + ClassSize.STRING;
       return keyWeight + block.weight();
-    }).maximumWeight(maxSize).recordStats().build();
+    }).maximumWeight(maxSize).recordStats().removalListener((String key, Block block, RemovalCause cause) -> weakEvictionMap.put(key, block)).build();
     policy = cache.policy().eviction().get();
 
     statsExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("TinyLfuBlockCacheStatsExecutor").setDaemon(true)
@@ -68,7 +73,10 @@ public final class TinyLfuBlockCache implements BlockCache {
 
   @Override
   public CacheEntry getBlock(String blockName) {
-    return cache.getIfPresent(blockName);
+    CacheEntry ce = cache.getIfPresent(blockName);
+    if (ce != null)
+      return ce;
+    return weakEvictionMap.get(blockName);
   }
 
   @Override
