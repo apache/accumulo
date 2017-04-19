@@ -40,7 +40,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.WeakEvictionLruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.TinyLfuBlockCache;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
