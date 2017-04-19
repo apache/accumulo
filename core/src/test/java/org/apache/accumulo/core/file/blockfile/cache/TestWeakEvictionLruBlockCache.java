@@ -17,12 +17,13 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class TestWeakEvictionLruBlockCache {
 
