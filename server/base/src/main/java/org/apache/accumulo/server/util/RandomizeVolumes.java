@@ -42,6 +42,7 @@ import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.tables.TableManager;
@@ -112,8 +113,9 @@ public class RandomizeVolumes {
       Key key = entry.getKey();
       Mutation m = new Mutation(key.getRow());
 
-      final String newLocation = vm.choose(Optional.of(tableId), ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
-          + tableId + Path.SEPARATOR + directory;
+      VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(tableId));
+      final String newLocation = vm.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId
+          + Path.SEPARATOR + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(), new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {
         log.trace("Replacing " + oldLocation + " with " + newLocation);

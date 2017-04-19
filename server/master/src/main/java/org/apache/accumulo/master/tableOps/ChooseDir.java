@@ -22,6 +22,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.hadoop.fs.Path;
 
 class ChooseDir extends MasterRepo {
@@ -41,8 +42,9 @@ class ChooseDir extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     // Constants.DEFAULT_TABLET_LOCATION has a leading slash prepended to it so we don't need to add one here
-    tableInfo.dir = master.getFileSystem().choose(Optional.of(tableInfo.tableId), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-        + tableInfo.tableId + Constants.DEFAULT_TABLET_LOCATION;
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(tableInfo.tableId));
+    tableInfo.dir = master.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableInfo.tableId
+        + Constants.DEFAULT_TABLET_LOCATION;
     return new CreateDir(tableInfo);
   }
 

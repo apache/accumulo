@@ -72,6 +72,7 @@ import org.apache.accumulo.master.state.TableStats;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -642,8 +643,9 @@ abstract class TabletGroupWatcher extends Daemon {
       } else {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to " + extent.getPrevEndRow());
-        String tdir = master.getFileSystem().choose(Optional.of(extent.getTableId()), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR
-            + Path.SEPARATOR + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
+        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(extent.getTableId()));
+        String tdir = master.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
         MetadataTableUtil.addTablet(new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir, master, timeType, this.master.masterLock);
       }
     } catch (RuntimeException | IOException | TableNotFoundException | AccumuloSecurityException ex) {

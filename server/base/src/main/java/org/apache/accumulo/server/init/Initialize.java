@@ -86,6 +86,7 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
@@ -321,8 +322,9 @@ public class Initialize implements KeywordExecutable {
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
     String[] configuredVolumes = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
-    final String rootTabletDir = new Path(fs.choose(Optional.<String> empty(), configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
-        + RootTable.ID + RootTable.ROOT_TABLET_LOCATION).toString();
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.empty());
+    final String rootTabletDir = new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID
+        + RootTable.ROOT_TABLET_LOCATION).toString();
 
     try {
       initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDir);
@@ -420,12 +422,13 @@ public class Initialize implements KeywordExecutable {
     // initialize initial system tables config in zookeeper
     initSystemTablesConfig();
 
-    String tableMetadataTabletDir = fs.choose(Optional.<String> empty(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-        + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
-    String replicationTableDefaultTabletDir = fs.choose(Optional.<String> empty(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.empty());
+    String tableMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
+        + TABLE_TABLETS_TABLET_DIR;
+    String replicationTableDefaultTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
         + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
-    String defaultMetadataTabletDir = fs.choose(Optional.<String> empty(), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-        + MetadataTable.ID + Constants.DEFAULT_TABLET_LOCATION;
+    String defaultMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
+        + Constants.DEFAULT_TABLET_LOCATION;
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir, replicationTableDefaultTabletDir);

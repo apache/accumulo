@@ -98,6 +98,7 @@ import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -2620,7 +2621,8 @@ public class Tablet implements TabletCommitter {
     String lowDirectory;
 
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
-    String volume = fs.choose(Optional.of(tableId), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(tableId));
+    String volume = fs.choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
 
     while (true) {
       try {

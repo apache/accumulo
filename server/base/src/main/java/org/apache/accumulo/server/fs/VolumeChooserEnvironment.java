@@ -34,4 +34,29 @@ public class VolumeChooserEnvironment {
     return tableId.get();
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (!(obj instanceof VolumeChooserEnvironment)) {
+      return false;
+    }
+    VolumeChooserEnvironment other = (VolumeChooserEnvironment) obj;
+    if (other.hasTableId() != this.hasTableId()) {
+      return false;
+    }
+    if (!other.getTableId().equals(this.getTableId())) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return tableId.hashCode();
+  }
 }

@@ -18,7 +18,6 @@ package org.apache.accumulo.server.fs;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Optional;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.volume.Volume;
@@ -161,7 +160,7 @@ public interface VolumeManager {
   ContentSummary getContentSummary(Path dir) throws IOException;
 
   // decide on which of the given locations to create a new file
-  String choose(Optional<String> tableId, String[] options);
+  String choose(VolumeChooserEnvironment env, String[] options);
 
   /**
    * Fetch the default Volume

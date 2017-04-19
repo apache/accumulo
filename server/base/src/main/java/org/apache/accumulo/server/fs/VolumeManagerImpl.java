@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -468,8 +467,7 @@ public class VolumeManagerImpl implements VolumeManager {
   private final VolumeChooser failsafeChooser = new RandomVolumeChooser();
 
   @Override
-  public String choose(Optional<String> tableId, String[] options) {
-    final VolumeChooserEnvironment env = new VolumeChooserEnvironment(tableId);
+  public String choose(VolumeChooserEnvironment env, String[] options) {
     final String choice = chooser.choose(env, options);
     if (!(ArrayUtils.contains(options, choice))) {
       log.error("The configured volume chooser, '" + chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided; "

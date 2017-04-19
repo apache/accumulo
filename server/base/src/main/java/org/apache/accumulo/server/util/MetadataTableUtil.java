@@ -84,6 +84,7 @@ import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.tablets.TabletTime;
@@ -874,8 +875,9 @@ public class MetadataTableUtil {
         Key k = entry.getKey();
         Mutation m = new Mutation(k.getRow());
         m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
-        String dir = volumeManager.choose(Optional.of(tableId), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableId
-            + Path.SEPARATOR + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES));
+        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(tableId));
+        String dir = volumeManager.choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
+            + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES));
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes(UTF_8)));
 
         bw.addMutation(m);
@@ -969,8 +971,10 @@ public class MetadataTableUtil {
    * During an upgrade from 1.6 to 1.7, we need to add the replication table
    */
   public static void createReplicationTable(ClientContext context) throws IOException {
-    String dir = VolumeManagerImpl.get().choose(Optional.of(ReplicationTable.ID), ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-        + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
+
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(ReplicationTable.ID));
+    String dir = VolumeManagerImpl.get().choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
+        + Constants.DEFAULT_TABLET_LOCATION;
 
     Mutation m = new Mutation(new Text(KeyExtent.getMetadataEntry(ReplicationTable.ID, null)));
     m.put(DIRECTORY_COLUMN.getColumnFamily(), DIRECTORY_COLUMN.getColumnQualifier(), 0, new Value(dir.getBytes(UTF_8)));

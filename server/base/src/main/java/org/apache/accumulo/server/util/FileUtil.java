@@ -49,6 +49,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -81,7 +82,8 @@ public class FileUtil {
   private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
   private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs) throws IOException {
-    String accumuloDir = fs.choose(Optional.<String> empty(), ServerConstants.getBaseUris());
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.empty());
+    String accumuloDir = fs.choose(chooserEnv, ServerConstants.getBaseUris());
 
     Path result = null;
     while (result == null) {
