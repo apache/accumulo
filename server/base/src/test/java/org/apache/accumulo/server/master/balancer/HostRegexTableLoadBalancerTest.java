@@ -51,7 +51,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   public void testInit() {
     init(factory);
     Assert.assertEquals("OOB check interval value is incorrect", 2000, this.getOobCheckMillis());
-    Assert.assertEquals("Pool check interval value is incorrect", 0, this.getPoolRecheckMillis());
+    @SuppressWarnings("deprecation")
+    long poolRecheckMillis = this.getPoolRecheckMillis();
+    Assert.assertEquals("Pool check interval value is incorrect", 0, poolRecheckMillis);
     Assert.assertFalse(isIpBasedRegex());
     Map<String,Pattern> patterns = this.getPoolNameToRegexPattern();
     Assert.assertEquals(2, patterns.size());
