@@ -490,7 +490,7 @@ public class Gatherer {
   private int countFiles() throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // TODO use a batch scanner + iterator to parallelize counting files
     Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx).overUserTableId(tableId, startRow, endRow).fetchFiles().fetchPrev().build();
-    return (int) StreamSupport.stream(tmi.spliterator(), false).mapToInt(tm -> tm.getFiles().size()).sum();
+    return StreamSupport.stream(tmi.spliterator(), false).mapToInt(tm -> tm.getFiles().size()).sum();
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {

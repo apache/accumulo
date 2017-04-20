@@ -34,7 +34,6 @@ import org.junit.Test;
 
 public class FirstEntryInRowIteratorTest {
 
-  @SuppressWarnings("unchecked")
   private static long process(TreeMap<Key,Value> sourceMap, TreeMap<Key,Value> resultMap, Range range, IteratorSetting iteratorSetting) throws IOException {
     org.apache.accumulo.core.iterators.SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);

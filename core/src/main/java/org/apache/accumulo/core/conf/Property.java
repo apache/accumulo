@@ -171,11 +171,9 @@ public enum Property {
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but do not have to be consistent throughout a cloud."),
   @Deprecated
-  GENERAL_CLASSPATHS(
-      AccumuloClassLoader.GENERAL_CLASSPATHS,
-      "",
-      PropertyType.STRING,
-      "This property is deprecated as classpath should be configured accumulo-env.sh. A list of all of the places to look for a class. Order does matter, as it will look for the jar "
+  GENERAL_CLASSPATHS(AccumuloClassLoader.GENERAL_CLASSPATHS, "", PropertyType.STRING,
+      "This property is deprecated. The class path should instead be configured by the launch environment (for example, accumulo-env.sh). "
+          + "A list of all of the places to look for a class. Order does matter, as it will look for the jar "
           + "starting in the first location to the last. Supports full regex on filename alone."),
   GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME, AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE,
       PropertyType.STRING, "A list of all of the places where changes in jars or classes will force a reload of the classloader."),

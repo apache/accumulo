@@ -351,7 +351,7 @@ class SummarySerializer {
           lg.save(dos, symbolTable);
         }
 
-        dos.close();
+        dos.flush();
         return baos.toByteArray();
       }
     }

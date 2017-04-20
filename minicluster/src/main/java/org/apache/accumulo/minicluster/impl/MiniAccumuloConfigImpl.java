@@ -145,7 +145,9 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
       // since there is a small amount of memory, check more frequently for majc... setting may not be needed in 1.5
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
-      mergeProp(Property.GENERAL_CLASSPATHS.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
+      @SuppressWarnings("deprecation")
+      Property generalClasspaths = Property.GENERAL_CLASSPATHS;
+      mergeProp(generalClasspaths.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GENERAL_DYNAMIC_CLASSPATHS.getKey(), libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
