@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -42,6 +43,14 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
+/**
+ * This class is responsible for managing the distribution of tablets throughout an Accumulo cluster. In most cases, users will want a balancer implementation
+ * which ensures a uniform distribution of tablets, so that no individual tablet server is handling significantly more work than any other.
+ *
+ * <p>
+ * Implementations may wish to store configuration in Accumulo's system configuration using the {@link Property#GENERAL_ARBITRARY_PROP_PREFIX}. They may also
+ * benefit from using per-table configuration using {@link Property#TABLE_ARBITRARY_PROP_PREFIX}.
+ */
 public abstract class TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletBalancer.class);

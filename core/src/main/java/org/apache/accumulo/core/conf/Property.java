@@ -199,6 +199,9 @@ public enum Property {
       "Comma-separated list of paths to CredentialProviders"),
   GENERAL_LEGACY_METRICS("general.legacy.metrics", "false", PropertyType.BOOLEAN,
       "Use the old metric infrastructure configured by accumulo-metrics.xml, instead of Hadoop Metrics2"),
+  GENERAL_ARBITRARY_PROP_PREFIX("general.custom.", null, PropertyType.PREFIX, "Prefix to be used for user defined system-wide properties. "
+      + "This may be particularly useful for system-wide configuration for various user-implementations of "
+      + "pluggable Accumulo features, such as the balancer or volume chooser."),
   GENERAL_DELEGATION_TOKEN_LIFETIME("general.delegation.token.lifetime", "7d", PropertyType.TIMEDURATION,
       "The length of time that delegation tokens and secret keys are valid"),
   GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL("general.delegation.token.update.interval", "1d", PropertyType.TIMEDURATION,
