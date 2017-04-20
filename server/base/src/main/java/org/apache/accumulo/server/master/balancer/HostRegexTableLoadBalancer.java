@@ -76,8 +76,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   private static final String HOST_BALANCER_OOB_DEFAULT = "5m";
   @Deprecated
   public static final String HOST_BALANCER_POOL_RECHECK_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.host.regex.pool.check";
-  @Deprecated
-  private static final String HOST_BALANCER_POOL_RECHECK_DEFAULT = "1m";
   public static final String HOST_BALANCER_REGEX_USING_IPS_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.host.regex.is.ip";
   public static final String HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
       + "balancer.host.regex.concurrent.migrations";
