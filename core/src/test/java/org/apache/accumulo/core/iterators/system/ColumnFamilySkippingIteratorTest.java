@@ -18,9 +18,8 @@ package org.apache.accumulo.core.iterators.system;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.SortedMap;
 import java.util.TreeMap;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -29,6 +28,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 public class ColumnFamilySkippingIteratorTest extends TestCase {
 
@@ -235,5 +236,46 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
     assertFalse(cfi.hasTop());
 
     // System.out.println(ci.getCount());
+  }
+
+  private static class CloseTestIter extends SortedMapIterator {
+
+    int closeCallCount = 0;
+
+    public CloseTestIter(SortedMap<Key,Value> map) {
+      super(map);
+    }
+
+    @Override
+    public void close() {
+      System.out.println("Closing inner CloseIterator.");
+      closeCallCount++;
+    }
+  }
+
+  public void testClose() throws Exception {
+    TreeMap<Key,Value> tm = new TreeMap<>();
+    put(tm, "r1", "cf1", "cq1", 5, "v1");
+    put(tm, "r1", "cf1", "cq3", 5, "v2");
+    put(tm, "r2", "cf1", "cq1", 5, "v3");
+    put(tm, "r2", "cf2", "cq4", 5, "v4");
+    put(tm, "r2", "cf2", "cq5", 5, "v5");
+    put(tm, "r3", "cf3", "cq6", 5, "v6");
+
+    CloseTestIter closeIter = new CloseTestIter(tm);
+    ColumnFamilySkippingIterator cfi = new ColumnFamilySkippingIterator(closeIter);
+
+    assertEquals(0, closeIter.closeCallCount);
+    HashSet<ByteSequence> colfams = new HashSet<>();
+    colfams.add(new ArrayByteSequence("cf2"));
+    cfi.seek(new Range(), colfams, true);
+    testAndCallnext(cfi, "r2", "cf2", "cq4", 5, "v4");
+    testAndCallnext(cfi, "r2", "cf2", "cq5", 5, "v5");
+    assertFalse(cfi.hasTop());
+
+    System.out.println("Closing ColumnFamilySkippingIterator");
+    cfi.close();
+
+    assertEquals(1, closeIter.closeCallCount);
   }
 }

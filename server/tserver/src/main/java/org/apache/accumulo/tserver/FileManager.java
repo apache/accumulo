@@ -366,7 +366,7 @@ public class FileManager {
       for (FileSKVIterator reader : readers) {
         try {
           reader.closeDeepCopies();
-        } catch (IOException e) {
+        } catch (RuntimeException e) {
           log.warn("{}", e.getMessage(), e);
           sawIOException = true;
         }

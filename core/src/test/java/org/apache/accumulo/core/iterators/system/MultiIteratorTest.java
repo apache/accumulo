@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -399,5 +400,47 @@ public class MultiIteratorTest extends TestCase {
     Range r7 = new Range(newKey(0, 3), true, newKey(0, 1), true);
     mi.seek(r7, EMPTY_COL_FAMS, false);
     assertFalse(mi.hasTop());
+  }
+
+  private static class CloseTestIter extends SortedMapIterator {
+
+    int closeCallCount = 0;
+    String name;
+
+    public CloseTestIter(String name, SortedMap<Key,Value> map) {
+      super(map);
+      this.name = name;
+    }
+
+    @Override
+    public void close() {
+      System.out.println("Closing " + this.name);
+      closeCallCount++;
+    }
+  }
+
+  public void testDoNothingClose() throws Exception {
+
+    TreeMap<Key,Value> tm = new TreeMap<>();
+    newKeyValue(tm, 0, 3, false, "1");
+    newKeyValue(tm, 0, 2, false, "2");
+    newKeyValue(tm, 0, 1, false, "3");
+    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(1);
+
+    CloseTestIter closeIter1 = new CloseTestIter("closeIter1", tm);
+    iters.add(closeIter1);
+
+    MultiIterator mi = new MultiIterator(iters, true);
+
+    assertEquals(0, closeIter1.closeCallCount);
+    assertFalse(mi.hasTop());
+
+    mi.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertTrue(mi.hasTop());
+
+    System.out.println("Attempting to call Close on MultiIterator");
+    mi.close();
+
+    assertEquals(0, closeIter1.closeCallCount);
   }
 }

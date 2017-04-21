@@ -117,4 +117,9 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   public void setInterruptFlag(AtomicBoolean flag) {
     ((InterruptibleIterator) source).setInterruptFlag(flag);
   }
+
+  @Override
+  public void close() {
+    source.close();
+  }
 }

@@ -130,10 +130,10 @@ public class DefaultCompactionStrategyTest {
     }
 
     @Override
-    public void closeDeepCopies() throws IOException {}
+    public void closeDeepCopies() {}
 
     @Override
-    public void close() throws IOException {}
+    public void close() {}
 
     @Override
     public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {

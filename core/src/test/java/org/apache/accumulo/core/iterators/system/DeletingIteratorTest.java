@@ -20,9 +20,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map.Entry;
+import java.util.SortedMap;
 import java.util.TreeMap;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -30,6 +29,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 public class DeletingIteratorTest extends TestCase {
 
@@ -231,4 +232,47 @@ public class DeletingIteratorTest extends TestCase {
     k.setDeleted(deleted);
     tm.put(k, new Value(val.getBytes()));
   }
+
+  private static class CloseTestIter extends SortedMapIterator {
+
+    int closeCallCount = 0;
+
+    public CloseTestIter(SortedMap<Key,Value> map) {
+      super(map);
+    }
+
+    @Override
+    public void close() {
+      System.out.println("Closing inner CloseIterator.");
+      closeCallCount++;
+    }
+  }
+
+  public void testClose() throws Exception {
+    TreeMap<Key,Value> tm = new TreeMap<>();
+    newKeyValue(tm, "r000", 3, false, "v3");
+    newKeyValue(tm, "r000", 2, false, "v2");
+    newKeyValue(tm, "r000", 2, true, "");
+    newKeyValue(tm, "r000", 1, false, "v1");
+
+    CloseTestIter closeIter = new CloseTestIter(tm);
+    DeletingIterator it = new DeletingIterator(closeIter, false);
+
+    it.seek(newRange("r000", 3), EMPTY_COL_FAMS, false);
+
+    assertEquals(0, closeIter.closeCallCount);
+    assertTrue(it.hasTop());
+    assertEquals(newKey("r000", 3), it.getTopKey());
+    assertEquals("v3", it.getTopValue().toString());
+
+    it.next();
+
+    assertFalse(it.hasTop());
+
+    System.out.println("Closing DeletingIterator");
+    it.close();
+
+    assertEquals(1, closeIter.closeCallCount);
+  }
+
 }

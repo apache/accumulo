@@ -258,4 +258,9 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
     return true;
   }
 
+  @Override
+  public void close() {
+    sourceIter.close();
+  }
+
 }

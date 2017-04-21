@@ -94,4 +94,8 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
     seenSeek = true;
   }
 
+  @Override
+  public void close() {
+    getSource().close();
+  }
 }

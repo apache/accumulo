@@ -17,13 +17,16 @@
 package org.apache.accumulo.core.iterators.system;
 
 import java.util.HashSet;
-
-import junit.framework.TestCase;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 public class ColumnFilterTest extends TestCase {
 
@@ -74,5 +77,40 @@ public class ColumnFilterTest extends TestCase {
     assertFalse(cf.accept(newKey("r1", "cf1", "cq1"), new Value(new byte[0])));
     assertTrue(cf.accept(newKey("r1", "cf2", "cq1"), new Value(new byte[0])));
     assertFalse(cf.accept(newKey("r1", "cf2", "cq2"), new Value(new byte[0])));
+  }
+
+  private static class CloseTestIter extends SortedMapIterator {
+
+    int closeCallCount = 0;
+
+    public CloseTestIter(SortedMap<Key,Value> map) {
+      super(map);
+    }
+
+    @Override
+    public void close() {
+      System.out.println("Closing inner CloseIterator.");
+      closeCallCount++;
+    }
+  }
+
+  public void testClose() throws Exception {
+    TreeMap<Key,Value> tm = new TreeMap<>();
+    tm.put(newKey("r1", "cf1", "cq1"), new Value("val1".getBytes()));
+    tm.put(newKey("r2", "cf2", "cq1"), new Value("val2".getBytes()));
+    HashSet<Column> columns = new HashSet<>();
+    columns.add(newColumn("cf2", "cq1"));
+
+    CloseTestIter closeIter = new CloseTestIter(tm);
+    ColumnQualifierFilter cf = new ColumnQualifierFilter(closeIter, columns);
+
+    assertEquals(0, closeIter.closeCallCount);
+    assertTrue(cf.accept(newKey("r1", "cf2", "cq1"), new Value(new byte[0])));
+    assertFalse(cf.accept(newKey("r1", "cf2", "cq2"), new Value(new byte[0])));
+
+    System.out.println("Closing ColumnQualifierFilter");
+    cf.close();
+
+    assertEquals(1, closeIter.closeCallCount);
   }
 }
