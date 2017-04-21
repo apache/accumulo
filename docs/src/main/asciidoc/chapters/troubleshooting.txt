@@ -709,6 +709,35 @@ original and the new instances, but it can serve as a reference.
 rfiles to allow references in the metadata table and in the tablet servers to be
 resolved. Rebuild the metadata table if the corrupt files are metadata files.
 
+*Write-Ahead Log(WAL) File Corruption*
+
+In certain versions of Accumulo, a corrupt WAL file (caused by HDFS corruption
+or a bug in Accumulo that created the file) can block the successful recovery
+of one to many Tablets. Accumulo can be stuck in a loop trying to recover the
+WAL file, never being able to succeed.
+
+In the cases where the WAL file's original contents are unrecoverable or some degree
+of data loss is acceptable (beware if the WAL file contains updates to the Accumulo
+metadat table!), the following process can be followed to create an valid, empty
+WAL file. Run the following commands as the Accumulo unix user (to ensure that
+the proper file permissions in HDFS)
+
+  $ echo -n -e '--- Log File Header (v2) ---\x00\x00\x00\x00' > empty.wal
+
+The above creates a file with the text "--- Log File Header (v2) ---" and then
+four bytes. You should verify the contents of the file with a hexdump tool.
+
+Then, place this empty WAL in HDFS and then replace the corrupt WAL file in HDFS
+with the empty WAL.
+
+  $ hdfs dfs -moveFromLocal empty.wal /user/accumulo/empty.wal
+  $ hdfs dfs -mv /user/accumulo/empty.wal /accumulo/wal/tserver-4.example.com+10011/26abec5b-63e7-40dd-9fa1-b8ad2436606e
+
+After the corrupt WAL file has been replaced, the system should automatically recover.
+It may be necessary to restart the Accumulo Master process as an exponential
+backup policy is used which could lead to a long wait before Accumulo will
+try to re-load the WAL file.
+
 [[zookeeper_failure]]
 #### ZooKeeper Failure
 *Q*: I lost my ZooKeeper quorum (hardware failure), but HDFS is still intact. How can I recover my Accumulo instance?
