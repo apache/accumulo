@@ -1487,8 +1487,8 @@ public class Tablet implements TabletCommitter {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(getTabletServer().getFileSystem(), getTabletServer().getConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
-          FileUtil.toPathStrings(files), .25);
+      keys = FileUtil.findMidPoint(getTabletServer().getFileSystem(), tabletDirectory, getTabletServer().getConfiguration(), extent.getPrevEndRow(),
+          extent.getEndRow(), FileUtil.toPathStrings(files), .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint " + e.getMessage());
       return null;
@@ -2105,7 +2105,7 @@ public class Tablet implements TabletCommitter {
         splitPoint = findSplitRow(getDatafileManager().getFiles());
       else {
         Text tsp = new Text(sp);
-        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(getTabletServer().getFileSystem(), getTabletServer().getConfiguration(),
+        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(getTabletServer().getFileSystem(), tabletDirectory, getTabletServer().getConfiguration(),
             extent.getPrevEndRow(), extent.getEndRow(), FileUtil.toPathStrings(getDatafileManager().getFiles()), tsp), tsp);
       }
 

@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
@@ -47,9 +46,7 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -81,14 +78,10 @@ public class FileUtil {
 
   private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
-  private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs) throws IOException {
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.empty());
-    String accumuloDir = fs.choose(chooserEnv, ServerConstants.getBaseUris());
-
+  private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs, String tabletDirectory) throws IOException {
     Path result = null;
     while (result == null) {
-      result = new Path(accumuloDir + Path.SEPARATOR + "tmp/idxReduce_" + String.format("%09d", new Random().nextInt(Integer.MAX_VALUE)));
-
+      result = new Path(tabletDirectory + Path.SEPARATOR + "tmp/idxReduce_" + String.format("%09d", new Random().nextInt(Integer.MAX_VALUE)));
       try {
         fs.getFileStatus(result);
         result = null;
@@ -190,13 +183,13 @@ public class FileUtil {
     return reduceFiles(acuConf, conf, fs, prevEndRow, endRow, outFiles, maxFiles, tmpDir, pass + 1);
   }
 
-  public static SortedMap<Double,Key> findMidPoint(VolumeManager fs, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<String> mapFiles,
-      double minSplit) throws IOException {
-    return findMidPoint(fs, acuConf, prevEndRow, endRow, mapFiles, minSplit, true);
+  public static SortedMap<Double,Key> findMidPoint(VolumeManager fs, String tabletDir, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow,
+      Collection<String> mapFiles, double minSplit) throws IOException {
+    return findMidPoint(fs, tabletDir, acuConf, prevEndRow, endRow, mapFiles, minSplit, true);
   }
 
-  public static double estimatePercentageLTE(VolumeManager fs, AccumuloConfiguration acuconf, Text prevEndRow, Text endRow, Collection<String> mapFiles,
-      Text splitRow) throws IOException {
+  public static double estimatePercentageLTE(VolumeManager fs, String tabletDir, AccumuloConfiguration acuconf, Text prevEndRow, Text endRow,
+      Collection<String> mapFiles, Text splitRow) throws IOException {
 
     Configuration conf = CachedConfiguration.getInstance();
 
@@ -207,7 +200,7 @@ public class FileUtil {
 
     try {
       if (mapFiles.size() > maxToOpen) {
-        tmpDir = createTmpDir(acuconf, fs);
+        tmpDir = createTmpDir(acuconf, fs, tabletDir);
 
         log.debug("Too many indexes (" + mapFiles.size() + ") to open at once for " + endRow + " " + prevEndRow + ", reducing in tmpDir = " + tmpDir);
 
@@ -267,8 +260,8 @@ public class FileUtil {
    *          ISSUES : This method used the index files to find the mid point. If the map files have different index intervals this method will not return an
    *          accurate mid point. Also, it would be tricky to use this method in conjunction with an in memory map because the indexing interval is unknown.
    */
-  public static SortedMap<Double,Key> findMidPoint(VolumeManager fs, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<String> mapFiles,
-      double minSplit, boolean useIndex) throws IOException {
+  public static SortedMap<Double,Key> findMidPoint(VolumeManager fs, String tabletDirectory, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow,
+      Collection<String> mapFiles, double minSplit, boolean useIndex) throws IOException {
     Configuration conf = CachedConfiguration.getInstance();
 
     Collection<String> origMapFiles = mapFiles;
@@ -282,7 +275,7 @@ public class FileUtil {
       if (mapFiles.size() > maxToOpen) {
         if (!useIndex)
           throw new IOException("Cannot find mid point using data files, too many " + mapFiles.size());
-        tmpDir = createTmpDir(acuConf, fs);
+        tmpDir = createTmpDir(acuConf, fs, tabletDirectory);
 
         log.debug("Too many indexes (" + mapFiles.size() + ") to open at once for " + endRow + " " + prevEndRow + ", reducing in tmpDir = " + tmpDir);
 
@@ -307,7 +300,7 @@ public class FileUtil {
           log.warn("Failed to find mid point using indexes, falling back to data files which is slower. No entries between " + prevEndRow + " and " + endRow
               + " for " + mapFiles);
           // need to pass original map files, not possibly reduced indexes
-          return findMidPoint(fs, acuConf, prevEndRow, endRow, origMapFiles, minSplit, false);
+          return findMidPoint(fs, tabletDirectory, acuConf, prevEndRow, endRow, origMapFiles, minSplit, false);
         }
         throw new IOException("Failed to find mid point, no entries between " + prevEndRow + " and " + endRow + " for " + mapFiles);
       }
