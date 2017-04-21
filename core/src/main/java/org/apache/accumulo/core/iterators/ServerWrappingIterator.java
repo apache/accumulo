@@ -34,19 +34,12 @@ import org.apache.accumulo.core.data.Value;
  * this means that <code>getSource().seek</code> and <code>super.seek</code> no longer perform identical actions. Implementors should take note of this and if
  * <code>seek</code> is overridden, ensure that <code>super.seek</code> is called before data is read.
  */
-public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Value> {
+public abstract class ServerWrappingIterator implements SortedKeyValueIterator<Key,Value> {
 
-  private SortedKeyValueIterator<Key,Value> source = null;
-  boolean seenSeek = false;
+  protected final SortedKeyValueIterator<Key,Value> source;
 
-  protected void setSource(SortedKeyValueIterator<Key,Value> source) {
+  public ServerWrappingIterator(SortedKeyValueIterator<Key,Value> source) {
     this.source = source;
-  }
-
-  protected SortedKeyValueIterator<Key,Value> getSource() {
-    if (source == null)
-      throw new IllegalStateException("getting null source");
-    return source;
   }
 
   @Override
@@ -56,42 +49,32 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
 
   @Override
   public Key getTopKey() {
-    if (seenSeek == false)
-      throw new IllegalStateException("never been seeked");
     return source.getTopKey();
   }
 
   @Override
   public Value getTopValue() {
-    if (seenSeek == false)
-      throw new IllegalStateException("never been seeked");
     return source.getTopValue();
   }
 
   @Override
   public boolean hasTop() {
-    if (seenSeek == false)
-      throw new IllegalStateException("never been seeked");
     return source.hasTop();
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-    this.setSource(source);
-
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void next() throws IOException {
-    if (seenSeek == false)
-      throw new IllegalStateException("never been seeked");
     source.next();
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    getSource().seek(range, columnFamilies, inclusive);
-    seenSeek = true;
+    source.seek(range, columnFamilies, inclusive);
   }
 
 }

@@ -683,13 +683,6 @@ public class InMemoryMap {
     private SourceSwitchingIterator ssi;
     private MemoryDataSource mds;
 
-    @Override
-    protected SortedKeyValueIterator<Key,Value> getSource() {
-      if (closed.get())
-        throw new IllegalStateException("Memory iterator is closed");
-      return super.getSource();
-    }
-
     private MemoryIterator(InterruptibleIterator source) {
       this(source, new AtomicBoolean(false));
     }

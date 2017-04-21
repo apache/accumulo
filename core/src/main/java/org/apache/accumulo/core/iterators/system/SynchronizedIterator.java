@@ -33,12 +33,11 @@ import org.apache.hadoop.io.WritableComparable;
  */
 public class SynchronizedIterator<K extends WritableComparable<?>,V extends Writable> implements SortedKeyValueIterator<K,V> {
 
-  private SortedKeyValueIterator<K,V> source = null;
+  private final SortedKeyValueIterator<K,V> source;
 
   @Override
   public synchronized void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-    this.source = source;
-    source.init(source, options, env);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -70,8 +69,6 @@ public class SynchronizedIterator<K extends WritableComparable<?>,V extends Writ
   public synchronized SortedKeyValueIterator<K,V> deepCopy(IteratorEnvironment env) {
     return new SynchronizedIterator<>(source.deepCopy(env));
   }
-
-  public SynchronizedIterator() {}
 
   public SynchronizedIterator(SortedKeyValueIterator<K,V> source) {
     this.source = source;

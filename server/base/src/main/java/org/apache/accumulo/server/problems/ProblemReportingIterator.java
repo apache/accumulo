@@ -31,9 +31,9 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.server.AccumuloServerContext;
 
 public class ProblemReportingIterator implements InterruptibleIterator {
-  private SortedKeyValueIterator<Key,Value> source;
+  private final SortedKeyValueIterator<Key,Value> source;
   private boolean sawError = false;
-  private boolean continueOnError;
+  private final boolean continueOnError;
   private String resource;
   private String tableId;
   private final AccumuloServerContext context;
