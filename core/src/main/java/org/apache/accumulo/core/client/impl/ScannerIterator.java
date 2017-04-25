@@ -163,7 +163,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       List<KeyValue> currentBatch = (List<KeyValue>) obj;
 
       if (currentBatch.size() == 0) {
-        currentBatch = null;
         finished = true;
         return false;
       }

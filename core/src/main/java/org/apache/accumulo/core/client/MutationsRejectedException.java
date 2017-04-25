@@ -36,10 +36,10 @@ import org.apache.accumulo.core.data.TabletId;
 public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;
 
-  private List<ConstraintViolationSummary> cvsl;
+  private final List<ConstraintViolationSummary> cvsl;
   private Map<TabletId,Set<SecurityErrorCode>> af;
   private Collection<String> es;
-  private int unknownErrors;
+  private final int unknownErrors;
 
   /**
    *
