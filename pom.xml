@@ -880,7 +880,6 @@
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:${powermock.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.slf4j:slf4j-log4j12:jar:${slf4j.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.httpcomponents:httpclient:jar:${httpclient.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>junit:junit:jar:4.12</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
