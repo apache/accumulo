@@ -264,6 +264,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       // Only one tserver to avoid race conditions on ZK propagation (auths and configuration)
       cfg.setNumTservers(1);
+      // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
+      Map<String,String> siteConf = cfg.getSiteConfig();
+      siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
+      cfg.setSiteConfig(siteConf);
     }
   }
 
