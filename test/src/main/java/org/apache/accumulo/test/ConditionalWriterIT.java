@@ -64,6 +64,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
@@ -90,11 +91,13 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.accumulo.tracer.TraceServer;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -114,6 +117,15 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Override
   protected int defaultTimeoutSeconds() {
     return 60;
+  }
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    super.configureMiniCluster(cfg, hadoopCoreSite);
+    // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
+    Map<String,String> siteConf = cfg.getSiteConfig();
+    siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
+    cfg.setSiteConfig(siteConf);
   }
 
   public static long abs(long l) {
