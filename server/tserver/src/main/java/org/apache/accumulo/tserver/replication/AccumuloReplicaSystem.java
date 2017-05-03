@@ -163,6 +163,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     final Instance localInstance = HdfsZooInstance.getInstance();
     final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance).getConfiguration();
 
+    log.debug("Replication RPC timeout is {}", localConf.get(Property.REPLICATION_RPC_TIMEOUT.getKey()));
+
     final String principal = getPrincipal(localConf, target);
     final File keytab;
     final String password;
@@ -275,6 +277,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
         final HostAndPort peerTserver = HostAndPort.fromString(peerTserverStr);
 
+        final long timeout = localConf.getTimeInMillis(Property.REPLICATION_RPC_TIMEOUT);
+
         // We have a tserver on the remote -- send the data its way.
         Status finalStatus;
         final long sizeLimit = conf.getMemoryInBytes(Property.REPLICATION_MAX_UNIT_SIZE);
@@ -282,14 +286,15 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           if (p.getName().endsWith(RFILE_SUFFIX)) {
             span = Trace.start("RFile replication");
             try {
-              finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper);
+              finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper, timeout);
             } finally {
               span.stop();
             }
           } else {
             span = Trace.start("WAL replication");
             try {
-              finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi);
+              finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit, remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi,
+                  timeout);
             } finally {
               span.stop();
             }
@@ -314,7 +319,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected Status replicateRFiles(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target, final Path p, final Status status,
-      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper) throws TTransportException,
+      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper, long timeout) throws TTransportException,
       AccumuloException, AccumuloSecurityException {
     DataInputStream input;
     try {
@@ -328,7 +333,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     while (true) {
       // Read and send a batch of mutations
       ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new RFileClientExecReturn(target, input, p,
-          currentStatus, sizeLimit, remoteTableId, tcreds));
+          currentStatus, sizeLimit, remoteTableId, tcreds), timeout);
 
       // Catch the overflow
       long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
@@ -360,8 +365,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   protected Status replicateLogs(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target, final Path p, final Status status,
-      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper, final UserGroupInformation accumuloUgi)
-      throws TTransportException, AccumuloException, AccumuloSecurityException {
+      final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper, final UserGroupInformation accumuloUgi,
+      long timeout) throws TTransportException, AccumuloException, AccumuloSecurityException {
 
     log.debug("Replication WAL to peer tserver");
     final Set<Integer> tids;
@@ -428,7 +433,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       try {
         // Read and send a batch of mutations
         replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new WalClientExecReturn(target, input, p, currentStatus, sizeLimit,
-            remoteTableId, tcreds, tids));
+            remoteTableId, tcreds, tids), timeout);
       } catch (Exception e) {
         log.error("Caught exception replicating data to {} at {}", peerContext.getInstance().getInstanceName(), peerTserver, e);
         throw e;
