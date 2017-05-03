@@ -414,10 +414,10 @@ public class TabletServerBatchWriter {
       log.trace(String.format("Total bin time       : %,10.2f secs %6.2f%s", totalBinTime.get() / 1000.0,
           100.0 * totalBinTime.get() / (finishTime - startTime), "%"));
       log.trace(String.format("Average bin rate     : %,10.2f mutations/sec", totalBinned.get() / (totalBinTime.get() / 1000.0)));
-      log.trace(String.format("tservers per batch   : %,8.2f avg  %,6d min %,6d max", (float) (tabletServersBatchSum.get() / numBatches.get()),
-          minTabletServersBatch.get(), maxTabletServersBatch.get()));
-      log.trace(String.format("tablets per batch    : %,8.2f avg  %,6d min %,6d max", (float) (tabletBatchSum.get() / numBatches.get()), minTabletBatch.get(),
-          maxTabletBatch.get()));
+      log.trace(String.format("tservers per batch   : %,8.2f avg  %,6d min %,6d max",
+          (float) (numBatches.get() != 0 ? (tabletServersBatchSum.get() / numBatches.get()) : 0), minTabletServersBatch.get(), maxTabletServersBatch.get()));
+      log.trace(String.format("tablets per batch    : %,8.2f avg  %,6d min %,6d max",
+          (float) (numBatches.get() != 0 ? (tabletBatchSum.get() / numBatches.get()) : 0), minTabletBatch.get(), maxTabletBatch.get()));
       log.trace("");
       log.trace("SYSTEM STATISTICS");
       log.trace(String.format("JVM GC Time          : %,10.2f secs", ((finalGCTimes - initialGCTimes) / 1000.0)));
