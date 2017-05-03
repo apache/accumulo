@@ -119,14 +119,16 @@ public class ReplicationClient {
    *          The client session for the peer replicant
    * @param server
    *          Server to connect to
+   * @param timeout
+   *          RPC timeout in milliseconds
    * @return A ReplicationServicer client to the given host in the given instance
    */
-  public static ReplicationServicer.Client getServicerConnection(ClientContext context, HostAndPort server) throws TTransportException {
+  public static ReplicationServicer.Client getServicerConnection(ClientContext context, HostAndPort server, long timeout) throws TTransportException {
     requireNonNull(context);
     requireNonNull(server);
 
     try {
-      return ThriftUtil.getClientNoTimeout(new ReplicationServicer.Client.Factory(), server, context);
+      return ThriftUtil.getClient(new ReplicationServicer.Client.Factory(), server, context, timeout);
     } catch (TTransportException tte) {
       log.debug("Failed to connect to servicer ({}), will retry...", server, tte);
       throw tte;
@@ -180,12 +182,12 @@ public class ReplicationClient {
     throw new AccumuloException("Could not connect to ReplicationCoordinator at " + context.getInstance().getInstanceName());
   }
 
-  public static <T> T executeServicerWithReturn(ClientContext context, HostAndPort tserver, ClientExecReturn<T,ReplicationServicer.Client> exec)
+  public static <T> T executeServicerWithReturn(ClientContext context, HostAndPort tserver, ClientExecReturn<T,ReplicationServicer.Client> exec, long timeout)
       throws AccumuloException, AccumuloSecurityException, TTransportException {
     ReplicationServicer.Client client = null;
     while (true) {
       try {
-        client = getServicerConnection(context, tserver);
+        client = getServicerConnection(context, tserver, timeout);
         return exec.execute(client);
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);

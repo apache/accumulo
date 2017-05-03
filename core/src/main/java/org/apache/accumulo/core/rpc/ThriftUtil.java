@@ -134,7 +134,7 @@ public class ThriftUtil {
    * @param timeout
    *          Socket timeout which overrides the ClientContext timeout
    */
-  private static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context, long timeout)
+  public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, HostAndPort address, ClientContext context, long timeout)
       throws TTransportException {
     TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout, context);
     return createClient(factory, transport);
