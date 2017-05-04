@@ -76,10 +76,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
       Boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
       cache.put(testVis, bb);
       return bb;
-    } catch (VisibilityParseException e) {
-      log.error("Parse Error", e);
-      return false;
-    } catch (BadArgumentException e) {
+    } catch (VisibilityParseException | BadArgumentException e) {
       log.error("Parse Error", e);
       return false;
     }

@@ -35,7 +35,8 @@ import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.commons.collections.map.LRUMap;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A SortedKeyValueIterator that filters based on ColumnVisibility.
@@ -45,16 +46,13 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
   protected VisibilityEvaluator ve;
   protected LRUMap cache;
 
-  private static final Logger log = Logger.getLogger(VisibilityFilter.class);
+  private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
   private static final String AUTHS = "auths";
   private static final String FILTER_INVALID_ONLY = "filterInvalid";
 
   private boolean filterInvalid;
 
-  /**
-   *
-   */
   public VisibilityFilter() {}
 
   @Override
@@ -99,10 +97,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         Boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
         cache.put(testVis, bb);
         return bb;
-      } catch (VisibilityParseException e) {
-        log.error("Parse Error", e);
-        return false;
-      } catch (BadArgumentException e) {
+      } catch (VisibilityParseException | BadArgumentException e) {
         log.error("Parse Error", e);
         return false;
       }
