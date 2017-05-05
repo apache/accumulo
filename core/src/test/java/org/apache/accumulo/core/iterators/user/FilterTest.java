@@ -277,19 +277,19 @@ public class FilterTest {
     }
     assertTrue(tm.size() == 1000);
 
-    ColumnQualifierFilter a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
+    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 1000);
 
     hsc = new HashSet<>();
     hsc.add(new Column("a".getBytes(), "b".getBytes(), null));
-    a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
+    a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
     assertTrue("size was " + size, size == 500);
 
     hsc = new HashSet<>();
-    a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
+    a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(a);
     assertTrue("size was " + size, size == 1000);
@@ -313,20 +313,20 @@ public class FilterTest {
     }
     assertTrue(tm.size() == 1000);
 
-    VisibilityFilter a = new VisibilityFilter(new SortedMapIterator(tm), auths, le2.getExpression());
+    SortedKeyValueIterator<Key,Value> a = VisibilityFilter.wrap(new SortedMapIterator(tm), auths, le2.getExpression());
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
     assertTrue("size was " + size, size == 750);
   }
 
-  private ColumnQualifierFilter ncqf(TreeMap<Key,Value> tm, Column... columns) throws IOException {
+  private SortedKeyValueIterator<Key,Value> ncqf(TreeMap<Key,Value> tm, Column... columns) throws IOException {
     HashSet<Column> hsc = new HashSet<>();
 
     for (Column column : columns) {
       hsc.add(column);
     }
 
-    ColumnQualifierFilter a = new ColumnQualifierFilter(new SortedMapIterator(tm), hsc);
+    SortedKeyValueIterator<Key,Value> a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     return a;
   }

@@ -185,7 +185,7 @@ class ScanDataSource implements DataSource {
 
     ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, options.getColumnSet());
 
-    VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.getAuthorizations(), options.getDefaultLabels());
+    SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(colFilter, options.getAuthorizations(), options.getDefaultLabels());
 
     if (!loadIters) {
       return visFilter;

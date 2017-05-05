@@ -97,11 +97,12 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
     super.next();
 
     int count = 0;
-    while (getSource().hasTop() && getSource().getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
+    SortedKeyValueIterator<Key,Value> source = getSource();
+    while (source.hasTop() && source.getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
       if (count < maxCount) {
         // it is quicker to call next if we are close, but we never know if we are close
         // so give next a try a few times
-        getSource().next();
+        source.next();
         count++;
       } else {
         reseek(keyToSkip.followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS));

@@ -53,11 +53,12 @@ public class DeletingIterator extends WrappingIterator {
 
   @Override
   public void next() throws IOException {
+    SortedKeyValueIterator<Key,Value> source = getSource();
     if (super.getTopKey().isDeleted())
-      skipRowColumn();
+      skipRowColumn(source);
     else
-      getSource().next();
-    findTop();
+      source.next();
+    findTop(source);
   }
 
   @Override
@@ -66,10 +67,11 @@ public class DeletingIterator extends WrappingIterator {
     Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
 
     super.seek(seekRange, columnFamilies, inclusive);
-    findTop();
+    SortedKeyValueIterator<Key,Value> source = getSource();
+    findTop(source);
 
     if (range.getStartKey() != null) {
-      while (getSource().hasTop() && getSource().getTopKey().compareTo(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) < 0) {
+      while (source.hasTop() && source.getTopKey().compareTo(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) < 0) {
         next();
       }
 
@@ -79,22 +81,22 @@ public class DeletingIterator extends WrappingIterator {
     }
   }
 
-  private void findTop() throws IOException {
+  private void findTop(SortedKeyValueIterator<Key,Value> source) throws IOException {
     if (!propogateDeletes) {
-      while (getSource().hasTop() && getSource().getTopKey().isDeleted()) {
-        skipRowColumn();
+      while (source.hasTop() && source.getTopKey().isDeleted()) {
+        skipRowColumn(source);
       }
     }
   }
 
-  private void skipRowColumn() throws IOException {
-    workKey.set(getSource().getTopKey());
+  private void skipRowColumn(SortedKeyValueIterator<Key,Value> source) throws IOException {
+    workKey.set(source.getTopKey());
 
     Key keyToSkip = workKey;
-    getSource().next();
+    source.next();
 
-    while (getSource().hasTop() && getSource().getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
-      getSource().next();
+    while (source.hasTop() && source.getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
+      source.next();
     }
   }
 
