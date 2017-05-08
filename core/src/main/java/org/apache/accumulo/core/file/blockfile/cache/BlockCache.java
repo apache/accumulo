@@ -17,8 +17,6 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-
 /**
  * Block cache interface.
  */
@@ -26,15 +24,8 @@ public interface BlockCache {
 
   /**
    * Start the block cache
-   *
-   * @param conf
-   *          Accumulo configuration object
-   * @param maxSize
-   *          maximum size of the on-heap cache
-   * @param blockSize
-   *          size of the default RFile blocks
    */
-  void start(AccumuloConfiguration conf, long maxSize, long blockSize) throws Exception;
+  void start();
 
   /**
    * Stop the block cache and release resources

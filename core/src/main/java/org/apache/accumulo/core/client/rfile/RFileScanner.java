@@ -44,7 +44,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
@@ -56,6 +57,8 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.commons.configuration.ConfigurationMap;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
 
@@ -129,7 +132,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     @Override
-    public void start(AccumuloConfiguration conf, long maxSize, long blockSize) throws Exception {}
+    public void start() {}
 
     @Override
     public void stop() {}
@@ -142,23 +145,25 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
     this.opts = opts;
     if (opts.indexCacheSize > 0) {
-      this.indexCache = new LruBlockCache();
-      try {
-        this.indexCache.start((AccumuloConfiguration) null, opts.indexCacheSize, CACHE_BLOCK_SIZE);
-      } catch (Exception e) {
-        throw new RuntimeException("Error starting cache", e);
-      }
+      MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
+      config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(opts.indexCacheSize));
+      config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(CACHE_BLOCK_SIZE));
+      @SuppressWarnings("unchecked")
+      ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
+      this.indexCache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
+      this.indexCache.start();
     } else {
       this.indexCache = new NoopCache();
     }
 
     if (opts.dataCacheSize > 0) {
-      this.dataCache = new LruBlockCache();
-      try {
-        this.dataCache.start((AccumuloConfiguration) null, opts.dataCacheSize, CACHE_BLOCK_SIZE);
-      } catch (Exception e) {
-        throw new RuntimeException("Error starting cache", e);
-      }
+      MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
+      config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(opts.dataCacheSize));
+      config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(CACHE_BLOCK_SIZE));
+      @SuppressWarnings("unchecked")
+      ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
+      this.dataCache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
+      this.dataCache.start();
     } else {
       this.dataCache = new NoopCache();
     }

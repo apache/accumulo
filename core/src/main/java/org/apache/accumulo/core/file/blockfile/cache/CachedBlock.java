@@ -19,6 +19,8 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
+
 /**
  * Represents an entry in the {@link LruBlockCache}.
  *
@@ -31,7 +33,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
   public final static long PER_BLOCK_OVERHEAD = ClassSize.align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
       + ClassSize.STRING + ClassSize.BYTE_BUFFER);
 
-  static enum BlockPriority {
+  public static enum BlockPriority {
     /**
      * Accessed a single time (used for scan-resistance)
      */

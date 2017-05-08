@@ -15,19 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache;
+package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
 
-public abstract class BlockCacheFactory {
+public class TinyLfuBlockCacheFactory extends BlockCacheFactory {
 
-  public static BlockCacheFactory getBlockCacheFactory(AccumuloConfiguration conf) throws Exception {
-    String impl = conf.get(Property.TSERV_CACHE_IMPL);
-    Class<? extends BlockCacheFactory> clazz = AccumuloVFSClassLoader.loadClass(impl, BlockCacheFactory.class);
-    return clazz.newInstance();
+  @Override
+  public BlockCache getBlockCache(AccumuloConfiguration conf) {
+    return new TinyLfuBlockCache(new TinyLfuBlockCacheConfiguration(conf));
   }
 
-  public abstract BlockCache getBlockCache(AccumuloConfiguration conf);
 }

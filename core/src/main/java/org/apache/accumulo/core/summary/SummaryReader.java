@@ -91,7 +91,7 @@ public class SummaryReader {
     }
 
     @Override
-    public void start(AccumuloConfiguration conf, long maxSize, long blockSize) throws Exception {}
+    public void start() {}
 
     @Override
     public void stop() {}

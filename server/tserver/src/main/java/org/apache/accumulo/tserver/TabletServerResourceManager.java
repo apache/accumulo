@@ -37,9 +37,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
@@ -174,16 +176,26 @@ public class TabletServerResourceManager {
     long sCacheSize = acuConf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
     long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
+    BlockCacheFactory factory;
     try {
-      _iCache = BlockCacheFactory.getBlockCache(acuConf);
-      _iCache.start(acuConf, iCacheSize, blockSize);
-      _dCache = BlockCacheFactory.getBlockCache(acuConf);
-      _dCache.start(acuConf, dCacheSize, blockSize);
-      _sCache = BlockCacheFactory.getBlockCache(acuConf);
-      _sCache.start(acuConf, sCacheSize, blockSize);
+      factory = BlockCacheFactory.getBlockCacheFactory(acuConf);
     } catch (Exception e) {
-      throw new IllegalArgumentException("Error constructing block cache", e);
+      throw new RuntimeException("Error creating Block Cache Factory", e);
     }
+
+    ConfigurationCopy copy = new ConfigurationCopy(acuConf);
+    copy.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    copy.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(iCacheSize));
+    _iCache = factory.getBlockCache(copy);
+    _iCache.start();
+
+    copy.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(dCacheSize));
+    _dCache = factory.getBlockCache(copy);
+    _dCache.start();
+
+    copy.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(sCacheSize));
+    _sCache = factory.getBlockCache(copy);
+    _sCache.start();
 
     Runtime runtime = Runtime.getRuntime();
     if (usingNativeMap) {

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache;
+package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
 import static java.util.Objects.requireNonNull;
 
@@ -23,7 +23,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
+import org.apache.accumulo.core.file.blockfile.cache.ClassSize;
+import org.apache.accumulo.core.file.blockfile.cache.SizeConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,17 +53,19 @@ public final class TinyLfuBlockCache implements BlockCache {
   private Policy.Eviction<String,Block> policy;
   private ScheduledExecutorService statsExecutor;
 
-  public void start(AccumuloConfiguration conf, long maxSize, long blockSize) {
-    cache = Caffeine.newBuilder().initialCapacity((int) Math.ceil(1.2 * maxSize / blockSize)).weigher((String blockName, Block block) -> {
+  public TinyLfuBlockCache(TinyLfuBlockCacheConfiguration conf) {
+    cache = Caffeine.newBuilder().initialCapacity((int) Math.ceil(1.2 * conf.getMaxSize() / conf.getBlockSize())).weigher((String blockName, Block block) -> {
       int keyWeight = ClassSize.align(blockName.length()) + ClassSize.STRING;
       return keyWeight + block.weight();
-    }).maximumWeight(maxSize).recordStats().build();
+    }).maximumWeight(conf.getMaxSize()).recordStats().build();
     policy = cache.policy().eviction().get();
-
     statsExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("TinyLfuBlockCacheStatsExecutor").setDaemon(true)
         .build());
     statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC, TimeUnit.SECONDS);
+
   }
+
+  public void start() {}
 
   public void stop() {}
 
