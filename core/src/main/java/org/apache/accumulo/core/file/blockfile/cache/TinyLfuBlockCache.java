@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,11 +46,11 @@ public final class TinyLfuBlockCache implements BlockCache {
   private static final Logger log = LoggerFactory.getLogger(TinyLfuBlockCache.class);
   private static final int STATS_PERIOD_SEC = 60;
 
-  private final Cache<String,Block> cache;
-  private final Policy.Eviction<String,Block> policy;
-  private final ScheduledExecutorService statsExecutor;
+  private Cache<String,Block> cache;
+  private Policy.Eviction<String,Block> policy;
+  private ScheduledExecutorService statsExecutor;
 
-  public TinyLfuBlockCache(long maxSize, long blockSize) {
+  public void start(AccumuloConfiguration conf, long maxSize, long blockSize) {
     cache = Caffeine.newBuilder().initialCapacity((int) Math.ceil(1.2 * maxSize / blockSize)).weigher((String blockName, Block block) -> {
       int keyWeight = ClassSize.align(blockName.length()) + ClassSize.STRING;
       return keyWeight + block.weight();
@@ -60,6 +61,8 @@ public final class TinyLfuBlockCache implements BlockCache {
         .build());
     statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC, TimeUnit.SECONDS);
   }
+
+  public void stop() {}
 
   @Override
   public long getMaxSize() {

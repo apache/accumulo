@@ -40,8 +40,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.TinyLfuBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -175,17 +174,15 @@ public class TabletServerResourceManager {
     long sCacheSize = acuConf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
     long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
-    String policy = acuConf.get(Property.TSERV_CACHE_POLICY);
-    if (policy.equalsIgnoreCase("LRU")) {
-      _iCache = new LruBlockCache(iCacheSize, blockSize);
-      _dCache = new LruBlockCache(dCacheSize, blockSize);
-      _sCache = new LruBlockCache(sCacheSize, blockSize);
-    } else if (policy.equalsIgnoreCase("TinyLFU")) {
-      _iCache = new TinyLfuBlockCache(iCacheSize, blockSize);
-      _dCache = new TinyLfuBlockCache(dCacheSize, blockSize);
-      _sCache = new TinyLfuBlockCache(sCacheSize, blockSize);
-    } else {
-      throw new IllegalArgumentException("Unknown Block cache policy " + policy);
+    try {
+      _iCache = BlockCacheFactory.getBlockCache(acuConf);
+      _iCache.start(acuConf, iCacheSize, blockSize);
+      _dCache = BlockCacheFactory.getBlockCache(acuConf);
+      _dCache.start(acuConf, dCacheSize, blockSize);
+      _sCache = BlockCacheFactory.getBlockCache(acuConf);
+      _sCache.start(acuConf, sCacheSize, blockSize);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Error constructing block cache", e);
     }
 
     Runtime runtime = Runtime.getRuntime();
@@ -542,6 +539,10 @@ public class TabletServerResourceManager {
     for (ExecutorService executorService : threadPools.values()) {
       executorService.shutdown();
     }
+
+    this._dCache.stop();
+    this._iCache.stop();
+    this._sCache.stop();
 
     for (Entry<String,ExecutorService> entry : threadPools.entrySet()) {
       while (true) {

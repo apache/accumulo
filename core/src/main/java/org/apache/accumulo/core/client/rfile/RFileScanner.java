@@ -127,6 +127,12 @@ class RFileScanner extends ScannerOptions implements Scanner {
         }
       };
     }
+
+    @Override
+    public void start(AccumuloConfiguration conf, long maxSize, long blockSize) throws Exception {}
+
+    @Override
+    public void stop() {}
   }
 
   RFileScanner(Opts opts) {
@@ -136,13 +142,23 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
     this.opts = opts;
     if (opts.indexCacheSize > 0) {
-      this.indexCache = new LruBlockCache(opts.indexCacheSize, CACHE_BLOCK_SIZE);
+      this.indexCache = new LruBlockCache();
+      try {
+        this.indexCache.start((AccumuloConfiguration) null, opts.indexCacheSize, CACHE_BLOCK_SIZE);
+      } catch (Exception e) {
+        throw new RuntimeException("Error starting cache", e);
+      }
     } else {
       this.indexCache = new NoopCache();
     }
 
     if (opts.dataCacheSize > 0) {
-      this.dataCache = new LruBlockCache(opts.dataCacheSize, CACHE_BLOCK_SIZE);
+      this.dataCache = new LruBlockCache();
+      try {
+        this.dataCache.start((AccumuloConfiguration) null, opts.dataCacheSize, CACHE_BLOCK_SIZE);
+      } catch (Exception e) {
+        throw new RuntimeException("Error starting cache", e);
+      }
     } else {
       this.dataCache = new NoopCache();
     }

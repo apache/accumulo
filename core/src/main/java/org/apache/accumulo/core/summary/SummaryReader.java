@@ -89,6 +89,12 @@ public class SummaryReader {
     public Stats getStats() {
       return summaryCache.getStats();
     }
+
+    @Override
+    public void start(AccumuloConfiguration conf, long maxSize, long blockSize) throws Exception {}
+
+    @Override
+    public void stop() {}
   }
 
   private static List<SummarySerializer> load(BlockReader bcReader, Predicate<SummarizerConfiguration> summarySelector) throws IOException {

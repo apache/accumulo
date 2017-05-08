@@ -22,6 +22,8 @@ import java.util.Random;
 
 import junit.framework.TestCase;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+
 /**
  * Tests the concurrent LruBlockCache.
  * <p>
@@ -36,7 +38,8 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 9); // room for 9, will evict
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize);
+    LruBlockCache cache = new LruBlockCache();
+    cache.start((AccumuloConfiguration) null, maxSize, blockSize);
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
 
@@ -60,7 +63,8 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 1000000;
     long blockSize = calculateBlockSizeDefault(maxSize, 101);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize);
+    LruBlockCache cache = new LruBlockCache();
+    cache.start((AccumuloConfiguration) null, maxSize, blockSize);
 
     Block[] blocks = generateRandomBlocks(100, blockSize);
 
@@ -109,7 +113,9 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false);
+    LruBlockCache cache = new LruBlockCache();
+    cache.setUseEvictionThread(false);
+    cache.start((AccumuloConfiguration) null, maxSize, blockSize);
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
 
@@ -146,12 +152,16 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false, (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
-        LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
-        0.99f, // acceptable
-        0.25f, // single
-        0.50f, // multi
-        0.25f);// memory
+    LruBlockCache cache = new LruBlockCache();
+    cache.setUseEvictionThread(false);
+    cache.setMapLoadFactor(LruBlockCache.DEFAULT_LOAD_FACTOR);
+    cache.setMapConcurrencyLevel(LruBlockCache.DEFAULT_CONCURRENCY_LEVEL);
+    cache.setMinFactor(0.98f);
+    cache.setAcceptableFactor(0.99f);
+    cache.setSingleFactor(0.25f);
+    cache.setMultiFactor(0.50f);
+    cache.setMemoryFactor(0.25f);
+    cache.start((AccumuloConfiguration) null, maxSize, blockSize);
 
     Block[] singleBlocks = generateFixedBlocks(5, 10000, "single");
     Block[] multiBlocks = generateFixedBlocks(5, 10000, "multi");
@@ -205,12 +215,16 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false, (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
-        LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
-        0.99f, // acceptable
-        0.33f, // single
-        0.33f, // multi
-        0.34f);// memory
+    LruBlockCache cache = new LruBlockCache();
+    cache.setUseEvictionThread(false);
+    cache.setMapLoadFactor(LruBlockCache.DEFAULT_LOAD_FACTOR);
+    cache.setMapConcurrencyLevel(LruBlockCache.DEFAULT_CONCURRENCY_LEVEL);
+    cache.setMinFactor(0.98f);
+    cache.setAcceptableFactor(0.99f);
+    cache.setSingleFactor(0.33f);
+    cache.setMultiFactor(0.33f);
+    cache.setMemoryFactor(0.34f);
+    cache.start((AccumuloConfiguration) null, maxSize, blockSize);
 
     Block[] singleBlocks = generateFixedBlocks(5, blockSize, "single");
     Block[] multiBlocks = generateFixedBlocks(5, blockSize, "multi");
@@ -323,12 +337,16 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false, (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
-        LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.66f, // min
-        0.99f, // acceptable
-        0.33f, // single
-        0.33f, // multi
-        0.34f);// memory
+    LruBlockCache cache = new LruBlockCache();
+    cache.setUseEvictionThread(false);
+    cache.setMapLoadFactor(LruBlockCache.DEFAULT_LOAD_FACTOR);
+    cache.setMapConcurrencyLevel(LruBlockCache.DEFAULT_CONCURRENCY_LEVEL);
+    cache.setMinFactor(0.66f);
+    cache.setAcceptableFactor(0.99f);
+    cache.setSingleFactor(0.33f);
+    cache.setMultiFactor(0.33f);
+    cache.setMemoryFactor(0.34f);
+    cache.start((AccumuloConfiguration) null, maxSize, blockSize);
 
     Block[] singleBlocks = generateFixedBlocks(20, blockSize, "single");
     Block[] multiBlocks = generateFixedBlocks(5, blockSize, "multi");
@@ -382,12 +400,16 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 300000;
     long blockSize = calculateBlockSize(maxSize, 31);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false, (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
-        LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
-        0.99f, // acceptable
-        0.33f, // single
-        0.33f, // multi
-        0.34f);// memory
+    LruBlockCache cache = new LruBlockCache();
+    cache.setUseEvictionThread(false);
+    cache.setMapLoadFactor(LruBlockCache.DEFAULT_LOAD_FACTOR);
+    cache.setMapConcurrencyLevel(LruBlockCache.DEFAULT_CONCURRENCY_LEVEL);
+    cache.setMinFactor(0.98f);
+    cache.setAcceptableFactor(0.99f);
+    cache.setSingleFactor(0.33f);
+    cache.setMultiFactor(0.33f);
+    cache.setMemoryFactor(0.34f);
+    cache.start((AccumuloConfiguration) null, maxSize, blockSize);
 
     Block[] singleBlocks = generateFixedBlocks(10, blockSize, "single");
     Block[] multiBlocks = generateFixedBlocks(10, blockSize, "multi");

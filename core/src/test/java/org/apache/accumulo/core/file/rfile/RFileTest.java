@@ -264,8 +264,10 @@ public class RFileTest {
       in = new FSDataInputStream(bais);
       fileLength = data.length;
 
-      LruBlockCache indexCache = new LruBlockCache(100000000, 100000);
-      LruBlockCache dataCache = new LruBlockCache(100000000, 100000);
+      LruBlockCache indexCache = new LruBlockCache();
+      indexCache.start((AccumuloConfiguration) null, 100000000, 100000);
+      LruBlockCache dataCache = new LruBlockCache();
+      dataCache.start((AccumuloConfiguration) null, 100000000, 100000);
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, fileLength, conf, dataCache, indexCache, AccumuloConfiguration.getDefaultConfiguration());
       reader = new RFile.Reader(_cbr);

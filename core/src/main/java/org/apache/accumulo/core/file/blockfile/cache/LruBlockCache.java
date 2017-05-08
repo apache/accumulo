@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +85,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
   static final int statThreadPeriod = 60;
 
   /** Concurrent map (the cache) */
-  private final ConcurrentHashMap<String,CachedBlock> map;
+  private ConcurrentHashMap<String,CachedBlock> map;
 
   /** Eviction lock (locked when eviction in process) */
   private final ReentrantLock evictionLock = new ReentrantLock(true);
@@ -93,22 +94,22 @@ public class LruBlockCache implements BlockCache, HeapSize {
   private volatile boolean evictionInProgress = false;
 
   /** Eviction thread */
-  private final EvictionThread evictionThread;
+  private EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
   private final ScheduledExecutorService scheduleThreadPool = Executors.newScheduledThreadPool(1, new NamingThreadFactory("LRUBlockCacheStats"));
 
   /** Current size of cache */
-  private final AtomicLong size;
+  private AtomicLong size;
 
   /** Current number of cached elements */
-  private final AtomicLong elements;
+  private AtomicLong elements;
 
   /** Cache access count (sequential ID) */
-  private final AtomicLong count;
+  private AtomicLong count;
 
   /** Cache statistics */
-  private final CacheStats stats;
+  private CacheStats stats;
 
   /** Maximum allowable size of cache (block put if size > max, evict) */
   private long maxSize;
@@ -117,22 +118,30 @@ public class LruBlockCache implements BlockCache, HeapSize {
   private long blockSize;
 
   /** Acceptable size of cache (no evictions if size < acceptable) */
-  private float acceptableFactor;
+  private float acceptableFactor = DEFAULT_ACCEPTABLE_FACTOR;
 
   /** Minimum threshold of cache (when evicting, evict until size < min) */
-  private float minFactor;
+  private float minFactor = DEFAULT_MIN_FACTOR;
 
   /** Single access bucket size */
-  private float singleFactor;
+  private float singleFactor = DEFAULT_SINGLE_FACTOR;
 
   /** Multiple access bucket size */
-  private float multiFactor;
+  private float multiFactor = DEFAULT_MULTI_FACTOR;
 
   /** In-memory bucket size */
-  private float memoryFactor;
+  private float memoryFactor = DEFAULT_MEMORY_FACTOR;
+
+  /** LruBlockCache cache = new LruBlockCache **/
+  private float mapLoadFactor = DEFAULT_LOAD_FACTOR;
+
+  /** LruBlockCache cache = new LruBlockCache **/
+  private int mapConcurrencyLevel = DEFAULT_CONCURRENCY_LEVEL;
 
   /** Overhead of the structure itself */
   private long overhead;
+
+  private boolean useEvictionThread = true;
 
   /**
    * Default constructor. Specify maximum size and expected average block size (approximation is fine).
@@ -140,51 +149,16 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * <p>
    * All other factors will be calculated based on defaults specified in this class.
    *
+   * @param conf
+   *          accumulo configuration
    * @param maxSize
    *          maximum size of cache, in bytes
    * @param blockSize
    *          approximate size of each block, in bytes
    */
-  public LruBlockCache(long maxSize, long blockSize) {
-    this(maxSize, blockSize, true);
-  }
+  public void start(AccumuloConfiguration conf, long maxSize, long blockSize) {
+    int mapInitialSize = (int) Math.ceil(1.2 * maxSize / blockSize);
 
-  /**
-   * Constructor used for testing. Allows disabling of the eviction thread.
-   */
-  public LruBlockCache(long maxSize, long blockSize, boolean evictionThread) {
-    this(maxSize, blockSize, evictionThread, (int) Math.ceil(1.2 * maxSize / blockSize), DEFAULT_LOAD_FACTOR, DEFAULT_CONCURRENCY_LEVEL, DEFAULT_MIN_FACTOR,
-        DEFAULT_ACCEPTABLE_FACTOR, DEFAULT_SINGLE_FACTOR, DEFAULT_MULTI_FACTOR, DEFAULT_MEMORY_FACTOR);
-  }
-
-  /**
-   * Configurable constructor. Use this constructor if not using defaults.
-   *
-   * @param maxSize
-   *          maximum size of this cache, in bytes
-   * @param blockSize
-   *          expected average size of blocks, in bytes
-   * @param evictionThread
-   *          whether to run evictions in a bg thread or not
-   * @param mapInitialSize
-   *          initial size of backing ConcurrentHashMap
-   * @param mapLoadFactor
-   *          initial load factor of backing ConcurrentHashMap
-   * @param mapConcurrencyLevel
-   *          initial concurrency factor for backing CHM
-   * @param minFactor
-   *          percentage of total size that eviction will evict until
-   * @param acceptableFactor
-   *          percentage of total size that triggers eviction
-   * @param singleFactor
-   *          percentage of total size for single-access blocks
-   * @param multiFactor
-   *          percentage of total size for multiple-access blocks
-   * @param memoryFactor
-   *          percentage of total size for in-memory blocks
-   */
-  public LruBlockCache(long maxSize, long blockSize, boolean evictionThread, int mapInitialSize, float mapLoadFactor, int mapConcurrencyLevel, float minFactor,
-      float acceptableFactor, float singleFactor, float multiFactor, float memoryFactor) {
     if (singleFactor + multiFactor + memoryFactor != 1) {
       throw new IllegalArgumentException("Single, multi, and memory factors " + " should total 1.0");
     }
@@ -197,18 +171,13 @@ public class LruBlockCache implements BlockCache, HeapSize {
     this.maxSize = maxSize;
     this.blockSize = blockSize;
     map = new ConcurrentHashMap<>(mapInitialSize, mapLoadFactor, mapConcurrencyLevel);
-    this.minFactor = minFactor;
-    this.acceptableFactor = acceptableFactor;
-    this.singleFactor = singleFactor;
-    this.multiFactor = multiFactor;
-    this.memoryFactor = memoryFactor;
     this.stats = new CacheStats();
     this.count = new AtomicLong(0);
     this.elements = new AtomicLong(0);
     this.overhead = calculateOverhead(maxSize, blockSize, mapConcurrencyLevel);
     this.size = new AtomicLong(this.overhead);
 
-    if (evictionThread) {
+    if (useEvictionThread) {
       this.evictionThread = new EvictionThread(this);
       this.evictionThread.start();
       while (!this.evictionThread.running()) {
@@ -222,6 +191,80 @@ public class LruBlockCache implements BlockCache, HeapSize {
       this.evictionThread = null;
     }
     this.scheduleThreadPool.scheduleAtFixedRate(new StatisticsThread(this), statThreadPeriod, statThreadPeriod, TimeUnit.SECONDS);
+  }
+
+  public void stop() {}
+
+  public float getMinFactor() {
+    return minFactor;
+  }
+
+  public float getSingleFactor() {
+    return singleFactor;
+  }
+
+  public float getMultiFactor() {
+    return multiFactor;
+  }
+
+  public float getMemoryFactor() {
+    return memoryFactor;
+  }
+
+  public float getMapLoadFactor() {
+    return mapLoadFactor;
+  }
+
+  public int getMapConcurrencyLevel() {
+    return mapConcurrencyLevel;
+  }
+
+  public long getOverhead() {
+    return overhead;
+  }
+
+  public boolean isUseEvictionThread() {
+    return useEvictionThread;
+  }
+
+  public void setMinFactor(float minFactor) {
+    this.minFactor = minFactor;
+  }
+
+  public void setSingleFactor(float singleFactor) {
+    this.singleFactor = singleFactor;
+  }
+
+  public void setMultiFactor(float multiFactor) {
+    this.multiFactor = multiFactor;
+  }
+
+  public void setMemoryFactor(float memoryFactor) {
+    this.memoryFactor = memoryFactor;
+  }
+
+  public void setMapLoadFactor(float mapLoadFactor) {
+    this.mapLoadFactor = mapLoadFactor;
+  }
+
+  public void setMapConcurrencyLevel(int mapConcurrencyLevel) {
+    this.mapConcurrencyLevel = mapConcurrencyLevel;
+  }
+
+  public void setOverhead(long overhead) {
+    this.overhead = overhead;
+  }
+
+  public void setUseEvictionThread(boolean useEvictionThread) {
+    this.useEvictionThread = useEvictionThread;
+  }
+
+  public float getAcceptableFactor() {
+    return acceptableFactor;
+  }
+
+  public void setAcceptableFactor(float acceptableFactor) {
+    this.acceptableFactor = acceptableFactor;
   }
 
   public void setMaxSize(long maxSize) {
