@@ -19,11 +19,13 @@ package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 
 public final class TinyLfuBlockCacheConfiguration extends BlockCacheConfiguration {
 
-  public TinyLfuBlockCacheConfiguration(AccumuloConfiguration conf) {
-    super(conf);
+  public TinyLfuBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, BlockCacheFactory<TinyLfuBlockCache,TinyLfuBlockCacheConfiguration> factory) {
+    super(conf, type, factory);
   }
 
 }

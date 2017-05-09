@@ -22,6 +22,8 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 
 public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
 
@@ -41,15 +43,14 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
   public static final Float DEFAULT_MEMORY_FACTOR = 0.25f;
 
   // property names
-  private static final String PREFIX = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.block.lru.";
-  public static final String ACCEPTABLE_FACTOR_PROPERTY = PREFIX + "acceptable.factor";
-  public static final String MIN_FACTOR_PROPERTY = PREFIX + "min.factor";
-  public static final String SINGLE_FACTOR_PROPERTY = PREFIX + "single.factor";
-  public static final String MULTI_FACTOR_PROPERTY = PREFIX + "multi.factor";
-  public static final String MEMORY_FACTOR_PROPERTY = PREFIX + "memory.factor";
-  public static final String MAP_LOAD_PROPERTY = PREFIX + "map.load";
-  public static final String MAP_CONCURRENCY_PROPERTY = PREFIX + "map.concurrency";
-  public static final String EVICTION_THREAD_PROPERTY = PREFIX + "eviction.thread";
+  public static final String ACCEPTABLE_FACTOR_PROPERTY = "acceptable.factor";
+  public static final String MIN_FACTOR_PROPERTY = "min.factor";
+  public static final String SINGLE_FACTOR_PROPERTY = "single.factor";
+  public static final String MULTI_FACTOR_PROPERTY = "multi.factor";
+  public static final String MEMORY_FACTOR_PROPERTY = "memory.factor";
+  public static final String MAP_LOAD_PROPERTY = "map.load";
+  public static final String MAP_CONCURRENCY_PROPERTY = "map.concurrency";
+  public static final String EVICTION_THREAD_PROPERTY = "eviction.thread";
 
   /** Acceptable size of cache (no evictions if size < acceptable) */
   private final float acceptableFactor;
@@ -74,17 +75,17 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
 
   private final boolean useEvictionThread;
 
-  public LruBlockCacheConfiguration(AccumuloConfiguration conf) {
-    super(conf);
+  public LruBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, BlockCacheFactory<LruBlockCache,LruBlockCacheConfiguration> factory) {
+    super(conf, type, factory);
     Map<String,String> props = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
-    this.acceptableFactor = getOrDefault(props, ACCEPTABLE_FACTOR_PROPERTY, DEFAULT_ACCEPTABLE_FACTOR);
-    this.minFactor = getOrDefault(props, MIN_FACTOR_PROPERTY, DEFAULT_MIN_FACTOR);
-    this.singleFactor = getOrDefault(props, SINGLE_FACTOR_PROPERTY, DEFAULT_SINGLE_FACTOR);
-    this.multiFactor = getOrDefault(props, MULTI_FACTOR_PROPERTY, DEFAULT_MULTI_FACTOR);
-    this.memoryFactor = getOrDefault(props, MEMORY_FACTOR_PROPERTY, DEFAULT_MEMORY_FACTOR);
-    this.mapLoadFactor = getOrDefault(props, MAP_LOAD_PROPERTY, DEFAULT_LOAD_FACTOR);
-    this.mapConcurrencyLevel = getOrDefault(props, MAP_CONCURRENCY_PROPERTY, DEFAULT_CONCURRENCY_LEVEL);
-    this.useEvictionThread = getOrDefault(props, EVICTION_THREAD_PROPERTY, Boolean.TRUE);
+    this.acceptableFactor = getOrDefault(props, helper.getFullPropertyName(ACCEPTABLE_FACTOR_PROPERTY), DEFAULT_ACCEPTABLE_FACTOR);
+    this.minFactor = getOrDefault(props, helper.getFullPropertyName(MIN_FACTOR_PROPERTY), DEFAULT_MIN_FACTOR);
+    this.singleFactor = getOrDefault(props, helper.getFullPropertyName(SINGLE_FACTOR_PROPERTY), DEFAULT_SINGLE_FACTOR);
+    this.multiFactor = getOrDefault(props, helper.getFullPropertyName(MULTI_FACTOR_PROPERTY), DEFAULT_MULTI_FACTOR);
+    this.memoryFactor = getOrDefault(props, helper.getFullPropertyName(MEMORY_FACTOR_PROPERTY), DEFAULT_MEMORY_FACTOR);
+    this.mapLoadFactor = getOrDefault(props, helper.getFullPropertyName(MAP_LOAD_PROPERTY), DEFAULT_LOAD_FACTOR);
+    this.mapConcurrencyLevel = getOrDefault(props, helper.getFullPropertyName(MAP_CONCURRENCY_PROPERTY), DEFAULT_CONCURRENCY_LEVEL);
+    this.useEvictionThread = getOrDefault(props, helper.getFullPropertyName(EVICTION_THREAD_PROPERTY), Boolean.TRUE);
   }
 
   public float getAcceptableFactor() {
@@ -117,6 +118,13 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
 
   public boolean isUseEvictionThread() {
     return useEvictionThread;
+  }
+
+  @Override
+  public String toString() {
+    return super.toString() + ", acceptableFactor: " + this.getAcceptableFactor() + ", minFactor: " + this.getMinFactor() + ", singleFactor: "
+        + this.getSingleFactor() + ", multiFactor: " + this.getMultiFactor() + ", memoryFactor: " + this.getMemoryFactor() + ", mapLoadFactor: "
+        + this.getMapLoadFactor() + ", mapConcurrencyLevel: " + this.getMapConcurrencyLevel() + ", useEvictionThread: " + this.isUseEvictionThread();
   }
 
 }

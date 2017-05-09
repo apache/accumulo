@@ -18,14 +18,28 @@
 package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 
-public class TinyLfuBlockCacheFactory extends BlockCacheFactory {
+public class TinyLfuBlockCacheFactory extends BlockCacheFactory<TinyLfuBlockCache,TinyLfuBlockCacheConfiguration> {
 
   @Override
-  public BlockCache getBlockCache(AccumuloConfiguration conf) {
-    return new TinyLfuBlockCache(new TinyLfuBlockCacheConfiguration(conf));
+  protected TinyLfuBlockCacheConfiguration createConfiguration(AccumuloConfiguration conf, CacheType type,
+      BlockCacheFactory<TinyLfuBlockCache,TinyLfuBlockCacheConfiguration> factory) {
+    return new TinyLfuBlockCacheConfiguration(conf, type, factory);
   }
+
+  @Override
+  protected TinyLfuBlockCache createCache(TinyLfuBlockCacheConfiguration conf) {
+    return new TinyLfuBlockCache(conf);
+  }
+
+  @Override
+  public String getCacheImplName() {
+    return "tinylfu";
+  }
+
+  @Override
+  public void stop() {}
 
 }

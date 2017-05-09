@@ -18,16 +18,15 @@
 package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Random;
 
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
-import org.apache.commons.configuration.ConfigurationMap;
-import org.apache.commons.configuration.MapConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheFactory;
 
 /**
  * Tests the concurrent LruBlockCache.
@@ -43,13 +42,15 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 9); // room for 9, will evict
 
-    MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
-    config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
-    config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    @SuppressWarnings("unchecked")
-    ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
-    LruBlockCache cache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-    cache.start();
+    ConfigurationCopy cc = new ConfigurationCopy();
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
+    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
+    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    factory.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
 
@@ -73,13 +74,15 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 1000000;
     long blockSize = calculateBlockSizeDefault(maxSize, 101);
 
-    MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
-    config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
-    config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    @SuppressWarnings("unchecked")
-    ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
-    LruBlockCache cache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-    cache.start();
+    ConfigurationCopy cc = new ConfigurationCopy();
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
+    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
+    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    factory.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateRandomBlocks(100, blockSize);
 
@@ -128,14 +131,16 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
-    config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
-    config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    config.setProperty(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.toString(false));
-    @SuppressWarnings("unchecked")
-    ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
-    LruBlockCache cache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-    cache.start();
+    ConfigurationCopy cc = new ConfigurationCopy();
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
+    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
+    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
+    factory.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
 
@@ -172,19 +177,21 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
-    config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
-    config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    config.setProperty(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.toString(false));
-    config.setProperty(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
-    config.setProperty(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
-    config.setProperty(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.25f));
-    config.setProperty(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.50f));
-    config.setProperty(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.25f));
-    @SuppressWarnings("unchecked")
-    ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
-    LruBlockCache cache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-    cache.start();
+    ConfigurationCopy cc = new ConfigurationCopy();
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
+    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
+    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
+    helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
+    helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
+    helper.set(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.25f));
+    helper.set(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.50f));
+    helper.set(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.25f));
+    factory.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(5, 10000, "single");
     Block[] multiBlocks = generateFixedBlocks(5, 10000, "multi");
@@ -238,19 +245,21 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
-    config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
-    config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    config.setProperty(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.toString(false));
-    config.setProperty(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
-    config.setProperty(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
-    config.setProperty(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
-    config.setProperty(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
-    config.setProperty(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
-    @SuppressWarnings("unchecked")
-    ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
-    LruBlockCache cache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-    cache.start();
+    ConfigurationCopy cc = new ConfigurationCopy();
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
+    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
+    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
+    helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
+    helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
+    helper.set(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
+    helper.set(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
+    helper.set(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
+    factory.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(5, blockSize, "single");
     Block[] multiBlocks = generateFixedBlocks(5, blockSize, "multi");
@@ -363,19 +372,21 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
-    config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
-    config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    config.setProperty(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.toString(false));
-    config.setProperty(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.66f));
-    config.setProperty(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
-    config.setProperty(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
-    config.setProperty(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
-    config.setProperty(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
-    @SuppressWarnings("unchecked")
-    ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
-    LruBlockCache cache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-    cache.start();
+    ConfigurationCopy cc = new ConfigurationCopy();
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
+    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
+    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
+    helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.66f));
+    helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
+    helper.set(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
+    helper.set(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
+    helper.set(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
+    factory.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(20, blockSize, "single");
     Block[] multiBlocks = generateFixedBlocks(5, blockSize, "multi");

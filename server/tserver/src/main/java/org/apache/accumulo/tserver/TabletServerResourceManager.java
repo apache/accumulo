@@ -43,6 +43,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -100,6 +101,7 @@ public class TabletServerResourceManager {
 
   private final MemoryManagementFramework memMgmt;
 
+  private final BlockCacheFactory<?,?> factory;
   private final BlockCache _dCache;
   private final BlockCache _iCache;
   private final BlockCache _sCache;
@@ -176,26 +178,31 @@ public class TabletServerResourceManager {
     long sCacheSize = acuConf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
     long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
-    BlockCacheFactory factory;
     try {
-      factory = BlockCacheFactory.getBlockCacheFactory(acuConf);
+      factory = BlockCacheFactory.getInstance(acuConf);
     } catch (Exception e) {
-      throw new RuntimeException("Error creating Block Cache Factory", e);
+      throw new RuntimeException("Error creating BlockCacheFactory", e);
     }
 
-    ConfigurationCopy copy = new ConfigurationCopy(acuConf);
-    copy.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    copy.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(iCacheSize));
-    _iCache = factory.getBlockCache(copy);
-    _iCache.start();
+    ConfigurationCopy cc = new ConfigurationCopy(acuConf);
+    String indexPrefix = CacheType.INDEX.getPropertyPrefix(factory.getCacheImplName());
+    cc.setIfAbsent(indexPrefix + CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+    cc.setIfAbsent(indexPrefix + BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    cc.setIfAbsent(indexPrefix + BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(iCacheSize));
+    String dataPrefix = CacheType.DATA.getPropertyPrefix(factory.getCacheImplName());
+    cc.setIfAbsent(dataPrefix + CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+    cc.setIfAbsent(dataPrefix + BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    cc.setIfAbsent(dataPrefix + BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(dCacheSize));
+    String summaryPrefix = CacheType.DATA.getPropertyPrefix(factory.getCacheImplName());
+    cc.setIfAbsent(summaryPrefix + CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+    cc.setIfAbsent(summaryPrefix + BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
+    cc.setIfAbsent(summaryPrefix + BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(sCacheSize));
 
-    copy.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(dCacheSize));
-    _dCache = factory.getBlockCache(copy);
-    _dCache.start();
+    factory.start(cc);
 
-    copy.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(sCacheSize));
-    _sCache = factory.getBlockCache(copy);
-    _sCache.start();
+    _iCache = factory.getBlockCache(CacheType.INDEX);
+    _dCache = factory.getBlockCache(CacheType.DATA);
+    _sCache = factory.getBlockCache(CacheType.SUMMARY);
 
     Runtime runtime = Runtime.getRuntime();
     if (usingNativeMap) {
@@ -552,9 +559,7 @@ public class TabletServerResourceManager {
       executorService.shutdown();
     }
 
-    this._dCache.stop();
-    this._iCache.stop();
-    this._sCache.stop();
+    this.factory.stop();
 
     for (Entry<String,ExecutorService> entry : threadPools.entrySet()) {
       while (true) {

@@ -23,16 +23,6 @@ package org.apache.accumulo.core.file.blockfile.cache;
 public interface BlockCache {
 
   /**
-   * Start the block cache
-   */
-  void start();
-
-  /**
-   * Stop the block cache and release resources
-   */
-  void stop();
-
-  /**
    * Add block to cache.
    *
    * @param blockName

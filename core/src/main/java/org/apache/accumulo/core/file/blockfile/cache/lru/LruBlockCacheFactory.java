@@ -18,14 +18,28 @@
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 
-public class LruBlockCacheFactory extends BlockCacheFactory {
+public class LruBlockCacheFactory extends BlockCacheFactory<LruBlockCache,LruBlockCacheConfiguration> {
 
   @Override
-  public BlockCache getBlockCache(AccumuloConfiguration conf) {
-    return new LruBlockCache(new LruBlockCacheConfiguration(conf));
+  protected LruBlockCacheConfiguration createConfiguration(AccumuloConfiguration conf, CacheType type,
+      BlockCacheFactory<LruBlockCache,LruBlockCacheConfiguration> factory) {
+    return new LruBlockCacheConfiguration(conf, type, factory);
   }
+
+  @Override
+  protected LruBlockCache createCache(LruBlockCacheConfiguration conf) {
+    return new LruBlockCache(conf);
+  }
+
+  @Override
+  public String getCacheImplName() {
+    return "lru";
+  }
+
+  @Override
+  public void stop() {}
 
 }

@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -58,8 +57,12 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfigurationHelper;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheFactory;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.streams.PositionedOutputs;
@@ -72,8 +75,6 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.security.crypto.CryptoTest;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.commons.configuration.ConfigurationMap;
-import org.apache.commons.configuration.MapConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -268,16 +269,25 @@ public class RFileTest {
       in = new FSDataInputStream(bais);
       fileLength = data.length;
 
-      MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
-      config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(100000000));
-      config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(100000));
-      @SuppressWarnings("unchecked")
-      ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
-      LruBlockCache indexCache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-      indexCache.start();
-
-      LruBlockCache dataCache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-      dataCache.start();
+      ConfigurationCopy cc = new ConfigurationCopy();
+      cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
+      BlockCacheFactory<?,?> factory;
+      try {
+        factory = BlockCacheFactory.getInstance(cc);
+      } catch (Exception e) {
+        throw new RuntimeException("Error creating BlockCacheFactory", e);
+      }
+      BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
+      helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+      helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(100000));
+      helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(100000000));
+      helper.switchCacheType(CacheType.DATA);
+      helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+      helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(100000));
+      helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(100000000));
+      factory.start(helper.getConfiguration());
+      LruBlockCache indexCache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
+      LruBlockCache dataCache = (LruBlockCache) factory.getBlockCache(CacheType.DATA);
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, fileLength, conf, dataCache, indexCache, AccumuloConfiguration.getDefaultConfiguration());
       reader = new RFile.Reader(_cbr);

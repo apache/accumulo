@@ -90,11 +90,6 @@ public class SummaryReader {
       return summaryCache.getStats();
     }
 
-    @Override
-    public void start() {}
-
-    @Override
-    public void stop() {}
   }
 
   private static List<SummarySerializer> load(BlockReader bcReader, Predicate<SummarizerConfiguration> summarySelector) throws IOException {

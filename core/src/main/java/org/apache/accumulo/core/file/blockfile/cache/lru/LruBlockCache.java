@@ -157,10 +157,6 @@ public class LruBlockCache implements BlockCache, HeapSize {
     this.scheduleThreadPool.scheduleAtFixedRate(new StatisticsThread(this), statThreadPeriod, statThreadPeriod, TimeUnit.SECONDS);
   }
 
-  public void start() {}
-
-  public void stop() {}
-
   public long getOverhead() {
     return overhead;
   }

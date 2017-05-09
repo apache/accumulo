@@ -43,9 +43,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfigurationHelper;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
+import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheFactory;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
@@ -57,8 +61,6 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.commons.configuration.ConfigurationMap;
-import org.apache.commons.configuration.MapConfiguration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
 
@@ -70,6 +72,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private static final Range EMPTY_RANGE = new Range();
 
   private Range range;
+  private BlockCacheFactory<?,?> factory = null;
   private BlockCache dataCache = null;
   private BlockCache indexCache = null;
   private Opts opts;
@@ -131,11 +134,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
       };
     }
 
-    @Override
-    public void start() {}
-
-    @Override
-    public void stop() {}
   }
 
   RFileScanner(Opts opts) {
@@ -144,28 +142,41 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     this.opts = opts;
-    if (opts.indexCacheSize > 0) {
-      MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
-      config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(opts.indexCacheSize));
-      config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(CACHE_BLOCK_SIZE));
-      @SuppressWarnings("unchecked")
-      ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
-      this.indexCache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-      this.indexCache.start();
-    } else {
-      this.indexCache = new NoopCache();
-    }
 
-    if (opts.dataCacheSize > 0) {
-      MapConfiguration config = new MapConfiguration(new HashMap<String,String>());
-      config.setProperty(LruBlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(opts.dataCacheSize));
-      config.setProperty(LruBlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(CACHE_BLOCK_SIZE));
-      @SuppressWarnings("unchecked")
-      ConfigurationCopy copy = new ConfigurationCopy(new ConfigurationMap(config));
-      this.dataCache = new LruBlockCache(new LruBlockCacheConfiguration(copy));
-      this.dataCache.start();
-    } else {
-      this.dataCache = new NoopCache();
+    if (opts.indexCacheSize > 0 || opts.dataCacheSize > 0) {
+      ConfigurationCopy cc = new ConfigurationCopy();
+      cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
+      try {
+        factory = BlockCacheFactory.getInstance(cc);
+      } catch (Exception e) {
+        throw new RuntimeException("Error creating BlockCacheFactory", e);
+      }
+      BlockCacheConfigurationHelper helper = null;
+      if (opts.indexCacheSize > 0) {
+        helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
+        helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+        helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(CACHE_BLOCK_SIZE));
+        helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(opts.indexCacheSize));
+      }
+      if (opts.dataCacheSize > 0) {
+        if (null == helper) {
+          helper = new BlockCacheConfigurationHelper(CacheType.DATA, factory);
+        } else {
+          helper.switchCacheType(CacheType.DATA);
+        }
+        helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
+        helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(CACHE_BLOCK_SIZE));
+        helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(opts.dataCacheSize));
+      }
+      factory.start(helper.getConfiguration());
+      this.indexCache = factory.getBlockCache(CacheType.INDEX);
+      if (null == indexCache) {
+        this.indexCache = new NoopCache();
+      }
+      this.dataCache = factory.getBlockCache(CacheType.DATA);
+      if (null == this.dataCache) {
+        this.dataCache = new NoopCache();
+      }
     }
   }
 

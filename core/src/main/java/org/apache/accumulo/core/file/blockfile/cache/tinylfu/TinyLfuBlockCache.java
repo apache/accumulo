@@ -65,10 +65,6 @@ public final class TinyLfuBlockCache implements BlockCache {
 
   }
 
-  public void start() {}
-
-  public void stop() {}
-
   @Override
   public long getMaxSize() {
     return policy.getMaximum();

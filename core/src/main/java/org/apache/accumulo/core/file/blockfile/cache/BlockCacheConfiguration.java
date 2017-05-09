@@ -24,8 +24,8 @@ import org.apache.accumulo.core.conf.Property;
 
 public class BlockCacheConfiguration {
 
-  public static final String MAX_SIZE_PROPERTY = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.block." + "max.size";
-  public static final String BLOCK_SIZE_PROPERTY = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.block." + "block.size";
+  public static final String MAX_SIZE_PROPERTY = "max.size";
+  public static final String BLOCK_SIZE_PROPERTY = "block.size";
 
   private static final Long DEFAULT = Long.valueOf(-1);
 
@@ -35,10 +35,15 @@ public class BlockCacheConfiguration {
   /** Approximate block size */
   private final long blockSize;
 
-  public BlockCacheConfiguration(AccumuloConfiguration conf) {
+  protected final BlockCacheConfigurationHelper helper;
+
+  public BlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, BlockCacheFactory<?,?> factory) {
+
+    helper = new BlockCacheConfigurationHelper(conf, type, factory);
+
     Map<String,String> props = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
-    this.maxSize = getOrDefault(props, MAX_SIZE_PROPERTY, DEFAULT);
-    this.blockSize = getOrDefault(props, BLOCK_SIZE_PROPERTY, DEFAULT);
+    this.maxSize = getOrDefault(props, helper.getFullPropertyName(MAX_SIZE_PROPERTY), DEFAULT);
+    this.blockSize = getOrDefault(props, helper.getFullPropertyName(BLOCK_SIZE_PROPERTY), DEFAULT);
 
     if (DEFAULT.equals(this.maxSize)) {
       throw new IllegalArgumentException("Block cache max size must be specified.");
@@ -49,11 +54,16 @@ public class BlockCacheConfiguration {
   }
 
   public long getMaxSize() {
-    return maxSize;
+    return this.maxSize;
   }
 
   public long getBlockSize() {
-    return blockSize;
+    return this.blockSize;
+  }
+
+  @Override
+  public String toString() {
+    return "maxSize: " + getMaxSize() + ", blockSize: " + getBlockSize();
   }
 
   @SuppressWarnings("unchecked")
