@@ -99,7 +99,7 @@ public class TabletServerResourceManager {
 
   private final MemoryManagementFramework memMgmt;
 
-  private final BlockCacheManager factory;
+  private final BlockCacheManager cacheManager;
   private final BlockCache _dCache;
   private final BlockCache _iCache;
   private final BlockCache _sCache;
@@ -176,16 +176,16 @@ public class TabletServerResourceManager {
     long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
     try {
-      factory = BlockCacheManager.getInstance(acuConf);
+      cacheManager = BlockCacheManager.getInstance(acuConf);
     } catch (Exception e) {
       throw new RuntimeException("Error creating BlockCacheFactory", e);
     }
 
-    factory.start(acuConf);
+    cacheManager.start(acuConf);
 
-    _iCache = factory.getBlockCache(CacheType.INDEX);
-    _dCache = factory.getBlockCache(CacheType.DATA);
-    _sCache = factory.getBlockCache(CacheType.SUMMARY);
+    _iCache = cacheManager.getBlockCache(CacheType.INDEX);
+    _dCache = cacheManager.getBlockCache(CacheType.DATA);
+    _sCache = cacheManager.getBlockCache(CacheType.SUMMARY);
 
     Runtime runtime = Runtime.getRuntime();
     if (usingNativeMap) {
@@ -542,7 +542,11 @@ public class TabletServerResourceManager {
       executorService.shutdown();
     }
 
-    this.factory.stop();
+    try {
+	  this.cacheManager.stop();
+	} catch (Exception ex) {
+	  log.error("Error stopping BlockCacheManager", ex);
+	}
 
     for (Entry<String,ExecutorService> entry : threadPools.entrySet()) {
       while (true) {

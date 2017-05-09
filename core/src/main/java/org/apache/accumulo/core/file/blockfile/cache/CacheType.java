@@ -21,8 +21,4 @@ public enum CacheType {
 
   DATA, INDEX, SUMMARY;
 
-  public String getPropertyPrefix(String impl) {
-    return BlockCacheManager.CACHE_PROPERTY_BASE + impl + "." + name().toLowerCase() + ".";
-  }
-
 }

@@ -17,14 +17,16 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class CacheTypeTest {
+public class BlockConfigurationHelperTest {
 
   @Test
   public void testGetPropertyPrefix() throws Exception {
-    Assert.assertEquals("general.custom.cache.block.lru.data.", CacheType.DATA.getPropertyPrefix("lru"));
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(new DefaultConfiguration(), CacheType.DATA, "lru");
+    Assert.assertEquals("general.custom.cache.block.lru.data.", helper.getPropertyPrefix());
   }
 
 }

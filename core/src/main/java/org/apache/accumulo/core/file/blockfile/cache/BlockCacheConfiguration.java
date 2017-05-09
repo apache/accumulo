@@ -30,11 +30,7 @@ public class BlockCacheConfiguration {
   /** Approximate block size */
   private final long blockSize;
 
-  protected final BlockCacheConfigurationHelper helper;
-
   public BlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, String implName) {
-
-    helper = new BlockCacheConfigurationHelper(conf, type, implName);
 
     switch (type) {
       case INDEX:

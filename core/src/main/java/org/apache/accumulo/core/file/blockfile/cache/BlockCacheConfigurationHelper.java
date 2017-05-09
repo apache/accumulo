@@ -22,7 +22,6 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 public class BlockCacheConfigurationHelper {
 
   private final ConfigurationCopy conf;
-  private final String implName;
   private String basePropertyName;
 
   public BlockCacheConfigurationHelper(AccumuloConfiguration conf, CacheType type, String implName) {
@@ -31,24 +30,19 @@ public class BlockCacheConfigurationHelper {
 
   public BlockCacheConfigurationHelper(ConfigurationCopy conf, CacheType type, String implName) {
     this.conf = conf;
-    this.implName = implName;
-    this.basePropertyName = type.getPropertyPrefix(implName);
+    this.basePropertyName = BlockCacheManager.CACHE_PROPERTY_BASE + implName + "." + type.name().toLowerCase() + ".";
   }
 
-  public void switchCacheType(CacheType type) {
-    this.basePropertyName = type.getPropertyPrefix(implName);
+  public String getPropertyPrefix() {
+    return basePropertyName;
   }
 
   public String getFullPropertyName(String propertySuffix) {
     return this.basePropertyName + propertySuffix;
   }
 
-  public void set(String propertySuffix, String value) {
+  public void setIfAbsent(String propertySuffix, String value) {
     conf.setIfAbsent(getFullPropertyName(propertySuffix), value);
-  }
-
-  public String getValue(String propertySuffix) {
-    return conf.get(getFullPropertyName(propertySuffix));
   }
 
   public ConfigurationCopy getConfiguration() {
