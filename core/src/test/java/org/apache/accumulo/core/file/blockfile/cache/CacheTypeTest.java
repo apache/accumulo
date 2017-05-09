@@ -17,7 +17,6 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,29 +25,6 @@ public class CacheTypeTest {
   @Test
   public void testGetPropertyPrefix() throws Exception {
     Assert.assertEquals("general.custom.cache.block.lru.data.", CacheType.DATA.getPropertyPrefix("lru"));
-  }
-
-  @Test
-  public void testCacheEnabled() {
-    ConfigurationCopy cc = new ConfigurationCopy();
-    String indexPrefix = CacheType.INDEX.getPropertyPrefix("lru");
-    cc.setIfAbsent(indexPrefix + CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-    cc.setIfAbsent(indexPrefix + BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(100000));
-    cc.setIfAbsent(indexPrefix + BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(100000000));
-    ConfigurationCopy cc2 = CacheType.INDEX.getCacheProperties(cc, "lru");
-    Assert.assertNotNull(cc2);
-    Assert.assertEquals(Boolean.TRUE.toString(), cc2.get(indexPrefix + CacheType.ENABLED_SUFFIX));
-    Assert.assertEquals(Long.toString(100000), cc2.get(indexPrefix + BlockCacheConfiguration.BLOCK_SIZE_PROPERTY));
-    Assert.assertEquals(Long.toString(100000000), cc2.get(indexPrefix + BlockCacheConfiguration.MAX_SIZE_PROPERTY));
-  }
-
-  @Test
-  public void testCacheDisabled() {
-    ConfigurationCopy cc = new ConfigurationCopy();
-    String indexPrefix = CacheType.INDEX.getPropertyPrefix("lru");
-    cc.setIfAbsent(indexPrefix + CacheType.ENABLED_SUFFIX, Boolean.FALSE.toString());
-    ConfigurationCopy cc2 = CacheType.INDEX.getCacheProperties(cc, "lru");
-    Assert.assertNull(cc2);
   }
 
 }

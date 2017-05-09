@@ -18,20 +18,20 @@
 package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class TinyLfuBlockCacheFactory extends BlockCacheFactory<TinyLfuBlockCache,TinyLfuBlockCacheConfiguration> {
+public class TinyLfuBlockCacheFactory extends BlockCacheManager {
 
-  @Override
-  protected TinyLfuBlockCacheConfiguration createConfiguration(AccumuloConfiguration conf, CacheType type,
-      BlockCacheFactory<TinyLfuBlockCache,TinyLfuBlockCacheConfiguration> factory) {
-    return new TinyLfuBlockCacheConfiguration(conf, type, factory);
-  }
+  private static final Logger LOG = LoggerFactory.getLogger(TinyLfuBlockCacheFactory.class);
 
   @Override
-  protected TinyLfuBlockCache createCache(TinyLfuBlockCacheConfiguration conf) {
-    return new TinyLfuBlockCache(conf);
+  protected TinyLfuBlockCache createCache(AccumuloConfiguration conf, CacheType type) {
+    TinyLfuBlockCacheConfiguration cc = new TinyLfuBlockCacheConfiguration(conf, type, getCacheImplName());
+    LOG.info("Creating {} cache with configuration {}", type, cc);
+    return new TinyLfuBlockCache(cc);
   }
 
   @Override

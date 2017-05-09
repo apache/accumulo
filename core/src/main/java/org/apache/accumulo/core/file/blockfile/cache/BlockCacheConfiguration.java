@@ -24,11 +24,6 @@ import org.apache.accumulo.core.conf.Property;
 
 public class BlockCacheConfiguration {
 
-  public static final String MAX_SIZE_PROPERTY = "max.size";
-  public static final String BLOCK_SIZE_PROPERTY = "block.size";
-
-  private static final Long DEFAULT = Long.valueOf(-1);
-
   /** Maximum allowable size of cache (block put if size > max, evict) */
   private final long maxSize;
 
@@ -37,20 +32,25 @@ public class BlockCacheConfiguration {
 
   protected final BlockCacheConfigurationHelper helper;
 
-  public BlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, BlockCacheFactory<?,?> factory) {
+  public BlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, String implName) {
 
-    helper = new BlockCacheConfigurationHelper(conf, type, factory);
+    helper = new BlockCacheConfigurationHelper(conf, type, implName);
 
-    Map<String,String> props = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
-    this.maxSize = getOrDefault(props, helper.getFullPropertyName(MAX_SIZE_PROPERTY), DEFAULT);
-    this.blockSize = getOrDefault(props, helper.getFullPropertyName(BLOCK_SIZE_PROPERTY), DEFAULT);
-
-    if (DEFAULT.equals(this.maxSize)) {
-      throw new IllegalArgumentException("Block cache max size must be specified.");
+    switch (type) {
+      case INDEX:
+        this.maxSize = conf.getAsBytes(Property.TSERV_INDEXCACHE_SIZE);
+        break;
+      case DATA:
+        this.maxSize = conf.getAsBytes(Property.TSERV_DATACACHE_SIZE);
+        break;
+      case SUMMARY:
+        this.maxSize = conf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
+        break;
+      default:
+        this.maxSize = conf.getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
+        break;
     }
-    if (DEFAULT.equals(this.blockSize)) {
-      throw new IllegalArgumentException("Block cache block size must be specified.");
-    }
+    this.blockSize = conf.getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
   }
 
   public long getMaxSize() {

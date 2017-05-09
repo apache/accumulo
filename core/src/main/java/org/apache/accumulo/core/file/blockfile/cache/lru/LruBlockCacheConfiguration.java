@@ -22,7 +22,6 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 
 public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
@@ -75,8 +74,8 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
 
   private final boolean useEvictionThread;
 
-  public LruBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, BlockCacheFactory<LruBlockCache,LruBlockCacheConfiguration> factory) {
-    super(conf, type, factory);
+  public LruBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, String implName) {
+    super(conf, type, implName);
     Map<String,String> props = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
     this.acceptableFactor = getOrDefault(props, helper.getFullPropertyName(ACCEPTABLE_FACTOR_PROPERTY), DEFAULT_ACCEPTABLE_FACTOR);
     this.minFactor = getOrDefault(props, helper.getFullPropertyName(MIN_FACTOR_PROPERTY), DEFAULT_MIN_FACTOR);

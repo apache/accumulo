@@ -22,25 +22,21 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 public class BlockCacheConfigurationHelper {
 
   private final ConfigurationCopy conf;
-  private final BlockCacheFactory<?,?> factory;
+  private final String implName;
   private String basePropertyName;
 
-  public BlockCacheConfigurationHelper(CacheType type, BlockCacheFactory<?,?> factory) {
-    this(new ConfigurationCopy(), type, factory);
+  public BlockCacheConfigurationHelper(AccumuloConfiguration conf, CacheType type, String implName) {
+    this(new ConfigurationCopy(conf), type, implName);
   }
 
-  public BlockCacheConfigurationHelper(AccumuloConfiguration conf, CacheType type, BlockCacheFactory<?,?> factory) {
-    this(new ConfigurationCopy(conf), type, factory);
-  }
-
-  public BlockCacheConfigurationHelper(ConfigurationCopy conf, CacheType type, BlockCacheFactory<?,?> factory) {
+  public BlockCacheConfigurationHelper(ConfigurationCopy conf, CacheType type, String implName) {
     this.conf = conf;
-    this.factory = factory;
-    this.basePropertyName = type.getPropertyPrefix(factory.getCacheImplName());
+    this.implName = implName;
+    this.basePropertyName = type.getPropertyPrefix(implName);
   }
 
   public void switchCacheType(CacheType type) {
-    this.basePropertyName = type.getPropertyPrefix(factory.getCacheImplName());
+    this.basePropertyName = type.getPropertyPrefix(implName);
   }
 
   public String getFullPropertyName(String propertySuffix) {

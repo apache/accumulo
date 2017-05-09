@@ -18,6 +18,7 @@
 package org.apache.accumulo.core.file.blockfile.cache;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheFactory;
 import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheFactory;
@@ -28,28 +29,25 @@ public class BlockCacheFactoryTest {
 
   @Test
   public void testCreateLruBlockCacheFactory() throws Exception {
-    ConfigurationCopy cc = new ConfigurationCopy();
+    DefaultConfiguration dc = new DefaultConfiguration();
+    ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheFactory.getInstance(cc);
+    BlockCacheManager.getInstance(cc);
   }
 
   @Test
   public void testCreateTinyLfuBlockCacheFactory() throws Exception {
-    ConfigurationCopy cc = new ConfigurationCopy();
+    DefaultConfiguration dc = new DefaultConfiguration();
+    ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_FACTORY_IMPL, TinyLfuBlockCacheFactory.class.getName());
-    BlockCacheFactory.getInstance(cc);
+    BlockCacheManager.getInstance(cc);
   }
 
   @Test
-  public void testStart() throws Exception {
-    ConfigurationCopy cc = new ConfigurationCopy();
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
-    String indexPrefix = CacheType.INDEX.getPropertyPrefix(factory.getCacheImplName());
-    cc.setIfAbsent(indexPrefix + CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-    cc.setIfAbsent(indexPrefix + BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(2048));
-    cc.setIfAbsent(indexPrefix + BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(1048576));
-    factory.start(cc);
+  public void testStartWithDefault() throws Exception {
+    DefaultConfiguration dc = new DefaultConfiguration();
+    BlockCacheManager factory = BlockCacheManager.getInstance(dc);
+    factory.start(dc);
     Assert.assertNotNull(factory.getBlockCache(CacheType.INDEX));
   }
 }

@@ -21,20 +21,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class BlockCacheFactory<B extends BlockCache,C extends BlockCacheConfiguration> {
+public abstract class BlockCacheManager {
 
   public static final String CACHE_PROPERTY_BASE = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.block.";
 
-  private static final Logger LOG = LoggerFactory.getLogger(BlockCacheFactory.class);
-  private static BlockCacheFactory<?,?> factory = null;
+  private static final Logger LOG = LoggerFactory.getLogger(BlockCacheManager.class);
+  private static BlockCacheManager factory = null;
 
-  private final Map<CacheType,B> caches = new HashMap<>();
+  private final Map<CacheType,BlockCache> caches = new HashMap<>();
 
   /**
    * Initialize the caches for each CacheType based on the configuration
@@ -44,20 +43,15 @@ public abstract class BlockCacheFactory<B extends BlockCache,C extends BlockCach
    */
   public void start(AccumuloConfiguration conf) {
     for (CacheType type : CacheType.values()) {
-      ConfigurationCopy props = type.getCacheProperties(conf, getCacheImplName());
-      if (null != props) {
-        C cc = this.createConfiguration(props, type, this);
-        B cache = this.createCache(cc);
-        LOG.info("Created {} cache with configuration {}", type, cc);
-        this.caches.put(type, cache);
-      }
+      BlockCache cache = this.createCache(conf, type);
+      this.caches.put(type, cache);
     }
   }
 
   /**
    * Stop caches and release resources
    */
-  public abstract void stop();
+  public void stop() {}
 
   /**
    * Get the block cache of the given type
@@ -66,22 +60,9 @@ public abstract class BlockCacheFactory<B extends BlockCache,C extends BlockCach
    *          block cache type
    * @return BlockCache or null if not enabled
    */
-  public B getBlockCache(CacheType type) {
+  public BlockCache getBlockCache(CacheType type) {
     return caches.get(type);
   }
-
-  /**
-   * Parse and validate the configuration
-   * 
-   * @param conf
-   *          accumulo configuration
-   * @param type
-   *          cache type
-   * @param name
-   *          cache implementation name
-   * @return validated block cache configuration
-   */
-  protected abstract C createConfiguration(AccumuloConfiguration conf, CacheType type, BlockCacheFactory<B,C> factory);
 
   /**
    * Create a block cache using the supplied configuration
@@ -90,7 +71,7 @@ public abstract class BlockCacheFactory<B extends BlockCache,C extends BlockCach
    *          cache configuration
    * @return configured block cache
    */
-  protected abstract B createCache(C conf);
+  protected abstract BlockCache createCache(AccumuloConfiguration conf, CacheType type);
 
   /**
    * Cache implementation name (e.g lru, tinylfu, etc)
@@ -107,12 +88,11 @@ public abstract class BlockCacheFactory<B extends BlockCache,C extends BlockCach
    * @return BlockCacheFactory instance
    * @throws Exception
    */
-  public static synchronized BlockCacheFactory<?,?> getInstance(AccumuloConfiguration conf) throws Exception {
+  public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf) throws Exception {
     if (null == factory) {
       String impl = conf.get(Property.TSERV_CACHE_FACTORY_IMPL);
-      @SuppressWarnings("rawtypes")
-      Class<? extends BlockCacheFactory> clazz = AccumuloVFSClassLoader.loadClass(impl, BlockCacheFactory.class);
-      factory = (BlockCacheFactory<?,?>) clazz.newInstance();
+      Class<? extends BlockCacheManager> clazz = AccumuloVFSClassLoader.loadClass(impl, BlockCacheManager.class);
+      factory = (BlockCacheManager) clazz.newInstance();
       LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
     }
     return factory;

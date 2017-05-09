@@ -23,6 +23,7 @@ import java.util.Random;
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheConfiguration;
@@ -42,14 +43,13 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 9); // room for 9, will evict
 
-    ConfigurationCopy cc = new ConfigurationCopy();
+    DefaultConfiguration dc = new DefaultConfiguration();
+    ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
-    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
-    factory.start(helper.getConfiguration());
+    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
+    cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
+    factory.start(cc);
     LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
@@ -74,14 +74,13 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 1000000;
     long blockSize = calculateBlockSizeDefault(maxSize, 101);
 
-    ConfigurationCopy cc = new ConfigurationCopy();
+    DefaultConfiguration dc = new DefaultConfiguration();
+    ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
-    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
-    factory.start(helper.getConfiguration());
+    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
+    cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
+    factory.start(cc);
     LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateRandomBlocks(100, blockSize);
@@ -131,13 +130,13 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    ConfigurationCopy cc = new ConfigurationCopy();
+    DefaultConfiguration dc = new DefaultConfiguration();
+    ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
-    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
+    cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory.getCacheImplName());
     helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
     factory.start(helper.getConfiguration());
     LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
@@ -177,13 +176,13 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    ConfigurationCopy cc = new ConfigurationCopy();
+    DefaultConfiguration dc = new DefaultConfiguration();
+    ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
-    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
+    cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory.getCacheImplName());
     helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
     helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
     helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
@@ -245,13 +244,13 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    ConfigurationCopy cc = new ConfigurationCopy();
+    DefaultConfiguration dc = new DefaultConfiguration();
+    ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
-    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
+    cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory.getCacheImplName());
     helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
     helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
     helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
@@ -372,13 +371,14 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    ConfigurationCopy cc = new ConfigurationCopy();
+    DefaultConfiguration dc = new DefaultConfiguration();
+    ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheFactory<?,?> factory = BlockCacheFactory.getInstance(cc);
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
-    helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-    helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(blockSize));
-    helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(maxSize));
+    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
+    cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory.getCacheImplName());
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
     helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
     helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.66f));
     helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));

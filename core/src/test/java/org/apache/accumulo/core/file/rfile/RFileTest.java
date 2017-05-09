@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -57,9 +58,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfigurationHelper;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheFactory;
@@ -269,23 +268,19 @@ public class RFileTest {
       in = new FSDataInputStream(bais);
       fileLength = data.length;
 
-      ConfigurationCopy cc = new ConfigurationCopy();
+      DefaultConfiguration dc = new DefaultConfiguration();
+      ConfigurationCopy cc = new ConfigurationCopy(dc);
       cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-      BlockCacheFactory<?,?> factory;
+      BlockCacheManager factory;
       try {
-        factory = BlockCacheFactory.getInstance(cc);
+        factory = BlockCacheManager.getInstance(cc);
       } catch (Exception e) {
         throw new RuntimeException("Error creating BlockCacheFactory", e);
       }
-      BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory);
-      helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-      helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(100000));
-      helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(100000000));
-      helper.switchCacheType(CacheType.DATA);
-      helper.set(CacheType.ENABLED_SUFFIX, Boolean.TRUE.toString());
-      helper.set(BlockCacheConfiguration.BLOCK_SIZE_PROPERTY, Long.toString(100000));
-      helper.set(BlockCacheConfiguration.MAX_SIZE_PROPERTY, Long.toString(100000000));
-      factory.start(helper.getConfiguration());
+      cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
+      cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
+      cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
+      factory.start(cc);
       LruBlockCache indexCache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
       LruBlockCache dataCache = (LruBlockCache) factory.getBlockCache(CacheType.DATA);
 
