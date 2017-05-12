@@ -17,6 +17,8 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
+import java.util.Map.Entry;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
@@ -24,20 +26,23 @@ import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LruBlockCacheFactory extends BlockCacheManager {
+public class LruBlockCacheManager extends BlockCacheManager {
 
-  private static final Logger LOG = LoggerFactory.getLogger(LruBlockCacheFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LruBlockCacheManager.class);
 
   @Override
   protected BlockCache createCache(AccumuloConfiguration conf, CacheType type) {
-    LruBlockCacheConfiguration cc = new LruBlockCacheConfiguration(conf, type, getCacheImplName());
+    LruBlockCacheConfiguration cc = new LruBlockCacheConfiguration(conf, type);
     LOG.info("Creating {} cache with configuration {}", type, cc);
     return new LruBlockCache(cc);
   }
 
   @Override
-  public String getCacheImplName() {
-    return "lru";
+  public void stop() {
+    for (Entry<CacheType,BlockCache> e : this.caches.entrySet()) {
+      ((LruBlockCache) e.getValue()).shutdown();
+    }
+    super.stop();
   }
 
 }

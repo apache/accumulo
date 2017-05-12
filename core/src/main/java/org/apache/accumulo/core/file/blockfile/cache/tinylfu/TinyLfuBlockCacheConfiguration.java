@@ -23,8 +23,10 @@ import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 
 public final class TinyLfuBlockCacheConfiguration extends BlockCacheConfiguration {
 
-  public TinyLfuBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, String implName) {
-    super(conf, type, implName);
+  public static final String PROPERTY_PREFIX = "tinylfu";
+
+  public TinyLfuBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type) {
+    super(conf, type, PROPERTY_PREFIX);
   }
 
 }

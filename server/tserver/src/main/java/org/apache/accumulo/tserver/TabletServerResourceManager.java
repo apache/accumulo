@@ -178,7 +178,7 @@ public class TabletServerResourceManager {
     try {
       cacheManager = BlockCacheManager.getInstance(acuConf);
     } catch (Exception e) {
-      throw new RuntimeException("Error creating BlockCacheFactory", e);
+      throw new RuntimeException("Error creating BlockCacheManager", e);
     }
 
     cacheManager.start(acuConf);
@@ -542,11 +542,13 @@ public class TabletServerResourceManager {
       executorService.shutdown();
     }
 
-    try {
-	  this.cacheManager.stop();
-	} catch (Exception ex) {
-	  log.error("Error stopping BlockCacheManager", ex);
-	}
+    if (null != this.cacheManager) {
+      try {
+        this.cacheManager.stop();
+      } catch (Exception ex) {
+        log.error("Error stopping BlockCacheManager", ex);
+      }
+    }
 
     for (Entry<String,ExecutorService> entry : threadPools.entrySet()) {
       while (true) {

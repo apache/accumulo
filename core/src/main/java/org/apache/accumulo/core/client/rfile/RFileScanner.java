@@ -47,7 +47,6 @@ import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
@@ -70,7 +69,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private static final Range EMPTY_RANGE = new Range();
 
   private Range range;
-  private BlockCacheManager factory = null;
+  private BlockCacheManager blockCacheManager = null;
   private BlockCache dataCache = null;
   private BlockCache indexCache = null;
   private Opts opts;
@@ -150,25 +149,25 @@ class RFileScanner extends ScannerOptions implements Scanner {
       }
       cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(CACHE_BLOCK_SIZE));
       try {
-        factory = BlockCacheManager.getInstance(cc);
+        blockCacheManager = BlockCacheManager.getClientInstance(cc);
+        if (opts.indexCacheSize > 0) {
+          cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(opts.indexCacheSize));
+        }
+        if (opts.dataCacheSize > 0) {
+          cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(opts.dataCacheSize));
+        }
+        blockCacheManager.start(cc);
+        this.indexCache = blockCacheManager.getBlockCache(CacheType.INDEX);
+        this.dataCache = blockCacheManager.getBlockCache(CacheType.DATA);
       } catch (Exception e) {
-        throw new RuntimeException("Error creating BlockCacheFactory", e);
+        // FIXME: How do we report an error back to the user?
       }
-      if (opts.indexCacheSize > 0) {
-        cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(opts.indexCacheSize));
-      }
-      if (opts.dataCacheSize > 0) {
-        cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(opts.dataCacheSize));
-      }
-      factory.start(cc);
-      this.indexCache = factory.getBlockCache(CacheType.INDEX);
-      if (null == indexCache) {
-        this.indexCache = new NoopCache();
-      }
-      this.dataCache = factory.getBlockCache(CacheType.DATA);
-      if (null == this.dataCache) {
-        this.dataCache = new NoopCache();
-      }
+    }
+    if (null == indexCache) {
+      this.indexCache = new NoopCache();
+    }
+    if (null == this.dataCache) {
+      this.dataCache = new NoopCache();
     }
   }
 
@@ -350,20 +349,19 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
   @Override
   public void close() {
-    if (dataCache instanceof LruBlockCache) {
-      ((LruBlockCache) dataCache).shutdown();
-    }
-
-    if (indexCache instanceof LruBlockCache) {
-      ((LruBlockCache) indexCache).shutdown();
-    }
-
     try {
       for (RFileSource source : opts.in.getSources()) {
         source.getInputStream().close();
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+    try {
+      if (null != this.blockCacheManager) {
+        this.blockCacheManager.stop();
+      }
+    } catch (Exception e1) {
+      throw new RuntimeException(e1);
     }
   }
 }

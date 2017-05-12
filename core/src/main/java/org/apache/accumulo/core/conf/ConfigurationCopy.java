@@ -95,16 +95,4 @@ public class ConfigurationCopy extends AccumuloConfiguration {
     copy.put(key, value);
   }
 
-  /**
-   * Sets a property in this configuration if it is not already defined.
-   * 
-   * @param key
-   *          key of property to set
-   * @param value
-   *          property value
-   */
-  public void setIfAbsent(String key, String value) {
-    copy.putIfAbsent(key, value);
-  }
-
 }

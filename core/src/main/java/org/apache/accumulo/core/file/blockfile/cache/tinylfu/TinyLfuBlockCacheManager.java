@@ -23,23 +23,15 @@ import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TinyLfuBlockCacheFactory extends BlockCacheManager {
+public class TinyLfuBlockCacheManager extends BlockCacheManager {
 
-  private static final Logger LOG = LoggerFactory.getLogger(TinyLfuBlockCacheFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TinyLfuBlockCacheManager.class);
 
   @Override
   protected TinyLfuBlockCache createCache(AccumuloConfiguration conf, CacheType type) {
-    TinyLfuBlockCacheConfiguration cc = new TinyLfuBlockCacheConfiguration(conf, type, getCacheImplName());
+    TinyLfuBlockCacheConfiguration cc = new TinyLfuBlockCacheConfiguration(conf, type);
     LOG.info("Creating {} cache with configuration {}", type, cc);
     return new TinyLfuBlockCache(cc);
   }
-
-  @Override
-  public String getCacheImplName() {
-    return "tinylfu";
-  }
-
-  @Override
-  public void stop() {}
 
 }

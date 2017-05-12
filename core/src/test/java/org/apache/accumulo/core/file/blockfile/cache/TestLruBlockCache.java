@@ -25,9 +25,10 @@ import junit.framework.TestCase;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration.BlockCacheConfigurationHelper;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
 
 /**
  * Tests the concurrent LruBlockCache.
@@ -45,12 +46,12 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    factory.start(cc);
-    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
+    manager.start(cc);
+    LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
 
@@ -67,6 +68,8 @@ public class TestLruBlockCache extends TestCase {
     }
     // A single eviction run should have occurred
     assertEquals(cache.getEvictionCount(), 1);
+
+    manager.stop();
   }
 
   public void testCacheSimple() throws Exception {
@@ -76,12 +79,12 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    factory.start(cc);
-    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
+    manager.start(cc);
+    LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateRandomBlocks(100, blockSize);
 
@@ -123,6 +126,7 @@ public class TestLruBlockCache extends TestCase {
     // Thread t = new LruBlockCache.StatisticsThread(cache);
     // t.start();
     // t.join();
+    manager.stop();
   }
 
   public void testCacheEvictionSimple() throws Exception {
@@ -132,14 +136,14 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory.getCacheImplName());
-    helper.setIfAbsent(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    factory.start(helper.getConfiguration());
-    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, LruBlockCacheConfiguration.PROPERTY_PREFIX);
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
+    manager.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
 
@@ -169,6 +173,7 @@ public class TestLruBlockCache extends TestCase {
     for (int i = 2; i < blocks.length; i++) {
       assertTrue(Arrays.equals(cache.getBlock(blocks[i].blockName).getBuffer(), blocks[i].buf));
     }
+    manager.stop();
   }
 
   public void testCacheEvictionTwoPriorities() throws Exception {
@@ -178,19 +183,19 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory.getCacheImplName());
-    helper.setIfAbsent(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    helper.setIfAbsent(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.25f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.50f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.25f));
-    factory.start(helper.getConfiguration());
-    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, LruBlockCacheConfiguration.PROPERTY_PREFIX);
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
+    helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
+    helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
+    helper.set(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.25f));
+    helper.set(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.50f));
+    helper.set(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.25f));
+    manager.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(5, 10000, "single");
     Block[] multiBlocks = generateFixedBlocks(5, 10000, "multi");
@@ -237,6 +242,7 @@ public class TestLruBlockCache extends TestCase {
       assertTrue(Arrays.equals(cache.getBlock(singleBlocks[i].blockName).getBuffer(), singleBlocks[i].buf));
       assertTrue(Arrays.equals(cache.getBlock(multiBlocks[i].blockName).getBuffer(), multiBlocks[i].buf));
     }
+    manager.stop();
   }
 
   public void testCacheEvictionThreePriorities() throws Exception {
@@ -246,19 +252,19 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory.getCacheImplName());
-    helper.setIfAbsent(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    helper.setIfAbsent(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
-    factory.start(helper.getConfiguration());
-    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, LruBlockCacheConfiguration.PROPERTY_PREFIX);
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
+    helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
+    helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
+    helper.set(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
+    helper.set(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
+    helper.set(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
+    manager.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(5, blockSize, "single");
     Block[] multiBlocks = generateFixedBlocks(5, blockSize, "multi");
@@ -363,6 +369,7 @@ public class TestLruBlockCache extends TestCase {
     assertEquals(null, cache.getBlock(memoryBlocks[2].blockName));
     assertEquals(null, cache.getBlock(memoryBlocks[3].blockName));
 
+    manager.stop();
   }
 
   // test scan resistance
@@ -373,20 +380,20 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-    BlockCacheManager factory = BlockCacheManager.getInstance(cc);
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, factory.getCacheImplName());
-    helper.setIfAbsent(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    helper.setIfAbsent(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    helper.setIfAbsent(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.66f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
-    helper.setIfAbsent(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
-    factory.start(helper.getConfiguration());
-    LruBlockCache cache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
+    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, LruBlockCacheConfiguration.PROPERTY_PREFIX);
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
+    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
+    helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.66f));
+    helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
+    helper.set(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
+    helper.set(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
+    helper.set(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
+    manager.start(helper.getConfiguration());
+    LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(20, blockSize, "single");
     Block[] multiBlocks = generateFixedBlocks(5, blockSize, "multi");
@@ -432,6 +439,7 @@ public class TestLruBlockCache extends TestCase {
     // Should now have 7 total blocks
     assertEquals(7, cache.size());
 
+    manager.stop();
   }
 
   private Block[] generateFixedBlocks(int numBlocks, int size, String pfx) {

@@ -61,7 +61,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.streams.PositionedOutputs;
@@ -209,6 +209,7 @@ public class RFileTest {
     protected AccumuloConfiguration accumuloConfiguration;
     public Reader reader;
     public SortedKeyValueIterator<Key,Value> iter;
+    private BlockCacheManager manager;
 
     public TestRFile(AccumuloConfiguration accumuloConfiguration) {
       this.accumuloConfiguration = accumuloConfiguration;
@@ -270,19 +271,18 @@ public class RFileTest {
 
       DefaultConfiguration dc = new DefaultConfiguration();
       ConfigurationCopy cc = new ConfigurationCopy(dc);
-      cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
-      BlockCacheManager factory;
+      cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
       try {
-        factory = BlockCacheManager.getInstance(cc);
+        manager = BlockCacheManager.getInstance(cc);
       } catch (Exception e) {
-        throw new RuntimeException("Error creating BlockCacheFactory", e);
+        throw new RuntimeException("Error creating BlockCacheManager", e);
       }
       cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
       cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
       cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
-      factory.start(cc);
-      LruBlockCache indexCache = (LruBlockCache) factory.getBlockCache(CacheType.INDEX);
-      LruBlockCache dataCache = (LruBlockCache) factory.getBlockCache(CacheType.DATA);
+      manager.start(cc);
+      LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
+      LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, fileLength, conf, dataCache, indexCache, AccumuloConfiguration.getDefaultConfiguration());
       reader = new RFile.Reader(_cbr);
@@ -295,6 +295,9 @@ public class RFileTest {
     public void closeReader() throws IOException {
       reader.close();
       in.close();
+      if (null != manager) {
+        manager.stop();
+      }
     }
 
     public void seek(Key nk) throws IOException {

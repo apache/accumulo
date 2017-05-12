@@ -19,8 +19,6 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.util.Objects;
 
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
-
 /**
  * Represents an entry in the {@link LruBlockCache}.
  *

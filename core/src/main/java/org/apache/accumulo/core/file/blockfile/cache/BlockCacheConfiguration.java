@@ -18,11 +18,44 @@
 package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 
 public class BlockCacheConfiguration {
+
+  public static class BlockCacheConfigurationHelper {
+
+    private final ConfigurationCopy conf;
+    private final String basePropertyName;
+
+    protected BlockCacheConfigurationHelper(ConfigurationCopy conf, CacheType type, String implName) {
+      this.conf = conf;
+      this.basePropertyName = BlockCacheManager.CACHE_PROPERTY_BASE + implName + "." + type.name().toLowerCase() + ".";
+    }
+
+    public String getPropertyPrefix() {
+      return basePropertyName;
+    }
+
+    public String getFullPropertyName(String propertySuffix) {
+      return this.basePropertyName + propertySuffix;
+    }
+
+    public Optional<String> get(String property) {
+      return Optional.ofNullable(this.conf.get(this.getFullPropertyName(property)));
+    }
+
+    public void set(String propertySuffix, String value) {
+      conf.set(getFullPropertyName(propertySuffix), value);
+    }
+
+    public ConfigurationCopy getConfiguration() {
+      return this.conf;
+    }
+  }
 
   /** Maximum allowable size of cache (block put if size > max, evict) */
   private final long maxSize;
@@ -30,7 +63,14 @@ public class BlockCacheConfiguration {
   /** Approximate block size */
   private final long blockSize;
 
+  /** Helper object for working with block cache configuration **/
+  private final BlockCacheConfigurationHelper helper;
+
   public BlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, String implName) {
+
+    Map<String,String> props = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
+    ConfigurationCopy blockCacheConfiguration = new ConfigurationCopy(props);
+    this.helper = new BlockCacheConfigurationHelper(blockCacheConfiguration, type, implName);
 
     switch (type) {
       case INDEX:
@@ -43,10 +83,13 @@ public class BlockCacheConfiguration {
         this.maxSize = conf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
         break;
       default:
-        this.maxSize = conf.getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
-        break;
+        throw new IllegalArgumentException("Unknown block cache type");
     }
     this.blockSize = conf.getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
+  }
+
+  public BlockCacheConfigurationHelper getHelper() {
+    return this.helper;
   }
 
   public long getMaxSize() {
@@ -60,29 +103,6 @@ public class BlockCacheConfiguration {
   @Override
   public String toString() {
     return "maxSize: " + getMaxSize() + ", blockSize: " + getBlockSize();
-  }
-
-  @SuppressWarnings("unchecked")
-  protected <T> T getOrDefault(Map<String,String> props, String propertyName, T defaultValue) {
-    String o = props.get(propertyName);
-    if (null == o && defaultValue == null) {
-      throw new RuntimeException("Property " + propertyName + " not specified and no default supplied.");
-    } else if (null == o) {
-      return defaultValue;
-    } else {
-      if (defaultValue.getClass().equals(Integer.class)) {
-        return (T) Integer.valueOf(o);
-      } else if (defaultValue.getClass().equals(Long.class)) {
-        return (T) Long.valueOf(o);
-      } else if (defaultValue.getClass().equals(Float.class)) {
-        return (T) Float.valueOf(o);
-      } else if (defaultValue.getClass().equals(Boolean.class)) {
-        return (T) Boolean.valueOf(o);
-      } else {
-        throw new RuntimeException("Unknown parameter type");
-      }
-    }
-
   }
 
 }

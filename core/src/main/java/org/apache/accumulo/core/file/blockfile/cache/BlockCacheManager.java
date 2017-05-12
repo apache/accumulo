@@ -31,13 +31,13 @@ public abstract class BlockCacheManager {
   public static final String CACHE_PROPERTY_BASE = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.block.";
 
   private static final Logger LOG = LoggerFactory.getLogger(BlockCacheManager.class);
-  private static BlockCacheManager factory = null;
+  private static BlockCacheManager manager = null;
 
-  private final Map<CacheType,BlockCache> caches = new HashMap<>();
+  protected final Map<CacheType,BlockCache> caches = new HashMap<>();
 
   /**
    * Initialize the caches for each CacheType based on the configuration
-   * 
+   *
    * @param conf
    *          accumulo configuration
    */
@@ -51,11 +51,18 @@ public abstract class BlockCacheManager {
   /**
    * Stop caches and release resources
    */
-  public void stop() {}
+  public void stop() {
+    this.caches.clear();
+    close();
+  }
+  
+  private static synchronized void close() {
+	  manager = null;
+  }
 
   /**
    * Get the block cache of the given type
-   * 
+   *
    * @param type
    *          block cache type
    * @return BlockCache or null if not enabled
@@ -66,7 +73,7 @@ public abstract class BlockCacheManager {
 
   /**
    * Create a block cache using the supplied configuration
-   * 
+   *
    * @param conf
    *          cache configuration
    * @return configured block cache
@@ -74,28 +81,41 @@ public abstract class BlockCacheManager {
   protected abstract BlockCache createCache(AccumuloConfiguration conf, CacheType type);
 
   /**
-   * Cache implementation name (e.g lru, tinylfu, etc)
-   * 
-   * @return name of cache implementation in lowercase
+   * Get the BlockCacheFactory specified by the property 'tserver.cache.factory.class' using the AccumuloVFSClassLoader
+   *
+   * @param conf
+   *          accumulo configuration
+   * @return block cache manager instance
+   * @throws Exception
+   *           error loading block cache manager implementation class
    */
-  public abstract String getCacheImplName();
+  public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf) throws Exception {
+    if (null == manager) {
+      String impl = conf.get(Property.TSERV_CACHE_FACTORY_IMPL);
+      Class<? extends BlockCacheManager> clazz = AccumuloVFSClassLoader.loadClass(impl, BlockCacheManager.class);
+      manager = (BlockCacheManager) clazz.newInstance();
+      LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
+    }
+    return manager;
+  }
 
   /**
    * Get the BlockCacheFactory specified by the property 'tserver.cache.factory.class'
-   * 
+   *
    * @param conf
    *          accumulo configuration
-   * @return BlockCacheFactory instance
+   * @return block cache manager instance
    * @throws Exception
+   *           error loading block cache manager implementation class
    */
-  public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf) throws Exception {
-    if (null == factory) {
+  public static synchronized BlockCacheManager getClientInstance(AccumuloConfiguration conf) throws Exception {
+    if (null == manager) {
       String impl = conf.get(Property.TSERV_CACHE_FACTORY_IMPL);
-      Class<? extends BlockCacheManager> clazz = AccumuloVFSClassLoader.loadClass(impl, BlockCacheManager.class);
-      factory = (BlockCacheManager) clazz.newInstance();
+      Class<? extends BlockCacheManager> clazz = Class.forName(impl).asSubclass(BlockCacheManager.class);
+      manager = (BlockCacheManager) clazz.newInstance();
       LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
     }
-    return factory;
+    return manager;
   }
 
 }

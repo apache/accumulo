@@ -91,16 +91,16 @@ public class LruBlockCache implements BlockCache, HeapSize {
   private final ScheduledExecutorService scheduleThreadPool = Executors.newScheduledThreadPool(1, new NamingThreadFactory("LRUBlockCacheStats"));
 
   /** Current size of cache */
-  private AtomicLong size;
+  private final AtomicLong size;
 
   /** Current number of cached elements */
-  private AtomicLong elements;
+  private final AtomicLong elements;
 
   /** Cache access count (sequential ID) */
-  private AtomicLong count;
+  private final AtomicLong count;
 
   /** Cache statistics */
-  private CacheStats stats;
+  private final CacheStats stats;
 
   /** Overhead of the structure itself */
   private final long overhead;
@@ -115,25 +115,12 @@ public class LruBlockCache implements BlockCache, HeapSize {
    *
    * @param conf
    *          block cache configuration
-   * @param maxSize
-   *          maximum size of cache, in bytes
-   * @param blockSize
-   *          approximate size of each block, in bytes
    */
   public LruBlockCache(final LruBlockCacheConfiguration conf) {
     this.conf = conf;
 
     int mapInitialSize = (int) Math.ceil(1.2 * conf.getMaxSize() / conf.getBlockSize());
 
-    if (conf.getSingleFactor() + conf.getMultiFactor() + conf.getMemoryFactor() != 1) {
-      throw new IllegalArgumentException("Single, multi, and memory factors " + " should total 1.0");
-    }
-    if (conf.getMinFactor() >= conf.getAcceptableFactor()) {
-      throw new IllegalArgumentException("minFactor must be smaller than acceptableFactor");
-    }
-    if (conf.getMinFactor() >= 1.0f || conf.getAcceptableFactor() >= 1.0f) {
-      throw new IllegalArgumentException("all factors must be < 1");
-    }
     map = new ConcurrentHashMap<>(mapInitialSize, conf.getMapLoadFactor(), conf.getMapConcurrencyLevel());
     this.stats = new CacheStats();
     this.count = new AtomicLong(0);

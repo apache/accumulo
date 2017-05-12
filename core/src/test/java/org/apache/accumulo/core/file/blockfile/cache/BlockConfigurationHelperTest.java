@@ -17,16 +17,26 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class BlockConfigurationHelperTest {
 
+  private BlockCacheConfiguration bcc = new BlockCacheConfiguration(new ConfigurationCopy(new DefaultConfiguration()), CacheType.DATA,
+      LruBlockCacheConfiguration.PROPERTY_PREFIX);
+
+  @Test
+  public void testGetFullPropertyName() throws Exception {
+    Assert.assertEquals("general.custom.cache.block.lru.data.acceptable.factor",
+        bcc.getHelper().getFullPropertyName(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY));
+  }
+
   @Test
   public void testGetPropertyPrefix() throws Exception {
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(new DefaultConfiguration(), CacheType.DATA, "lru");
-    Assert.assertEquals("general.custom.cache.block.lru.data.", helper.getPropertyPrefix());
+    Assert.assertEquals("general.custom.cache.block.lru.data.", bcc.getHelper().getPropertyPrefix());
   }
 
 }

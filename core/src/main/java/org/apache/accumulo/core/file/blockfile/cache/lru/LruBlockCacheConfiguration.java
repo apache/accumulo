@@ -17,15 +17,13 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
-import java.util.Map;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfigurationHelper;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 
 public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
+
+  public static final String PROPERTY_PREFIX = "lru";
 
   /** Default Configuration Parameters */
 
@@ -75,18 +73,27 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
 
   private final boolean useEvictionThread;
 
-  public LruBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, String implName) {
-    super(conf, type, implName);
-    Map<String,String> props = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(conf, type, implName);
-    this.acceptableFactor = getOrDefault(props, helper.getFullPropertyName(ACCEPTABLE_FACTOR_PROPERTY), DEFAULT_ACCEPTABLE_FACTOR);
-    this.minFactor = getOrDefault(props, helper.getFullPropertyName(MIN_FACTOR_PROPERTY), DEFAULT_MIN_FACTOR);
-    this.singleFactor = getOrDefault(props, helper.getFullPropertyName(SINGLE_FACTOR_PROPERTY), DEFAULT_SINGLE_FACTOR);
-    this.multiFactor = getOrDefault(props, helper.getFullPropertyName(MULTI_FACTOR_PROPERTY), DEFAULT_MULTI_FACTOR);
-    this.memoryFactor = getOrDefault(props, helper.getFullPropertyName(MEMORY_FACTOR_PROPERTY), DEFAULT_MEMORY_FACTOR);
-    this.mapLoadFactor = getOrDefault(props, helper.getFullPropertyName(MAP_LOAD_PROPERTY), DEFAULT_LOAD_FACTOR);
-    this.mapConcurrencyLevel = getOrDefault(props, helper.getFullPropertyName(MAP_CONCURRENCY_PROPERTY), DEFAULT_CONCURRENCY_LEVEL);
-    this.useEvictionThread = getOrDefault(props, helper.getFullPropertyName(EVICTION_THREAD_PROPERTY), Boolean.TRUE);
+  public LruBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type) {
+    super(conf, type, PROPERTY_PREFIX);
+
+    this.acceptableFactor = this.getHelper().get(ACCEPTABLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_ACCEPTABLE_FACTOR);
+    this.minFactor = this.getHelper().get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MIN_FACTOR);
+    this.singleFactor = this.getHelper().get(SINGLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_SINGLE_FACTOR);
+    this.multiFactor = this.getHelper().get(MULTI_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MULTI_FACTOR);
+    this.memoryFactor = this.getHelper().get(MEMORY_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MEMORY_FACTOR);
+    this.mapLoadFactor = this.getHelper().get(MAP_LOAD_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_LOAD_FACTOR);
+    this.mapConcurrencyLevel = this.getHelper().get(MAP_CONCURRENCY_PROPERTY).map(Integer::valueOf).filter(i -> i > 0).orElse(DEFAULT_CONCURRENCY_LEVEL);
+    this.useEvictionThread = this.getHelper().get(EVICTION_THREAD_PROPERTY).map(Boolean::valueOf).orElse(true);
+
+    if (this.getSingleFactor() + this.getMultiFactor() + this.getMemoryFactor() != 1) {
+      throw new IllegalArgumentException("Single, multi, and memory factors " + " should total 1.0");
+    }
+    if (this.getMinFactor() >= this.getAcceptableFactor()) {
+      throw new IllegalArgumentException("minFactor must be smaller than acceptableFactor");
+    }
+    if (this.getMinFactor() >= 1.0f || this.getAcceptableFactor() >= 1.0f) {
+      throw new IllegalArgumentException("all factors must be < 1");
+    }
   }
 
   public float getAcceptableFactor() {

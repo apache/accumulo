@@ -20,8 +20,8 @@ package org.apache.accumulo.core.file.blockfile.cache;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheFactory;
-import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheFactory;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -31,7 +31,7 @@ public class BlockCacheFactoryTest {
   public void testCreateLruBlockCacheFactory() throws Exception {
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheFactory.class.getName());
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager.getInstance(cc);
   }
 
@@ -39,15 +39,15 @@ public class BlockCacheFactoryTest {
   public void testCreateTinyLfuBlockCacheFactory() throws Exception {
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, TinyLfuBlockCacheFactory.class.getName());
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, TinyLfuBlockCacheManager.class.getName());
     BlockCacheManager.getInstance(cc);
   }
 
   @Test
   public void testStartWithDefault() throws Exception {
     DefaultConfiguration dc = new DefaultConfiguration();
-    BlockCacheManager factory = BlockCacheManager.getInstance(dc);
-    factory.start(dc);
-    Assert.assertNotNull(factory.getBlockCache(CacheType.INDEX));
+    BlockCacheManager manager = BlockCacheManager.getInstance(dc);
+    manager.start(dc);
+    Assert.assertNotNull(manager.getBlockCache(CacheType.INDEX));
   }
 }
