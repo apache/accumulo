@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
@@ -29,7 +30,7 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -43,8 +44,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
 
@@ -69,7 +68,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
     majcDelay = c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     if (getClusterType() == ClusterType.STANDALONE) {
-      Thread.sleep(AccumuloConfiguration.getTimeInMillis(majcDelay));
+      Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(majcDelay));
     }
   }
 

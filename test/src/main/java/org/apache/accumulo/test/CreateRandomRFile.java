@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -69,7 +69,7 @@ public class CreateRandomRFile {
     FileSKVWriter mfw;
     try {
       FileSystem fs = FileSystem.get(conf);
-      mfw = new RFileOperations().newWriterBuilder().forFile(file, fs, conf).withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
+      mfw = new RFileOperations().newWriterBuilder().forFile(file, fs, conf).withTableConfiguration(DefaultConfiguration.getInstance()).build();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -601,7 +601,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     this.fs = fs;
     this.hostname = hostname;
 
-    AccumuloConfiguration aconf = serverConfig.getConfiguration();
+    AccumuloConfiguration aconf = serverConfig.getSystemConfiguration();
 
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstance().getInstanceID());
@@ -1447,7 +1447,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       VolumeManager fs = VolumeManagerImpl.get();
       Accumulo.init(fs, conf, app);
       Master master = new Master(conf, fs, hostname);
-      DistributedTrace.enable(hostname, app, conf.getConfiguration());
+      DistributedTrace.enable(hostname, app, conf.getSystemConfiguration());
       master.run();
     } catch (Exception ex) {
       log.error("Unexpected exception, exiting", ex);

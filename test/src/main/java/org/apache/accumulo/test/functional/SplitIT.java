@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -96,7 +96,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
     // If we restarted the tservers, we don't need to re-wait for the majc delay
     if (!restarted) {
-      long millis = AccumuloConfiguration.getTimeInMillis(tservMajcDelay);
+      long millis = ConfigurationTypeHelper.getTimeInMillis(tservMajcDelay);
       log.info("Waiting for majc delay period: {}ms", millis);
       Thread.sleep(millis);
       log.info("Finished waiting for majc delay period");

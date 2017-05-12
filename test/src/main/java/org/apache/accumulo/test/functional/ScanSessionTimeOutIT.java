@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Iterator;
@@ -28,7 +29,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -43,8 +44,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(ScanSessionTimeOutIT.class);
@@ -69,7 +68,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
     sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
     ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
     log.info("Waiting for existing session idle time to expire");
-    Thread.sleep(AccumuloConfiguration.getTimeInMillis(sessionIdle));
+    Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(sessionIdle));
     log.info("Finished waiting");
   }
 

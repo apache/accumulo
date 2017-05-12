@@ -86,7 +86,7 @@ public class AccumuloServerContextTest {
         token.readFields(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())));
 
         ServerConfigurationFactory factory = EasyMock.createMock(ServerConfigurationFactory.class);
-        EasyMock.expect(factory.getConfiguration()).andReturn(conf).anyTimes();
+        EasyMock.expect(factory.getSystemConfiguration()).andReturn(conf).anyTimes();
         EasyMock.expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
         EasyMock.expect(factory.getInstance()).andReturn(instance).anyTimes();
 

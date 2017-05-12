@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.bloomfilter.DynamicBloomFilter;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.PartialKey;
@@ -448,7 +449,7 @@ public class BloomFilterLayer {
     ArrayList<Integer> vals = new ArrayList<>(valsSet);
     Collections.sort(vals);
 
-    ConfigurationCopy acuconf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
+    ConfigurationCopy acuconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     acuconf.set(Property.TABLE_BLOOM_ENABLED, "true");
     acuconf.set(Property.TABLE_BLOOM_KEY_FUNCTOR, "accumulo.core.file.keyfunctor.ColumnFamilyFunctor");
     acuconf.set(Property.TABLE_FILE_TYPE, RFile.EXTENSION);

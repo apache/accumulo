@@ -257,7 +257,7 @@ public class Monitor implements HighlyAvailableService {
     synchronized (Monitor.class) {
       // Learn our instance name asynchronously so we don't hang up if zookeeper is down
       if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
-        SimpleTimer.getInstance(config.getConfiguration()).schedule(new TimerTask() {
+        SimpleTimer.getInstance(config.getSystemConfiguration()).schedule(new TimerTask() {
           @Override
           public void run() {
             synchronized (Monitor.class) {
@@ -444,7 +444,7 @@ public class Monitor implements HighlyAvailableService {
     // Servlets need access to limit requests when the monitor is not active, but Servlets are instantiated
     // via reflection. Expose the service this way instead.
     Monitor.HA_SERVICE_INSTANCE = monitor;
-    DistributedTrace.enable(hostname, app, config.getConfiguration());
+    DistributedTrace.enable(hostname, app, config.getSystemConfiguration());
     try {
       monitor.run(hostname);
     } finally {
@@ -456,7 +456,7 @@ public class Monitor implements HighlyAvailableService {
 
   public void run(String hostname) {
     Monitor.START_TIME = System.currentTimeMillis();
-    int ports[] = config.getConfiguration().getPort(Property.MONITOR_PORT);
+    int ports[] = config.getSystemConfiguration().getPort(Property.MONITOR_PORT);
     for (int port : ports) {
       try {
         log.debug("Creating monitor on port " + port);

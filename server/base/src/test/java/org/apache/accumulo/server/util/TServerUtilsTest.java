@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService.Processor;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -119,11 +120,11 @@ public class TServerUtilsTest {
 
     public TestServerConfigurationFactory(Instance instance) {
       super(instance);
-      conf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
+      conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     }
 
     @Override
-    public synchronized AccumuloConfiguration getConfiguration() {
+    public synchronized AccumuloConfiguration getSystemConfiguration() {
       return conf;
     }
 
@@ -185,14 +186,14 @@ public class TServerUtilsTest {
 
   @After
   public void resetProperty() {
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, Property.TSERV_CLIENTPORT.getDefaultValue());
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_PORTSEARCH, Property.TSERV_PORTSEARCH.getDefaultValue());
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, Property.TSERV_CLIENTPORT.getDefaultValue());
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_PORTSEARCH, Property.TSERV_PORTSEARCH.getDefaultValue());
   }
 
   @Test
   public void testStartServerZeroPort() throws Exception {
     TServer server = null;
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, "0");
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, "0");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -210,7 +211,7 @@ public class TServerUtilsTest {
   public void testStartServerFreePort() throws Exception {
     TServer server = null;
     int port = getFreePort(1024);
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port));
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port));
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -230,7 +231,7 @@ public class TServerUtilsTest {
     InetAddress addr = InetAddress.getByName("localhost");
     // Bind to the port
     ServerSocket s = new ServerSocket(port, 50, addr);
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port));
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port));
     try {
       startServer();
     } finally {
@@ -245,8 +246,8 @@ public class TServerUtilsTest {
     // Bind to the port
     InetAddress addr = InetAddress.getByName("localhost");
     ServerSocket s = new ServerSocket(port[0], 50, addr);
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port[0]));
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_PORTSEARCH, "true");
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port[0]));
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_PORTSEARCH, "true");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -266,7 +267,7 @@ public class TServerUtilsTest {
     TServer server = null;
     int[] port = findTwoFreeSequentialPorts(1024);
     String portRange = Integer.toString(port[0]) + "-" + Integer.toString(port[1]);
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, portRange);
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, portRange);
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -288,7 +289,7 @@ public class TServerUtilsTest {
     String portRange = Integer.toString(port[0]) + "-" + Integer.toString(port[1]);
     // Bind to the port
     ServerSocket s = new ServerSocket(port[0], 50, addr);
-    ((ConfigurationCopy) factory.getConfiguration()).set(Property.TSERV_CLIENTPORT, portRange);
+    ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, portRange);
     try {
       ServerAddress address = startServer();
       assertNotNull(address);

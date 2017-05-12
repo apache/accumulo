@@ -149,7 +149,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     instanceName = configuration.substring(0, index);
     zookeepers = configuration.substring(index + 1);
 
-    conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getConfiguration();
+    conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getSystemConfiguration();
 
     try {
       fs = VolumeManagerImpl.get(conf);
@@ -162,7 +162,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   @Override
   public Status replicate(final Path p, final Status status, final ReplicationTarget target, final ReplicaSystemHelper helper) {
     final Instance localInstance = HdfsZooInstance.getInstance();
-    final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance).getConfiguration();
+    final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance).getSystemConfiguration();
 
     log.debug("Replication RPC timeout is {}", localConf.get(Property.REPLICATION_RPC_TIMEOUT.getKey()));
 

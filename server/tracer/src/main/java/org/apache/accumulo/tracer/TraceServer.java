@@ -186,7 +186,7 @@ public class TraceServer implements Watcher {
     this.serverConfiguration = serverConfiguration;
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + serverConfiguration.getInstance().getInstanceID());
-    AccumuloConfiguration conf = serverConfiguration.getConfiguration();
+    AccumuloConfiguration conf = serverConfiguration.getSystemConfiguration();
     tableName = conf.get(Property.TRACE_TABLE);
     connector = ensureTraceTableExists(conf);
 
@@ -278,7 +278,7 @@ public class TraceServer implements Watcher {
   }
 
   public void run() throws Exception {
-    SimpleTimer.getInstance(serverConfiguration.getConfiguration()).schedule(new Runnable() {
+    SimpleTimer.getInstance(serverConfiguration.getSystemConfiguration()).schedule(new Runnable() {
       @Override
       public void run() {
         flush();

@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.ThriftTransportKey;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -57,7 +57,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
     Instance instance = conn.getInstance();
     ClientConfiguration clientConf = cluster.getClientConfig();
     ClientContext context = new ClientContext(instance, new Credentials(getAdminPrincipal(), getAdminToken()), clientConf);
-    long rpcTimeout = DefaultConfiguration.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
+    long rpcTimeout = ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<>();

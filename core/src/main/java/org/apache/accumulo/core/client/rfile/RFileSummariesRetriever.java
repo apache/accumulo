@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
@@ -79,7 +80,7 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   @Override
   public Collection<Summary> read() throws IOException {
     SummarizerFactory factory = new SummarizerFactory();
-    AccumuloConfiguration acuconf = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration acuconf = DefaultConfiguration.getInstance();
     Configuration conf = in.getFileSystem().getConf();
 
     RFileSource[] sources = in.getSources();

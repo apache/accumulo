@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -150,7 +150,7 @@ public class ConfigCommand extends Command {
       siteConfig.putAll(shellState.getConnector().instanceOperations().getSiteConfiguration());
 
       final TreeMap<String,String> defaults = new TreeMap<>();
-      for (Entry<String,String> defaultEntry : AccumuloConfiguration.getDefaultConfiguration()) {
+      for (Entry<String,String> defaultEntry : DefaultConfiguration.getInstance()) {
         defaults.put(defaultEntry.getKey(), defaultEntry.getValue());
       }
 

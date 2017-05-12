@@ -19,70 +19,13 @@ package org.apache.accumulo.core.conf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Function;
-
 import org.junit.Test;
 
 public class AccumuloConfigurationTest {
 
   @Test
-  public void testGetMemoryInBytes() throws Exception {
-    List<Function<String,Long>> funcs = Arrays.asList(AccumuloConfiguration::getFixedMemoryAsBytes, AccumuloConfiguration::getMemoryAsBytes);
-    for (Function<String,Long> memFunc : funcs) {
-      assertEquals(42l, memFunc.apply("42").longValue());
-      assertEquals(42l, memFunc.apply("42b").longValue());
-      assertEquals(42l, memFunc.apply("42B").longValue());
-      assertEquals(42l * 1024l, memFunc.apply("42K").longValue());
-      assertEquals(42l * 1024l, memFunc.apply("42k").longValue());
-      assertEquals(42l * 1024l * 1024l, memFunc.apply("42M").longValue());
-      assertEquals(42l * 1024l * 1024l, memFunc.apply("42m").longValue());
-      assertEquals(42l * 1024l * 1024l * 1024l, memFunc.apply("42G").longValue());
-      assertEquals(42l * 1024l * 1024l * 1024l, memFunc.apply("42g").longValue());
-    }
-    assertEquals(Runtime.getRuntime().maxMemory() / 10, AccumuloConfiguration.getMemoryAsBytes("10%"));
-    assertEquals(Runtime.getRuntime().maxMemory() / 5, AccumuloConfiguration.getMemoryAsBytes("20%"));
-  }
-
-  @Test
-  public void testGetTimeInMillis() {
-    assertEquals(42L * 24 * 60 * 60 * 1000, AccumuloConfiguration.getTimeInMillis("42d"));
-    assertEquals(42L * 60 * 60 * 1000, AccumuloConfiguration.getTimeInMillis("42h"));
-    assertEquals(42L * 60 * 1000, AccumuloConfiguration.getTimeInMillis("42m"));
-    assertEquals(42L * 1000, AccumuloConfiguration.getTimeInMillis("42s"));
-    assertEquals(42L * 1000, AccumuloConfiguration.getTimeInMillis("42"));
-    assertEquals(42L, AccumuloConfiguration.getTimeInMillis("42ms"));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetFixedMemoryAsBytesFailureCases1() throws Exception {
-    AccumuloConfiguration.getFixedMemoryAsBytes("42x");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetFixedMemoryAsBytesFailureCases2() throws Exception {
-    AccumuloConfiguration.getFixedMemoryAsBytes("FooBar");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetFixedMemoryAsBytesFailureCases3() throws Exception {
-    AccumuloConfiguration.getFixedMemoryAsBytes("40%");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetMemoryAsBytesFailureCases1() throws Exception {
-    AccumuloConfiguration.getMemoryAsBytes("42x");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetMemoryAsBytesFailureCases2() throws Exception {
-    AccumuloConfiguration.getMemoryAsBytes("FooBar");
-  }
-
-  @Test
   public void testGetPropertyByString() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     boolean found = false;
     for (Property p : Property.values()) {
       if (p.getType() != PropertyType.PREFIX) {
@@ -98,7 +41,7 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetSinglePort() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "9997");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -108,7 +51,7 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetAnyPort() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "0");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -118,7 +61,7 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetInvalidPort() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "1020");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -128,7 +71,7 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetPortRange() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "9997-9999");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -140,7 +83,7 @@ public class AccumuloConfigurationTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetPortRangeInvalidLow() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "1020-1026");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -152,7 +95,7 @@ public class AccumuloConfigurationTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetPortRangeInvalidHigh() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "65533-65538");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -164,7 +107,7 @@ public class AccumuloConfigurationTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testGetPortInvalidSyntax() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "[65533,65538]");
     cc.getPort(Property.TSERV_CLIENTPORT);

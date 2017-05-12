@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -110,7 +111,7 @@ public class MultiThreadedRFileTest {
     public TestRFile(AccumuloConfiguration accumuloConfiguration) {
       this.accumuloConfiguration = accumuloConfiguration;
       if (this.accumuloConfiguration == null)
-        this.accumuloConfiguration = AccumuloConfiguration.getDefaultConfiguration();
+        this.accumuloConfiguration = DefaultConfiguration.getInstance();
     }
 
     public void close() throws IOException {
@@ -174,7 +175,7 @@ public class MultiThreadedRFileTest {
       Path path = new Path("file://" + rfile.toString());
 
       // the caches used to obfuscate the multithreaded issues
-      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, null, null, AccumuloConfiguration.getDefaultConfiguration());
+      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, null, null, DefaultConfiguration.getInstance());
       reader = new RFile.Reader(_cbr);
       iter = new ColumnFamilySkippingIterator(reader);
 

@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.minicluster.ServerType;
@@ -200,6 +201,6 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     Configuration conf = new Configuration(false);
     Path accumuloSite = new Path(serverAccumuloConfDir, "accumulo-site.xml");
     conf.addResource(accumuloSite);
-    return new ConfigurationCopy(Iterables.concat(AccumuloConfiguration.getDefaultConfiguration(), conf));
+    return new ConfigurationCopy(Iterables.concat(DefaultConfiguration.getInstance(), conf));
   }
 }

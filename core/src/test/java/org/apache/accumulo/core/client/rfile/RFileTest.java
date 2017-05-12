@@ -42,7 +42,7 @@ import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -774,7 +774,7 @@ public class RFileTest {
 
   private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
     Reader reader = (Reader) FileOperations.getInstance().newReaderBuilder().forFile(testFile).inFileSystem(localFs, localFs.getConf())
-        .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
+        .withTableConfiguration(DefaultConfiguration.getInstance()).build();
     return reader;
   }
 }

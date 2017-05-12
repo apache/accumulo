@@ -21,7 +21,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
@@ -36,7 +37,7 @@ public class SizeLimitCompactionStrategyTest {
 
     HashMap<FileRef,DataFileValue> ret = new HashMap<>();
     for (int i = 0; i < sa.length; i += 2) {
-      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]), new DataFileValue(AccumuloConfiguration.getFixedMemoryAsBytes(sa[i + 1]), 1));
+      ret.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + sa[i]), new DataFileValue(ConfigurationTypeHelper.getFixedMemoryAsBytes(sa[i + 1]), 1));
     }
 
     return ret;
@@ -51,7 +52,7 @@ public class SizeLimitCompactionStrategyTest {
     slcs.init(opts);
 
     KeyExtent ke = new KeyExtent("0", null, null);
-    MajorCompactionRequest mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, AccumuloConfiguration.getDefaultConfiguration());
+    MajorCompactionRequest mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, DefaultConfiguration.getInstance());
 
     mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G"));
 

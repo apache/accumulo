@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -106,7 +106,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
     }
 
     final DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
-    final long zkTimeout = AccumuloConfiguration.getTimeInMillis(getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
+    final long zkTimeout = ConfigurationTypeHelper.getTimeInMillis(getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
     IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(getCluster().getZooKeepers(), (int) zkTimeout,
         defaultConfig.get(Property.INSTANCE_SECRET));
     final String zInstanceRoot = Constants.ZROOT + "/" + conn.getInstance().getInstanceID();

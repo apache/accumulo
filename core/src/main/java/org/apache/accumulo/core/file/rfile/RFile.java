@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -518,7 +518,7 @@ public class RFile {
     private Sampler sampler;
 
     public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
-      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration().getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
+      this(bfw, blockSize, (int) DefaultConfiguration.getInstance().getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
     }
 
     public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize, SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {

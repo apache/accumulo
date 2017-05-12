@@ -17,6 +17,8 @@
 package org.apache.accumulo.core.conf;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
@@ -28,7 +30,7 @@ public class DefaultConfigurationTest {
 
   @Before
   public void setUp() {
-    c = new DefaultConfiguration();
+    c = DefaultConfiguration.getInstance();
   }
 
   @Test
@@ -41,6 +43,8 @@ public class DefaultConfigurationTest {
     Map<String,String> p = new java.util.HashMap<>();
     c.getProperties(p, x -> true);
     assertEquals(Property.MASTER_CLIENTPORT.getDefaultValue(), p.get(Property.MASTER_CLIENTPORT.getKey()));
+    assertFalse(p.containsKey(Property.MASTER_PREFIX.getKey()));
+    assertTrue(p.containsKey(Property.TSERV_DEFAULT_BLOCKSIZE.getKey()));
   }
 
   @Test

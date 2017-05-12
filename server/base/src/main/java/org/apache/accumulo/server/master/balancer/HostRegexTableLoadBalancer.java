@@ -32,8 +32,8 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -77,7 +77,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   private static final int HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT = 250;
   protected static final String DEFAULT_POOL = "HostTableLoadBalancer.ALL";
 
-  protected long oobCheckMillis = AccumuloConfiguration.getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);
+  protected long oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);
 
   private Map<String,String> tableIdToTableName = null;
   private Map<String,Pattern> poolNameToRegexPattern = null;
@@ -196,15 +196,15 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
         }
       }
     }
-    String oobProperty = conf.getConfiguration().get(HOST_BALANCER_OOB_CHECK_KEY);
+    String oobProperty = conf.getSystemConfiguration().get(HOST_BALANCER_OOB_CHECK_KEY);
     if (null != oobProperty) {
-      oobCheckMillis = AccumuloConfiguration.getTimeInMillis(oobProperty);
+      oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(oobProperty);
     }
-    String ipBased = conf.getConfiguration().get(HOST_BALANCER_REGEX_USING_IPS_KEY);
+    String ipBased = conf.getSystemConfiguration().get(HOST_BALANCER_REGEX_USING_IPS_KEY);
     if (null != ipBased) {
       isIpBasedRegex = Boolean.parseBoolean(ipBased);
     }
-    String migrations = conf.getConfiguration().get(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY);
+    String migrations = conf.getSystemConfiguration().get(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY);
     if (null != migrations) {
       maxTServerMigrations = Integer.parseInt(migrations);
     }

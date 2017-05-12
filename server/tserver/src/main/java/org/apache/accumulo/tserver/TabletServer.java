@@ -2429,8 +2429,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    HostAndPort address = startServer(getServerConfigurationFactory().getConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor,
-        "Thrift Client Server");
+    HostAndPort address = startServer(getServerConfigurationFactory().getSystemConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT,
+        processor, "Thrift Client Server");
     log.info("address = " + address);
     return address;
   }
@@ -2440,7 +2440,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     ReplicationServicer.Iface rpcProxy = RpcWrapper.service(handler);
     ReplicationServicer.Iface repl = TCredentialsUpdatingWrapper.service(rpcProxy, handler.getClass(), getConfiguration());
     ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<>(repl);
-    AccumuloConfiguration conf = getServerConfigurationFactory().getConfiguration();
+    AccumuloConfiguration conf = getServerConfigurationFactory().getSystemConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(this, clientAddress.getHostText(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
         "ReplicationServicerHandler", "Replication Servicer", null, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
@@ -2918,8 +2918,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     Runnable contextCleaner = new Runnable() {
       @Override
       public void run() {
-        Set<String> contextProperties = getServerConfigurationFactory().getConfiguration().getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY)
-            .keySet();
+        Set<String> contextProperties = getServerConfigurationFactory().getSystemConfiguration()
+            .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
         Set<String> configuredContexts = new HashSet<>();
         for (String prop : contextProperties) {
           configuredContexts.add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
@@ -3069,7 +3069,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       Accumulo.init(fs, conf, app);
       final TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);
-      DistributedTrace.enable(hostname, app, conf.getConfiguration());
+      DistributedTrace.enable(hostname, app, conf.getSystemConfiguration());
       if (UserGroupInformation.isSecurityEnabled()) {
         UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
         loginUser.doAs(new PrivilegedExceptionAction<Void>() {

@@ -63,7 +63,7 @@ public class LargestFirstMemoryManagerTest {
       ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
 
       @Override
-      public AccumuloConfiguration getConfiguration() {
+      public AccumuloConfiguration getSystemConfiguration() {
         SiteConfiguration conf = SiteConfiguration.getInstance();
         conf.set(Property.TSERV_MAXMEM, "1g");
         return conf;
@@ -72,11 +72,6 @@ public class LargestFirstMemoryManagerTest {
       @Override
       public TableConfiguration getTableConfiguration(String tableId) {
         return delegate.getTableConfiguration(tableId);
-      }
-
-      @Override
-      public TableConfiguration getTableConfiguration(KeyExtent extent) {
-        return delegate.getTableConfiguration(extent);
       }
 
       @Override
@@ -185,18 +180,13 @@ public class LargestFirstMemoryManagerTest {
       ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
 
       @Override
-      public AccumuloConfiguration getConfiguration() {
+      public AccumuloConfiguration getSystemConfiguration() {
         return DefaultConfiguration.getInstance();
       }
 
       @Override
       public TableConfiguration getTableConfiguration(String tableId) {
         return delegate.getTableConfiguration(tableId);
-      }
-
-      @Override
-      public TableConfiguration getTableConfiguration(KeyExtent extent) {
-        return delegate.getTableConfiguration(extent);
       }
 
       @Override

@@ -48,7 +48,7 @@ import org.apache.accumulo.core.client.impl.TableOperationsHelper;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -292,7 +292,7 @@ class MockTableOperations extends TableOperationsHelper {
     for (FileStatus importStatus : fs.listStatus(importPath)) {
       try {
         FileSKVIterator importIterator = FileOperations.getInstance().newReaderBuilder().forFile(importStatus.getPath().toString(), fs, fs.getConf())
-            .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).seekToBeginning().build();
+            .withTableConfiguration(DefaultConfiguration.getInstance()).seekToBeginning().build();
         while (importIterator.hasTop()) {
           Key key = importIterator.getTopKey();
           Value value = importIterator.getTopValue();

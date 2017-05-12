@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -41,7 +41,7 @@ public class DeleteCommand extends Command {
 
   protected long getTimeout(final CommandLine cl) {
     if (cl.hasOption(timeoutOption.getLongOpt())) {
-      return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
+      return ConfigurationTypeHelper.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
     }
 
     return Long.MAX_VALUE;

@@ -22,14 +22,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -40,52 +35,6 @@ import org.slf4j.LoggerFactory;
  * A configuration object.
  */
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
-
-  /**
-   * A filter that accepts properties whose keys are an exact match.
-   */
-  public static class MatchFilter implements Predicate<String> {
-
-    private String match;
-
-    /**
-     * Creates a new filter.
-     *
-     * @param match
-     *          prefix of property keys to accept
-     */
-    public MatchFilter(String match) {
-      this.match = match;
-    }
-
-    @Override
-    public boolean test(String key) {
-      return Objects.equals(match, key);
-    }
-  }
-
-  /**
-   * A filter that accepts properties whose keys begin with a prefix.
-   */
-  public static class PrefixFilter implements Predicate<String> {
-
-    private String prefix;
-
-    /**
-     * Creates a new filter.
-     *
-     * @param prefix
-     *          prefix of property keys to accept
-     */
-    public PrefixFilter(String prefix) {
-      this.prefix = prefix;
-    }
-
-    @Override
-    public boolean test(String key) {
-      return key.startsWith(prefix);
-    }
-  }
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
 
@@ -101,7 +50,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   public String get(String property) {
     Map<String,String> propMap = new HashMap<>(1);
-    getProperties(propMap, new MatchFilter(property));
+    getProperties(propMap, key -> Objects.equals(property, key));
     return propMap.get(property);
   }
 
@@ -138,7 +87,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return entries.entrySet().iterator();
   }
 
-  private void checkType(Property property, PropertyType type) {
+  private static void checkType(Property property, PropertyType type) {
     if (!property.getType().equals(type)) {
       String msg = "Configuration method intended for type " + type + " called with a " + property.getType() + " argument (" + property.getKey() + ")";
       IllegalArgumentException err = new IllegalArgumentException(msg);
@@ -160,7 +109,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     checkType(property, PropertyType.PREFIX);
 
     Map<String,String> propMap = new HashMap<>();
-    getProperties(propMap, new PrefixFilter(property.getKey()));
+    getProperties(propMap, key -> key.startsWith(property.getKey()));
     return propMap;
   }
 
@@ -176,74 +125,12 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public long getAsBytes(Property property) {
     String memString = get(property);
     if (property.getType() == PropertyType.MEMORY) {
-      return getMemoryAsBytes(memString);
+      return ConfigurationTypeHelper.getMemoryAsBytes(memString);
     } else if (property.getType() == PropertyType.BYTES) {
-      return getFixedMemoryAsBytes(memString);
+      return ConfigurationTypeHelper.getFixedMemoryAsBytes(memString);
     } else {
       throw new IllegalArgumentException(property.getKey() + " is not of BYTES or MEMORY type");
     }
-  }
-
-  /**
-   * Interprets a string specifying bytes. A bytes type is specified as a long integer followed by an optional B (bytes), K (KB), M (MB), or G (GB).
-   *
-   * @param str
-   *          String value
-   * @return interpreted memory size in bytes
-   */
-  static public long getFixedMemoryAsBytes(String str) {
-    char lastChar = str.charAt(str.length() - 1);
-
-    if (lastChar == 'b') {
-      log.warn("The 'b' in " + str + " is being considered as bytes. " + "Setting memory by bits is not supported");
-    }
-    try {
-      int multiplier;
-      switch (Character.toUpperCase(lastChar)) {
-        case 'G':
-          multiplier = 30;
-          break;
-        case 'M':
-          multiplier = 20;
-          break;
-        case 'K':
-          multiplier = 10;
-          break;
-        case 'B':
-          multiplier = 0;
-          break;
-        default:
-          return Long.parseLong(str);
-      }
-      return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
-    } catch (Exception ex) {
-      throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting. A valid value would a number "
-          + "possibly followed by an optional 'G', 'M', 'K', or 'B'.");
-    }
-  }
-
-  /**
-   * Interprets a string specifying a Memory type which is specified as a long integer followed by an optional B (bytes), K (KB), M (MB), G (GB) or %
-   * (percentage).
-   *
-   * @param str
-   *          String value
-   * @return interpreted memory size in bytes
-   */
-  static public long getMemoryAsBytes(String str) {
-    char lastChar = str.charAt(str.length() - 1);
-    if (lastChar == '%') {
-      try {
-        int percent = Integer.parseInt(str.substring(0, str.length() - 1));
-        if (percent <= 0 || percent >= 100) {
-          throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting.");
-        }
-        return Runtime.getRuntime().maxMemory() * percent / 100;
-      } catch (Exception ex) {
-        throw new IllegalArgumentException("The value '" + str + "' is not a valid memory setting.");
-      }
-    }
-    return getFixedMemoryAsBytes(str);
   }
 
   /**
@@ -254,48 +141,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @return property value
    * @throws IllegalArgumentException
    *           if the property is of the wrong type
-   * @see #getTimeInMillis(String)
    */
   public long getTimeInMillis(Property property) {
     checkType(property, PropertyType.TIMEDURATION);
 
-    return getTimeInMillis(get(property));
-  }
-
-  /**
-   * Interprets a string specifying a time duration. A time duration is specified as a long integer followed by an optional d (days), h (hours), m (minutes), s
-   * (seconds), or ms (milliseconds). A value without a unit is interpreted as seconds.
-   *
-   * @param str
-   *          string value
-   * @return interpreted time duration in milliseconds
-   */
-  public static long getTimeInMillis(String str) {
-    TimeUnit timeUnit;
-    int unitsLen = 1;
-    switch (str.charAt(str.length() - 1)) {
-      case 'd':
-        timeUnit = TimeUnit.DAYS;
-        break;
-      case 'h':
-        timeUnit = TimeUnit.HOURS;
-        break;
-      case 'm':
-        timeUnit = TimeUnit.MINUTES;
-        break;
-      case 's':
-        timeUnit = TimeUnit.SECONDS;
-        if (str.endsWith("ms")) {
-          timeUnit = TimeUnit.MILLISECONDS;
-          unitsLen = 2;
-        }
-        break;
-      default:
-        timeUnit = TimeUnit.SECONDS;
-        unitsLen = 0;
-        break;
-    }
-    return timeUnit.toMillis(Long.parseLong(str.substring(0, str.length() - unitsLen)));
+    return ConfigurationTypeHelper.getTimeInMillis(get(property));
   }
 
   /**
@@ -320,25 +170,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @return property value
    * @throws IllegalArgumentException
    *           if the property is of the wrong type
-   * @see #getFraction(String)
    */
   public double getFraction(Property property) {
     checkType(property, PropertyType.FRACTION);
 
-    return getFraction(get(property));
-  }
-
-  /**
-   * Interprets a string specifying a fraction. A fraction is specified as a double. An optional % at the end signifies a percentage.
-   *
-   * @param str
-   *          string value
-   * @return interpreted fraction as a decimal value
-   */
-  public double getFraction(String str) {
-    if (str.length() > 0 && str.charAt(str.length() - 1) == '%')
-      return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
-    return Double.parseDouble(str);
+    return ConfigurationTypeHelper.getFraction(get(property));
   }
 
   /**
@@ -349,7 +185,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @return property value
    * @throws IllegalArgumentException
    *           if the property is of the wrong type
-   * @see #getTimeInMillis(String)
    */
   public int[] getPort(Property property) {
     checkType(property, PropertyType.PORT);
@@ -393,7 +228,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * @return property value
    * @throws IllegalArgumentException
    *           if the property is of the wrong type
-   * @see #getTimeInMillis(String)
    */
   public int getCount(Property property) {
     checkType(property, PropertyType.COUNT);
@@ -426,34 +260,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     return pathString;
-  }
-
-  /**
-   * Gets the default configuration.
-   *
-   * @return default configuration
-   * @see DefaultConfiguration#getInstance()
-   */
-  public static synchronized DefaultConfiguration getDefaultConfiguration() {
-    return DefaultConfiguration.getInstance();
-  }
-
-  /**
-   * Gets the configuration specific to a table.
-   *
-   * @param conn
-   *          connector (used to find table name)
-   * @param tableId
-   *          table ID
-   * @return configuration containing table properties
-   * @throws TableNotFoundException
-   *           if the table is not found
-   * @throws AccumuloException
-   *           if there is a problem communicating to Accumulo
-   */
-  public static AccumuloConfiguration getTableConfiguration(Connector conn, String tableId) throws TableNotFoundException, AccumuloException {
-    String tableName = Tables.getTableName(conn.getInstance(), tableId);
-    return new ConfigurationCopy(conn.tableOperations().getProperties(tableName));
   }
 
   /**

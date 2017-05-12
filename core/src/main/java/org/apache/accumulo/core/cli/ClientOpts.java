@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Prope
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
@@ -65,14 +66,14 @@ public class ClientOpts extends Help {
   public static class TimeConverter implements IStringConverter<Long> {
     @Override
     public Long convert(String value) {
-      return AccumuloConfiguration.getTimeInMillis(value);
+      return ConfigurationTypeHelper.getTimeInMillis(value);
     }
   }
 
   public static class MemoryConverter implements IStringConverter<Long> {
     @Override
     public Long convert(String value) {
-      return AccumuloConfiguration.getFixedMemoryAsBytes(value);
+      return ConfigurationTypeHelper.getFixedMemoryAsBytes(value);
     }
   }
 

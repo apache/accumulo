@@ -115,7 +115,7 @@ public class ServerConfigurationFactoryTest {
   public void testGetConfiguration() {
     mockInstanceForConfig();
     ready();
-    AccumuloConfiguration c = scf.getConfiguration();
+    AccumuloConfiguration c = scf.getSystemConfiguration();
     assertNotNull(c);
   }
 

@@ -670,7 +670,7 @@ public class MiniAccumuloConfigImpl {
     }
     _setSiteConfig(siteConfigMap);
 
-    for (Entry<String,String> entry : DefaultConfiguration.getDefaultConfiguration())
+    for (Entry<String,String> entry : DefaultConfiguration.getInstance())
       accumuloConf.setIfUnset(entry.getKey(), entry.getValue());
 
     return this;

@@ -107,7 +107,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     insertData(table, currentTimeMillis());
 
     ClientConfiguration clientConf = cluster.getClientConfig();
-    AccumuloConfiguration clusterClientConf = new ConfigurationCopy(new DefaultConfiguration());
+    AccumuloConfiguration clusterClientConf = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
     // Pass SSL and CredentialProvider options into the ClientConfiguration given to AccumuloInputFormat
     boolean sslEnabled = Boolean.valueOf(clusterClientConf.get(Property.INSTANCE_RPC_SSL_ENABLED));

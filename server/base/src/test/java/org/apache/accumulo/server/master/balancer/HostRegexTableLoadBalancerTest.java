@@ -175,7 +175,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   public void testSplitCurrentByRegexUsingIP() {
     init(new TestServerConfigurationFactory(instance) {
       @Override
-      public synchronized AccumuloConfiguration getConfiguration() {
+      public synchronized AccumuloConfiguration getSystemConfiguration() {
         HashMap<String,String> props = new HashMap<>();
         props.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "30s");
         props.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_USING_IPS_KEY, "true");

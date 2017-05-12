@@ -16,26 +16,20 @@
  */
 package org.apache.accumulo.core.conf;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * An {@link AccumuloConfiguration} that contains only default values for properties. This class is a singleton.
  */
 public class DefaultConfiguration extends AccumuloConfiguration {
-  private final static Map<String,String> resolvedProps;
-  static {
-    Map<String,String> m = new HashMap<>();
-    for (Property prop : Property.values()) {
-      if (!prop.getType().equals(PropertyType.PREFIX)) {
-        m.put(prop.getKey(), prop.getDefaultValue());
-      }
-    }
-    resolvedProps = Collections.unmodifiableMap(m);
-  }
+
+  private static final Map<String,String> resolvedProps = Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
+      .collect(Collectors.toMap(p -> p.getKey(), p -> p.getDefaultValue()));
+
+  private DefaultConfiguration() {}
 
   /**
    * Gets a default configuration.
@@ -53,8 +47,6 @@ public class DefaultConfiguration extends AccumuloConfiguration {
 
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
-    for (Entry<String,String> entry : resolvedProps.entrySet())
-      if (filter.test(entry.getKey()))
-        props.put(entry.getKey(), entry.getValue());
+    resolvedProps.entrySet().stream().filter(p -> filter.test(p.getKey())).forEach(e -> props.put(e.getKey(), e.getValue()));
   }
 }

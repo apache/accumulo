@@ -18,7 +18,7 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -49,7 +49,7 @@ public class MergeCommand extends Command {
       all = true;
     }
     if (cl.hasOption(sizeOpt.getOpt())) {
-      size = AccumuloConfiguration.getFixedMemoryAsBytes(cl.getOptionValue(sizeOpt.getOpt()));
+      size = ConfigurationTypeHelper.getFixedMemoryAsBytes(cl.getOptionValue(sizeOpt.getOpt()));
     }
     if (startRow == null && endRow == null && size < 0 && !all) {
       shellState.getReader().flush();

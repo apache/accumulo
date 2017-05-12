@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.system.MapFileIterator;
@@ -36,7 +37,7 @@ public class DefaultIteratorEnvironment extends BaseIteratorEnvironment {
   }
 
   public DefaultIteratorEnvironment() {
-    this.conf = AccumuloConfiguration.getDefaultConfiguration();
+    this.conf = DefaultConfiguration.getInstance();
   }
 
   @Override

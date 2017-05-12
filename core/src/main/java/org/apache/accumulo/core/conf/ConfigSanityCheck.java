@@ -104,7 +104,7 @@ public class ConfigSanityCheck {
 
   private static void checkTimeDuration(Property prop, String value, CheckTimeDuration chk) {
     verifyPropertyTypes(PropertyType.TIMEDURATION, prop);
-    if (!chk.check(AccumuloConfiguration.getTimeInMillis(value)))
+    if (!chk.check(ConfigurationTypeHelper.getTimeInMillis(value)))
       fatal(PREFIX + chk.getDescription(prop));
   }
 

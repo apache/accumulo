@@ -33,7 +33,7 @@ import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
@@ -150,7 +150,7 @@ public class ZooKeeperInstance implements Instance {
     if ((instanceId == null) == (instanceName == null))
       throw new IllegalArgumentException("Expected exactly one of instanceName and instanceId to be set");
     this.zooKeepers = clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
-    this.zooKeepersSessionTimeOut = (int) AccumuloConfiguration.getTimeInMillis(clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
+    this.zooKeepersSessionTimeOut = (int) ConfigurationTypeHelper.getTimeInMillis(clientConf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
     zooCache = zcf.getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     if (null != instanceName) {
       // Validates that the provided instanceName actually exists

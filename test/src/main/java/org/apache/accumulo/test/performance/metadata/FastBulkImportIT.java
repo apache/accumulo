@@ -23,7 +23,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -91,7 +91,7 @@ public class FastBulkImportIT extends ConfigurableMacBase {
     fs.mkdirs(files);
     for (int i = 0; i < 100; i++) {
       FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder().forFile(files.toString() + "/bulk_" + i + "." + RFile.EXTENSION, fs, fs.getConf())
-          .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
+          .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
       for (int j = 0x100; j < 0xfff; j += 3) {
         writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));

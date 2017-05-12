@@ -44,6 +44,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Rule;
@@ -331,7 +332,7 @@ public class CryptoTest {
   }
 
   private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
-    ConfigurationCopy result = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
+    ConfigurationCopy result = new ConfigurationCopy(DefaultConfiguration.getInstance());
     Configuration conf = new Configuration(false);
     conf.addResource(cryptoConfSetting);
     for (Entry<String,String> e : conf) {

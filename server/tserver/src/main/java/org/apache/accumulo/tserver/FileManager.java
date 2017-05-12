@@ -317,7 +317,8 @@ public class FileManager {
         FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
         // log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder().forFile(path.toString(), ns, ns.getConf())
-            .withTableConfiguration(context.getServerConfigurationFactory().getTableConfiguration(tablet)).withBlockCache(dataCache, indexCache).build();
+            .withTableConfiguration(context.getServerConfigurationFactory().getTableConfiguration(tablet.getTableId())).withBlockCache(dataCache, indexCache)
+            .build();
         reservedFiles.add(reader);
         readersReserved.put(reader, file);
       } catch (Exception e) {
@@ -474,7 +475,7 @@ public class FileManager {
       dataSources = new ArrayList<>();
       this.tablet = tablet;
 
-      continueOnFailure = context.getServerConfigurationFactory().getTableConfiguration(tablet).getBoolean(Property.TABLE_FAILURES_IGNORE);
+      continueOnFailure = context.getServerConfigurationFactory().getTableConfiguration(tablet.getTableId()).getBoolean(Property.TABLE_FAILURES_IGNORE);
 
       if (tablet.isMeta()) {
         continueOnFailure = false;

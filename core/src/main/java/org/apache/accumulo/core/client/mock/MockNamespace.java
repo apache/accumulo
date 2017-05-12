@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.NamespacePermission;
 
@@ -38,7 +38,7 @@ public class MockNamespace {
 
   public MockNamespace() {
     settings = new HashMap<>();
-    for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
+    for (Entry<String,String> entry : DefaultConfiguration.getInstance()) {
       String key = entry.getKey();
       if (key.startsWith(Property.TABLE_PREFIX.getKey())) {
         settings.put(key, entry.getValue());

@@ -111,7 +111,7 @@ public class CollectTabletStats {
     Instance instance = opts.getInstance();
     final ServerConfigurationFactory sconf = new ServerConfigurationFactory(instance);
     Credentials creds = new Credentials(opts.getPrincipal(), opts.getToken());
-    ClientContext context = new ClientContext(instance, creds, sconf.getConfiguration());
+    ClientContext context = new ClientContext(instance, creds, sconf.getSystemConfiguration());
 
     String tableId = Tables.getNameToIdMap(instance).get(opts.getTableName());
     if (tableId == null) {
@@ -162,7 +162,7 @@ public class CollectTabletStats {
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
-            return readFiles(fs, sconf.getConfiguration(), files, ke, columns);
+            return readFiles(fs, sconf.getSystemConfiguration(), files, ke, columns);
           }
 
         };
@@ -479,7 +479,7 @@ public class CollectTabletStats {
     for (FileRef file : files) {
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
       readers.add(FileOperations.getInstance().newReaderBuilder().forFile(file.path().toString(), ns, ns.getConf())
-          .withTableConfiguration(aconf.getConfiguration()).build());
+          .withTableConfiguration(aconf.getSystemConfiguration()).build());
     }
 
     List<IterInfo> emptyIterinfo = Collections.emptyList();

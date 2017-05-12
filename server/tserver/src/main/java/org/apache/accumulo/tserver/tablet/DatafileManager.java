@@ -31,7 +31,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -299,7 +299,7 @@ class DatafileManager {
       // find the smallest file
 
       long maxFileSize = Long.MAX_VALUE;
-      maxMergingMinorCompactionFileSize = AccumuloConfiguration.getFixedMemoryAsBytes(tablet.getTableConfiguration().get(
+      maxMergingMinorCompactionFileSize = ConfigurationTypeHelper.getFixedMemoryAsBytes(tablet.getTableConfiguration().get(
           Property.TABLE_MINC_MAX_MERGE_FILE_SIZE));
       if (maxMergingMinorCompactionFileSize > 0) {
         maxFileSize = maxMergingMinorCompactionFileSize;

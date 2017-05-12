@@ -155,7 +155,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     opts.parseArgs(app, args);
     SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, fs, conf);
 
-    DistributedTrace.enable(opts.getAddress(), app, conf.getConfiguration());
+    DistributedTrace.enable(opts.getAddress(), app, conf.getSystemConfiguration());
     try {
       gc.run();
     } finally {

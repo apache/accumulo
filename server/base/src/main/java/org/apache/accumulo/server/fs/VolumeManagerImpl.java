@@ -89,7 +89,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   public static org.apache.accumulo.server.fs.VolumeManager getLocal(String localBasePath) throws IOException {
-    AccumuloConfiguration accConf = DefaultConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration accConf = DefaultConfiguration.getInstance();
     Volume defaultLocalVolume = VolumeConfiguration.create(FileSystem.getLocal(CachedConfiguration.getInstance()), localBasePath);
 
     // The default volume gets placed in the map, but local filesystem is only used for testing purposes

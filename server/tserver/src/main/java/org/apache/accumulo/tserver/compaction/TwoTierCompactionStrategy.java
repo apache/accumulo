@@ -19,7 +19,7 @@ package org.apache.accumulo.tserver.compaction;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
@@ -82,7 +82,7 @@ public class TwoTierCompactionStrategy extends DefaultCompactionStrategy {
     String threshold = options.get(LARGE_FILE_COMPRESSION_THRESHOLD);
     largeFileCompressionType = options.get(LARGE_FILE_COMPRESSION_TYPE);
     verifyRequiredProperties(threshold, largeFileCompressionType);
-    largeFileCompressionThreshold = AccumuloConfiguration.getFixedMemoryAsBytes(threshold);
+    largeFileCompressionThreshold = ConfigurationTypeHelper.getFixedMemoryAsBytes(threshold);
   }
 
   @Override

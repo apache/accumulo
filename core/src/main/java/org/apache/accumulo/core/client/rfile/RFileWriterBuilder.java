@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -83,7 +84,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   @Override
   public RFileWriter build() throws IOException {
     FileOperations fileops = FileOperations.getInstance();
-    AccumuloConfiguration acuconf = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration acuconf = DefaultConfiguration.getInstance();
     HashMap<String,String> userProps = new HashMap<>();
 
     userProps.putAll(tableConfig);

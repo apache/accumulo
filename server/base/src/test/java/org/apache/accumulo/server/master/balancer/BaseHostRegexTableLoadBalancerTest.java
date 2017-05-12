@@ -139,7 +139,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
 
     @Override
-    public synchronized AccumuloConfiguration getConfiguration() {
+    public synchronized AccumuloConfiguration getSystemConfiguration() {
       return new ConfigurationCopy(DEFAULT_TABLE_PROPERTIES);
     }
 

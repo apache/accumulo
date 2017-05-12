@@ -444,7 +444,7 @@ public class Admin implements KeywordExecutable {
       }
     }
     Connector connector = context.getConnector();
-    defaultConfig = AccumuloConfiguration.getDefaultConfiguration();
+    defaultConfig = DefaultConfiguration.getInstance();
     siteConfig = connector.instanceOperations().getSiteConfiguration();
     systemConfig = connector.instanceOperations().getSystemConfiguration();
     if (opts.allConfiguration || opts.users) {
