@@ -147,7 +147,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
       } else {
         cc = new ConfigurationCopy(new DefaultConfiguration());
       }
-      cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(CACHE_BLOCK_SIZE));
+      if (null == cc.get(Property.TSERV_DEFAULT_BLOCKSIZE)) {
+        cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(CACHE_BLOCK_SIZE));
+      }
       try {
         blockCacheManager = BlockCacheManager.getClientInstance(cc);
         if (opts.indexCacheSize > 0) {

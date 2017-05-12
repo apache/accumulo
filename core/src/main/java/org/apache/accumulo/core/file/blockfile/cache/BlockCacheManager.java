@@ -31,9 +31,8 @@ public abstract class BlockCacheManager {
   public static final String CACHE_PROPERTY_BASE = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.block.";
 
   private static final Logger LOG = LoggerFactory.getLogger(BlockCacheManager.class);
-  private static BlockCacheManager manager = null;
 
-  protected final Map<CacheType,BlockCache> caches = new HashMap<>();
+  private final Map<CacheType,BlockCache> caches = new HashMap<>();
 
   /**
    * Initialize the caches for each CacheType based on the configuration
@@ -53,11 +52,6 @@ public abstract class BlockCacheManager {
    */
   public void stop() {
     this.caches.clear();
-    close();
-  }
-  
-  private static synchronized void close() {
-	  manager = null;
   }
 
   /**
@@ -90,13 +84,10 @@ public abstract class BlockCacheManager {
    *           error loading block cache manager implementation class
    */
   public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf) throws Exception {
-    if (null == manager) {
-      String impl = conf.get(Property.TSERV_CACHE_FACTORY_IMPL);
-      Class<? extends BlockCacheManager> clazz = AccumuloVFSClassLoader.loadClass(impl, BlockCacheManager.class);
-      manager = (BlockCacheManager) clazz.newInstance();
-      LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
-    }
-    return manager;
+    String impl = conf.get(Property.TSERV_CACHE_FACTORY_IMPL);
+    Class<? extends BlockCacheManager> clazz = AccumuloVFSClassLoader.loadClass(impl, BlockCacheManager.class);
+    LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
+    return (BlockCacheManager) clazz.newInstance();
   }
 
   /**
@@ -109,13 +100,10 @@ public abstract class BlockCacheManager {
    *           error loading block cache manager implementation class
    */
   public static synchronized BlockCacheManager getClientInstance(AccumuloConfiguration conf) throws Exception {
-    if (null == manager) {
-      String impl = conf.get(Property.TSERV_CACHE_FACTORY_IMPL);
-      Class<? extends BlockCacheManager> clazz = Class.forName(impl).asSubclass(BlockCacheManager.class);
-      manager = (BlockCacheManager) clazz.newInstance();
-      LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
-    }
-    return manager;
+    String impl = conf.get(Property.TSERV_CACHE_FACTORY_IMPL);
+    Class<? extends BlockCacheManager> clazz = Class.forName(impl).asSubclass(BlockCacheManager.class);
+    LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
+    return (BlockCacheManager) clazz.newInstance();
   }
 
 }

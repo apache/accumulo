@@ -17,8 +17,6 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
-import java.util.Map.Entry;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
@@ -39,8 +37,11 @@ public class LruBlockCacheManager extends BlockCacheManager {
 
   @Override
   public void stop() {
-    for (Entry<CacheType,BlockCache> e : this.caches.entrySet()) {
-      ((LruBlockCache) e.getValue()).shutdown();
+    for (CacheType type : CacheType.values()) {
+      LruBlockCache cache = ((LruBlockCache) this.getBlockCache(type));
+      if (null != cache) {
+        cache.shutdown();
+      }
     }
     super.stop();
   }
