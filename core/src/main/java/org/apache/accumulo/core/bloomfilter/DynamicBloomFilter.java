@@ -97,7 +97,7 @@ public class DynamicBloomFilter extends Filter {
   /**
    * Zero-args constructor for the serialization.
    */
-  public DynamicBloomFilter() {}
+  public DynamicBloomFilter() {/**default constructor*/}
 
   /**
    * Constructor.

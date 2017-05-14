@@ -279,7 +279,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         }
       }
 
-      if (mutations2.size() > 0)
+      if (!mutations2.isEmpty())
         failedMutations.addAll(mutations2);
 
     } else {
@@ -311,7 +311,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       binnedMutations.clear();
     }
 
-    if (failures.size() > 0)
+    if (!failures.isEmpty())
       queueRetry(failures, null);
 
     for (Entry<String,TabletServerMutations<QCMutation>> entry : binnedMutations.entrySet()) {
@@ -344,7 +344,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     // in bigger batches and less RPC overhead
 
     synchronized (serverQueue) {
-      if (serverQueue.queue.size() > 0)
+      if (!serverQueue.queue.isEmpty())
         threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
       else
         serverQueue.taskQueued = false;
@@ -358,7 +358,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     ArrayList<TabletServerMutations<QCMutation>> mutations = new ArrayList<>();
     queue.drainTo(mutations);
 
-    if (mutations.size() == 0)
+    if (mutations.isEmpty())
       return null;
 
     if (mutations.size() == 1) {
@@ -401,7 +401,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       public void run() {
         List<QCMutation> mutations = new ArrayList<>();
         failedMutations.drainTo(mutations);
-        if (mutations.size() > 0)
+        if (!mutations.isEmpty())
           queue(mutations);
       }
     };
@@ -426,7 +426,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       ConditionalMutation mut = mutations.next();
       count++;
 
-      if (mut.getConditions().size() == 0)
+      if (mut.getConditions().isEmpty())
         throw new IllegalArgumentException("ConditionalMutation had no conditions " + new String(mut.getRow(), UTF_8));
 
       for (Condition cond : mut.getConditions()) {
