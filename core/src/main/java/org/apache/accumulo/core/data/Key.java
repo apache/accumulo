@@ -111,6 +111,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * marker false. This constructor creates a copy of row. If you don't want to create a copy of row, you should call
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)} instead.
    *
+   * @since 1.8.0
+   *
    * @param row
    *          row ID
    * @since 1.8.0
@@ -137,6 +139,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, empty column family, empty column qualifier, empty column visibility, the specified timestamp, and delete marker
    * false. This constructor creates a copy of row. If you don't want to create a copy, you should call
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)} instead.
+   *
+   * @since 1.8.0
    *
    * @param row
    *          row ID
@@ -270,7 +274,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Long#MAX_VALUE}, and delete marker false.
    */
   public Key(Text row, Text cf, Text cq) {
-    init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
+    init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false,
+        true);
   }
 
   /**
@@ -283,7 +288,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   public Key(byte[] row, byte[] cf, byte[] cq) {
     init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
   }
-
+  
   /**
    * Creates a key with the specified row, the specified column family, the specified column qualifier, the specified column visibility, timestamp
    * {@link Long#MAX_VALUE}, and delete marker false.
