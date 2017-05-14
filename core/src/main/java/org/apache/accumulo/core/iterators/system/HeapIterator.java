@@ -30,8 +30,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  */
 public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> {
   private PriorityQueue<SortedKeyValueIterator<Key,Value>> heap;
-  private SortedKeyValueIterator<Key,Value> topIdx = null;
-  private Key nextKey;
+  private volatile SortedKeyValueIterator<Key,Value> topIdx = null;
+  private volatile Key nextKey;
 
   private static class SKVIComparator implements Comparator<SortedKeyValueIterator<Key,Value>> {
 
