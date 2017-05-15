@@ -36,9 +36,17 @@ import java.util.Map.Entry;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 @Deprecated
 public class MockScannerTest {
+
+  public static final String ROOT = "root";
+  public static final String TEST = "test";
+  public static final String SEP = ",";
+  public static final String A_B_C_D = 'A' + SEP + 'B' + SEP + 'C' + SEP + 'D';
+  public static final String CF = "cf";
+  public static final String CQ = "cq";
 
   public static class DeepCopyIterator extends WrappingIterator {
 
@@ -51,16 +59,16 @@ public class MockScannerTest {
   @Test
   public void testDeepCopy() throws Exception {
     MockInstance inst = new MockInstance();
-    Connector conn = inst.getConnector("root", new PasswordToken(""));
-    conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
-    for (String row : "A,B,C,D".split(",")) {
+    Connector conn = inst.getConnector(ROOT, new PasswordToken(""));
+    conn.tableOperations().create(TEST);
+    BatchWriter bw = conn.createBatchWriter(TEST, new BatchWriterConfig());
+    for (String row : A_B_C_D.split(SEP)) {
       Mutation m = new Mutation(row);
-      m.put("cf", "cq", "");
+      m.put(CF, CQ, "");
       bw.addMutation(m);
     }
     bw.flush();
-    BatchScanner bs = conn.createBatchScanner("test", Authorizations.EMPTY, 1);
+    BatchScanner bs = conn.createBatchScanner(TEST, Authorizations.EMPTY, 1);
     IteratorSetting cfg = new IteratorSetting(100, DeepCopyIterator.class);
     bs.addScanIterator(cfg);
     bs.setRanges(Collections.singletonList(new Range("A", "Z")));
@@ -69,9 +77,9 @@ public class MockScannerTest {
     for (Entry<Key,Value> entry : bs) {
       sb.append(comma);
       sb.append(entry.getKey().getRow());
-      comma = ",";
+      comma = SEP;
     }
-    assertEquals("A,B,C,D", sb.toString());
+    assertEquals(A_B_C_D, sb.toString());
   }
 
   @Test
@@ -81,6 +89,7 @@ public class MockScannerTest {
     assertNull(env.getSamplerConfiguration());
     try {
       env.cloneWithSamplingEnabled();
+      fail("cloneWithSamplingEnabled should have thrown SampleNotPresentException");
     } catch (SampleNotPresentException se) {
       // expected
     }
