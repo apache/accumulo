@@ -25,7 +25,6 @@ import junit.framework.TestCase;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration.BlockCacheConfigurationHelper;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
@@ -38,6 +37,29 @@ import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
  * accessible when expected to be.
  */
 public class TestLruBlockCache extends TestCase {
+
+  public void testConfiguration() {
+    ConfigurationCopy cc = new ConfigurationCopy();
+    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(1019));
+    cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(1000023));
+
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.93f).acceptableFactor(0.97f).singleFactor(0.20f)
+        .multiFactor(0.30f).memoryFactor(0.50f).mapConcurrencyLevel(5).mapLoadFactor(0.53f).buildMap().forEach(cc::set);
+
+    LruBlockCacheConfiguration lbcc = new LruBlockCacheConfiguration(cc, CacheType.INDEX);
+
+    assertEquals(false, lbcc.isUseEvictionThread());
+    assertEquals(0.93f, lbcc.getMinFactor());
+    assertEquals(0.97f, lbcc.getAcceptableFactor());
+    assertEquals(0.20f, lbcc.getSingleFactor());
+    assertEquals(0.30f, lbcc.getMultiFactor());
+    assertEquals(0.50f, lbcc.getMemoryFactor());
+    assertEquals(0.53f, lbcc.getMapLoadFactor());
+    assertEquals(5, lbcc.getMapConcurrencyLevel());
+    assertEquals(1019, lbcc.getBlockSize());
+    assertEquals(1000023, lbcc.getMaxSize());
+  }
 
   public void testBackgroundEvictionThread() throws Exception {
 
@@ -140,9 +162,9 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, LruBlockCacheConfiguration.PROPERTY_PREFIX);
-    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    manager.start(helper.getConfiguration());
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).buildMap().forEach(cc::set);
+    manager.start(cc);
+
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
@@ -187,14 +209,9 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, LruBlockCacheConfiguration.PROPERTY_PREFIX);
-    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
-    helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
-    helper.set(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.25f));
-    helper.set(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.50f));
-    helper.set(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.25f));
-    manager.start(helper.getConfiguration());
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.25f)
+        .multiFactor(0.50f).memoryFactor(0.25f).buildMap().forEach(cc::set);
+    manager.start(cc);
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(5, 10000, "single");
@@ -256,14 +273,9 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, LruBlockCacheConfiguration.PROPERTY_PREFIX);
-    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.98f));
-    helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
-    helper.set(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
-    helper.set(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
-    helper.set(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
-    manager.start(helper.getConfiguration());
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.33f)
+        .multiFactor(0.33f).memoryFactor(0.34f).buildMap().forEach(cc::set);
+    manager.start(cc);
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(5, blockSize, "single");
@@ -384,15 +396,9 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    BlockCacheConfigurationHelper helper = new BlockCacheConfigurationHelper(cc, CacheType.INDEX, LruBlockCacheConfiguration.PROPERTY_PREFIX);
-    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    helper.set(LruBlockCacheConfiguration.EVICTION_THREAD_PROPERTY, Boolean.FALSE.toString());
-    helper.set(LruBlockCacheConfiguration.MIN_FACTOR_PROPERTY, Float.toString(0.66f));
-    helper.set(LruBlockCacheConfiguration.ACCEPTABLE_FACTOR_PROPERTY, Float.toString(0.99f));
-    helper.set(LruBlockCacheConfiguration.SINGLE_FACTOR_PROPERTY, Float.toString(0.33f));
-    helper.set(LruBlockCacheConfiguration.MULTI_FACTOR_PROPERTY, Float.toString(0.33f));
-    helper.set(LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, Float.toString(0.34f));
-    manager.start(helper.getConfiguration());
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.66f).acceptableFactor(0.99f).singleFactor(0.33f)
+        .multiFactor(0.33f).memoryFactor(0.34f).buildMap().forEach(cc::set);
+    manager.start(cc);
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
     Block[] singleBlocks = generateFixedBlocks(20, blockSize, "single");

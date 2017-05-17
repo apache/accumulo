@@ -17,9 +17,15 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 
 public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
 
@@ -76,14 +82,14 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
   public LruBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type) {
     super(conf, type, PROPERTY_PREFIX);
 
-    this.acceptableFactor = this.getHelper().get(ACCEPTABLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_ACCEPTABLE_FACTOR);
-    this.minFactor = this.getHelper().get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MIN_FACTOR);
-    this.singleFactor = this.getHelper().get(SINGLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_SINGLE_FACTOR);
-    this.multiFactor = this.getHelper().get(MULTI_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MULTI_FACTOR);
-    this.memoryFactor = this.getHelper().get(MEMORY_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MEMORY_FACTOR);
-    this.mapLoadFactor = this.getHelper().get(MAP_LOAD_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_LOAD_FACTOR);
-    this.mapConcurrencyLevel = this.getHelper().get(MAP_CONCURRENCY_PROPERTY).map(Integer::valueOf).filter(i -> i > 0).orElse(DEFAULT_CONCURRENCY_LEVEL);
-    this.useEvictionThread = this.getHelper().get(EVICTION_THREAD_PROPERTY).map(Boolean::valueOf).orElse(true);
+    this.acceptableFactor = get(ACCEPTABLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_ACCEPTABLE_FACTOR);
+    this.minFactor = get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MIN_FACTOR);
+    this.singleFactor = get(SINGLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_SINGLE_FACTOR);
+    this.multiFactor = get(MULTI_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MULTI_FACTOR);
+    this.memoryFactor = get(MEMORY_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MEMORY_FACTOR);
+    this.mapLoadFactor = get(MAP_LOAD_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_LOAD_FACTOR);
+    this.mapConcurrencyLevel = get(MAP_CONCURRENCY_PROPERTY).map(Integer::valueOf).filter(i -> i > 0).orElse(DEFAULT_CONCURRENCY_LEVEL);
+    this.useEvictionThread = get(EVICTION_THREAD_PROPERTY).map(Boolean::valueOf).orElse(true);
 
     if (this.getSingleFactor() + this.getMultiFactor() + this.getMemoryFactor() != 1) {
       throw new IllegalArgumentException("Single, multi, and memory factors " + " should total 1.0");
@@ -126,6 +132,74 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
 
   public boolean isUseEvictionThread() {
     return useEvictionThread;
+  }
+
+  public static class Builder {
+    private Map<String,String> props = new HashMap<>();
+    private String prefix;
+
+    private Builder(String prefix) {
+      this.prefix = prefix;
+    }
+
+    private void set(String prop, float val) {
+      props.put(prefix + prop, Float.toString(val));
+    }
+
+    public Builder acceptableFactor(float af) {
+      Preconditions.checkArgument(af > 0);
+      set(ACCEPTABLE_FACTOR_PROPERTY, af);
+      return this;
+    }
+
+    public Builder minFactor(float mf) {
+      Preconditions.checkArgument(mf > 0);
+      set(MIN_FACTOR_PROPERTY, mf);
+      return this;
+    }
+
+    public Builder singleFactor(float sf) {
+      Preconditions.checkArgument(sf > 0);
+      set(SINGLE_FACTOR_PROPERTY, sf);
+      return this;
+    }
+
+    public Builder multiFactor(float mf) {
+      Preconditions.checkArgument(mf > 0);
+      set(MULTI_FACTOR_PROPERTY, mf);
+      return this;
+    }
+
+    public Builder memoryFactor(float mf) {
+      Preconditions.checkArgument(mf > 0);
+      set(MEMORY_FACTOR_PROPERTY, mf);
+      return this;
+    }
+
+    public Builder mapLoadFactor(float mlf) {
+      Preconditions.checkArgument(mlf > 0);
+      set(MAP_LOAD_PROPERTY, mlf);
+      return this;
+    }
+
+    public Builder mapConcurrencyLevel(int mcl) {
+      Preconditions.checkArgument(mcl > 0);
+      props.put(prefix + MAP_CONCURRENCY_PROPERTY, mcl + "");
+      return this;
+    }
+
+    public Builder useEvictionThread(boolean uet) {
+      props.put(prefix + EVICTION_THREAD_PROPERTY, uet + "");
+      return this;
+    }
+
+    public Map<String,String> buildMap() {
+      return ImmutableMap.copyOf(props);
+    }
+  }
+
+  public static Builder builder(CacheType ct) {
+    return new Builder(getPrefix(ct, PROPERTY_PREFIX));
   }
 
   @Override

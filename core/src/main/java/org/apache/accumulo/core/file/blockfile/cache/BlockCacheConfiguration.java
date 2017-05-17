@@ -21,41 +21,9 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 
 public class BlockCacheConfiguration {
-
-  public static class BlockCacheConfigurationHelper {
-
-    private final ConfigurationCopy conf;
-    private final String basePropertyName;
-
-    protected BlockCacheConfigurationHelper(ConfigurationCopy conf, CacheType type, String implName) {
-      this.conf = conf;
-      this.basePropertyName = BlockCacheManager.CACHE_PROPERTY_BASE + implName + "." + type.name().toLowerCase() + ".";
-    }
-
-    public String getPropertyPrefix() {
-      return basePropertyName;
-    }
-
-    public String getFullPropertyName(String propertySuffix) {
-      return this.basePropertyName + propertySuffix;
-    }
-
-    public Optional<String> get(String property) {
-      return Optional.ofNullable(this.conf.get(this.getFullPropertyName(property)));
-    }
-
-    public void set(String propertySuffix, String value) {
-      conf.set(getFullPropertyName(propertySuffix), value);
-    }
-
-    public ConfigurationCopy getConfiguration() {
-      return this.conf;
-    }
-  }
 
   /** Maximum allowable size of cache (block put if size > max, evict) */
   private final long maxSize;
@@ -63,14 +31,13 @@ public class BlockCacheConfiguration {
   /** Approximate block size */
   private final long blockSize;
 
-  /** Helper object for working with block cache configuration **/
-  private final BlockCacheConfigurationHelper helper;
+  private final Map<String,String> genProps;
+
+  private final String prefix;
 
   public BlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, String implName) {
-
-    Map<String,String> props = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
-    ConfigurationCopy blockCacheConfiguration = new ConfigurationCopy(props);
-    this.helper = new BlockCacheConfigurationHelper(blockCacheConfiguration, type, implName);
+    prefix = getPrefix(type, implName);
+    genProps = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
 
     switch (type) {
       case INDEX:
@@ -88,16 +55,20 @@ public class BlockCacheConfiguration {
     this.blockSize = conf.getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
   }
 
-  public BlockCacheConfigurationHelper getHelper() {
-    return this.helper;
-  }
-
   public long getMaxSize() {
     return this.maxSize;
   }
 
   public long getBlockSize() {
     return this.blockSize;
+  }
+
+  protected Optional<String> get(String suffix) {
+    return Optional.ofNullable(genProps.get(prefix + suffix));
+  }
+
+  public static String getPrefix(CacheType type, String implName) {
+    return BlockCacheManager.CACHE_PROPERTY_BASE + implName + "." + type.name().toLowerCase() + ".";
   }
 
   @Override
