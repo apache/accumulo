@@ -259,6 +259,41 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>prep-output-dir</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <executable>mkdir</executable>
+              <arguments>
+                <argument>-p</argument>
+                <argument>${project.build.directory}/generated-docs</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>config-appendix</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <mainClass>org.apache.accumulo.core.conf.ConfigurationDocGen</mainClass>
+              <classpathScope>compile</classpathScope>
+              <arguments>
+                <argument>--generate-markdown</argument>
+                <argument>${project.build.directory}/generated-docs/configuration-properties.md</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <profiles>

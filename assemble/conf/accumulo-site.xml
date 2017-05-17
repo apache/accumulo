@@ -16,8 +16,8 @@
   limitations under the License.
 -->
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
-<!-- This is the main configuration file for Apache Accumulo. Available configuration properties
-  (and their default values) can be found in the user manual (docs/accumulo_user_manual.html). -->
+<!-- This is the main configuration file for Apache Accumulo. Available configuration properties can be
+     found in the Accumulo documentation on the Accumulo project website (https://accumulo.apache.org/) -->
 <configuration>
   <!-- Set location in HDFS where Accumulo will store data -->
   <property>

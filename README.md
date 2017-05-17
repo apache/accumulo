@@ -32,18 +32,16 @@ Installation
 
 Follow [these instructions][install] to install and run an Accumulo binary distribution.
 
-Documentation
--------------
+Resources 
+---------
 
-Apache Accumulo has the following documentation:
+Apache Accumulo publishes the following resources with each release:
 
-* [User Manual][manual] - In-depth developer and administrator documentation.
-  - Available in binary tarball at `docs/accumulo_user_manual.html`
-  - Available in source tarball at `docs/src/main/asciidoc`
+* [Documentation][docs] - In-depth developer and administrator documentation
 * [Accumulo Examples][examples] - Documented example code for using Accumulo
 * [Javadocs][javadocs] - Accumulo API documentation
 
-More documentation can be found on the [project website][accumulo].
+More resources can be found on the [project website][accumulo].
 
 Building
 --------
@@ -129,7 +127,7 @@ more details on bouncycastle's cryptography features.
 [Thrift]: https://thrift.apache.org
 [features]: https://accumulo.apache.org/notable_features
 [Maven]: https://maven.apache.org
-[manual]: https://accumulo.apache.org/latest/accumulo_user_manual
+[docs]: https://accumulo.apache.org/latest/accumulo_user_manual
 [examples]: https://github.com/apache/accumulo-examples
 [javadocs]: https://accumulo.apache.org/latest/apidocs
 [semver]: http://semver.org/spec/v2.0.0
