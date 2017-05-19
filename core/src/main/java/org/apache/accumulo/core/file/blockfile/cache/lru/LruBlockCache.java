@@ -380,6 +380,11 @@ public class LruBlockCache implements BlockCache, HeapSize {
   }
 
   @Override
+  public long getMaxHeapSize() {
+    return getMaxSize();
+  }
+
+  @Override
   public long getMaxSize() {
     return this.conf.getMaxSize();
   }

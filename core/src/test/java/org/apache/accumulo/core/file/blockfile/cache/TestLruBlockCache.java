@@ -40,12 +40,20 @@ public class TestLruBlockCache extends TestCase {
 
   public void testConfiguration() {
     ConfigurationCopy cc = new ConfigurationCopy();
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(1019));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(1000023));
 
     LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.93f).acceptableFactor(0.97f).singleFactor(0.20f)
-        .multiFactor(0.30f).memoryFactor(0.50f).mapConcurrencyLevel(5).mapLoadFactor(0.53f).buildMap().forEach(cc::set);
+        .multiFactor(0.30f).memoryFactor(0.50f).mapConcurrencyLevel(5).buildMap().forEach(cc::set);
+
+    String defaultPrefix = BlockCacheConfiguration.getDefaultPrefix(LruBlockCacheConfiguration.PROPERTY_PREFIX);
+
+    // this should be overridden by cache type specific setting
+    cc.set(defaultPrefix + LruBlockCacheConfiguration.MEMORY_FACTOR_PROPERTY, "0.6");
+
+    // this is not set for the cache type, so should fall back to default
+    cc.set(defaultPrefix + LruBlockCacheConfiguration.MAP_LOAD_PROPERTY, "0.53");
 
     LruBlockCacheConfiguration lbcc = new LruBlockCacheConfiguration(cc, CacheType.INDEX);
 
@@ -68,7 +76,7 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
@@ -101,7 +109,7 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
@@ -158,7 +166,7 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
@@ -205,7 +213,7 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
@@ -269,7 +277,7 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
@@ -392,7 +400,7 @@ public class TestLruBlockCache extends TestCase {
 
     DefaultConfiguration dc = new DefaultConfiguration();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+    cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));

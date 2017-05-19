@@ -170,9 +170,6 @@ public class TabletServerResourceManager {
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
 
-    long dCacheSize = acuConf.getAsBytes(Property.TSERV_DATACACHE_SIZE);
-    long iCacheSize = acuConf.getAsBytes(Property.TSERV_INDEXCACHE_SIZE);
-    long sCacheSize = acuConf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
     long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
     try {
@@ -186,6 +183,10 @@ public class TabletServerResourceManager {
     _iCache = cacheManager.getBlockCache(CacheType.INDEX);
     _dCache = cacheManager.getBlockCache(CacheType.DATA);
     _sCache = cacheManager.getBlockCache(CacheType.SUMMARY);
+
+    long dCacheSize = _dCache.getMaxHeapSize();
+    long iCacheSize = _iCache.getMaxHeapSize();
+    long sCacheSize = _sCache.getMaxHeapSize();
 
     Runtime runtime = Runtime.getRuntime();
     if (usingNativeMap) {

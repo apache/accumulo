@@ -76,8 +76,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
 
-  private static final long CACHE_BLOCK_SIZE = AccumuloConfiguration.getDefaultConfiguration().getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
-
   static class Opts {
     InputArgs in;
     Authorizations auths = Authorizations.EMPTY;
@@ -112,6 +110,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     @Override
+    public long getMaxHeapSize() {
+      return getMaxSize();
+    }
+
+    @Override
     public long getMaxSize() {
       return Integer.MAX_VALUE;
     }
@@ -130,7 +133,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
         }
       };
     }
-
   }
 
   RFileScanner(Opts opts) {
@@ -141,15 +143,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
     this.opts = opts;
 
     if (opts.indexCacheSize > 0 || opts.dataCacheSize > 0) {
-      ConfigurationCopy cc = null;
+      ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
       if (null != opts.tableConfig) {
-        cc = new ConfigurationCopy(opts.tableConfig);
-      } else {
-        cc = new ConfigurationCopy(new DefaultConfiguration());
+        opts.tableConfig.forEach(cc::set);
       }
-      if (null == cc.get(Property.TSERV_DEFAULT_BLOCKSIZE)) {
-        cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(CACHE_BLOCK_SIZE));
-      }
+
       try {
         blockCacheManager = BlockCacheManager.getClientInstance(cc);
         if (opts.indexCacheSize > 0) {
@@ -161,8 +159,10 @@ class RFileScanner extends ScannerOptions implements Scanner {
         blockCacheManager.start(cc);
         this.indexCache = blockCacheManager.getBlockCache(CacheType.INDEX);
         this.dataCache = blockCacheManager.getBlockCache(CacheType.DATA);
+      } catch (RuntimeException e) {
+        throw e;
       } catch (Exception e) {
-        // FIXME: How do we report an error back to the user?
+        throw new RuntimeException(e);
       }
     }
     if (null == indexCache) {

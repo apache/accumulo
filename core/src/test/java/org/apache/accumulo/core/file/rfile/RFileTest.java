@@ -271,7 +271,7 @@ public class RFileTest {
 
       DefaultConfiguration dc = new DefaultConfiguration();
       ConfigurationCopy cc = new ConfigurationCopy(dc);
-      cc.set(Property.TSERV_CACHE_FACTORY_IMPL, LruBlockCacheManager.class.getName());
+      cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
       try {
         manager = BlockCacheManager.getInstance(cc);
       } catch (Exception e) {

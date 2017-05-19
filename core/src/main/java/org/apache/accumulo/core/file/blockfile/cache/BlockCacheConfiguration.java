@@ -25,6 +25,8 @@ import org.apache.accumulo.core.conf.Property;
 
 public class BlockCacheConfiguration {
 
+  public static final String CACHE_PROPERTY_BASE = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.block.";
+
   /** Maximum allowable size of cache (block put if size > max, evict) */
   private final long maxSize;
 
@@ -35,7 +37,10 @@ public class BlockCacheConfiguration {
 
   private final String prefix;
 
+  private final String defaultPrefix;
+
   public BlockCacheConfiguration(AccumuloConfiguration conf, CacheType type, String implName) {
+    defaultPrefix = getDefaultPrefix(implName);
     prefix = getPrefix(type, implName);
     genProps = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
 
@@ -64,16 +69,23 @@ public class BlockCacheConfiguration {
   }
 
   protected Optional<String> get(String suffix) {
-    return Optional.ofNullable(genProps.get(prefix + suffix));
+    String val = genProps.get(prefix + suffix);
+    if (val == null) {
+      val = genProps.get(defaultPrefix + suffix);
+    }
+    return Optional.ofNullable(val);
+  }
+
+  public static String getDefaultPrefix(String implName) {
+    return CACHE_PROPERTY_BASE + implName + ".default.";
   }
 
   public static String getPrefix(CacheType type, String implName) {
-    return BlockCacheManager.CACHE_PROPERTY_BASE + implName + "." + type.name().toLowerCase() + ".";
+    return CACHE_PROPERTY_BASE + implName + "." + type.name().toLowerCase() + ".";
   }
 
   @Override
   public String toString() {
     return "maxSize: " + getMaxSize() + ", blockSize: " + getBlockSize();
   }
-
 }

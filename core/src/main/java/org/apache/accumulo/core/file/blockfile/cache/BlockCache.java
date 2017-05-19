@@ -54,6 +54,11 @@ public interface BlockCache {
   CacheEntry getBlock(String blockName);
 
   /**
+   * Get the maximum amount of on heap memory this cache will use.
+   */
+  long getMaxHeapSize();
+
+  /**
    * Get the maximum size of this cache.
    *
    * @return max size in bytes

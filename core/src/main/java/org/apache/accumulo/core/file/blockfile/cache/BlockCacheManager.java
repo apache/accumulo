@@ -28,8 +28,6 @@ import org.slf4j.LoggerFactory;
 
 public abstract class BlockCacheManager {
 
-  public static final String CACHE_PROPERTY_BASE = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.block.";
-
   private static final Logger LOG = LoggerFactory.getLogger(BlockCacheManager.class);
 
   private final Map<CacheType,BlockCache> caches = new HashMap<>();
@@ -84,7 +82,7 @@ public abstract class BlockCacheManager {
    *           error loading block cache manager implementation class
    */
   public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf) throws Exception {
-    String impl = conf.get(Property.TSERV_CACHE_FACTORY_IMPL);
+    String impl = conf.get(Property.TSERV_CACHE_MANAGER_IMPL);
     Class<? extends BlockCacheManager> clazz = AccumuloVFSClassLoader.loadClass(impl, BlockCacheManager.class);
     LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
     return (BlockCacheManager) clazz.newInstance();
@@ -100,7 +98,7 @@ public abstract class BlockCacheManager {
    *           error loading block cache manager implementation class
    */
   public static synchronized BlockCacheManager getClientInstance(AccumuloConfiguration conf) throws Exception {
-    String impl = conf.get(Property.TSERV_CACHE_FACTORY_IMPL);
+    String impl = conf.get(Property.TSERV_CACHE_MANAGER_IMPL);
     Class<? extends BlockCacheManager> clazz = Class.forName(impl).asSubclass(BlockCacheManager.class);
     LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
     return (BlockCacheManager) clazz.newInstance();
