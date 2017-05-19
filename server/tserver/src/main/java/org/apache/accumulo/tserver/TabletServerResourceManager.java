@@ -40,7 +40,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.WeakEvictionLruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.TinyLfuBlockCache;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
@@ -177,9 +177,9 @@ public class TabletServerResourceManager {
 
     String policy = acuConf.get(Property.TSERV_CACHE_POLICY);
     if (policy.equalsIgnoreCase("LRU")) {
-      _iCache = new LruBlockCache(iCacheSize, blockSize);
-      _dCache = new LruBlockCache(dCacheSize, blockSize);
-      _sCache = new LruBlockCache(sCacheSize, blockSize);
+      _iCache = new WeakEvictionLruBlockCache(iCacheSize, blockSize);
+      _dCache = new WeakEvictionLruBlockCache(dCacheSize, blockSize);
+      _sCache = new WeakEvictionLruBlockCache(sCacheSize, blockSize);
     } else if (policy.equalsIgnoreCase("TinyLFU")) {
       _iCache = new TinyLfuBlockCache(iCacheSize, blockSize);
       _dCache = new TinyLfuBlockCache(dCacheSize, blockSize);
