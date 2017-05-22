@@ -82,7 +82,6 @@
   <modules>
     <module>assemble</module>
     <module>core</module>
-    <module>docs</module>
     <module>fate</module>
     <module>iterator-test-harness</module>
     <module>maven-plugin</module>
@@ -254,13 +253,6 @@
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-core</artifactId>
         <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-docs</artifactId>
-        <version>${project.version}</version>
-        <classifier>user-manual</classifier>
-        <type>html</type>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -740,11 +732,6 @@
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
           </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.asciidoctor</groupId>
-          <artifactId>asciidoctor-maven-plugin</artifactId>
-          <version>1.5.3</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>

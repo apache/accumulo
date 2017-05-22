@@ -73,13 +73,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-docs</artifactId>
-      <classifier>user-manual</classifier>
-      <type>html</type>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-fate</artifactId>
       <optional>true</optional>
     </dependency>

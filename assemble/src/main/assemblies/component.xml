@@ -51,20 +51,6 @@
         <include>org.slf4j:slf4j-log4j12</include>
         <include>log4j:log4j</include>
       </includes>
-      <excludes>
-        <exclude>${groupId}:${artifactId}-docs</exclude>
-      </excludes>
-    </dependencySet>
-    <dependencySet>
-      <outputDirectory>docs</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <useProjectArtifact>false</useProjectArtifact>
-      <outputFileNameMapping>${artifactId}_user_manual.${artifact.extension}</outputFileNameMapping>
-      <useTransitiveDependencies>false</useTransitiveDependencies>
-      <includes>
-        <include>${groupId}:${artifactId}-docs:html:user-manual</include>
-      </includes>
     </dependencySet>
   </dependencySets>
   <fileSets>
