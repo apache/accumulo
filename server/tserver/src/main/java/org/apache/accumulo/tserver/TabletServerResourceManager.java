@@ -40,8 +40,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.TinyLfuBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -99,6 +99,7 @@ public class TabletServerResourceManager {
 
   private final MemoryManagementFramework memMgmt;
 
+  private final BlockCacheManager cacheManager;
   private final BlockCache _dCache;
   private final BlockCache _iCache;
   private final BlockCache _sCache;
@@ -169,24 +170,23 @@ public class TabletServerResourceManager {
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
 
-    long blockSize = acuConf.getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
-    long dCacheSize = acuConf.getAsBytes(Property.TSERV_DATACACHE_SIZE);
-    long iCacheSize = acuConf.getAsBytes(Property.TSERV_INDEXCACHE_SIZE);
-    long sCacheSize = acuConf.getAsBytes(Property.TSERV_SUMMARYCACHE_SIZE);
     long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
-    String policy = acuConf.get(Property.TSERV_CACHE_POLICY);
-    if (policy.equalsIgnoreCase("LRU")) {
-      _iCache = new LruBlockCache(iCacheSize, blockSize);
-      _dCache = new LruBlockCache(dCacheSize, blockSize);
-      _sCache = new LruBlockCache(sCacheSize, blockSize);
-    } else if (policy.equalsIgnoreCase("TinyLFU")) {
-      _iCache = new TinyLfuBlockCache(iCacheSize, blockSize);
-      _dCache = new TinyLfuBlockCache(dCacheSize, blockSize);
-      _sCache = new TinyLfuBlockCache(sCacheSize, blockSize);
-    } else {
-      throw new IllegalArgumentException("Unknown Block cache policy " + policy);
+    try {
+      cacheManager = BlockCacheManager.getInstance(acuConf);
+    } catch (Exception e) {
+      throw new RuntimeException("Error creating BlockCacheManager", e);
     }
+
+    cacheManager.start(acuConf);
+
+    _iCache = cacheManager.getBlockCache(CacheType.INDEX);
+    _dCache = cacheManager.getBlockCache(CacheType.DATA);
+    _sCache = cacheManager.getBlockCache(CacheType.SUMMARY);
+
+    long dCacheSize = _dCache.getMaxHeapSize();
+    long iCacheSize = _iCache.getMaxHeapSize();
+    long sCacheSize = _sCache.getMaxHeapSize();
 
     Runtime runtime = Runtime.getRuntime();
     if (usingNativeMap) {
@@ -541,6 +541,14 @@ public class TabletServerResourceManager {
   public void close() {
     for (ExecutorService executorService : threadPools.values()) {
       executorService.shutdown();
+    }
+
+    if (null != this.cacheManager) {
+      try {
+        this.cacheManager.stop();
+      } catch (Exception ex) {
+        log.error("Error stopping BlockCacheManager", ex);
+      }
     }
 
     for (Entry<String,ExecutorService> entry : threadPools.entrySet()) {

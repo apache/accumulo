@@ -67,12 +67,12 @@
   </Match>
   <Match>
     <!-- bad practice to start a thread in constructor; we should be careful using this class -->
-    <Class name="org.apache.accumulo.core.file.blockfile.cache.LruBlockCache" />
+    <Class name="org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache" />
     <Bug code="SC" pattern="SC_START_IN_CTOR" />
   </Match>
   <Match>
     <!-- locking is confusing, but probably correct -->
-    <Class name="org.apache.accumulo.core.file.blockfile.cache.LruBlockCache$EvictionThread" />
+    <Class name="org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache$EvictionThread" />
     <Or>
       <Bug code="NN" pattern="NN_NAKED_NOTIFY" />
       <Bug code="UW" pattern="UW_UNCOND_WAIT" />

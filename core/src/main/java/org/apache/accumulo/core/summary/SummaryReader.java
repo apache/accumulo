@@ -89,6 +89,11 @@ public class SummaryReader {
     public Stats getStats() {
       return summaryCache.getStats();
     }
+
+    @Override
+    public long getMaxHeapSize() {
+      return summaryCache.getMaxHeapSize();
+    }
   }
 
   private static List<SummarySerializer> load(BlockReader bcReader, Predicate<SummarizerConfiguration> summarySelector) throws IOException {

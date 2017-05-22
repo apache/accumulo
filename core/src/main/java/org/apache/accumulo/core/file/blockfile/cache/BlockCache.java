@@ -21,6 +21,7 @@ package org.apache.accumulo.core.file.blockfile.cache;
  * Block cache interface.
  */
 public interface BlockCache {
+
   /**
    * Add block to cache.
    *
@@ -51,6 +52,11 @@ public interface BlockCache {
    * @return Block or null if block is not in the cache.
    */
   CacheEntry getBlock(String blockName);
+
+  /**
+   * Get the maximum amount of on heap memory this cache will use.
+   */
+  long getMaxHeapSize();
 
   /**
    * Get the maximum size of this cache.
