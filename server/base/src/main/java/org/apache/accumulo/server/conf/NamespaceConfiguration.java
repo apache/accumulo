@@ -29,7 +29,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,10 +43,6 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   protected String namespaceId = null;
   protected Instance inst = null;
   private ZooCacheFactory zcf = new ZooCacheFactory();
-
-  public NamespaceConfiguration(String namespaceId, AccumuloConfiguration parent) {
-    this(namespaceId, HdfsZooInstance.getInstance(), parent);
-  }
 
   public NamespaceConfiguration(String namespaceId, Instance inst, AccumuloConfiguration parent) {
     this.inst = inst;
@@ -100,30 +95,13 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     return getPropCacheAccessor().get(property, getPath(), getParent);
   }
 
-  private class SystemNamespaceFilter implements Predicate<String> {
-
-    private Predicate<String> userFilter;
-
-    SystemNamespaceFilter(Predicate<String> userFilter) {
-      this.userFilter = userFilter;
-    }
-
-    @Override
-    public boolean test(String key) {
-      if (isIteratorOrConstraint(key))
-        return false;
-      return userFilter.test(key);
-    }
-
-  }
-
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     Predicate<String> parentFilter = filter;
     // exclude system iterators/constraints from the system namespace
     // so they don't affect the metadata or root tables.
     if (getNamespaceId().equals(Namespaces.ACCUMULO_NAMESPACE_ID))
-      parentFilter = new SystemNamespaceFilter(filter);
+      parentFilter = key -> isIteratorOrConstraint(key) ? false : filter.test(key);
 
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, parentFilter);
   }

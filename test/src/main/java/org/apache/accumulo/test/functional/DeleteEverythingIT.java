@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
@@ -26,7 +27,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -42,7 +43,6 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class DeleteEverythingIT extends AccumuloClusterHarness {
 
@@ -67,7 +67,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
     if (getClusterType() == ClusterType.STANDALONE) {
       // Gotta wait for the cluster to get out of the default sleep value
-      Thread.sleep(AccumuloConfiguration.getTimeInMillis(majcDelay));
+      Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(majcDelay));
     }
   }
 

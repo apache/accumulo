@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -142,7 +141,7 @@ public class DefaultCompactionStrategyTest {
 
   }
 
-  static final DefaultConfiguration dfault = AccumuloConfiguration.getDefaultConfiguration();
+  static final DefaultConfiguration dfault = DefaultConfiguration.getInstance();
 
   private static class TestCompactionRequest extends MajorCompactionRequest {
     @Override

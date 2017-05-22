@@ -61,7 +61,7 @@ public class AccumuloServerContext extends ClientContext {
    * Construct a server context from the server's configuration
    */
   public AccumuloServerContext(ServerConfigurationFactory confFactory, AuthenticationTokenSecretManager secretManager) {
-    super(confFactory.getInstance(), getCredentials(confFactory.getInstance()), confFactory.getConfiguration());
+    super(confFactory.getInstance(), getCredentials(confFactory.getInstance()), confFactory.getSystemConfiguration());
     this.confFactory = confFactory;
     this.secretManager = secretManager;
     if (null != getSaslParams()) {

@@ -42,7 +42,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -226,7 +226,7 @@ public class MockTableOperationsTest {
     fs.mkdirs(failures);
     fs.mkdirs(tempFile.getParent());
     FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder().forFile(tempFile.toString(), fs, defaultConf)
-        .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
+        .withTableConfiguration(DefaultConfiguration.getInstance()).build();
     writer.startDefaultLocalityGroup();
     List<Pair<Key,Value>> keyVals = new ArrayList<>();
     for (int i = 0; i < 5; i++) {

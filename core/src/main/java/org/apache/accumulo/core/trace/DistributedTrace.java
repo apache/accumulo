@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.hadoop.conf.Configuration;
@@ -92,7 +93,7 @@ public class DistributedTrace {
   public static void enable(String hostname, String service, ClientConfiguration conf) {
     String spanReceivers = conf.get(ClientProperty.TRACE_SPAN_RECEIVERS);
     String zookeepers = conf.get(ClientProperty.INSTANCE_ZK_HOST);
-    long timeout = AccumuloConfiguration.getTimeInMillis(conf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
+    long timeout = ConfigurationTypeHelper.getTimeInMillis(conf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
     String zkPath = conf.get(ClientProperty.TRACE_ZK_PATH);
     Map<String,String> properties = conf.getAllPropertiesWithPrefix(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX);
     enableTracing(hostname, service, spanReceivers, zookeepers, timeout, zkPath, properties);

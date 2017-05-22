@@ -18,17 +18,14 @@ package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.data.impl.KeyExtent;
 
 public abstract class ServerConfiguration {
 
   abstract public TableConfiguration getTableConfiguration(String tableId);
 
-  abstract public TableConfiguration getTableConfiguration(KeyExtent extent);
-
   abstract public NamespaceConfiguration getNamespaceConfiguration(String namespaceId);
 
-  abstract public AccumuloConfiguration getConfiguration();
+  abstract public AccumuloConfiguration getSystemConfiguration();
 
   abstract public Instance getInstance();
 

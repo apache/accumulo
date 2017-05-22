@@ -71,6 +71,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -835,6 +836,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public AccumuloConfiguration getSiteConfiguration() {
-    return new ConfigurationCopy(Iterables.concat(AccumuloConfiguration.getDefaultConfiguration(), config.getSiteConfig().entrySet()));
+    return new ConfigurationCopy(Iterables.concat(DefaultConfiguration.getInstance(), config.getSiteConfig().entrySet()));
   }
 }

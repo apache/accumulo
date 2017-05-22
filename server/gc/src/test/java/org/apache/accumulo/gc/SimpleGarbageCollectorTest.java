@@ -72,7 +72,7 @@ public class SimpleGarbageCollectorTest {
     systemConfig = createSystemConfig();
     ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
     expect(factory.getInstance()).andReturn(instance).anyTimes();
-    expect(factory.getConfiguration()).andReturn(systemConfig).anyTimes();
+    expect(factory.getSystemConfiguration()).andReturn(systemConfig).anyTimes();
     expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration

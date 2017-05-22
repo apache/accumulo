@@ -146,14 +146,14 @@ public class TabletServerResourceManager {
 
   private ExecutorService createIdlingEs(Property max, String name, long timeout, TimeUnit timeUnit) {
     LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
-    int maxThreads = conf.getConfiguration().getCount(max);
+    int maxThreads = conf.getSystemConfiguration().getCount(max);
     ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, timeout, timeUnit, queue, new NamingThreadFactory(name));
     tp.allowCoreThreadTimeOut(true);
     return addEs(max, name, tp);
   }
 
   private ExecutorService createEs(Property max, String name, BlockingQueue<Runnable> queue) {
-    int maxThreads = conf.getConfiguration().getCount(max);
+    int maxThreads = conf.getSystemConfiguration().getCount(max);
     ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L, TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name));
     return addEs(max, name, tp);
   }
@@ -165,7 +165,7 @@ public class TabletServerResourceManager {
   public TabletServerResourceManager(TabletServer tserver, VolumeManager fs) {
     this.tserver = tserver;
     this.conf = tserver.getServerConfigurationFactory();
-    final AccumuloConfiguration acuConf = conf.getConfiguration();
+    final AccumuloConfiguration acuConf = conf.getSystemConfiguration();
 
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
@@ -359,7 +359,7 @@ public class TabletServerResourceManager {
     MemoryManagementFramework() {
       tabletReports = Collections.synchronizedMap(new HashMap<KeyExtent,TabletStateImpl>());
       memUsageReports = new LinkedBlockingQueue<>();
-      maxMem = conf.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
+      maxMem = conf.getSystemConfiguration().getAsBytes(Property.TSERV_MAXMEM);
 
       Runnable r1 = new Runnable() {
         @Override
@@ -517,7 +517,7 @@ public class TabletServerResourceManager {
 
   void waitUntilCommitsAreEnabled() {
     if (holdCommits) {
-      long timeout = System.currentTimeMillis() + conf.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
+      long timeout = System.currentTimeMillis() + conf.getSystemConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
       synchronized (commitHold) {
         while (holdCommits) {
           try {

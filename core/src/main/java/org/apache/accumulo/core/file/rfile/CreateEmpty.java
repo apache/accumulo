@@ -78,7 +78,7 @@ public class CreateEmpty {
       Path path = new Path(arg);
       log.info("Writing to file '" + path + "'");
       FileSKVWriter writer = (new RFileOperations()).newWriterBuilder().forFile(arg, path.getFileSystem(conf), conf)
-          .withTableConfiguration(DefaultConfiguration.getDefaultConfiguration()).withCompression(opts.codec).build();
+          .withTableConfiguration(DefaultConfiguration.getInstance()).withCompression(opts.codec).build();
       writer.close();
     }
   }

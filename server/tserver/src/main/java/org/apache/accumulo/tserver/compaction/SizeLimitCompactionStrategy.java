@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
 
@@ -35,7 +35,7 @@ public class SizeLimitCompactionStrategy extends DefaultCompactionStrategy {
 
   @Override
   public void init(Map<String,String> options) {
-    limit = AccumuloConfiguration.getFixedMemoryAsBytes(options.get(SIZE_LIMIT_OPT));
+    limit = ConfigurationTypeHelper.getFixedMemoryAsBytes(options.get(SIZE_LIMIT_OPT));
   }
 
   private MajorCompactionRequest filterFiles(MajorCompactionRequest mcr) {

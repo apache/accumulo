@@ -23,10 +23,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -81,7 +83,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
 
     @Override
     public AccumuloConfiguration getConfig() {
-      return AccumuloConfiguration.getDefaultConfiguration();
+      return DefaultConfiguration.getInstance();
     }
 
     @Override
@@ -116,17 +118,17 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
 
     @Override
     public boolean isSamplingEnabled() {
-      throw new UnsupportedOperationException();
+      return false;
     }
 
     @Override
     public SamplerConfiguration getSamplerConfiguration() {
-      throw new UnsupportedOperationException();
+      return null;
     }
 
     @Override
     public IteratorEnvironment cloneWithSamplingEnabled() {
-      throw new UnsupportedOperationException();
+      throw new SampleNotPresentException();
     }
   }
 

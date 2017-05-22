@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationExcept
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -240,7 +239,7 @@ class WriteExportFiles extends MasterRepo {
       AccumuloSecurityException, TableNotFoundException, IOException {
     Connector conn = context.getConnector();
 
-    DefaultConfiguration defaultConfig = AccumuloConfiguration.getDefaultConfiguration();
+    DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
     Map<String,String> siteConfig = conn.instanceOperations().getSiteConfiguration();
     Map<String,String> systemConfig = conn.instanceOperations().getSystemConfiguration();
 

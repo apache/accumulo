@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -100,7 +101,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    */
   public static AccumuloConfiguration getAccumuloConfiguration(Class<?> implementingClass, Configuration conf) {
     String prefix = enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + ".";
-    ConfigurationCopy acuConf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
+    ConfigurationCopy acuConf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     for (Entry<String,String> entry : conf)
       if (entry.getKey().startsWith(prefix)) {
         String propString = entry.getKey().substring(prefix.length());

@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -75,6 +74,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private Opts opts;
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
+
+  private static final long CACHE_BLOCK_SIZE = DefaultConfiguration.getInstance().getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
 
   static class Opts {
     InputArgs in;
@@ -306,7 +307,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
       for (int i = 0; i < sources.length; i++) {
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
         readers.add(new RFile.Reader(new CachableBlockFile.Reader(inputStream, sources[i].getLength(), opts.in.getConf(), dataCache, indexCache,
-            AccumuloConfiguration.getDefaultConfiguration())));
+            DefaultConfiguration.getInstance())));
       }
 
       if (getSamplerConfiguration() != null) {

@@ -103,7 +103,7 @@ public class Accumulo {
   }
 
   public static void init(VolumeManager fs, ServerConfigurationFactory serverConfig, String application) throws IOException {
-    final AccumuloConfiguration conf = serverConfig.getConfiguration();
+    final AccumuloConfiguration conf = serverConfig.getSystemConfiguration();
 
     log.info(application + " starting");
     log.info("Instance " + serverConfig.getInstance().getInstanceID());

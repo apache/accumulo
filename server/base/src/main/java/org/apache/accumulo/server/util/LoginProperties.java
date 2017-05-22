@@ -47,7 +47,7 @@ public class LoginProperties implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
-    AccumuloConfiguration config = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getConfiguration();
+    AccumuloConfiguration config = new ServerConfigurationFactory(HdfsZooInstance.getInstance()).getSystemConfiguration();
     Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader().loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
         .asSubclass(Authenticator.class).newInstance();
 

@@ -25,7 +25,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 
 /**
@@ -39,19 +38,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   private static void addInstanceToCaches(String iid) {
     synchronized (tableConfigs) {
-      if (!tableConfigs.containsKey(iid)) {
-        tableConfigs.put(iid, new HashMap<String,TableConfiguration>());
-      }
+      tableConfigs.computeIfAbsent(iid, k -> new HashMap<>());
     }
     synchronized (namespaceConfigs) {
-      if (!namespaceConfigs.containsKey(iid)) {
-        namespaceConfigs.put(iid, new HashMap<String,NamespaceConfiguration>());
-      }
+      namespaceConfigs.computeIfAbsent(iid, k -> new HashMap<>());
     }
     synchronized (tableParentConfigs) {
-      if (!tableParentConfigs.containsKey(iid)) {
-        tableParentConfigs.put(iid, new HashMap<String,NamespaceConfiguration>());
-      }
+      tableParentConfigs.computeIfAbsent(iid, k -> new HashMap<>());
     }
   }
 
@@ -122,7 +115,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   }
 
   @Override
-  public synchronized AccumuloConfiguration getConfiguration() {
+  public synchronized AccumuloConfiguration getSystemConfiguration() {
     if (systemConfig == null) {
       systemConfig = new ZooConfigurationFactory().getInstance(instance, zcf, getSiteConfiguration());
     }
@@ -161,11 +154,6 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     return conf;
   }
 
-  @Override
-  public TableConfiguration getTableConfiguration(KeyExtent extent) {
-    return getTableConfiguration(extent.getTableId());
-  }
-
   public NamespaceConfiguration getNamespaceConfigurationForTable(String tableId) {
     NamespaceConfiguration conf;
     synchronized (tableParentConfigs) {
@@ -175,7 +163,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     // which may result in creating multiple objects for the same id, but that's ok.
     if (conf == null) {
       // changed - include instance in constructor call
-      conf = new TableParentConfiguration(tableId, instance, getConfiguration());
+      conf = new TableParentConfiguration(tableId, instance, getSystemConfiguration());
       ConfigSanityCheck.validate(conf);
       synchronized (tableParentConfigs) {
         tableParentConfigs.get(instanceID).put(tableId, conf);
@@ -194,7 +182,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
     if (conf == null) {
       // changed - include instance in constructor call
-      conf = new NamespaceConfiguration(namespaceId, instance, getConfiguration());
+      conf = new NamespaceConfiguration(namespaceId, instance, getSystemConfiguration());
       conf.setZooCacheFactory(zcf);
       ConfigSanityCheck.validate(conf);
       synchronized (namespaceConfigs) {

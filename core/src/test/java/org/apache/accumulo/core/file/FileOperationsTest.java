@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -50,7 +51,7 @@ public class FileOperationsTest {
       FileOperations fileOperations = FileOperations.getInstance();
       Configuration conf = new Configuration();
       FileSystem fs = FileSystem.getLocal(conf);
-      AccumuloConfiguration acuconf = AccumuloConfiguration.getDefaultConfiguration();
+      AccumuloConfiguration acuconf = DefaultConfiguration.getInstance();
       writer = fileOperations.newWriterBuilder().forFile(filename, fs, conf).withTableConfiguration(acuconf).build();
       writer.close();
     } catch (Exception ex) {

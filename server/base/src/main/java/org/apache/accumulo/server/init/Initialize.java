@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -433,7 +434,7 @@ public class Initialize implements KeywordExecutable {
     // create table and default tablets directories
     createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir, replicationTableDefaultTabletDir);
 
-    String ext = FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
+    String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
 
     // populate the metadata tables tablet with info about the replication table's one initial tablet
     String metadataFileName = tableMetadataTabletDir + Path.SEPARATOR + "0_1." + ext;
@@ -470,7 +471,7 @@ public class Initialize implements KeywordExecutable {
     }
     FileSystem fs = volmanager.getVolumeByPath(new Path(fileName)).getFileSystem();
     FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder().forFile(fileName, fs, fs.getConf())
-        .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
+        .withTableConfiguration(DefaultConfiguration.getInstance()).build();
     tabletWriter.startDefaultLocalityGroup();
 
     for (Entry<Key,Value> entry : sorted.entrySet()) {

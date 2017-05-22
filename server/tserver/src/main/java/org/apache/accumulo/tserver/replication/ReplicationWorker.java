@@ -56,7 +56,7 @@ public class ReplicationWorker implements Runnable {
 
   @Override
   public void run() {
-    DefaultConfiguration defaultConf = DefaultConfiguration.getDefaultConfiguration();
+    DefaultConfiguration defaultConf = DefaultConfiguration.getInstance();
     long defaultDelay = defaultConf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_DELAY);
     long defaultPeriod = defaultConf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_PERIOD);
     long delay = conf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_DELAY);

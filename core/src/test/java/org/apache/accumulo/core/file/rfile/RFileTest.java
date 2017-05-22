@@ -214,7 +214,7 @@ public class RFileTest {
     public TestRFile(AccumuloConfiguration accumuloConfiguration) {
       this.accumuloConfiguration = accumuloConfiguration;
       if (this.accumuloConfiguration == null)
-        this.accumuloConfiguration = AccumuloConfiguration.getDefaultConfiguration();
+        this.accumuloConfiguration = DefaultConfiguration.getInstance();
     }
 
     public void openWriter(boolean startDLG) throws IOException {
@@ -284,7 +284,7 @@ public class RFileTest {
       LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
-      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, fileLength, conf, dataCache, indexCache, AccumuloConfiguration.getDefaultConfiguration());
+      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, fileLength, conf, dataCache, indexCache, DefaultConfiguration.getInstance());
       reader = new RFile.Reader(_cbr);
       if (cfsi)
         iter = new ColumnFamilySkippingIterator(reader);
@@ -1643,7 +1643,7 @@ public class RFileTest {
     byte data[] = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
-    AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length, CachedConfiguration.getInstance(), aconf);
     Reader reader = new RFile.Reader(_cbr);
     checkIndex(reader);
@@ -1688,7 +1688,7 @@ public class RFileTest {
   }
 
   private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
-    ConfigurationCopy result = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
+    ConfigurationCopy result = new ConfigurationCopy(DefaultConfiguration.getInstance());
     Configuration conf = new Configuration(false);
     conf.addResource(cryptoConfSetting);
     for (Entry<String,String> e : conf) {
@@ -1950,7 +1950,7 @@ public class RFileTest {
         Hasher dataHasher = Hashing.md5().newHasher();
         List<Entry<Key,Value>> sampleData = new ArrayList<>();
 
-        ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? AccumuloConfiguration.getDefaultConfiguration() : conf);
+        ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? DefaultConfiguration.getInstance() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");
@@ -2031,7 +2031,7 @@ public class RFileTest {
         List<Entry<Key,Value>> sampleDataLG1 = new ArrayList<>();
         List<Entry<Key,Value>> sampleDataLG2 = new ArrayList<>();
 
-        ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? AccumuloConfiguration.getDefaultConfiguration() : conf);
+        ConfigurationCopy sampleConf = new ConfigurationCopy(conf == null ? DefaultConfiguration.getInstance() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");

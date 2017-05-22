@@ -284,7 +284,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     ServerConfigurationFactory factory = context.getServerConfigurationFactory();
     switch (type) {
       case CURRENT:
-        return conf(credentials, factory.getConfiguration());
+        return conf(credentials, factory.getSystemConfiguration());
       case SITE:
         return conf(credentials, factory.getSiteConfiguration());
       case DEFAULT:
@@ -441,7 +441,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       // use the same set of tableIds that were validated above to avoid race conditions
-      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(context.getServerConfigurationFactory().getConfiguration(), tableIds, fs,
+      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(context.getServerConfigurationFactory().getSystemConfiguration(), tableIds, fs,
           context.getConnector());
       List<TDiskUsage> retUsages = new ArrayList<>();
       for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {

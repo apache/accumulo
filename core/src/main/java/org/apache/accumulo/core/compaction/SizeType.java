@@ -18,12 +18,12 @@ package org.apache.accumulo.core.compaction;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 
 class SizeType implements Type {
   @Override
   public String convert(String str) {
-    long size = AccumuloConfiguration.getFixedMemoryAsBytes(str);
+    long size = ConfigurationTypeHelper.getFixedMemoryAsBytes(str);
     checkArgument(size > 0);
     return Long.toString(size);
   }

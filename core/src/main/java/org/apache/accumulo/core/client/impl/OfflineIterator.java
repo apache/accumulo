@@ -319,7 +319,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       IOException {
 
     // TODO share code w/ tablet - ACCUMULO-1303
-    AccumuloConfiguration acuTableConf = AccumuloConfiguration.getTableConfiguration(conn, tableId);
+
+    // possible race condition here, if table is renamed
+    String tableName = Tables.getTableName(conn.getInstance(), tableId);
+    AccumuloConfiguration acuTableConf = new ConfigurationCopy(conn.tableOperations().getProperties(tableName));
 
     Configuration conf = CachedConfiguration.getInstance();
 
