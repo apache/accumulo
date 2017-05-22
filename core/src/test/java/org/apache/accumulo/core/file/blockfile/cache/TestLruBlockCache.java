@@ -74,7 +74,7 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 9); // room for 9, will evict
 
-    DefaultConfiguration dc = new DefaultConfiguration();
+    DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
@@ -107,7 +107,7 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 1000000;
     long blockSize = calculateBlockSizeDefault(maxSize, 101);
 
-    DefaultConfiguration dc = new DefaultConfiguration();
+    DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
@@ -164,7 +164,7 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    DefaultConfiguration dc = new DefaultConfiguration();
+    DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
@@ -211,7 +211,7 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    DefaultConfiguration dc = new DefaultConfiguration();
+    DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
@@ -275,7 +275,7 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    DefaultConfiguration dc = new DefaultConfiguration();
+    DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);
@@ -398,7 +398,7 @@ public class TestLruBlockCache extends TestCase {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    DefaultConfiguration dc = new DefaultConfiguration();
+    DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager manager = BlockCacheManager.getInstance(cc);

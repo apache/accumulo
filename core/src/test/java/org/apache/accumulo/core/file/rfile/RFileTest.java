@@ -269,7 +269,7 @@ public class RFileTest {
       in = new FSDataInputStream(bais);
       fileLength = data.length;
 
-      DefaultConfiguration dc = new DefaultConfiguration();
+      DefaultConfiguration dc = DefaultConfiguration.getInstance();
       ConfigurationCopy cc = new ConfigurationCopy(dc);
       cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
       try {

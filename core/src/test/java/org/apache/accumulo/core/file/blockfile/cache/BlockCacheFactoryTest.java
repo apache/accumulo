@@ -29,7 +29,7 @@ public class BlockCacheFactoryTest {
 
   @Test
   public void testCreateLruBlockCacheFactory() throws Exception {
-    DefaultConfiguration dc = new DefaultConfiguration();
+    DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManager.getInstance(cc);
@@ -37,7 +37,7 @@ public class BlockCacheFactoryTest {
 
   @Test
   public void testCreateTinyLfuBlockCacheFactory() throws Exception {
-    DefaultConfiguration dc = new DefaultConfiguration();
+    DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
     cc.set(Property.TSERV_CACHE_MANAGER_IMPL, TinyLfuBlockCacheManager.class.getName());
     BlockCacheManager.getInstance(cc);
@@ -45,7 +45,7 @@ public class BlockCacheFactoryTest {
 
   @Test
   public void testStartWithDefault() throws Exception {
-    DefaultConfiguration dc = new DefaultConfiguration();
+    DefaultConfiguration dc = DefaultConfiguration.getInstance();
     BlockCacheManager manager = BlockCacheManager.getInstance(dc);
     manager.start(dc);
     Assert.assertNotNull(manager.getBlockCache(CacheType.INDEX));
