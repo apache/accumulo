@@ -1247,6 +1247,7 @@
                         <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>exec</goal>
+                          <goal>java</goal>
                         </goals>
                       </pluginExecutionFilter>
                       <action>
