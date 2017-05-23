@@ -75,6 +75,17 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  bool tableExists(string login, string tableName)'
   print '   tableIdMap(string login)'
   print '  bool testTableClassLoad(string login, string tableName, string className, string asTypeName)'
+  print '  string systemNamespace(string login)'
+  print '  string defaultNamespace(string login)'
+  print '  bool namespaceExists(string login, string namespaceName)'
+  print '   listNamespaces(string login)'
+  print '  void createNamespace(string login, string namespaceName)'
+  print '  void deleteNamespace(string login, string namespaceName)'
+  print '  void renameNamespace(string login, string oldNamespace, string newNamespace)'
+  print '  void setNamespaceProperty(string login, string namespaceName, string property, string value)'
+  print '  void removeNamespaceProperty(string login, string namespaceName, string property)'
+  print '   getNamespaceProperties(string login, string namespaceName)'
+  print '   namespaceIdMap(string login)'
   print '  void pingTabletServer(string login, string tserver)'
   print '   getActiveScans(string login, string tserver)'
   print '   getActiveCompactions(string login, string tserver)'
@@ -392,6 +403,72 @@ elif cmd == 'testTableClassLoad':
     print 'testTableClassLoad requires 4 args'
     sys.exit(1)
   pp.pprint(client.testTableClassLoad(args[0],args[1],args[2],args[3],))
+
+elif cmd == 'systemNamespace':
+  if len(args) != 1:
+    print 'systemNamespace requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.systemNamespace(args[0],))
+
+elif cmd == 'defaultNamespace':
+  if len(args) != 1:
+    print 'defaultNamespace requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.defaultNamespace(args[0],))
+
+elif cmd == 'namespaceExists':
+  if len(args) != 2:
+    print 'namespaceExists requires 2 args'
+    sys.exit(1)
+  pp.pprint(client.namespaceExists(args[0],args[1],))
+
+elif cmd == 'listNamespaces':
+  if len(args) != 1:
+    print 'listNamespaces requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.listNamespaces(args[0],))
+
+elif cmd == 'createNamespace':
+  if len(args) != 2:
+    print 'createNamespace requires 2 args'
+    sys.exit(1)
+  pp.pprint(client.createNamespace(args[0],args[1],))
+
+elif cmd == 'deleteNamespace':
+  if len(args) != 2:
+    print 'deleteNamespace requires 2 args'
+    sys.exit(1)
+  pp.pprint(client.deleteNamespace(args[0],args[1],))
+
+elif cmd == 'renameNamespace':
+  if len(args) != 3:
+    print 'renameNamespace requires 3 args'
+    sys.exit(1)
+  pp.pprint(client.renameNamespace(args[0],args[1],args[2],))
+
+elif cmd == 'setNamespaceProperty':
+  if len(args) != 4:
+    print 'setNamespaceProperty requires 4 args'
+    sys.exit(1)
+  pp.pprint(client.setNamespaceProperty(args[0],args[1],args[2],args[3],))
+
+elif cmd == 'removeNamespaceProperty':
+  if len(args) != 3:
+    print 'removeNamespaceProperty requires 3 args'
+    sys.exit(1)
+  pp.pprint(client.removeNamespaceProperty(args[0],args[1],args[2],))
+
+elif cmd == 'getNamespaceProperties':
+  if len(args) != 2:
+    print 'getNamespaceProperties requires 2 args'
+    sys.exit(1)
+  pp.pprint(client.getNamespaceProperties(args[0],args[1],))
+
+elif cmd == 'namespaceIdMap':
+  if len(args) != 1:
+    print 'namespaceIdMap requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.namespaceIdMap(args[0],))
 
 elif cmd == 'pingTabletServer':
   if len(args) != 2:

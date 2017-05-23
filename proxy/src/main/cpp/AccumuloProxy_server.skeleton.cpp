@@ -228,6 +228,61 @@ class AccumuloProxyHandler : virtual public AccumuloProxyIf {
     printf("testTableClassLoad\n");
   }
 
+  void systemNamespace(std::string& _return, const std::string& login) {
+    // Your implementation goes here
+    printf("systemNamespace\n");
+  }
+
+  void defaultNamespace(std::string& _return, const std::string& login) {
+    // Your implementation goes here
+    printf("defaultNamespace\n");
+  }
+
+  bool namespaceExists(const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("namespaceExists\n");
+  }
+
+  void listNamespaces(std::set<std::string> & _return, const std::string& login) {
+    // Your implementation goes here
+    printf("listNamespaces\n");
+  }
+
+  void createNamespace(const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("createNamespace\n");
+  }
+
+  void deleteNamespace(const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("deleteNamespace\n");
+  }
+
+  void renameNamespace(const std::string& login, const std::string& oldNamespace, const std::string& newNamespace) {
+    // Your implementation goes here
+    printf("renameNamespace\n");
+  }
+
+  void setNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property, const std::string& value) {
+    // Your implementation goes here
+    printf("setNamespaceProperty\n");
+  }
+
+  void removeNamespaceProperty(const std::string& login, const std::string& namespaceName, const std::string& property) {
+    // Your implementation goes here
+    printf("removeNamespaceProperty\n");
+  }
+
+  void getNamespaceProperties(std::map<std::string, std::string> & _return, const std::string& login, const std::string& namespaceName) {
+    // Your implementation goes here
+    printf("getNamespaceProperties\n");
+  }
+
+  void namespaceIdMap(std::map<std::string, std::string> & _return, const std::string& login) {
+    // Your implementation goes here
+    printf("namespaceIdMap\n");
+  }
+
   void pingTabletServer(const std::string& login, const std::string& tserver) {
     // Your implementation goes here
     printf("pingTabletServer\n");

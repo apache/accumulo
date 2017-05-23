@@ -1362,6 +1362,102 @@ public abstract class SimpleProxyBase extends SharedMiniClusterIT {
   }
 
   @Test
+  public void testNamespaceOps() throws Exception {
+    String testNamespace = "testnamespace";
+    String testNamespace2 = "testnamespace2";
+    assertEquals("", client.defaultNamespace(creds));
+    assertEquals("accumulo", client.systemNamespace(creds));
+    Set<String> namespaceList = client.listNamespaces(creds);
+    for (String ns : namespaceList) {
+      System.out.println("Found NS: " + ns);
+    }
+    assertEquals(2, namespaceList.size());
+    assertEquals(2, client.namespaceIdMap(creds).size());
+    client.createNamespace(creds, testNamespace);
+    assertTrue(client.namespaceExists(creds, testNamespace));
+    assertTrue(client.listNamespaces(creds).contains(testNamespace));
+    client.renameNamespace(creds, testNamespace, testNamespace2);
+    assertTrue(client.namespaceExists(creds, testNamespace2));
+    assertFalse(client.namespaceExists(creds, testNamespace));
+    client.deleteNamespace(creds, testNamespace2);
+    assertFalse(client.namespaceExists(creds, testNamespace2));
+
+    // Test Namespace properties
+    client.createNamespace(creds, testNamespace);
+    String systemTableSplitThreshold = client.getSystemConfiguration(creds).get("table.split.threshold");
+    Map<String,String> orig = client.getNamespaceProperties(creds, testNamespace);
+    client.setNamespaceProperty(creds, testNamespace, "table.split.threshold", "500M");
+    // Get the new namespace property value
+    Map<String,String> update = client.getNamespaceProperties(creds, testNamespace);
+    assertEquals(update.get("table.split.threshold"), "500M");
+    // Namespace level properties shouldn't affect system level values
+    assertEquals(systemTableSplitThreshold, client.getSystemConfiguration(creds).get("table.split.threshold"));
+    client.removeNamespaceProperty(creds, testNamespace, "table.split.threshold");
+    update = client.getNamespaceProperties(creds, testNamespace);
+    assertEquals(orig, update);
+  }
+
+  @Test
+  public void testNamespacePermissions() throws Exception {
+    String userName = getUniqueNames(1)[0];
+    String testNamespace = "userns";
+    String testNamespace2 = "userns2";
+    ByteBuffer password = s2bb("password");
+    ByteBuffer user;
+
+    // create a user
+    client.createLocalUser(creds, userName, password);
+    user = client.login(userName, s2pp(new String(password.array(), password.position(), password.limit())));
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE));
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE));
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE));
+
+    // create namespace test
+    client.grantSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE);
+    assertTrue(client.hasSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE));
+    client.createNamespace(user, testNamespace);
+    assertTrue(client.namespaceExists(creds, testNamespace));
+    // revoke permissions and try again
+    client.revokeSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE);
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.CREATE_NAMESPACE));
+    try {
+      client.createNamespace(user, testNamespace2);
+      fail("AccumuloSecurityException should have been thrown client.createNamespace()");
+    } catch (AccumuloSecurityException e) {}
+
+    // drop namespace test
+    client.grantSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE);
+    assertTrue(client.hasSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE));
+    client.deleteNamespace(user, testNamespace);
+    assertFalse(client.namespaceExists(creds, testNamespace));
+    // revoke permissions and try again
+    client.revokeSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE);
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.DROP_NAMESPACE));
+    client.createNamespace(creds, testNamespace2);
+    try {
+      client.deleteNamespace(user, testNamespace2);
+      fail("AccumuloSecurityException should have been thrown client.deleteNamespace()");
+    } catch (AccumuloSecurityException e) {}
+
+    // alter namespace test
+    client.grantSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE);
+    assertTrue(client.hasSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE));
+    client.renameNamespace(user, testNamespace2, testNamespace);
+    assertTrue(client.namespaceExists(creds, testNamespace));
+    // revoke permissions and try again
+    client.revokeSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE);
+    assertFalse(client.hasSystemPermission(creds, userName, SystemPermission.ALTER_NAMESPACE));
+    try {
+      client.renameNamespace(user, testNamespace, testNamespace2);
+      fail("AccumuloSecurityException should have been thrown in client.renameNamespace()");
+    } catch (AccumuloSecurityException e) {}
+
+    // clean up
+    client.deleteNamespace(creds, testNamespace);
+    assertFalse(client.namespaceExists(creds, testNamespace));
+  }
+
+  @Test
   public void testBatchWriter() throws Exception {
     client.addConstraint(creds, table, NumericValueConstraint.class.getName());
     // zookeeper propagation time

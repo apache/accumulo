@@ -1954,6 +1954,135 @@ class MutationsRejectedException : public ::apache::thrift::TException {
 
 void swap(MutationsRejectedException &a, MutationsRejectedException &b);
 
+typedef struct _NamespaceExistsException__isset {
+  _NamespaceExistsException__isset() : msg(false) {}
+  bool msg;
+} _NamespaceExistsException__isset;
+
+class NamespaceExistsException : public ::apache::thrift::TException {
+ public:
+
+  static const char* ascii_fingerprint; // = "EFB929595D312AC8F305D5A794CFEDA1";
+  static const uint8_t binary_fingerprint[16]; // = {0xEF,0xB9,0x29,0x59,0x5D,0x31,0x2A,0xC8,0xF3,0x05,0xD5,0xA7,0x94,0xCF,0xED,0xA1};
+
+  NamespaceExistsException() : msg() {
+  }
+
+  virtual ~NamespaceExistsException() throw() {}
+
+  std::string msg;
+
+  _NamespaceExistsException__isset __isset;
+
+  void __set_msg(const std::string& val) {
+    msg = val;
+  }
+
+  bool operator == (const NamespaceExistsException & rhs) const
+  {
+    if (!(msg == rhs.msg))
+      return false;
+    return true;
+  }
+  bool operator != (const NamespaceExistsException &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const NamespaceExistsException & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(NamespaceExistsException &a, NamespaceExistsException &b);
+
+typedef struct _NamespaceNotFoundException__isset {
+  _NamespaceNotFoundException__isset() : msg(false) {}
+  bool msg;
+} _NamespaceNotFoundException__isset;
+
+class NamespaceNotFoundException : public ::apache::thrift::TException {
+ public:
+
+  static const char* ascii_fingerprint; // = "EFB929595D312AC8F305D5A794CFEDA1";
+  static const uint8_t binary_fingerprint[16]; // = {0xEF,0xB9,0x29,0x59,0x5D,0x31,0x2A,0xC8,0xF3,0x05,0xD5,0xA7,0x94,0xCF,0xED,0xA1};
+
+  NamespaceNotFoundException() : msg() {
+  }
+
+  virtual ~NamespaceNotFoundException() throw() {}
+
+  std::string msg;
+
+  _NamespaceNotFoundException__isset __isset;
+
+  void __set_msg(const std::string& val) {
+    msg = val;
+  }
+
+  bool operator == (const NamespaceNotFoundException & rhs) const
+  {
+    if (!(msg == rhs.msg))
+      return false;
+    return true;
+  }
+  bool operator != (const NamespaceNotFoundException &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const NamespaceNotFoundException & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(NamespaceNotFoundException &a, NamespaceNotFoundException &b);
+
+typedef struct _NamespaceNotEmptyException__isset {
+  _NamespaceNotEmptyException__isset() : msg(false) {}
+  bool msg;
+} _NamespaceNotEmptyException__isset;
+
+class NamespaceNotEmptyException : public ::apache::thrift::TException {
+ public:
+
+  static const char* ascii_fingerprint; // = "EFB929595D312AC8F305D5A794CFEDA1";
+  static const uint8_t binary_fingerprint[16]; // = {0xEF,0xB9,0x29,0x59,0x5D,0x31,0x2A,0xC8,0xF3,0x05,0xD5,0xA7,0x94,0xCF,0xED,0xA1};
+
+  NamespaceNotEmptyException() : msg() {
+  }
+
+  virtual ~NamespaceNotEmptyException() throw() {}
+
+  std::string msg;
+
+  _NamespaceNotEmptyException__isset __isset;
+
+  void __set_msg(const std::string& val) {
+    msg = val;
+  }
+
+  bool operator == (const NamespaceNotEmptyException & rhs) const
+  {
+    if (!(msg == rhs.msg))
+      return false;
+    return true;
+  }
+  bool operator != (const NamespaceNotEmptyException &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const NamespaceNotEmptyException & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+void swap(NamespaceNotEmptyException &a, NamespaceNotEmptyException &b);
+
 } // namespace
 
 #endif
