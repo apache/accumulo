@@ -75,8 +75,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
 
-  private static final long CACHE_BLOCK_SIZE = DefaultConfiguration.getInstance().getAsBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
-
   static class Opts {
     InputArgs in;
     Authorizations auths = Authorizations.EMPTY;
