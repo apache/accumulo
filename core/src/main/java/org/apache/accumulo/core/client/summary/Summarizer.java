@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+
 //checkstyle and the formatter are in conflict, so turn off the formatter
 //@formatter:off
 /**
@@ -170,7 +171,7 @@ public interface Summarizer {
 
   /**
    * When Accumulo calls methods in this interface, it will call {@link #accept(Key, Value)} zero or more times and then call
-   * {@link #summarize(Summarizer.StatisticConsumer)} once. After calling {@link #summarize(Summarizer.StatisticConsumer)}, it will not use the collector again.
+   * {@link #summarize(StatisticConsumer)} once. After calling {@link #summarize(StatisticConsumer)}, it will not use the collector again.
    *
    * @since 2.0.0
    */
