@@ -23,5 +23,6 @@ public interface TabletServerScanMetricsKeys {
 
   String SCAN = "scan";
   String RESULT_SIZE = "result";
+  String YIELD = "yield";
 
 }

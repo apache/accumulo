@@ -50,7 +50,8 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
   void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env) throws IOException;
 
   /**
-   * Returns true if the iterator has more elements.
+   * Returns true if the iterator has more elements. Note that if this iterator has yielded (@see enableYielding(YieldCallback)), this this method must return
+   * false.
    *
    * @return <tt>true</tt> if the iterator has more elements.
    * @exception IllegalStateException
