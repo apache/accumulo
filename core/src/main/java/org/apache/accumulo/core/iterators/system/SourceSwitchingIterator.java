@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.base.Optional;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -30,13 +31,15 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.YieldCallback;
+import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
 
 /**
  * A SortedKeyValueIterator which presents a view over some section of data, regardless of whether or not it is backed by memory (InMemoryMap) or an RFile
  * (InMemoryMap that was minor compacted to a file). Clients reading from a table that has data in memory should not see interruption in their scan when that
  * data is minor compacted. This iterator is designed to manage this behind the scene.
  */
-public class SourceSwitchingIterator implements InterruptibleIterator {
+public class SourceSwitchingIterator implements InterruptibleIterator, YieldingKeyValueIterator<Key,Value> {
 
   public interface DataSource {
     boolean isCurrent();
@@ -52,6 +55,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
 
   private DataSource source;
   private SortedKeyValueIterator<Key,Value> iter;
+
+  private Optional<YieldCallback<Key>> yield = Optional.absent();
 
   private Key key;
   private Value val;
@@ -113,6 +118,18 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
   }
 
   @Override
+  public void enableYielding(YieldCallback<Key> yield) {
+    this.yield = Optional.of(yield);
+
+    // if we require row isolation, then we cannot support yielding in the middle.
+    if (!onlySwitchAfterRow) {
+      if (iter != null && iter instanceof YieldingKeyValueIterator) {
+        ((YieldingKeyValueIterator<Key,Value>) iter).enableYielding(yield);
+      }
+    }
+  }
+
+  @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
@@ -126,14 +143,23 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
 
   private void readNext(boolean initialSeek) throws IOException {
 
+    // we need to check here if we were yielded in case the source was switched out and re-seeked by someone else (minor compaction/InMemoryMap)
+    boolean yielded = (yield.isPresent() && yield.get().hasYielded());
+
     // check of initialSeek second is intentional so that it does not short
     // circuit the call to switchSource
-    boolean seekNeeded = (!onlySwitchAfterRow && switchSource()) || initialSeek;
+    boolean seekNeeded = yielded || (!onlySwitchAfterRow && switchSource()) || initialSeek;
 
     if (seekNeeded)
       if (initialSeek)
         iter.seek(range, columnFamilies, inclusive);
-      else
+      else if (yielded) {
+        Key yieldPosition = yield.get().getPositionAndReset();
+        if (!range.contains(yieldPosition)) {
+          throw new IOException("Underlying iterator yielded to a position outside of its range: " + yieldPosition + " not in " + range);
+        }
+        iter.seek(new Range(yieldPosition, false, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
+      } else
         iter.seek(new Range(key, false, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
     else {
       iter.next();
@@ -144,6 +170,10 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
     }
 
     if (iter.hasTop()) {
+      if (yield.isPresent() && yield.get().hasYielded()) {
+        throw new IOException("Coding error: hasTop returned true but has yielded at " + yield.get().getPositionAndReset());
+      }
+
       Key nextKey = iter.getTopKey();
       Value nextVal = iter.getTopValue();
 
@@ -163,6 +193,11 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
     if (!source.isCurrent()) {
       source = source.getNewDataSource();
       iter = source.iterator();
+      if (!onlySwitchAfterRow && yield.isPresent()) {
+        if (iter instanceof YieldingKeyValueIterator) {
+          ((YieldingKeyValueIterator<Key,Value>) iter).enableYielding(yield.get());
+        }
+      }
       return true;
     }
 
@@ -176,8 +211,14 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
       this.inclusive = inclusive;
       this.columnFamilies = columnFamilies;
 
-      if (iter == null)
+      if (iter == null) {
         iter = source.iterator();
+        if (!onlySwitchAfterRow && yield.isPresent()) {
+          if (iter instanceof YieldingKeyValueIterator) {
+            ((YieldingKeyValueIterator<Key,Value>) iter).enableYielding(yield.get());
+          }
+        }
+      }
 
       readNext(true);
     }

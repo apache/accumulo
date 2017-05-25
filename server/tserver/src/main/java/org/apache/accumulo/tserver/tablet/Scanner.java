@@ -95,7 +95,7 @@ public class Scanner {
         iter = new SourceSwitchingIterator(dataSource, false);
       }
 
-      results = tablet.nextBatch(iter, range, options.getNum(), options.getColumnSet(), options.getBatchTimeOut());
+      results = tablet.nextBatch(iter, range, options.getNum(), options.getColumnSet(), options.getBatchTimeOut(), options.isIsolated());
 
       if (results.getResults() == null) {
         range = null;

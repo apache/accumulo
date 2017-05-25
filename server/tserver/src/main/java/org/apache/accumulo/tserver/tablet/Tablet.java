@@ -75,6 +75,8 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.YieldCallback;
+import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
@@ -138,6 +140,7 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionCanceledException;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionEnv;
 import org.apache.commons.codec.DecoderException;
@@ -546,11 +549,17 @@ public class Tablet implements TabletCommitter {
       batchTimeOut = 0;
     }
 
+    // determine if the iterator supported yielding
+    YieldCallback<Key> yield = new YieldCallback<>();
+    if (mmfi instanceof YieldingKeyValueIterator)
+      ((YieldingKeyValueIterator<Key,Value>) mmfi).enableYielding(yield);
+    boolean yielded = false;
+
     for (Range range : ranges) {
 
       boolean timesUp = batchTimeOut > 0 && System.nanoTime() > returnTime;
 
-      if (exceededMemoryUsage || tabletClosed || timesUp) {
+      if (exceededMemoryUsage || tabletClosed || timesUp || yielded) {
         lookupResult.unfinishedRanges.add(range);
         continue;
       }
@@ -564,6 +573,9 @@ public class Tablet implements TabletCommitter {
           mmfi.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
 
         while (mmfi.hasTop()) {
+          if (yield.hasYielded()) {
+            throw new IOException("Coding error: hasTop returned true but has yielded at " + yield.getPositionAndReset());
+          }
           Key key = mmfi.getTopKey();
 
           KVEntry kve = new KVEntry(key, mmfi.getTopValue());
@@ -584,6 +596,23 @@ public class Tablet implements TabletCommitter {
           mmfi.next();
         }
 
+        if (yield.hasYielded()) {
+          yielded = true;
+          Key yieldPosition = yield.getPositionAndReset();
+          if (!range.contains(yieldPosition)) {
+            throw new IOException("Underlying iterator yielded to a position outside of its range: " + yieldPosition + " not in " + range);
+          }
+          if (!results.isEmpty() && yieldPosition.compareTo(results.get(results.size() - 1).getKey()) <= 0) {
+            throw new IOException("Underlying iterator yielded to a position that does not follow the last key returned: " + yieldPosition + " <= "
+                + results.get(results.size() - 1).getKey());
+          }
+          addUnfinishedRange(lookupResult, range, yieldPosition, false);
+
+          log.debug("Scan yield detected at position " + yieldPosition);
+          Metrics scanMetrics = getTabletServer().getScanMetrics();
+          if (scanMetrics.isEnabled())
+            scanMetrics.add(TabletServerScanMetrics.YIELD, 1);
+        }
       } catch (TooManyFilesException tmfe) {
         // treat this as a closed tablet, and let the client retry
         log.warn("Tablet " + getExtent() + " has too many files, batch lookup can not run");
@@ -696,7 +725,7 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, int num, Set<Column> columns, long batchTimeOut) throws IOException {
+  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, int num, Set<Column> columns, long batchTimeOut, boolean isolated) throws IOException {
 
     // log.info("In nextBatch..");
 
@@ -713,18 +742,27 @@ public class Tablet implements TabletCommitter {
 
     long maxResultsSize = tableConfiguration.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
 
+    Key continueKey = null;
+    boolean skipContinueKey = false;
+
+    YieldCallback<Key> yield = new YieldCallback<>();
+
+    // we cannot yield if we are in isolation mode
+    if (!isolated) {
+      if (iter instanceof YieldingKeyValueIterator)
+        ((YieldingKeyValueIterator<Key,Value>) iter).enableYielding(yield);
+    }
+
     if (columns.size() == 0) {
       iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
     } else {
       iter.seek(range, LocalityGroupUtil.families(columns), true);
     }
 
-    Key continueKey = null;
-    boolean skipContinueKey = false;
-
-    boolean endOfTabletReached = false;
     while (iter.hasTop()) {
-
+      if (yield.hasYielded()) {
+        throw new IOException("Coding error: hasTop returned true but has yielded at " + yield.getPositionAndReset());
+      }
       value = iter.getTopValue();
       key = iter.getTopKey();
 
@@ -744,16 +782,27 @@ public class Tablet implements TabletCommitter {
       iter.next();
     }
 
-    if (iter.hasTop() == false) {
-      endOfTabletReached = true;
-    }
+    if (yield.hasYielded()) {
+      continueKey = new Key(yield.getPositionAndReset());
+      skipContinueKey = true;
+      if (!range.contains(continueKey)) {
+        throw new IOException("Underlying iterator yielded to a position outside of its range: " + continueKey + " not in " + range);
+      }
+      if (!results.isEmpty() && continueKey.compareTo(results.get(results.size() - 1).getKey()) <= 0) {
+        throw new IOException("Underlying iterator yielded to a position that does not follow the last key returned: " + continueKey + " <= "
+            + results.get(results.size() - 1).getKey());
+      }
 
-    if (endOfTabletReached) {
+      log.debug("Scan yield detected at position " + continueKey);
+      Metrics scanMetrics = getTabletServer().getScanMetrics();
+      if (scanMetrics.isEnabled())
+        scanMetrics.add(TabletServerScanMetrics.YIELD, 1);
+    } else if (iter.hasTop() == false) {
+      // end of tablet has been reached
       continueKey = null;
+      if (results.size() == 0)
+        results = null;
     }
-
-    if (endOfTabletReached && results.size() == 0)
-      results = null;
 
     return new Batch(skipContinueKey, results, continueKey, resultBytes);
   }
