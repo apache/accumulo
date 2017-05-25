@@ -296,6 +296,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final Metrics scanMetrics;
   private final Metrics mincMetrics;
 
+  public Metrics getScanMetrics() {
+    return scanMetrics;
+  }
+
   public Metrics getMinCMetrics() {
     return mincMetrics;
   }

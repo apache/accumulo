@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.YieldCallback;
 
 /**
  * A SortedKeyValueIterator which presents a view over some section of data, regardless of whether or not it is backed by memory (InMemoryMap) or an RFile
@@ -52,6 +54,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
 
   private DataSource source;
   private SortedKeyValueIterator<Key,Value> iter;
+
+  private Optional<YieldCallback<Key>> yield = Optional.empty();
 
   private Key key;
   private Value val;
@@ -113,6 +117,18 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
   }
 
   @Override
+  public void enableYielding(YieldCallback<Key> yield) {
+    this.yield = Optional.of(yield);
+
+    // if we require row isolation, then we cannot support yielding in the middle.
+    if (!onlySwitchAfterRow) {
+      if (iter != null) {
+        iter.enableYielding(yield);
+      }
+    }
+  }
+
+  @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
   }
@@ -126,14 +142,23 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
 
   private void readNext(boolean initialSeek) throws IOException {
 
+    // we need to check here if we were yielded in case the source was switched out and re-seeked by someone else (minor compaction/InMemoryMap)
+    boolean yielded = (yield.isPresent() && yield.get().hasYielded());
+
     // check of initialSeek second is intentional so that it does not short
     // circuit the call to switchSource
-    boolean seekNeeded = (!onlySwitchAfterRow && switchSource()) || initialSeek;
+    boolean seekNeeded = yielded || (!onlySwitchAfterRow && switchSource()) || initialSeek;
 
     if (seekNeeded)
       if (initialSeek)
         iter.seek(range, columnFamilies, inclusive);
-      else
+      else if (yielded) {
+        Key yieldPosition = yield.get().getPositionAndReset();
+        if (!range.contains(yieldPosition)) {
+          throw new IOException("Underlying iterator yielded to a position outside of its range: " + yieldPosition + " not in " + range);
+        }
+        iter.seek(new Range(yieldPosition, false, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
+      } else
         iter.seek(new Range(key, false, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
     else {
       iter.next();
@@ -144,6 +169,10 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
     }
 
     if (iter.hasTop()) {
+      if (yield.isPresent() && yield.get().hasYielded()) {
+        throw new IOException("Coding error: hasTop returned true but has yielded at " + yield.get().getPositionAndReset());
+      }
+
       Key nextKey = iter.getTopKey();
       Value nextVal = iter.getTopValue();
 
@@ -163,6 +192,9 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
     if (!source.isCurrent()) {
       source = source.getNewDataSource();
       iter = source.iterator();
+      if (!onlySwitchAfterRow && yield.isPresent()) {
+        iter.enableYielding(yield.get());
+      }
       return true;
     }
 
@@ -176,8 +208,12 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
       this.inclusive = inclusive;
       this.columnFamilies = columnFamilies;
 
-      if (iter == null)
+      if (iter == null) {
         iter = source.iterator();
+        if (!onlySwitchAfterRow && yield.isPresent()) {
+          iter.enableYielding(yield.get());
+        }
+      }
 
       readNext(true);
     }

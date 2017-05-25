@@ -16,8 +16,11 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -25,12 +28,15 @@ import junit.framework.TestCase;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.hadoop.io.Text;
 
@@ -272,5 +278,110 @@ public class SourceSwitchingIteratorTest extends TestCase {
       fail("expected to see IterationInterruptedException");
     } catch (IterationInterruptedException iie) {}
 
+  }
+
+  private Range yield(Range r, SourceSwitchingIterator ssi, YieldCallback<Key> yield) throws IOException {
+    while (yield.hasYielded()) {
+      Key yieldPosition = yield.getPositionAndReset();
+      if (!r.contains(yieldPosition)) {
+        throw new IOException("Underlying iterator yielded to a position outside of its range: " + yieldPosition + " not in " + r);
+      }
+      r = new Range(yieldPosition, false, (Key) null, r.isEndKeyInclusive());
+      ssi.seek(r, new ArrayList<ByteSequence>(), false);
+    }
+    return r;
+  }
+
+  public void testYield() throws Exception {
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
+    put(tm1, "r1", "cf1", "cq1", 5, "v1");
+    put(tm1, "r1", "cf1", "cq3", 5, "v2");
+    put(tm1, "r2", "cf1", "cq1", 5, "v3");
+
+    SortedMapIterator smi = new SortedMapIterator(tm1);
+    YieldingIterator ymi = new YieldingIterator(smi);
+    TestDataSource tds = new TestDataSource(ymi);
+    SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds);
+
+    YieldCallback<Key> yield = new YieldCallback<>();
+    ssi.enableYielding(yield);
+
+    Range r = new Range();
+    ssi.seek(r, new ArrayList<ByteSequence>(), false);
+    r = yield(r, ssi, yield);
+    testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
+    r = yield(r, ssi, yield);
+    testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v2", true);
+    r = yield(r, ssi, yield);
+    testAndCallNext(ssi, "r2", "cf1", "cq1", 5, "v3", true);
+    r = yield(r, ssi, yield);
+    assertFalse(ssi.hasTop());
+  }
+
+  /**
+   * This iterator which implements yielding will yield after every other next and every other seek call.
+   */
+  private final AtomicBoolean yieldNextKey = new AtomicBoolean(false);
+  private final AtomicBoolean yieldSeekKey = new AtomicBoolean(false);
+
+  public class YieldingIterator extends WrappingIterator {
+    private Optional<YieldCallback<Key>> yield = Optional.empty();
+
+    public YieldingIterator(SortedKeyValueIterator<Key,Value> source) {
+      setSource(source);
+    }
+
+    @Override
+    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+      return new YieldingIterator(getSource().deepCopy(env));
+    }
+
+    @Override
+    public boolean hasTop() {
+      return (!(yield.isPresent() && yield.get().hasYielded()) && super.hasTop());
+    }
+
+    @Override
+    public void next() throws IOException {
+      boolean yielded = false;
+
+      // yield on every other next call.
+      yieldNextKey.set(!yieldNextKey.get());
+      if (yield.isPresent() && yieldNextKey.get()) {
+        yielded = true;
+        // since we are not actually skipping keys underneath, simply use the key following the top key as the yield key
+        yield.get().yield(getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+      }
+
+      // if not yielding, then simply pass on the next call
+      if (!yielded) {
+        super.next();
+      }
+    }
+
+    @Override
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+      boolean yielded = false;
+
+      if (!range.isStartKeyInclusive()) {
+        // yield on every other seek call.
+        yieldSeekKey.set(!yieldSeekKey.get());
+        if (yield.isPresent() && yieldSeekKey.get()) {
+          yielded = true;
+          // since we are not actually skipping keys underneath, simply use the key following the range start key
+          yield.get().yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+        }
+      }
+
+      // if not yielding, then simply pass on the call to the source
+      if (!yielded) {
+        super.seek(range, columnFamilies, inclusive);
+      }
+    }
+
+    @Override
+    public void enableYielding(YieldCallback<Key> yield) {
+      this.yield = Optional.of(yield);
+    }
   }
 }

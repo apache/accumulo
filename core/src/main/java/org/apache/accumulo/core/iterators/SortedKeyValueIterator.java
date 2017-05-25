@@ -30,7 +30,7 @@ import org.apache.hadoop.io.WritableComparable;
  * An iterator that supports iterating over key and value pairs. Anything implementing this interface should return keys in sorted order.
  */
 
-public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extends Writable> {
+public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extends Writable> extends YieldingKeyValueIterator<K,V> {
   /**
    * Initializes the iterator. Data should not be read from the source in this method.
    *
@@ -50,7 +50,8 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
   void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env) throws IOException;
 
   /**
-   * Returns true if the iterator has more elements.
+   * Returns true if the iterator has more elements. Note that if this iterator has yielded (@see YieldingKeyValueIterator.enableYielding(YieldCallback)), this
+   * this method must return false.
    *
    * @return <tt>true</tt> if the iterator has more elements.
    * @exception IllegalStateException
