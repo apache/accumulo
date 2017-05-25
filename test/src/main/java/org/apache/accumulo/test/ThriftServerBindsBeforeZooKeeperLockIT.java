@@ -92,10 +92,12 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           try {
             HttpURLConnection cnxn = (HttpURLConnection) url.openConnection();
             final int responseCode = cnxn.getResponseCode();
-            final String errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
+            String errorText;
             // This is our "assertion", but we want to re-check it if it's not what we expect
-            if (HttpURLConnection.HTTP_UNAVAILABLE == responseCode && null != errorText && errorText.contains("This is not the active Monitor")) {
+            if (HttpURLConnection.HTTP_OK == responseCode) {
               return;
+            } else {
+              errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
             }
             LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'", responseCode, errorText);
           } catch (Exception e) {
