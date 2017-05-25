@@ -171,7 +171,8 @@ public interface Summarizer {
 
   /**
    * When Accumulo calls methods in this interface, it will call {@link #accept(Key, Value)} zero or more times and then call
-   * {@link #summarize(StatisticConsumer)} once. After calling {@link #summarize(StatisticConsumer)}, it will not use the collector again.
+   * {@link Collector#summarize(Summarizer.StatisticConsumer)} once. After calling {@link Collector#summarize(Summarizer.StatisticConsumer)}, it will not use
+   * the collector again.
    *
    * @since 2.0.0
    */
@@ -199,7 +200,7 @@ public interface Summarizer {
   }
 
   /**
-   * A Combiner is used to merge statistics emitted from {@link Collector#summarize(StatisticConsumer)} and from previous invocations of itself.
+   * A Combiner is used to merge statistics emitted from {@link Collector#summarize(Summarizer.StatisticConsumer)} and from previous invocations of itself.
    *
    * @since 2.0.0
    */
@@ -209,7 +210,7 @@ public interface Summarizer {
      * calls to this method.
      *
      * <p>
-     * If first map is too large after this call, then it may not be stored. See the comment on {@link Collector#summarize(StatisticConsumer)}
+     * If first map is too large after this call, then it may not be stored. See the comment on {@link Collector#summarize(Summarizer.StatisticConsumer)}
      */
     public void merge(Map<String,Long> statistics1, Map<String,Long> statistics2);
   }
