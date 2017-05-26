@@ -46,6 +46,8 @@ import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
@@ -148,14 +150,14 @@ class RFileScanner extends ScannerOptions implements Scanner {
       }
 
       try {
-        blockCacheManager = BlockCacheManager.getClientInstance(cc);
+        blockCacheManager = BlockCacheManagerFactory.getClientInstance(cc);
         if (opts.indexCacheSize > 0) {
           cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(opts.indexCacheSize));
         }
         if (opts.dataCacheSize > 0) {
           cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(opts.dataCacheSize));
         }
-        blockCacheManager.start(cc);
+        blockCacheManager.start(new BlockCacheConfiguration(cc));
         this.indexCache = blockCacheManager.getBlockCache(CacheType.INDEX);
         this.dataCache = blockCacheManager.getBlockCache(CacheType.DATA);
       } catch (RuntimeException e) {

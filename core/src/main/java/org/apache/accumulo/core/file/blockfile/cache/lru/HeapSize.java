@@ -15,18 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache;
+package org.apache.accumulo.core.file.blockfile.cache.lru;
 
-import org.junit.Assert;
-import org.junit.Test;
-
-public class BlockConfigurationHelperTest {
-
-  @Test
-  public void testGetPropertyPrefix() throws Exception {
-    Assert.assertEquals("general.custom.cache.block.lru.data.", BlockCacheConfiguration.getPrefix(CacheType.DATA, "lru"));
-    Assert.assertEquals("general.custom.cache.block.lru.index.", BlockCacheConfiguration.getPrefix(CacheType.INDEX, "lru"));
-    Assert.assertEquals("general.custom.cache.block.lru.summary.", BlockCacheConfiguration.getPrefix(CacheType.SUMMARY, "lru"));
-  }
+/**
+ * Implementations can be asked for an estimate of their size in bytes.
+ * <p>
+ * Useful for sizing caches. Its a given that implementation approximations do not account for 32 vs 64 bit nor for different VM implementations.
+ * <p>
+ * An Object's size is determined by the non-static data members in it, as well as the fixed {@link Object} overhead.
+ * <p>
+ * For example:
+ *
+ * <pre>
+ * public class SampleObject implements HeapSize {
+ *   int[] numbers;
+ *   int x;
+ * }
+ * </pre>
+ */
+public interface HeapSize {
+  /**
+   * @return Approximate 'exclusive deep size' of implementing object. Includes count of payload and hosting object sizings.
+   */
+  long heapSize();
 
 }

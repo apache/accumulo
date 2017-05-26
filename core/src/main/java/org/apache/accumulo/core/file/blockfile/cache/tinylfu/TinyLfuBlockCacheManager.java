@@ -17,7 +17,6 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.slf4j.Logger;
@@ -28,10 +27,9 @@ public class TinyLfuBlockCacheManager extends BlockCacheManager {
   private static final Logger LOG = LoggerFactory.getLogger(TinyLfuBlockCacheManager.class);
 
   @Override
-  protected TinyLfuBlockCache createCache(AccumuloConfiguration conf, CacheType type) {
-    TinyLfuBlockCacheConfiguration cc = new TinyLfuBlockCacheConfiguration(conf, type);
-    LOG.info("Creating {} cache with configuration {}", type, cc);
-    return new TinyLfuBlockCache(cc);
+  protected TinyLfuBlockCache createCache(Configuration conf, CacheType type) {
+    LOG.info("Creating {} cache with configuration {}", type, conf);
+    return new TinyLfuBlockCache(conf, type);
   }
 
 }

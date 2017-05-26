@@ -15,18 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
+package org.apache.accumulo.core.file.blockfile.cache;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.CacheType;
+import org.junit.Assert;
+import org.junit.Test;
 
-public final class TinyLfuBlockCacheConfiguration extends BlockCacheConfiguration {
+public class BlockCacheManagerTest {
 
-  public static final String PROPERTY_PREFIX = "tinylfu";
-
-  public TinyLfuBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type) {
-    super(conf, type, PROPERTY_PREFIX);
+  @Test
+  public void testGetPropertyPrefix() throws Exception {
+    Assert.assertEquals("general.custom.cache.lru.data.", BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.DATA));
+    Assert.assertEquals("general.custom.cache.lru.index.", BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.INDEX));
+    Assert.assertEquals("general.custom.cache.lru.summary.", BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.SUMMARY));
+    Assert.assertEquals("general.custom.cache.lru.default.", BlockCacheManager.getFullyQualifiedPropertyPrefix("lru"));
   }
 
 }

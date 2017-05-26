@@ -19,15 +19,16 @@ package org.apache.accumulo.core.file.blockfile.cache.lru;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
-public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
+public final class LruBlockCacheConfiguration {
 
   public static final String PROPERTY_PREFIX = "lru";
 
@@ -79,8 +80,21 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
 
   private final boolean useEvictionThread;
 
-  public LruBlockCacheConfiguration(AccumuloConfiguration conf, CacheType type) {
-    super(conf, type, PROPERTY_PREFIX);
+  private final Configuration conf;
+
+  private final Map<String,String> props;
+
+  private final CacheType type;
+
+  private Optional<String> get(String k) {
+    return Optional.ofNullable(props.get(k));
+  }
+
+  public LruBlockCacheConfiguration(Configuration conf, CacheType type) {
+
+    this.type = type;
+    this.conf = conf;
+    this.props = conf.getProperties(PROPERTY_PREFIX, type);
 
     this.acceptableFactor = get(ACCEPTABLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_ACCEPTABLE_FACTOR);
     this.minFactor = get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MIN_FACTOR);
@@ -199,7 +213,7 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
   }
 
   public static Builder builder(CacheType ct) {
-    return new Builder(getPrefix(ct, PROPERTY_PREFIX));
+    return new Builder(BlockCacheManager.getFullyQualifiedPropertyPrefix(PROPERTY_PREFIX, ct));
   }
 
   @Override
@@ -207,6 +221,14 @@ public final class LruBlockCacheConfiguration extends BlockCacheConfiguration {
     return super.toString() + ", acceptableFactor: " + this.getAcceptableFactor() + ", minFactor: " + this.getMinFactor() + ", singleFactor: "
         + this.getSingleFactor() + ", multiFactor: " + this.getMultiFactor() + ", memoryFactor: " + this.getMemoryFactor() + ", mapLoadFactor: "
         + this.getMapLoadFactor() + ", mapConcurrencyLevel: " + this.getMapConcurrencyLevel() + ", useEvictionThread: " + this.isUseEvictionThread();
+  }
+
+  public long getMaxSize() {
+    return conf.getMaxSize(type);
+  }
+
+  public long getBlockSize() {
+    return conf.getBlockSize();
   }
 
 }

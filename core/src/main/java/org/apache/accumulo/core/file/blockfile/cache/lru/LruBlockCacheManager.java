@@ -17,7 +17,6 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
@@ -29,7 +28,7 @@ public class LruBlockCacheManager extends BlockCacheManager {
   private static final Logger LOG = LoggerFactory.getLogger(LruBlockCacheManager.class);
 
   @Override
-  protected BlockCache createCache(AccumuloConfiguration conf, CacheType type) {
+  protected BlockCache createCache(Configuration conf, CacheType type) {
     LruBlockCacheConfiguration cc = new LruBlockCacheConfiguration(conf, type);
     LOG.info("Creating {} cache with configuration {}", type, cc);
     return new LruBlockCache(cc);

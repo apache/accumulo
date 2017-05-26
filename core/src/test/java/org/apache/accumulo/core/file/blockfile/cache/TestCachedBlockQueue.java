@@ -19,6 +19,8 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.util.LinkedList;
 
+import org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlockQueue;
+
 import junit.framework.TestCase;
 
 public class TestCachedBlockQueue extends TestCase {
@@ -54,7 +56,7 @@ public class TestCachedBlockQueue extends TestCase {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.CachedBlock> blocks = queue.getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue.getList();
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");
     assertEquals(blocks.poll().getName(), "cb3");
@@ -105,7 +107,7 @@ public class TestCachedBlockQueue extends TestCase {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.CachedBlock> blocks = queue.getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue.getList();
     assertEquals(blocks.poll().getName(), "cb0");
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");
@@ -118,7 +120,7 @@ public class TestCachedBlockQueue extends TestCase {
 
   }
 
-  private static class CachedBlock extends org.apache.accumulo.core.file.blockfile.cache.CachedBlock {
+  private static class CachedBlock extends org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock {
     public CachedBlock(long heapSize, String name, long accessTime) {
       super(name, new byte[(int) (heapSize - CachedBlock.PER_BLOCK_OVERHEAD)], accessTime, false);
     }

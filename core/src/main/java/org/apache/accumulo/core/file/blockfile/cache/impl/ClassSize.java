@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.core.file.blockfile.cache;
+package org.apache.accumulo.core.file.blockfile.cache.impl;
 
 import java.util.Properties;
 

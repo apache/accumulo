@@ -29,11 +29,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
-import org.apache.accumulo.core.file.blockfile.cache.CachedBlock;
-import org.apache.accumulo.core.file.blockfile.cache.CachedBlockQueue;
-import org.apache.accumulo.core.file.blockfile.cache.ClassSize;
-import org.apache.accumulo.core.file.blockfile.cache.HeapSize;
-import org.apache.accumulo.core.file.blockfile.cache.SizeConstants;
+import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
+import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

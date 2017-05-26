@@ -42,6 +42,8 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -173,12 +175,12 @@ public class TabletServerResourceManager {
     long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
     try {
-      cacheManager = BlockCacheManager.getInstance(acuConf);
+      cacheManager = BlockCacheManagerFactory.getInstance(acuConf);
     } catch (Exception e) {
       throw new RuntimeException("Error creating BlockCacheManager", e);
     }
 
-    cacheManager.start(acuConf);
+    cacheManager.start(new BlockCacheConfiguration(acuConf));
 
     _iCache = cacheManager.getBlockCache(CacheType.INDEX);
     _dCache = cacheManager.getBlockCache(CacheType.DATA);
