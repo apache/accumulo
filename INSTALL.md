@@ -21,7 +21,7 @@ This document covers installing Accumulo on single and multi-node environments.
 Either [download][1] or [build][2] a binary distribution of Accumulo from
 source code.  Unpack as follows.
 
-    cd <install location>
+    cd <download location>
     tar xzf <some dir>/accumulo-X.Y.Z-bin.tar.gz
     cd accumulo-X.Y.Z
 
