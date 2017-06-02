@@ -17,12 +17,13 @@ limitations under the License.
 
 # Installing Accumulo
 
-This document covers installing Accumulo on single and multi-node environments.
-Either [download][1] or [build][2] a binary distribution of Accumulo from
-source code.  Unpack as follows.
+This document provides basic instructions for installing Accumulo. For detailed instructions,
+see the 'In-depth Installation' guide in the Accumulo documentation on the project website.
 
-    cd <install location>
-    tar xzf <some dir>/accumulo-X.Y.Z-bin.tar.gz
+Either [download] or [build] a binary distribution of Accumulo from source code and
+unpack as follows.
+
+    tar xzf /path/to/accumulo-X.Y.Z-bin.tar.gz
     cd accumulo-X.Y.Z
 
 There are four scripts in the `bin` directory of the tarball distribution that are used
@@ -38,7 +39,7 @@ For convenience, consider adding `accumulo-X.Y.Z/bin/` to your shell's path.
 
 ## Configuring Accumulo
 
-Accumulo requires running [Zookeeper][3] and [HDFS][4] instances which should be set up
+Accumulo requires running [Zookeeper] and [HDFS] instances which should be set up
 before configuring Accumulo.
 
 The primary configuration files for Accumulo are `accumulo-env.sh` and `accumulo-site.xml`
@@ -156,11 +157,11 @@ in `conf/` should be configured with a newline separated list of node names:
 The Accumulo, Hadoop, and Zookeeper software should be present at the same
 location on every node. Also the files in the `conf` directory must be copied
 to every node. There are many ways to replicate the software and configuration,
-two possible tools that can help replicate software and/or config are [pdcp][5]
-and [prsync][6].
+two possible tools that can help replicate software and/or config are [pdcp]
+and [prsync].
 
 The `accumulo-cluster` script uses ssh to start processes on remote nodes. Before
-attempting to start Accumulo, [passwordless ssh][7] must be setup on the cluster.
+attempting to start Accumulo, [passwordless ssh][pwl] must be setup on the cluster.
 
 #### Start cluster
 
@@ -186,10 +187,10 @@ When finished, use the following commands to stop Accumulo:
 * Stop Accumulo service: `accumulo-service tserver stop`
 * Stop Accumulo cluster: `accumulo-cluster stop`
 
-[1]: http://accumulo.apache.org/
-[2]: README.md#building-
-[3]: http://zookeeper.apache.org/
-[4]: http://http://hadoop.apache.org/
-[5]: https://code.google.com/p/pdsh/
-[6]: https://code.google.com/p/parallel-ssh/
-[7]: https://www.google.com/search?q=hadoop+passwordless+ssh&ie=utf-8&oe=utf-8
+[download]: https://accumulo.apache.org/downloads/
+[build]: README.md#building
+[Zookeeper]: https://zookeeper.apache.org/
+[HDFS]: https://hadoop.apache.org/
+[pdcp]: https://code.google.com/p/pdsh/
+[prsync]: https://code.google.com/p/parallel-ssh/
+[pwl]: https://www.google.com/search?q=hadoop+passwordless+ssh&ie=utf-8&oe=utf-8
