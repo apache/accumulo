@@ -27,13 +27,13 @@ limitations under the License.
 
 ## Patch Submission
 
-- Ensure that Accumulo builds cleanly before submiting your patch using the command: `mvn clean verify`
+- Ensure that Accumulo builds cleanly before submiting your patch using the command: `mvn clean verify -DskipITs`
 - Before submission please squash your commits using a message that starts with the JIRA issue number and a description of the changes.
 - Patches should be submitted in the form of Pull Requests to the Apache Accumulo GitHub [repository](https://github.com/apache/accumulo/) or to the [Review Board](https://reviews.apache.org) accumulo repository.
 
 ## Review
 
-- While everyone is welcome to review patches, at least one committer needs to review and approve your patch.
+- We welcome reviews from anyone. Any committer can approve and merge the changes.
 - Reviewers will be looking for things like threading issues, performance implications, API design, etc.
 - Reviewers will likely ask questions to better understand your change.
 - Reviewers will make comments about changes to your patch:
