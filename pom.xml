@@ -832,7 +832,6 @@
               <exclude>nbproject/**</exclude>
               <exclude>nb-configuration.xml</exclude>
               <exclude>nbactions.xml</exclude>
-              <exclude>CONTRIBUTING.md</exclude>
             </excludes>
           </configuration>
         </plugin>
