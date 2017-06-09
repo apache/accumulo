@@ -52,7 +52,6 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
@@ -89,13 +88,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private Connector auditConnector;
   private Connector conn;
 
-  private static ArrayList<String> findAuditMessage(ArrayList<String> input, String pattern) {
-    ArrayList<String> result = new ArrayList<>();
-    for (String s : input) {
-      if (s.matches(".*" + pattern + ".*"))
-        result.add(s);
-    }
-    return result;
+  private static long findAuditMessage(ArrayList<String> input, String pattern) {
+    return input.stream().filter(s -> s.matches(".*" + pattern + ".*")).count();
   }
 
   /**
@@ -127,18 +121,17 @@ public class AuditMessageIT extends ConfigurableMacBase {
     for (File file : files) {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
-        LineIterator it = FileUtils.lineIterator(file, UTF_8.name());
-        try {
+        try (java.util.Scanner it = new java.util.Scanner(file, UTF_8.name())) {
           while (it.hasNext()) {
             String line = it.nextLine();
-            if (line.matches(".* \\[" + AuditedSecurityOperation.AUDITLOG + "\\s*\\].*")) {
+            // strip off prefix, because log4j.properties does
+            String pattern = ".* \\[" + AuditedSecurityOperation.AUDITLOG.replace("org.apache.", "").replace(".", "[.]") + "\\] .*";
+            if (line.matches(pattern)) {
               // Only include the message if startTimestamp is null. or the message occurred after the startTimestamp value
               if ((lastAuditTimestamp == null) || (line.substring(0, 23).compareTo(lastAuditTimestamp) > 0))
                 result.add(line);
             }
           }
-        } finally {
-          LineIterator.closeQuietly(it);
         }
       }
     }
@@ -211,12 +204,12 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     ArrayList<String> auditMessages = getAuditMessages("testTableOperationsAudits");
 
-    assertEquals(1, findAuditMessage(auditMessages, "action: createTable; targetTable: " + OLD_TEST_TABLE_NAME).size());
-    assertEquals(1, findAuditMessage(auditMessages, "action: renameTable; targetTable: " + OLD_TEST_TABLE_NAME).size());
-    assertEquals(1, findAuditMessage(auditMessages, "action: cloneTable; targetTable: " + NEW_TEST_TABLE_NAME).size());
-    assertEquals(1, findAuditMessage(auditMessages, "action: deleteTable; targetTable: " + OLD_TEST_TABLE_NAME).size());
-    assertEquals(1, findAuditMessage(auditMessages, "action: offlineTable; targetTable: " + NEW_TEST_TABLE_NAME).size());
-    assertEquals(1, findAuditMessage(auditMessages, "action: deleteTable; targetTable: " + NEW_TEST_TABLE_NAME).size());
+    assertEquals(1, findAuditMessage(auditMessages, "action: createTable; targetTable: " + OLD_TEST_TABLE_NAME));
+    assertEquals(1, findAuditMessage(auditMessages, "action: renameTable; targetTable: " + OLD_TEST_TABLE_NAME));
+    assertEquals(1, findAuditMessage(auditMessages, "action: cloneTable; targetTable: " + NEW_TEST_TABLE_NAME));
+    assertEquals(1, findAuditMessage(auditMessages, "action: deleteTable; targetTable: " + OLD_TEST_TABLE_NAME));
+    assertEquals(1, findAuditMessage(auditMessages, "action: offlineTable; targetTable: " + NEW_TEST_TABLE_NAME));
+    assertEquals(1, findAuditMessage(auditMessages, "action: deleteTable; targetTable: " + NEW_TEST_TABLE_NAME));
 
   }
 
@@ -247,30 +240,29 @@ public class AuditMessageIT extends ConfigurableMacBase {
     ArrayList<String> auditMessages = getAuditMessages("testUserOperationsAudits");
 
     // The user is allowed to create this user and it succeeded
-    assertEquals(2, findAuditMessage(auditMessages, "action: createUser; targetUser: " + AUDIT_USER_2).size());
+    assertEquals(2, findAuditMessage(auditMessages, "action: createUser; targetUser: " + AUDIT_USER_2));
     assertEquals(
         1,
-        findAuditMessage(auditMessages,
-            "action: grantSystemPermission; permission: " + SystemPermission.ALTER_TABLE.toString() + "; targetUser: " + AUDIT_USER_2).size());
+        findAuditMessage(auditMessages, "action: grantSystemPermission; permission: " + SystemPermission.ALTER_TABLE.toString() + "; targetUser: "
+            + AUDIT_USER_2));
     assertEquals(
         1,
-        findAuditMessage(auditMessages,
-            "action: revokeSystemPermission; permission: " + SystemPermission.ALTER_TABLE.toString() + "; targetUser: " + AUDIT_USER_2).size());
+        findAuditMessage(auditMessages, "action: revokeSystemPermission; permission: " + SystemPermission.ALTER_TABLE.toString() + "; targetUser: "
+            + AUDIT_USER_2));
     assertEquals(
         1,
-        findAuditMessage(auditMessages,
-            "action: grantTablePermission; permission: " + TablePermission.READ.toString() + "; targetTable: " + NEW_TEST_TABLE_NAME).size());
+        findAuditMessage(auditMessages, "action: grantTablePermission; permission: " + TablePermission.READ.toString() + "; targetTable: "
+            + NEW_TEST_TABLE_NAME));
     assertEquals(
         1,
-        findAuditMessage(auditMessages,
-            "action: revokeTablePermission; permission: " + TablePermission.READ.toString() + "; targetTable: " + NEW_TEST_TABLE_NAME).size());
+        findAuditMessage(auditMessages, "action: revokeTablePermission; permission: " + TablePermission.READ.toString() + "; targetTable: "
+            + NEW_TEST_TABLE_NAME));
     // changePassword is allowed and succeeded
-    assertEquals(2, findAuditMessage(auditMessages, "action: changePassword; targetUser: " + AUDIT_USER_2 + "").size());
-    assertEquals(1, findAuditMessage(auditMessages, "action: changeAuthorizations; targetUser: " + AUDIT_USER_2 + "; authorizations: " + auths.toString())
-        .size());
+    assertEquals(2, findAuditMessage(auditMessages, "action: changePassword; targetUser: " + AUDIT_USER_2 + ""));
+    assertEquals(1, findAuditMessage(auditMessages, "action: changeAuthorizations; targetUser: " + AUDIT_USER_2 + "; authorizations: " + auths.toString()));
 
     // allowed to dropUser and succeeded
-    assertEquals(2, findAuditMessage(auditMessages, "action: dropUser; targetUser: " + AUDIT_USER_2).size());
+    assertEquals(2, findAuditMessage(auditMessages, "action: dropUser; targetUser: " + AUDIT_USER_2));
   }
 
   @Test
@@ -304,19 +296,17 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // We've exported the table metadata to the MiniAccumuloCluster root dir. Grab the .rf file path to re-import it
     File distCpTxt = new File(exportDir.toString() + "/distcp.txt");
     File importFile = null;
-    LineIterator it = FileUtils.lineIterator(distCpTxt, UTF_8.name());
 
     // Just grab the first rf file, it will do for now.
     String filePrefix = "file:";
-    try {
+
+    try (java.util.Scanner it = new java.util.Scanner(distCpTxt, UTF_8.name())) {
       while (it.hasNext() && importFile == null) {
         String line = it.nextLine();
         if (line.matches(".*\\.rf")) {
           importFile = new File(line.replaceFirst(filePrefix, ""));
         }
       }
-    } finally {
-      LineIterator.closeQuietly(it);
     }
     FileUtils.copyFileToDirectory(importFile, exportDir);
     auditConnector.tableOperations().importTable(NEW_TEST_TABLE_NAME, exportDir.toString());
@@ -332,26 +322,24 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     ArrayList<String> auditMessages = getAuditMessages("testImportExportOperationsAudits");
 
-    assertEquals(1, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME)).size());
+    assertEquals(1, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME)));
     assertEquals(1,
-        findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, "offlineTable", OLD_TEST_TABLE_NAME))
-            .size());
+        findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, "offlineTable", OLD_TEST_TABLE_NAME)));
     assertEquals(1,
-        findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_EXPORT_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, exportDir.toString())).size());
+        findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_EXPORT_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, exportDir.toString())));
     assertEquals(
         1,
         findAuditMessage(auditMessages,
-            String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME, filePrefix + exportDir.toString())).size());
-    assertEquals(1, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, THIRD_TEST_TABLE_NAME)).size());
+            String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME, filePrefix + exportDir.toString())));
+    assertEquals(1, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, THIRD_TEST_TABLE_NAME)));
     assertEquals(
         1,
         findAuditMessage(
             auditMessages,
             String.format(AuditedSecurityOperation.CAN_BULK_IMPORT_AUDIT_TEMPLATE, THIRD_TEST_TABLE_NAME, filePrefix + exportDir.toString(), filePrefix
-                + failDir.toString())).size());
+                + failDir.toString())));
     assertEquals(1,
-        findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, "onlineTable", OLD_TEST_TABLE_NAME))
-            .size());
+        findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, "onlineTable", OLD_TEST_TABLE_NAME)));
 
   }
 
@@ -401,10 +389,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // End of testing activities
 
     ArrayList<String> auditMessages = getAuditMessages("testDataOperationsAudits");
-    assertTrue(1 <= findAuditMessage(auditMessages, "action: scan; targetTable: " + OLD_TEST_TABLE_NAME).size());
-    assertTrue(1 <= findAuditMessage(auditMessages, "action: scan; targetTable: " + OLD_TEST_TABLE_NAME).size());
+    assertTrue(1 <= findAuditMessage(auditMessages, "action: scan; targetTable: " + OLD_TEST_TABLE_NAME));
+    assertTrue(1 <= findAuditMessage(auditMessages, "action: scan; targetTable: " + OLD_TEST_TABLE_NAME));
     assertEquals(1,
-        findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, "myRow", "myRow~")).size());
+        findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, "myRow", "myRow~")));
 
   }
 
@@ -450,29 +438,26 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     ArrayList<String> auditMessages = getAuditMessages("testDeniedAudits");
     assertEquals(1,
-        findAuditMessage(auditMessages, "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME))
-            .size());
+        findAuditMessage(auditMessages, "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME)));
     assertEquals(
         1,
         findAuditMessage(auditMessages,
-            "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_RENAME_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME)).size());
+            "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_RENAME_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME)));
     assertEquals(
         1,
         findAuditMessage(auditMessages,
-            "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_CLONE_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME)).size());
+            "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_CLONE_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME)));
     assertEquals(1,
-        findAuditMessage(auditMessages, "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_DELETE_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME))
-            .size());
+        findAuditMessage(auditMessages, "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_DELETE_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME)));
     assertEquals(
         1,
         findAuditMessage(auditMessages,
-            "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, "offlineTable", OLD_TEST_TABLE_NAME))
-            .size());
-    assertEquals(1, findAuditMessage(auditMessages, "operation: denied;.*" + "action: scan; targetTable: " + OLD_TEST_TABLE_NAME).size());
+            "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, "offlineTable", OLD_TEST_TABLE_NAME)));
+    assertEquals(1, findAuditMessage(auditMessages, "operation: denied;.*" + "action: scan; targetTable: " + OLD_TEST_TABLE_NAME));
     assertEquals(
         1,
         findAuditMessage(auditMessages,
-            "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, "myRow", "myRow~")).size());
+            "operation: denied;.*" + String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, "myRow", "myRow~")));
   }
 
   @Test
@@ -496,12 +481,12 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // End of testing activities
 
     // We're permitted to drop this user, but it fails because the user doesn't actually exist.
-    assertEquals(2, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.DROP_USER_AUDIT_TEMPLATE, AUDIT_USER_2)).size());
+    assertEquals(2, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.DROP_USER_AUDIT_TEMPLATE, AUDIT_USER_2)));
     assertEquals(
         1,
         findAuditMessage(auditMessages,
-            String.format(AuditedSecurityOperation.REVOKE_SYSTEM_PERMISSION_AUDIT_TEMPLATE, SystemPermission.ALTER_TABLE, AUDIT_USER_2)).size());
-    assertEquals(1, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CREATE_USER_AUDIT_TEMPLATE, "root", "")).size());
+            String.format(AuditedSecurityOperation.REVOKE_SYSTEM_PERMISSION_AUDIT_TEMPLATE, SystemPermission.ALTER_TABLE, AUDIT_USER_2)));
+    assertEquals(1, findAuditMessage(auditMessages, String.format(AuditedSecurityOperation.CREATE_USER_AUDIT_TEMPLATE, "root", "")));
 
   }
 
