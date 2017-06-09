@@ -125,7 +125,7 @@ public class CertUtils {
 
     public AccumuloConfiguration getConfiguration() {
       if (siteFile == null) {
-        return SiteConfiguration.getInstance(DefaultConfiguration.getInstance());
+        return SiteConfiguration.getInstance();
       } else {
         return new AccumuloConfiguration() {
           Configuration xml = new Configuration();
@@ -195,7 +195,7 @@ public class CertUtils {
   }
 
   private static String getDefaultKeyPassword() {
-    return SiteConfiguration.getInstance(DefaultConfiguration.getInstance()).get(Property.INSTANCE_SECRET);
+    return SiteConfiguration.getInstance().get(Property.INSTANCE_SECRET);
   }
 
   private String issuerDirString;
