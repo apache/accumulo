@@ -79,10 +79,6 @@ public class LargestFirstMemoryManagerTest {
         return delegate.getNamespaceConfiguration(namespaceId);
       }
 
-      @Override
-      public Instance getInstance() {
-        return delegate.getInstance();
-      }
     };
     mgr.init(config);
     MemoryManagementActions result;
@@ -194,10 +190,6 @@ public class LargestFirstMemoryManagerTest {
         return delegate.getNamespaceConfiguration(namespaceId);
       }
 
-      @Override
-      public Instance getInstance() {
-        return delegate.getInstance();
-      }
     };
     mgr.init(config);
     MemoryManagementActions result;

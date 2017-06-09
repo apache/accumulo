@@ -412,7 +412,7 @@ public class Monitor implements HighlyAvailableService {
       if (locks != null && locks.size() > 0) {
         Collections.sort(locks);
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), UTF_8)).getAddress(Service.GC_CLIENT);
-        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, new AccumuloServerContext(config));
+        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, new AccumuloServerContext(instance, config));
         try {
           result = client.getStatus(Tracer.traceInfo(), getContext().rpcCreds());
         } finally {
@@ -436,10 +436,10 @@ public class Monitor implements HighlyAvailableService {
     VolumeManager fs = VolumeManagerImpl.get();
     instance = HdfsZooInstance.getInstance();
     config = new ServerConfigurationFactory(instance);
-    context = new AccumuloServerContext(config);
+    context = new AccumuloServerContext(instance, config);
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
-    Accumulo.init(fs, config, app);
+    Accumulo.init(fs, instance, config, app);
     Monitor monitor = new Monitor();
     // Servlets need access to limit requests when the monitor is not active, but Servlets are instantiated
     // via reflection. Expose the service this way instead.

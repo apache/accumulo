@@ -213,7 +213,7 @@ public class Admin implements KeywordExecutable {
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
 
     try {
-      ClientContext context = new AccumuloServerContext(confFactory);
+      ClientContext context = new AccumuloServerContext(instance, confFactory);
 
       int rc = 0;
 

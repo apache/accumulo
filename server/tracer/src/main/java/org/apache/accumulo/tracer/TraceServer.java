@@ -88,6 +88,7 @@ public class TraceServer implements Watcher {
 
   final private static Logger log = LoggerFactory.getLogger(TraceServer.class);
   final private ServerConfigurationFactory serverConfiguration;
+  final private Instance instance;
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
   final private Connector connector;
@@ -182,10 +183,11 @@ public class TraceServer implements Watcher {
 
   }
 
-  public TraceServer(ServerConfigurationFactory serverConfiguration, String hostname) throws Exception {
+  public TraceServer(Instance instance, ServerConfigurationFactory serverConfiguration, String hostname) throws Exception {
     this.serverConfiguration = serverConfiguration;
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + serverConfiguration.getInstance().getInstanceID());
+    this.instance = instance;
+    log.info("Version {}", Constants.VERSION);
+    log.info("Instance {}", instance.getInstanceID());
     AccumuloConfiguration conf = serverConfiguration.getSystemConfiguration();
     tableName = conf.get(Property.TRACE_TABLE);
     connector = ensureTraceTableExists(conf);
@@ -260,7 +262,7 @@ public class TraceServer implements Watcher {
           at = token;
         }
 
-        connector = serverConfiguration.getInstance().getConnector(principal, at);
+        connector = instance.getConnector(principal, at);
         if (!connector.tableOperations().exists(tableName)) {
           connector.tableOperations().create(tableName);
           IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());
@@ -384,9 +386,9 @@ public class TraceServer implements Watcher {
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
     VolumeManager fs = VolumeManagerImpl.get();
-    Accumulo.init(fs, conf, app);
+    Accumulo.init(fs, instance, conf, app);
     String hostname = opts.getAddress();
-    TraceServer server = new TraceServer(conf, hostname);
+    TraceServer server = new TraceServer(instance, conf, hostname);
     try {
       server.run();
     } finally {

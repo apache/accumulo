@@ -192,8 +192,4 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     return conf;
   }
 
-  @Override
-  public Instance getInstance() {
-    return instance;
-  }
 }

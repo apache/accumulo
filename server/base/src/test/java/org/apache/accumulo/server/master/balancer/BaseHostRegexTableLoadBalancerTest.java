@@ -28,20 +28,22 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Predicate;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -134,8 +136,11 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
+    final Instance instance;
+
     public TestServerConfigurationFactory(Instance instance) {
       super(instance);
+      this.instance = instance;
     }
 
     @Override
@@ -145,7 +150,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
     @Override
     public TableConfiguration getTableConfiguration(String tableId) {
-      return new TableConfiguration(getInstance(), tableId, null) {
+      // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration constructor
+      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, this.instance, DefaultConfiguration.getInstance());
+      return new TableConfiguration(this.instance, tableId, dummyConf) {
         @Override
         public String get(Property property) {
           return DEFAULT_TABLE_PROPERTIES.get(property.name());

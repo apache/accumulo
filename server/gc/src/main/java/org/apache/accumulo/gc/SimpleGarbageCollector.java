@@ -150,10 +150,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
     final VolumeManager fs = VolumeManagerImpl.get();
-    Accumulo.init(fs, conf, app);
+    Accumulo.init(fs, instance, conf, app);
     Opts opts = new Opts();
     opts.parseArgs(app, args);
-    SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, fs, conf);
+    SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, instance, fs, conf);
 
     DistributedTrace.enable(opts.getAddress(), app, conf.getSystemConfiguration());
     try {
@@ -169,8 +169,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    * @param opts
    *          options
    */
-  public SimpleGarbageCollector(Opts opts, VolumeManager fs, ServerConfigurationFactory confFactory) {
-    super(confFactory);
+  public SimpleGarbageCollector(Opts opts, Instance instance, VolumeManager fs, ServerConfigurationFactory confFactory) {
+    super(instance, confFactory);
     this.opts = opts;
     this.fs = fs;
 

@@ -95,7 +95,6 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<String,String>());
     ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
     expect(factory.getSystemConfiguration()).andReturn(systemConf).anyTimes();
-    expect(factory.getInstance()).andReturn(mockInst).anyTimes();
     expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
 
     // Just make the SiteConfiguration delegate to our AccumuloConfiguration
@@ -123,7 +122,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     }).anyTimes();
 
     replay(mockInst, factory, siteConfig);
-    refs = new WrappedCloseWriteAheadLogReferences(new AccumuloServerContext(factory));
+    refs = new WrappedCloseWriteAheadLogReferences(new AccumuloServerContext(mockInst, factory));
   }
 
   @Test

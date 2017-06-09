@@ -92,12 +92,6 @@ public class ServerConfigurationFactoryTest {
   }
 
   @Test
-  public void testGetInstance() {
-    ready();
-    assertSame(instance, scf.getInstance());
-  }
-
-  @Test
   public void testGetDefaultConfiguration() {
     ready();
     DefaultConfiguration c = scf.getDefaultConfiguration();

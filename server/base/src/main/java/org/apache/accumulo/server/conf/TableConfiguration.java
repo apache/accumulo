@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map;
 import java.util.function.Predicate;
 
@@ -44,9 +46,9 @@ public class TableConfiguration extends ObservableConfiguration {
   private final String tableId;
 
   public TableConfiguration(Instance instance, String tableId, NamespaceConfiguration parent) {
-    this.instance = instance;
-    this.tableId = tableId;
-    this.parent = parent;
+    this.instance = requireNonNull(instance);
+    this.tableId = requireNonNull(tableId);
+    this.parent = requireNonNull(parent);
   }
 
   void setZooCacheFactory(ZooCacheFactory zcf) {

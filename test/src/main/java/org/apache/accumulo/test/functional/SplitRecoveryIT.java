@@ -82,7 +82,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
   private void run() throws Exception {
     Instance inst = HdfsZooInstance.getInstance();
-    AccumuloServerContext c = new AccumuloServerContext(new ServerConfigurationFactory(inst));
+    AccumuloServerContext c = new AccumuloServerContext(inst, new ServerConfigurationFactory(inst));
     String zPath = ZooUtil.getRoot(inst) + "/testLock";
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);

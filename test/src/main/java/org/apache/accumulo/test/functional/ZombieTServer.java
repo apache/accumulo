@@ -24,6 +24,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -99,7 +100,8 @@ public class ZombieTServer {
   public static void main(String[] args) throws Exception {
     Random random = new Random(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
-    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+    Instance instance = HdfsZooInstance.getInstance();
+    AccumuloServerContext context = new AccumuloServerContext(instance, new ServerConfigurationFactory(instance));
 
     TransactionWatcher watcher = new TransactionWatcher();
     final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);

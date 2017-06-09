@@ -345,12 +345,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
 
-  public TabletServer(ServerConfigurationFactory confFactory, VolumeManager fs) throws IOException {
-    super(confFactory);
+  public TabletServer(Instance instance, ServerConfigurationFactory confFactory, VolumeManager fs) throws IOException {
+    super(instance, confFactory);
     this.confFactory = confFactory;
     this.fs = fs;
     final AccumuloConfiguration aconf = getConfiguration();
-    Instance instance = getInstance();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
     this.sessionManager = new SessionManager(aconf);
@@ -3064,10 +3063,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);
       String hostname = opts.getAddress();
-      ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
+      Instance instance = HdfsZooInstance.getInstance();
+      ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
       VolumeManager fs = VolumeManagerImpl.get();
-      Accumulo.init(fs, conf, app);
-      final TabletServer server = new TabletServer(conf, fs);
+      Accumulo.init(fs, instance, conf, app);
+      final TabletServer server = new TabletServer(instance, conf, fs);
       server.config(hostname);
       DistributedTrace.enable(hostname, app, conf.getSystemConfiguration());
       if (UserGroupInformation.isSecurityEnabled()) {

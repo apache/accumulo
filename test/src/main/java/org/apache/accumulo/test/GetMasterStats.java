@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
@@ -42,7 +43,8 @@ public class GetMasterStats {
   public static void main(String[] args) throws Exception {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
-    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+    Instance instance = HdfsZooInstance.getInstance();
+    AccumuloServerContext context = new AccumuloServerContext(instance, new ServerConfigurationFactory(instance));
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);

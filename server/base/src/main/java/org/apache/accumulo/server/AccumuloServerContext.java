@@ -19,7 +19,6 @@ package org.apache.accumulo.server;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -53,15 +52,15 @@ public class AccumuloServerContext extends ClientContext {
   /**
    * Construct a server context from the server's configuration
    */
-  public AccumuloServerContext(ServerConfigurationFactory confFactory) {
-    this(confFactory, null);
+  public AccumuloServerContext(Instance instance, ServerConfigurationFactory confFactory) {
+    this(instance, confFactory, null);
   }
 
   /**
    * Construct a server context from the server's configuration
    */
-  public AccumuloServerContext(ServerConfigurationFactory confFactory, AuthenticationTokenSecretManager secretManager) {
-    super(confFactory.getInstance(), getCredentials(confFactory.getInstance()), confFactory.getSystemConfiguration());
+  private AccumuloServerContext(Instance instance, ServerConfigurationFactory confFactory, AuthenticationTokenSecretManager secretManager) {
+    super(instance, getCredentials(instance), confFactory.getSystemConfiguration());
     this.confFactory = confFactory;
     this.secretManager = secretManager;
     if (null != getSaslParams()) {

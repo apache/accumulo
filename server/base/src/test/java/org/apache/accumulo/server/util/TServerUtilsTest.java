@@ -332,7 +332,7 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    AccumuloServerContext ctx = new AccumuloServerContext(factory);
+    AccumuloServerContext ctx = new AccumuloServerContext(instance, factory);
     ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null, null);
     Iface rpcProxy = RpcWrapper.service(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);

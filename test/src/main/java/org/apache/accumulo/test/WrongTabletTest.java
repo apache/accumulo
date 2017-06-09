@@ -48,7 +48,7 @@ public class WrongTabletTest {
     final HostAndPort location = HostAndPort.fromString(opts.location);
     final Instance inst = opts.getInstance();
     final ServerConfigurationFactory conf = new ServerConfigurationFactory(inst);
-    final ClientContext context = new AccumuloServerContext(conf) {
+    final ClientContext context = new AccumuloServerContext(inst, conf) {
       @Override
       public synchronized Credentials getCredentials() {
         try {

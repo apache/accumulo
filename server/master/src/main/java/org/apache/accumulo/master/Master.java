@@ -44,6 +44,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespaces;
@@ -595,8 +596,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE, TableOperationExceptionType.OFFLINE, "table is not online");
   }
 
-  public Master(ServerConfigurationFactory config, VolumeManager fs, String hostname) throws IOException {
-    super(config);
+  public Master(Instance instance, ServerConfigurationFactory config, VolumeManager fs, String hostname) throws IOException {
+    super(instance, config);
     this.serverConfig = config;
     this.fs = fs;
     this.hostname = hostname;
@@ -610,7 +611,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     ThriftTransportPool.getInstance().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(this, this);
     this.tabletBalancer = aconf.instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
-    this.tabletBalancer.init(serverConfig);
+    this.tabletBalancer.init(new AccumuloServerContext(instance, serverConfig));
 
     try {
       AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
@@ -1443,10 +1444,11 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);
       String hostname = opts.getAddress();
-      ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
+      Instance instance = HdfsZooInstance.getInstance();
+      ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
       VolumeManager fs = VolumeManagerImpl.get();
-      Accumulo.init(fs, conf, app);
-      Master master = new Master(conf, fs, hostname);
+      Accumulo.init(fs, instance, conf, app);
+      Master master = new Master(instance, conf, fs, hostname);
       DistributedTrace.enable(hostname, app, conf.getSystemConfiguration());
       master.run();
     } catch (Exception ex) {

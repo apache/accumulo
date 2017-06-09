@@ -24,9 +24,9 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,7 +146,8 @@ public class LargestFirstMemoryManager implements MemoryManager {
   }
 
   protected boolean tableExists(Instance instance, String tableId) {
-    return Tables.exists(instance, tableId);
+    // make sure that the table still exists by checking if it has a configuration
+    return config.getTableConfiguration(tableId) != null;
   }
 
   @Override
@@ -154,7 +155,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
     if (maxMemory < 0)
       throw new IllegalStateException("need to initialize " + LargestFirstMemoryManager.class.getName());
 
-    final Instance instance = config.getInstance();
+    final Instance instance = HdfsZooInstance.getInstance();
     final int maxMinCs = maxConcurrentMincs * numWaitingMultiplier;
 
     mincIdleThresholds.clear();

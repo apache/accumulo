@@ -28,9 +28,9 @@ import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -102,11 +102,11 @@ public class Accumulo {
     return ServerConstants.getInstanceIdLocation(v);
   }
 
-  public static void init(VolumeManager fs, ServerConfigurationFactory serverConfig, String application) throws IOException {
+  public static void init(VolumeManager fs, Instance instance, ServerConfigurationFactory serverConfig, String application) throws IOException {
     final AccumuloConfiguration conf = serverConfig.getSystemConfiguration();
 
     log.info(application + " starting");
-    log.info("Instance " + serverConfig.getInstance().getInstanceID());
+    log.info("Instance " + instance.getInstanceID());
     int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
     log.info("Data Version " + dataVersion);
     Accumulo.waitForZookeeperAndHdfs(fs);

@@ -23,10 +23,8 @@ import java.io.DataOutputStream;
 import java.security.PrivilegedExceptionAction;
 import java.util.Iterator;
 import java.util.Map.Entry;
-
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -68,7 +66,6 @@ public class AccumuloServerContextTest {
     testUser.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
-        Instance instance = EasyMock.createMock(Instance.class);
 
         ClientConfiguration clientConf = ClientConfiguration.loadDefault();
         clientConf.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
@@ -88,7 +85,6 @@ public class AccumuloServerContextTest {
         ServerConfigurationFactory factory = EasyMock.createMock(ServerConfigurationFactory.class);
         EasyMock.expect(factory.getSystemConfiguration()).andReturn(conf).anyTimes();
         EasyMock.expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
-        EasyMock.expect(factory.getInstance()).andReturn(instance).anyTimes();
 
         AccumuloServerContext context = EasyMock.createMockBuilder(AccumuloServerContext.class).addMockedMethod("enforceKerberosLogin")
             .addMockedMethod("getConfiguration").addMockedMethod("getServerConfigurationFactory").addMockedMethod("getCredentials").createMock();

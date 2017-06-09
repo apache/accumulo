@@ -119,7 +119,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   private long getSyncs() throws Exception {
     Connector c = getConnector();
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(c.getInstance());
-    AccumuloServerContext context = new AccumuloServerContext(confFactory);
+    AccumuloServerContext context = new AccumuloServerContext(c.getInstance(), confFactory);
     for (String address : c.instanceOperations().getTabletServers()) {
       TabletClientService.Client client = ThriftUtil.getTServerClient(HostAndPort.fromString(address), context);
       TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());

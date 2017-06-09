@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -51,7 +52,8 @@ public class FindOfflineTablets {
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
-    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(opts.getInstance()));
+    Instance instance = opts.getInstance();
+    AccumuloServerContext context = new AccumuloServerContext(instance, new ServerConfigurationFactory(opts.getInstance()));
     findOffline(context, null);
   }
 

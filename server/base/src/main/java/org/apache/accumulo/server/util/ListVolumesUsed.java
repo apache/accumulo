@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.data.Key;
@@ -38,13 +39,11 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 
-/**
- *
- */
 public class ListVolumesUsed {
 
   public static void main(String[] args) throws Exception {
-    listVolumes(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())));
+    Instance instance = HdfsZooInstance.getInstance();
+    listVolumes(new AccumuloServerContext(instance, new ServerConfigurationFactory(instance)));
   }
 
   private static String getTableURI(String rootTabletDir) {

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
 public abstract class ServerConfiguration {
@@ -26,7 +25,5 @@ public abstract class ServerConfiguration {
   abstract public NamespaceConfiguration getNamespaceConfiguration(String namespaceId);
 
   abstract public AccumuloConfiguration getSystemConfiguration();
-
-  abstract public Instance getInstance();
 
 }

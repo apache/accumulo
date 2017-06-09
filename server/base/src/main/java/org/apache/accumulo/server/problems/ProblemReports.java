@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -300,7 +301,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
   }
 
   public static void main(String args[]) throws Exception {
-    getInstance(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()))).printProblems();
+    Instance instance = HdfsZooInstance.getInstance();
+    getInstance(new AccumuloServerContext(instance, new ServerConfigurationFactory(instance))).printProblems();
   }
 
   public Map<String,Map<ProblemType,Integer>> summarize() {

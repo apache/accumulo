@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -58,7 +59,8 @@ public class RandomizeVolumes {
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
     Connector c;
     if (opts.getToken() == null) {
-      AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(opts.getInstance()));
+      Instance instance = opts.getInstance();
+      AccumuloServerContext context = new AccumuloServerContext(instance, new ServerConfigurationFactory(instance));
       c = context.getConnector();
     } else {
       c = opts.getConnector();

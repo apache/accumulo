@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -142,8 +143,8 @@ public class NullTserver {
 
     @Override
     public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns,
-        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration tsc, long batchTimeOut,
-        String context) {
+        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration tsc,
+        long batchTimeOut, String context) {
       return null;
     }
 
@@ -184,7 +185,8 @@ public class NullTserver {
     public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) throws TException {}
 
     @Override
-    public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws TException {}
+    public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent, TUnloadTabletGoal goal, long requestTime)
+        throws TException {}
 
     @Override
     public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException, TException {
@@ -238,7 +240,7 @@ public class NullTserver {
     }
 
     @Override
-    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException { }
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {}
 
     @Override
     public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials, TSummaryRequest request)
@@ -281,13 +283,14 @@ public class NullTserver {
 
     // modify metadata
     ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance(opts.iname).withZkHosts(opts.keepers));
-    AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(zki));
+    Instance inst = HdfsZooInstance.getInstance();
+    AccumuloServerContext context = new AccumuloServerContext(inst, new ServerConfigurationFactory(zki));
 
     TransactionWatcher watcher = new TransactionWatcher();
-    ThriftClientHandler tch = new ThriftClientHandler(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())), watcher);
+    ThriftClientHandler tch = new ThriftClientHandler(new AccumuloServerContext(inst, new ServerConfigurationFactory(inst)), watcher);
     Processor<Iface> processor = new Processor<>(tch);
-    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
-        "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
+    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer", "null tserver", 2, 1, 1000, 10 * 1024 * 1024,
+        null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 

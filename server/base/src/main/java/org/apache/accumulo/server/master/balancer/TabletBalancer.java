@@ -33,6 +33,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -55,16 +56,25 @@ public abstract class TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletBalancer.class);
 
-  protected ServerConfigurationFactory configuration;
-
   protected AccumuloServerContext context;
 
   /**
    * Initialize the TabletBalancer. This gives the balancer the opportunity to read the configuration.
+   *
+   * @deprecated since 2.0.0; use {@link #init(AccumuloServerContext)} instead.
    */
+  @Deprecated
   public void init(ServerConfigurationFactory conf) {
-    context = new AccumuloServerContext(conf);
-    configuration = conf;
+    init(new AccumuloServerContext(HdfsZooInstance.getInstance(), conf));
+  }
+
+  /**
+   * Initialize the TabletBalancer. This gives the balancer the opportunity to read the configuration.
+   *
+   * @since 2.0.0
+   */
+  public void init(AccumuloServerContext context) {
+    this.context = context;
   }
 
   /**

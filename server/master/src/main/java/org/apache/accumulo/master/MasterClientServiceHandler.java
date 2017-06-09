@@ -78,6 +78,7 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
@@ -465,7 +466,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
     if (property.equals(Property.MASTER_TABLET_BALANCER.getKey())) {
       TabletBalancer balancer = master.getConfiguration().instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class,
           new DefaultLoadBalancer());
-      balancer.init(master.getConfigurationFactory());
+      balancer.init(new AccumuloServerContext(instance, master.getConfigurationFactory()));
       master.tabletBalancer = balancer;
       log.info("tablet balancer changed to " + master.tabletBalancer.getClass().getName());
     }
