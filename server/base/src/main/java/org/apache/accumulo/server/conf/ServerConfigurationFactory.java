@@ -120,7 +120,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
       checkPermissions();
-      siteConfig = SiteConfiguration.getInstance(getDefaultConfiguration());
+      siteConfig = SiteConfiguration.getInstance();
     }
     return siteConfig;
   }

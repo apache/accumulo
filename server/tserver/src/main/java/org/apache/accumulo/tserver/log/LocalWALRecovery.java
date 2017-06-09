@@ -58,7 +58,7 @@ public class LocalWALRecovery implements Runnable {
   }
 
   public static void main(String[] args) throws IOException {
-    AccumuloConfiguration configuration = SiteConfiguration.getInstance(SiteConfiguration.getDefaultConfiguration());
+    AccumuloConfiguration configuration = SiteConfiguration.getInstance();
 
     LocalWALRecovery main = new LocalWALRecovery(configuration);
     main.parseArgs(args);
