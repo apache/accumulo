@@ -53,7 +53,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -495,7 +494,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return clientConfig.get(ClientProperty.INSTANCE_ZK_HOST);
     }
 
-    return SiteConfiguration.getInstance(ClientContext.convertClientConfig(clientConfig)).get(Property.INSTANCE_ZK_HOST);
+    return SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST);
   }
 
   /*
@@ -510,7 +509,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     String keepers = getZooKeepers(keepersOption, clientConfig);
     if (instanceName == null) {
-      AccumuloConfiguration conf = SiteConfiguration.getInstance(ClientContext.convertClientConfig(clientConfig));
+      AccumuloConfiguration conf = SiteConfiguration.getInstance();
       Path instanceDir = new Path(VolumeConfiguration.getVolumeUris(conf)[0], "instance_id");
       instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));
     }
@@ -1019,6 +1018,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public interface PrintLine extends AutoCloseable {
     void print(String s);
 
+    @Override
     void close();
   }
 

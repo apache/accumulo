@@ -26,7 +26,6 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -328,7 +327,7 @@ public class ShellOptionsJC {
 
     // Automatically try to add in the proper ZK from accumulo-site for backwards compat.
     if (!clientConfig.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
-      AccumuloConfiguration siteConf = SiteConfiguration.getInstance(ClientContext.convertClientConfig(clientConfig));
+      AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
       clientConfig.withZkHosts(siteConf.get(Property.INSTANCE_ZK_HOST));
     }
 

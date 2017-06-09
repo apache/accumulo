@@ -47,17 +47,13 @@ import org.slf4j.LoggerFactory;
 public class SiteConfiguration extends AccumuloConfiguration {
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
 
-  private AccumuloConfiguration parent = null;
+  private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
   private static SiteConfiguration instance = null;
 
   private static Configuration xmlConfig;
   private final Map<String,String> staticConfigs;
 
-  /**
-   * Not for consumers. Call {@link SiteConfiguration#getInstance(AccumuloConfiguration)} instead
-   */
-  SiteConfiguration(AccumuloConfiguration parent) {
-    this.parent = parent;
+  private SiteConfiguration() {
     /*
      * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop Configuration object
      */
@@ -79,23 +75,17 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   /**
-   * Gets an instance of this class. A new instance is only created on the first call, and so the parent configuration cannot be changed later.
+   * Gets an instance of this class. A new instance is only created on the first call.
    *
-   * @param parent
-   *          parent (default) configuration
    * @throws RuntimeException
    *           if the configuration is invalid
    */
-  synchronized public static SiteConfiguration getInstance(AccumuloConfiguration parent) {
+  synchronized public static SiteConfiguration getInstance() {
     if (instance == null) {
-      instance = new SiteConfiguration(parent);
+      instance = new SiteConfiguration();
       ConfigSanityCheck.validate(instance);
     }
     return instance;
-  }
-
-  synchronized public static SiteConfiguration getInstance() {
-    return getInstance(DefaultConfiguration.getInstance());
   }
 
   synchronized private static Configuration getXmlConfig() {
