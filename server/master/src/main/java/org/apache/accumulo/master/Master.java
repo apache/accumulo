@@ -611,7 +611,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     ThriftTransportPool.getInstance().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(this, this);
     this.tabletBalancer = aconf.instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
-    this.tabletBalancer.init(new AccumuloServerContext(instance, serverConfig));
+    this.tabletBalancer.init(this);
 
     try {
       AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {

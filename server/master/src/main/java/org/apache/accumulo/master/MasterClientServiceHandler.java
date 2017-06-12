@@ -78,7 +78,6 @@ import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.master.tableOps.TraceRepo;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
-import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
@@ -106,11 +105,9 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
 
   private static final Logger log = Master.log;
   private static final Logger drainLog = LoggerFactory.getLogger("org.apache.accumulo.master.MasterDrainImpl");
-  private Instance instance;
 
   protected MasterClientServiceHandler(Master master) {
     super(master);
-    this.instance = master.getInstance();
   }
 
   @Override
@@ -260,7 +257,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
   private String getNamespaceIdFromTableId(TableOperation tableOp, String tableId) throws ThriftTableOperationException {
     String namespaceId;
     try {
-      namespaceId = Tables.getNamespaceId(instance, tableId);
+      namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
     } catch (TableNotFoundException e) {
       throw new ThriftTableOperationException(tableId, null, tableOp, TableOperationExceptionType.NOTFOUND, e.getMessage());
     }
@@ -466,7 +463,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
     if (property.equals(Property.MASTER_TABLET_BALANCER.getKey())) {
       TabletBalancer balancer = master.getConfiguration().instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class,
           new DefaultLoadBalancer());
-      balancer.init(new AccumuloServerContext(instance, master.getConfigurationFactory()));
+      balancer.init(master);
       master.tabletBalancer = balancer;
       log.info("tablet balancer changed to " + master.tabletBalancer.getClass().getName());
     }
