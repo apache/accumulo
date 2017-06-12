@@ -1022,7 +1022,7 @@ public class RFile {
      * @return map of locality group names to column families. The default locality group will have {@code null} for a name. RFile will only track up to
      *         {@value Writer#MAX_CF_IN_DLG} families for the default locality group. After this it will stop tracking. For the case where the default group has
      *         more thn {@value Writer#MAX_CF_IN_DLG} families an empty list of families is returned.
-     * @see LocalityGroupUtil#seek(Reader, Range, String, Map)
+     * @see LocalityGroupUtil#seek(RFile.Reader, Range, String, Map)
      */
     public Map<String,ArrayList<ByteSequence>> getLocalityGroupCF() {
       Map<String,ArrayList<ByteSequence>> cf = new HashMap<>();
