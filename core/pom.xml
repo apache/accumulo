@@ -268,7 +268,7 @@
             <goals>
               <goal>exec</goal>
             </goals>
-            <phase>compile</phase>
+            <phase>prepare-package</phase>
             <configuration>
               <executable>mkdir</executable>
               <arguments>
@@ -282,10 +282,10 @@
             <goals>
               <goal>java</goal>
             </goals>
-            <phase>compile</phase>
+            <phase>package</phase>
             <configuration>
               <mainClass>org.apache.accumulo.core.conf.ConfigurationDocGen</mainClass>
-              <classpathScope>compile</classpathScope>
+              <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
                 <argument>${project.build.directory}/generated-docs/configuration-properties.md</argument>
