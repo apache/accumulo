@@ -42,13 +42,12 @@ public class SiteConfigurationTest {
   }
 
   @Test
-  public void testOnlySensitivePropertiesExtractedFromCredetialProvider() throws SecurityException, NoSuchMethodException {
+  public void testOnlySensitivePropertiesExtractedFromCredentialProvider() throws SecurityException, NoSuchMethodException {
     if (!isCredentialProviderAvailable) {
       return;
     }
 
-    SiteConfiguration siteCfg = EasyMock.createMockBuilder(SiteConfiguration.class).addMockedMethod("getHadoopConfiguration")
-        .withConstructor(AccumuloConfiguration.class).withArgs(DefaultConfiguration.getInstance()).createMock();
+    SiteConfiguration siteCfg = EasyMock.createMockBuilder(SiteConfiguration.class).addMockedMethod("getHadoopConfiguration").createMock();
 
     siteCfg.set(Property.INSTANCE_SECRET, "ignored");
 
