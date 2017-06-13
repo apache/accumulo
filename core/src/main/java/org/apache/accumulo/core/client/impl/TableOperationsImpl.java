@@ -462,10 +462,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
             // base == background accumulo security exception
             AccumuloSecurityException base = (AccumuloSecurityException) excep;
             throw new AccumuloSecurityException(base.getUser(), base.asThriftException().getCode(), base.getTableInfo(), excep);
-          } else if (excep instanceof Error)
+          } else if (excep instanceof AccumuloServerException) {
+            throw new AccumuloServerException((AccumuloServerException) excep);
+          } else if (excep instanceof Error) {
             throw new Error(excep);
-          else
+          } else {
             throw new AccumuloException(excep);
+          }
         }
       }
     } catch (InterruptedException e) {

@@ -28,6 +28,10 @@ public class AccumuloServerException extends AccumuloException {
   private static final long serialVersionUID = 1L;
   private String server;
 
+  AccumuloServerException(final AccumuloServerException cause) {
+    super("Error on server " + cause.getServer(), cause);
+  }
+
   public AccumuloServerException(final String server, final TApplicationException tae) {
     super("Error on server " + server, tae);
     this.setServer(server);
