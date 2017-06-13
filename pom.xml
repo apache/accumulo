@@ -835,6 +835,11 @@
             </excludes>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>net.revelc.code</groupId>
+          <artifactId>warbucks-maven-plugin</artifactId>
+          <version>1.0.0</version>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -1104,6 +1109,28 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>net.revelc.code</groupId>
+        <artifactId>warbucks-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>check-junit-categories-on-its</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <includeMainClasses>true</includeMainClasses>
+                  <includeTestClasses>true</includeTestClasses>
+                  <classPattern>.*IT</classPattern>
+                  <classAnnotationPattern>org[.]junit[.]experimental[.]categories[.]Category</classAnnotationPattern>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <!-- Allows us to get the apache-ds bundle artifacts -->
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
@@ -1301,6 +1328,19 @@
                         <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>commit</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <ignore />
+                      </action>
+                    </pluginExecution>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>net.revelc.code</groupId>
+                        <artifactId>warbucks-maven-plugin</artifactId>
+                        <versionRange>[0,)</versionRange>
+                        <goals>
+                          <goal>check</goal>
                         </goals>
                       </pluginExecutionFilter>
                       <action>
