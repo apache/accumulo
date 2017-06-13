@@ -138,8 +138,9 @@ Please vote one of:
 [ ] -1 - Because..., I do not accept...
 ... these artifacts as the $(green "$ver") release of Apache Accumulo.
 
-This vote will end on $(green "$votedate")
-($(green "$edtvotedate") / $(green "$pdtvotedate"))
+This vote will remain open until at least $(green "$votedate")
+($(green "$edtvotedate") / $(green "$pdtvotedate")).
+Voting continues until the release manager sends an email closing the vote.
 
 Thanks!
 
