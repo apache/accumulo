@@ -30,6 +30,11 @@ public class GCExecutable implements KeywordExecutable {
   }
 
   @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.PROCESS;
+  }
+
+  @Override
   public String description() {
     return "Starts Accumulo garbage collector";
   }

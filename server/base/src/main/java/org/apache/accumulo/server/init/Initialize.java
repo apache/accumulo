@@ -756,6 +756,11 @@ public class Initialize implements KeywordExecutable {
   }
 
   @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.CORE;
+  }
+
+  @Override
   public String description() {
     return "Initializes Accumulo";
   }

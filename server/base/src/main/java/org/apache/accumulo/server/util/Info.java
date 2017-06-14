@@ -33,6 +33,11 @@ public class Info implements KeywordExecutable {
   }
 
   @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.CORE;
+  }
+
+  @Override
   public String description() {
     return "Prints Accumulo cluster info";
   }

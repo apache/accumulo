@@ -587,6 +587,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.CORE;
+  }
+
+  @Override
   public String description() {
     return "Runs Accumulo shell";
   }

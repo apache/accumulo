@@ -159,6 +159,11 @@ public class Admin implements KeywordExecutable {
   }
 
   @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.CORE;
+  }
+
+  @Override
   public String description() {
     return "Executes administrative commands";
   }

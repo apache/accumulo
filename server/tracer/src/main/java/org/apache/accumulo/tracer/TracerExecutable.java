@@ -29,6 +29,11 @@ public class TracerExecutable implements KeywordExecutable {
   }
 
   @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.PROCESS;
+  }
+
+  @Override
   public String description() {
     return "Starts Accumulo tracer";
   }

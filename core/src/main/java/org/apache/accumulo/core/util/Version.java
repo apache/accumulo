@@ -38,6 +38,11 @@ public class Version implements KeywordExecutable {
   }
 
   @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.CORE;
+  }
+
+  @Override
   public String description() {
     return "Prints Accumulo version";
   }

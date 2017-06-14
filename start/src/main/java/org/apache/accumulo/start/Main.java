@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -29,6 +28,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.KeywordExecutable.UsageGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,26 +198,26 @@ public class Main {
     System.exit(1);
   }
 
-  public static void printCommand(KeywordExecutable ke) {
-    System.out.printf("  %-30s %s\n", ke.usage(), ke.description());
+  public static void printCommands(TreeSet<KeywordExecutable> set, UsageGroup group) {
+    set.stream().filter(e -> e.usageGroup() == group).forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
   }
 
   public static void printUsage() {
-    Map<String,KeywordExecutable> executableMap = new TreeMap<>(getExecutables(getClassLoader()));
+    TreeSet<KeywordExecutable> executables = new TreeSet<>((x, y) -> x.keyword().compareTo(y.keyword()));
+    executables.addAll(getExecutables(getClassLoader()).values());
 
-    System.out.println("\nUsage: accumulo <command> [-h] (<argument> ...)\n\n  -h   Prints usage for specified command\n\nCore Commands:");
-    for (String cmd : Arrays.asList("init", "shell", "classpath", "version", "admin", "info", "help")) {
-      printCommand(executableMap.remove(cmd));
-    }
+    System.out.println("\nUsage: accumulo <command> [-h] (<argument> ...)\n\n  -h   Prints usage for specified command");
+    System.out.println("\nCore Commands:");
+    printCommands(executables, UsageGroup.CORE);
+
     System.out.println("  <main class> args              Runs Java <main class> located on Accumulo classpath");
+
     System.out.println("\nProcess Commands:");
-    for (String cmd : Arrays.asList("gc", "master", "monitor", "minicluster", "proxy", "tserver", "tracer", "zookeeper")) {
-      printCommand(executableMap.remove(cmd));
-    }
-    System.out.println("\nAdvanced Commands:");
-    for (Map.Entry<String,KeywordExecutable> entry : executableMap.entrySet()) {
-      printCommand(entry.getValue());
-    }
+    printCommands(executables, UsageGroup.PROCESS);
+
+    System.out.println("\nOther Commands:");
+    printCommands(executables, UsageGroup.OTHER);
+
     System.out.println();
   }
 
