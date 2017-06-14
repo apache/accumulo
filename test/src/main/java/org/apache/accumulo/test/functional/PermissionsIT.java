@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -640,6 +642,15 @@ public class PermissionsIT extends AccumuloClusterHarness {
             throw e;
         }
         break;
+      case GET_SUMMARIES:
+        try {
+          test_user_conn.tableOperations().summaries(tableName).retrieve();
+          throw new IllegalStateException("User should not be able to get table summaries");
+        } catch (AccumuloSecurityException e) {
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+            throw e;
+        }
+        break;
       default:
         throw new IllegalArgumentException("Unrecognized table Permission: " + perm);
     }
@@ -679,6 +690,11 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case GRANT:
         test_user_conn.securityOperations().grantTablePermission(getAdminPrincipal(), tableName, TablePermission.GRANT);
+        break;
+      case GET_SUMMARIES:
+        List<Summary> summaries = test_user_conn.tableOperations().summaries(tableName).retrieve();
+        // just make sure it's not blocked by permissions, the actual summaries are tested in SummaryIT
+        Assert.assertTrue(summaries.isEmpty());
         break;
       default:
         throw new IllegalArgumentException("Unrecognized table Permission: " + perm);
