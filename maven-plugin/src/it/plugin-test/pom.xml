@@ -30,6 +30,10 @@
 
   <description>A simple IT verifying the basic use case.</description>
 
+  <properties>
+    <warbucks.skip>true</warbucks.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>commons-cli</groupId>
