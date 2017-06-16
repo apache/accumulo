@@ -894,12 +894,19 @@ public class MetadataTableUtil {
         BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
+      boolean shouldTrace = log.isTraceEnabled();
+      String tidString = Long.toString(tid);
       for (Entry<Key,Value> entry : mscanner) {
-        log.debug("Looking at entry " + entry + " with tid " + tid);
-        if (Long.parseLong(entry.getValue().toString()) == tid) {
-          log.debug("deleting entry " + entry);
-          Mutation m = new Mutation(entry.getKey().getRow());
-          m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+        if (shouldTrace) {
+          log.trace("Looking at entry " + entry + " with tid " + tidString);
+        }
+        if (entry.getValue().toString().equals(tidString)) {
+          if (shouldTrace) {
+            log.trace("deleting entry " + entry);
+          }
+          Key key = entry.getKey();
+          Mutation m = new Mutation(key.getRow());
+          m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
           bw.addMutation(m);
         }
       }
