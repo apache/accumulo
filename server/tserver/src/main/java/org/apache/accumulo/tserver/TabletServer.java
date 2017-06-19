@@ -2852,6 +2852,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   public TabletServerStatus getStats(Map<String,MapCounter<ScanRunState>> scanCounts) {
+    long start = System.currentTimeMillis();
     TabletServerStatus result = new TabletServerStatus();
 
     Map<KeyExtent,Tablet> onlineTabletsCopy;
@@ -2939,6 +2940,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     result.bulkImports = new ArrayList<>();
     result.bulkImports.addAll(clientHandler.getBulkLoadStatus());
     result.bulkImports.addAll(bulkImportStatus.getBulkLoadStatus());
+    result.responseTime = System.currentTimeMillis() - start;
     return result;
   }
 

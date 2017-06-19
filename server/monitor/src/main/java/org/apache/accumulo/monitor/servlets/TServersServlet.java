@@ -309,18 +309,28 @@ public class TServersServlet extends BasicServlet {
     }
   }
 
+  static final long SECOND = 1000;
+  static final long RESPONSE_TIME_MAX_ERR = 3 * SECOND;
+  static final long MINUTE = 60 * SECOND;
+  static final long LAST_CONTEXT_MAX_ERR = 3 * MINUTE;
+
   static void doTserverList(HttpServletRequest req, StringBuilder sb, List<TabletServerStatus> tservers, String tableId, Table tServerList) {
     int guessHighLoad = ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors();
     long now = System.currentTimeMillis();
 
     double avgLastContact = 0.;
+    double avgResponseTime = 0.;
+    int count = 0;
     for (TabletServerStatus status : tservers) {
+      count++;
       avgLastContact += (now - status.lastContact);
+      avgResponseTime += status.responseTime;
     }
-    final long MINUTES = 3 * 60 * 1000;
+    avgResponseTime /= count;
     tServerList.addSortableColumn("Server", new TServerLinkType(), null);
     tServerList.addSortableColumn("Hosted&nbsp;Tablets", new NumberType<>(0, Integer.MAX_VALUE), null);
-    tServerList.addSortableColumn("Last&nbsp;Contact", new DurationType(0l, (long) Math.min(avgLastContact * 4, MINUTES)), null);
+    tServerList.addSortableColumn("Last&nbsp;Contact", new DurationType(0l, (long) Math.min(avgLastContact * 4, LAST_CONTEXT_MAX_ERR)), null);
+    tServerList.addSortableColumn("Response&nbsp;Time", new DurationType(0l, (long) Math.min(avgResponseTime * 4, RESPONSE_TIME_MAX_ERR)), null);
     tServerList.addSortableColumn("Entries", new NumberType<Long>(), "The number of key/value pairs.");
     tServerList.addSortableColumn("Ingest", new NumberType<Long>(), "The number of key/value pairs inserted. (Note that deletes are also 'inserted')");
     tServerList.addSortableColumn("Query", new NumberType<Long>(), "The number of key/value pairs returned to clients. (Not the number of scans)");
@@ -352,6 +362,7 @@ public class TServersServlet extends BasicServlet {
       row.add(status); // add for server name
       row.add(summary.tablets);
       row.add(now - status.lastContact);
+      row.add(status.responseTime);
       row.add(summary.recs);
       row.add(summary.ingestRate);
       row.add(summary.queryRate);

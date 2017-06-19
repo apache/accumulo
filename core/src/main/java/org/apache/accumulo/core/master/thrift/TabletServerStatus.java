@@ -68,6 +68,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
   private static final org.apache.thrift.protocol.TField FLUSHS_FIELD_DESC = new org.apache.thrift.protocol.TField("flushs", org.apache.thrift.protocol.TType.I64, (short)15);
   private static final org.apache.thrift.protocol.TField SYNCS_FIELD_DESC = new org.apache.thrift.protocol.TField("syncs", org.apache.thrift.protocol.TType.I64, (short)16);
   private static final org.apache.thrift.protocol.TField BULK_IMPORTS_FIELD_DESC = new org.apache.thrift.protocol.TField("bulkImports", org.apache.thrift.protocol.TType.LIST, (short)17);
+  private static final org.apache.thrift.protocol.TField RESPONSE_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("responseTime", org.apache.thrift.protocol.TType.I64, (short)18);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -89,6 +90,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
   public long flushs; // required
   public long syncs; // required
   public List<BulkImportStatus> bulkImports; // required
+  public long responseTime; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -105,7 +107,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     LOG_SORTS((short)14, "logSorts"),
     FLUSHS((short)15, "flushs"),
     SYNCS((short)16, "syncs"),
-    BULK_IMPORTS((short)17, "bulkImports");
+    BULK_IMPORTS((short)17, "bulkImports"),
+    RESPONSE_TIME((short)18, "responseTime");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -148,6 +151,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           return SYNCS;
         case 17: // BULK_IMPORTS
           return BULK_IMPORTS;
+        case 18: // RESPONSE_TIME
+          return RESPONSE_TIME;
         default:
           return null;
       }
@@ -198,6 +203,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
   private static final int __DATACACHEREQUEST_ISSET_ID = 7;
   private static final int __FLUSHS_ISSET_ID = 8;
   private static final int __SYNCS_ISSET_ID = 9;
+  private static final int __RESPONSETIME_ISSET_ID = 10;
   private short __isset_bitfield = 0;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -234,6 +240,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     tmpMap.put(_Fields.BULK_IMPORTS, new org.apache.thrift.meta_data.FieldMetaData("bulkImports", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, BulkImportStatus.class))));
+    tmpMap.put(_Fields.RESPONSE_TIME, new org.apache.thrift.meta_data.FieldMetaData("responseTime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TabletServerStatus.class, metaDataMap);
   }
@@ -255,7 +263,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     List<RecoveryStatus> logSorts,
     long flushs,
     long syncs,
-    List<BulkImportStatus> bulkImports)
+    List<BulkImportStatus> bulkImports,
+    long responseTime)
   {
     this();
     this.tableMap = tableMap;
@@ -282,6 +291,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     this.syncs = syncs;
     setSyncsIsSet(true);
     this.bulkImports = bulkImports;
+    this.responseTime = responseTime;
+    setResponseTimeIsSet(true);
   }
 
   /**
@@ -331,6 +342,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       }
       this.bulkImports = __this__bulkImports;
     }
+    this.responseTime = other.responseTime;
   }
 
   public TabletServerStatus deepCopy() {
@@ -363,6 +375,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     setSyncsIsSet(false);
     this.syncs = 0;
     this.bulkImports = null;
+    setResponseTimeIsSet(false);
+    this.responseTime = 0;
   }
 
   public int getTableMapSize() {
@@ -732,6 +746,29 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     }
   }
 
+  public long getResponseTime() {
+    return this.responseTime;
+  }
+
+  public TabletServerStatus setResponseTime(long responseTime) {
+    this.responseTime = responseTime;
+    setResponseTimeIsSet(true);
+    return this;
+  }
+
+  public void unsetResponseTime() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __RESPONSETIME_ISSET_ID);
+  }
+
+  /** Returns true if field responseTime is set (has been assigned a value) and false otherwise */
+  public boolean isSetResponseTime() {
+    return EncodingUtils.testBit(__isset_bitfield, __RESPONSETIME_ISSET_ID);
+  }
+
+  public void setResponseTimeIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __RESPONSETIME_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case TABLE_MAP:
@@ -846,6 +883,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       }
       break;
 
+    case RESPONSE_TIME:
+      if (value == null) {
+        unsetResponseTime();
+      } else {
+        setResponseTime((Long)value);
+      }
+      break;
+
     }
   }
 
@@ -893,6 +938,9 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     case BULK_IMPORTS:
       return getBulkImports();
 
+    case RESPONSE_TIME:
+      return getResponseTime();
+
     }
     throw new IllegalStateException();
   }
@@ -932,6 +980,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       return isSetSyncs();
     case BULK_IMPORTS:
       return isSetBulkImports();
+    case RESPONSE_TIME:
+      return isSetResponseTime();
     }
     throw new IllegalStateException();
   }
@@ -1075,6 +1125,15 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         return false;
     }
 
+    boolean this_present_responseTime = true;
+    boolean that_present_responseTime = true;
+    if (this_present_responseTime || that_present_responseTime) {
+      if (!(this_present_responseTime && that_present_responseTime))
+        return false;
+      if (this.responseTime != that.responseTime)
+        return false;
+    }
+
     return true;
   }
 
@@ -1151,6 +1210,11 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     list.add(present_bulkImports);
     if (present_bulkImports)
       list.add(bulkImports);
+
+    boolean present_responseTime = true;
+    list.add(present_responseTime);
+    if (present_responseTime)
+      list.add(responseTime);
 
     return list.hashCode();
   }
@@ -1303,6 +1367,16 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetResponseTime()).compareTo(other.isSetResponseTime());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetResponseTime()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.responseTime, other.responseTime);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1393,6 +1467,10 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     } else {
       sb.append(this.bulkImports);
     }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("responseTime:");
+    sb.append(this.responseTime);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -1586,6 +1664,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 18: // RESPONSE_TIME
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.responseTime = iprot.readI64();
+              struct.setResponseTimeIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -1673,6 +1759,9 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         }
         oprot.writeFieldEnd();
       }
+      oprot.writeFieldBegin(RESPONSE_TIME_FIELD_DESC);
+      oprot.writeI64(struct.responseTime);
+      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1733,7 +1822,10 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       if (struct.isSetBulkImports()) {
         optionals.set(13);
       }
-      oprot.writeBitSet(optionals, 14);
+      if (struct.isSetResponseTime()) {
+        optionals.set(14);
+      }
+      oprot.writeBitSet(optionals, 15);
       if (struct.isSetTableMap()) {
         {
           oprot.writeI32(struct.tableMap.size());
@@ -1795,12 +1887,15 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           }
         }
       }
+      if (struct.isSetResponseTime()) {
+        oprot.writeI64(struct.responseTime);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TabletServerStatus struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(14);
+      BitSet incoming = iprot.readBitSet(15);
       if (incoming.get(0)) {
         {
           org.apache.thrift.protocol.TMap _map16 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
@@ -1888,6 +1983,10 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           }
         }
         struct.setBulkImportsIsSet(true);
+      }
+      if (incoming.get(14)) {
+        struct.responseTime = iprot.readI64();
+        struct.setResponseTimeIsSet(true);
       }
     }
   }
