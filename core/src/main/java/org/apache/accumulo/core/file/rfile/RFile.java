@@ -284,7 +284,7 @@ public class RFile {
       indexWriter.close(out);
     }
 
-    public void printInfo(boolean isSample) throws IOException {
+    public void printInfo(boolean isSample, boolean includeIndexDetails) throws IOException {
       PrintStream out = System.out;
       out.printf("%-24s : %s\n", (isSample ? "Sample " : "") + "Locality group ", (isDefaultLG ? "<DEFAULT>" : name));
       if (version == RINDEX_VER_3 || version == RINDEX_VER_4 || version == RINDEX_VER_6 || version == RINDEX_VER_7) {
@@ -309,7 +309,11 @@ public class RFile {
       long numKeys = 0;
       IndexIterator countIter = indexReader.lookup(new Key());
       while (countIter.hasNext()) {
-        numKeys += countIter.next().getNumEntries();
+        IndexEntry indexEntry = countIter.next();
+        numKeys += indexEntry.getNumEntries();
+        if (includeIndexDetails) {
+          indexEntry.printInfo(out);
+        }
       }
 
       out.printf("\t%-22s : %,d\n", "Num entries", numKeys);
@@ -1380,12 +1384,16 @@ public class RFile {
     }
 
     public void printInfo() throws IOException {
+      printInfo(false);
+    }
+    
+    public void printInfo(boolean includeIndexDetails) throws IOException {
 
       System.out.printf("%-24s : %d\n", "RFile Version", rfileVersion);
       System.out.println();
 
       for (LocalityGroupMetadata lgm : localityGroups) {
-        lgm.printInfo(false);
+        lgm.printInfo(false, includeIndexDetails);
       }
 
       if (sampleGroups.size() > 0) {
@@ -1397,7 +1405,7 @@ public class RFile {
         System.out.println();
 
         for (LocalityGroupMetadata lgm : sampleGroups) {
-          lgm.printInfo(true);
+          lgm.printInfo(true, includeIndexDetails);
         }
       }
     }
