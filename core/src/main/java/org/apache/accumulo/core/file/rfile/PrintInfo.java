@@ -55,6 +55,8 @@ public class PrintInfo implements KeywordExecutable {
     boolean hash = false;
     @Parameter(names = {"--histogram"}, description = "print a histogram of the key-value sizes")
     boolean histogram = false;
+    @Parameter(names = {"--printIndex"}, description = "prints information about all the index entries")
+    boolean printIndex = false;
     @Parameter(names = {"--useSample"}, description = "Use sample data for --dump, --vis, --histogram options")
     boolean useSample = false;
     @Parameter(names = {"--keyStats"}, description = "print key length statistics for index and all data")
@@ -153,7 +155,7 @@ public class PrintInfo implements KeywordExecutable {
       if (opts.vis || opts.hash)
         iter.registerMetrics(vmg);
 
-      iter.printInfo();
+      iter.printInfo(opts.printIndex);
       System.out.println();
       org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(new String[] {arg});
 
