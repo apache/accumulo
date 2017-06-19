@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -50,10 +51,12 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testInit() {
     init(factory);
-    Assert.assertEquals("OOB check interval value is incorrect", 2000, this.getOobCheckMillis());
+    Assert.assertEquals("OOB check interval value is incorrect", 7000, this.getOobCheckMillis());
     @SuppressWarnings("deprecation")
     long poolRecheckMillis = this.getPoolRecheckMillis();
     Assert.assertEquals("Pool check interval value is incorrect", 0, poolRecheckMillis);
+    Assert.assertEquals("Max migrations is incorrect", 4, this.getMaxMigrations());
+    Assert.assertEquals("Max outstanding migrations is incorrect", 10, this.getMaxOutstandingMigrations());
     Assert.assertFalse(isIpBasedRegex());
     Map<String,Pattern> patterns = this.getPoolNameToRegexPattern();
     Assert.assertEquals(2, patterns.size());
@@ -73,12 +76,58 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   }
 
   @Test
-  public void testBalanceWithMigrations() {
-    List<TabletMigration> migrations = new ArrayList<>();
-    init(factory);
-    long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(2)), Collections.singleton(new KeyExtent()), migrations);
+  public void testBalance() {
+    init((ServerConfiguration) factory);
+    Set<KeyExtent> migrations = new HashSet<KeyExtent>();
+    List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+    long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
     Assert.assertEquals(20000, wait);
-    Assert.assertEquals(0, migrations.size());
+    // should balance four tablets in one of the tables before reaching max
+    Assert.assertEquals(4, migrationsOut.size());
+
+    // now balance again passing in the new migrations
+    for (TabletMigration m : migrationsOut) {
+      migrations.add(m.tablet);
+    }
+    migrationsOut.clear();
+    wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
+    Assert.assertEquals(20000, wait);
+    // should balance four tablets in one of the other tables before reaching max
+    Assert.assertEquals(4, migrationsOut.size());
+
+    // now balance again passing in the new migrations
+    for (TabletMigration m : migrationsOut) {
+      migrations.add(m.tablet);
+    }
+    migrationsOut.clear();
+    wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
+    Assert.assertEquals(20000, wait);
+    // should balance four tablets in one of the other tables before reaching max
+    Assert.assertEquals(4, migrationsOut.size());
+
+    // now balance again passing in the new migrations
+    for (TabletMigration m : migrationsOut) {
+      migrations.add(m.tablet);
+    }
+    migrationsOut.clear();
+    wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
+    Assert.assertEquals(20000, wait);
+    // no more balancing to do
+    Assert.assertEquals(0, migrationsOut.size());
+  }
+
+  @Test
+  public void testBalanceWithTooManyOutstandingMigrations() {
+    List<TabletMigration> migrationsOut = new ArrayList<>();
+    init(factory);
+    // lets say we already have migrations ongoing for the FOO and BAR table extends (should be 5 of each of them) for a total of 10
+    Set<KeyExtent> migrations = new HashSet<KeyExtent>();
+    migrations.addAll(tableExtents.get(FOO.getTableName()));
+    migrations.addAll(tableExtents.get(BAR.getTableName()));
+    long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
+    Assert.assertEquals(20000, wait);
+    // no migrations should have occurred as 10 is the maxOutstandingMigrations
+    Assert.assertEquals(0, migrationsOut.size());
   }
 
   @Test
