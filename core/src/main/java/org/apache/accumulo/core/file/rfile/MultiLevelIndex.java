@@ -23,6 +23,7 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,6 +83,14 @@ public class MultiLevelIndex {
       }
     }
 
+    public void printInfo(PrintStream out) {
+      out.println("Key: " + key.toString() + 
+                  " NumEntries: " + entries +
+                  " Offset: " + offset +
+                  " CompressedSize: " + compressedSize +
+                  " RawSize: " + rawSize);
+    }
+    
     @Override
     public void write(DataOutput out) throws IOException {
       key.write(out);
