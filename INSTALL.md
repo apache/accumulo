@@ -115,7 +115,7 @@ Each method above has instructions below.
 
 ### Run Accumulo processes
 
-Start Accumulo processes (tserver, master, moniitor, etc) using command below:
+Start Accumulo processes (tserver, master, monitor, etc) using command below:
 
     accumulo tserver
 
