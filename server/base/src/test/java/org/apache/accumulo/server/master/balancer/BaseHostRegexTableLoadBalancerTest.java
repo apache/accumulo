@@ -35,16 +35,20 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.TableOperationsImpl;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
 import org.easymock.EasyMock;
 
 import com.google.common.base.Predicate;
@@ -138,9 +142,12 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected static final HashMap<String,String> DEFAULT_TABLE_PROPERTIES = new HashMap<>();
   {
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "2s");
+    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "7s");
+    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY, "4");
+    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY, "10");
     DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r01.*");
     DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
+    DEFAULT_TABLE_PROPERTIES.put(Property.TABLE_LOAD_BALANCER.getKey(), TestDefaultBalancer.class.getName());
   }
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
@@ -155,7 +162,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
 
     @Override
-    public TableConfiguration getTableConfiguration(String tableId) {
+    public TableConfiguration getTableConfiguration(final String tableId) {
       return new TableConfiguration(getInstance(), tableId, null) {
         @Override
         public String get(Property property) {
@@ -174,6 +181,24 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
   }
 
+  protected class TestDefaultBalancer extends DefaultLoadBalancer {
+    @Override
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
+      String tableName = idToTableName(tableId);
+      TServerInstance initialLocation = initialTableLocation.get(tableName);
+      if (tserver.equals(initialLocation)) {
+        List<TabletStats> list = new ArrayList<TabletStats>(5);
+        for (KeyExtent extent : tableExtents.get(tableName)) {
+          TabletStats stats = new TabletStats();
+          stats.setExtent(extent.toThrift());
+          list.add(stats);
+        }
+        return list;
+      }
+      return null;
+    }
+  }
+
   protected static final Table FOO = new Table("foo", "1");
   protected static final Table BAR = new Table("bar", "2");
   protected static final Table BAZ = new Table("baz", "3");
@@ -183,6 +208,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   protected final Map<String,String> servers = new HashMap<>(15);
   protected final SortedMap<TServerInstance,TabletServerStatus> allTabletServers = new TreeMap<>();
   protected final Map<String,List<KeyExtent>> tableExtents = new HashMap<>(3);
+  protected final Map<String,TServerInstance> initialTableLocation = new HashMap<>(3);
 
   {
     servers.put("192.168.0.1", "r01s01");
@@ -217,6 +243,10 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     allTabletServers.put(new TServerInstance("192.168.0.14:9997", 1), new TabletServerStatus());
     allTabletServers.put(new TServerInstance("192.168.0.15:9997", 1), new TabletServerStatus());
 
+    initialTableLocation.put(FOO.getTableName(), new TServerInstance("192.168.0.1:9997", 1));
+    initialTableLocation.put(BAR.getTableName(), new TServerInstance("192.168.0.6:9997", 1));
+    initialTableLocation.put(BAZ.getTableName(), new TServerInstance("192.168.0.11:9997", 1));
+
     tableExtents.put(FOO.getTableName(), new ArrayList<KeyExtent>());
     tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("1"), new Text("0")));
     tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("2"), new Text("1")));
@@ -235,6 +265,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("23"), new Text("22")));
     tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("24"), new Text("23")));
     tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("25"), new Text("24")));
+
   }
 
   protected boolean tabletInBounds(KeyExtent ke, TServerInstance tsi) {
@@ -252,6 +283,18 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       return true;
     } else {
       return false;
+    }
+  }
+
+  protected String idToTableName(String id) {
+    if (id.equals(FOO.getId())) {
+      return FOO.getTableName();
+    } else if (id.equals(BAR.getId())) {
+      return BAR.getTableName();
+    } else if (id.equals(BAZ.getId())) {
+      return BAZ.getTableName();
+    } else {
+      return null;
     }
   }
 
@@ -280,7 +323,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   @Override
   protected TabletBalancer getBalancerForTable(String table) {
-    return new DefaultLoadBalancer();
+    return new TestDefaultBalancer();
   }
 
   @Override
@@ -296,7 +339,21 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     String base = "192.168.0.";
     TreeMap<TServerInstance,TabletServerStatus> current = new TreeMap<>();
     for (int i = 1; i <= numTservers; i++) {
-      current.put(new TServerInstance(base + i + ":9997", 1), new TabletServerStatus());
+      TabletServerStatus status = new TabletServerStatus();
+      Map<String,TableInfo> tableMap = new HashMap<String,TableInfo>();
+      tableMap.put(FOO.getId(), new TableInfo());
+      tableMap.put(BAR.getId(), new TableInfo());
+      tableMap.put(BAZ.getId(), new TableInfo());
+      status.setTableMap(tableMap);
+      current.put(new TServerInstance(base + i + ":9997", 1), status);
+    }
+    // now put all of the tablets on one server
+    for (Map.Entry<String,TServerInstance> entry : initialTableLocation.entrySet()) {
+      TabletServerStatus status = current.get(entry.getValue());
+      if (status != null) {
+        String tableId = getTableOperations().tableIdMap().get(entry.getKey());
+        status.getTableMap().get(tableId).setOnlineTablets(5);
+      }
     }
     return current;
   }
