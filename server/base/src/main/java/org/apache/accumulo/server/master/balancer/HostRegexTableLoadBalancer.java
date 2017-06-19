@@ -290,6 +290,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     if (t == null)
       return minBalanceTime;
 
+    Map<String,String> tableIdMap = t.tableIdMap();
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> currentGrouped = splitCurrentByRegex(current);
     if ((System.currentTimeMillis() - this.lastOOBCheck) > this.oobCheckMillis) {
       try {
@@ -304,7 +305,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
             if (hostPools.contains(tablePoolName)) {
               continue;
             }
-            String tid = t.tableIdMap().get(table);
+            String tid = tableIdMap.get(table);
             if (null == tid) {
               LOG.warn("Unable to check for out of bounds tablets for table {}, it may have been deleted or renamed.", table);
               continue;
@@ -360,7 +361,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       return minBalanceTime;
     }
 
-    for (String s : t.tableIdMap().values()) {
+    for (String s : tableIdMap.values()) {
       String tableName = tableIdToTableName.get(s);
       String regexTableName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped.get(regexTableName);
