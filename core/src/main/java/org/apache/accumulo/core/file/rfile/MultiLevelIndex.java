@@ -25,6 +25,7 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -854,9 +855,49 @@ public class MultiLevelIndex {
       getIndexInfo(rootBlock, sizes, counts);
     }
 
+    private void printIndex(IndexBlock ib, String prefix, PrintStream out) throws IOException {
+      List<IndexEntry> index = ib.getIndex();
+
+      StringBuilder sb = new StringBuilder();
+      sb.append(prefix);
+
+      sb.append("Level: ");
+      sb.append(ib.getLevel());
+
+      int resetLen = sb.length();
+
+      String recursePrefix = prefix + "  ";
+
+      for (IndexEntry ie : index) {
+
+        sb.setLength(resetLen);
+
+        sb.append(" Key: ");
+        sb.append(ie.key);
+        sb.append(" NumEntries: ");
+        sb.append(ie.entries);
+        sb.append(" Offset: ");
+        sb.append(ie.offset);
+        sb.append(" CompressedSize: ");
+        sb.append(ie.compressedSize);
+        sb.append(" RawSize : ");
+        sb.append(ie.rawSize);
+
+        out.println(sb.toString());
+
+        if (ib.getLevel() > 0) {
+          IndexBlock cib = getIndexBlock(ie);
+          printIndex(cib, recursePrefix, out);
+        }
+      }
+    }
+
+    public void printIndex(String prefix, PrintStream out) throws IOException {
+      printIndex(rootBlock, prefix, out);
+    }
+
     public Key getLastKey() {
       return rootBlock.getIndex().get(rootBlock.getIndex().size() - 1).getKey();
     }
   }
-
 }
