@@ -899,11 +899,11 @@ public class MetadataTableUtil {
       byte[] tidAsBytes = Long.toString(tid).getBytes(UTF_8);
       for (Entry<Key,Value> entry : mscanner) {
         if (shouldTrace) {
-          log.trace("Looking at entry " + entry + " with tid " + tid);
+          log.trace("Looking at entry {} with tid {}", entry, tid);
         }
         if (Arrays.equals(entry.getValue().get(), tidAsBytes)) {
           if (shouldTrace) {
-            log.trace("deleting entry " + entry);
+            log.trace("deleting entry {}", entry);
           }
           Key key = entry.getKey();
           Mutation m = new Mutation(key.getRow());
