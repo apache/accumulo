@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -908,12 +909,14 @@ public class MetadataTableUtil {
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
     mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    byte[] tidAsBytes = Long.toString(tid).getBytes(UTF_8);
     for (Entry<Key,Value> entry : mscanner) {
-      log.debug("Looking at entry " + entry + " with tid " + tid);
-      if (Long.parseLong(entry.getValue().toString()) == tid) {
-        log.debug("deleting entry " + entry);
-        Mutation m = new Mutation(entry.getKey().getRow());
-        m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+      log.trace("Looking at entry {} with tid {}", entry, tid);
+      if (Arrays.equals(entry.getValue().get(), tidAsBytes)) {
+        log.trace("deleting entry {}", entry);
+        Key key = entry.getKey();
+        Mutation m = new Mutation(key.getRow());
+        m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
         bw.addMutation(m);
       }
     }
