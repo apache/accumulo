@@ -50,7 +50,7 @@ abstract class Basic extends BasicServlet {
   private static final long serialVersionUID = 1L;
 
   public static String getStringParameter(HttpServletRequest req, String name, String defaultValue) {
-    String result = req.getParameter(name);
+    String result = req.getParameter(name).replaceAll("[^A-Za-z]", "");
     if (result == null) {
       return defaultValue;
     }

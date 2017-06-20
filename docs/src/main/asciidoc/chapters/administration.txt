@@ -501,6 +501,11 @@ The Traces page displays data for recent traces performed (see the following sec
 The Recent Logs page displays warning and error logs forwarded to the monitor from all Accumulo processes.
 Also, the XML and JSON links provide metrics in XML and JSON formats, respectively.
 
+The Accumulo monitor does a best-effort to not display any sensitive information to users; however,
+the monitor is intended to be a tool used with care. It is not a production-grade webservice. It is
+a good idea to whitelist access to the monitor via an authentication proxy or firewall. It
+is strongly recommended that the Monitor is not exposed to any publicly-accessible networks.
+
 ==== SSL
 SSL may be enabled for the monitor page by setting the following properties in the +accumulo-site.xml+ file:
 
