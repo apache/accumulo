@@ -311,13 +311,16 @@ public class RFile {
       while (countIter.hasNext()) {
         IndexEntry indexEntry = countIter.next();
         numKeys += indexEntry.getNumEntries();
-        if (includeIndexDetails) {
-          indexEntry.printInfo(out);
-        }
       }
 
       out.printf("\t%-22s : %,d\n", "Num entries", numKeys);
       out.printf("\t%-22s : %s\n", "Column families", (isDefaultLG && columnFamilies == null ? "<UNKNOWN>" : columnFamilies.keySet()));
+
+      if (includeIndexDetails) {
+        out.printf("\t%-22s :\n", "Index Entries", lastKey);
+        String prefix = String.format("\t   ", "");
+        indexReader.printIndex(prefix, out);
+      }
     }
 
   }
@@ -1386,7 +1389,7 @@ public class RFile {
     public void printInfo() throws IOException {
       printInfo(false);
     }
-    
+
     public void printInfo(boolean includeIndexDetails) throws IOException {
 
       System.out.printf("%-24s : %d\n", "RFile Version", rfileVersion);
