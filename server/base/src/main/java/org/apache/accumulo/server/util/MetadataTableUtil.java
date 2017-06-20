@@ -896,7 +896,7 @@ public class MetadataTableUtil {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
       boolean shouldTrace = log.isTraceEnabled();
-      byte[] tidAsBytes = Long.toString(tid).getBytes();
+      byte[] tidAsBytes = Long.toString(tid).getBytes(UTF_8);
       for (Entry<Key,Value> entry : mscanner) {
         if (shouldTrace) {
           log.trace("Looking at entry " + entry + " with tid " + tid);
