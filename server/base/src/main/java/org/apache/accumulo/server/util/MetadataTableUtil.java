@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -895,12 +896,12 @@ public class MetadataTableUtil {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
       boolean shouldTrace = log.isTraceEnabled();
-      String tidString = Long.toString(tid);
+      byte[] tidAsBytes = Long.toString(tid).getBytes();
       for (Entry<Key,Value> entry : mscanner) {
         if (shouldTrace) {
-          log.trace("Looking at entry " + entry + " with tid " + tidString);
+          log.trace("Looking at entry " + entry + " with tid " + tid);
         }
-        if (entry.getValue().toString().equals(tidString)) {
+        if (Arrays.equals(entry.getValue().get(), tidAsBytes)) {
           if (shouldTrace) {
             log.trace("deleting entry " + entry);
           }
