@@ -16,40 +16,41 @@
  */
 package org.apache.accumulo.monitor;
 
-import javax.servlet.http.HttpServlet;
+import java.util.EnumSet;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jetty.security.ConstraintMapping;
-import org.eclipse.jetty.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.server.AbstractConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.session.SessionHandler;
+import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.util.security.Constraint;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 public class EmbeddedWebServer {
-  private static String EMPTY = "";
-
-  Server server = null;
-  ServerConnector connector = null;
-  ServletContextHandler handler;
-  boolean usingSsl;
-
-  public EmbeddedWebServer() {
-    this("0.0.0.0", 0);
-  }
+  private final Server server;
+  private final ServerConnector connector;
+  private final ServletContextHandler handler;
 
   public EmbeddedWebServer(String host, int port) {
     server = new Server();
     final AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
-    if (EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTORE)) || EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTOREPASS))
-        || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTORE)) || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS))) {
-      connector = new ServerConnector(server, new HttpConnectionFactory());
-      usingSsl = false;
+    connector = new ServerConnector(server, getConnectionFactory(conf));
+    connector.setHost(host);
+    connector.setPort(port);
+
+    handler = new ServletContextHandler(ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
+    handler.setContextPath("/");
+  }
+
+  private static AbstractConnectionFactory getConnectionFactory(AccumuloConfiguration conf) {
+    EnumSet<Property> requireForSecure = EnumSet.of(Property.MONITOR_SSL_KEYSTORE, Property.MONITOR_SSL_KEYSTOREPASS, Property.MONITOR_SSL_TRUSTSTORE,
+        Property.MONITOR_SSL_TRUSTSTOREPASS);
+    if (requireForSecure.stream().map(p -> conf.get(p)).anyMatch(s -> s == null || s.isEmpty())) {
+      return new HttpConnectionFactory();
     } else {
       SslContextFactory sslContextFactory = new SslContextFactory();
       sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
@@ -74,33 +75,12 @@ public class EmbeddedWebServer {
         sslContextFactory.setIncludeProtocols(StringUtils.split(includeProtocols, ','));
       }
 
-      connector = new ServerConnector(server, sslContextFactory);
-      usingSsl = true;
+      return new SslConnectionFactory(sslContextFactory, new HttpConnectionFactory().getProtocol());
     }
-
-    connector.setHost(host);
-    connector.setPort(port);
-
-    handler = new ServletContextHandler(server, "/", new SessionHandler(), new ConstraintSecurityHandler(), null, null);
-    disableTrace("/");
   }
 
-  public void addServlet(Class<? extends HttpServlet> klass, String where) {
-    handler.addServlet(klass, where);
-  }
-
-  private void disableTrace(String where) {
-    Constraint constraint = new Constraint();
-    constraint.setName("Disable TRACE");
-    constraint.setAuthenticate(true); // require auth, but no roles defined, so it'll never match
-
-    ConstraintMapping mapping = new ConstraintMapping();
-    mapping.setConstraint(constraint);
-    mapping.setMethod("TRACE");
-    mapping.setPathSpec(where);
-
-    ConstraintSecurityHandler security = (ConstraintSecurityHandler) handler.getSecurityHandler();
-    security.addConstraintMapping(mapping);
+  public void addServlet(ServletHolder restServlet, String where) {
+    handler.addServlet(restServlet, where);
   }
 
   public int getPort() {
@@ -118,19 +98,17 @@ public class EmbeddedWebServer {
     }
   }
 
-  public void stop() {
+  private void stop() {
     try {
       server.stop();
+      server.join();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-  public boolean isUsingSsl() {
-    return usingSsl;
-  }
-
   public boolean isRunning() {
     return server.isRunning();
   }
+
 }

@@ -33,10 +33,6 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
@@ -49,8 +45,8 @@
       <artifactId>javax.servlet-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>jline</groupId>
-      <artifactId>jline</artifactId>
+      <groupId>javax.ws.rs</groupId>
+      <artifactId>javax.ws.rs-api</artifactId>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
@@ -70,10 +66,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-shell</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
     </dependency>
     <dependency>
@@ -83,6 +75,12 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>javax.xml.bind</groupId>
+          <artifactId>jaxb-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.thrift</groupId>
@@ -91,10 +89,6 @@
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-security</artifactId>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
@@ -107,6 +101,22 @@
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-util</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.containers</groupId>
+      <artifactId>jersey-container-jetty-http</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.containers</groupId>
+      <artifactId>jersey-container-servlet-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.ext</groupId>
+      <artifactId>jersey-mvc-freemarker</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.media</groupId>
+      <artifactId>jersey-media-json-jackson</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -131,7 +141,7 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/main/resources/web/flot/**/*.js</exclude>
+              <exclude>src/main/resources/resources/js/flot/**/*.js</exclude>
             </excludes>
           </configuration>
         </plugin>
