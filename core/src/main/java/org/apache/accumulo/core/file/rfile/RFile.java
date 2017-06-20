@@ -89,28 +89,43 @@ public class RFile {
 
   private static final int RINDEX_MAGIC = 0x20637474;
 
-  static final int RINDEX_VER_8 = 8; // Added sample storage. There is a sample locality group for each locality group. Sample are built using a Sampler and
-                                     // sampler configuration. The Sampler and its configuration are stored in RFile. Persisting the method of producing the
+  static final int RINDEX_VER_8 = 8; // Added sample storage. There is a sample locality group for each locality
+                                     // group. Sample are built using a Sampler and
+                                     // sampler configuration. The Sampler and its configuration are stored in RFile.
+                                     // Persisting the method of producing the
                                      // sample allows a user of RFile to determine if the sample is useful.
                                      //
-                                     // Selected smaller keys for index by doing two things. First internal stats were used to look for keys that were below
-                                     // average in size for the index. Also keys that were statistically large were excluded from the index. Second shorter keys
+                                     // Selected smaller keys for index by doing two things. First internal stats were
+                                     // used to look for keys that were below
+                                     // average in size for the index. Also keys that were statistically large were
+                                     // excluded from the index. Second shorter keys
                                      // (that may not exist in data) were generated for the index.
-  static final int RINDEX_VER_7 = 7; // Added support for prefix encoding and encryption. Before this change only exact matches within a key field were deduped
-                                     // for consecutive keys. After this change, if consecutive key fields have the same prefix then the prefix is only stored
+  static final int RINDEX_VER_7 = 7; // Added support for prefix encoding and encryption. Before this change only
+                                     // exact matches within a key field were deduped
+                                     // for consecutive keys. After this change, if consecutive key fields have the
+                                     // same prefix then the prefix is only stored
                                      // once.
-  static final int RINDEX_VER_6 = 6; // Added support for multilevel indexes. Before this the index was one list with an entry for each data block. For large
-                                     // files, a large index needed to be read into memory before any seek could be done. After this change the index is a fat
-                                     // tree, and opening a large rfile is much faster. Like the previous version of Rfile, each index node in the tree is kept
+  static final int RINDEX_VER_6 = 6; // Added support for multilevel indexes. Before this the index was one list with
+                                     // an entry for each data block. For large
+                                     // files, a large index needed to be read into memory before any seek could be
+                                     // done. After this change the index is a fat
+                                     // tree, and opening a large rfile is much faster. Like the previous version of
+                                     // Rfile, each index node in the tree is kept
                                      // in memory serialized and used in its serialized form.
   // static final int RINDEX_VER_5 = 5; // unreleased
-  static final int RINDEX_VER_4 = 4; // Added support for seeking using serialized indexes. After this change index is no longer deserialized when rfile opened.
-                                     // Entire serialized index is read into memory as single byte array. For seeks, serialized index is used to find blocks
-                                     // (the binary search deserializes the specific entries its needs). This resulted in less memory usage (no object overhead)
+  static final int RINDEX_VER_4 = 4; // Added support for seeking using serialized indexes. After this change index is
+                                     // no longer deserialized when rfile opened.
+                                     // Entire serialized index is read into memory as single byte array. For seeks,
+                                     // serialized index is used to find blocks
+                                     // (the binary search deserializes the specific entries its needs). This resulted
+                                     // in less memory usage (no object overhead)
                                      // and faster open times for RFiles.
-  static final int RINDEX_VER_3 = 3; // Initial released version of RFile. R is for relative encoding. A keys is encoded relative to the previous key. The
-                                     // initial version deduped key fields that were the same for consecutive keys. For sorted data this is a common occurrence.
-                                     // This version supports locality groups. Each locality group has an index pointing to set of data blocks. Each data block
+  static final int RINDEX_VER_3 = 3; // Initial released version of RFile. R is for relative encoding. A keys is
+                                     // encoded relative to the previous key. The
+                                     // initial version deduped key fields that were the same for consecutive keys.
+                                     // For sorted data this is a common occurrence.
+                                     // This version supports locality groups. Each locality group has an index
+                                     // pointing to set of data blocks. Each data block
                                      // contains relatively encoded keys and values.
 
   // Buffer sample data so that many sample data blocks are stored contiguously.
@@ -317,8 +332,8 @@ public class RFile {
       out.printf("\t%-22s : %s\n", "Column families", (isDefaultLG && columnFamilies == null ? "<UNKNOWN>" : columnFamilies.keySet()));
 
       if (includeIndexDetails) {
-        out.printf("\t%-22s :\n", "Index Entries", lastKey);
-        String prefix = String.format("\t   ", "");
+        out.printf("\t%-22s :\nIndex Entries", lastKey);
+        String prefix = String.format("\t   ");
         indexReader.printIndex(prefix, out);
       }
     }
@@ -366,7 +381,8 @@ public class RFile {
 
     public void flushIfNeeded() throws IOException {
       if (dataSize > sampleBufferSize) {
-        // the reason to write out all but one key is so that closeBlock() can always eventually be called with true
+        // the reason to write out all but one key is so that closeBlock() can always eventually be called with
+        // true
         List<SampleEntry> subList = entries.subList(0, entries.size() - 1);
 
         if (subList.size() > 0) {
@@ -444,7 +460,8 @@ public class RFile {
           avergageKeySize = keyLenStats.getMean();
         }
 
-        // Possibly produce a shorter key that does not exist in data. Even if a key can be shortened, it may not be below average.
+        // Possibly produce a shorter key that does not exist in data. Even if a key can be shortened, it may
+        // not be below average.
         Key closeKey = KeyShortener.shorten(prevKey, key);
 
         if ((closeKey.getSize() <= avergageKeySize || blockWriter.getRawSize() > maxBlockSize) && !isGiantKey(closeKey)) {
@@ -904,8 +921,10 @@ public class RFile {
         }
 
         if (entriesLeft == 0 && startKey.compareTo(getTopKey()) > 0 && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
-          // In the empty space at the end of a block. This can occur when keys are shortened in the index creating index entries that do not exist in the
-          // block. These shortened index entires fall between the last key in a block and first key in the next block, but may not exist in the data.
+          // In the empty space at the end of a block. This can occur when keys are shortened in the index
+          // creating index entries that do not exist in the
+          // block. These shortened index entires fall between the last key in a block and first key in the
+          // next block, but may not exist in the data.
           // Just proceed to the next block.
           reseek = false;
         }
@@ -933,7 +952,8 @@ public class RFile {
           }
 
           if (iiter.hasPrevious())
-            prevKey = new Key(iiter.peekPrevious().getKey()); // initially prevKey is the last key of the prev block
+            prevKey = new Key(iiter.peekPrevious().getKey()); // initially prevKey is the last key of the
+                                                              // prev block
           else
             prevKey = new Key(); // first block in the file, so set prev key to minimal key
 
