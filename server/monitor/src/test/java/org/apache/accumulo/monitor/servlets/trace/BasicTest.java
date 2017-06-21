@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.monitor.servlets.trace;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import javax.servlet.http.HttpServletRequest;
 
