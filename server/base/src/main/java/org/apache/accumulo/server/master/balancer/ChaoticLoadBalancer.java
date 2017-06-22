@@ -131,11 +131,11 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     long avg = (long) Math.ceil(((double) totalTablets) / current.size() * 1.2);
 
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-      for (String table : e.getValue().getTableMap().keySet()) {
-        if (!moveMetadata && MetadataTable.NAME.equals(table))
+      for (String tableId : e.getValue().getTableMap().keySet()) {
+        if (!moveMetadata && MetadataTable.ID.equals(tableId))
           continue;
         try {
-          for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), table)) {
+          for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), tableId)) {
             KeyExtent ke = new KeyExtent(ts.extent);
             int index = r.nextInt(underCapacityTServer.size());
             TServerInstance dest = underCapacityTServer.get(index);
