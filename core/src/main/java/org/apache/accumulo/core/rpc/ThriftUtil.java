@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
@@ -282,13 +283,31 @@ public class ThriftUtil {
         try {
           // Log in via UGI, ensures we have logged in with our KRB credentials
           final UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
+          final UserGroupInformation userForRpc;
+          if (AuthenticationMethod.PROXY == currentUser.getAuthenticationMethod()) {
+            // A "proxy" user is when the real (Kerberos) credentials are for a user
+            // other than the one we're acting as. When we make an RPC though, we need to make sure
+            // that the current user is the user that has some credentials.
+            if (currentUser.getRealUser() != null) {
+              userForRpc = currentUser.getRealUser();
+              log.trace("{} is a proxy user, using real user instead {}", currentUser, userForRpc);
+            } else {
+              // The current user has no credentials, let it fail naturally at the RPC layer (no ticket)
+              // We know this won't work, but we can't do anything else
+              log.warn("The current user is a proxy user but there is no underlying real user (likely that RPCs will fail): {}", currentUser);
+              userForRpc = currentUser;
+            }
+          } else {
+            // The normal case: the current user has its own ticket
+            userForRpc = currentUser;
+          }
 
           // Is this pricey enough that we want to cache it?
           final String hostname = InetAddress.getByName(address.getHostText()).getCanonicalHostName();
 
           final SaslMechanism mechanism = saslParams.getMechanism();
 
-          log.trace("Opening transport to server as {} to {}/{} using {}", currentUser, saslParams.getKerberosServerPrimary(), hostname, mechanism);
+          log.trace("Opening transport to server as {} to {}/{} using {}", userForRpc, saslParams.getKerberosServerPrimary(), hostname, mechanism);
 
           // Create the client SASL transport using the information for the server
           // Despite the 'protocol' argument seeming to be useless, it *must* be the primary of the server being connected to
@@ -296,7 +315,7 @@ public class ThriftUtil {
               saslParams.getSaslProperties(), saslParams.getCallbackHandler(), transport);
 
           // Wrap it all in a processor which will run with a doAs the current user
-          transport = new UGIAssumingTransport(transport, currentUser);
+          transport = new UGIAssumingTransport(transport, userForRpc);
 
           // Open the transport
           transport.open();
