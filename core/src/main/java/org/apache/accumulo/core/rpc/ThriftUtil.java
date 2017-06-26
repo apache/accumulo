@@ -294,7 +294,7 @@ public class ThriftUtil {
             } else {
               // The current user has no credentials, let it fail naturally at the RPC layer (no ticket)
               // We know this won't work, but we can't do anything else
-              log.warn("The current user is a proxy user but there is no underlying real user (RPCs will fail): {}", currentUser);
+              log.warn("The current user is a proxy user but there is no underlying real user (likely that RPCs will fail): {}", currentUser);
               userForRpc = currentUser;
             }
           } else {

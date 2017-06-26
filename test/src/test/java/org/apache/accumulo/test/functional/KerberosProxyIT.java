@@ -95,7 +95,7 @@ import com.google.common.collect.Iterables;
 @Category(MiniClusterOnlyTests.class)
 public class KerberosProxyIT extends AccumuloIT {
   private static final Logger log = LoggerFactory.getLogger(KerberosProxyIT.class);
-  private static final String PROXIED_USER = "proxied_user";
+  private static final String PROXIED_USER1 = "proxied_user1", PROXIED_USER2 = "proxied_user2", PROXIED_USER3 = "proxied_user3";
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -156,7 +156,7 @@ public class KerberosProxyIT extends AccumuloIT {
         Map<String,String> siteCfg = cfg.getSiteConfig();
         // Allow the proxy to impersonate the "root" Accumulo user and our one special user.
         siteCfg.put(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION.getKey(),
-            proxyPrincipal + ":" + kdc.getRootUser().getPrincipal() + "," + kdc.qualifyUser(PROXIED_USER));
+            proxyPrincipal + ":" + kdc.getRootUser().getPrincipal() + "," + kdc.qualifyUser(PROXIED_USER1) + "," + kdc.qualifyUser(PROXIED_USER2));
         siteCfg.put(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION.getKey(), "*");
         cfg.setSiteConfig(siteCfg);
       }
@@ -483,8 +483,12 @@ public class KerberosProxyIT extends AccumuloIT {
     ClusterUser rootUser = kdc.getRootUser();
     final UserGroupInformation rootUgi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
     final UserGroupInformation realUgi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(proxyPrincipal, proxyKeytab.getAbsolutePath());
-    final String userWithoutCredentials = kdc.qualifyUser(PROXIED_USER);
-    final UserGroupInformation proxyUser = UserGroupInformation.createProxyUser(userWithoutCredentials, realUgi);
+    final String userWithoutCredentials1 = kdc.qualifyUser(PROXIED_USER1);
+    final String userWithoutCredentials2 = kdc.qualifyUser(PROXIED_USER2);
+    final String userWithoutCredentials3 = kdc.qualifyUser(PROXIED_USER3);
+    final UserGroupInformation proxyUser1 = UserGroupInformation.createProxyUser(userWithoutCredentials1, realUgi);
+    final UserGroupInformation proxyUser2 = UserGroupInformation.createProxyUser(userWithoutCredentials2, realUgi);
+    final UserGroupInformation proxyUser3 = UserGroupInformation.createProxyUser(userWithoutCredentials3, realUgi);
 
     // Create a table and user, grant permission to our user to read that table.
     rootUgi.doAs(new PrivilegedExceptionAction<Void>() {
@@ -493,8 +497,10 @@ public class KerberosProxyIT extends AccumuloIT {
         ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
         Connector conn = inst.getConnector(rootUgi.getUserName(), new KerberosToken());
         conn.tableOperations().create(tableName);
-        conn.securityOperations().createLocalUser(userWithoutCredentials, new PasswordToken("ignored"));
-        conn.securityOperations().grantTablePermission(userWithoutCredentials, tableName, TablePermission.READ);
+        conn.securityOperations().createLocalUser(userWithoutCredentials1, new PasswordToken("ignored"));
+        conn.securityOperations().grantTablePermission(userWithoutCredentials1, tableName, TablePermission.READ);
+        conn.securityOperations().createLocalUser(userWithoutCredentials3, new PasswordToken("ignored"));
+        conn.securityOperations().grantTablePermission(userWithoutCredentials3, tableName, TablePermission.READ);
         return null;
       }
     });
@@ -515,13 +521,46 @@ public class KerberosProxyIT extends AccumuloIT {
         return null;
       }
     });
-    proxyUser.doAs(new PrivilegedExceptionAction<Void>() {
+    // Allowed to be proxied and has read permission
+    proxyUser1.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
         ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
-        Connector conn = inst.getConnector(userWithoutCredentials, new KerberosToken(userWithoutCredentials));
+        Connector conn = inst.getConnector(userWithoutCredentials1, new KerberosToken(userWithoutCredentials1));
         Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
         assertFalse(s.iterator().hasNext());
+        return null;
+      }
+    });
+    // Allowed to be proxied but does not have read permission
+    proxyUser2.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
+        Connector conn = inst.getConnector(userWithoutCredentials2, new KerberosToken(userWithoutCredentials3));
+        try {
+          Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
+          s.iterator().hasNext();
+          Assert.fail("Expected to see an exception");
+        } catch (RuntimeException e) {
+          int numSecurityExceptionsSeen = Iterables.size(Iterables.filter(Throwables.getCausalChain(e),
+              org.apache.accumulo.core.client.AccumuloSecurityException.class));
+          assertTrue("Expected to see at least one AccumuloSecurityException, but saw: " + Throwables.getStackTraceAsString(e), numSecurityExceptionsSeen > 0);
+        }
+        return null;
+      }
+    });
+    // Has read permission but is not allowed to be proxied
+    proxyUser3.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
+        try {
+          inst.getConnector(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
+          Assert.fail("Should not be able to create a Connector as this user cannot be proxied");
+        } catch (org.apache.accumulo.core.client.AccumuloSecurityException e) {
+          // Expected, this user cannot be proxied
+        }
         return null;
       }
     });
