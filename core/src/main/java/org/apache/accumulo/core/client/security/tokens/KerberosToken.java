@@ -29,6 +29,7 @@ import java.util.Set;
 import javax.security.auth.DestroyFailedException;
 
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 
 /**
  * Authentication token for Kerberos authenticated clients
@@ -51,11 +52,11 @@ public class KerberosToken implements AuthenticationToken {
    *          The user that is logged in
    */
   public KerberosToken(String principal) throws IOException {
-    requireNonNull(principal);
+    this.principal = requireNonNull(principal);
     final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-    checkArgument(ugi.hasKerberosCredentials(), "Subject is not logged in via Kerberos");
-    checkArgument(principal.equals(ugi.getUserName()), "Provided principal does not match currently logged-in user");
-    this.principal = ugi.getUserName();
+    if (AuthenticationMethod.KERBEROS == ugi.getAuthenticationMethod()) {
+      checkArgument(ugi.hasKerberosCredentials(), "Subject is not logged in via Kerberos");
+    }
   }
 
   /**
@@ -70,18 +71,12 @@ public class KerberosToken implements AuthenticationToken {
    *          Should the current Hadoop user be replaced with this user
    */
   public KerberosToken(String principal, File keytab, boolean replaceCurrentUser) throws IOException {
-    requireNonNull(principal, "Principal was null");
-    requireNonNull(keytab, "Keytab was null");
+    this.principal = requireNonNull(principal, "Principal was null");
+    this.keytab = requireNonNull(keytab, "Keytab was null");
     checkArgument(keytab.exists() && keytab.isFile(), "Keytab was not a normal file");
-    UserGroupInformation ugi;
     if (replaceCurrentUser) {
       UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
-      ugi = UserGroupInformation.getCurrentUser();
-    } else {
-      ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab.getAbsolutePath());
     }
-    this.principal = ugi.getUserName();
-    this.keytab = keytab;
   }
 
   /**

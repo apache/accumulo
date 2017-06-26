@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,10 +35,15 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.UGIAssumingTransport;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloIT;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
@@ -68,6 +75,7 @@ import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -77,12 +85,17 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
+
 /**
- * Tests impersonation of clients by the proxy over SASL
+ * Tests impersonation of clients over Kerberos+SASL. "Proxy" may be referring to the Accumulo Proxy service or it may be referring to the notion of a username
+ * overriding the real username of the actual credentials used in the system. Beware of the context of the word "proxy".
  */
 @Category(MiniClusterOnlyTests.class)
 public class KerberosProxyIT extends AccumuloIT {
   private static final Logger log = LoggerFactory.getLogger(KerberosProxyIT.class);
+  private static final String PROXIED_USER = "proxied_user";
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -141,8 +154,9 @@ public class KerberosProxyIT extends AccumuloIT {
       public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
         cfg.setNumTservers(1);
         Map<String,String> siteCfg = cfg.getSiteConfig();
-        // Allow the proxy to impersonate the client user, but no one else
-        siteCfg.put(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION.getKey(), proxyPrincipal + ":" + kdc.getRootUser().getPrincipal());
+        // Allow the proxy to impersonate the "root" Accumulo user and our one special user.
+        siteCfg.put(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION.getKey(),
+            proxyPrincipal + ":" + kdc.getRootUser().getPrincipal() + "," + kdc.qualifyUser(PROXIED_USER));
         siteCfg.put(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION.getKey(), "*");
         cfg.setSiteConfig(siteCfg);
       }
@@ -461,6 +475,56 @@ public class KerberosProxyIT extends AccumuloIT {
         ugiTransport.close();
       }
     }
+  }
+
+  @Test
+  public void proxiedUserAccessWithoutAccumuloProxy() throws Exception {
+    final String tableName = getUniqueNames(1)[0];
+    ClusterUser rootUser = kdc.getRootUser();
+    final UserGroupInformation rootUgi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
+    final UserGroupInformation realUgi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(proxyPrincipal, proxyKeytab.getAbsolutePath());
+    final String userWithoutCredentials = kdc.qualifyUser(PROXIED_USER);
+    final UserGroupInformation proxyUser = UserGroupInformation.createProxyUser(userWithoutCredentials, realUgi);
+
+    // Create a table and user, grant permission to our user to read that table.
+    rootUgi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
+        Connector conn = inst.getConnector(rootUgi.getUserName(), new KerberosToken());
+        conn.tableOperations().create(tableName);
+        conn.securityOperations().createLocalUser(userWithoutCredentials, new PasswordToken("ignored"));
+        conn.securityOperations().grantTablePermission(userWithoutCredentials, tableName, TablePermission.READ);
+        return null;
+      }
+    });
+    realUgi.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
+        Connector conn = inst.getConnector(proxyPrincipal, new KerberosToken());
+        try {
+          Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
+          s.iterator().hasNext();
+          Assert.fail("Expected to see an exception");
+        } catch (RuntimeException e) {
+          int numSecurityExceptionsSeen = Iterables.size(Iterables.filter(Throwables.getCausalChain(e),
+              org.apache.accumulo.core.client.AccumuloSecurityException.class));
+          assertTrue("Expected to see at least one AccumuloSecurityException, but saw: " + Throwables.getStackTraceAsString(e), numSecurityExceptionsSeen > 0);
+        }
+        return null;
+      }
+    });
+    proxyUser.doAs(new PrivilegedExceptionAction<Void>() {
+      @Override
+      public Void run() throws Exception {
+        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
+        Connector conn = inst.getConnector(userWithoutCredentials, new KerberosToken(userWithoutCredentials));
+        Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
+        assertFalse(s.iterator().hasNext());
+        return null;
+      }
+    });
   }
 
   private static class ThriftExceptionMatchesPattern extends TypeSafeMatcher<AccumuloSecurityException> {
