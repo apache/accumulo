@@ -48,15 +48,25 @@ public class KerberosToken implements AuthenticationToken {
   /**
    * Creates a token using the provided principal and the currently logged-in user via {@link UserGroupInformation}.
    *
+   * This method expects the current user (as defined by {@link UserGroupInformation#getCurrentUser()} to be authenticated via Kerberos or as a Proxy (on top of
+   * another user). An {@link IllegalArgumentException} will be thrown for all other cases.
+   *
    * @param principal
    *          The user that is logged in
+   * @throws IllegalArgumentException
+   *           If the current user is not authentication via Kerberos or Proxy methods.
+   * @see UserGroupInformation#getCurrentUser()
+   * @see UserGroupInformation#getAuthenticationMethod()
    */
   public KerberosToken(String principal) throws IOException {
     this.principal = requireNonNull(principal);
-    final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-    if (AuthenticationMethod.KERBEROS == ugi.getAuthenticationMethod()) {
-      checkArgument(ugi.hasKerberosCredentials(), "Subject is not logged in via Kerberos");
-    }
+    validateAuthMethod(UserGroupInformation.getCurrentUser().getAuthenticationMethod());
+  }
+
+  static void validateAuthMethod(AuthenticationMethod authMethod) {
+    // There is also KERBEROS_SSL but that appears to be deprecated/OBE
+    checkArgument(AuthenticationMethod.KERBEROS == authMethod || AuthenticationMethod.PROXY == authMethod,
+        "KerberosToken expects KERBEROS or PROXY authentication for the current UserGroupInformation user. Saw " + authMethod);
   }
 
   /**
