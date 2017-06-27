@@ -36,9 +36,9 @@ import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KerberosTokenTest {
+public class KerberosTokenEmbeddedKDCTest {
 
-  private static final Logger log = LoggerFactory.getLogger(KerberosTokenTest.class);
+  private static final Logger log = LoggerFactory.getLogger(KerberosTokenEmbeddedKDCTest.class);
 
   @Rule
   public TestName testName = new TestName();
