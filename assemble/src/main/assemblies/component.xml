@@ -81,7 +81,7 @@
     <!-- Lift generated thrift proxy code into its own directory -->
     <fileSet>
       <directory>../proxy/target</directory>
-      <outputDirectory>proxy/thrift</outputDirectory>
+      <outputDirectory>lib/proxy</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
@@ -92,39 +92,18 @@
     </fileSet>
     <fileSet>
       <directory>../proxy</directory>
-      <outputDirectory>proxy</outputDirectory>
+      <outputDirectory>conf/templates</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <includes>
-        <include>README</include>
         <include>proxy.properties</include>
       </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../proxy/examples</directory>
-      <outputDirectory>proxy/examples</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.py</include>
-        <include>**/*.rb</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../proxy/examples</directory>
-      <outputDirectory>proxy/examples</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>**/*.py</exclude>
-        <exclude>**/*.rb</exclude>
-      </excludes>
     </fileSet>
     <fileSet>
       <directory>../proxy/src/main/thrift</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
-      <outputDirectory>proxy/thrift</outputDirectory>
+      <outputDirectory>lib/proxy/thrift</outputDirectory>
       <includes>
         <include>*.thrift</include>
       </includes>

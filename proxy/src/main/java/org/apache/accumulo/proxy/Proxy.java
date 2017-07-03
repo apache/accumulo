@@ -103,7 +103,7 @@ public class Proxy implements KeywordExecutable {
   }
 
   public static class Opts extends Help {
-    @Parameter(names = "-p", required = true, description = "properties file name", converter = PropertiesConverter.class)
+    @Parameter(names = "-p", description = "properties file name", converter = PropertiesConverter.class)
     Properties prop;
   }
 
@@ -127,10 +127,25 @@ public class Proxy implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(Proxy.class.getName(), args);
 
-    boolean useMini = Boolean.parseBoolean(opts.prop.getProperty(USE_MINI_ACCUMULO_KEY, USE_MINI_ACCUMULO_DEFAULT));
-    boolean useMock = Boolean.parseBoolean(opts.prop.getProperty(USE_MOCK_INSTANCE_KEY, USE_MOCK_INSTANCE_DEFAULT));
-    String instance = opts.prop.getProperty(ACCUMULO_INSTANCE_NAME_KEY);
-    String zookeepers = opts.prop.getProperty(ZOOKEEPERS_KEY);
+    Properties props = new Properties();
+    if (opts.prop != null) {
+      props = opts.prop;
+    } else {
+      try (InputStream is = this.getClass().getClassLoader().getResourceAsStream("proxy.properties")) {
+        if (is != null) {
+          props.load(is);
+        } else {
+          System.err.println("proxy.properties needs to be specified as argument (using -p) or on "
+                             + "the classpath (by putting the file in conf/)");
+          System.exit(-1);
+        }
+      }
+    }
+
+    boolean useMini = Boolean.parseBoolean(props.getProperty(USE_MINI_ACCUMULO_KEY, USE_MINI_ACCUMULO_DEFAULT));
+    boolean useMock = Boolean.parseBoolean(props.getProperty(USE_MOCK_INSTANCE_KEY, USE_MOCK_INSTANCE_DEFAULT));
+    String instance = props.getProperty(ACCUMULO_INSTANCE_NAME_KEY);
+    String zookeepers = props.getProperty(ZOOKEEPERS_KEY);
 
     if (!useMini && !useMock && instance == null) {
       System.err.println("Properties file must contain one of : useMiniAccumulo=true, useMockInstance=true, or instance=<instance name>");
@@ -142,7 +157,7 @@ public class Proxy implements KeywordExecutable {
       System.exit(1);
     }
 
-    if (!opts.prop.containsKey("port")) {
+    if (!props.containsKey("port")) {
       System.err.println("No port property");
       System.exit(1);
     }
@@ -152,8 +167,8 @@ public class Proxy implements KeywordExecutable {
       final File folder = Files.createTempDir();
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
-      opts.prop.setProperty("instance", accumulo.getConfig().getInstanceName());
-      opts.prop.setProperty("zookeepers", accumulo.getZooKeepers());
+      props.setProperty("instance", accumulo.getConfig().getInstanceName());
+      props.setProperty("zookeepers", accumulo.getZooKeepers());
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void start() {
@@ -169,13 +184,13 @@ public class Proxy implements KeywordExecutable {
       });
     }
 
-    Class<? extends TProtocolFactory> protoFactoryClass = Class.forName(opts.prop.getProperty("protocolFactory", TCompactProtocol.Factory.class.getName()))
+    Class<? extends TProtocolFactory> protoFactoryClass = Class.forName(props.getProperty("protocolFactory", TCompactProtocol.Factory.class.getName()))
         .asSubclass(TProtocolFactory.class);
     TProtocolFactory protoFactory = protoFactoryClass.newInstance();
-    int port = Integer.parseInt(opts.prop.getProperty("port"));
-    String hostname = opts.prop.getProperty(THRIFT_SERVER_HOSTNAME, THRIFT_SERVER_HOSTNAME_DEFAULT);
+    int port = Integer.parseInt(props.getProperty("port"));
+    String hostname = props.getProperty(THRIFT_SERVER_HOSTNAME, THRIFT_SERVER_HOSTNAME_DEFAULT);
     HostAndPort address = HostAndPort.fromParts(hostname, port);
-    ServerAddress server = createProxyServer(address, protoFactory, opts.prop);
+    ServerAddress server = createProxyServer(address, protoFactory, props);
     // Wait for the server to come up
     while (!server.server.isServing()) {
       Thread.sleep(100);
