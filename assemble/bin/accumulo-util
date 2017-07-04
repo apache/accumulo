@@ -74,7 +74,7 @@ function build_native() {
 }
 
 function gen_monitor_cert() {
-  if [[ -z "$JAVA_HOME" || -d "$JAVA_HOME" ]]; then
+  if [[ -z "$JAVA_HOME" || ! -d "$JAVA_HOME" ]]; then
     echo "JAVA_HOME=${JAVA_HOME} must be set and exist"
     exit 1
   fi
@@ -83,7 +83,7 @@ function gen_monitor_cert() {
   KEYPASS=$(LC_CTYPE=C tr -dc '#-~' < /dev/urandom | tr -d '<>&' | head -c 20)
   STOREPASS=$(LC_CTYPE=C tr -dc '#-~' < /dev/urandom | tr -d '<>&' | head -c 20)
   KEYSTOREPATH="${conf}/keystore.jks"
-  TRUSTSTOREPATH="${conf}/conf/cacerts.jks"
+  TRUSTSTOREPATH="${conf}/cacerts.jks"
   CERTPATH="${conf}/server.cer"
 
   if [[ -e "$KEYSTOREPATH" ]]; then
