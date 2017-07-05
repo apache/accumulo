@@ -82,6 +82,8 @@ public class EmbeddedWebServer {
     connector.setPort(port);
 
     handler = new ServletContextHandler(server, "/", new SessionHandler(), new ConstraintSecurityHandler(), null, null);
+    handler.getSessionHandler().getSessionManager().getSessionCookieConfig().setHttpOnly(true);
+
     disableTrace("/");
   }
 
