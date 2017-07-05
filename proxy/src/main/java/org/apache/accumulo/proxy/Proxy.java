@@ -135,8 +135,7 @@ public class Proxy implements KeywordExecutable {
         if (is != null) {
           props.load(is);
         } else {
-          System.err.println("proxy.properties needs to be specified as argument (using -p) or on "
-                             + "the classpath (by putting the file in conf/)");
+          System.err.println("proxy.properties needs to be specified as argument (using -p) or on the classpath (by putting the file in conf/)");
           System.exit(-1);
         }
       }
