@@ -64,6 +64,10 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    // NativeMap.java was changed to fail if native lib missing in ACCUMULO-4596
+    // testExistingInstance will fail because the native path is not set in MiniAccumuloConfigImpl.useExistingInstance
+    // so disable Native maps for this test
+    cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, "false");
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
