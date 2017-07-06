@@ -52,6 +52,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "5s");
+    cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.FALSE.toString());
     cfg.useMiniDFS(true);
   }
 

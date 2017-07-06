@@ -136,6 +136,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     cfg.setNativeLibPaths(nativePathInDevTree, nativePathInMapReduce);
     cfg.setProperty(Property.GC_FILE_ARCHIVE, Boolean.TRUE.toString());
     Configuration coreSite = new Configuration(false);
+    cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
     configure(cfg, coreSite);
     configureForEnvironment(cfg, getClass(), getSslDir(baseDir));
     cluster = new MiniAccumuloClusterImpl(cfg);
