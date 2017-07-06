@@ -35,7 +35,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.monitor.servlets.BasicServlet;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
@@ -53,6 +52,7 @@ import com.google.common.collect.ImmutableMap;
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
   private static final Logger LOG = LoggerFactory.getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);
 
+  @Override
   public boolean canRunTest(ClusterType type) {
     return ClusterType.MINI == type;
   }
@@ -92,10 +92,12 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           try {
             HttpURLConnection cnxn = (HttpURLConnection) url.openConnection();
             final int responseCode = cnxn.getResponseCode();
-            final String errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
+            String errorText;
             // This is our "assertion", but we want to re-check it if it's not what we expect
-            if (HttpURLConnection.HTTP_UNAVAILABLE == responseCode && null != errorText && errorText.contains(BasicServlet.STANDBY_MONITOR_MESSAGE)) {
+            if (HttpURLConnection.HTTP_OK == responseCode) {
               return;
+            } else {
+              errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
             }
             LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'", responseCode, errorText);
           } catch (Exception e) {
