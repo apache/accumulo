@@ -71,23 +71,27 @@ public class AssignmentThreadsIT extends ConfigurableMacIT {
     c.tableOperations().addSplits(tableName, splits);
     log.info("Taking table offline");
     c.tableOperations().offline(tableName, true);
+
     // time how long it takes to load
     log.info("Bringing the table online");
-    long now = System.currentTimeMillis();
+    long now = System.nanoTime();
     c.tableOperations().online(tableName, true);
-    long diff = System.currentTimeMillis() - now;
-    log.info("Loaded " + splits.size() + " tablets in " + diff + " ms");
+    long diff = System.nanoTime() - now;
+
+    log.info("Loaded " + splits.size() + " tablets in " + diff + " ns");
     c.instanceOperations().setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "20");
-    now = System.currentTimeMillis();
     log.info("Taking table offline, again");
     c.tableOperations().offline(tableName, true);
     // wait >10 seconds for thread pool to update
-    UtilWaitThread.sleep(Math.max(0, now + 11 * 1000 - System.currentTimeMillis()));
-    now = System.currentTimeMillis();
+    log.info("sleep for {} ms so thread pool can update", 60_000);
+    UtilWaitThread.sleep(60_000);
+
     log.info("Bringing table back online");
+    now = System.nanoTime();
     c.tableOperations().online(tableName, true);
-    long diff2 = System.currentTimeMillis() - now;
-    log.debug("Loaded " + splits.size() + " tablets in " + diff2 + " ms");
+    long diff2 = System.nanoTime() - now;
+
+    log.debug("Loaded " + splits.size() + " tablets in " + diff2 + " ns");
     assertTrue(diff2 < diff);
   }
 
