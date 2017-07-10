@@ -102,6 +102,10 @@ public class MiniAccumuloClusterImplTest {
     MasterMonitorInfo stats;
     while (true) {
       stats = accumulo.getMasterMonitorInfo();
+      if (stats.tableMap.size() <= 2) {
+        continue;
+      }
+
       if (null != stats.tServerInfo && stats.tServerInfo.size() == NUM_TSERVERS) {
         break;
       }
