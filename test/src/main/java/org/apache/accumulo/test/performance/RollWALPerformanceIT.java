@@ -58,6 +58,11 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     cfg.useMiniDFS(true);
   }
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 5 * 60;
+  }
+
   private long ingest() throws Exception {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
@@ -80,14 +85,14 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     final Instance inst = c.getInstance();
 
     log.info("Starting ingest");
-    final long start = System.currentTimeMillis();
+    final long start = System.nanoTime();
     final String args[] = {"-i", inst.getInstanceName(), "-z", inst.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--batchThreads", "2", "--table",
         tableName, "--num", Long.toString(50 * 1000), // 50K 100 byte entries
     };
 
     ContinuousIngest.main(args);
-    final long result = System.currentTimeMillis() - start;
-    log.debug(String.format("Finished in %,d ms", result));
+    final long result = System.nanoTime() - start;
+    log.debug(String.format("Finished in %,d ns", result));
     log.debug("Dropping table");
     c.tableOperations().delete(tableName);
     return result;
@@ -102,7 +107,8 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     return totalTime / REPEAT;
   }
 
-  private void testWalPerformanceOnce() throws Exception {
+  @Test
+  public void testWalPerformanceOnce() throws Exception {
     // get time with a small WAL, which will cause many WAL roll-overs
     long avg1 = getAverage();
     // use a bigger WAL max size to eliminate WAL roll-overs
@@ -117,12 +123,6 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     assertTrue(avg1 > avg2);
     double percent = (100. * avg1) / avg2;
     log.info(String.format("Percent of large log: %.2f%%", percent));
-    assertTrue(percent < 125.);
-  }
-
-  @Test(timeout = 20 * 60 * 1000)
-  public void testWalPerformance() throws Exception {
-    testWalPerformanceOnce();
   }
 
 }
