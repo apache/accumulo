@@ -41,6 +41,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
   private static final org.apache.thrift.protocol.TField FLUSHS_FIELD_DESC = new org.apache.thrift.protocol.TField("flushs", org.apache.thrift.protocol.TType.I64, (short)15);
   private static final org.apache.thrift.protocol.TField SYNCS_FIELD_DESC = new org.apache.thrift.protocol.TField("syncs", org.apache.thrift.protocol.TType.I64, (short)16);
   private static final org.apache.thrift.protocol.TField BULK_IMPORTS_FIELD_DESC = new org.apache.thrift.protocol.TField("bulkImports", org.apache.thrift.protocol.TType.LIST, (short)17);
+  private static final org.apache.thrift.protocol.TField VERSION_FIELD_DESC = new org.apache.thrift.protocol.TField("version", org.apache.thrift.protocol.TType.STRING, (short)18);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TabletServerStatusStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TabletServerStatusTupleSchemeFactory();
@@ -59,6 +60,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
   public long flushs; // required
   public long syncs; // required
   public java.util.List<BulkImportStatus> bulkImports; // required
+  public java.lang.String version; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -75,7 +77,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     LOG_SORTS((short)14, "logSorts"),
     FLUSHS((short)15, "flushs"),
     SYNCS((short)16, "syncs"),
-    BULK_IMPORTS((short)17, "bulkImports");
+    BULK_IMPORTS((short)17, "bulkImports"),
+    VERSION((short)18, "version");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -118,6 +121,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           return SYNCS;
         case 17: // BULK_IMPORTS
           return BULK_IMPORTS;
+        case 18: // VERSION
+          return VERSION;
         default:
           return null;
       }
@@ -204,6 +209,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     tmpMap.put(_Fields.BULK_IMPORTS, new org.apache.thrift.meta_data.FieldMetaData("bulkImports", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, BulkImportStatus.class))));
+    tmpMap.put(_Fields.VERSION, new org.apache.thrift.meta_data.FieldMetaData("version", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TabletServerStatus.class, metaDataMap);
   }
@@ -225,7 +232,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     java.util.List<RecoveryStatus> logSorts,
     long flushs,
     long syncs,
-    java.util.List<BulkImportStatus> bulkImports)
+    java.util.List<BulkImportStatus> bulkImports,
+    java.lang.String version)
   {
     this();
     this.tableMap = tableMap;
@@ -252,6 +260,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     this.syncs = syncs;
     setSyncsIsSet(true);
     this.bulkImports = bulkImports;
+    this.version = version;
   }
 
   /**
@@ -301,6 +310,9 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       }
       this.bulkImports = __this__bulkImports;
     }
+    if (other.isSetVersion()) {
+      this.version = other.version;
+    }
   }
 
   public TabletServerStatus deepCopy() {
@@ -333,6 +345,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     setSyncsIsSet(false);
     this.syncs = 0;
     this.bulkImports = null;
+    this.version = null;
   }
 
   public int getTableMapSize() {
@@ -702,6 +715,30 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     }
   }
 
+  public java.lang.String getVersion() {
+    return this.version;
+  }
+
+  public TabletServerStatus setVersion(java.lang.String version) {
+    this.version = version;
+    return this;
+  }
+
+  public void unsetVersion() {
+    this.version = null;
+  }
+
+  /** Returns true if field version is set (has been assigned a value) and false otherwise */
+  public boolean isSetVersion() {
+    return this.version != null;
+  }
+
+  public void setVersionIsSet(boolean value) {
+    if (!value) {
+      this.version = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, java.lang.Object value) {
     switch (field) {
     case TABLE_MAP:
@@ -816,6 +853,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       }
       break;
 
+    case VERSION:
+      if (value == null) {
+        unsetVersion();
+      } else {
+        setVersion((java.lang.String)value);
+      }
+      break;
+
     }
   }
 
@@ -863,6 +908,9 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     case BULK_IMPORTS:
       return getBulkImports();
 
+    case VERSION:
+      return getVersion();
+
     }
     throw new java.lang.IllegalStateException();
   }
@@ -902,6 +950,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       return isSetSyncs();
     case BULK_IMPORTS:
       return isSetBulkImports();
+    case VERSION:
+      return isSetVersion();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -1047,6 +1097,15 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         return false;
     }
 
+    boolean this_present_version = true && this.isSetVersion();
+    boolean that_present_version = true && that.isSetVersion();
+    if (this_present_version || that_present_version) {
+      if (!(this_present_version && that_present_version))
+        return false;
+      if (!this.version.equals(that.version))
+        return false;
+    }
+
     return true;
   }
 
@@ -1089,6 +1148,10 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     hashCode = hashCode * 8191 + ((isSetBulkImports()) ? 131071 : 524287);
     if (isSetBulkImports())
       hashCode = hashCode * 8191 + bulkImports.hashCode();
+
+    hashCode = hashCode * 8191 + ((isSetVersion()) ? 131071 : 524287);
+    if (isSetVersion())
+      hashCode = hashCode * 8191 + version.hashCode();
 
     return hashCode;
   }
@@ -1241,6 +1304,16 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.valueOf(isSetVersion()).compareTo(other.isSetVersion());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetVersion()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.version, other.version);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1330,6 +1403,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       sb.append("null");
     } else {
       sb.append(this.bulkImports);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("version:");
+    if (this.version == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.version);
     }
     first = false;
     sb.append(")");
@@ -1524,6 +1605,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 18: // VERSION
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.version = iprot.readString();
+              struct.setVersionIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -1611,6 +1700,11 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         }
         oprot.writeFieldEnd();
       }
+      if (struct.version != null) {
+        oprot.writeFieldBegin(VERSION_FIELD_DESC);
+        oprot.writeString(struct.version);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1671,7 +1765,10 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       if (struct.isSetBulkImports()) {
         optionals.set(13);
       }
-      oprot.writeBitSet(optionals, 14);
+      if (struct.isSetVersion()) {
+        optionals.set(14);
+      }
+      oprot.writeBitSet(optionals, 15);
       if (struct.isSetTableMap()) {
         {
           oprot.writeI32(struct.tableMap.size());
@@ -1733,12 +1830,15 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           }
         }
       }
+      if (struct.isSetVersion()) {
+        oprot.writeString(struct.version);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TabletServerStatus struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(14);
+      java.util.BitSet incoming = iprot.readBitSet(15);
       if (incoming.get(0)) {
         {
           org.apache.thrift.protocol.TMap _map16 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
@@ -1826,6 +1926,10 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           }
         }
         struct.setBulkImportsIsSet(true);
+      }
+      if (incoming.get(14)) {
+        struct.version = iprot.readString();
+        struct.setVersionIsSet(true);
       }
     }
   }
