@@ -416,6 +416,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
   }
 
+  public String getVersion() {
+    return Constants.VERSION;
+  }
+
   private static long jitter(long ms) {
     Random r = new Random();
     // add a random 10% wait
@@ -3057,6 +3061,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     result.bulkImports = new ArrayList<>();
     result.bulkImports.addAll(clientHandler.getBulkLoadStatus());
     result.bulkImports.addAll(bulkImportStatus.getBulkLoadStatus());
+    result.version = getVersion();
     return result;
   }
 
