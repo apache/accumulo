@@ -156,6 +156,7 @@ import org.apache.accumulo.shell.commands.SystemPermissionsCommand;
 import org.apache.accumulo.shell.commands.TableCommand;
 import org.apache.accumulo.shell.commands.TablePermissionsCommand;
 import org.apache.accumulo.shell.commands.TablesCommand;
+import org.apache.accumulo.shell.commands.TabletServerStatusCommand;
 import org.apache.accumulo.shell.commands.TraceCommand;
 import org.apache.accumulo.shell.commands.UserCommand;
 import org.apache.accumulo.shell.commands.UserPermissionsCommand;
@@ -402,7 +403,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new EGrepCommand(), new FormatterCommand(),
         new InterpreterCommand(), new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
-        new PingCommand(), new ListBulkCommand()};
+        new PingCommand(), new ListBulkCommand(), new TabletServerStatusCommand()};
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};

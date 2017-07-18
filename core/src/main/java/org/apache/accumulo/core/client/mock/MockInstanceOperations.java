@@ -94,4 +94,9 @@ class MockInstanceOperations implements InstanceOperations {
 
   @Override
   public void waitForBalance() throws AccumuloException {}
+
+  @Override
+  public List<Map<String,String>> getTabletServerStatus() throws AccumuloException {
+    return new ArrayList<>();
+  }
 }

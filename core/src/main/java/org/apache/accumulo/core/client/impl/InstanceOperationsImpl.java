@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -37,11 +38,15 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.TableInfoUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -205,6 +210,78 @@ public class InstanceOperationsImpl implements InstanceOperations {
         transport.close();
       }
     }
+  }
+
+  @Override
+  public List<Map<String,String>> getTabletServerStatus() throws AccumuloException {
+    List<Map<String,String>> status = new ArrayList<>();
+    MasterMonitorInfo mmi = null;
+    boolean retry = true;
+    long now = System.currentTimeMillis();
+
+    while (retry) {
+      MasterClientService.Iface client = null;
+      try {
+        client = MasterClient.getConnection(context);
+        if (client != null) {
+          mmi = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+          retry = false;
+        } else {
+          mmi = null;
+        }
+      } catch (Exception e) {
+        mmi = null;
+      } finally {
+        if (client != null) {
+          MasterClient.close(client);
+        }
+      }
+      if (mmi == null) {
+        break;
+      }
+    }
+    if (mmi != null) {
+      for (TabletServerStatus ts : mmi.getTServerInfo()) {
+
+        TableInfo summary = TableInfoUtil.summarizeTableStats(ts);
+        if (summary == null)
+          return status;
+        String name = ts.getName();
+        String tablets = Integer.toString(summary.tablets);
+        String lastContact = Long.toString(now - ts.lastContact);
+        String entries = Long.toString(summary.recs);
+        String ingest = Double.toString(summary.ingestRate);
+        String query = Double.toString(summary.queryRate);
+        String holdTime = Long.toString(ts.holdTime);
+        String scans = summary.scans != null ? Integer.toString(summary.scans.running) : null;
+        String minor = summary.minors != null ? Integer.toString(summary.minors.running) : null;
+        String major = summary.majors != null ? Integer.toString(summary.majors.running) : null;
+        String indexHitRate = Double.toString(ts.indexCacheHits / (double) Math.max(ts.indexCacheRequest, 1));
+        String dataHitRate = Double.toString(ts.dataCacheHits / (double) Math.max(ts.dataCacheRequest, 1));
+        String osLoad = Double.toString(ts.osLoad);
+        String version = ts.version;
+
+        Map<String,String> stat = new TreeMap<String,String>();
+        stat.put("server", name);
+        stat.put("tablets", tablets);
+        stat.put("lastContact", lastContact);
+        stat.put("entries", entries);
+        stat.put("ingest", ingest);
+        stat.put("query", query);
+        stat.put("holdtime", holdTime);
+        stat.put("scans", scans);
+        stat.put("minor", minor);
+        stat.put("major", major);
+        stat.put("indexCacheHitRate", indexHitRate);
+        stat.put("dataCacheHitRate", dataHitRate);
+        stat.put("osload", osLoad);
+        stat.put("version", version);
+
+        status.add(stat);
+      }
+    }
+
+    return status;
   }
 
   @Override

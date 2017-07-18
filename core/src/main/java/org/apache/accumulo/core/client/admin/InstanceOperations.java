@@ -81,6 +81,15 @@ public interface InstanceOperations {
   List<String> getTabletServers();
 
   /**
+   * List the tablet server status
+   *
+   * @return A list of tablet server status.
+   * @since 2.0.0
+   */
+
+  List<Map<String,String>> getTabletServerStatus() throws AccumuloException;
+
+  /**
    * List the active scans on tablet server.
    *
    * @param tserver
