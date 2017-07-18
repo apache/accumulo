@@ -35,10 +35,10 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 public class TabletServerBatchDeleter extends TabletServerBatchReader implements BatchDeleter {
 
   private final ClientContext context;
-  private String tableId;
+  private Table.ID tableId;
   private BatchWriterConfig bwConfig;
 
-  public TabletServerBatchDeleter(ClientContext context, String tableId, Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig)
+  public TabletServerBatchDeleter(ClientContext context, Table.ID tableId, Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig)
       throws TableNotFoundException {
     super(context, tableId, authorizations, numQueryThreads);
     this.context = context;

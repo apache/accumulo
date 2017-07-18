@@ -37,6 +37,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -109,14 +111,14 @@ public class ReplicationResource {
     // Number of files per target we have to replicate
     Map<ReplicationTarget,Long> targetCounts = new HashMap<>();
 
-    Map<String,String> tableNameToId = tops.tableIdMap();
-    Map<String,String> tableIdToName = invert(tableNameToId);
+    Map<String,Table.ID> tableNameToId = Tables.getNameToIdMap(null);
+    Map<Table.ID,String> tableIdToName = invert(tableNameToId);
 
     for (String table : tops.list()) {
       if (MetadataTable.NAME.equals(table) || RootTable.NAME.equals(table)) {
         continue;
       }
-      String localId = tableNameToId.get(table);
+      Table.ID localId = tableNameToId.get(table);
       if (null == localId) {
         log.trace("Could not determine ID for {}", table);
         continue;
@@ -194,9 +196,9 @@ public class ReplicationResource {
     return replicationInformation;
   }
 
-  protected Map<String,String> invert(Map<String,String> map) {
-    Map<String,String> newMap = new HashMap<>(map.size());
-    for (Entry<String,String> entry : map.entrySet()) {
+  protected Map<Table.ID,String> invert(Map<String,Table.ID> map) {
+    Map<Table.ID,String> newMap = new HashMap<>(map.size());
+    for (Entry<String,Table.ID> entry : map.entrySet()) {
       newMap.put(entry.getValue(), entry.getKey());
     }
     return newMap;

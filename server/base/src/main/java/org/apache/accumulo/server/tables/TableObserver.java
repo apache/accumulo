@@ -18,12 +18,13 @@ package org.apache.accumulo.server.tables;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.master.state.tables.TableState;
 
 public interface TableObserver {
-  void initialize(Map<String,TableState> tableIdToStateMap);
+  void initialize(Map<Table.ID,TableState> tableIdToStateMap);
 
-  void stateChanged(String tableId, TableState tState);
+  void stateChanged(Table.ID tableId, TableState tState);
 
   void sessionExpired();
 }

@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -44,14 +45,14 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 public class ProblemReport {
-  private String tableId;
+  private Table.ID tableId;
   private ProblemType problemType;
   private String resource;
   private String exception;
   private String server;
   private long creationTime;
 
-  public ProblemReport(String tableId, ProblemType problemType, String resource, String server, Throwable e, long creationTime) {
+  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, String server, Throwable e, long creationTime) {
     requireNonNull(tableId, "tableId is null");
     requireNonNull(problemType, "problemType is null");
     requireNonNull(resource, "resource is null");
@@ -76,15 +77,15 @@ public class ProblemReport {
     this.creationTime = creationTime;
   }
 
-  public ProblemReport(String tableId, ProblemType problemType, String resource, String server, Throwable e) {
+  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, String server, Throwable e) {
     this(tableId, problemType, resource, server, e, System.currentTimeMillis());
   }
 
-  public ProblemReport(String tableId, ProblemType problemType, String resource, Throwable e) {
+  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, Throwable e) {
     this(tableId, problemType, resource, null, e);
   }
 
-  private ProblemReport(String table, ProblemType problemType, String resource, byte enc[]) throws IOException {
+  private ProblemReport(Table.ID table, ProblemType problemType, String resource, byte enc[]) throws IOException {
     requireNonNull(table, "table is null");
     requireNonNull(problemType, "problemType is null");
     requireNonNull(resource, "resource is null");
@@ -168,7 +169,7 @@ public class ProblemReport {
   private String getZPath(Instance instance) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
-    dos.writeUTF(getTableName());
+    dos.writeUTF(getTableId().canonicalID());
     dos.writeUTF(getProblemType().name());
     dos.writeUTF(getResource());
     dos.close();
@@ -188,7 +189,7 @@ public class ProblemReport {
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     DataInputStream dis = new DataInputStream(bais);
 
-    String tableId = dis.readUTF();
+    Table.ID tableId = new Table.ID(dis.readUTF());
     String problemType = dis.readUTF();
     String resource = dis.readUTF();
 
@@ -200,14 +201,14 @@ public class ProblemReport {
   }
 
   public static ProblemReport decodeMetadataEntry(Entry<Key,Value> entry) throws IOException {
-    String tableId = entry.getKey().getRow().toString().substring("~err_".length());
+    Table.ID tableId = new Table.ID(entry.getKey().getRow().toString().substring("~err_".length()));
     String problemType = entry.getKey().getColumnFamily().toString();
     String resource = entry.getKey().getColumnQualifier().toString();
 
     return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, entry.getValue().get());
   }
 
-  public String getTableName() {
+  public Table.ID getTableId() {
     return tableId;
   }
 

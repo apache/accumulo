@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.monitor.rest.problems;
 
+import org.apache.accumulo.core.client.impl.Table;
+
 /**
  *
  * Generates a problem detail as a JSON object
@@ -27,7 +29,7 @@ public class ProblemDetailInformation {
 
   // Variable names become JSON keys
   public String tableName;
-  public String tableID;
+  public Table.ID tableID;
   public String type;
   public String server;
 
@@ -55,7 +57,7 @@ public class ProblemDetailInformation {
    * @param exception
    *          Exception of the problem
    */
-  public ProblemDetailInformation(String tableName, String tableID, String type, String server, Long time, String resource, String exception) {
+  public ProblemDetailInformation(String tableName, Table.ID tableID, String type, String server, Long time, String resource, String exception) {
     this.tableName = tableName;
     this.tableID = tableID;
     this.type = type;

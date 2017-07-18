@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -113,7 +114,7 @@ public class CollectTabletStats {
     Credentials creds = new Credentials(opts.getPrincipal(), opts.getToken());
     ClientContext context = new ClientContext(instance, creds, sconf.getSystemConfiguration());
 
-    String tableId = Tables.getNameToIdMap(instance).get(opts.getTableName());
+    Table.ID tableId = Tables.getTableId(instance, opts.getTableName());
     if (tableId == null) {
       log.error("Unable to find table named " + opts.getTableName());
       System.exit(-1);
@@ -132,7 +133,7 @@ public class CollectTabletStats {
     Map<KeyExtent,List<FileRef>> tabletFiles = new HashMap<>();
 
     for (KeyExtent ke : tabletsToTest) {
-      List<FileRef> files = getTabletFiles(context, tableId, ke);
+      List<FileRef> files = getTabletFiles(context, ke);
       tabletFiles.put(ke, files);
     }
 
@@ -349,7 +350,7 @@ public class CollectTabletStats {
   private static List<KeyExtent> findTablets(ClientContext context, boolean selectLocalTablets, String tableName, SortedMap<KeyExtent,String> tabletLocations)
       throws Exception {
 
-    String tableId = Tables.getNameToIdMap(context.getInstance()).get(tableName);
+    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
     MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
     InetAddress localaddress = InetAddress.getLocalHost();
@@ -384,7 +385,7 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
 
-  private static List<FileRef> getTabletFiles(ClientContext context, String tableId, KeyExtent ke) throws IOException {
+  private static List<FileRef> getTabletFiles(ClientContext context, KeyExtent ke) throws IOException {
     return new ArrayList<>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
   }
 

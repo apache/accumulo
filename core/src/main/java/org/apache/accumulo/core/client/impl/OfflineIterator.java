@@ -146,7 +146,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private Range range;
   private KeyExtent currentExtent;
   private Connector conn;
-  private String tableId;
+  private Table.ID tableId;
   private Authorizations authorizations;
   private Instance instance;
   private ScannerOptions options;
@@ -162,7 +162,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       this.range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
-    this.tableId = table.toString();
+    this.tableId = new Table.ID(table.toString());
     this.authorizations = authorizations;
     this.readers = new ArrayList<>();
 

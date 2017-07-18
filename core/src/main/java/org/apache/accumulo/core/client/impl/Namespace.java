@@ -14,18 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.conf;
+package org.apache.accumulo.core.client.impl;
 
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.client.Instance;
 
-public abstract class ServerConfiguration {
+public class Namespace {
 
-  abstract public TableConfiguration getTableConfiguration(Table.ID tableId);
+  /**
+   * Object representing an internal Namespace ID. This class was created to help with type safety. For help obtaining the value of a namespace ID from
+   * Zookeeper, see {@link Namespaces#getNamespaceId(Instance, String)}
+   */
+  public static class ID extends AbstractId {
+    private static final long serialVersionUID = 8931104141709170293L;
 
-  abstract public NamespaceConfiguration getNamespaceConfiguration(Namespace.ID namespaceId);
+    public static final ID ACCUMULO = new ID("+accumulo");
+    public static final ID DEFAULT = new ID("+default");
 
-  abstract public AccumuloConfiguration getSystemConfiguration();
+    public ID(String canonical) {
+      super(canonical);
+    }
+  }
+
+  public static final String ACCUMULO = "accumulo";
+  public static final String DEFAULT = "";
+  public static final String SEPARATOR = ".";
 
 }

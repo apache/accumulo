@@ -21,7 +21,6 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -36,6 +35,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -288,8 +288,6 @@ public class TabletServerResource {
 
   private List<CurrentOperations> doCurrentOperations(List<TabletStats> tsStats) throws Exception {
 
-    Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
-
     List<CurrentOperations> currentOperations = new ArrayList<>();
 
     for (TabletStats info : tsStats) {
@@ -302,7 +300,7 @@ public class TabletServerResource {
       ActionStatsUpdator.update(total.majors, info.majors);
 
       KeyExtent extent = new KeyExtent(info.extent);
-      String tableId = extent.getTableId();
+      Table.ID tableId = extent.getTableId();
       MessageDigest digester = MessageDigest.getInstance("MD5");
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
@@ -310,7 +308,7 @@ public class TabletServerResource {
       String obscuredExtent = Base64.getEncoder().encodeToString(digester.digest());
       String displayExtent = String.format("[%s]", obscuredExtent);
 
-      String tableName = Tables.getPrintableTableNameFromId(tidToNameMap, tableId);
+      String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(), tableId);
 
       currentOperations.add(new CurrentOperations(tableName, tableId, displayExtent, info.numEntries, info.ingestRate, info.queryRate,
           info.minors.num != 0 ? info.minors.elapsed / info.minors.num : null, stddev(info.minors.elapsed, info.minors.num, info.minors.sumDev),

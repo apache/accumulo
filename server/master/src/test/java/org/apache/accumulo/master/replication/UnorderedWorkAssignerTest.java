@@ -32,6 +32,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -57,7 +58,7 @@ public class UnorderedWorkAssignerTest {
 
   @Test
   public void workQueuedUsingFileName() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
     Set<String> queuedWork = new HashSet<>();

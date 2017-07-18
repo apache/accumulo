@@ -34,7 +34,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -109,11 +110,11 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   }
 
-  protected static class Table {
+  protected static class TestTable {
     private String tableName;
-    private String id;
+    private Table.ID id;
 
-    Table(String tableName, String id) {
+    TestTable(String tableName, Table.ID id) {
       this.tableName = tableName;
       this.id = id;
     }
@@ -122,7 +123,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       return tableName;
     }
 
-    public String getId() {
+    public Table.ID getId() {
       return id;
     }
   }
@@ -149,9 +150,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
 
     @Override
-    public TableConfiguration getTableConfiguration(String tableId) {
+    public TableConfiguration getTableConfiguration(Table.ID tableId) {
       // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration constructor
-      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, this.instance, DefaultConfiguration.getInstance());
+      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, this.instance, DefaultConfiguration.getInstance());
       return new TableConfiguration(this.instance, tableId, dummyConf) {
         @Override
         public String get(Property property) {
@@ -170,9 +171,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
   }
 
-  protected static final Table FOO = new Table("foo", "1");
-  protected static final Table BAR = new Table("bar", "2");
-  protected static final Table BAZ = new Table("baz", "3");
+  protected static final TestTable FOO = new TestTable("foo", new Table.ID("1"));
+  protected static final TestTable BAR = new TestTable("bar", new Table.ID("2"));
+  protected static final TestTable BAZ = new TestTable("baz", new Table.ID("3"));
 
   protected final TestInstance instance = new TestInstance();
   protected final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(instance);
@@ -234,7 +235,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   }
 
   protected boolean tabletInBounds(KeyExtent ke, TServerInstance tsi) {
-    String tid = ke.getTableId().toString();
+    String tid = ke.getTableId().canonicalID();
     String host = tsi.host();
     if (tid.equals("1")
         && (host.equals("192.168.0.1") || host.equals("192.168.0.2") || host.equals("192.168.0.3") || host.equals("192.168.0.4") || host.equals("192.168.0.5"))) {
@@ -257,9 +258,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       @Override
       public Map<String,String> tableIdMap() {
         HashMap<String,String> tables = new HashMap<>();
-        tables.put(FOO.getTableName(), FOO.getId());
-        tables.put(BAR.getTableName(), BAR.getId());
-        tables.put(BAZ.getTableName(), BAZ.getId());
+        tables.put(FOO.getTableName(), FOO.getId().canonicalID());
+        tables.put(BAR.getTableName(), BAR.getId().canonicalID());
+        tables.put(BAZ.getTableName(), BAZ.getId().canonicalID());
         return tables;
       }
 
@@ -275,7 +276,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   }
 
   @Override
-  protected TabletBalancer getBalancerForTable(String table) {
+  protected TabletBalancer getBalancerForTable(Table.ID table) {
     return new DefaultLoadBalancer();
   }
 

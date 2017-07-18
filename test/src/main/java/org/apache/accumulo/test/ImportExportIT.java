@@ -140,7 +140,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
     // Get all `file` colfams from the metadata table for the new table
     log.info("Imported into table with ID: {}", tableId);
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+    s.setRange(MetadataSchema.TabletsSection.getRange(new org.apache.accumulo.core.client.impl.Table.ID(tableId)));
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
 

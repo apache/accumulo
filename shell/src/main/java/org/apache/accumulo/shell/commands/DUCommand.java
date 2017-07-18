@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
@@ -50,7 +51,7 @@ public class DUCommand extends Command {
 
     if (cl.hasOption(optNamespace.getOpt())) {
       Instance instance = shellState.getInstance();
-      String namespaceId = Namespaces.getNamespaceId(instance, cl.getOptionValue(optNamespace.getOpt()));
+      Namespace.ID namespaceId = Namespaces.getNamespaceId(instance, cl.getOptionValue(optNamespace.getOpt()));
       tables.addAll(Namespaces.getTableNames(instance, namespaceId));
     }
 

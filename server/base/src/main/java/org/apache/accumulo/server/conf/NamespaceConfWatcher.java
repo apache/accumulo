@@ -18,6 +18,7 @@ package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -54,24 +55,25 @@ class NamespaceConfWatcher implements Watcher {
     if (log.isTraceEnabled())
       log.trace("WatchedEvent : " + toString(event));
 
-    String namespaceId = null;
+    String namespaceIdStr = null;
     String key = null;
 
     if (path != null) {
       if (path.startsWith(namespacesPrefix)) {
-        namespaceId = path.substring(namespacesPrefixLength);
-        if (namespaceId.contains("/")) {
-          namespaceId = namespaceId.substring(0, namespaceId.indexOf('/'));
-          if (path.startsWith(namespacesPrefix + namespaceId + Constants.ZNAMESPACE_CONF + "/"))
-            key = path.substring((namespacesPrefix + namespaceId + Constants.ZNAMESPACE_CONF + "/").length());
+        namespaceIdStr = path.substring(namespacesPrefixLength);
+        if (namespaceIdStr.contains("/")) {
+          namespaceIdStr = namespaceIdStr.substring(0, namespaceIdStr.indexOf('/'));
+          if (path.startsWith(namespacesPrefix + namespaceIdStr + Constants.ZNAMESPACE_CONF + "/"))
+            key = path.substring((namespacesPrefix + namespaceIdStr + Constants.ZNAMESPACE_CONF + "/").length());
         }
       }
 
-      if (namespaceId == null) {
+      if (namespaceIdStr == null) {
         log.warn("Zookeeper told me about a path I was not watching: " + path + ", event " + toString(event));
         return;
       }
     }
+    Namespace.ID namespaceId = new Namespace.ID(namespaceIdStr);
 
     switch (event.getType()) {
       case NodeDataChanged:

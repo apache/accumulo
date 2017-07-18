@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.monitor.rest.tables;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 
 /**
@@ -29,7 +30,7 @@ public class TableInformation {
 
   // Variable names become JSON keys
   public String tablename;
-  public String tableId;
+  public Table.ID tableId;
   public String tableState;
 
   public int tablets;
@@ -72,7 +73,7 @@ public class TableInformation {
    * @param tableState
    *          State of the table
    */
-  public TableInformation(String tableName, String tableId, String tableState) {
+  public TableInformation(String tableName, Table.ID tableId, String tableState) {
     this.tablename = tableName;
     this.tableId = tableId;
     this.tableState = tableState;
@@ -92,7 +93,7 @@ public class TableInformation {
    * @param tableState
    *          State of the table
    */
-  public TableInformation(String tableName, String tableId, TableInfo info, Double holdTime, String tableState) {
+  public TableInformation(String tableName, Table.ID tableId, TableInfo info, Double holdTime, String tableState) {
     this.tablename = tableName;
     this.tableId = tableId;
 

@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.util.Merge.Size;
 import org.apache.hadoop.io.Text;
@@ -43,7 +44,7 @@ public class MergeTest {
           end = null;
         else
           end = new Text(String.format("%05d", tablets.size()));
-        KeyExtent extent = new KeyExtent("table", end, start);
+        KeyExtent extent = new KeyExtent(new Table.ID("table"), end, start);
         start = end;
         tablets.add(new Size(extent, size));
       }

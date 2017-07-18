@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -110,7 +111,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     state = new State() {
       @Override
       public Collection<MergeInfo> merges() {
-        String tableIdToModify = getConnector().tableOperations().tableIdMap().get(t3);
+        Table.ID tableIdToModify = new Table.ID(getConnector().tableOperations().tableIdMap().get(t3));
         return Collections.singletonList(new MergeInfo(new KeyExtent(tableIdToModify, null, null), MergeInfo.Operation.MERGE));
       }
     };
@@ -127,7 +128,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   }
 
   private void addDuplicateLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
-    String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
+    Table.ID tableIdToModify = new Table.ID(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
     Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).getMetadataEntry());
     m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"), new Value("fake:9005".getBytes(UTF_8)));
     BatchWriter bw = getConnector().createBatchWriter(table, null);
@@ -136,7 +137,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   }
 
   private void reassignLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
-    String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
+    Table.ID tableIdToModify = new Table.ID(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
     Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
     scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetadataRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -151,7 +152,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   }
 
   private void removeLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
-    String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
+    Table.ID tableIdToModify = new Table.ID(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
     BatchDeleter deleter = getConnector().createBatchDeleter(table, Authorizations.EMPTY, 1, new BatchWriterConfig());
     deleter.setRanges(Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetadataRange()));
     deleter.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -216,8 +217,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     }
 
     @Override
-    public Set<String> onlineTables() {
-      HashSet<String> onlineTables = new HashSet<>(getConnector().tableOperations().tableIdMap().values());
+    public Set<Table.ID> onlineTables() {
+      Set<Table.ID> onlineTables = Tables.getIdToNameMap(getConnector().getInstance()).keySet();
       return Sets.filter(onlineTables, tableId -> Tables.getTableState(getConnector().getInstance(), tableId) == TableState.ONLINE);
     }
 

@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.impl.DurabilityImpl;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -2131,8 +2132,8 @@ public class Tablet implements TabletCommitter {
       SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
       List<FileRef> highDatafilesToRemove = new ArrayList<>();
 
-      MetadataTableUtil.splitDatafiles(extent.getTableId(), midRow, splitRatio, firstAndLastRows, getDatafileManager().getDatafileSizes(), lowDatafileSizes,
-          highDatafileSizes, highDatafilesToRemove);
+      MetadataTableUtil.splitDatafiles(midRow, splitRatio, firstAndLastRows, getDatafileManager().getDatafileSizes(), lowDatafileSizes, highDatafileSizes,
+          highDatafilesToRemove);
 
       log.debug("Files for low split " + low + "  " + lowDatafileSizes.keySet());
       log.debug("Files for high split " + high + "  " + highDatafileSizes.keySet());
@@ -2617,7 +2618,7 @@ public class Tablet implements TabletCommitter {
     return scannedCount;
   }
 
-  private static String createTabletDirectory(VolumeManager fs, String tableId, Text endRow) {
+  private static String createTabletDirectory(VolumeManager fs, Table.ID tableId, Text endRow) {
     String lowDirectory;
 
     UniqueNameAllocator namer = UniqueNameAllocator.getInstance();

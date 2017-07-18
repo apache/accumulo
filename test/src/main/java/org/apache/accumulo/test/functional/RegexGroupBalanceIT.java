@@ -165,7 +165,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
   private Table<String,String,MutableInt> getCounts(Connector conn, String tablename) throws TableNotFoundException {
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-    String tableId = conn.tableOperations().tableIdMap().get(tablename);
+    org.apache.accumulo.core.client.impl.Table.ID tableId = new org.apache.accumulo.core.client.impl.Table.ID(conn.tableOperations().tableIdMap()
+        .get(tablename));
     s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
 
     Table<String,String,MutableInt> groupLocationCounts = HashBasedTable.create();
@@ -175,7 +176,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       if (group.endsWith("<")) {
         group = "03";
       } else {
-        group = group.substring(tableId.length() + 1).substring(0, 2);
+        group = group.substring(tableId.canonicalID().length() + 1).substring(0, 2);
       }
       String loc = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()).toString();
 

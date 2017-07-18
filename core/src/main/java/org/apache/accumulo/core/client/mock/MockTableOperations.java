@@ -366,9 +366,9 @@ class MockTableOperations extends TableOperationsHelper {
     for (Entry<String,MockTable> entry : acu.tables.entrySet()) {
       String table = entry.getKey();
       if (RootTable.NAME.equals(table))
-        result.put(table, RootTable.ID);
+        result.put(table, RootTable.ID.canonicalID());
       else if (MetadataTable.NAME.equals(table))
-        result.put(table, MetadataTable.ID);
+        result.put(table, MetadataTable.ID.canonicalID());
       else
         result.put(table, entry.getValue().getTableId());
     }

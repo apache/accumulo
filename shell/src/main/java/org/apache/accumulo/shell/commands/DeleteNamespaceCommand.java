@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -60,11 +60,8 @@ public class DeleteNamespaceCommand extends Command {
   protected void doTableOp(final Shell shellState, final String namespace, boolean force) throws Exception {
     boolean resetContext = false;
     String currentTable = shellState.getTableName();
-    if (!Namespaces.getNameToIdMap(shellState.getInstance()).containsKey(namespace)) {
-      throw new NamespaceNotFoundException(null, namespace, null);
-    }
 
-    String namespaceId = Namespaces.getNamespaceId(shellState.getInstance(), namespace);
+    Namespace.ID namespaceId = Namespaces.getNamespaceId(shellState.getInstance(), namespace);
     List<String> tables = Namespaces.getTableNames(shellState.getInstance(), namespaceId);
     resetContext = tables.contains(currentTable);
 

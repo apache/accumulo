@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -80,11 +81,12 @@ public class RandomizeVolumes {
       log.error("There are not enough volumes configured");
       return 1;
     }
-    String tableId = c.tableOperations().tableIdMap().get(tableName);
-    if (null == tableId) {
+    String tblStr = c.tableOperations().tableIdMap().get(tableName);
+    if (null == tblStr) {
       log.error("Could not determine the table ID for table " + tableName);
       return 2;
     }
+    Table.ID tableId = new Table.ID(tblStr);
     TableState tableState = TableManager.getInstance().getTableState(tableId);
     if (TableState.OFFLINE != tableState) {
       log.info("Taking " + tableName + " offline");
@@ -103,7 +105,7 @@ public class RandomizeVolumes {
       String directory;
       if (oldLocation.contains(":")) {
         String[] parts = oldLocation.split(Path.SEPARATOR);
-        String tableIdEntry = parts[parts.length - 2];
+        Table.ID tableIdEntry = new Table.ID(parts[parts.length - 2]);
         if (!tableIdEntry.equals(tableId)) {
           log.error("Unexpected table id found: " + tableIdEntry + ", expected " + tableId + "; skipping");
           continue;

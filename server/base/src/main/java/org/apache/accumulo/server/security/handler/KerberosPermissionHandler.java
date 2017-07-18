@@ -23,6 +23,7 @@ import java.util.Base64;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -76,13 +77,13 @@ public class KerberosPermissionHandler implements PermissionHandler {
   }
 
   @Override
-  public boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+  public boolean hasNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
     return zkPermissionHandler.hasNamespacePermission(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), namespace, permission);
   }
 
   @Override
-  public boolean hasCachedNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+  public boolean hasCachedNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
     return zkPermissionHandler.hasCachedNamespacePermission(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), namespace, permission);
   }
@@ -108,13 +109,13 @@ public class KerberosPermissionHandler implements PermissionHandler {
   }
 
   @Override
-  public void grantNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+  public void grantNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
     zkPermissionHandler.grantNamespacePermission(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), namespace, permission);
   }
 
   @Override
-  public void revokeNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+  public void revokeNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
     zkPermissionHandler.revokeNamespacePermission(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), namespace, permission);
   }
@@ -125,7 +126,7 @@ public class KerberosPermissionHandler implements PermissionHandler {
   }
 
   @Override
-  public void cleanNamespacePermissions(String namespace) throws AccumuloSecurityException, NamespaceNotFoundException {
+  public void cleanNamespacePermissions(Namespace.ID namespace) throws AccumuloSecurityException, NamespaceNotFoundException {
     zkPermissionHandler.cleanNamespacePermissions(namespace);
   }
 

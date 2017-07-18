@@ -30,6 +30,7 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -294,7 +295,7 @@ public class NullTserver {
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
-    String tableId = Tables.getTableId(zki, opts.tableName);
+    Table.ID tableId = Tables.getTableId(zki, opts.tableName);
 
     // read the locations for the table
     Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();

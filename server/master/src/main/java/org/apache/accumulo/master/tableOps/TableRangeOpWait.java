@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.MergeInfo;
@@ -40,10 +42,10 @@ class TableRangeOpWait extends MasterRepo {
   private static final Logger log = LoggerFactory.getLogger(TableRangeOpWait.class);
 
   private static final long serialVersionUID = 1L;
-  private String tableId;
-  private String namespaceId;
+  private Table.ID tableId;
+  private Namespace.ID namespaceId;
 
-  public TableRangeOpWait(String namespaceId, String tableId) {
+  public TableRangeOpWait(Namespace.ID namespaceId, Table.ID tableId) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
   }

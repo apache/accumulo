@@ -19,6 +19,8 @@ package org.apache.accumulo.master.tableOps;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -29,10 +31,10 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 public class CancelCompactions extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
-  private String tableId;
-  private String namespaceId;
+  private Table.ID tableId;
+  private Namespace.ID namespaceId;
 
-  public CancelCompactions(String namespaceId, String tableId) {
+  public CancelCompactions(Namespace.ID namespaceId, Table.ID tableId) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
   }

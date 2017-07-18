@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.compaction.strategies;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -37,7 +38,7 @@ public class ConfigurableCompactionStrategyTest {
 
   @Test
   public void testOutputOptions() throws Exception {
-    MajorCompactionRequest mcr = new MajorCompactionRequest(new KeyExtent("1", null, null), MajorCompactionReason.USER, null);
+    MajorCompactionRequest mcr = new MajorCompactionRequest(new KeyExtent(new Table.ID("1"), null, null), MajorCompactionReason.USER, null);
 
     Map<FileRef,DataFileValue> files = new HashMap<>();
     files.put(new FileRef("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"), new DataFileValue(50000, 400));

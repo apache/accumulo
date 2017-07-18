@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
@@ -47,7 +48,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class NamespaceConfigurationTest {
-  private static final String NSID = "namespace";
+  private static final Namespace.ID NSID = new Namespace.ID("namespace");
   private static final String ZOOKEEPERS = "localhost";
   private static final int ZK_SESSION_TIMEOUT = 120000;
 

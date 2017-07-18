@@ -134,7 +134,7 @@ class PopulateMetadataTable extends MasterRepo {
               String newName = fileNameMappings.get(oldName);
 
               if (newName == null) {
-                throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT,
+                throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonicalID(), tableInfo.tableName, TableOperation.IMPORT,
                     TableOperationExceptionType.OTHER, "File " + oldName + " does not exist in import dir");
               }
 
@@ -183,8 +183,8 @@ class PopulateMetadataTable extends MasterRepo {
       return new MoveExportedFiles(tableInfo);
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
-      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Error reading " + path + " " + ioe.getMessage());
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonicalID(), tableInfo.tableName, TableOperation.IMPORT,
+          TableOperationExceptionType.OTHER, "Error reading " + path + " " + ioe.getMessage());
     } finally {
       if (zis != null) {
         try {

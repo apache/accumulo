@@ -20,6 +20,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -63,8 +64,8 @@ public class WrongTabletTest {
 
       Mutation mutation = new Mutation(new Text("row_0003750001"));
       mutation.putDelete(new Text("colf"), new Text("colq"));
-      client.update(Tracer.traceInfo(), context.rpcCreds(), new KeyExtent("!!", null, new Text("row_0003750000")).toThrift(), mutation.toThrift(),
-          TDurability.DEFAULT);
+      client.update(Tracer.traceInfo(), context.rpcCreds(), new KeyExtent(new Table.ID("!!"), null, new Text("row_0003750000")).toThrift(),
+          mutation.toThrift(), TDurability.DEFAULT);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

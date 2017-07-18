@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.impl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import java.util.function.BiConsumer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -50,48 +52,11 @@ public class Tables {
     return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
 
-  private static SortedMap<String,String> getMap(Instance instance, boolean nameAsKey) {
-    ZooCache zc = getZooCache(instance);
-
-    List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
-    TreeMap<String,String> tableMap = new TreeMap<>();
-    Map<String,String> namespaceIdToNameMap = new HashMap<>();
-
-    for (String tableId : tableIds) {
-      byte[] tableName = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
-      byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
-      String namespaceName = Namespaces.DEFAULT_NAMESPACE;
-      // create fully qualified table name
-      if (nId == null) {
-        namespaceName = null;
-      } else {
-        String namespaceId = new String(nId, UTF_8);
-        if (!namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
-          try {
-            namespaceName = namespaceIdToNameMap.get(namespaceId);
-            if (namespaceName == null) {
-              namespaceName = Namespaces.getNamespaceName(instance, namespaceId);
-              namespaceIdToNameMap.put(namespaceId, namespaceName);
-            }
-          } catch (NamespaceNotFoundException e) {
-            log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist", e);
-            continue;
-          }
-        }
-      }
-      if (tableName != null && namespaceName != null) {
-        String tableNameStr = qualified(new String(tableName, UTF_8), namespaceName);
-        if (nameAsKey)
-          tableMap.put(tableNameStr, tableId);
-        else
-          tableMap.put(tableId, tableNameStr);
-      }
-    }
-
-    return tableMap;
-  }
-
-  public static String getTableId(Instance instance, String tableName) throws TableNotFoundException {
+  /**
+   * Lookup table ID in ZK. Throw TableNotFoundException if not found. Also wraps NamespaceNotFoundException in TableNotFoundException if namespace is not
+   * found.
+   */
+  public static Table.ID getTableId(Instance instance, String tableName) throws TableNotFoundException {
     try {
       return _getTableId(instance, tableName);
     } catch (NamespaceNotFoundException e) {
@@ -99,12 +64,15 @@ public class Tables {
     }
   }
 
-  public static String _getTableId(Instance instance, String tableName) throws NamespaceNotFoundException, TableNotFoundException {
-    String tableId = getNameToIdMap(instance).get(tableName);
+  /**
+   * Lookup table ID in ZK. If not found, clears cache and tries again.
+   */
+  public static Table.ID _getTableId(Instance instance, String tableName) throws NamespaceNotFoundException, TableNotFoundException {
+    Table.ID tableId = lookupTableId(instance, tableName);
     if (tableId == null) {
       // maybe the table exist, but the cache was not updated yet... so try to clear the cache and check again
       clearCache(instance);
-      tableId = getNameToIdMap(instance).get(tableName);
+      tableId = lookupTableId(instance, tableName);
       if (tableId == null) {
         String namespace = qualify(tableName).getFirst();
         if (Namespaces.getNameToIdMap(instance).containsKey(namespace))
@@ -116,25 +84,12 @@ public class Tables {
     return tableId;
   }
 
-  public static String getTableName(Instance instance, String tableId) throws TableNotFoundException {
-    String tableName = getIdToNameMap(instance).get(tableId);
-    if (tableName == null)
-      throw new TableNotFoundException(tableId, null, null);
-    return tableName;
-  }
-
-  public static SortedMap<String,String> getNameToIdMap(Instance instance) {
-    return getMap(instance, true);
-  }
-
-  public static SortedMap<String,String> getIdToNameMap(Instance instance) {
-    return getMap(instance, false);
-  }
-
-  public static boolean exists(Instance instance, String tableId) {
+  public static boolean exists(Instance instance, Table.ID tableId) {
+    if (tableId == null)
+      return false;
     ZooCache zc = getZooCache(instance);
     List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
-    return tableIds.contains(tableId);
+    return tableIds.contains(tableId.canonicalID());
   }
 
   public static void clearCache(Instance instance) {
@@ -165,32 +120,27 @@ public class Tables {
 
   }
 
-  public static String getPrintableTableNameFromId(Map<String,String> tidToNameMap, String tableId) {
-    String tableName = tidToNameMap.get(tableId);
-    return tableName == null ? "(ID:" + tableId + ")" : tableName;
-  }
-
-  public static String getPrintableTableInfoFromId(Instance instance, String tableId) {
+  public static String getPrintableTableInfoFromId(Instance instance, Table.ID tableId) {
     String tableName = null;
     try {
       tableName = getTableName(instance, tableId);
     } catch (TableNotFoundException e) {
       // handled in the string formatting
     }
-    return tableName == null ? String.format("?(ID:%s)", tableId) : String.format("%s(ID:%s)", tableName, tableId);
+    return tableName == null ? String.format("?(ID:%s)", tableId.canonicalID()) : String.format("%s(ID:%s)", tableName, tableId.canonicalID());
   }
 
   public static String getPrintableTableInfoFromName(Instance instance, String tableName) {
-    String tableId = null;
+    Table.ID tableId = null;
     try {
       tableId = getTableId(instance, tableName);
     } catch (TableNotFoundException e) {
       // handled in the string formatting
     }
-    return tableId == null ? String.format("%s(?)", tableName) : String.format("%s(ID:%s)", tableName, tableId);
+    return tableId == null ? String.format("%s(?)", tableName) : String.format("%s(ID:%s)", tableName, tableId.canonicalID());
   }
 
-  public static TableState getTableState(Instance instance, String tableId) {
+  public static TableState getTableState(Instance instance, Table.ID tableId) {
     return getTableState(instance, tableId, false);
   }
 
@@ -206,9 +156,9 @@ public class Tables {
    *          if true clear the table state in zookeeper before checking status
    * @return the table state.
    */
-  public static TableState getTableState(Instance instance, String tableId, boolean clearCachedState) {
+  public static TableState getTableState(Instance instance, Table.ID tableId, boolean clearCachedState) {
 
-    String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
+    String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId.canonicalID() + Constants.ZTABLE_STATE;
 
     if (clearCachedState) {
       Tables.clearCacheByPath(instance, statePath);
@@ -266,7 +216,7 @@ public class Tables {
    * @throws IllegalArgumentException
    *           if the table doesn't exist in ZooKeeper
    */
-  public static String getNamespaceId(Instance instance, String tableId) throws TableNotFoundException {
+  public static Namespace.ID getNamespaceId(Instance instance, Table.ID tableId) throws TableNotFoundException {
     checkArgument(instance != null, "instance is null");
     checkArgument(tableId != null, "tableId is null");
 
@@ -275,10 +225,86 @@ public class Tables {
 
     // We might get null out of ZooCache if this tableID doesn't exist
     if (null == n) {
-      throw new TableNotFoundException(tableId, null, null);
+      throw new TableNotFoundException(tableId.canonicalID(), null, null);
     }
 
-    return new String(n, UTF_8);
+    return new Namespace.ID(new String(n, UTF_8));
+  }
+
+  /**
+   * Get all table Ids and table names from ZK. The biConsumer accepts the first arg (t) as the table ID and second arg (u) as the table name.
+   */
+  private static void getAllTables(Instance instance, BiConsumer<String,String> biConsumer) {
+    ZooCache zc = getZooCache(instance);
+    List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
+    Map<Namespace.ID,String> namespaceIdToNameMap = new HashMap<>();
+
+    for (String tableId : tableIds) {
+      byte[] tableName = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
+      byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
+      String namespaceName = Namespaces.DEFAULT_NAMESPACE;
+      // create fully qualified table name
+      if (nId == null) {
+        namespaceName = null;
+      } else {
+        Namespace.ID namespaceId = new Namespace.ID(new String(nId, UTF_8));
+        if (!namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
+          try {
+            namespaceName = namespaceIdToNameMap.get(namespaceId);
+            if (namespaceName == null) {
+              namespaceName = Namespaces.getNamespaceName(instance, namespaceId);
+              namespaceIdToNameMap.put(namespaceId, namespaceName);
+            }
+          } catch (NamespaceNotFoundException e) {
+            log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist", e);
+            continue;
+          }
+        }
+      }
+      if (tableName != null && namespaceName != null) {
+        String tableNameStr = qualified(new String(tableName, UTF_8), namespaceName);
+        biConsumer.accept(tableId, tableNameStr);
+      }
+    }
+  }
+
+  public static SortedMap<Table.ID,String> getIdToNameMap(Instance instance) {
+    SortedMap<Table.ID,String> map = new TreeMap<>();
+    getAllTables(instance, (id, name) -> map.put(new Table.ID(id), name));
+    return map;
+  }
+
+  public static SortedMap<String,Table.ID> getNameToIdMap(Instance instance) {
+    SortedMap<String,Table.ID> map = new TreeMap<>();
+    getAllTables(instance, (id, name) -> map.put(name, new Table.ID(id)));
+    return map;
+  }
+
+  /**
+   * Lookup the table name in ZK. Fail quietly, returning null if not found.
+   */
+  public static Table.ID lookupTableId(Instance instance, String tableName) {
+    ArrayList<Table.ID> singleId = new ArrayList<>(1);
+    getAllTables(instance, (id, name) -> {
+      if (name.equals(tableName))
+        singleId.add(new Table.ID(id));
+    });
+    if (singleId.isEmpty())
+      return null;
+    else
+      return singleId.get(0);
+  }
+
+  public static String getTableName(Instance instance, Table.ID tableId) throws TableNotFoundException {
+    ArrayList<String> singleName = new ArrayList<>(1);
+    getAllTables(instance, (id, name) -> {
+      if (id.equals(tableId.canonicalID()))
+        singleName.add(name);
+    });
+    if (singleName.isEmpty())
+      throw new TableNotFoundException(tableId.canonicalID(), null, null);
+
+    return singleName.get(0);
   }
 
 }

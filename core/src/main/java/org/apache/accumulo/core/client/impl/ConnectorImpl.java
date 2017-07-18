@@ -79,10 +79,10 @@ public class ConnectorImpl extends Connector {
     this.namespaceops = new NamespaceOperationsImpl(context, tableops);
   }
 
-  private String getTableId(String tableName) throws TableNotFoundException {
-    String tableId = Tables.getTableId(context.getInstance(), tableName);
+  private Table.ID getTableId(String tableName) throws TableNotFoundException {
+    Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
     if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
-      throw new TableOfflineException(context.getInstance(), tableId);
+      throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
     return tableId;
   }
 

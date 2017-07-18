@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.hadoop.io.Text;
 
@@ -84,6 +85,10 @@ public class ByteBufferUtil {
     } else {
       return new String(toBytes(bytes), UTF_8);
     }
+  }
+
+  public static Table.ID toTableId(ByteBuffer bytes) {
+    return new Table.ID(toString(bytes));
   }
 
   public static ByteBuffer toByteBuffers(ByteSequence bs) {

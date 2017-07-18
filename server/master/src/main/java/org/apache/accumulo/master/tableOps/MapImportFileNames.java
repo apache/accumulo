@@ -95,8 +95,8 @@ class MapImportFileNames extends MasterRepo {
       return new PopulateMetadataTable(tableInfo);
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
-      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Error writing mapping file " + path + " " + ioe.getMessage());
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonicalID(), tableInfo.tableName, TableOperation.IMPORT,
+          TableOperationExceptionType.OTHER, "Error writing mapping file " + path + " " + ioe.getMessage());
     } finally {
       if (mappingsWriter != null)
         try {

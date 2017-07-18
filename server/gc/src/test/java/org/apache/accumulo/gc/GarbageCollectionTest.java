@@ -30,6 +30,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -49,10 +50,10 @@ public class GarbageCollectionTest {
     TreeSet<String> candidates = new TreeSet<>();
     ArrayList<String> blips = new ArrayList<>();
     Map<Key,Value> references = new TreeMap<>();
-    HashSet<String> tableIds = new HashSet<>();
+    HashSet<Table.ID> tableIds = new HashSet<>();
 
     ArrayList<String> deletes = new ArrayList<>();
-    ArrayList<String> tablesDirsToDelete = new ArrayList<>();
+    ArrayList<Table.ID> tablesDirsToDelete = new ArrayList<>();
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
     @Override
@@ -76,7 +77,7 @@ public class GarbageCollectionTest {
     }
 
     @Override
-    public Set<String> getTableIDs() {
+    public Set<Table.ID> getTableIDs() {
       return tableIds;
     }
 
@@ -87,12 +88,12 @@ public class GarbageCollectionTest {
     }
 
     @Override
-    public void deleteTableDirIfEmpty(String tableID) {
+    public void deleteTableDirIfEmpty(Table.ID tableID) {
       tablesDirsToDelete.add(tableID);
     }
 
     public Key newFileReferenceKey(String tableId, String endRow, String file) {
-      String row = new KeyExtent(tableId, endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
+      String row = new KeyExtent(new Table.ID(tableId), endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
       String cf = MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString();
       String cq = file;
       Key key = new Key(row, cf, cq);
@@ -110,7 +111,7 @@ public class GarbageCollectionTest {
     }
 
     Key newDirReferenceKey(String tableId, String endRow) {
-      String row = new KeyExtent(tableId, endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
+      String row = new KeyExtent(new Table.ID(tableId), endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
       String cf = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily().toString();
       String cq = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier().toString();
       Key key = new Key(row, cf, cq);
@@ -533,7 +534,7 @@ public class GarbageCollectionTest {
 
     TestGCE gce = new TestGCE();
 
-    gce.tableIds.add("4");
+    gce.tableIds.add(new Table.ID("4"));
 
     gce.candidates.add("/4/t-0");
     gce.candidates.add("/4/t-0/F002.rf");
@@ -545,9 +546,9 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
 
-    HashSet<String> tids = new HashSet<>();
-    tids.add("5");
-    tids.add("6");
+    HashSet<Table.ID> tids = new HashSet<>();
+    tids.add(new Table.ID("5"));
+    tids.add(new Table.ID("6"));
 
     Assert.assertEquals(tids.size(), gce.tablesDirsToDelete.size());
     Assert.assertTrue(tids.containsAll(gce.tablesDirsToDelete));

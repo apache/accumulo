@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -62,7 +63,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     }
 
     @Override
-    public void addWorkRecord(Text file, Value v, Map<String,String> targets, String sourceTableId) {
+    public void addWorkRecord(Text file, Value v, Map<String,String> targets, Table.ID sourceTableId) {
       super.addWorkRecord(file, v, targets, sourceTableId);
     }
 
@@ -85,13 +86,13 @@ public class WorkMakerIT extends ConfigurableMacBase {
   public void singleUnitSingleTarget() throws Exception {
     String table = testName.getMethodName();
     conn.tableOperations().create(table);
-    String tableId = conn.tableOperations().tableIdMap().get(table);
+    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table));
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     // Create a status record for a file
     long timeCreated = System.currentTimeMillis();
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileCreatedValue(timeCreated));
+    m.put(StatusSection.NAME, new Text(tableId.getUtf8()), StatusUtil.fileCreatedValue(timeCreated));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();
@@ -127,12 +128,12 @@ public class WorkMakerIT extends ConfigurableMacBase {
     String table = testName.getMethodName();
     conn.tableOperations().create(table);
 
-    String tableId = conn.tableOperations().tableIdMap().get(table);
+    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table));
 
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     Mutation m = new Mutation(new Path(file).toString());
-    m.put(StatusSection.NAME, new Text(tableId), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
+    m.put(StatusSection.NAME, new Text(tableId.getUtf8()), StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     bw.addMutation(m);
     bw.flush();

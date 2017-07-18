@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -218,7 +219,7 @@ public class MergeIT extends AccumuloClusterHarness {
     protected void resetScanner() {
       try {
         Scanner ds = conn.createScanner(metadataTableName, Authorizations.EMPTY);
-        Text tablet = new KeyExtent("0", new Text("m"), null).getMetadataEntry();
+        Text tablet = new KeyExtent(new Table.ID("0"), new Text("m"), null).getMetadataEntry();
         ds.setRange(new Range(tablet, true, tablet, true));
 
         Mutation m = new Mutation(tablet);
@@ -249,11 +250,11 @@ public class MergeIT extends AccumuloClusterHarness {
     String metadataTableName = getUniqueNames(1)[0];
     getConnector().tableOperations().create(metadataTableName);
 
-    KeyExtent ke1 = new KeyExtent("0", new Text("m"), null);
+    KeyExtent ke1 = new KeyExtent(new Table.ID("0"), new Text("m"), null);
     Mutation mut1 = ke1.getPrevRowUpdateMutation();
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut1, new Value("/d1".getBytes()));
 
-    KeyExtent ke2 = new KeyExtent("0", null, null);
+    KeyExtent ke2 = new KeyExtent(new Table.ID("0"), null, null);
     Mutation mut2 = ke2.getPrevRowUpdateMutation();
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut2, new Value("/d2".getBytes()));
 

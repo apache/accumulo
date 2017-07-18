@@ -19,6 +19,7 @@ package org.apache.accumulo.server.security.handler;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -85,26 +86,26 @@ public class InsecurePermHandler implements PermissionHandler {
   public void initTable(String table) throws AccumuloSecurityException {}
 
   @Override
-  public boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+  public boolean hasNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
     return true;
   }
 
   @Override
-  public boolean hasCachedNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+  public boolean hasCachedNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {
     return true;
   }
 
   @Override
-  public void grantNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+  public void grantNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {}
 
   @Override
-  public void revokeNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+  public void revokeNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException {}
 
   @Override
-  public void cleanNamespacePermissions(String namespace) throws AccumuloSecurityException, NamespaceNotFoundException {}
+  public void cleanNamespacePermissions(Namespace.ID namespace) throws AccumuloSecurityException, NamespaceNotFoundException {}
 
 }

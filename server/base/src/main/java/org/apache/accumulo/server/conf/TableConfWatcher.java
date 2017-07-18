@@ -18,6 +18,7 @@ package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -52,24 +53,25 @@ class TableConfWatcher implements Watcher {
     if (log.isTraceEnabled())
       log.trace("WatchedEvent : " + toString(event));
 
-    String tableId = null;
+    String tableIdString = null;
     String key = null;
 
     if (path != null) {
       if (path.startsWith(tablesPrefix)) {
-        tableId = path.substring(tablesPrefix.length());
-        if (tableId.contains("/")) {
-          tableId = tableId.substring(0, tableId.indexOf('/'));
-          if (path.startsWith(tablesPrefix + tableId + Constants.ZTABLE_CONF + "/"))
-            key = path.substring((tablesPrefix + tableId + Constants.ZTABLE_CONF + "/").length());
+        tableIdString = path.substring(tablesPrefix.length());
+        if (tableIdString.contains("/")) {
+          tableIdString = tableIdString.substring(0, tableIdString.indexOf('/'));
+          if (path.startsWith(tablesPrefix + tableIdString + Constants.ZTABLE_CONF + "/"))
+            key = path.substring((tablesPrefix + tableIdString + Constants.ZTABLE_CONF + "/").length());
         }
       }
 
-      if (tableId == null) {
+      if (tableIdString == null) {
         log.warn("Zookeeper told me about a path I was not watching: " + path + ", event " + toString(event));
         return;
       }
     }
+    Table.ID tableId = new Table.ID(tableIdString);
 
     switch (event.getType()) {
       case NodeDataChanged:

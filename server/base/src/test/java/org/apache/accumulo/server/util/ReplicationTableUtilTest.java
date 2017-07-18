@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -91,7 +92,7 @@ public class ReplicationTableUtilTest {
     String myFile = "file:////home/user/accumulo/wal/server+port/" + uuid;
 
     long createdTime = System.currentTimeMillis();
-    ReplicationTableUtil.updateFiles(context, new KeyExtent("1", null, null), myFile, StatusUtil.fileCreated(createdTime));
+    ReplicationTableUtil.updateFiles(context, new KeyExtent(new Table.ID("1"), null, null), myFile, StatusUtil.fileCreated(createdTime));
 
     verify(writer);
 
@@ -116,7 +117,7 @@ public class ReplicationTableUtilTest {
     String file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
     Path filePath = new Path(file);
     Text row = new Text(filePath.toString());
-    KeyExtent extent = new KeyExtent("1", new Text("b"), new Text("a"));
+    KeyExtent extent = new KeyExtent(new Table.ID("1"), new Text("b"), new Text("a"));
 
     Mutation m = ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat), extent);
 
@@ -125,7 +126,7 @@ public class ReplicationTableUtilTest {
     ColumnUpdate col = m.getUpdates().get(0);
 
     Assert.assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(col.getColumnFamily()));
-    Assert.assertEquals(extent.getTableId(), new Text(col.getColumnQualifier()).toString());
+    Assert.assertEquals(extent.getTableId().canonicalID(), new Text(col.getColumnQualifier()).toString());
     Assert.assertEquals(0, col.getColumnVisibility().length);
     Assert.assertArrayEquals(stat.toByteArray(), col.getValue());
   }

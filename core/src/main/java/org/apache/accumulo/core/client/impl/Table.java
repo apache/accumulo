@@ -14,18 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.conf;
+package org.apache.accumulo.core.client.impl;
 
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.client.Instance;
 
-public abstract class ServerConfiguration {
+public class Table {
 
-  abstract public TableConfiguration getTableConfiguration(Table.ID tableId);
+  /**
+   * Object representing an internal table ID. This class was created to help with type safety. For help obtaining the value of a table ID from Zookeeper, see
+   * {@link Tables#getTableId(Instance, String)}
+   */
+  public static class ID extends AbstractId {
+    private static final long serialVersionUID = 7399913185860577809L;
 
-  abstract public NamespaceConfiguration getNamespaceConfiguration(Namespace.ID namespaceId);
+    public static final ID METADATA = new ID("!0");
+    public static final ID REPLICATION = new ID("+rep");
+    public static final ID ROOT = new ID("+r");
 
-  abstract public AccumuloConfiguration getSystemConfiguration();
+    public ID(final String canonical) {
+      super(canonical);
+    }
+  }
 
 }

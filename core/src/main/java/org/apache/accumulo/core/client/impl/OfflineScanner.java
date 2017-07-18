@@ -41,14 +41,14 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private Authorizations authorizations;
   private Text tableId;
 
-  public OfflineScanner(Instance instance, Credentials credentials, String tableId, Authorizations authorizations) {
+  public OfflineScanner(Instance instance, Credentials credentials, Table.ID tableId, Authorizations authorizations) {
     checkArgument(instance != null, "instance is null");
     checkArgument(credentials != null, "credentials is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");
     this.instance = instance;
     this.credentials = credentials;
-    this.tableId = new Text(tableId);
+    this.tableId = new Text(tableId.getUtf8());
     this.range = new Range((Key) null, (Key) null);
 
     this.authorizations = authorizations;

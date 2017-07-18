@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -138,7 +139,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private Multimap<String,String> getLogs(Connector conn) throws Exception {
+  private Multimap<String,Table.ID> getLogs(Connector conn) throws Exception {
     // Map of server to tableId
     Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
     Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
@@ -150,7 +151,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       serverToTableID.put(key, new String(tableId, UTF_8));
     }
     // Map of logs to tableId
-    Multimap<String,String> logs = HashMultimap.create();
+    Multimap<String,Table.ID> logs = HashMultimap.create();
     Instance i = conn.getInstance();
     ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
@@ -158,15 +159,15 @@ public class ReplicationIT extends ConfigurableMacBase {
       for (UUID id : entry.getValue()) {
         Pair<WalState,Path> state = wals.state(entry.getKey(), id);
         for (String tableId : serverToTableID.get(entry.getKey())) {
-          logs.put(state.getSecond().toString(), tableId);
+          logs.put(state.getSecond().toString(), new Table.ID(tableId));
         }
       }
     }
     return logs;
   }
 
-  private Multimap<String,String> getAllLogs(Connector conn) throws Exception {
-    Multimap<String,String> logs = getLogs(conn);
+  private Multimap<String,Table.ID> getAllLogs(Connector conn) throws Exception {
+    Multimap<String,Table.ID> logs = getLogs(conn);
     try {
       Scanner scanner = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY);
       StatusSection.limit(scanner);
@@ -179,7 +180,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
         StatusSection.getFile(entry.getKey(), buff);
         String file = buff.toString();
-        String tableId = StatusSection.getTableId(entry.getKey());
+        Table.ID tableId = StatusSection.getTableId(entry.getKey());
 
         logs.put(file, tableId);
       }
@@ -207,7 +208,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   @Test
   public void replicationTableCreated() throws AccumuloException, AccumuloSecurityException {
     Assert.assertTrue(getConnector().tableOperations().exists(ReplicationTable.NAME));
-    Assert.assertEquals(ReplicationTable.ID, getConnector().tableOperations().tableIdMap().get(ReplicationTable.NAME));
+    Assert.assertEquals(ReplicationTable.ID.canonicalID(), getConnector().tableOperations().tableIdMap().get(ReplicationTable.NAME));
   }
 
   @Test
@@ -492,7 +493,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   public void replicationEntriesPrecludeWalDeletion() throws Exception {
     final Connector conn = getConnector();
     String table1 = "table1", table2 = "table2", table3 = "table3";
-    final Multimap<String,String> logs = HashMultimap.create();
+    final Multimap<String,Table.ID> logs = HashMultimap.create();
     final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
     Thread t = new Thread(new Runnable() {
@@ -552,10 +553,10 @@ public class ReplicationIT extends ConfigurableMacBase {
     // We might have a WAL that was use solely for the replication table
     // We want to remove that from our list as it should not appear in the replication table
     String replicationTableId = conn.tableOperations().tableIdMap().get(ReplicationTable.NAME);
-    Iterator<Entry<String,String>> observedLogs = logs.entries().iterator();
+    Iterator<Entry<String,Table.ID>> observedLogs = logs.entries().iterator();
     while (observedLogs.hasNext()) {
-      Entry<String,String> observedLog = observedLogs.next();
-      if (replicationTableId.equals(observedLog.getValue())) {
+      Entry<String,Table.ID> observedLog = observedLogs.next();
+      if (replicationTableId.equals(observedLog.getValue().canonicalID())) {
         log.info("Removing {} because its tableId is for the replication table", observedLog);
         observedLogs.remove();
       }
@@ -675,7 +676,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     String table = "table";
     conn.tableOperations().create(table);
-    String tableId = conn.tableOperations().tableIdMap().get(table);
+    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table));
 
     Assert.assertNotNull(tableId);
 
@@ -973,7 +974,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     writeSomeData(conn, table1, 2000, 50);
     conn.tableOperations().flush(table1, null, null, true);
 
-    String tableId = conn.tableOperations().tableIdMap().get(table1);
+    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table1));
     Assert.assertNotNull("Table ID was null", tableId);
 
     // Make sure the replication table exists at this point
@@ -1219,7 +1220,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
     }
 
-    String tableId = conn.tableOperations().tableIdMap().get(table1);
+    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table1));
     Assert.assertNotNull("Could not determine table id for " + table1, tableId);
 
     // Write some data to table1

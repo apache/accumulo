@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -86,7 +87,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
       // poke a partial split into the metadata table
       connector.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME, TablePermission.WRITE);
-      String tableId = connector.tableOperations().tableIdMap().get(tableName);
+      Table.ID tableId = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
 
       KeyExtent extent = new KeyExtent(tableId, null, new Text("b"));
       Mutation m = extent.getPrevRowUpdateMutation();

@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -101,10 +102,10 @@ public class StatusMakerIT extends ConfigurableMacBase {
     Text file = new Text();
     for (Entry<Key,Value> entry : s) {
       StatusSection.getFile(entry.getKey(), file);
-      String tableId = StatusSection.getTableId(entry.getKey());
+      Table.ID tableId = StatusSection.getTableId(entry.getKey());
 
       Assert.assertTrue("Found unexpected file: " + file, files.contains(file.toString()));
-      Assert.assertEquals(fileToTableId.get(file.toString()), new Integer(tableId));
+      Assert.assertEquals(fileToTableId.get(file.toString()), new Integer(tableId.canonicalID()));
       timeCreated = fileToTimeCreated.get(file.toString());
       Assert.assertNotNull(timeCreated);
       Assert.assertEquals(StatusUtil.fileCreated(timeCreated), Status.parseFrom(entry.getValue().get()));

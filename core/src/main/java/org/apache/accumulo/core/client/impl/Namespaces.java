@@ -18,12 +18,14 @@ package org.apache.accumulo.core.client.impl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import java.util.function.BiConsumer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -31,8 +33,12 @@ import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Namespaces {
+  private static final Logger log = LoggerFactory.getLogger(Namespaces.class);
+
   public static final String VALID_NAME_REGEX = "^\\w*$";
   public static final Validator<String> VALID_NAME = new Validator<String>() {
     @Override
@@ -72,78 +78,118 @@ public class Namespaces {
     }
   };
 
-  public static final String DEFAULT_NAMESPACE_ID = "+default";
-  public static final String DEFAULT_NAMESPACE = "";
-  public static final String ACCUMULO_NAMESPACE_ID = "+accumulo";
-  public static final String ACCUMULO_NAMESPACE = "accumulo";
+  public static final Namespace.ID DEFAULT_NAMESPACE_ID = Namespace.ID.DEFAULT;
+  public static final String DEFAULT_NAMESPACE = Namespace.DEFAULT;
+  public static final Namespace.ID ACCUMULO_NAMESPACE_ID = Namespace.ID.ACCUMULO;
+  public static final String ACCUMULO_NAMESPACE = Namespace.ACCUMULO;
 
   private static ZooCache getZooCache(Instance instance) {
     return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
 
-  private static SortedMap<String,String> getMap(Instance instance, boolean nameAsKey) {
-    ZooCache zc = getZooCache(instance);
-
-    List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
-
-    TreeMap<String,String> namespaceMap = new TreeMap<>();
-
-    for (String id : namespaceIds) {
-      byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
-      if (path != null) {
-        if (nameAsKey)
-          namespaceMap.put(new String(path, UTF_8), id);
-        else
-          namespaceMap.put(id, new String(path, UTF_8));
-      }
-    }
-    return namespaceMap;
-  }
-
-  public static boolean exists(Instance instance, String namespaceId) {
+  public static boolean exists(Instance instance, Namespace.ID namespaceId) {
     ZooCache zc = getZooCache(instance);
     List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
-    return namespaceIds.contains(namespaceId);
+    return namespaceIds.contains(namespaceId.canonicalID());
   }
 
-  public static String getNamespaceId(Instance instance, String namespace) throws NamespaceNotFoundException {
-    String id = getNameToIdMap(instance).get(namespace);
-    if (id == null)
-      throw new NamespaceNotFoundException(null, namespace, "getNamespaceId() failed to find namespace");
-    return id;
-  }
-
-  public static String getNamespaceName(Instance instance, String namespaceId) throws NamespaceNotFoundException {
-    String namespaceName = getIdToNameMap(instance).get(namespaceId);
-    if (namespaceName == null)
-      throw new NamespaceNotFoundException(namespaceId, null, "getNamespaceName() failed to find namespace");
-    return namespaceName;
-  }
-
-  public static SortedMap<String,String> getNameToIdMap(Instance instance) {
-    return getMap(instance, true);
-  }
-
-  public static SortedMap<String,String> getIdToNameMap(Instance instance) {
-    return getMap(instance, false);
-  }
-
-  public static List<String> getTableIds(Instance instance, String namespaceId) throws NamespaceNotFoundException {
+  public static List<Table.ID> getTableIds(Instance instance, Namespace.ID namespaceId) throws NamespaceNotFoundException {
     String namespace = getNamespaceName(instance, namespaceId);
-    List<String> names = new LinkedList<>();
-    for (Entry<String,String> nameToId : Tables.getNameToIdMap(instance).entrySet())
+    List<Table.ID> tableIds = new LinkedList<>();
+    for (Entry<String,Table.ID> nameToId : Tables.getNameToIdMap(instance).entrySet())
       if (namespace.equals(Tables.qualify(nameToId.getKey()).getFirst()))
-        names.add(nameToId.getValue());
-    return names;
+        tableIds.add(nameToId.getValue());
+    return tableIds;
   }
 
-  public static List<String> getTableNames(Instance instance, String namespaceId) throws NamespaceNotFoundException {
+  public static List<String> getTableNames(Instance instance, Namespace.ID namespaceId) throws NamespaceNotFoundException {
     String namespace = getNamespaceName(instance, namespaceId);
     List<String> names = new LinkedList<>();
     for (String name : Tables.getNameToIdMap(instance).keySet())
       if (namespace.equals(Tables.qualify(name).getFirst()))
         names.add(name);
     return names;
+  }
+
+  /**
+   * Populate map passed in as the BiConsumer. key = ID, value = namespaceName
+   */
+  private static void populateMap(Instance instance, BiConsumer<String,String> biConsumer) {
+    final ZooCache zc = getZooCache(instance);
+    List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
+    for (String id : namespaceIds) {
+      byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + id + Constants.ZNAMESPACE_NAME);
+      if (path != null) {
+        biConsumer.accept(id, new String(path, UTF_8));
+      }
+    }
+  }
+
+  /**
+   * Return sorted map with key = ID, value = namespaceName
+   */
+  public static SortedMap<Namespace.ID,String> getIdToNameMap(Instance instance) {
+    SortedMap<Namespace.ID,String> idMap = new TreeMap<>();
+    populateMap(instance, (id, name) -> idMap.put(new Namespace.ID(id), name));
+    return idMap;
+  }
+
+  /**
+   * Return sorted map with key = namespaceName, value = ID
+   */
+  public static SortedMap<String,Namespace.ID> getNameToIdMap(Instance instance) {
+    SortedMap<String,Namespace.ID> nameMap = new TreeMap<>();
+    populateMap(instance, (id, name) -> nameMap.put(name, new Namespace.ID(id)));
+    return nameMap;
+  }
+
+  /**
+   * Look for namespace ID in ZK. Throw NamespaceNotFoundException if not found.
+   */
+  public static Namespace.ID getNamespaceId(Instance instance, String namespaceName) throws NamespaceNotFoundException {
+    final ArrayList<Namespace.ID> singleId = new ArrayList<>(1);
+    populateMap(instance, (id, name) -> {
+      if (name.equals(namespaceName))
+        singleId.add(new Namespace.ID(id));
+    });
+    if (singleId.isEmpty())
+      throw new NamespaceNotFoundException(null, namespaceName, "getNamespaceId() failed to find namespace");
+    return singleId.get(0);
+  }
+
+  /**
+   * Look for namespace ID in ZK. Fail quietly by logging and returning null.
+   */
+  public static Namespace.ID lookupNamespaceId(Instance instance, String namespaceName) {
+    Namespace.ID id = null;
+    try {
+      id = getNamespaceId(instance, namespaceName);
+    } catch (NamespaceNotFoundException e) {
+      if (log.isDebugEnabled())
+        log.debug("Failed to find namespace ID from name: " + namespaceName, e);
+    }
+    return id;
+  }
+
+  /**
+   * Return true if namespace name exists
+   */
+  public static boolean namespaceNameExists(Instance instance, String namespaceName) {
+    return lookupNamespaceId(instance, namespaceName) != null;
+  }
+
+  /**
+   * Look for namespace name in ZK. Throw NamespaceNotFoundException if not found.
+   */
+  public static String getNamespaceName(Instance instance, Namespace.ID namespaceId) throws NamespaceNotFoundException {
+    String name;
+    ZooCache zc = getZooCache(instance);
+    byte[] path = zc.get(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES + "/" + namespaceId.canonicalID() + Constants.ZNAMESPACE_NAME);
+    if (path != null)
+      name = new String(path, UTF_8);
+    else
+      throw new NamespaceNotFoundException(namespaceId.canonicalID(), null, "getNamespaceName() failed to find namespace");
+    return name;
   }
 
 }

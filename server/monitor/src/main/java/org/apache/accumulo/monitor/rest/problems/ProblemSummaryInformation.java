@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.monitor.rest.problems;
 
+import org.apache.accumulo.core.client.impl.Table;
+
 /**
  *
  * Generates a problem summary object
@@ -27,7 +29,7 @@ public class ProblemSummaryInformation {
 
   // Variable names become JSON keys
   public String tableName;
-  public String tableID;
+  public Table.ID tableID;
 
   public Integer fileRead;
   public Integer fileWrite;
@@ -49,7 +51,7 @@ public class ProblemSummaryInformation {
    * @param tableLoad
    *          Number of table loads
    */
-  public ProblemSummaryInformation(String tableName, String tableID, Integer fileRead, Integer fileWrite, Integer tableLoad) {
+  public ProblemSummaryInformation(String tableName, Table.ID tableID, Integer fileRead, Integer fileWrite, Integer tableLoad) {
     this.tableName = tableName;
     this.tableID = tableID;
     this.fileRead = fileRead;

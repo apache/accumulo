@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -65,13 +66,13 @@ class LoadFiles extends MasterRepo {
   private static ExecutorService threadPool = null;
   private static final Logger log = LoggerFactory.getLogger(LoadFiles.class);
 
-  private String tableId;
+  private Table.ID tableId;
   private String source;
   private String bulk;
   private String errorDir;
   private boolean setTime;
 
-  public LoadFiles(String tableId, String source, String bulk, String errorDir, boolean setTime) {
+  public LoadFiles(Table.ID tableId, String source, String bulk, String errorDir, boolean setTime) {
     this.tableId = tableId;
     this.source = source;
     this.bulk = bulk;
@@ -113,8 +114,8 @@ class LoadFiles extends MasterRepo {
       // Maybe this is a re-try... clear the flag and try again
       fs.delete(writable);
       if (!fs.createNewFile(writable))
-        throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
-            "Unable to write to " + this.errorDir);
+        throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null, TableOperation.BULK_IMPORT,
+            TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, "Unable to write to " + this.errorDir);
     }
     fs.delete(writable);
 
@@ -171,7 +172,7 @@ class LoadFiles extends MasterRepo {
                 client = ThriftUtil.getTServerClient(server, master, timeInMillis);
                 List<String> attempt = Collections.singletonList(file);
                 log.debug("Asking " + server + " to bulk import " + file);
-                List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid, tableId, attempt, errorDir, setTime);
+                List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), master.rpcCreds(), tid, tableId.canonicalID(), attempt, errorDir, setTime);
                 if (fail.isEmpty()) {
                   loaded.add(file);
                 } else {

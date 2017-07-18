@@ -18,6 +18,7 @@ package org.apache.accumulo.master.tableOps;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 
@@ -42,7 +43,7 @@ public class CreateNamespace extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
     Utils.idLock.lock();
     try {
-      namespaceInfo.namespaceId = Utils.getNextTableId(namespaceInfo.namespaceName, master.getInstance());
+      namespaceInfo.namespaceId = Utils.getNextTableId(namespaceInfo.namespaceName, master.getInstance(), Namespace.ID.class);
       return new SetupNamespacePermissions(namespaceInfo);
     } finally {
       Utils.idLock.unlock();

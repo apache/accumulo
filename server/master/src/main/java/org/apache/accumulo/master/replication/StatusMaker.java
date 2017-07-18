@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -106,7 +107,7 @@ public class StatusMaker {
         }
         // Extract the useful bits from the status key
         MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
-        String tableId = MetadataSchema.ReplicationSection.getTableId(entry.getKey());
+        Table.ID tableId = MetadataSchema.ReplicationSection.getTableId(entry.getKey());
 
         Status status;
         try {
@@ -158,10 +159,10 @@ public class StatusMaker {
   /**
    * Create a status record in the replication table
    */
-  protected boolean addStatusRecord(Text file, String tableId, Value v) {
+  protected boolean addStatusRecord(Text file, Table.ID tableId, Value v) {
     try {
       Mutation m = new Mutation(file);
-      m.put(StatusSection.NAME, new Text(tableId), v);
+      m.put(StatusSection.NAME, new Text(tableId.getUtf8()), v);
 
       try {
         replicationWriter.addMutation(m);
@@ -194,7 +195,7 @@ public class StatusMaker {
    * @param value
    *          Serialized version of the Status msg
    */
-  protected boolean addOrderRecord(Text file, String tableId, Status stat, Value value) {
+  protected boolean addOrderRecord(Text file, Table.ID tableId, Status stat, Value value) {
     try {
       if (!stat.hasCreatedTime()) {
         log.error("Status record ({}) for {} in table {} was written to metadata table which lacked createdTime", ProtobufUtil.toString(stat), file, tableId);

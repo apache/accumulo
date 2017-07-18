@@ -37,7 +37,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
@@ -103,7 +105,7 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.CREATE;
         String namespace = validateNamespaceArgument(arguments.get(0), tableOp, null);
 
-        if (!master.security.canCreateNamespace(c, namespace))
+        if (!master.security.canCreateNamespace(c))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid, new TraceRepo<>(new CreateNamespace(c.getPrincipal(), namespace, options)), autoCleanup);
@@ -114,7 +116,7 @@ class FateServiceHandler implements FateService.Iface {
         String oldName = validateNamespaceArgument(arguments.get(0), tableOp, Namespaces.NOT_DEFAULT.and(Namespaces.NOT_ACCUMULO));
         String newName = validateNamespaceArgument(arguments.get(1), tableOp, null);
 
-        String namespaceId = ClientServiceHandler.checkNamespaceId(master.getInstance(), oldName, tableOp);
+        Namespace.ID namespaceId = ClientServiceHandler.checkNamespaceId(master.getInstance(), oldName, tableOp);
         if (!master.security.canRenameNamespace(c, namespaceId, oldName, newName))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -125,7 +127,7 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.DELETE;
         String namespace = validateNamespaceArgument(arguments.get(0), tableOp, Namespaces.NOT_DEFAULT.and(Namespaces.NOT_ACCUMULO));
 
-        String namespaceId = ClientServiceHandler.checkNamespaceId(master.getInstance(), namespace, tableOp);
+        Namespace.ID namespaceId = ClientServiceHandler.checkNamespaceId(master.getInstance(), namespace, tableOp);
         if (!master.security.canDeleteNamespace(c, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -137,7 +139,7 @@ class FateServiceHandler implements FateService.Iface {
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
 
-        String namespaceId;
+        Namespace.ID namespaceId;
 
         try {
           namespaceId = Namespaces.getNamespaceId(master.getInstance(), Tables.qualify(tableName).getFirst());
@@ -171,8 +173,8 @@ class FateServiceHandler implements FateService.Iface {
 
         });
 
-        String tableId = ClientServiceHandler.checkTableId(master.getInstance(), oldTableName, tableOp);
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        Table.ID tableId = ClientServiceHandler.checkTableId(master.getInstance(), oldTableName, tableOp);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canRename;
         try {
@@ -195,9 +197,9 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CLONE: {
         TableOperation tableOp = TableOperation.CLONE;
-        String srcTableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
+        Table.ID srcTableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
         String tableName = validateTableNameArgument(arguments.get(1), tableOp, NOT_SYSTEM);
-        String namespaceId;
+        Namespace.ID namespaceId;
         try {
           namespaceId = Namespaces.getNamespaceId(master.getInstance(), Tables.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
@@ -242,8 +244,8 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.DELETE;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
 
-        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        final Table.ID tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canDeleteTable;
         try {
@@ -260,8 +262,8 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_ONLINE: {
         TableOperation tableOp = TableOperation.ONLINE;
-        final String tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        final Table.ID tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canOnlineOfflineTable;
         try {
@@ -279,8 +281,8 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_OFFLINE: {
         TableOperation tableOp = TableOperation.OFFLINE;
-        final String tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        final Table.ID tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canOnlineOfflineTable;
         try {
@@ -302,8 +304,8 @@ class FateServiceHandler implements FateService.Iface {
         Text startRow = ByteBufferUtil.toText(arguments.get(1));
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 
-        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        final Table.ID tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canMerge;
         try {
@@ -326,8 +328,8 @@ class FateServiceHandler implements FateService.Iface {
         Text startRow = ByteBufferUtil.toText(arguments.get(1));
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
 
-        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        final Table.ID tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canDeleteRange;
         try {
@@ -350,8 +352,8 @@ class FateServiceHandler implements FateService.Iface {
         String failDir = ByteBufferUtil.toString(arguments.get(2));
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
 
-        final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        final Table.ID tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canBulkImport;
         try {
@@ -370,12 +372,12 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT;
-        String tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
+        Table.ID tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
         byte[] startRow = ByteBufferUtil.toBytes(arguments.get(1));
         byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
         List<IteratorSetting> iterators = IteratorUtil.decodeIteratorSettings(ByteBufferUtil.toBytes(arguments.get(3)));
         CompactionStrategyConfig compactionStrategy = CompactionStrategyConfigUtil.decode(ByteBufferUtil.toBytes(arguments.get(4)));
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canCompact;
         try {
@@ -394,8 +396,8 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CANCEL_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT_CANCEL;
-        String tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        Table.ID tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canCancelCompact;
         try {
@@ -415,7 +417,7 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.IMPORT;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
-        String namespaceId;
+        Namespace.ID namespaceId;
         try {
           namespaceId = Namespaces.getNamespaceId(master.getInstance(), Tables.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
@@ -441,8 +443,8 @@ class FateServiceHandler implements FateService.Iface {
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
 
-        String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
-        String namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        Table.ID tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, tableOp);
+        Namespace.ID namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
         final boolean canExport;
         try {
@@ -463,12 +465,12 @@ class FateServiceHandler implements FateService.Iface {
     }
   }
 
-  private String getNamespaceIdFromTableId(TableOperation tableOp, String tableId) throws ThriftTableOperationException {
-    String namespaceId;
+  private Namespace.ID getNamespaceIdFromTableId(TableOperation tableOp, Table.ID tableId) throws ThriftTableOperationException {
+    Namespace.ID namespaceId;
     try {
       namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
     } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(tableId, null, tableOp, TableOperationExceptionType.NOTFOUND, e.getMessage());
+      throw new ThriftTableOperationException(tableId.canonicalID(), null, tableOp, TableOperationExceptionType.NOTFOUND, e.getMessage());
     }
     return namespaceId;
   }
@@ -491,11 +493,11 @@ class FateServiceHandler implements FateService.Iface {
    * @throws ThriftTableOperationException
    *           Thrown if {@code e} was thrown because {@link SecurityErrorCode#TABLE_DOESNT_EXIST}
    */
-  private void throwIfTableMissingSecurityException(ThriftSecurityException e, String tableId, String tableName, TableOperation op)
+  private void throwIfTableMissingSecurityException(ThriftSecurityException e, Table.ID tableId, String tableName, TableOperation op)
       throws ThriftTableOperationException {
     // ACCUMULO-3135 Table can be deleted after we get table ID but before we can check permission
     if (e.isSetCode() && SecurityErrorCode.TABLE_DOESNT_EXIST == e.getCode()) {
-      throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.NOTFOUND, "Table no longer exists");
+      throw new ThriftTableOperationException(tableId.canonicalID(), tableName, op, TableOperationExceptionType.NOTFOUND, "Table no longer exists");
     }
   }
 
@@ -536,15 +538,15 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   // Verify table name arguments are valid, and match any additional restrictions
-  private String validateTableIdArgument(ByteBuffer tableIdArg, TableOperation op, Validator<String> userValidator) throws ThriftTableOperationException {
-    String tableId = tableIdArg == null ? null : ByteBufferUtil.toString(tableIdArg);
+  private Table.ID validateTableIdArgument(ByteBuffer tableIdArg, TableOperation op, Validator<Table.ID> userValidator) throws ThriftTableOperationException {
+    Table.ID tableId = tableIdArg == null ? null : ByteBufferUtil.toTableId(tableIdArg);
     try {
       return VALID_ID.and(userValidator).validate(tableId);
     } catch (IllegalArgumentException e) {
       String why = e.getMessage();
       // Information provided by a client should generate a user-level exception, not a system-level warning.
       log.debug(why);
-      throw new ThriftTableOperationException(tableId, null, op, TableOperationExceptionType.INVALID_NAME, why);
+      throw new ThriftTableOperationException(tableId.canonicalID(), null, op, TableOperationExceptionType.INVALID_NAME, why);
     }
   }
 

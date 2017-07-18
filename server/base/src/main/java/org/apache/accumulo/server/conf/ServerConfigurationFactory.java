@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
@@ -32,9 +34,9 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
  */
 public class ServerConfigurationFactory extends ServerConfiguration {
 
-  private static final Map<String,Map<String,TableConfiguration>> tableConfigs = new HashMap<>(1);
-  private static final Map<String,Map<String,NamespaceConfiguration>> namespaceConfigs = new HashMap<>(1);
-  private static final Map<String,Map<String,NamespaceConfiguration>> tableParentConfigs = new HashMap<>(1);
+  private static final Map<String,Map<Table.ID,TableConfiguration>> tableConfigs = new HashMap<>(1);
+  private static final Map<String,Map<Namespace.ID,NamespaceConfiguration>> namespaceConfigs = new HashMap<>(1);
+  private static final Map<String,Map<Table.ID,NamespaceConfiguration>> tableParentConfigs = new HashMap<>(1);
 
   private static void addInstanceToCaches(String iid) {
     synchronized (tableConfigs) {
@@ -48,13 +50,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
   }
 
-  static boolean removeCachedTableConfiguration(String instanceId, String tableId) {
+  static boolean removeCachedTableConfiguration(String instanceId, Table.ID tableId) {
     synchronized (tableConfigs) {
       return tableConfigs.get(instanceId).remove(tableId) != null;
     }
   }
 
-  static boolean removeCachedNamespaceConfiguration(String instanceId, String namespaceId) {
+  static boolean removeCachedNamespaceConfiguration(String instanceId, Namespace.ID namespaceId) {
     synchronized (namespaceConfigs) {
       return namespaceConfigs.get(instanceId).remove(namespaceId) != null;
     }
@@ -74,7 +76,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   static void expireAllTableObservers() {
     synchronized (tableConfigs) {
-      for (Map<String,TableConfiguration> instanceMap : tableConfigs.values()) {
+      for (Map<Table.ID,TableConfiguration> instanceMap : tableConfigs.values()) {
         for (TableConfiguration c : instanceMap.values()) {
           c.expireAllObservers();
         }
@@ -123,7 +125,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   }
 
   @Override
-  public TableConfiguration getTableConfiguration(String tableId) {
+  public TableConfiguration getTableConfiguration(Table.ID tableId) {
     TableConfiguration conf;
     synchronized (tableConfigs) {
       conf = tableConfigs.get(instanceID).get(tableId);
@@ -140,7 +142,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       conf = new TableConfiguration(instance, tableId, getNamespaceConfigurationForTable(tableId));
       ConfigSanityCheck.validate(conf);
       synchronized (tableConfigs) {
-        Map<String,TableConfiguration> configs = tableConfigs.get(instanceID);
+        Map<Table.ID,TableConfiguration> configs = tableConfigs.get(instanceID);
         TableConfiguration existingConf = configs.get(tableId);
         if (null == existingConf) {
           // Configuration doesn't exist yet
@@ -154,7 +156,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     return conf;
   }
 
-  public NamespaceConfiguration getNamespaceConfigurationForTable(String tableId) {
+  public NamespaceConfiguration getNamespaceConfigurationForTable(Table.ID tableId) {
     NamespaceConfiguration conf;
     synchronized (tableParentConfigs) {
       conf = tableParentConfigs.get(instanceID).get(tableId);
@@ -173,7 +175,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   }
 
   @Override
-  public NamespaceConfiguration getNamespaceConfiguration(String namespaceId) {
+  public NamespaceConfiguration getNamespaceConfiguration(Namespace.ID namespaceId) {
     NamespaceConfiguration conf;
     // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.

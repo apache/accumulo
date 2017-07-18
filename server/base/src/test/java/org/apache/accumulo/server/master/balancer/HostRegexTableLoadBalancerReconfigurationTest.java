@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -90,11 +91,11 @@ public class HostRegexTableLoadBalancerReconfigurationTest extends BaseHostRegex
   }
 
   @Override
-  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
+  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
     List<TabletStats> tablets = new ArrayList<>();
     // Report assignment information
     for (Entry<KeyExtent,TServerInstance> e : this.assignments.entrySet()) {
-      if (e.getValue().equals(tserver) && e.getKey().getTableId().toString().equals(tableId)) {
+      if (e.getValue().equals(tserver) && e.getKey().getTableId().equals(tableId)) {
         TabletStats ts = new TabletStats();
         ts.setExtent(e.getKey().toThrift());
         tablets.add(ts);

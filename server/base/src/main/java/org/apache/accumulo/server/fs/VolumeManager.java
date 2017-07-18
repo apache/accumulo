@@ -19,6 +19,7 @@ package org.apache.accumulo.server.fs;
 import java.io.IOException;
 import java.util.Collection;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
@@ -151,7 +152,7 @@ public interface VolumeManager {
   // Convert a file or directory metadata reference into a path
   Path getFullPath(Key key);
 
-  Path getFullPath(String tableId, String path);
+  Path getFullPath(Table.ID tableId, String path);
 
   // Given a filename, figure out the qualified path given multiple namespaces
   Path getFullPath(FileType fileType, String fileName) throws IOException;

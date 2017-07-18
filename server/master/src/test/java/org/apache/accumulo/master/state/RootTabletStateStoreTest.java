@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.server.master.state.Assignment;
@@ -190,7 +191,7 @@ public class RootTabletStateStoreTest {
     }
     assertEquals(count, 1);
 
-    KeyExtent notRoot = new KeyExtent("0", null, null);
+    KeyExtent notRoot = new KeyExtent(new Table.ID("0"), null, null);
     try {
       tstore.setLocations(Collections.singletonList(new Assignment(notRoot, server)));
       Assert.fail("should not get here");

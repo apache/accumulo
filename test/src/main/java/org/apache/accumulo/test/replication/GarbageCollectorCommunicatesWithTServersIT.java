@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -123,7 +124,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    */
   private Set<String> getFilesForTable(String tableName) throws Exception {
     final Connector conn = getConnector();
-    final String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
 
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 

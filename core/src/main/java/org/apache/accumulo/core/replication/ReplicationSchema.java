@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 import java.nio.charset.CharacterCodingException;
 
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -96,9 +97,9 @@ public class ReplicationSchema {
      *          Key to extract from
      * @return The table ID
      */
-    public static String getTableId(Key k) {
+    public static Table.ID getTableId(Key k) {
       requireNonNull(k);
-      return k.getColumnQualifier().toString();
+      return new Table.ID(k.getColumnQualifier().toString());
     }
 
     /**
@@ -124,8 +125,8 @@ public class ReplicationSchema {
       scanner.fetchColumnFamily(NAME);
     }
 
-    public static Mutation add(Mutation m, String tableId, Value v) {
-      m.put(NAME, new Text(tableId), v);
+    public static Mutation add(Mutation m, Table.ID tableId, Value v) {
+      m.put(NAME, new Text(tableId.getUtf8()), v);
       return m;
     }
   }
@@ -217,8 +218,8 @@ public class ReplicationSchema {
      *          Serialized Status msg
      * @return The original Mutation
      */
-    public static Mutation add(Mutation m, String tableId, Value v) {
-      m.put(NAME, new Text(tableId), v);
+    public static Mutation add(Mutation m, Table.ID tableId, Value v) {
+      m.put(NAME, new Text(tableId.getUtf8()), v);
       return m;
     }
 

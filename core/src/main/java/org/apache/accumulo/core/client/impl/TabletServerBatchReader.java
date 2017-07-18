@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class TabletServerBatchReader extends ScannerOptions implements BatchScanner {
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReader.class);
 
-  private String tableId;
+  private Table.ID tableId;
   private int numThreads;
   private ExecutorService queryThreadPool;
 
@@ -54,7 +54,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
   private final int batchReaderInstance = getNextBatchReaderInstance();
 
-  public TabletServerBatchReader(ClientContext context, String tableId, Authorizations authorizations, int numQueryThreads) {
+  public TabletServerBatchReader(ClientContext context, Table.ID tableId, Authorizations authorizations, int numQueryThreads) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");

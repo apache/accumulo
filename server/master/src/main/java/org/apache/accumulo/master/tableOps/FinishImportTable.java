@@ -59,7 +59,7 @@ class FinishImportTable extends MasterRepo {
 
   @Override
   public String getReturn() {
-    return tableInfo.tableId;
+    return tableInfo.tableId.canonicalID();
   }
 
   @Override

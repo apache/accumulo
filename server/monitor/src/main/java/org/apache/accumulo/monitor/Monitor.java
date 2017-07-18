@@ -42,6 +42,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
@@ -156,7 +157,7 @@ public class Monitor implements HighlyAvailableService {
 
   private static volatile boolean fetching = false;
   private static MasterMonitorInfo mmi;
-  private static Map<String,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
+  private static Map<Table.ID,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
   private static Exception problemException;
   private static GCStatus gcStatus;
 
@@ -760,7 +761,7 @@ public class Monitor implements HighlyAvailableService {
     return problemException;
   }
 
-  public static Map<String,Map<ProblemType,Integer>> getProblemSummary() {
+  public static Map<Table.ID,Map<ProblemType,Integer>> getProblemSummary() {
     return problemSummary;
   }
 

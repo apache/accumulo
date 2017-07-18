@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -54,10 +55,10 @@ public class DefaultLoadBalancerTest {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<>();
       for (KeyExtent extent : extents) {
-        String table = extent.getTableId();
-        TableInfo info = result.tableMap.get(table);
+        Table.ID tableId = extent.getTableId();
+        TableInfo info = result.tableMap.get(tableId.canonicalID());
         if (info == null)
-          result.tableMap.put(table, info = new TableInfo());
+          result.tableMap.put(tableId.canonicalID(), info = new TableInfo());
         info.onlineTablets++;
         info.recs = info.onlineTablets;
         info.ingestRate = 123.;
@@ -73,7 +74,7 @@ public class DefaultLoadBalancerTest {
   class TestDefaultLoadBalancer extends DefaultLoadBalancer {
 
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String table) throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID table) throws ThriftSecurityException, TException {
       List<TabletStats> result = new ArrayList<>();
       for (KeyExtent extent : servers.get(tserver).extents) {
         if (extent.getTableId().equals(table)) {
@@ -266,7 +267,7 @@ public class DefaultLoadBalancerTest {
       for (FakeTServer server : servers.values()) {
         Map<String,Integer> counts = new HashMap<>();
         for (KeyExtent extent : server.extents) {
-          String t = extent.getTableId();
+          String t = extent.getTableId().canonicalID();
           if (counts.get(t) == null)
             counts.put(t, 0);
           counts.put(t, counts.get(t) + 1);
@@ -279,7 +280,7 @@ public class DefaultLoadBalancerTest {
   }
 
   private static KeyExtent makeExtent(String table, String end, String prev) {
-    return new KeyExtent(table, toText(end), toText(prev));
+    return new KeyExtent(new Table.ID(table), toText(end), toText(prev));
   }
 
   private static Text toText(String value) {

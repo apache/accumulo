@@ -115,8 +115,8 @@ public class MiniAccumuloClusterImplTest {
     Assert.assertTrue("master state should be valid.", validStates.contains(stats.state));
     Assert.assertTrue("master goal state should be in " + validGoals + ". is " + stats.goalState, validGoals.contains(stats.goalState));
     Assert.assertNotNull("should have a table map.", stats.tableMap);
-    Assert.assertTrue("root table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(RootTable.ID));
-    Assert.assertTrue("meta table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(MetadataTable.ID));
+    Assert.assertTrue("root table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(RootTable.ID.canonicalID()));
+    Assert.assertTrue("meta table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(MetadataTable.ID.canonicalID()));
     Assert.assertTrue("our test table should exist in " + stats.tableMap.keySet(), stats.tableMap.keySet().contains(testTableID));
     Assert.assertNotNull("there should be tservers.", stats.tServerInfo);
     Assert.assertEquals(NUM_TSERVERS, stats.tServerInfo.size());

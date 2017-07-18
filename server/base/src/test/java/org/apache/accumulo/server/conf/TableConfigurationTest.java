@@ -34,6 +34,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -43,7 +44,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TableConfigurationTest {
-  private static final String TID = "table";
+  private static final Table.ID TID = new Table.ID("table");
   private static final String ZOOKEEPERS = "localhost";
   private static final int ZK_SESSION_TIMEOUT = 120000;
 

@@ -48,9 +48,9 @@ public class Writer {
   private static final Logger log = LoggerFactory.getLogger(Writer.class);
 
   private ClientContext context;
-  private String tableId;
+  private Table.ID tableId;
 
-  public Writer(ClientContext context, String tableId) {
+  public Writer(ClientContext context, Table.ID tableId) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     this.context = context;

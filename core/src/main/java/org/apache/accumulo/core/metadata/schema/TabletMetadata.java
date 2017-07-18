@@ -27,6 +27,7 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -45,7 +46,7 @@ import com.google.common.net.HostAndPort;
 
 public class TabletMetadata {
 
-  private String tableId;
+  private Table.ID tableId;
   private Text prevEndRow;
   private Text endRow;
   private Location location;
@@ -86,7 +87,7 @@ public class TabletMetadata {
     }
   }
 
-  public String getTableId() {
+  public Table.ID getTableId() {
     return tableId;
   }
 

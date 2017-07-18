@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -213,7 +214,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
     try {
 
-      String tableId = Tables.getTableId(instance, tableName);
+      Table.ID tableId = Tables.getTableId(instance, tableName);
 
       log.trace("tid: {}", tableId);
 
@@ -248,7 +249,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
    */
   private TableState getTableState(String tableName) throws TableNotFoundException {
 
-    String tableId = Tables.getTableId(connector.getInstance(), tableName);
+    Table.ID tableId = Tables.getTableId(connector.getInstance(), tableName);
 
     TableState tstate = Tables.getTableState(connector.getInstance(), tableId);
 

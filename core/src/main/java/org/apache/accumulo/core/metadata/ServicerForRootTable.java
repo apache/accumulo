@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 
 /**
@@ -38,7 +39,7 @@ class ServicerForRootTable extends MetadataServicer {
   }
 
   @Override
-  public String getServicedTableId() {
+  public Table.ID getServicedTableId() {
     return RootTable.ID;
   }
 

@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.server.cli.ClientOpts;
 
@@ -28,7 +29,7 @@ public class ListTables {
   public static void main(String[] args) throws Exception {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(ListTables.class.getName(), args);
-    for (Entry<String,String> table : Tables.getNameToIdMap(opts.getInstance()).entrySet())
+    for (Entry<String,Table.ID> table : Tables.getNameToIdMap(opts.getInstance()).entrySet())
       System.out.println(table.getKey() + " => " + table.getValue());
   }
 }

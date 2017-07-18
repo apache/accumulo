@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -82,7 +83,7 @@ public class ReplicationProcessorTest {
     ReplicationProcessor proc = EasyMock.createMockBuilder(ReplicationProcessor.class)
         .addMockedMethods("getReplicaSystem", "doesFileExist", "getStatus", "getHelper").createMock();
 
-    ReplicationTarget target = new ReplicationTarget("peer", "1", "1");
+    ReplicationTarget target = new ReplicationTarget("peer", "1", new Table.ID("1"));
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     Path path = new Path("/accumulo");
 

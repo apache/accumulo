@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ServerClient;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -99,7 +100,7 @@ public class Gatherer {
   private static final Logger log = LoggerFactory.getLogger(Gatherer.class);
 
   private ClientContext ctx;
-  private String tableId;
+  private Table.ID tableId;
   private SummarizerFactory factory;
   private Text startRow = null;
   private Text endRow = null;
@@ -114,7 +115,7 @@ public class Gatherer {
 
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig) {
     this.ctx = context;
-    this.tableId = request.tableId;
+    this.tableId = new Table.ID(request.tableId);
     this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
     this.endRow = ByteBufferUtil.toText(request.bounds.endRow);
     this.clipRange = new Range(startRow, false, endRow, true);

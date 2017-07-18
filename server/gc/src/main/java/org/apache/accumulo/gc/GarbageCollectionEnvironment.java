@@ -27,6 +27,7 @@ import java.util.SortedMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -71,7 +72,7 @@ public interface GarbageCollectionEnvironment {
    *
    * @return The valueSet for the table name to table id map.
    */
-  Set<String> getTableIDs();
+  Set<Table.ID> getTableIDs();
 
   /**
    * Delete the given files from the provided {@link Map} of relative path to absolute path for each file that should be deleted
@@ -87,7 +88,7 @@ public interface GarbageCollectionEnvironment {
    * @param tableID
    *          The id of the table whose directory we are to operate on
    */
-  void deleteTableDirIfEmpty(String tableID) throws IOException;
+  void deleteTableDirIfEmpty(Table.ID tableID) throws IOException;
 
   /**
    * Increment the number of candidates for deletion for the current garbage collection run

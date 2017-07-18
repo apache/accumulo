@@ -104,7 +104,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   }
 
-  ScannerIterator(ClientContext context, String tableId, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options,
+  ScannerIterator(ClientContext context, Table.ID tableId, Authorizations authorizations, Range range, int size, int timeOut, ScannerOptions options,
       boolean isolated, long readaheadThreshold) {
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;

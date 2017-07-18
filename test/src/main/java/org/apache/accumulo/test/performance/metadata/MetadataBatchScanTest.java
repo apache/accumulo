@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -77,7 +78,7 @@ public class MetadataBatchScanTest {
       splits.add((r.nextLong() & 0x7fffffffffffffffl) % 1000000000000l);
     }
 
-    String tid = "8";
+    Table.ID tid = new Table.ID("8");
     Text per = null;
 
     ArrayList<KeyExtent> extents = new ArrayList<>();

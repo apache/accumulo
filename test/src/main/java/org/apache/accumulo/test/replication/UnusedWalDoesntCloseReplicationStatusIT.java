@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -77,8 +78,8 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     conn.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
     conn.tableOperations().create(tableName);
 
-    final String tableId = conn.tableOperations().tableIdMap().get(tableName);
-    final int numericTableId = Integer.parseInt(tableId);
+    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final int numericTableId = Integer.parseInt(tableId.canonicalID());
     final int fakeTableId = numericTableId + 1;
 
     Assert.assertNotNull("Did not find table ID", tableId);
@@ -113,7 +114,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     value.write(out);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(Integer.toString(fakeTableId), null, null);
+    key.tablet = new KeyExtent(new Table.ID(Integer.toString(fakeTableId)), null, null);
     key.seq = 1l;
     key.tid = 1;
 
@@ -177,7 +178,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     // Add a replication entry for our fake WAL
     m = new Mutation(MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri).toString());
-    m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId), new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
+    m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.getUtf8()), new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
     bw.addMutation(m);
     bw.close();
 

@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -124,7 +125,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
-    String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345", emptyWalog.toURI().toString());
@@ -179,7 +180,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
-    String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345", partialHeaderWalog.toURI().toString());

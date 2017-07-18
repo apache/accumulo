@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -77,7 +78,7 @@ public class AccumuloReplicaSystemTest {
      * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(new Table.ID("1"), null, null);
     key.tid = 1;
 
     key.write(dos);
@@ -92,7 +93,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("2", null, null);
+    key.tablet = new KeyExtent(new Table.ID("2"), null, null);
     key.tid = 2;
     value.mutations = Collections.emptyList();
 
@@ -123,7 +124,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(new Table.ID("1"), null, null);
     key.tid = 3;
     value.mutations = Collections.emptyList();
 
@@ -157,8 +158,8 @@ public class AccumuloReplicaSystemTest {
 
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
-        new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", new Table.ID("1")), dis, new Path("/accumulo/wals/tserver+port/wal"), status,
+        Long.MAX_VALUE, new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(9, repl.entriesConsumed);
@@ -183,7 +184,7 @@ public class AccumuloReplicaSystemTest {
      * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(new Table.ID("1"), null, null);
     key.tid = 1;
 
     key.write(dos);
@@ -198,7 +199,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("2", null, null);
+    key.tablet = new KeyExtent(new Table.ID("2"), null, null);
     key.tid = 2;
     value.mutations = Collections.emptyList();
 
@@ -229,7 +230,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(new Table.ID("1"), null, null);
     key.tid = 3;
     value.mutations = Collections.emptyList();
 
@@ -265,8 +266,8 @@ public class AccumuloReplicaSystemTest {
     // If it were still open, more data could be appended that we need to process
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
-        new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", new Table.ID("1")), dis, new Path("/accumulo/wals/tserver+port/wal"), status,
+        Long.MAX_VALUE, new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
@@ -300,7 +301,7 @@ public class AccumuloReplicaSystemTest {
     DataOutputStream out = new DataOutputStream(baos);
 
     // Replicate our 2 mutations to "peer", from tableid 1 to tableid 1
-    ars.writeValueAvoidingReplicationCycles(out, value, new ReplicationTarget("peer", "1", "1"));
+    ars.writeValueAvoidingReplicationCycles(out, value, new ReplicationTarget("peer", "1", new Table.ID("1")));
 
     out.close();
 
@@ -331,8 +332,8 @@ public class AccumuloReplicaSystemTest {
     // If it were still open, more data could be appended that we need to process
     Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
-        new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", new Table.ID("1")), dis, new Path("/accumulo/wals/tserver+port/wal"), status,
+        Long.MAX_VALUE, new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
@@ -354,8 +355,8 @@ public class AccumuloReplicaSystemTest {
     // If it were still open, more data could be appended that we need to process
     Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
-        new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", new Table.ID("1")), dis, new Path("/accumulo/wals/tserver+port/wal"), status,
+        Long.MAX_VALUE, new HashSet<Integer>());
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(0, repl.entriesConsumed);
@@ -380,7 +381,7 @@ public class AccumuloReplicaSystemTest {
      * look like in a WAL. They are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(new Table.ID("1"), null, null);
     key.tid = 1;
 
     key.write(dos);
@@ -418,7 +419,8 @@ public class AccumuloReplicaSystemTest {
     HashSet<Integer> tids = new HashSet<>();
 
     // Only consume the first mutation, not the second
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", new Table.ID("1")), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1l,
+        tids);
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(2, repl.entriesConsumed);
@@ -429,7 +431,7 @@ public class AccumuloReplicaSystemTest {
     status = Status.newBuilder(status).setBegin(2).build();
 
     // Consume the rest of the mutations
-    repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
+    repl = ars.getWalEdits(new ReplicationTarget("peer", "1", new Table.ID("1")), dis, new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
 
     // We stopped because we got to the end of the file
     Assert.assertEquals(1, repl.entriesConsumed);
@@ -445,7 +447,7 @@ public class AccumuloReplicaSystemTest {
     WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 0, 0);
 
-    ReplicationTarget target = new ReplicationTarget("peer", "2", "1");
+    ReplicationTarget target = new ReplicationTarget("peer", "2", new Table.ID("1"));
     DataInputStream input = null;
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     Status status = null;
@@ -474,7 +476,7 @@ public class AccumuloReplicaSystemTest {
     WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 5, 0);
 
-    ReplicationTarget target = new ReplicationTarget("peer", "2", "1");
+    ReplicationTarget target = new ReplicationTarget("peer", "2", new Table.ID("1"));
     DataInputStream input = null;
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
     Status status = null;
@@ -499,7 +501,7 @@ public class AccumuloReplicaSystemTest {
   @Test
   public void testUserPassword() throws Exception {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
-    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", "1");
+    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", new Table.ID("1"));
     String user = "user", password = "password";
 
     Map<String,String> confMap = new HashMap<>();
@@ -514,7 +516,7 @@ public class AccumuloReplicaSystemTest {
   @Test
   public void testUserKeytab() throws Exception {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
-    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", "1");
+    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", new Table.ID("1"));
     String user = "user", keytab = "/etc/security/keytabs/replication.keytab";
 
     Map<String,String> confMap = new HashMap<>();

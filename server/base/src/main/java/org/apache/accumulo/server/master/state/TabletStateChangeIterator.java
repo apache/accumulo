@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -58,7 +59,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
 
   private Set<TServerInstance> current;
   private Set<String> onlineTables;
-  private Map<String,MergeInfo> merges;
+  private Map<Table.ID,MergeInfo> merges;
   private boolean debug = false;
   private Set<KeyExtent> migrations;
   private MasterState masterState = MasterState.NORMAL;
@@ -130,11 +131,11 @@ public class TabletStateChangeIterator extends SkippingIterator {
     return result;
   }
 
-  private Map<String,MergeInfo> parseMerges(String merges) {
+  private Map<Table.ID,MergeInfo> parseMerges(String merges) {
     if (merges == null)
       return null;
     try {
-      Map<String,MergeInfo> result = new HashMap<>();
+      Map<Table.ID,MergeInfo> result = new HashMap<>();
       DataInputBuffer buffer = new DataInputBuffer();
       byte[] data = Base64.getDecoder().decode(merges);
       buffer.reset(data, data.length);
@@ -179,7 +180,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       }
 
       // is the table supposed to be online or offline?
-      boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId());
+      boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId().canonicalID());
 
       if (debug) {
         log.debug(tls.extent + " is " + tls.getState(current) + " and should be " + (shouldBeOnline ? "on" : "off") + "line");
@@ -221,7 +222,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
   }
 
-  public static void setOnlineTables(IteratorSetting cfg, Set<String> onlineTables) {
+  public static void setOnlineTables(IteratorSetting cfg, Set<Table.ID> onlineTables) {
     if (onlineTables != null)
       cfg.addOption(TABLES_OPTION, Joiner.on(",").join(onlineTables));
   }

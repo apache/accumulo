@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -76,11 +77,11 @@ public class TableLoadBalancerTest {
 
   static SortedMap<TServerInstance,TabletServerStatus> state;
 
-  static List<TabletStats> generateFakeTablets(TServerInstance tserver, String tableId) {
+  static List<TabletStats> generateFakeTablets(TServerInstance tserver, Table.ID tableId) {
     List<TabletStats> result = new ArrayList<>();
     TabletServerStatus tableInfo = state.get(tserver);
     // generate some fake tablets
-    for (int i = 0; i < tableInfo.tableMap.get(tableId).onlineTablets; i++) {
+    for (int i = 0; i < tableInfo.tableMap.get(tableId.canonicalID()).onlineTablets; i++) {
       TabletStats stats = new TabletStats();
       stats.extent = new KeyExtent(tableId, new Text(tserver.host() + String.format("%03d", i + 1)), new Text(tserver.host() + String.format("%03d", i)))
           .toThrift();
@@ -91,7 +92,7 @@ public class TableLoadBalancerTest {
 
   static class DefaultLoadBalancer extends org.apache.accumulo.server.master.balancer.DefaultLoadBalancer {
 
-    public DefaultLoadBalancer(String table) {
+    public DefaultLoadBalancer(Table.ID table) {
       super(table);
     }
 
@@ -99,7 +100,7 @@ public class TableLoadBalancerTest {
     public void init(AccumuloServerContext context) {}
 
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
       return generateFakeTablets(tserver, tableId);
     }
   }
@@ -113,13 +114,13 @@ public class TableLoadBalancerTest {
 
     // use our new classname to test class loading
     @Override
-    protected String getLoadBalancerClassNameForTable(String table) {
+    protected String getLoadBalancerClassNameForTable(Table.ID table) {
       return DefaultLoadBalancer.class.getName();
     }
 
     // we don't have real tablet servers to ask: invent some online tablets
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
       return generateFakeTablets(tserver, tableId);
     }
 
@@ -142,9 +143,9 @@ public class TableLoadBalancerTest {
 
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(inst) {
       @Override
-      public TableConfiguration getTableConfiguration(String tableId) {
+      public TableConfiguration getTableConfiguration(Table.ID tableId) {
         // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration constructor
-        NamespaceConfiguration dummyConf = new NamespaceConfiguration("", null, null);
+        NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, null, null);
         return new TableConfiguration(inst, tableId, dummyConf) {
           @Override
           public String get(Property property) {
@@ -172,14 +173,14 @@ public class TableLoadBalancerTest {
     tls.init(new AccumuloServerContext(inst, confFactory));
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
-    Map<String,Integer> movedByTable = new HashMap<>();
-    movedByTable.put(t1Id, Integer.valueOf(0));
-    movedByTable.put(t2Id, Integer.valueOf(0));
-    movedByTable.put(t3Id, Integer.valueOf(0));
+    Map<Table.ID,Integer> movedByTable = new HashMap<>();
+    movedByTable.put(new Table.ID(t1Id), Integer.valueOf(0));
+    movedByTable.put(new Table.ID(t2Id), Integer.valueOf(0));
+    movedByTable.put(new Table.ID(t3Id), Integer.valueOf(0));
     for (TabletMigration migration : migrationsOut) {
       if (migration.oldServer.equals(svr))
         count++;
-      String key = migration.tablet.getTableId();
+      Table.ID key = migration.tablet.getTableId();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }
     Assert.assertEquals(15, count);

@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -39,17 +40,17 @@ import org.apache.hadoop.io.Text;
 abstract class TableMetadataServicer extends MetadataServicer {
 
   private final ClientContext context;
-  private String tableIdBeingServiced;
+  private Table.ID tableIdBeingServiced;
   private String serviceTableName;
 
-  public TableMetadataServicer(ClientContext context, String serviceTableName, String tableIdBeingServiced) {
+  public TableMetadataServicer(ClientContext context, String serviceTableName, Table.ID tableIdBeingServiced) {
     this.context = context;
     this.serviceTableName = serviceTableName;
     this.tableIdBeingServiced = tableIdBeingServiced;
   }
 
   @Override
-  public String getServicedTableId() {
+  public Table.ID getServicedTableId() {
     return tableIdBeingServiced;
   }
 

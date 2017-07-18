@@ -74,16 +74,16 @@ public abstract class TabletLocator {
 
   private static class LocatorKey {
     String instanceId;
-    String tableName;
+    Table.ID tableId;
 
-    LocatorKey(String instanceId, String table) {
+    LocatorKey(String instanceId, Table.ID table) {
       this.instanceId = instanceId;
-      this.tableName = table;
+      this.tableId = table;
     }
 
     @Override
     public int hashCode() {
-      return instanceId.hashCode() + tableName.hashCode();
+      return instanceId.hashCode() + tableId.hashCode();
     }
 
     @Override
@@ -94,7 +94,7 @@ public abstract class TabletLocator {
     }
 
     public boolean equals(LocatorKey lk) {
-      return instanceId.equals(lk.instanceId) && tableName.equals(lk.tableName);
+      return instanceId.equals(lk.instanceId) && tableId.equals(lk.tableId);
     }
 
   }
@@ -108,7 +108,7 @@ public abstract class TabletLocator {
     locators.clear();
   }
 
-  public static synchronized TabletLocator getLocator(ClientContext context, String tableId) {
+  public static synchronized TabletLocator getLocator(ClientContext context, Table.ID tableId) {
     Instance instance = context.getInstance();
     LocatorKey key = new LocatorKey(instance.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);

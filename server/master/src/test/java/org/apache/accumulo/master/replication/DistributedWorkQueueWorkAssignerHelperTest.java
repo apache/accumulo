@@ -19,6 +19,7 @@ package org.apache.accumulo.master.replication;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.hadoop.fs.Path;
@@ -34,7 +35,7 @@ public class DistributedWorkQueueWorkAssignerHelperTest {
   @Test
   public void createsValidZKNodeName() {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
 
     String key = DistributedWorkQueueWorkAssignerHelper.getQueueKey(p.toString(), target);
 
@@ -44,7 +45,7 @@ public class DistributedWorkQueueWorkAssignerHelperTest {
   @Test
   public void queueKeySerialization() {
     Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
 
     String key = DistributedWorkQueueWorkAssignerHelper.getQueueKey(p.toString(), target);
 

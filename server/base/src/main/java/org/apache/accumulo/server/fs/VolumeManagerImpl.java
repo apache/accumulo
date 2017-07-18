@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -373,7 +374,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // TODO sanity check col fam
     String relPath = key.getColumnQualifierData().toString();
     byte[] tableId = KeyExtent.tableOfMetadataRow(key.getRow());
-    return getFullPath(new String(tableId), relPath);
+    return getFullPath(new Table.ID(new String(tableId)), relPath);
   }
 
   @Override
@@ -400,7 +401,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public Path getFullPath(String tableId, String path) {
+  public Path getFullPath(Table.ID tableId, String path) {
     if (path.contains(":"))
       return new Path(path);
 

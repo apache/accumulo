@@ -33,6 +33,7 @@ import java.io.DataOutputStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -43,7 +44,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ProblemReportTest {
-  private static final String TABLE_ID = "table";
+  private static final Table.ID TABLE_ID = new Table.ID("table");
   private static final String RESOURCE = "resource";
   private static final String SERVER = "server";
 
@@ -64,7 +65,7 @@ public class ProblemReportTest {
   public void testGetters() {
     long now = System.currentTimeMillis();
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null, now);
-    assertEquals(TABLE_ID, r.getTableName());
+    assertEquals(TABLE_ID, r.getTableId());
     assertSame(ProblemType.FILE_READ, r.getProblemType());
     assertEquals(RESOURCE, r.getResource());
     assertEquals(SERVER, r.getServer());
@@ -86,7 +87,7 @@ public class ProblemReportTest {
     ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertTrue(r.equals(r2));
     assertTrue(r2.equals(r));
-    ProblemReport rx1 = new ProblemReport(TABLE_ID + "x", ProblemType.FILE_READ, RESOURCE, SERVER, null);
+    ProblemReport rx1 = new ProblemReport(Table.ID.METADATA, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertFalse(r.equals(rx1));
     ProblemReport rx2 = new ProblemReport(TABLE_ID, ProblemType.FILE_WRITE, RESOURCE, SERVER, null);
     assertFalse(r.equals(rx2));
@@ -115,10 +116,10 @@ public class ProblemReportTest {
     assertEquals(r.hashCode(), re2.hashCode());
   }
 
-  private byte[] makeZPathFileName(String table, ProblemType problemType, String resource) throws Exception {
+  private byte[] makeZPathFileName(Table.ID table, ProblemType problemType, String resource) throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
-    dos.writeUTF(table);
+    dos.writeUTF(table.canonicalID());
     dos.writeUTF(problemType.name());
     dos.writeUTF(resource);
     dos.close();
@@ -178,7 +179,7 @@ public class ProblemReportTest {
     replay(zoorw);
 
     r = ProblemReport.decodeZooKeeperEntry(node, zoorw, instance);
-    assertEquals(TABLE_ID, r.getTableName());
+    assertEquals(TABLE_ID, r.getTableId());
     assertSame(ProblemType.FILE_READ, r.getProblemType());
     assertEquals(RESOURCE, r.getResource());
     assertEquals(SERVER, r.getServer());

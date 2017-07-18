@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -188,7 +189,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
 
-    String tableId = connector.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableId = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
 
     SortedSet<Text> partitions = new TreeSet<>();
     // with some splits
@@ -403,7 +404,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
 
-    String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
     Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
     metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);

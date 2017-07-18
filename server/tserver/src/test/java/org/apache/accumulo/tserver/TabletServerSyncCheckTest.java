@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.volume.Volume;
@@ -188,7 +189,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public Path getFullPath(String tableId, String path) {
+    public Path getFullPath(Table.ID tableId, String path) {
       return null;
     }
 

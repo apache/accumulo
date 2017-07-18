@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -291,7 +292,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
 
     @Override
-    public Set<String> getTableIDs() {
+    public Set<Table.ID> getTableIDs() {
       return Tables.getIdToNameMap(getInstance()).keySet();
     }
 
@@ -390,7 +391,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 }
                 String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
                 if (parts.length > 2) {
-                  String tableId = parts[1];
+                  Table.ID tableId = new Table.ID(parts[1]);
                   String tabletDir = parts[2];
                   TableManager.getInstance().updateTableStateCache(tableId);
                   TableState tableState = TableManager.getInstance().getTableState(tableId);
@@ -438,7 +439,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     }
 
     @Override
-    public void deleteTableDirIfEmpty(String tableID) throws IOException {
+    public void deleteTableDirIfEmpty(Table.ID tableID) throws IOException {
       // if dir exist and is empty, then empty list is returned...
       // hadoop 2.0 will throw an exception if the file does not exist
       for (String dir : ServerConstants.getTablesDirs()) {

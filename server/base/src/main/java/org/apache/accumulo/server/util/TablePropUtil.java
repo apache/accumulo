@@ -19,6 +19,7 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -28,7 +29,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
 public class TablePropUtil {
-  public static boolean setTableProperty(String tableId, String property, String value) throws KeeperException, InterruptedException {
+  public static boolean setTableProperty(Table.ID tableId, String property, String value) throws KeeperException, InterruptedException {
     if (!isPropertyValid(property, value))
       return false;
 
@@ -51,12 +52,12 @@ public class TablePropUtil {
     return true;
   }
 
-  public static void removeTableProperty(String tableId, String property) throws InterruptedException, KeeperException {
+  public static void removeTableProperty(Table.ID tableId, String property) throws InterruptedException, KeeperException {
     String zPath = getTablePath(tableId) + "/" + property;
     ZooReaderWriter.getInstance().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }
 
-  private static String getTablePath(String tablename) {
-    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/" + tablename + Constants.ZTABLE_CONF;
+  private static String getTablePath(Table.ID tableId) {
+    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/" + tableId.canonicalID() + Constants.ZTABLE_CONF;
   }
 }

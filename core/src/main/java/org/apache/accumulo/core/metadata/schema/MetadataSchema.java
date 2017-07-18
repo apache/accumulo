@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -45,12 +46,12 @@ public class MetadataSchema {
       return section.getRange();
     }
 
-    public static Range getRange(String tableId) {
-      return new Range(new Key(tableId + ';'), true, new Key(tableId + '<').followingKey(PartialKey.ROW), false);
+    public static Range getRange(Table.ID tableId) {
+      return new Range(new Key(tableId.canonicalID() + ';'), true, new Key(tableId.canonicalID() + '<').followingKey(PartialKey.ROW), false);
     }
 
-    public static Text getRow(String tableId, Text endRow) {
-      Text entry = new Text(tableId);
+    public static Text getRow(Table.ID tableId, Text endRow) {
+      Text entry = new Text(tableId.getUtf8());
 
       if (endRow == null) {
         // append delimiter for default tablet
@@ -259,9 +260,9 @@ public class MetadataSchema {
      * @param k
      *          Key to extract from
      */
-    public static String getTableId(Key k) {
+    public static Table.ID getTableId(Key k) {
       requireNonNull(k);
-      return k.getColumnQualifier().toString();
+      return new Table.ID(k.getColumnQualifier().toString());
     }
 
     /**

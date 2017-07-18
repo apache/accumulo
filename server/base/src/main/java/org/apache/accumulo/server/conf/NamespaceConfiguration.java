@@ -21,6 +21,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
@@ -40,11 +41,11 @@ public class NamespaceConfiguration extends ObservableConfiguration {
 
   private final AccumuloConfiguration parent;
   private ZooCachePropertyAccessor propCacheAccessor = null;
-  protected String namespaceId = null;
+  protected Namespace.ID namespaceId = null;
   protected Instance inst = null;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
-  public NamespaceConfiguration(String namespaceId, Instance inst, AccumuloConfiguration parent) {
+  public NamespaceConfiguration(Namespace.ID namespaceId, Instance inst, AccumuloConfiguration parent) {
     this.inst = inst;
     this.parent = parent;
     this.namespaceId = namespaceId;
@@ -66,7 +67,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
     if (propCacheAccessor == null) {
       synchronized (propCaches) {
-        PropCacheKey key = new PropCacheKey(inst.getInstanceID(), namespaceId);
+        PropCacheKey key = new PropCacheKey(inst.getInstanceID(), namespaceId.canonicalID());
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
           propCache = zcf.getZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new NamespaceConfWatcher(inst));
@@ -106,7 +107,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, parentFilter);
   }
 
-  protected String getNamespaceId() {
+  protected Namespace.ID getNamespaceId() {
     return namespaceId;
   }
 

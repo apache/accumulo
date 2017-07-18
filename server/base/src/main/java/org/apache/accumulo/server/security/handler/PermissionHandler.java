@@ -19,6 +19,7 @@ package org.apache.accumulo.server.security.handler;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -70,12 +71,13 @@ public interface PermissionHandler {
   /**
    * Used to get the namespace permission of a user for a namespace
    */
-  boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException;
+  boolean hasNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException;
 
   /**
    * Used to get the namespace permission of a user for a namespace, with caching. This method is for high frequency operations
    */
-  boolean hasCachedNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException,
+  boolean hasCachedNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
       NamespaceNotFoundException;
 
   /**
@@ -101,12 +103,14 @@ public interface PermissionHandler {
   /**
    * Gives the user the given namespace permission
    */
-  void grantNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException;
+  void grantNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException;
 
   /**
    * Denies the user the given namespace permission.
    */
-  void revokeNamespacePermission(String user, String namespace, NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException;
+  void revokeNamespacePermission(String user, Namespace.ID namespace, NamespacePermission permission) throws AccumuloSecurityException,
+      NamespaceNotFoundException;
 
   /**
    * Cleans up the permissions for a table. Used when a table gets deleted.
@@ -116,7 +120,7 @@ public interface PermissionHandler {
   /**
    * Cleans up the permissions for a namespace. Used when a namespace gets deleted.
    */
-  void cleanNamespacePermissions(String namespace) throws AccumuloSecurityException, NamespaceNotFoundException;
+  void cleanNamespacePermissions(Namespace.ID namespace) throws AccumuloSecurityException, NamespaceNotFoundException;
 
   /**
    * Initializes a new user

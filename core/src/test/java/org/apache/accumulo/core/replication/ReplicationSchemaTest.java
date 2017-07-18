@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.replication;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
@@ -61,15 +62,15 @@ public class ReplicationSchemaTest {
 
   @Test
   public void extractTableId() {
-    String tableId = "1";
-    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId));
+    Table.ID tableId = new Table.ID("1");
+    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.getUtf8()));
     Assert.assertEquals(tableId, StatusSection.getTableId(k));
   }
 
   @Test
   public void extractTableIdUsingText() {
-    String tableId = "1";
-    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId));
+    Table.ID tableId = new Table.ID("1");
+    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.getUtf8()));
     Assert.assertEquals(tableId, StatusSection.getTableId(k));
   }
 

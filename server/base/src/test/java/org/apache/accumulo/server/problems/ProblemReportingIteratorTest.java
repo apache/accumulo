@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -37,7 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ProblemReportingIteratorTest {
-  private static final String TABLE_ID = "table";
+  private static final Table.ID TABLE_ID = new Table.ID("table");
   private static final String RESOURCE = "resource";
 
   private InterruptibleIterator ii;

@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -85,7 +86,7 @@ public class TableIT extends AccumuloClusterHarness {
     to.flush(tableName, null, null, true);
     vopts.setTableName(tableName);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    String id = to.tableIdMap().get(tableName);
+    Table.ID id = new Table.ID(to.tableIdMap().get(tableName));
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(new KeyExtent(id, null, null).toMetadataRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);

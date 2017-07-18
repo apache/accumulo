@@ -39,7 +39,7 @@ public class ScannerImplTest {
 
   @Test
   public void testValidReadaheadValues() {
-    Scanner s = new ScannerImpl(context, "foo", Authorizations.EMPTY);
+    Scanner s = new ScannerImpl(context, new Table.ID("foo"), Authorizations.EMPTY);
     s.setReadaheadThreshold(0);
     s.setReadaheadThreshold(10);
     s.setReadaheadThreshold(Long.MAX_VALUE);
@@ -50,7 +50,7 @@ public class ScannerImplTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInValidReadaheadValues() {
-    Scanner s = new ScannerImpl(context, "foo", Authorizations.EMPTY);
+    Scanner s = new ScannerImpl(context, new Table.ID("foo"), Authorizations.EMPTY);
     s.setReadaheadThreshold(-1);
     s.close();
   }
@@ -58,7 +58,7 @@ public class ScannerImplTest {
   @Test
   public void testGetAuthorizations() {
     Authorizations expected = new Authorizations("a,b");
-    Scanner s = new ScannerImpl(context, "foo", expected);
+    Scanner s = new ScannerImpl(context, new Table.ID("foo"), expected);
     assertEquals(expected, s.getAuthorizations());
     s.close();
   }
@@ -66,7 +66,7 @@ public class ScannerImplTest {
   @SuppressWarnings("resource")
   @Test(expected = IllegalArgumentException.class)
   public void testNullAuthorizationsFails() {
-    new ScannerImpl(context, "foo", null);
+    new ScannerImpl(context, new Table.ID("foo"), null);
   }
 
 }

@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -64,7 +65,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().create(tableName);
 
-    final String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -122,7 +123,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().create(tableName);
 
-    final String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -179,7 +180,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().create(tableName);
 
-    final String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());

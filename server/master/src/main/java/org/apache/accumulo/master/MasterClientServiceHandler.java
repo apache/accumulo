@@ -41,6 +41,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.DelegationTokenConfigSerializer;
+import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
@@ -111,8 +113,9 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
   }
 
   @Override
-  public long initiateFlush(TInfo tinfo, TCredentials c, String tableId) throws ThriftSecurityException, ThriftTableOperationException {
-    String namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
+  public long initiateFlush(TInfo tinfo, TCredentials c, String tableIdStr) throws ThriftSecurityException, ThriftTableOperationException {
+    Table.ID tableId = new Table.ID(tableIdStr);
+    Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
     String zTablePath = Constants.ZROOT + "/" + master.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
@@ -129,22 +132,24 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
         }
       });
     } catch (NoNodeException nne) {
-      throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
+      throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
     } catch (Exception e) {
       Master.log.warn("{}", e.getMessage(), e);
-      throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.OTHER, null);
+      throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH, TableOperationExceptionType.OTHER, null);
     }
     return Long.parseLong(new String(fid));
   }
 
   @Override
-  public void waitForFlush(TInfo tinfo, TCredentials c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
+  public void waitForFlush(TInfo tinfo, TCredentials c, String tableIdStr, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
       throws ThriftSecurityException, ThriftTableOperationException {
-    String namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
+    Table.ID tableId = new Table.ID(tableIdStr);
+    Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
     if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0)
-      throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
+      throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE,
+          "start row must be less than end row");
 
     Set<TServerInstance> serversToFlush = new HashSet<>(master.tserverSet.getCurrentServers());
 
@@ -237,7 +242,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
         // TODO detect case of table offline AND tablets w/ logs? - ACCUMULO-1296
 
         if (tabletCount == 0 && !Tables.exists(master.getInstance(), tableId))
-          throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
+          throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
 
       } catch (AccumuloException e) {
         Master.log.debug("Failed to scan " + MetadataTable.NAME + " table to wait for flush " + tableId, e);
@@ -254,12 +259,12 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
 
   }
 
-  private String getNamespaceIdFromTableId(TableOperation tableOp, String tableId) throws ThriftTableOperationException {
-    String namespaceId;
+  private Namespace.ID getNamespaceIdFromTableId(TableOperation tableOp, Table.ID tableId) throws ThriftTableOperationException {
+    Namespace.ID namespaceId;
     try {
       namespaceId = Tables.getNamespaceId(master.getInstance(), tableId);
     } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(tableId, null, tableOp, TableOperationExceptionType.NOTFOUND, e.getMessage());
+      throw new ThriftTableOperationException(tableId.canonicalID(), null, tableOp, TableOperationExceptionType.NOTFOUND, e.getMessage());
     }
     return namespaceId;
   }
@@ -412,7 +417,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
   private void alterNamespaceProperty(TCredentials c, String namespace, String property, String value, TableOperation op) throws ThriftSecurityException,
       ThriftTableOperationException {
 
-    String namespaceId = null;
+    Namespace.ID namespaceId = null;
     namespaceId = ClientServiceHandler.checkNamespaceId(master.getInstance(), namespace, op);
 
     if (!master.security.canAlterNamespace(c, namespaceId))
@@ -426,19 +431,20 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
       }
     } catch (KeeperException.NoNodeException e) {
       // race condition... namespace no longer exists? This call will throw an exception if the namespace was deleted:
-      ClientServiceHandler.checkNamespaceId(master.getInstance(), namespaceId, op);
+      ClientServiceHandler.checkNamespaceId(master.getInstance(), namespace, op);
       log.info("Error altering namespace property", e);
-      throw new ThriftTableOperationException(namespaceId, namespace, op, TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
+      throw new ThriftTableOperationException(namespaceId.canonicalID(), namespace, op, TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
     } catch (Exception e) {
       log.error("Problem altering namespace property", e);
-      throw new ThriftTableOperationException(namespaceId, namespace, op, TableOperationExceptionType.OTHER, "Problem altering namespace property");
+      throw new ThriftTableOperationException(namespaceId.canonicalID(), namespace, op, TableOperationExceptionType.OTHER,
+          "Problem altering namespace property");
     }
   }
 
   private void alterTableProperty(TCredentials c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
       ThriftTableOperationException {
-    final String tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
-    String namespaceId = getNamespaceIdFromTableId(op, tableId);
+    final Table.ID tableId = ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
+    Namespace.ID namespaceId = getNamespaceIdFromTableId(op, tableId);
     if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -452,10 +458,10 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
       // race condition... table no longer exists? This call will throw an exception if the table was deleted:
       ClientServiceHandler.checkTableId(master.getInstance(), tableName, op);
       log.info("Error altering table property", e);
-      throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, "Problem altering table property");
+      throw new ThriftTableOperationException(tableId.canonicalID(), tableName, op, TableOperationExceptionType.OTHER, "Problem altering table property");
     } catch (Exception e) {
       log.error("Problem altering table property", e);
-      throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, "Problem altering table property");
+      throw new ThriftTableOperationException(tableId.canonicalID(), tableName, op, TableOperationExceptionType.OTHER, "Problem altering table property");
     }
   }
 
@@ -517,7 +523,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
       throw new RuntimeException("Failed to obtain connector", e);
     }
 
-    final Text tableId = new Text(getTableId(master.getInstance(), tableName));
+    final Text tableId = new Text(getTableId(master.getInstance(), tableName).getUtf8());
 
     drainLog.trace("Waiting for {} to be replicated for {}", logsToWatch, tableId);
 
@@ -555,7 +561,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
     }
   }
 
-  protected String getTableId(Instance instance, String tableName) throws ThriftTableOperationException {
+  protected Table.ID getTableId(Instance instance, String tableName) throws ThriftTableOperationException {
     return ClientServiceHandler.checkTableId(instance, tableName, null);
   }
 

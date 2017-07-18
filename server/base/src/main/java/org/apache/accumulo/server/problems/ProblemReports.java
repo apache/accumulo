@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -93,10 +94,10 @@ public class ProblemReports implements Iterable<ProblemReport> {
       @Override
       public void run() {
 
-        log.debug("Filing problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource());
+        log.debug("Filing problem report " + pr.getTableId() + " " + pr.getProblemType() + " " + pr.getResource());
 
         try {
-          if (isMeta(pr.getTableName())) {
+          if (isMeta(pr.getTableId())) {
             // file report in zookeeper
             pr.saveToZooKeeper();
           } else {
@@ -104,7 +105,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             pr.saveToMetadataTable(context);
           }
         } catch (Exception e) {
-          log.error("Failed to file problem report " + pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource(), e);
+          log.error("Failed to file problem report " + pr.getTableId() + " " + pr.getProblemType() + " " + pr.getResource(), e);
         }
       }
 
@@ -113,18 +114,18 @@ public class ProblemReports implements Iterable<ProblemReport> {
     try {
       reportExecutor.execute(new LoggingRunnable(log, r));
     } catch (RejectedExecutionException ree) {
-      log.error("Failed to report problem {} {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), ree.getMessage());
+      log.error("Failed to report problem {} {} {} {}", pr.getTableId(), pr.getProblemType(), pr.getResource(), ree.getMessage());
     }
 
   }
 
   public void printProblems() throws Exception {
     for (ProblemReport pr : this) {
-      System.out.println(pr.getTableName() + " " + pr.getProblemType() + " " + pr.getResource() + " " + pr.getException());
+      System.out.println(pr.getTableId() + " " + pr.getProblemType() + " " + pr.getResource() + " " + pr.getException());
     }
   }
 
-  public void deleteProblemReport(String table, ProblemType pType, String resource) {
+  public void deleteProblemReport(Table.ID table, ProblemType pType, String resource) {
     final ProblemReport pr = new ProblemReport(table, pType, resource, null);
 
     Runnable r = new Runnable() {
@@ -132,7 +133,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       @Override
       public void run() {
         try {
-          if (isMeta(pr.getTableName())) {
+          if (isMeta(pr.getTableId())) {
             // file report in zookeeper
             pr.removeFromZooKeeper();
           } else {
@@ -140,7 +141,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
             pr.removeFromMetadataTable(context);
           }
         } catch (Exception e) {
-          log.error("Failed to delete problem report {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), e);
+          log.error("Failed to delete problem report {} {} {}", pr.getTableId(), pr.getProblemType(), pr.getResource(), e);
         }
       }
     };
@@ -148,13 +149,13 @@ public class ProblemReports implements Iterable<ProblemReport> {
     try {
       reportExecutor.execute(new LoggingRunnable(log, r));
     } catch (RejectedExecutionException ree) {
-      log.error("Failed to delete problem report {} {} {} {}", pr.getTableName(), pr.getProblemType(), pr.getResource(), ree.getMessage());
+      log.error("Failed to delete problem report {} {} {} {}", pr.getTableId(), pr.getProblemType(), pr.getResource(), ree.getMessage());
     }
   }
 
   private static ProblemReports instance;
 
-  public void deleteProblemReports(String table) throws Exception {
+  public void deleteProblemReports(Table.ID table) throws Exception {
 
     if (isMeta(table)) {
       Iterator<ProblemReport> pri = iterator(table);
@@ -182,11 +183,11 @@ public class ProblemReports implements Iterable<ProblemReport> {
       MetadataTableUtil.getMetadataTable(context).update(delMut);
   }
 
-  private static boolean isMeta(String tableId) {
+  private static boolean isMeta(Table.ID tableId) {
     return tableId.equals(MetadataTable.ID) || tableId.equals(RootTable.ID);
   }
 
-  public Iterator<ProblemReport> iterator(final String table) {
+  public Iterator<ProblemReport> iterator(final Table.ID table) {
     try {
 
       return new Iterator<ProblemReport>() {
@@ -305,15 +306,15 @@ public class ProblemReports implements Iterable<ProblemReport> {
     getInstance(new AccumuloServerContext(instance, new ServerConfigurationFactory(instance))).printProblems();
   }
 
-  public Map<String,Map<ProblemType,Integer>> summarize() {
+  public Map<Table.ID,Map<ProblemType,Integer>> summarize() {
 
-    TreeMap<String,Map<ProblemType,Integer>> summary = new TreeMap<>();
+    TreeMap<Table.ID,Map<ProblemType,Integer>> summary = new TreeMap<>();
 
     for (ProblemReport pr : this) {
-      Map<ProblemType,Integer> tableProblems = summary.get(pr.getTableName());
+      Map<ProblemType,Integer> tableProblems = summary.get(pr.getTableId());
       if (tableProblems == null) {
         tableProblems = new EnumMap<>(ProblemType.class);
-        summary.put(pr.getTableName(), tableProblems);
+        summary.put(pr.getTableId(), tableProblems);
       }
 
       Integer count = tableProblems.get(pr.getProblemType());

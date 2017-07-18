@@ -34,6 +34,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -77,7 +78,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private KeyExtent nke(String table, String endRow, String prevEndRow) {
-    return new KeyExtent(table, endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
+    return new KeyExtent(new Table.ID(table), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
   }
 
   private void run() throws Exception {
@@ -166,8 +167,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
     List<FileRef> highDatafilesToRemove = new ArrayList<>();
 
-    MetadataTableUtil.splitDatafiles(extent.getTableId(), midRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), mapFiles, lowDatafileSizes,
-        highDatafileSizes, highDatafilesToRemove);
+    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), mapFiles, lowDatafileSizes, highDatafileSizes,
+        highDatafilesToRemove);
 
     MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, context, zl);
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());

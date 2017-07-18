@@ -53,9 +53,9 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
   private class TableBatchWriter implements BatchWriter {
 
-    private String tableId;
+    private Table.ID tableId;
 
-    TableBatchWriter(String tableId) {
+    TableBatchWriter(Table.ID tableId) {
       this.tableId = tableId;
     }
 
@@ -85,18 +85,15 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   /**
    * CacheLoader which will look up the internal table ID for a given table name.
    */
-  private class TableNameToIdLoader extends CacheLoader<String,String> {
+  private class TableNameToIdLoader extends CacheLoader<String,Table.ID> {
 
     @Override
-    public String load(String tableName) throws Exception {
+    public Table.ID load(String tableName) throws Exception {
       Instance instance = context.getInstance();
-      String tableId = Tables.getNameToIdMap(instance).get(tableName);
-
-      if (tableId == null)
-        throw new TableNotFoundException(null, tableName, null);
+      Table.ID tableId = Tables.getTableId(instance, tableName);
 
       if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-        throw new TableOfflineException(instance, tableId);
+        throw new TableOfflineException(instance, tableId.canonicalID());
 
       return tableId;
     }
@@ -104,9 +101,9 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   }
 
   private TabletServerBatchWriter bw;
-  private ConcurrentHashMap<String,BatchWriter> tableWriters;
+  private ConcurrentHashMap<Table.ID,BatchWriter> tableWriters;
   private final ClientContext context;
-  private final LoadingCache<String,String> nameToIdCache;
+  private final LoadingCache<String,Table.ID> nameToIdCache;
 
   public MultiTableBatchWriterImpl(ClientContext context, BatchWriterConfig config) {
     this(context, config, DEFAULT_CACHE_TIME, DEFAULT_CACHE_TIME_UNIT);
@@ -159,7 +156,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
    *          The name of the table which to find the ID for
    * @return The table ID, or null if the table name doesn't exist
    */
-  private String getId(String tableName) throws TableNotFoundException {
+  private Table.ID getId(String tableName) throws TableNotFoundException {
     try {
       return nameToIdCache.get(tableName);
     } catch (UncheckedExecutionException e) {
@@ -217,7 +214,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
       break;
     }
 
-    String tableId = getId(tableName);
+    Table.ID tableId = getId(tableName);
 
     BatchWriter tbw = tableWriters.get(tableId);
     if (tbw == null) {

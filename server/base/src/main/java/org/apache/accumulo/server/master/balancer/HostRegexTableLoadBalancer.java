@@ -32,6 +32,7 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
@@ -79,7 +80,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
   protected long oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);
 
-  private Map<String,String> tableIdToTableName = null;
+  private Map<Table.ID,String> tableIdToTableName = null;
   private Map<String,Pattern> poolNameToRegexPattern = null;
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private boolean isIpBasedRegex = false;
@@ -179,9 +180,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     tableIdToTableName = new HashMap<>();
     poolNameToRegexPattern = new HashMap<>();
     for (Entry<String,String> table : t.tableIdMap().entrySet()) {
-      tableIdToTableName.put(table.getValue(), table.getKey());
-      conf.getTableConfiguration(table.getValue()).addObserver(this);
-      Map<String,String> customProps = conf.getTableConfiguration(table.getValue()).getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
+      Table.ID tableId = new Table.ID(table.getValue());
+      tableIdToTableName.put(tableId, table.getKey());
+      conf.getTableConfiguration(tableId).addObserver(this);
+      Map<String,String> customProps = conf.getTableConfiguration(tableId).getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
       if (null != customProps && customProps.size() > 0) {
         for (Entry<String,String> customProp : customProps.entrySet()) {
           if (customProp.getKey().startsWith(HOST_BALANCER_PREFIX)) {
@@ -221,7 +223,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     return buf.toString();
   }
 
-  public Map<String,String> getTableIdToTableName() {
+  public Map<Table.ID,String> getTableIdToTableName() {
     return tableIdToTableName;
   }
 
@@ -253,7 +255,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
     // group the unassigned into tables
-    Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
+    Map<Table.ID,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
     for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId());
       if (tableUnassigned == null) {
@@ -263,7 +265,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       tableUnassigned.put(e.getKey(), e.getValue());
     }
     // Send a view of the current servers to the tables tablet balancer
-    for (Entry<String,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
+    for (Entry<Table.ID,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> newAssignments = new HashMap<>();
       String tableName = tableIdToTableName.get(e.getKey());
       String poolName = getPoolNameForTable(tableName);
@@ -311,7 +313,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
               continue;
             }
             try {
-              List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), tid);
+              List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), new Table.ID(tid));
               if (null == outOfBoundsTablets) {
                 continue;
               }
@@ -362,7 +364,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     }
 
     for (String s : tableIdMap.values()) {
-      String tableName = tableIdToTableName.get(s);
+      Table.ID tableId = new Table.ID(s);
+      String tableName = tableIdToTableName.get(tableId);
       String regexTableName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped.get(regexTableName);
       if (null == currentView) {
@@ -370,7 +373,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
         continue;
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      getBalancerForTable(s).balance(currentView, migrations, newMigrations);
+      getBalancerForTable(tableId).balance(currentView, migrations, newMigrations);
 
       migrationsOut.addAll(newMigrations);
       if (migrationsOut.size() > this.maxTServerMigrations) {

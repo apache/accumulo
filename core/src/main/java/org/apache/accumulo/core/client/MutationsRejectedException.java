@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
@@ -68,13 +69,14 @@ public class MutationsRejectedException extends AccumuloException {
     Map<String,Set<SecurityErrorCode>> result = new HashMap<>();
 
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
-      String tableInfo = Tables.getPrintableTableInfoFromId(instance, entry.getKey().getTableId().toString());
+      TabletId tabletId = entry.getKey();
+      String tableInfo = Tables.getPrintableTableInfoFromId(instance, new Table.ID(tabletId.getTableId().toString()));
 
       if (!result.containsKey(tableInfo)) {
         result.put(tableInfo, new HashSet<SecurityErrorCode>());
       }
 
-      result.get(tableInfo).addAll(hashMap.get(entry.getKey()));
+      result.get(tableInfo).addAll(hashMap.get(tabletId));
     }
 
     return result.toString();

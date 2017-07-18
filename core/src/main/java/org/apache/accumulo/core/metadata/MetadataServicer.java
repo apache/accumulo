@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 
 /**
@@ -33,10 +34,10 @@ public abstract class MetadataServicer {
 
   public static MetadataServicer forTableName(ClientContext context, String tableName) throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
-    return forTableId(context, context.getConnector().tableOperations().tableIdMap().get(tableName));
+    return forTableId(context, new Table.ID(context.getConnector().tableOperations().tableIdMap().get(tableName)));
   }
 
-  public static MetadataServicer forTableId(ClientContext context, String tableId) {
+  public static MetadataServicer forTableId(ClientContext context, Table.ID tableId) {
     checkArgument(tableId != null, "tableId is null");
     if (RootTable.ID.equals(tableId))
       return new ServicerForRootTable(context);
@@ -50,7 +51,7 @@ public abstract class MetadataServicer {
    *
    * @return the table id of the table currently being serviced
    */
-  public abstract String getServicedTableId();
+  public abstract Table.ID getServicedTableId();
 
   /**
    * Populate the provided data structure with the known tablets for the table being serviced

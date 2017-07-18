@@ -19,18 +19,19 @@ package org.apache.accumulo.tserver.session;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 
 public class ConditionalSession extends Session {
   public final TCredentials credentials;
   public final Authorizations auths;
-  public final String tableId;
+  public final Table.ID tableId;
   public final AtomicBoolean interruptFlag = new AtomicBoolean();
   public final Durability durability;
   public final String classLoaderContext;
 
-  public ConditionalSession(TCredentials credentials, Authorizations authorizations, String tableId, Durability durability, String classLoaderContext) {
+  public ConditionalSession(TCredentials credentials, Authorizations authorizations, Table.ID tableId, Durability durability, String classLoaderContext) {
     super(credentials);
     this.credentials = credentials;
     this.auths = authorizations;

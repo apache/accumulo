@@ -194,7 +194,7 @@ public class ReplicationTableUtil {
 
   private static Mutation createUpdateMutation(Text row, Value v, KeyExtent extent) {
     Mutation m = new Mutation(row);
-    m.put(MetadataSchema.ReplicationSection.COLF, new Text(extent.getTableId()), v);
+    m.put(MetadataSchema.ReplicationSection.COLF, new Text(extent.getTableId().getUtf8()), v);
     return m;
   }
 }

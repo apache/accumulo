@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -58,9 +59,9 @@ public class MetadataScanner {
 
     ColumnOptions overMetadataTable();
 
-    ColumnOptions overUserTableId(String tableId);
+    ColumnOptions overUserTableId(Table.ID tableId);
 
-    ColumnOptions overUserTableId(String tableId, Text startRow, Text endRow);
+    ColumnOptions overUserTableId(Table.ID tableId, Text startRow, Text endRow);
   }
 
   public static interface ColumnOptions {
@@ -111,7 +112,7 @@ public class MetadataScanner {
     private Scanner scanner;
     private ClientContext ctx;
     private String table;
-    private String userTableId;
+    private Table.ID userTableId;
     private EnumSet<FetchedColumns> fetchedCols = EnumSet.noneOf(FetchedColumns.class);
     private Text startRow;
     private Text endRow;
@@ -198,7 +199,7 @@ public class MetadataScanner {
     }
 
     @Override
-    public ColumnOptions overUserTableId(String tableId) {
+    public ColumnOptions overUserTableId(Table.ID tableId) {
       Preconditions.checkArgument(!tableId.equals(RootTable.ID) && !tableId.equals(MetadataTable.ID));
 
       this.table = MetadataTable.NAME;
@@ -219,7 +220,7 @@ public class MetadataScanner {
     }
 
     @Override
-    public ColumnOptions overUserTableId(String tableId, Text startRow, Text endRow) {
+    public ColumnOptions overUserTableId(Table.ID tableId, Text startRow, Text endRow) {
       this.table = MetadataTable.NAME;
       this.userTableId = tableId;
       this.startRow = startRow;

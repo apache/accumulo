@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -157,7 +158,7 @@ public class DefaultCompactionStrategyTest {
   }
 
   private MajorCompactionRequest createRequest(MajorCompactionReason reason, Object... objs) throws IOException {
-    return createRequest(new KeyExtent("0", null, null), reason, objs);
+    return createRequest(new KeyExtent(new Table.ID("0"), null, null), reason, objs);
   }
 
   private MajorCompactionRequest createRequest(KeyExtent extent, MajorCompactionReason reason, Object... objs) throws IOException {

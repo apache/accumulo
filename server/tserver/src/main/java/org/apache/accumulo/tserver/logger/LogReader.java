@@ -29,6 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -84,7 +85,7 @@ public class LogReader {
       row = new Text(opts.row);
     if (opts.extent != null) {
       String sa[] = opts.extent.split(";");
-      ke = new KeyExtent(sa[0], new Text(sa[1]), new Text(sa[2]));
+      ke = new KeyExtent(new Table.ID(sa[0]), new Text(sa[1]), new Text(sa[2]));
     }
     if (opts.regexp != null) {
       Pattern pattern = Pattern.compile(opts.regexp);

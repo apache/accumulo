@@ -51,6 +51,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
@@ -674,7 +675,7 @@ public class InputConfigurator extends ConfiguratorBase {
    *           if the table name set on the configuration doesn't exist
    * @since 1.6.0
    */
-  public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf, String tableId) throws TableNotFoundException {
+  public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf, Table.ID tableId) throws TableNotFoundException {
     String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE));
     if ("MockInstance".equals(instanceType))
       return DeprecationUtil.makeMockLocator();
@@ -849,7 +850,7 @@ public class InputConfigurator extends ConfiguratorBase {
     return null;
   }
 
-  public static Map<String,Map<KeyExtent,List<Range>>> binOffline(String tableId, List<Range> ranges, Instance instance, Connector conn)
+  public static Map<String,Map<KeyExtent,List<Range>>> binOffline(Table.ID tableId, List<Range> ranges, Instance instance, Connector conn)
       throws AccumuloException, TableNotFoundException {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 

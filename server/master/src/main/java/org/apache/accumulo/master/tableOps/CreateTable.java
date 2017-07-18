@@ -19,6 +19,8 @@ package org.apache.accumulo.master.tableOps;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -29,7 +31,7 @@ public class CreateTable extends MasterRepo {
 
   private TableInfo tableInfo;
 
-  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props, String namespaceId) {
+  public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props, Namespace.ID namespaceId) {
     tableInfo = new TableInfo();
     tableInfo.tableName = tableName;
     tableInfo.timeType = TabletTime.getTimeID(timeType);
@@ -54,7 +56,7 @@ public class CreateTable extends MasterRepo {
 
     Utils.idLock.lock();
     try {
-      tableInfo.tableId = Utils.getNextTableId(tableInfo.tableName, master.getInstance());
+      tableInfo.tableId = Utils.getNextTableId(tableInfo.tableName, master.getInstance(), Table.ID.class);
       return new SetupPermissions(tableInfo);
     } finally {
       Utils.idLock.unlock();

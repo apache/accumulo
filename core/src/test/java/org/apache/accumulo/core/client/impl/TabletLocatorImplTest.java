@@ -65,7 +65,7 @@ public class TabletLocatorImplTest {
   private static final KeyExtent MTE = new KeyExtent(MetadataTable.ID, null, RTE.getEndRow());
 
   static KeyExtent nke(String t, String er, String per) {
-    return new KeyExtent(t, er == null ? null : new Text(er), per == null ? null : new Text(per));
+    return new KeyExtent(new Table.ID(t), er == null ? null : new Text(er), per == null ? null : new Text(per));
   }
 
   static Range nr(String k1, boolean si, String k2, boolean ei) {
@@ -143,7 +143,7 @@ public class TabletLocatorImplTest {
 
     RootTabletLocator rtl = new TestRootTabletLocator();
     TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab1TabletCache = new TabletLocatorImpl(table, rootTabletCache, ttlo, tslc);
+    TabletLocatorImpl tab1TabletCache = new TabletLocatorImpl(new Table.ID(table), rootTabletCache, ttlo, tslc);
 
     setLocation(tservers, rootTabLoc, RTE, MTE, metaTabLoc);
 
@@ -680,7 +680,7 @@ public class TabletLocatorImplTest {
 
     RootTabletLocator rtl = new TestRootTabletLocator();
     TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab1TabletCache = new TabletLocatorImpl("tab1", rootTabletCache, ttlo, new YesLockChecker());
+    TabletLocatorImpl tab1TabletCache = new TabletLocatorImpl(new Table.ID("tab1"), rootTabletCache, ttlo, new YesLockChecker());
 
     locateTabletTest(tab1TabletCache, "r1", null, null);
 
@@ -1223,14 +1223,14 @@ public class TabletLocatorImplTest {
 
     RootTabletLocator rtl = new TestRootTabletLocator();
     TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl("0", rootTabletCache, ttlo, new YesLockChecker());
+    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl(new Table.ID("0"), rootTabletCache, ttlo, new YesLockChecker());
 
     setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
     setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
 
     // create two tablets that straddle a metadata split point
-    KeyExtent ke1 = new KeyExtent("0", new Text("0bbf20e"), null);
-    KeyExtent ke2 = new KeyExtent("0", new Text("0bc0756"), new Text("0bbf20e"));
+    KeyExtent ke1 = new KeyExtent(new Table.ID("0"), new Text("0bbf20e"), null);
+    KeyExtent ke2 = new KeyExtent(new Table.ID("0"), new Text("0bc0756"), new Text("0bbf20e"));
 
     setLocation(tservers, "tserver2", mte1, ke1, "tserver4");
     setLocation(tservers, "tserver3", mte2, ke2, "tserver5");
@@ -1250,7 +1250,7 @@ public class TabletLocatorImplTest {
 
     RootTabletLocator rtl = new TestRootTabletLocator();
     TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl("0", rootTabletCache, ttlo, new YesLockChecker());
+    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl(new Table.ID("0"), rootTabletCache, ttlo, new YesLockChecker());
 
     setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
     setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
@@ -1273,7 +1273,7 @@ public class TabletLocatorImplTest {
     KeyExtent mte4 = new KeyExtent(MetadataTable.ID, new Text("1;r"), new Text("1;j"));
     KeyExtent mte5 = new KeyExtent(MetadataTable.ID, null, new Text("1;r"));
 
-    KeyExtent ke1 = new KeyExtent("1", null, null);
+    KeyExtent ke1 = new KeyExtent(new Table.ID("1"), null, null);
 
     TServers tservers = new TServers();
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
@@ -1281,7 +1281,7 @@ public class TabletLocatorImplTest {
     RootTabletLocator rtl = new TestRootTabletLocator();
 
     TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl("1", rootTabletCache, ttlo, new YesLockChecker());
+    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl(new Table.ID("1"), rootTabletCache, ttlo, new YesLockChecker());
 
     setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
     setLocation(tservers, "tserver1", RTE, mte2, "tserver3");

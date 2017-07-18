@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -148,7 +149,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     }
 
     Mutation m = new Mutation(row);
-    Map<String,Long> tableToTimeCreated = new HashMap<>();
+    Map<Table.ID,Long> tableToTimeCreated = new HashMap<>();
     for (Entry<Key,Value> entry : columns.entrySet()) {
       Status status = null;
       try {
@@ -171,9 +172,9 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
       m.putDelete(colf, colq);
 
-      String tableId;
+      Table.ID tableId;
       if (StatusSection.NAME.equals(colf)) {
-        tableId = colq.toString();
+        tableId = new Table.ID(colq.toString());
       } else if (WorkSection.NAME.equals(colf)) {
         ReplicationTarget target = ReplicationTarget.from(colq);
         tableId = target.getSourceTableId();
@@ -195,10 +196,10 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
     List<Mutation> mutations = new ArrayList<>();
     mutations.add(m);
-    for (Entry<String,Long> entry : tableToTimeCreated.entrySet()) {
+    for (Entry<Table.ID,Long> entry : tableToTimeCreated.entrySet()) {
       log.info("Removing order mutation for table {} at {} for {}", entry.getKey(), entry.getValue(), row.toString());
       Mutation orderMutation = OrderSection.createMutation(row.toString(), entry.getValue());
-      orderMutation.putDelete(OrderSection.NAME, new Text(entry.getKey()));
+      orderMutation.putDelete(OrderSection.NAME, new Text(entry.getKey().getUtf8()));
       mutations.add(orderMutation);
     }
 

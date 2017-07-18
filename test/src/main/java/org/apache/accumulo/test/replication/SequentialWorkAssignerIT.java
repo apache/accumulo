@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
@@ -104,7 +105,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void createWorkForFilesInCorrectOrder() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
     Text serializedTarget = target.toText();
 
     // Create two mutations, both of which need replication work done
@@ -157,16 +158,16 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Assert.assertTrue(queuedWork.containsKey("cluster1"));
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(1, cluster1Work.size());
-    Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target), cluster1Work.get(target.getSourceTableId()));
+    Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId().canonicalID()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target), cluster1Work.get(target.getSourceTableId().canonicalID()));
   }
 
   @Test
   public void workAcrossTablesHappensConcurrently() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
     Text serializedTarget1 = target1.toText();
 
-    ReplicationTarget target2 = new ReplicationTarget("cluster1", "table2", "2");
+    ReplicationTarget target2 = new ReplicationTarget("cluster1", "table2", new Table.ID("2"));
     Text serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
@@ -223,19 +224,19 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(2, cluster1Work.size());
-    Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId()));
+    Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId().canonicalID()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId().canonicalID()));
 
-    Assert.assertTrue(cluster1Work.containsKey(target2.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2), cluster1Work.get(target2.getSourceTableId()));
+    Assert.assertTrue(cluster1Work.containsKey(target2.getSourceTableId().canonicalID()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2), cluster1Work.get(target2.getSourceTableId().canonicalID()));
   }
 
   @Test
   public void workAcrossPeersHappensConcurrently() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
     Text serializedTarget1 = target1.toText();
 
-    ReplicationTarget target2 = new ReplicationTarget("cluster2", "table1", "1");
+    ReplicationTarget target2 = new ReplicationTarget("cluster2", "table1", new Table.ID("1"));
     Text serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
@@ -292,18 +293,18 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(1, cluster1Work.size());
-    Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId()));
+    Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId().canonicalID()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1), cluster1Work.get(target1.getSourceTableId().canonicalID()));
 
     Map<String,String> cluster2Work = queuedWork.get("cluster2");
     Assert.assertEquals(1, cluster2Work.size());
-    Assert.assertTrue(cluster2Work.containsKey(target2.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2), cluster2Work.get(target2.getSourceTableId()));
+    Assert.assertTrue(cluster2Work.containsKey(target2.getSourceTableId().canonicalID()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2), cluster2Work.get(target2.getSourceTableId().canonicalID()));
   }
 
   @Test
   public void reprocessingOfCompletedWorkRemovesWork() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
     Text serializedTarget = target.toText();
 
     // Create two mutations, both of which need replication work done
@@ -339,7 +340,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     // Treat filename1 as we have already submitted it for replication
     Map<String,Map<String,String>> queuedWork = new HashMap<>();
     Map<String,String> queuedWorkForCluster = new HashMap<>();
-    queuedWorkForCluster.put(target.getSourceTableId(), DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target));
+    queuedWorkForCluster.put(target.getSourceTableId().canonicalID(), DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target));
     queuedWork.put("cluster1", queuedWorkForCluster);
 
     assigner.setQueuedWork(queuedWork);
@@ -362,7 +363,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Assert.assertTrue(queuedWork.containsKey("cluster1"));
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
     Assert.assertEquals(1, cluster1Work.size());
-    Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target), cluster1Work.get(target.getSourceTableId()));
+    Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId().canonicalID()));
+    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target), cluster1Work.get(target.getSourceTableId().canonicalID()));
   }
 }

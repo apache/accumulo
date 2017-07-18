@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -451,11 +452,12 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static class Tablet {
-    String tableId, dir;
+    Table.ID tableId;
+    String dir;
     Text prevEndRow, endRow;
     String[] files;
 
-    Tablet(String tableId, String dir, Text prevEndRow, Text endRow, String... files) {
+    Tablet(Table.ID tableId, String dir, Text prevEndRow, Text endRow, String... files) {
       this.tableId = tableId;
       this.dir = dir;
       this.prevEndRow = prevEndRow;

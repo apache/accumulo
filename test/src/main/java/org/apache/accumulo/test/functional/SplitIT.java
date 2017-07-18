@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
@@ -147,7 +148,7 @@ public class SplitIT extends AccumuloClusterHarness {
     while (c.tableOperations().listSplits(table).size() < 10) {
       sleepUninterruptibly(15, TimeUnit.SECONDS);
     }
-    String id = c.tableOperations().tableIdMap().get(table);
+    Table.ID id = new Table.ID(c.tableOperations().tableIdMap().get(table));
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     KeyExtent extent = new KeyExtent(id, null, null);
     s.setRange(extent.toMetadataRange());

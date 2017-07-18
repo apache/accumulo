@@ -22,7 +22,9 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -38,8 +40,8 @@ import org.slf4j.LoggerFactory;
 public class RenameTable extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
-  private String tableId;
-  private String namespaceId;
+  private Table.ID tableId;
+  private Namespace.ID namespaceId;
   private String oldTableName;
   private String newTableName;
 
@@ -48,7 +50,7 @@ public class RenameTable extends MasterRepo {
     return Utils.reserveNamespace(namespaceId, tid, false, true, TableOperation.RENAME) + Utils.reserveTable(tableId, tid, true, true, TableOperation.RENAME);
   }
 
-  public RenameTable(String namespaceId, String tableId, String oldTableName, String newTableName) throws NamespaceNotFoundException {
+  public RenameTable(Namespace.ID namespaceId, Table.ID tableId, String oldTableName, String newTableName) throws NamespaceNotFoundException {
     this.namespaceId = namespaceId;
     this.tableId = tableId;
     this.oldTableName = oldTableName;
@@ -63,7 +65,7 @@ public class RenameTable extends MasterRepo {
 
     // ensure no attempt is made to rename across namespaces
     if (newTableName.contains(".") && !namespaceId.equals(Namespaces.getNamespaceId(instance, qualifiedNewTableName.getFirst())))
-      throw new AcceptableThriftTableOperationException(tableId, oldTableName, TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
+      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), oldTableName, TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();

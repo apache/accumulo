@@ -137,7 +137,7 @@ public class ThriftScanner {
   public static class ScanState {
 
     boolean isolated;
-    String tableId;
+    Table.ID tableId;
     Text startRow;
     boolean skipStartRow;
     long readaheadThreshold;
@@ -164,7 +164,7 @@ public class ThriftScanner {
 
     SamplerConfiguration samplerConfig;
 
-    public ScanState(ClientContext context, String tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
+    public ScanState(ClientContext context, Table.ID tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long readaheadThreshold,
         SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext) {
       this.context = context;
@@ -248,9 +248,9 @@ public class ThriftScanner {
 
             if (loc == null) {
               if (!Tables.exists(instance, scanState.tableId))
-                throw new TableDeletedException(scanState.tableId);
+                throw new TableDeletedException(scanState.tableId.canonicalID());
               else if (Tables.getTableState(instance, scanState.tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(instance, scanState.tableId);
+                throw new TableOfflineException(instance, scanState.tableId.canonicalID());
 
               error = "Failed to locate tablet for table : " + scanState.tableId + " row : " + scanState.startRow;
               if (!error.equals(lastError))
@@ -299,7 +299,7 @@ public class ThriftScanner {
         } catch (AccumuloSecurityException e) {
           Tables.clearCache(instance);
           if (!Tables.exists(instance, scanState.tableId))
-            throw new TableDeletedException(scanState.tableId);
+            throw new TableDeletedException(scanState.tableId.canonicalID());
           e.setTableInfo(Tables.getPrintableTableInfoFromId(instance, scanState.tableId));
           throw e;
         } catch (TApplicationException tae) {

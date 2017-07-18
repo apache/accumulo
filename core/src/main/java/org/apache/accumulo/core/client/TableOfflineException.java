@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 
 public class TableOfflineException extends RuntimeException {
@@ -26,7 +27,7 @@ public class TableOfflineException extends RuntimeException {
     if (tableId == null)
       return " <unknown table> ";
     try {
-      String tableName = Tables.getTableName(instance, tableId);
+      String tableName = Tables.getTableName(instance, new Table.ID(tableId));
       return tableName + " (" + tableId + ")";
     } catch (TableNotFoundException e) {
       return " <unknown table> (" + tableId + ")";

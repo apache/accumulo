@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mapred.impl;
 import java.io.IOException;
 import java.util.Collection;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.mapred.InputSplit;
 
@@ -35,7 +36,7 @@ public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.i
     super(split);
   }
 
-  public BatchInputSplit(String table, String tableId, Collection<Range> ranges, String[] location) {
+  public BatchInputSplit(String table, Table.ID tableId, Collection<Range> ranges, String[] location) {
     super(table, tableId, ranges, location);
   }
 }

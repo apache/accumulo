@@ -17,12 +17,13 @@
 package org.apache.accumulo.core.metadata;
 
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Table;
 
 public class MetadataTable {
 
   public static final String OLD_NAME = "!METADATA";
 
-  public static final String ID = "!0";
+  public static final Table.ID ID = Table.ID.METADATA;
   public static final String NAME = Namespaces.ACCUMULO_NAMESPACE + ".metadata";
 
 }

@@ -25,6 +25,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -129,10 +130,11 @@ public class ChaoticLoadBalancer extends TabletBalancer {
 
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
       for (String tableId : e.getValue().getTableMap().keySet()) {
-        if (!moveMetadata && MetadataTable.ID.equals(tableId))
+        Table.ID id = new Table.ID(tableId);
+        if (!moveMetadata && MetadataTable.ID.equals(id))
           continue;
         try {
-          for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), tableId)) {
+          for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), id)) {
             KeyExtent ke = new KeyExtent(ts.extent);
             int index = r.nextInt(underCapacityTServer.size());
             TServerInstance dest = underCapacityTServer.get(index);

@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TimerTask;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.Translators;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -230,8 +231,8 @@ public class SessionManager {
     }
   }
 
-  public synchronized Map<String,MapCounter<ScanRunState>> getActiveScansPerTable() {
-    Map<String,MapCounter<ScanRunState>> counts = new HashMap<>();
+  public synchronized Map<Table.ID,MapCounter<ScanRunState>> getActiveScansPerTable() {
+    Map<Table.ID,MapCounter<ScanRunState>> counts = new HashMap<>();
     Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
     synchronized (idleSessions) {
@@ -248,7 +249,7 @@ public class SessionManager {
       Session session = entry.getValue();
       @SuppressWarnings("rawtypes")
       ScanTask nbt = null;
-      String tableID = null;
+      Table.ID tableID = null;
 
       if (session instanceof ScanSession) {
         ScanSession ss = (ScanSession) session;
@@ -320,8 +321,9 @@ public class SessionManager {
           }
         }
 
-        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(), ss.extent.getTableId(), ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE,
-            state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB(), ss.context);
+        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(), ss.extent.getTableId().canonicalID(), ct - ss.startTime, ct - ss.lastAccessTime,
+            ScanType.SINGLE, state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio,
+            ss.auths.getAuthorizationsBB(), ss.context);
 
         // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in ActiveScan constructor
         activeScan.setScanId(entry.getKey());
@@ -350,7 +352,7 @@ public class SessionManager {
           }
         }
 
-        activeScans.add(new ActiveScan(mss.client, mss.getUser(), mss.threadPoolExtent.getTableId(), ct - mss.startTime, ct - mss.lastAccessTime,
+        activeScans.add(new ActiveScan(mss.client, mss.getUser(), mss.threadPoolExtent.getTableId().canonicalID(), ct - mss.startTime, ct - mss.lastAccessTime,
             ScanType.BATCH, state, mss.threadPoolExtent.toThrift(), Translator.translate(mss.columnSet, Translators.CT), mss.ssiList, mss.ssio, mss.auths
                 .getAuthorizationsBB(), mss.context));
       }

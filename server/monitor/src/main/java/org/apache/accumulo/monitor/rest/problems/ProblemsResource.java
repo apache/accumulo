@@ -29,6 +29,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -60,10 +61,8 @@ public class ProblemsResource {
 
     ProblemSummary problems = new ProblemSummary();
 
-    Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
-
     if (Monitor.getProblemException() == null) {
-      for (Entry<String,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
+      for (Entry<Table.ID,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
         Integer readCount = null, writeCount = null, loadCount = null;
 
         for (ProblemType pt : ProblemType.values()) {
@@ -77,7 +76,7 @@ public class ProblemsResource {
           }
         }
 
-        String tableName = Tables.getPrintableTableNameFromId(tidToNameMap, entry.getKey());
+        String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(), entry.getKey());
 
         problems.addProblemSummary(new ProblemSummaryInformation(tableName, entry.getKey(), readCount, writeCount, loadCount));
       }
@@ -97,7 +96,7 @@ public class ProblemsResource {
   public void clearTableProblems(@QueryParam("s") String tableID) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(tableID);
+      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(new Table.ID(tableID));
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table " + tableID, e);
     }
@@ -114,17 +113,15 @@ public class ProblemsResource {
 
     ProblemDetail problems = new ProblemDetail();
 
-    Map<String,String> tidToNameMap = Tables.getIdToNameMap(HdfsZooInstance.getInstance());
-
     if (Monitor.getProblemException() == null) {
-      for (Entry<String,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
+      for (Entry<Table.ID,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
         ArrayList<ProblemReport> problemReports = new ArrayList<>();
         Iterator<ProblemReport> iter = entry.getKey() == null ? ProblemReports.getInstance(Monitor.getContext()).iterator() : ProblemReports.getInstance(
             Monitor.getContext()).iterator(entry.getKey());
         while (iter.hasNext())
           problemReports.add(iter.next());
         for (ProblemReport pr : problemReports) {
-          String tableName = Tables.getPrintableTableNameFromId(tidToNameMap, pr.getTableName());
+          String tableName = Tables.getPrintableTableInfoFromId(HdfsZooInstance.getInstance(), pr.getTableId());
 
           problems.addProblemDetail(new ProblemDetailInformation(tableName, entry.getKey(), pr.getProblemType().name(), pr.getServer(), pr.getTime(), pr
               .getResource(), pr.getException()));
@@ -150,7 +147,7 @@ public class ProblemsResource {
   public void clearDetailsProblems(@QueryParam("table") String tableID, @QueryParam("resource") String resource, @QueryParam("ptype") String ptype) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(tableID, ProblemType.valueOf(ptype), resource);
+      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(new Table.ID(tableID), ProblemType.valueOf(ptype), resource);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table " + tableID, e);
     }

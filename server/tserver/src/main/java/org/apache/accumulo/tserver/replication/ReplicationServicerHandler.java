@@ -21,6 +21,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -49,7 +50,8 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateLog(String tableId, WalEdits data, TCredentials tcreds) throws RemoteReplicationException, TException {
+  public long replicateLog(String tableIdStr, WalEdits data, TCredentials tcreds) throws RemoteReplicationException, TException {
+    Table.ID tableId = new Table.ID(tableIdStr);
     log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
     tabletServer.getSecurityOperation().authenticateUser(tabletServer.rpcCreds(), tcreds);
 

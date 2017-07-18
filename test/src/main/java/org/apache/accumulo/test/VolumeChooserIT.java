@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -176,7 +177,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Create table1 on namespace1
     String tableName = namespace1 + ".1";
     connector.tableOperations().create(tableName);
-    String tableID = connector.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
     addSplits(connector, tableName);
@@ -200,7 +201,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     String tableName2 = namespace2 + ".1";
 
     connector.tableOperations().create(tableName2);
-    String tableID2 = connector.tableOperations().tableIdMap().get(tableName2);
+    Table.ID tableID2 = new Table.ID(connector.tableOperations().tableIdMap().get(tableName2));
 
     // Add 10 splits to the table
     addSplits(connector, tableName2);
@@ -227,7 +228,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Create table1 on namespace1
     String tableName = namespace1 + ".1";
     connector.tableOperations().create(tableName);
-    String tableID = connector.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
     addSplits(connector, tableName);
@@ -247,7 +248,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Create table2 on namespace2
     String tableName2 = namespace2 + ".1";
     connector.tableOperations().create(tableName2);
-    String tableID2 = connector.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableID2 = new Table.ID(connector.tableOperations().tableIdMap().get(tableName2));
 
     // / Add 10 splits to the table
     addSplits(connector, tableName2);
@@ -275,7 +276,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Create table1 on namespace1
     String tableName = namespace1 + ".1";
     connector.tableOperations().create(tableName);
-    String tableID = connector.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
     addSplits(connector, tableName);
@@ -299,7 +300,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Create table2 on namespace2
     String tableName2 = namespace2 + ".1";
     connector.tableOperations().create(tableName2);
-    String tableID2 = connector.tableOperations().tableIdMap().get(tableName2);
+    Table.ID tableID2 = new Table.ID(connector.tableOperations().tableIdMap().get(tableName2));
 
     // Add 10 splits to the table
     addSplits(connector, tableName2);
@@ -327,7 +328,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Create table1 on namespace1
     String tableName = namespace1 + ".1";
     connector.tableOperations().create(tableName);
-    String tableID = connector.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
     addSplits(connector, tableName);
@@ -359,7 +360,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Create table1 on namespace1
     String tableName = namespace1 + ".1";
     connector.tableOperations().create(tableName);
-    String tableID = connector.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
     addSplits(connector, tableName);
@@ -378,7 +379,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     Connector connector = getConnector();
     String tableName = getUniqueNames(2)[0];
     connector.tableOperations().create(tableName);
-    String tableID = connector.tableOperations().tableIdMap().get(tableName);
+    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
     addSplits(connector, tableName);

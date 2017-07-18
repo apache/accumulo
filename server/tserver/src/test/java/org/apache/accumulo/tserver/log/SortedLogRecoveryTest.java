@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -56,7 +57,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class SortedLogRecoveryTest {
 
-  static final KeyExtent extent = new KeyExtent("table", null, null);
+  static final KeyExtent extent = new KeyExtent(new Table.ID("table"), null, null);
   static final Text cf = new Text("cf");
   static final Text cq = new Text("cq");
   static final Value value = new Value("value".getBytes());

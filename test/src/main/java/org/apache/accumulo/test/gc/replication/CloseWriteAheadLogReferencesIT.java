@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -168,7 +169,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     Set<String> wals = Collections.singleton(file);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     Mutation m = new Mutation(file);
-    StatusSection.add(m, "1", ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));
+    StatusSection.add(m, new Table.ID("1"), ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));
     bw.addMutation(m);
     bw.close();
 

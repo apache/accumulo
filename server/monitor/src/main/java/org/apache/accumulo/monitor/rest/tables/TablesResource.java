@@ -33,7 +33,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -72,7 +74,7 @@ public class TablesResource {
    * @return Table list
    */
   private static TablesList generateTables(String namespace) {
-    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
+    SortedMap<String,Namespace.ID> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
 
     TablesList tableNamespace = new TablesList();
 
@@ -97,22 +99,22 @@ public class TablesResource {
    */
   private static TablesList generateTables(TablesList tableNamespace) {
     Instance inst = Monitor.getContext().getInstance();
-    Map<String,String> tidToNameMap = Tables.getIdToNameMap(inst);
     SortedMap<String,TableInfo> tableStats = new TreeMap<>();
 
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
       for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
-        tableStats.put(Tables.getPrintableTableNameFromId(tidToNameMap, te.getKey()), te.getValue());
+        tableStats.put(Tables.getPrintableTableInfoFromId(inst, new Table.ID(te.getKey())), te.getValue());
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
     List<TableInformation> tables = new ArrayList<>();
 
     // Add tables to the list
-    for (Entry<String,String> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
-      String tableName = entry.getKey(), tableId = entry.getValue();
+    for (Entry<String,Table.ID> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
+      String tableName = entry.getKey();
+      Table.ID tableId = entry.getValue();
       TableInfo tableInfo = tableStats.get(tableName);
       if (null != tableInfo) {
-        Double holdTime = compactingByTable.get(tableId);
+        Double holdTime = compactingByTable.get(tableId.canonicalID());
         if (holdTime == null)
           holdTime = Double.valueOf(0.);
 
@@ -173,7 +175,7 @@ public class TablesResource {
   @GET
   @Path("namespaces/{namespaces}")
   public TablesList getTableWithNamespace(@PathParam("namespaces") String namespaceList) {
-    SortedMap<String,String> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
+    SortedMap<String,Namespace.ID> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
 
     TablesList tableNamespace = new TablesList();
     /*
@@ -193,14 +195,15 @@ public class TablesResource {
   /**
    * Generates a list of participating tservers for a table
    *
-   * @param tableId
+   * @param tableIdStr
    *          Table ID to find participating tservers
    * @return List of participating tservers
    */
   @Path("{tableId}")
   @GET
-  public TabletServers getParticipatingTabletServers(@PathParam("tableId") String tableId) throws Exception {
+  public TabletServers getParticipatingTabletServers(@PathParam("tableId") String tableIdStr) throws Exception {
     Instance instance = Monitor.getContext().getInstance();
+    Table.ID tableId = new Table.ID(tableIdStr);
 
     TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
 
@@ -244,7 +247,7 @@ public class TablesResource {
         status = NO_STATUS;
       TableInfo summary = TableInfoUtil.summarizeTableStats(status);
       if (tableId != null)
-        summary = status.tableMap.get(tableId);
+        summary = status.tableMap.get(tableId.canonicalID());
       if (summary == null)
         continue;
 

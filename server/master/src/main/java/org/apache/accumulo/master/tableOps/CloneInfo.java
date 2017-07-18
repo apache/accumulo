@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.client.impl.Table;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
@@ -24,11 +27,11 @@ class CloneInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  String srcTableId;
+  Table.ID srcTableId;
   String tableName;
-  String tableId;
-  String namespaceId;
-  String srcNamespaceId;
+  Table.ID tableId;
+  Namespace.ID namespaceId;
+  Namespace.ID srcNamespaceId;
   Map<String,String> propertiesToSet;
   Set<String> propertiesToExclude;
 

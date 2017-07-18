@@ -29,6 +29,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -61,7 +62,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     Assert.assertEquals(Pattern.compile("r01.*").pattern(), patterns.get(FOO.getTableName()).pattern());
     Assert.assertTrue(patterns.containsKey(BAR.getTableName()));
     Assert.assertEquals(Pattern.compile("r02.*").pattern(), patterns.get(BAR.getTableName()).pattern());
-    Map<String,String> tids = this.getTableIdToTableName();
+    Map<Table.ID,String> tids = this.getTableIdToTableName();
     Assert.assertEquals(3, tids.size());
     Assert.assertTrue(tids.containsKey(FOO.getId()));
     Assert.assertEquals(FOO.getTableName(), tids.get(FOO.getId()));
@@ -117,7 +118,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init(new AccumuloServerContext(instance, new TestServerConfigurationFactory(instance) {
 
       @Override
-      public TableConfiguration getTableConfiguration(String tableId) {
+      public TableConfiguration getTableConfiguration(Table.ID tableId) {
         NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, this.instance, DefaultConfiguration.getInstance());
         return new TableConfiguration(instance, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
@@ -189,7 +190,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       }
 
       @Override
-      public TableConfiguration getTableConfiguration(String tableId) {
+      public TableConfiguration getTableConfiguration(Table.ID tableId) {
         NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, this.instance, DefaultConfiguration.getInstance());
         return new TableConfiguration(instance, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
@@ -360,13 +361,13 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   }
 
   @Override
-  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
+  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
     // Report incorrect information so that balance will create an assignment
     List<TabletStats> tablets = new ArrayList<>();
     if (tableId.equals(BAR.getId()) && tserver.host().equals("192.168.0.1")) {
       // Report that we have a bar tablet on this server
       TKeyExtent tke = new TKeyExtent();
-      tke.setTable(BAR.getId().getBytes());
+      tke.setTable(BAR.getId().getUtf8());
       tke.setEndRow("11".getBytes());
       tke.setPrevEndRow("10".getBytes());
       TabletStats ts = new TabletStats();
@@ -375,7 +376,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     } else if (tableId.equals(FOO.getId()) && tserver.host().equals("192.168.0.6")) {
       // Report that we have a foo tablet on this server
       TKeyExtent tke = new TKeyExtent();
-      tke.setTable(FOO.getId().getBytes());
+      tke.setTable(FOO.getId().getUtf8());
       tke.setEndRow("1".getBytes());
       tke.setPrevEndRow("0".getBytes());
       TabletStats ts = new TabletStats();

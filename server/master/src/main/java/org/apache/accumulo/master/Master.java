@@ -47,7 +47,9 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
@@ -388,11 +390,11 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         // create initial namespaces
         String namespaces = ZooUtil.getRoot(getInstance()) + Constants.ZNAMESPACES;
         zoo.putPersistentData(namespaces, new byte[0], NodeExistsPolicy.SKIP);
-        for (Pair<String,String> namespace : Iterables.concat(
+        for (Pair<String,Namespace.ID> namespace : Iterables.concat(
             Collections.singleton(new Pair<>(Namespaces.ACCUMULO_NAMESPACE, Namespaces.ACCUMULO_NAMESPACE_ID)),
             Collections.singleton(new Pair<>(Namespaces.DEFAULT_NAMESPACE, Namespaces.DEFAULT_NAMESPACE_ID)))) {
           String ns = namespace.getFirst();
-          String id = namespace.getSecond();
+          Namespace.ID id = namespace.getSecond();
           log.debug("Upgrade creating namespace \"" + ns + "\" (ID: " + id + ")");
           if (!Namespaces.exists(getInstance(), id))
             TableManager.prepareNewNamespaceState(getInstance().getInstanceID(), id, ns, NodeExistsPolicy.SKIP);
@@ -414,11 +416,11 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         // put existing tables in the correct namespaces
         String tables = ZooUtil.getRoot(getInstance()) + Constants.ZTABLES;
         for (String tableId : zoo.getChildren(tables)) {
-          String targetNamespace = (MetadataTable.ID.equals(tableId) || RootTable.ID.equals(tableId)) ? Namespaces.ACCUMULO_NAMESPACE_ID
+          Namespace.ID targetNamespace = (MetadataTable.ID.canonicalID().equals(tableId) || RootTable.ID.canonicalID().equals(tableId)) ? Namespaces.ACCUMULO_NAMESPACE_ID
               : Namespaces.DEFAULT_NAMESPACE_ID;
           log.debug("Upgrade moving table " + new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8) + " (ID: " + tableId
               + ") into namespace with ID " + targetNamespace);
-          zoo.putPersistentData(tables + "/" + tableId + Constants.ZTABLE_NAMESPACE, targetNamespace.getBytes(UTF_8), NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(tables + "/" + tableId + Constants.ZTABLE_NAMESPACE, targetNamespace.getUtf8(), NodeExistsPolicy.SKIP);
         }
 
         // rename metadata table
@@ -519,7 +521,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
   }
 
-  private int assignedOrHosted(String tableId) {
+  private int assignedOrHosted(Table.ID tableId) {
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       TableCounts count = watcher.getStats(tableId);
@@ -560,8 +562,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         // Count offline tablets for online tables
         for (TabletGroupWatcher watcher : watchers) {
           TableManager manager = TableManager.getInstance();
-          for (Entry<String,TableCounts> entry : watcher.getStats().entrySet()) {
-            String tableId = entry.getKey();
+          for (Entry<Table.ID,TableCounts> entry : watcher.getStats().entrySet()) {
+            Table.ID tableId = entry.getKey();
             TableCounts counts = entry.getValue();
             TableState tableState = manager.getTableState(tableId);
             if (tableState != null && tableState.equals(TableState.ONLINE)) {
@@ -590,10 +592,10 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     return result;
   }
 
-  public void mustBeOnline(final String tableId) throws ThriftTableOperationException {
+  public void mustBeOnline(final Table.ID tableId) throws ThriftTableOperationException {
     Tables.clearCache(getInstance());
     if (!Tables.getTableState(getInstance(), tableId).equals(TableState.ONLINE))
-      throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE, TableOperationExceptionType.OFFLINE, "table is not online");
+      throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.MERGE, TableOperationExceptionType.OFFLINE, "table is not online");
   }
 
   public Master(Instance instance, ServerConfigurationFactory config, VolumeManager fs, String hostname) throws IOException {
@@ -650,7 +652,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     return tserverSet.getConnection(server);
   }
 
-  public MergeInfo getMergeInfo(String tableId) {
+  public MergeInfo getMergeInfo(Table.ID tableId) {
     synchronized (mergeLock) {
       try {
         String path = ZooUtil.getRoot(getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId + "/merge";
@@ -693,7 +695,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     nextEvent.event("Merge state of %s set to %s", info.getExtent(), state);
   }
 
-  public void clearMergeState(String tableId) throws IOException, KeeperException, InterruptedException {
+  public void clearMergeState(Table.ID tableId) throws IOException, KeeperException, InterruptedException {
     synchronized (mergeLock) {
       String path = ZooUtil.getRoot(getInstance().getInstanceID()) + Constants.ZTABLES + "/" + tableId + "/merge";
       ZooReaderWriter.getInstance().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -731,7 +733,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     return true;
   }
 
-  public void clearMigrations(String tableId) {
+  public void clearMigrations(Table.ID tableId) {
     synchronized (migrations) {
       Iterator<KeyExtent> iterator = migrations.keySet().iterator();
       while (iterator.hasNext()) {
@@ -886,7 +888,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
      */
     private void cleanupOfflineMigrations() {
       TableManager manager = TableManager.getInstance();
-      for (String tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
+      for (Table.ID tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
         TableState state = manager.getTableState(tableId);
         if (TableState.OFFLINE == state) {
           clearMigrations(tableId);
@@ -1525,7 +1527,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   }
 
   @Override
-  public void stateChanged(String tableId, TableState state) {
+  public void stateChanged(Table.ID tableId, TableState state) {
     nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
     if (TableState.OFFLINE == state) {
       clearMigrations(tableId);
@@ -1533,14 +1535,14 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   }
 
   @Override
-  public void initialize(Map<String,TableState> tableIdToStateMap) {}
+  public void initialize(Map<Table.ID,TableState> tableIdToStateMap) {}
 
   @Override
   public void sessionExpired() {}
 
   @Override
-  public Set<String> onlineTables() {
-    Set<String> result = new HashSet<>();
+  public Set<Table.ID> onlineTables() {
+    Set<Table.ID> result = new HashSet<>();
     if (getMasterState() != MasterState.NORMAL) {
       if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS)
         result.add(MetadataTable.ID);
@@ -1550,7 +1552,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     }
     TableManager manager = TableManager.getInstance();
 
-    for (String tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
+    for (Table.ID tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
       TableState state = manager.getTableState(tableId);
       if (state != null) {
         if (state == TableState.ONLINE)
@@ -1568,7 +1570,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   @Override
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<>();
-    for (String tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
+    for (Table.ID tableId : Tables.getIdToNameMap(getInstance()).keySet()) {
       result.add(getMergeInfo(tableId));
     }
     return result;

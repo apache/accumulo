@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -51,7 +52,7 @@ public class SizeLimitCompactionStrategyTest {
 
     slcs.init(opts);
 
-    KeyExtent ke = new KeyExtent("0", null, null);
+    KeyExtent ke = new KeyExtent(new Table.ID("0"), null, null);
     MajorCompactionRequest mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, DefaultConfiguration.getInstance());
 
     mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G"));

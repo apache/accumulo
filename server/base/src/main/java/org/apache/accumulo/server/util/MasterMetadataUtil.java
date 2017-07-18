@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -135,12 +136,12 @@ public class MasterMetadataUtil {
 
     Text metadataPrevEndRow = KeyExtent.decodePrevEndRow(prevEndRowIBW);
 
-    String table = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
+    Table.ID tableId = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
 
-    return fixSplit(context, table, metadataEntry, metadataPrevEndRow, oper, splitRatio, tserver, time.toString(), initFlushID, initCompactID, lock);
+    return fixSplit(context, tableId, metadataEntry, metadataPrevEndRow, oper, splitRatio, tserver, time.toString(), initFlushID, initCompactID, lock);
   }
 
-  private static KeyExtent fixSplit(ClientContext context, String table, Text metadataEntry, Text metadataPrevEndRow, Value oper, double splitRatio,
+  private static KeyExtent fixSplit(ClientContext context, Table.ID tableId, Text metadataEntry, Text metadataPrevEndRow, Value oper, double splitRatio,
       TServerInstance tserver, String time, long initFlushID, long initCompactID, ZooLock lock) throws AccumuloException, IOException {
     if (metadataPrevEndRow == null)
       // something is wrong, this should not happen... if a tablet is split, it will always have a
@@ -148,7 +149,7 @@ public class MasterMetadataUtil {
       throw new AccumuloException("Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
 
     // check to see if prev tablet exist in metadata tablet
-    Key prevRowKey = new Key(new Text(KeyExtent.getMetadataEntry(table, metadataPrevEndRow)));
+    Key prevRowKey = new Key(new Text(KeyExtent.getMetadataEntry(tableId, metadataPrevEndRow)));
 
     try (ScannerImpl scanner2 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
@@ -180,7 +181,7 @@ public class MasterMetadataUtil {
           }
         }
 
-        MetadataTableUtil.splitDatafiles(table, metadataPrevEndRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), origDatafileSizes, lowDatafileSizes,
+        MetadataTableUtil.splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), origDatafileSizes, lowDatafileSizes,
             highDatafileSizes, highDatafilesToRemove);
 
         MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove, context, lock);

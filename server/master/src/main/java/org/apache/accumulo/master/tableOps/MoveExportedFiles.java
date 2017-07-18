@@ -50,8 +50,8 @@ class MoveExportedFiles extends MasterRepo {
 
       for (String oldFileName : fileNameMappings.keySet()) {
         if (!fs.exists(new Path(tableInfo.exportDir, oldFileName))) {
-          throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-              "File referenced by exported table does not exists " + oldFileName);
+          throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonicalID(), tableInfo.tableName, TableOperation.IMPORT,
+              TableOperationExceptionType.OTHER, "File referenced by exported table does not exists " + oldFileName);
         }
       }
 
@@ -67,8 +67,8 @@ class MoveExportedFiles extends MasterRepo {
       return new FinishImportTable(tableInfo);
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
-      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Error renaming files " + ioe.getMessage());
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonicalID(), tableInfo.tableName, TableOperation.IMPORT,
+          TableOperationExceptionType.OTHER, "Error renaming files " + ioe.getMessage());
     }
   }
 }

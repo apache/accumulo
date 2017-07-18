@@ -113,7 +113,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap(1000));
   private final ClientContext context;
   private TabletLocator locator;
-  private final String tableId;
+  private final Table.ID tableId;
   private long timeout;
   private final Durability durability;
   private final String classLoaderContext;
@@ -298,9 +298,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
       if (failures.size() == mutations.size())
         if (!Tables.exists(context.getInstance(), tableId))
-          throw new TableDeletedException(tableId);
+          throw new TableDeletedException(tableId.canonicalID());
         else if (Tables.getTableState(context.getInstance(), tableId) == TableState.OFFLINE)
-          throw new TableOfflineException(context.getInstance(), tableId);
+          throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
 
     } catch (Exception e) {
       for (QCMutation qcm : mutations)
@@ -383,7 +383,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  ConditionalWriterImpl(ClientContext context, String tableId, ConditionalWriterConfig config) {
+  ConditionalWriterImpl(ClientContext context, Table.ID tableId, ConditionalWriterConfig config) {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
@@ -510,8 +510,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       }
     }
 
-    TConditionalSession tcs = client.startConditionalUpdate(tinfo, context.rpcCreds(), ByteBufferUtil.toByteBuffers(auths.getAuthorizations()), tableId,
-        DurabilityImpl.toThrift(durability), this.classLoaderContext);
+    TConditionalSession tcs = client.startConditionalUpdate(tinfo, context.rpcCreds(), ByteBufferUtil.toByteBuffers(auths.getAuthorizations()),
+        tableId.canonicalID(), DurabilityImpl.toThrift(durability), this.classLoaderContext);
 
     synchronized (cachedSessionIDs) {
       SessionID sid = new SessionID();

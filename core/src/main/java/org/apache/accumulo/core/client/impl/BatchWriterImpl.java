@@ -25,10 +25,10 @@ import org.apache.accumulo.core.data.Mutation;
 
 public class BatchWriterImpl implements BatchWriter {
 
-  private final String tableId;
+  private final Table.ID tableId;
   private final TabletServerBatchWriter bw;
 
-  public BatchWriterImpl(ClientContext context, String tableId, BatchWriterConfig config) {
+  public BatchWriterImpl(ClientContext context, Table.ID tableId, BatchWriterConfig config) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     if (config == null)

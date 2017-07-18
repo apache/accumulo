@@ -910,8 +910,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertTrue(namespaces.contains(Namespaces.ACCUMULO_NAMESPACE));
     assertTrue(namespaces.contains(Namespaces.DEFAULT_NAMESPACE));
     assertFalse(namespaces.contains(namespace));
-    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID, map.get(Namespaces.ACCUMULO_NAMESPACE));
-    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID, map.get(Namespaces.DEFAULT_NAMESPACE));
+    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID.canonicalID(), map.get(Namespaces.ACCUMULO_NAMESPACE));
+    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID.canonicalID(), map.get(Namespaces.DEFAULT_NAMESPACE));
     assertNull(map.get(namespace));
 
     c.namespaceOperations().create(namespace);
@@ -922,8 +922,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertTrue(namespaces.contains(Namespaces.ACCUMULO_NAMESPACE));
     assertTrue(namespaces.contains(Namespaces.DEFAULT_NAMESPACE));
     assertTrue(namespaces.contains(namespace));
-    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID, map.get(Namespaces.ACCUMULO_NAMESPACE));
-    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID, map.get(Namespaces.DEFAULT_NAMESPACE));
+    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID.canonicalID(), map.get(Namespaces.ACCUMULO_NAMESPACE));
+    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID.canonicalID(), map.get(Namespaces.DEFAULT_NAMESPACE));
     assertNotNull(map.get(namespace));
 
     c.namespaceOperations().delete(namespace);
@@ -934,8 +934,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertTrue(namespaces.contains(Namespaces.ACCUMULO_NAMESPACE));
     assertTrue(namespaces.contains(Namespaces.DEFAULT_NAMESPACE));
     assertFalse(namespaces.contains(namespace));
-    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID, map.get(Namespaces.ACCUMULO_NAMESPACE));
-    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID, map.get(Namespaces.DEFAULT_NAMESPACE));
+    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID.canonicalID(), map.get(Namespaces.ACCUMULO_NAMESPACE));
+    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID.canonicalID(), map.get(Namespaces.DEFAULT_NAMESPACE));
     assertNull(map.get(namespace));
   }
 

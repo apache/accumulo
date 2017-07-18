@@ -97,7 +97,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       Entry<String,ReplicationTarget> entry = DistributedWorkQueueWorkAssignerHelper.fromQueueKey(work);
       String filename = entry.getKey();
       String peerName = entry.getValue().getPeerName();
-      String sourceTableId = entry.getValue().getSourceTableId();
+      String sourceTableId = entry.getValue().getSourceTableId().canonicalID();
 
       log.debug("In progress replication of {} from table with ID {} to peer {}", filename, sourceTableId, peerName);
 
@@ -158,7 +158,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       return true;
     }
 
-    String queuedWork = queuedWorkForPeer.get(target.getSourceTableId());
+    String queuedWork = queuedWorkForPeer.get(target.getSourceTableId().canonicalID());
 
     // If we have no work for the local table to the given peer, submit some!
     return null == queuedWork;
@@ -173,11 +173,11 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       this.queuedWorkByPeerName.put(target.getPeerName(), workForPeer);
     }
 
-    String queuedWork = workForPeer.get(target.getSourceTableId());
+    String queuedWork = workForPeer.get(target.getSourceTableId().canonicalID());
     if (null == queuedWork) {
       try {
         workQueue.addWork(queueKey, path.toString());
-        workForPeer.put(target.getSourceTableId(), queueKey);
+        workForPeer.put(target.getSourceTableId().canonicalID(), queueKey);
       } catch (KeeperException | InterruptedException e) {
         log.warn("Could not queue work for {} to {}", path, target, e);
         return false;
@@ -200,7 +200,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       return Collections.emptySet();
     }
 
-    String queuedWork = queuedWorkForPeer.get(target.getSourceTableId());
+    String queuedWork = queuedWorkForPeer.get(target.getSourceTableId().canonicalID());
     if (null == queuedWork) {
       return Collections.emptySet();
     } else {
@@ -216,9 +216,9 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       return;
     }
 
-    String queuedWork = queuedWorkForPeer.get(target.getSourceTableId());
+    String queuedWork = queuedWorkForPeer.get(target.getSourceTableId().canonicalID());
     if (queuedWork.equals(queueKey)) {
-      queuedWorkForPeer.remove(target.getSourceTableId());
+      queuedWorkForPeer.remove(target.getSourceTableId().canonicalID());
     } else {
       log.warn("removeQueuedWork called on {} with differing queueKeys, expected {} but was {}", target, queueKey, queuedWork);
       return;

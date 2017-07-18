@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -204,7 +205,7 @@ public class SampleIT extends AccumuloClusterHarness {
     Set<String> es = Collections.emptySet();
     conn.tableOperations().clone(tableName, clone, false, em, es);
     conn.tableOperations().offline(clone, true);
-    String cloneID = conn.tableOperations().tableIdMap().get(clone);
+    Table.ID cloneID = new Table.ID(conn.tableOperations().tableIdMap().get(clone));
     OfflineScanner oScanner = new OfflineScanner(conn.getInstance(), new Credentials(getAdminPrincipal(), getAdminToken()), cloneID, Authorizations.EMPTY);
     if (sc != null) {
       oScanner.setSamplerConfiguration(sc);

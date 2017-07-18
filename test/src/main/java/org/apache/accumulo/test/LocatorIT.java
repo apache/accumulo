@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -70,7 +71,7 @@ public class LocatorIT extends AccumuloClusterHarness {
   }
 
   private static TabletId newTabletId(String tableId, String endRow, String prevRow) {
-    return new TabletIdImpl(new KeyExtent(tableId, endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow)));
+    return new TabletIdImpl(new KeyExtent(new Table.ID(tableId), endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow)));
   }
 
   @Test

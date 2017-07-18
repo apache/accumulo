@@ -88,7 +88,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
   static final EndRowComparator endRowComparator = new EndRowComparator();
 
-  protected String tableId;
+  protected Table.ID tableId;
   protected TabletLocator parent;
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(endRowComparator);
   protected TabletLocationObtainer locationObtainer;
@@ -152,13 +152,13 @@ public class TabletLocatorImpl extends TabletLocator {
     }
   }
 
-  public TabletLocatorImpl(String tableId, TabletLocator parent, TabletLocationObtainer tlo, TabletServerLockChecker tslc) {
+  public TabletLocatorImpl(Table.ID tableId, TabletLocator parent, TabletLocationObtainer tlo, TabletServerLockChecker tslc) {
     this.tableId = tableId;
     this.parent = parent;
     this.locationObtainer = tlo;
     this.lockChecker = tslc;
 
-    this.lastTabletRow = new Text(tableId);
+    this.lastTabletRow = new Text(tableId.getUtf8());
     lastTabletRow.append(new byte[] {'<'}, 0, 1);
   }
 
@@ -474,7 +474,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
   private void lookupTabletLocation(ClientContext context, Text row, boolean retry, LockCheckerSession lcSession) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    Text metadataRow = new Text(tableId);
+    Text metadataRow = new Text(tableId.getUtf8());
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
     TabletLocation ptl = parent.locateTablet(context, metadataRow, false, retry);

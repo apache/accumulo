@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -60,8 +61,8 @@ class ImportPopulateZookeeper extends MasterRepo {
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
       return TableOperationsImpl.getExportedProps(ns, path);
     } catch (IOException ioe) {
-      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Error reading table props from " + path + " " + ioe.getMessage());
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonicalID(), tableInfo.tableName, TableOperation.IMPORT,
+          TableOperationExceptionType.OTHER, "Error reading table props from " + path + " " + ioe.getMessage());
     }
   }
 
@@ -77,7 +78,7 @@ class ImportPopulateZookeeper extends MasterRepo {
       Utils.checkTableDoesNotExist(instance, tableInfo.tableName, tableInfo.tableId, TableOperation.CREATE);
 
       String namespace = Tables.qualify(tableInfo.tableName).getFirst();
-      String namespaceId = Namespaces.getNamespaceId(instance, namespace);
+      Namespace.ID namespaceId = Namespaces.getNamespaceId(instance, namespace);
       TableManager.getInstance().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName, NodeExistsPolicy.OVERWRITE);
 
       Tables.clearCache(instance);
@@ -87,8 +88,8 @@ class ImportPopulateZookeeper extends MasterRepo {
 
     for (Entry<String,String> entry : getExportedProps(env.getFileSystem()).entrySet())
       if (!TablePropUtil.setTableProperty(tableInfo.tableId, entry.getKey(), entry.getValue())) {
-        throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-            "Invalid table property " + entry.getKey());
+        throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonicalID(), tableInfo.tableName, TableOperation.IMPORT,
+            TableOperationExceptionType.OTHER, "Invalid table property " + entry.getKey());
       }
 
     return new CreateImportDir(tableInfo);

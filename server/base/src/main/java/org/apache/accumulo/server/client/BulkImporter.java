@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ServerClient;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.Translator;
@@ -129,7 +130,7 @@ public class BulkImporter {
     final Map<Path,List<KeyExtent>> completeFailures = Collections.synchronizedSortedMap(new TreeMap<Path,List<KeyExtent>>());
 
     ClientService.Client client = null;
-    final TabletLocator locator = TabletLocator.getLocator(context, tableId);
+    final TabletLocator locator = TabletLocator.getLocator(context, new Table.ID(tableId));
 
     try {
       final Map<Path,List<TabletLocation>> assignments = Collections.synchronizedSortedMap(new TreeMap<Path,List<TabletLocation>>());

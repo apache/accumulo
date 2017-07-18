@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -93,7 +94,7 @@ public class WorkMaker {
       for (Entry<Key,Value> entry : s) {
         // Extract the useful bits from the status key
         ReplicationSchema.StatusSection.getFile(entry.getKey(), file);
-        String tableId = ReplicationSchema.StatusSection.getTableId(entry.getKey());
+        Table.ID tableId = ReplicationSchema.StatusSection.getTableId(entry.getKey());
         log.debug("Processing replication status record for " + file + " on table " + tableId);
 
         Status status;
@@ -168,7 +169,7 @@ public class WorkMaker {
     return StatusUtil.isWorkRequired(status);
   }
 
-  protected void addWorkRecord(Text file, Value v, Map<String,String> targets, String sourceTableId) {
+  protected void addWorkRecord(Text file, Value v, Map<String,String> targets, Table.ID sourceTableId) {
     log.info("Adding work records for " + file + " to targets " + targets);
     try {
       Mutation m = new Mutation(file);

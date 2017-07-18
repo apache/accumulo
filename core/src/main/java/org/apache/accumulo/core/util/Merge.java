@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -204,7 +205,7 @@ public class Merge {
 
   protected Iterator<Size> getSizeIterator(Connector conn, String tablename, Text start, Text end) throws MergeException {
     // open up metatadata, walk through the tablets.
-    String tableId;
+    Table.ID tableId;
     Scanner scanner;
     try {
       tableId = Tables.getTableId(conn.getInstance(), tablename);

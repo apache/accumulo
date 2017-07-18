@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
+import org.apache.accumulo.core.client.impl.Table;
+
 /**
  *
  * Generates the current operations for the tablet
@@ -28,7 +30,7 @@ public class CurrentOperations {
   // Variable names become JSON keys
   public String name;
   public String tablet;
-  public String tableID;
+  public Table.ID tableID;
   public long entries;
   public double ingest;
   public double query;
@@ -69,7 +71,7 @@ public class CurrentOperations {
    * @param majorAvgES
    *          Major compaction average ES
    */
-  public CurrentOperations(String name, String ID, String tablet, long entries, double ingest, double query, Double minorAvg, Double minorStdDev,
+  public CurrentOperations(String name, Table.ID ID, String tablet, long entries, double ingest, double query, Double minorAvg, Double minorStdDev,
       Double minorAvgES, Double majorAvg, Double majorStdDev, Double majorAvgES) {
     this.name = name;
     this.tableID = ID;

@@ -24,6 +24,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -51,7 +52,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   // The fraction of memory that needs to be used before we begin flushing.
   private double compactionThreshold;
   private long maxObserved;
-  private final HashMap<String,Long> mincIdleThresholds = new HashMap<>();
+  private final HashMap<Table.ID,Long> mincIdleThresholds = new HashMap<>();
   private ServerConfiguration config = null;
 
   private static class TabletInfo {
@@ -139,13 +140,13 @@ public class LargestFirstMemoryManager implements MemoryManager {
   }
 
   protected long getMinCIdleThreshold(KeyExtent extent) {
-    String tableId = extent.getTableId();
+    Table.ID tableId = extent.getTableId();
     if (!mincIdleThresholds.containsKey(tableId))
       mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
     return mincIdleThresholds.get(tableId);
   }
 
-  protected boolean tableExists(Instance instance, String tableId) {
+  protected boolean tableExists(Instance instance, Table.ID tableId) {
     // make sure that the table still exists by checking if it has a configuration
     return config.getTableConfiguration(tableId) != null;
   }

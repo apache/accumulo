@@ -52,7 +52,7 @@ class CreateImportDir extends MasterRepo {
       throw new IOException(tableInfo.exportDir + " is not in a volume configured for Accumulo");
     }
     log.info("Chose base table directory of " + base);
-    Path directory = new Path(base, tableInfo.tableId);
+    Path directory = new Path(base, tableInfo.tableId.canonicalID());
 
     Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
 

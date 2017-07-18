@@ -50,7 +50,7 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
     firstFailTime = null;
   }
 
-  public TimeoutTabletLocator(long timeout, final ClientContext context, final String table) {
+  public TimeoutTabletLocator(long timeout, final ClientContext context, final Table.ID table) {
     super(context, table);
     this.timeout = timeout;
   }

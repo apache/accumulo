@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -101,7 +102,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     long createTime = System.currentTimeMillis();
     try {
       Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
-      StatusSection.add(m, "1", StatusUtil.fileCreatedValue(createTime));
+      StatusSection.add(m, new Table.ID("1"), StatusUtil.fileCreatedValue(createTime));
       bw.addMutation(m);
     } finally {
       bw.close();
@@ -114,7 +115,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     bw = ReplicationTable.getBatchWriter(conn);
     try {
       Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
-      StatusSection.add(m, "1", ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
+      StatusSection.add(m, new Table.ID("1"), ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
       bw.addMutation(m);
     } finally {
       bw.close();

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -120,18 +121,18 @@ public class RemoveEntriesForMissingFiles {
     }
   }
 
-  private static int checkTable(ClientContext context, String table, Range range, boolean fix) throws Exception {
+  private static int checkTable(ClientContext context, String tableName, Range range, boolean fix) throws Exception {
 
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
     Set<Path> processing = new HashSet<>();
     ExecutorService threadPool = Executors.newFixedThreadPool(16);
 
-    System.out.printf("Scanning : %s %s\n", table, range);
+    System.out.printf("Scanning : %s %s\n", tableName, range);
 
     VolumeManager fs = VolumeManagerImpl.get();
     Connector connector = context.getConnector();
-    Scanner metadata = connector.createScanner(table, Authorizations.EMPTY);
+    Scanner metadata = connector.createScanner(tableName, Authorizations.EMPTY);
     metadata.setRange(range);
     metadata.fetchColumnFamily(DataFileColumnFamily.NAME);
     int count = 0;
@@ -197,7 +198,7 @@ public class RemoveEntriesForMissingFiles {
     } else if (tableName.equals(MetadataTable.NAME)) {
       return checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
     } else {
-      String tableId = Tables.getTableId(context.getInstance(), tableName);
+      Table.ID tableId = Tables.getTableId(context.getInstance(), tableName);
       Range range = new KeyExtent(tableId, null, null).toMetadataRange();
       return checkTable(context, MetadataTable.NAME, range, fix);
     }

@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
@@ -236,7 +237,7 @@ public class WebViews {
   @Template(name = "/default.ftl")
   public Map<String,Object> getTables(@PathParam("tableID") String tableID) throws TableNotFoundException {
 
-    String table = Tables.getTableName(Monitor.getContext().getInstance(), tableID);
+    String tableName = Tables.getTableName(Monitor.getContext().getInstance(), new Table.ID(tableID));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");
@@ -244,7 +245,7 @@ public class WebViews {
     model.put("template", "table.ftl");
     model.put("js", "table.js");
     model.put("tableID", tableID);
-    model.put("table", table);
+    model.put("table", tableName);
 
     return model;
   }

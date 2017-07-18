@@ -44,7 +44,7 @@ public class TableOperationsImplTest {
     Connector connector = EasyMock.createMock(Connector.class);
     Scanner scanner = EasyMock.createMock(Scanner.class);
 
-    Range range = new KeyExtent("1", null, null).toMetadataRange();
+    Range range = new KeyExtent(new Table.ID("1"), null, null).toMetadataRange();
 
     String user = "root";
     PasswordToken token = new PasswordToken("password");

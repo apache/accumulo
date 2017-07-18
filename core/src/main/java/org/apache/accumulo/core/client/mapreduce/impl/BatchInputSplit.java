@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -45,8 +46,8 @@ public class BatchInputSplit extends RangeInputSplit {
     this.setRanges(split.getRanges());
   }
 
-  public BatchInputSplit(String table, String tableId, Collection<Range> ranges, String[] locations) {
-    super(table, tableId, new Range(), locations);
+  public BatchInputSplit(String table, Table.ID tableId, Collection<Range> ranges, String[] locations) {
+    super(table, tableId.canonicalID(), new Range(), locations);
     this.ranges = ranges;
   }
 

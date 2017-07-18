@@ -60,7 +60,7 @@ public class ActiveScanImpl extends ActiveScan {
     this.user = activeScan.user;
     this.age = activeScan.age;
     this.idle = activeScan.idleTime;
-    this.tableName = Tables.getTableName(instance, activeScan.tableId);
+    this.tableName = Tables.getTableName(instance, new Table.ID(activeScan.tableId));
     this.type = ScanType.valueOf(activeScan.getType().name());
     this.state = ScanState.valueOf(activeScan.state.name());
     this.extent = new KeyExtent(activeScan.extent);

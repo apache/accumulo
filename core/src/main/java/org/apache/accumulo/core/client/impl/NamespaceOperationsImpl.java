@@ -28,9 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -98,7 +100,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    boolean exists = Namespaces.getNameToIdMap(context.getInstance()).containsKey(namespace);
+    boolean exists = Namespaces.namespaceNameExists(context.getInstance(), namespace);
 
     if (timer != null) {
       timer.stop();
@@ -124,7 +126,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public void delete(String namespace) throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException, NamespaceNotEmptyException {
     checkArgument(namespace != null, "namespace is null");
-    String namespaceId = Namespaces.getNamespaceId(context.getInstance(), namespace);
+    Namespace.ID namespaceId = Namespaces.getNamespaceId(context.getInstance(), namespace);
 
     if (namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) || namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
       Credentials credentials = context.getCredentials();
@@ -133,7 +135,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     }
 
     if (Namespaces.getTableIds(context.getInstance(), namespaceId).size() > 0) {
-      throw new NamespaceNotEmptyException(namespaceId, namespace, null);
+      throw new NamespaceNotEmptyException(namespaceId.canonicalID(), namespace, null);
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8)));
@@ -213,7 +215,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public Map<String,String> namespaceIdMap() {
-    return Namespaces.getNameToIdMap(context.getInstance());
+    return Namespaces.getNameToIdMap(context.getInstance()).entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().canonicalID(), (v1, v2) -> {
+          throw new RuntimeException(String.format("Duplicate key for values %s and %s", v1, v2));
+        }, TreeMap::new));
   }
 
   @Override

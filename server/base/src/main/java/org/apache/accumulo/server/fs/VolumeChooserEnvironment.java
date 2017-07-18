@@ -17,14 +17,15 @@
 package org.apache.accumulo.server.fs;
 
 import java.util.Optional;
+import org.apache.accumulo.core.client.impl.Table;
 
 public class VolumeChooserEnvironment {
 
-  private final Optional<String> tableId;
+  private final Optional<Table.ID> tableId;
   // scope is meant for non-table identifiers
   private String scope;
 
-  public VolumeChooserEnvironment(Optional<String> tableId) {
+  public VolumeChooserEnvironment(Optional<Table.ID> tableId) {
     this.tableId = tableId;
   }
 
@@ -32,7 +33,7 @@ public class VolumeChooserEnvironment {
     return tableId.isPresent();
   }
 
-  public String getTableId() {
+  public Table.ID getTableId() {
     return tableId.get();
   }
 

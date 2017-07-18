@@ -46,7 +46,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   private final ClientContext context;
   private Authorizations authorizations;
-  private String tableId;
+  private Table.ID tableId;
 
   private int size;
 
@@ -54,7 +54,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   private boolean isolated = false;
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
 
-  public ScannerImpl(ClientContext context, String tableId, Authorizations authorizations) {
+  public ScannerImpl(ClientContext context, Table.ID tableId, Authorizations authorizations) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");

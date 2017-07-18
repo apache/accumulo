@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
@@ -39,16 +40,16 @@ import org.junit.Test;
 public class MetadataServicerTest {
 
   private static final String userTableName = "tableName";
-  private static final String userTableId = "tableId";
+  private static final Table.ID userTableId = new Table.ID("tableId");
   private static ClientContext context;
 
   @BeforeClass
   public static void setupContext() throws Exception {
     HashMap<String,String> tableNameToIdMap = new HashMap<>();
-    tableNameToIdMap.put(RootTable.NAME, RootTable.ID);
-    tableNameToIdMap.put(MetadataTable.NAME, MetadataTable.ID);
-    tableNameToIdMap.put(ReplicationTable.NAME, ReplicationTable.ID);
-    tableNameToIdMap.put(userTableName, userTableId);
+    tableNameToIdMap.put(RootTable.NAME, RootTable.ID.canonicalID());
+    tableNameToIdMap.put(MetadataTable.NAME, MetadataTable.ID.canonicalID());
+    tableNameToIdMap.put(ReplicationTable.NAME, ReplicationTable.ID.canonicalID());
+    tableNameToIdMap.put(userTableName, userTableId.canonicalID());
 
     context = EasyMock.createMock(ClientContext.class);
     Connector conn = EasyMock.createMock(Connector.class);

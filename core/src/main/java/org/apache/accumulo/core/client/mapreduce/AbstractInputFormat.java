@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit;
@@ -571,13 +572,13 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
         try {
           if (isOffline) {
-            scanner = new OfflineScanner(instance, new Credentials(principal, token), split.getTableId(), authorizations);
+            scanner = new OfflineScanner(instance, new Credentials(principal, token), new Table.ID(split.getTableId()), authorizations);
           } else if (DeprecationUtil.isMockInstance(instance)) {
             scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(attempt);
             ClientContext context = new ClientContext(instance, new Credentials(principal, token), clientConf);
-            scanner = new ScannerImpl(context, split.getTableId(), authorizations);
+            scanner = new ScannerImpl(context, new Table.ID(split.getTableId()), authorizations);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
@@ -667,7 +668,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     }
   }
 
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context, String tableId, List<Range> ranges) throws TableNotFoundException,
+  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context, Table.ID tableId, List<Range> ranges) throws TableNotFoundException,
       AccumuloException, AccumuloSecurityException {
 
     Instance instance = getInstance(context);
@@ -697,10 +698,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       InputTableConfig tableConfig = tableConfigEntry.getValue();
 
       Instance instance = getInstance(context);
-      String tableId;
+      Table.ID tableId;
       // resolve table name to id once, and use id from this point forward
       if (DeprecationUtil.isMockInstance(instance)) {
-        tableId = "";
+        tableId = null;
       } else {
         try {
           tableId = Tables.getTableId(instance, tableName);
@@ -750,10 +751,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
               getClientConfiguration(context));
           while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
             if (!DeprecationUtil.isMockInstance(instance)) {
+              String tableIdStr = tableId != null ? tableId.canonicalID() : null;
               if (!Tables.exists(instance, tableId))
-                throw new TableDeletedException(tableId);
+                throw new TableDeletedException(tableIdStr);
               if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(instance, tableId);
+                throw new TableOfflineException(instance, tableIdStr);
             }
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
@@ -798,7 +800,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             for (Range r : extentRanges.getValue()) {
               if (autoAdjust) {
                 // divide ranges into smaller ranges, based on the tablets
-                RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
+                RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(), ke.clip(r), new String[] {location});
                 SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
                 split.setOffline(tableConfig.isOfflineScan());
                 split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
@@ -820,7 +822,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
       if (!autoAdjust)
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
-          RangeInputSplit split = new RangeInputSplit(tableName, tableId, entry.getKey(), entry.getValue().toArray(new String[0]));
+          RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(), entry.getKey(), entry.getValue().toArray(new String[0]));
           SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
           split.setOffline(tableConfig.isOfflineScan());
           split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());

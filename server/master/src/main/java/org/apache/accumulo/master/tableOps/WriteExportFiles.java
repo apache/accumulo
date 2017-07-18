@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -72,8 +73,8 @@ class WriteExportFiles extends MasterRepo {
     if (Tables.getTableState(conn.getInstance(), tableInfo.tableID) != TableState.OFFLINE) {
       Tables.clearCache(conn.getInstance());
       if (Tables.getTableState(conn.getInstance(), tableInfo.tableID) != TableState.OFFLINE) {
-        throw new AcceptableThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
-            "Table is not offline");
+        throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(), tableInfo.tableName, TableOperation.EXPORT,
+            TableOperationExceptionType.OTHER, "Table is not offline");
       }
     }
   }
@@ -107,8 +108,8 @@ class WriteExportFiles extends MasterRepo {
     metaScanner.fetchColumnFamily(LogColumnFamily.NAME);
 
     if (metaScanner.iterator().hasNext()) {
-      throw new AcceptableThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
-          "Write ahead logs found for table");
+      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(), tableInfo.tableName, TableOperation.EXPORT,
+          TableOperationExceptionType.OTHER, "Write ahead logs found for table");
     }
 
     return 0;
@@ -119,8 +120,8 @@ class WriteExportFiles extends MasterRepo {
     try {
       exportTable(master.getFileSystem(), master, tableInfo.tableName, tableInfo.tableID, tableInfo.exportDir);
     } catch (IOException ioe) {
-      throw new AcceptableThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
-          "Failed to create export files " + ioe.getMessage());
+      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(), tableInfo.tableName, TableOperation.EXPORT,
+          TableOperationExceptionType.OTHER, "Failed to create export files " + ioe.getMessage());
     }
     Utils.unreserveNamespace(tableInfo.namespaceID, tid, false);
     Utils.unreserveTable(tableInfo.tableID, tid, false);
@@ -134,7 +135,7 @@ class WriteExportFiles extends MasterRepo {
     Utils.unreserveTable(tableInfo.tableID, tid, false);
   }
 
-  public static void exportTable(VolumeManager fs, AccumuloServerContext context, String tableName, String tableID, String exportDir) throws Exception {
+  public static void exportTable(VolumeManager fs, AccumuloServerContext context, String tableName, Table.ID tableID, String exportDir) throws Exception {
 
     fs.mkdirs(new Path(exportDir));
     Path exportMetaFilePath = fs.getVolumeByPath(new Path(exportDir)).getFileSystem().makeQualified(new Path(exportDir, Constants.EXPORT_FILE));
@@ -144,16 +145,15 @@ class WriteExportFiles extends MasterRepo {
     BufferedOutputStream bufOut = new BufferedOutputStream(zipOut);
     DataOutputStream dataOut = new DataOutputStream(bufOut);
 
-    try {
+    try (OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8)) {
 
       zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_INFO_FILE));
-      OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8);
       osw.append(ExportTable.EXPORT_VERSION_PROP + ":" + ExportTable.VERSION + "\n");
       osw.append("srcInstanceName:" + context.getInstance().getInstanceName() + "\n");
       osw.append("srcInstanceID:" + context.getInstance().getInstanceID() + "\n");
       osw.append("srcZookeepers:" + context.getInstance().getZooKeepers() + "\n");
       osw.append("srcTableName:" + tableName + "\n");
-      osw.append("srcTableID:" + tableID + "\n");
+      osw.append("srcTableID:" + tableID.canonicalID() + "\n");
       osw.append(ExportTable.DATA_VERSION_PROP + ":" + ServerConstants.DATA_VERSION + "\n");
       osw.append("srcCodeVersion:" + Constants.VERSION + "\n");
 
@@ -197,7 +197,7 @@ class WriteExportFiles extends MasterRepo {
     }
   }
 
-  private static Map<String,String> exportMetadata(VolumeManager fs, AccumuloServerContext context, String tableID, ZipOutputStream zipOut,
+  private static Map<String,String> exportMetadata(VolumeManager fs, AccumuloServerContext context, Table.ID tableID, ZipOutputStream zipOut,
       DataOutputStream dataOut) throws IOException, TableNotFoundException, AccumuloException, AccumuloSecurityException {
     zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_METADATA_FILE));
 
@@ -235,7 +235,7 @@ class WriteExportFiles extends MasterRepo {
     return uniqueFiles;
   }
 
-  private static void exportConfig(AccumuloServerContext context, String tableID, ZipOutputStream zipOut, DataOutputStream dataOut) throws AccumuloException,
+  private static void exportConfig(AccumuloServerContext context, Table.ID tableID, ZipOutputStream zipOut, DataOutputStream dataOut) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, IOException {
     Connector conn = context.getConnector();
 

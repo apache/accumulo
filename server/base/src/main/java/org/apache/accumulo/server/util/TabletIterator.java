@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -119,8 +120,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         lastEndRow = new KeyExtent(lastTablet, (Text) null).getEndRow();
 
         // do table transition sanity check
-        String lastTable = new KeyExtent(lastTablet, (Text) null).getTableId();
-        String currentTable = new KeyExtent(prevEndRowKey.getRow(), (Text) null).getTableId();
+        Table.ID lastTable = new KeyExtent(lastTablet, (Text) null).getTableId();
+        Table.ID currentTable = new KeyExtent(prevEndRowKey.getRow(), (Text) null).getTableId();
 
         if (!lastTable.equals(currentTable) && (per != null || lastEndRow != null)) {
           log.info("Metadata inconsistency on table transition : " + lastTable + " " + currentTable + " " + per + " " + lastEndRow);

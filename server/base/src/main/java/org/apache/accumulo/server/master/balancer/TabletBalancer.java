@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -204,11 +205,11 @@ public abstract class TabletBalancer {
    * @throws TException
    *           any other problem
    */
-  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
+  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
     log.debug("Scanning tablet server " + tserver + " for table " + tableId);
     Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), tserver.getLocation(), context);
     try {
-      return client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId);
+      return client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId.canonicalID());
     } catch (TTransportException e) {
       log.error("Unable to connect to " + tserver + ": " + e);
     } finally {

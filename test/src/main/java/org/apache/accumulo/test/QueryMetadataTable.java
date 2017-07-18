@@ -120,7 +120,7 @@ public class QueryMetadataTable {
         location = entry.getValue().toString();
       }
 
-      if (!entry.getKey().getRow().toString().startsWith(MetadataTable.ID))
+      if (!entry.getKey().getRow().toString().startsWith(MetadataTable.ID.canonicalID()))
         rowSet.add(entry.getKey().getRow());
       count++;
     }

@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -42,13 +43,13 @@ public class DefaultLoadBalancer extends TabletBalancer {
 
   Iterator<TServerInstance> assignments;
   // if tableToBalance is set, then only balance the given table
-  String tableToBalance = null;
+  Table.ID tableToBalance = null;
 
   public DefaultLoadBalancer() {
 
   }
 
-  public DefaultLoadBalancer(String table) {
+  public DefaultLoadBalancer(Table.ID table) {
     tableToBalance = table;
   }
 
@@ -123,7 +124,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       if (current.size() < 2) {
         return false;
       }
-      final Map<String,Map<KeyExtent,TabletStats>> donerTabletStats = new HashMap<>();
+      final Map<Table.ID,Map<KeyExtent,TabletStats>> donerTabletStats = new HashMap<>();
 
       // Sort by total number of online tablets, per server
       int total = 0;
@@ -135,7 +136,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
             /**
              * The check below was on entry.getKey(), but that resolves to a tabletserver not a tablename. Believe it should be e.getKey() which is a tablename
              */
-            if (tableToBalance == null || tableToBalance.equals(e.getKey()))
+            if (tableToBalance == null || tableToBalance.canonicalID().equals(e.getKey()))
               serverTotal += e.getValue().onlineTablets;
           }
         }
@@ -195,26 +196,26 @@ public class DefaultLoadBalancer extends TabletBalancer {
   /**
    * Select a tablet based on differences between table loads; if the loads are even, use the busiest table
    */
-  List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count, Map<String,Map<KeyExtent,TabletStats>> donerTabletStats) {
+  List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count, Map<Table.ID,Map<KeyExtent,TabletStats>> donerTabletStats) {
 
     List<TabletMigration> result = new ArrayList<>();
     if (count == 0)
       return result;
 
     // Copy counts so we can update them as we propose migrations
-    Map<String,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status);
-    Map<String,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);
+    Map<Table.ID,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status);
+    Map<Table.ID,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);
 
     for (int i = 0; i < count; i++) {
-      String table;
+      Table.ID table;
       Integer tooLittleCount;
       if (tableToBalance == null) {
         // find a table to migrate
         // look for an uneven table count
         int biggestDifference = 0;
-        String biggestDifferenceTable = null;
-        for (Entry<String,Integer> tableEntry : tooMuchMap.entrySet()) {
-          String tableID = tableEntry.getKey();
+        Table.ID biggestDifferenceTable = null;
+        for (Entry<Table.ID,Integer> tableEntry : tooMuchMap.entrySet()) {
+          Table.ID tableID = tableEntry.getKey();
           if (tooLittleMap.get(tableID) == null)
             tooLittleMap.put(tableID, 0);
           int diff = tableEntry.getValue() - tooLittleMap.get(tableID);
@@ -270,12 +271,12 @@ public class DefaultLoadBalancer extends TabletBalancer {
     return result;
   }
 
-  static Map<String,Integer> tabletCountsPerTable(TabletServerStatus status) {
-    Map<String,Integer> result = new HashMap<>();
+  static Map<Table.ID,Integer> tabletCountsPerTable(TabletServerStatus status) {
+    Map<Table.ID,Integer> result = new HashMap<>();
     if (status != null && status.tableMap != null) {
       Map<String,TableInfo> tableMap = status.tableMap;
       for (Entry<String,TableInfo> entry : tableMap.entrySet()) {
-        result.put(entry.getKey(), entry.getValue().onlineTablets);
+        result.put(new Table.ID(entry.getKey()), entry.getValue().onlineTablets);
       }
     }
     return result;
@@ -295,15 +296,15 @@ public class DefaultLoadBalancer extends TabletBalancer {
   }
 
   // define what it means for a tablet to be busy
-  private static String busiest(Map<String,TableInfo> tables) {
-    String result = null;
+  private static Table.ID busiest(Map<String,TableInfo> tables) {
+    Table.ID result = null;
     double busiest = Double.NEGATIVE_INFINITY;
     for (Entry<String,TableInfo> entry : tables.entrySet()) {
       TableInfo info = entry.getValue();
       double busy = info.ingestRate + info.queryRate;
       if (busy > busiest) {
         busiest = busy;
-        result = entry.getKey();
+        result = new Table.ID(entry.getKey());
       }
     }
     return result;
