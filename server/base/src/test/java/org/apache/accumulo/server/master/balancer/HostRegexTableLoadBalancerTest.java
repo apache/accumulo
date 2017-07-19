@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -54,7 +53,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testInit() {
     init(new AccumuloServerContext(instance, factory));
-    Assert.assertEquals("OOB check interval value is incorrect", 2000, this.getOobCheckMillis());
+    Assert.assertEquals("OOB check interval value is incorrect", 7000, this.getOobCheckMillis());
+    Assert.assertEquals("Max migrations is incorrect", 4, this.getMaxMigrations());
+    Assert.assertEquals("Max outstanding migrations is incorrect", 10, this.getMaxOutstandingMigrations());
     Assert.assertFalse(isIpBasedRegex());
     Map<String,Pattern> patterns = this.getPoolNameToRegexPattern();
     Assert.assertEquals(2, patterns.size());
@@ -74,12 +75,58 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   }
 
   @Test
-  public void testBalanceWithMigrations() {
-    List<TabletMigration> migrations = new ArrayList<>();
+  public void testBalance() {
     init(new AccumuloServerContext(instance, factory));
-    long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(2)), Collections.singleton(new KeyExtent()), migrations);
+    Set<KeyExtent> migrations = new HashSet<>();
+    List<TabletMigration> migrationsOut = new ArrayList<>();
+    long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
     Assert.assertEquals(20000, wait);
-    Assert.assertEquals(0, migrations.size());
+    // should balance four tablets in one of the tables before reaching max
+    Assert.assertEquals(4, migrationsOut.size());
+
+    // now balance again passing in the new migrations
+    for (TabletMigration m : migrationsOut) {
+      migrations.add(m.tablet);
+    }
+    migrationsOut.clear();
+    wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
+    Assert.assertEquals(20000, wait);
+    // should balance four tablets in one of the other tables before reaching max
+    Assert.assertEquals(4, migrationsOut.size());
+
+    // now balance again passing in the new migrations
+    for (TabletMigration m : migrationsOut) {
+      migrations.add(m.tablet);
+    }
+    migrationsOut.clear();
+    wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
+    Assert.assertEquals(20000, wait);
+    // should balance four tablets in one of the other tables before reaching max
+    Assert.assertEquals(4, migrationsOut.size());
+
+    // now balance again passing in the new migrations
+    for (TabletMigration m : migrationsOut) {
+      migrations.add(m.tablet);
+    }
+    migrationsOut.clear();
+    wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
+    Assert.assertEquals(20000, wait);
+    // no more balancing to do
+    Assert.assertEquals(0, migrationsOut.size());
+  }
+
+  @Test
+  public void testBalanceWithTooManyOutstandingMigrations() {
+    List<TabletMigration> migrationsOut = new ArrayList<>();
+    init(new AccumuloServerContext(instance, factory));
+    // lets say we already have migrations ongoing for the FOO and BAR table extends (should be 5 of each of them) for a total of 10
+    Set<KeyExtent> migrations = new HashSet<>();
+    migrations.addAll(tableExtents.get(FOO.getTableName()));
+    migrations.addAll(tableExtents.get(BAR.getTableName()));
+    long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
+    Assert.assertEquals(20000, wait);
+    // no migrations should have occurred as 10 is the maxOutstandingMigrations
+    Assert.assertEquals(0, migrationsOut.size());
   }
 
   @Test
@@ -361,7 +408,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   }
 
   @Override
-  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws ThriftSecurityException, TException {
+  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) throws TException {
     // Report incorrect information so that balance will create an assignment
     List<TabletStats> tablets = new ArrayList<>();
     if (tableId.equals(BAR.getId()) && tserver.host().equals("192.168.0.1")) {

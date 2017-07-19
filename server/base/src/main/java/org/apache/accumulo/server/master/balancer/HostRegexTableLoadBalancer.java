@@ -19,6 +19,7 @@ package org.apache.accumulo.server.master.balancer;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,12 +32,16 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.AccumuloServerContext;
@@ -63,7 +68,9 @@ import org.slf4j.LoggerFactory;
  * <b>table.custom.balancer.host.regex.is.ip=true</b><br>
  * It's possible that this balancer may create a lot of migrations. To limit the number of migrations that are created during a balance call, set the following
  * property (default 250):<br>
- * <b>table.custom.balancer.host.regex.concurrent.migrations</b>
+ * <b>table.custom.balancer.host.regex.concurrent.migrations</b> This balancer can continue balancing even if there are outstanding migrations. To limit the
+ * number of outstanding migrations in which this balancer will continue balancing, set the following property (default 0):<br>
+ * <b>table.custom.balancer.host.regex.max.outstanding.migrations</b>
  *
  */
 public class HostRegexTableLoadBalancer extends TableLoadBalancer implements ConfigurationObserver {
@@ -77,15 +84,24 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       + "balancer.host.regex.concurrent.migrations";
   private static final int HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT = 250;
   protected static final String DEFAULT_POOL = "HostTableLoadBalancer.ALL";
+  private static final int DEFAULT_OUTSTANDING_MIGRATIONS = 0;
+  public static final String HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
+      + "balancer.host.regex.max.outstanding.migrations";
 
   protected long oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);
+
+  private static final long ONE_HOUR = 60 * 60 * 1000;
+  private static final Set<KeyExtent> EMPTY_MIGRATIONS = Collections.emptySet();
 
   private Map<Table.ID,String> tableIdToTableName = null;
   private Map<String,Pattern> poolNameToRegexPattern = null;
   private volatile long lastOOBCheck = System.currentTimeMillis();
-  private boolean isIpBasedRegex = false;
+  private volatile boolean isIpBasedRegex = false;
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
-  private int maxTServerMigrations = HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT;
+  private volatile int maxTServerMigrations = HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT;
+  private volatile int maxOutstandingMigrations = DEFAULT_OUTSTANDING_MIGRATIONS;
+  private final Map<KeyExtent,TabletMigration> migrationsFromLastPass = new HashMap<>();
+  private final Map<String,Long> tableToTimeSinceNoMigrations = new HashMap<>();
 
   /**
    * Group the set of current tservers by pool name. Tservers that don't match a regex are put into a default pool. This could be expensive in the terms of the
@@ -188,7 +204,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
         for (Entry<String,String> customProp : customProps.entrySet()) {
           if (customProp.getKey().startsWith(HOST_BALANCER_PREFIX)) {
             if (customProp.getKey().equals(HOST_BALANCER_OOB_CHECK_KEY) || customProp.getKey().equals(HOST_BALANCER_REGEX_USING_IPS_KEY)
-                || customProp.getKey().equals(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY)) {
+                || customProp.getKey().equals(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY) || customProp.getKey().equals(HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY)) {
               continue;
             }
             String tableName = customProp.getKey().substring(HOST_BALANCER_PREFIX.length());
@@ -210,6 +226,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     if (null != migrations) {
       maxTServerMigrations = Integer.parseInt(migrations);
     }
+    String outstanding = conf.getSystemConfiguration().get(HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY);
+    if (null != outstanding) {
+      this.maxOutstandingMigrations = Integer.parseInt(outstanding);
+    }
     LOG.info("{}", this);
   }
 
@@ -229,6 +249,14 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
   public Map<String,Pattern> getPoolNameToRegexPattern() {
     return poolNameToRegexPattern;
+  }
+
+  public int getMaxMigrations() {
+    return maxTServerMigrations;
+  }
+
+  public int getMaxOutstandingMigrations() {
+    return maxOutstandingMigrations;
   }
 
   public long getOobCheckMillis() {
@@ -293,8 +321,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       return minBalanceTime;
 
     Map<String,String> tableIdMap = t.tableIdMap();
+    long now = System.currentTimeMillis();
+
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> currentGrouped = splitCurrentByRegex(current);
-    if ((System.currentTimeMillis() - this.lastOOBCheck) > this.oobCheckMillis) {
+    if ((now - this.lastOOBCheck) > this.oobCheckMillis) {
       try {
         // Check to see if a tablet is assigned outside the bounds of the pool. If so, migrate it.
         for (String table : t.list()) {
@@ -335,7 +365,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
                   TServerInstance nextTS = iter.next();
                   LOG.info("Tablet {} is currently outside the bounds of the regex, migrating from {} to {}", ke, e.getKey(), nextTS);
                   migrationsOut.add(new TabletMigration(ke, e.getKey(), nextTS));
-                  if (migrationsOut.size() > this.maxTServerMigrations) {
+                  if (migrationsOut.size() >= this.maxTServerMigrations) {
                     break;
                   }
                 } else {
@@ -348,6 +378,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
           }
         }
       } finally {
+        // this could have taken a while...get a new time
         this.lastOOBCheck = System.currentTimeMillis();
       }
     }
@@ -359,8 +390,34 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     }
 
     if (migrations != null && migrations.size() > 0) {
-      LOG.warn("Not balancing tables due to {} outstanding migrations", migrations.size());
-      return minBalanceTime;
+      if (migrations.size() >= maxOutstandingMigrations) {
+        LOG.warn("Not balancing tables due to {} outstanding migrations", migrations.size());
+        if (LOG.isTraceEnabled()) {
+          LOG.trace("Sample up to 10 outstanding migrations: {}", Iterables.limit(migrations, 10));
+        }
+        return minBalanceTime;
+      }
+
+      LOG.debug("Current outstanding migrations of {} being applied", migrations.size());
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Sample up to 10 outstanding migrations: {}", Iterables.limit(migrations, 10));
+      }
+      migrationsFromLastPass.keySet().retainAll(migrations);
+      SortedMap<TServerInstance,TabletServerStatus> currentCopy = new TreeMap<>(current);
+      Multimap<TServerInstance,String> serverTableIdCopied = HashMultimap.create();
+      for (TabletMigration migration : migrationsFromLastPass.values()) {
+        TableInfo fromInfo = getTableInfo(currentCopy, serverTableIdCopied, migration.tablet.getTableId().toString(), migration.oldServer);
+        if (fromInfo != null) {
+          fromInfo.setOnlineTablets(fromInfo.getOnlineTablets() - 1);
+        }
+        TableInfo toInfo = getTableInfo(currentCopy, serverTableIdCopied, migration.tablet.getTableId().toString(), migration.newServer);
+        if (toInfo != null) {
+          toInfo.setOnlineTablets(toInfo.getOnlineTablets() + 1);
+        }
+      }
+      migrations = EMPTY_MIGRATIONS;
+    } else {
+      migrationsFromLastPass.clear();
     }
 
     for (String s : tableIdMap.values()) {
@@ -375,13 +432,55 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       getBalancerForTable(tableId).balance(currentView, migrations, newMigrations);
 
+      if (newMigrations.isEmpty()) {
+        tableToTimeSinceNoMigrations.remove(s);
+      } else if (tableToTimeSinceNoMigrations.containsKey(s)) {
+        if ((now - tableToTimeSinceNoMigrations.get(s)) > ONE_HOUR) {
+          LOG.warn("We have been consistently producing migrations for {}: {}", tableName, Iterables.limit(newMigrations, 10));
+        }
+      } else {
+        tableToTimeSinceNoMigrations.put(s, now);
+      }
+
       migrationsOut.addAll(newMigrations);
-      if (migrationsOut.size() > this.maxTServerMigrations) {
+      if (migrationsOut.size() >= this.maxTServerMigrations) {
         break;
       }
     }
+
+    for (TabletMigration migration : migrationsOut) {
+      migrationsFromLastPass.put(migration.tablet, migration);
+    }
+
     LOG.info("Migrating tablets for balance: {}", migrationsOut);
     return minBalanceTime;
+  }
+
+  /**
+   * Get a mutable table info for the specified table and server
+   */
+  private TableInfo getTableInfo(SortedMap<TServerInstance,TabletServerStatus> currentCopy, Multimap<TServerInstance,String> serverTableIdCopied,
+      String tableId, TServerInstance server) {
+    TableInfo newInfo = null;
+    if (currentCopy.containsKey(server)) {
+      Map<String,TableInfo> newTableMap = currentCopy.get(server).getTableMap();
+      if (newTableMap != null) {
+        newInfo = newTableMap.get(tableId);
+        if (newInfo != null) {
+          Collection<String> tableIdCopied = serverTableIdCopied.get(server);
+          if (tableIdCopied.isEmpty()) {
+            newTableMap = new HashMap<String,TableInfo>(newTableMap);
+            currentCopy.get(server).setTableMap(newTableMap);
+          }
+          if (!tableIdCopied.contains(tableId)) {
+            newInfo = new TableInfo(newInfo);
+            newTableMap.put(tableId, newInfo);
+            tableIdCopied.add(tableId);
+          }
+        }
+      }
+    }
+    return newInfo;
   }
 
   @Override

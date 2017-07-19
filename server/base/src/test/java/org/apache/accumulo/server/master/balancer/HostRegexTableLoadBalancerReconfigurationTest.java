@@ -80,7 +80,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest extends BaseHostRegex
     DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
     this.propertiesChanged();
     // Wait to trigger the out of bounds check and the repool check
-    UtilWaitThread.sleep(3000);
+    UtilWaitThread.sleep(10000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
     Assert.assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
