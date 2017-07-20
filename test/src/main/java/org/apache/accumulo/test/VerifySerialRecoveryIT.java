@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -44,6 +45,21 @@ import com.google.common.collect.Iterators;
 
 public class VerifySerialRecoveryIT extends ConfigurableMacBase {
 
+  private final static byte[] HEXCHARS = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66};
+  private final static Random random = new Random();
+
+  public static byte[] randomHex(int n) {
+    byte[] binary = new byte[n];
+    byte[] hex = new byte[n * 2];
+    random.nextBytes(binary);
+    int count = 0;
+    for (byte x : binary) {
+      hex[count++] = HEXCHARS[(x >> 4) & 0xf];
+      hex[count++] = HEXCHARS[x & 0xf];
+    }
+    return hex;
+  }
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
@@ -60,13 +76,13 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 200; i++) {
-      splits.add(new Text(AssignmentThreadsIT.randomHex(8)));
+      splits.add(new Text(randomHex(8)));
     }
     c.tableOperations().addSplits(tableName, splits);
     // load data to give the recovery something to do
     BatchWriter bw = c.createBatchWriter(tableName, null);
     for (int i = 0; i < 50000; i++) {
-      Mutation m = new Mutation(AssignmentThreadsIT.randomHex(8));
+      Mutation m = new Mutation(randomHex(8));
       m.put("", "", "");
       bw.addMutation(m);
     }
