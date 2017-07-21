@@ -299,7 +299,7 @@ function createHeader() {
       'Index Cache<br>Hit Rate&nbsp;', 'Data Cache<br>Hit Rate&nbsp;',
       'OS&nbsp;Load&nbsp;'];
 
-  var titles = ['', '', '', descriptions['Entries'], descriptions['Ingest'],
+  var titles = ['', '', '', descriptions['Response Time'], descriptions['Entries'], descriptions['Ingest'],
       descriptions['Query'], descriptions['Hold Time'],
       descriptions['Running Scans'], descriptions['Minor Compactions'],
       descriptions['Major Compactions'], descriptions['Index Cache Hit Rate'],
