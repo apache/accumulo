@@ -121,11 +121,17 @@ public class LiveTServerSet implements Watcher {
       if (usePooledConnection == true)
         throw new UnsupportedOperationException();
 
+      long start = System.currentTimeMillis();
+
       TTransport transport = ThriftUtil.createTransport(address, context);
 
       try {
         TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
-        return client.getTabletServerStatus(Tracer.traceInfo(), context.rpcCreds());
+        TabletServerStatus status = client.getTabletServerStatus(Tracer.traceInfo(), context.rpcCreds());
+        if (status != null) {
+          status.setResponseTime(System.currentTimeMillis() - start);
+        }
+        return status;
       } finally {
         if (transport != null)
           transport.close();

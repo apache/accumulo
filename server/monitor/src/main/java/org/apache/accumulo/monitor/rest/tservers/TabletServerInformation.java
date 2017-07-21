@@ -45,6 +45,7 @@ public class TabletServerInformation {
 
   public String hostname;
   public long lastContact;
+  public long responseTime;
   public double osload;
 
   public CompactionsTypes compactions;
@@ -109,6 +110,7 @@ public class TabletServerInformation {
     this.server = this.ip = this.hostname = thriftStatus.name;
     this.tablets = summary.tablets;
     this.lastContact = now - thriftStatus.lastContact;
+    this.responseTime = thriftStatus.responseTime;
     this.entries = summary.recs;
     this.ingest = summary.ingestRate;
     this.query = summary.queryRate;

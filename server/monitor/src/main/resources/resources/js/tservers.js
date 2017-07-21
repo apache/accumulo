@@ -205,6 +205,9 @@ function refreshTServersTable() {
       items.push(createRightCell(val.lastContact,
           timeDuration(val.lastContact)));
 
+      items.push(createRightCell(val.responseTime,
+          timeDuration(val.responseTime)));
+
       items.push(createRightCell(val.entries,
           bigNumberForQuantity(val.entries)));
 
@@ -290,13 +293,13 @@ function createHeader() {
   var items = [];
 
   var columns = ['Server&nbsp;', 'Hosted&nbsp;Tablets&nbsp;',
-      'Last&nbsp;Contact&nbsp;', 'Entries&nbsp;', 'Ingest&nbsp;',
+      'Last&nbsp;Contact&nbsp;', 'Response&nbsp;Time&nbsp;', 'Entries&nbsp;', 'Ingest&nbsp;',
       'Query&nbsp;', 'Hold&nbsp;Time&nbsp;', 'Running<br>Scans&nbsp;',
       'Minor<br>Compactions&nbsp;', 'Major<br>Compactions&nbsp;',
       'Index Cache<br>Hit Rate&nbsp;', 'Data Cache<br>Hit Rate&nbsp;',
       'OS&nbsp;Load&nbsp;'];
 
-  var titles = ['', '', '', descriptions['Entries'], descriptions['Ingest'],
+  var titles = ['', '', '', descriptions['Response Time'], descriptions['Entries'], descriptions['Ingest'],
       descriptions['Query'], descriptions['Hold Time'],
       descriptions['Running Scans'], descriptions['Minor Compactions'],
       descriptions['Major Compactions'], descriptions['Index Cache Hit Rate'],
