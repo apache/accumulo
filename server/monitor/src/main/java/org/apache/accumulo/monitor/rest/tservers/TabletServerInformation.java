@@ -46,6 +46,7 @@ public class TabletServerInformation {
   public String hostname;
   public long lastContact;
   public double osload;
+  public String version;
 
   public CompactionsTypes compactions;
 
@@ -135,6 +136,7 @@ public class TabletServerInformation {
     this.compactions = new CompactionsTypes(scansCompacting, major, minor);
 
     this.osload = thriftStatus.osLoad;
+    this.version = thriftStatus.version;
     this.lookups = thriftStatus.lookups;
 
     this.dataCacheHits = thriftStatus.dataCacheHits;
