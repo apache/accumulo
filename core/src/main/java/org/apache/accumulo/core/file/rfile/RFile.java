@@ -67,6 +67,8 @@ import org.apache.accumulo.core.iterators.system.HeapIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
+import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroupContext;
+import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroupSeekCache;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MutableByteSequence;
@@ -1050,16 +1052,16 @@ public class RFile {
 
   public static class Reader extends HeapIterator implements FileSKVIterator {
 
-    private BlockFileReader reader;
+    private final BlockFileReader reader;
 
-    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
-    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
 
-    private LocalityGroupReader currentReaders[];
-    private LocalityGroupReader readers[];
-    private LocalityGroupReader sampleReaders[];
-
-    private HashSet<ByteSequence> nonDefaultColumnFamilies;
+    private final LocalityGroupReader currentReaders[];
+    private final LocalityGroupReader readers[];
+    private final LocalityGroupReader sampleReaders[];
+    private final LocalityGroupContext lgContext;
+    private LocalityGroupSeekCache lgCache;
 
     private List<Reader> deepCopies;
     private boolean deepCopy = false;
@@ -1120,11 +1122,7 @@ public class RFile {
         mb.close();
       }
 
-      nonDefaultColumnFamilies = new HashSet<>();
-      for (LocalityGroupMetadata lgm : localityGroups) {
-        if (!lgm.isDefaultLG)
-          nonDefaultColumnFamilies.addAll(lgm.columnFamilies.keySet());
-      }
+      lgContext = new LocalityGroupContext(currentReaders);
 
       createHeap(currentReaders.length);
     }
@@ -1132,7 +1130,6 @@ public class RFile {
     private Reader(Reader r, LocalityGroupReader sampleReaders[]) {
       super(sampleReaders.length);
       this.reader = r.reader;
-      this.nonDefaultColumnFamilies = r.nonDefaultColumnFamilies;
       this.currentReaders = new LocalityGroupReader[sampleReaders.length];
       this.deepCopies = r.deepCopies;
       this.deepCopy = false;
@@ -1144,12 +1141,12 @@ public class RFile {
         this.currentReaders[i] = sampleReaders[i];
         this.currentReaders[i].setInterruptFlag(r.interruptFlag);
       }
+      this.lgContext = new LocalityGroupContext(currentReaders);
     }
 
     private Reader(Reader r, boolean useSample) {
       super(r.currentReaders.length);
       this.reader = r.reader;
-      this.nonDefaultColumnFamilies = r.nonDefaultColumnFamilies;
       this.currentReaders = new LocalityGroupReader[r.currentReaders.length];
       this.deepCopies = r.deepCopies;
       this.deepCopy = true;
@@ -1168,7 +1165,7 @@ public class RFile {
         }
 
       }
-
+      this.lgContext = new LocalityGroupContext(currentReaders);
     }
 
     private void closeLocalityGroupReaders() {
@@ -1324,8 +1321,6 @@ public class RFile {
       return cf;
     }
 
-    private int numLGSeeked = 0;
-
     /**
      * Method that registers the given MetricsGatherer. You can only register one as it will clobber any previously set. The MetricsGatherer should be
      * registered before iterating through the LocalityGroups.
@@ -1348,11 +1343,11 @@ public class RFile {
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-      numLGSeeked = LocalityGroupIterator.seek(this, currentReaders, nonDefaultColumnFamilies, range, columnFamilies, inclusive);
+      lgCache = LocalityGroupIterator.seek(this, lgContext, range, columnFamilies, inclusive, lgCache);
     }
 
     int getNumLocalityGroupsSeeked() {
-      return numLGSeeked;
+      return (lgCache == null ? 0 : lgCache.getNumLGSeeked());
     }
 
     public FileSKVIterator getIndex() throws IOException {

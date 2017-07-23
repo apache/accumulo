@@ -29,6 +29,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -50,16 +52,25 @@ public class LocalityGroupUtil {
 
   // private static final Logger log = Logger.getLogger(ColumnFamilySet.class);
 
-  public static final Set<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
+  // using an ImmutableSet here for more efficient comparisons in LocalityGroupIterator
+  public static final ImmutableSet<ByteSequence> EMPTY_CF_SET = ImmutableSet.of();
 
-  public static Set<ByteSequence> families(Collection<Column> columns) {
+  /**
+   * Create a set of families to be passed into the SortedKeyValueIterator seek call from a supplied set of columns. We are using the ImmutableSet to enable
+   * faster comparisons down in the LocalityGroupIterator.
+   *
+   * @param columns
+   *          The set of columns
+   * @return An immutable set of columns
+   */
+  public static ImmutableSet<ByteSequence> families(Collection<Column> columns) {
     if (columns.size() == 0)
       return EMPTY_CF_SET;
-    Set<ByteSequence> result = new HashSet<>(columns.size());
-    for (Column col : columns) {
-      result.add(new ArrayByteSequence(col.getColumnFamily()));
+    Builder<ByteSequence> builder = ImmutableSet.builder();
+    for (Column c : columns) {
+      builder.add(new ArrayByteSequence(c.getColumnFamily()));
     }
-    return result;
+    return builder.build();
   }
 
   @SuppressWarnings("serial")

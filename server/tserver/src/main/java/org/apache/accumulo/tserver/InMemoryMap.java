@@ -291,13 +291,11 @@ public class InMemoryMap {
     private SimpleMap maps[];
     private Partitioner partitioner;
     private PreAllocatedArray<List<Mutation>> partitioned;
-    private Set<ByteSequence> nonDefaultColumnFamilies;
 
     LocalityGroupMap(Map<String,Set<ByteSequence>> groups, boolean useNativeMap) {
       this.groupFams = new PreAllocatedArray<>(groups.size());
       this.maps = new SimpleMap[groups.size() + 1];
       this.partitioned = new PreAllocatedArray<>(groups.size() + 1);
-      this.nonDefaultColumnFamilies = new HashSet<>();
 
       for (int i = 0; i < maps.length; i++) {
         maps[i] = newMap(useNativeMap);
@@ -309,7 +307,6 @@ public class InMemoryMap {
         for (ByteSequence bs : cfset)
           map.put(bs, new MutableLong(1));
         this.groupFams.set(count++, map);
-        nonDefaultColumnFamilies.addAll(cfset);
       }
 
       partitioner = new LocalityGroupUtil.Partitioner(this.groupFams);
@@ -350,7 +347,7 @@ public class InMemoryMap {
           groups[i] = new LocalityGroup(maps[i].skvIterator(null), null, true);
       }
 
-      return new LocalityGroupIterator(groups, nonDefaultColumnFamilies);
+      return new LocalityGroupIterator(groups);
     }
 
     @Override
