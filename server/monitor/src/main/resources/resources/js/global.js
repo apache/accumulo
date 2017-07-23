@@ -27,6 +27,7 @@ var descriptions = {
       ' memory and not yet written to disk.',
   'Ingest' : 'The number of Key/Value pairs inserted. (Note that deletes' +
       ' are "inserted")',
+  'Response Time' : 'The time it took for the tserver to return its status.',
   'Entries Read' : 'The number of Key/Value pairs read on the server side.' +
       'Not all key values read may be returned to client because of filtering.',
   'Entries Returned' : 'The number of Key/Value pairs returned to clients' +
