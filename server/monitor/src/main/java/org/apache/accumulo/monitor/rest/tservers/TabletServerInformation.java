@@ -126,12 +126,12 @@ public class TabletServerInformation {
     this.scansCompacting = new CompactionsList(this.scansRunning, this.scansQueued);
 
     this.minorRunning = summary.minors != null ? summary.minors.running : null;
-    this.minorQueued = summary.minors != null ? summary.minors.running : null;
+    this.minorQueued = summary.minors != null ? summary.minors.queued : null;
 
     this.minor = new CompactionsList(this.minorRunning, this.minorQueued);
 
     this.majorRunning = summary.majors != null ? summary.majors.running : null;
-    this.majorQueued = summary.majors != null ? summary.majors.running : null;
+    this.majorQueued = summary.majors != null ? summary.majors.queued : null;
 
     this.major = new CompactionsList(this.majorRunning, this.majorQueued);
 
