@@ -64,7 +64,7 @@ public class FileRefTest {
     refMap.put(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"), "7");
     refMap.put(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0005.rf"), "8");
 
-    Assert.assertNull(refMap.get("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0006.rf"));
+    Assert.assertNull(refMap.get(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0006.rf")));
 
     Assert.assertEquals(refMap.get(new FileRef("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf")), "7");
     Assert.assertEquals(refMap.get(new FileRef("hdfs://nn1/accumulo/tables/2a/t-0003/C0004.rf")), "7");
