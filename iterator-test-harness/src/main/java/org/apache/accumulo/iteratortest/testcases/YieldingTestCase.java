@@ -45,7 +45,7 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
     try {
       skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
 
-      YieldCallback<Key> yield = new YieldCallback();
+      YieldCallback<Key> yield = new YieldCallback<>();
       skvi.enableYielding(yield);
 
       skvi.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());

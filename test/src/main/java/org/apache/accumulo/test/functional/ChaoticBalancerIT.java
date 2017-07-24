@@ -54,8 +54,8 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
     Connector c = getConnector();
-    String[] names = getUniqueNames(2);
-    String tableName = names[0], unused = names[1];
+    String[] names = getUniqueNames(1);
+    String tableName = names[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
     ntc.setProperties(Stream.of(new Pair<>(Property.TABLE_LOAD_BALANCER.getKey(), ChaoticLoadBalancer.class.getName()),
         new Pair<>(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"), new Pair<>(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K")).collect(

@@ -121,7 +121,7 @@ public class YieldingIterator extends WrappingIterator {
   }
 
   @Override
-  public void enableYielding(YieldCallback yield) {
+  public void enableYielding(YieldCallback<Key> yield) {
     this.yield = Optional.of(yield);
   }
 }
