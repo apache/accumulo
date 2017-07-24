@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -77,7 +76,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testBalance() {
-    init((ServerConfiguration) factory);
+    init(factory);
     Set<KeyExtent> migrations = new HashSet<KeyExtent>();
     List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
     long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);

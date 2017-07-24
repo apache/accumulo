@@ -95,7 +95,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   protected long oobCheckMillis = AccumuloConfiguration.getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);
 
   private static final long ONE_HOUR = 60 * 60 * 1000;
-  private static final Set<KeyExtent> EMPTY_MIGRATIONS = Collections.EMPTY_SET;
+  private static final Set<KeyExtent> EMPTY_MIGRATIONS = Collections.emptySet();
 
   private Map<String,String> tableIdToTableName = null;
   private Map<String,Pattern> poolNameToRegexPattern = null;
@@ -411,7 +411,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
         LOG.trace("Sample up to 10 outstanding migrations: {}", Iterables.limit(migrations, 10));
       }
       migrationsFromLastPass.keySet().retainAll(migrations);
-      SortedMap<TServerInstance,TabletServerStatus> currentCopy = new TreeMap(current);
+      SortedMap<TServerInstance,TabletServerStatus> currentCopy = new TreeMap<>(current);
       Multimap<TServerInstance,String> serverTableIdCopied = HashMultimap.create();
       for (TabletMigration migration : migrationsFromLastPass.values()) {
         TableInfo fromInfo = getTableInfo(currentCopy, serverTableIdCopied, migration.tablet.getTableId().toString(), migration.oldServer);
