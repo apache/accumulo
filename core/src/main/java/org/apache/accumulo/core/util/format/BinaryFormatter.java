@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.util.format;
 
 import java.util.Map.Entry;
+
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;

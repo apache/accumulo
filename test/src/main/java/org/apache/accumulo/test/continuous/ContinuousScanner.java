@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Iterator;
@@ -35,7 +36,6 @@ import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ContinuousScanner {
 

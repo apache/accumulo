@@ -19,6 +19,7 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.GrepIterator;

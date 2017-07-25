@@ -29,9 +29,9 @@ import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.KeeperException;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;

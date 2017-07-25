@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Collections;
@@ -33,8 +34,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class NativeMapPerformanceTest {
 

@@ -27,8 +27,8 @@ import static org.junit.Assert.assertNull;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.core.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.constraints.Constraint.Environment;
+import org.apache.accumulo.core.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Mutation;
 import org.junit.Before;

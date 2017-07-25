@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.file.streams;
 
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 
 public class MockRateLimiter implements RateLimiter {

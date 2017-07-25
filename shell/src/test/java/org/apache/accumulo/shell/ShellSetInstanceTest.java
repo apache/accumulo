@@ -34,8 +34,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -58,6 +56,8 @@ import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+
+import jline.console.ConsoleReader;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore("javax.security.*")

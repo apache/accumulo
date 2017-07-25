@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -84,8 +85,6 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // Testing default namespace configuration with inheritance requires altering the system state and restoring it back to normal
 // Punt on this for now and just let it use a minicluster.

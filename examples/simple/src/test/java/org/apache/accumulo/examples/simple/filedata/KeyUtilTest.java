@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.examples.simple.filedata;
 
-import junit.framework.TestCase;
-
 import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 public class KeyUtilTest extends TestCase {
   public static void checkSeps(String... s) {

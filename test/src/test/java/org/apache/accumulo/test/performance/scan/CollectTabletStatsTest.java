@@ -16,11 +16,10 @@
  */
 package org.apache.accumulo.test.performance.scan;
 
-import org.apache.accumulo.core.cli.ScannerOpts;
-
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import org.apache.accumulo.core.cli.ScannerOpts;
+import org.junit.Test;
 
 /**
  * Created by etcoleman on 10/11/16.

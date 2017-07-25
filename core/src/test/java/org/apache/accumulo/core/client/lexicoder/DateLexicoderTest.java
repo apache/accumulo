@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
-
 import java.util.Date;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 
 public class DateLexicoderTest extends AbstractLexicoderTest {
 

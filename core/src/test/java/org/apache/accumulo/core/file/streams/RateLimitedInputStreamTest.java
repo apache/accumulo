@@ -19,6 +19,7 @@ package org.apache.accumulo.core.file.streams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
+
 import org.apache.hadoop.fs.Seekable;
 import org.junit.Assert;
 import org.junit.Test;

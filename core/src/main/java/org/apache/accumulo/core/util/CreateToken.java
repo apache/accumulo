@@ -23,8 +23,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.cli.Help;
@@ -37,6 +35,8 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
+
+import jline.console.ConsoleReader;
 
 @AutoService(KeywordExecutable.class)
 public class CreateToken implements KeywordExecutable {

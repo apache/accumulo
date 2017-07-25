@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.util;
 
-import junit.framework.TestCase;
-
 import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 /**
  * Test the TextUtil class.

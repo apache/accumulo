@@ -30,9 +30,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.shell.Shell;
+
+import jline.console.ConsoleReader;
 
 public class ShellServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;

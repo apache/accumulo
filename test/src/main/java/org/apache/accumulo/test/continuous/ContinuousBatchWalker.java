@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.continuous;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -39,7 +41,6 @@ import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class ContinuousBatchWalker {
 

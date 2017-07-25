@@ -20,8 +20,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import org.apache.accumulo.core.data.impl.KeyExtent;
 
+import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.hadoop.fs.Path;
 

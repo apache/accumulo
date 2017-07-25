@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.core.conf.Property.MASTER_REPLICATION_SCAN_INTERVAL;
 import static org.apache.accumulo.core.conf.Property.REPLICATION_NAME;
 import static org.apache.accumulo.core.conf.Property.REPLICATION_PEERS;
@@ -53,8 +54,6 @@ import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.hadoop.io.Text;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class Replication extends Test {
 

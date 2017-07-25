@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -31,8 +33,6 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.test.randomwalk.Environment;
 import org.apache.accumulo.test.randomwalk.State;
 import org.apache.accumulo.test.randomwalk.Test;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class StartAll extends Test {
 

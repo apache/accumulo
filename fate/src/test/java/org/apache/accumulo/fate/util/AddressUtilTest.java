@@ -18,10 +18,10 @@ package org.apache.accumulo.fate.util;
 
 import java.security.Security;
 
-import junit.framework.TestCase;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import junit.framework.TestCase;
 
 /**
  * Test the AddressUtil class.

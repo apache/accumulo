@@ -19,6 +19,7 @@ package org.apache.accumulo.core.file.streams;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
 import org.apache.accumulo.core.util.ratelimit.NullRateLimiter;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.fs.Seekable;

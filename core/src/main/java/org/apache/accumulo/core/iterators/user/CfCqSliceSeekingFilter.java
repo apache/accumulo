@@ -16,15 +16,15 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import java.io.IOException;
+import java.util.Map;
+
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
-import java.io.IOException;
-import java.util.Map;
 
 /**
  * Filters key/value pairs for a range of column families and a range of column qualifiers. Only keys which fall in both ranges will be passed by the filter.

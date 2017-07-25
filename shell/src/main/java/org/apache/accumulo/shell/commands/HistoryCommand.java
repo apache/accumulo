@@ -19,8 +19,6 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.util.Iterator;
 
-import jline.console.history.History.Entry;
-
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -29,6 +27,8 @@ import org.apache.commons.cli.Options;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+
+import jline.console.history.History.Entry;
 
 public class HistoryCommand extends Command {
   private Option clearHist;

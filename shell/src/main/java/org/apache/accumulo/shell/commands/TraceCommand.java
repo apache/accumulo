@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -31,8 +33,6 @@ import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TraceCommand extends DebugCommand {
 

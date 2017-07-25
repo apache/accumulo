@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.tserver;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.accumulo.core.data.Key;
+
+import com.google.common.annotations.VisibleForTesting;
 
 @VisibleForTesting
 public class MemKey extends Key {

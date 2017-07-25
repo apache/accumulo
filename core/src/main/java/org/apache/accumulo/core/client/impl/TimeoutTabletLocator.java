@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -24,9 +27,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.hadoop.io.Text;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Throws a {@link TimedOutException} if the specified timeout duration elapses between two failed TabletLocator calls.

@@ -16,14 +16,14 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import org.apache.accumulo.core.iterators.OptionDescriber;
-import org.apache.hadoop.io.Text;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import org.apache.accumulo.core.iterators.OptionDescriber;
+import org.apache.hadoop.io.Text;
 
 public class CfCqSliceOpts {
   public static final String OPT_MIN_CF = "minCf";
