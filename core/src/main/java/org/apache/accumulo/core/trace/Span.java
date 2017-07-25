@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.trace;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import org.apache.htrace.NullScope;
 import org.apache.htrace.TraceScope;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * This is a wrapper for a TraceScope object, which is a wrapper for a Span and its parent. Not recommended for client use.

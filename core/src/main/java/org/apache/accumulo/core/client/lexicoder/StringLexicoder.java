@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 
 /**
  * This lexicoder encodes/decodes a given String to/from bytes without further processing. It can be combined with other encoders like the

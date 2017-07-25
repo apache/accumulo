@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.trace.instrument;
 
-import org.apache.htrace.HTraceConfiguration;
-
 import java.util.Collections;
+
+import org.apache.htrace.HTraceConfiguration;
 
 /**
  * @deprecated since 1.7, use org.apache.htrace.impl.CountSampler instead

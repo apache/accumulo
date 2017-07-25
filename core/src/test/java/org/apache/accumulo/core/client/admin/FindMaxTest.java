@@ -19,8 +19,6 @@ package org.apache.accumulo.core.client.admin;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -32,6 +30,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 public class FindMaxTest extends TestCase {
 

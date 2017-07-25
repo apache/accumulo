@@ -19,8 +19,6 @@ package org.apache.accumulo.examples.simple.dirlist;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -39,6 +37,8 @@ import org.apache.accumulo.examples.simple.dirlist.FileCount.Opts;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import junit.framework.TestCase;
 
 public class CountTest extends TestCase {
 

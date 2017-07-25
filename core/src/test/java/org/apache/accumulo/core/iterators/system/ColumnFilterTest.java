@@ -20,8 +20,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.TreeMap;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -31,6 +29,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+
+import junit.framework.TestCase;
 
 public class ColumnFilterTest extends TestCase {
 

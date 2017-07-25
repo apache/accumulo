@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
-
 import java.util.Date;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 
 /**
  * A lexicoder for date objects. It preserves the native Java sort order for Date.

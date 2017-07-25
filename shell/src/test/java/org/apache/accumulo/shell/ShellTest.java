@@ -33,8 +33,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.util.format.DateStringFormatter;
 import org.apache.log4j.Level;
 import org.junit.After;
@@ -42,6 +40,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jline.console.ConsoleReader;
 
 public class ShellTest {
   private static final Logger log = LoggerFactory.getLogger(ShellTest.class);

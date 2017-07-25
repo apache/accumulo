@@ -16,15 +16,15 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
-import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
-import org.apache.accumulo.core.iterators.ValueFormatException;
-
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
+import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**
  * A lexicoder to encode/decode a BigInteger to/from bytes that maintain its native Java sort order.

@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
-import org.apache.accumulo.core.util.ComparablePair;
-
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.concat;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.escape;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.split;
 import static org.apache.accumulo.core.client.lexicoder.impl.ByteUtils.unescape;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.util.ComparablePair;
 
 /**
  * This class is a lexicoder that sorts a ComparablePair. Each item in the pair is encoded with the given lexicoder and concatenated together. This makes it

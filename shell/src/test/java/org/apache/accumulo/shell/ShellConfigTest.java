@@ -28,8 +28,6 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.shell.ShellTest.TestOutputStream;
@@ -41,6 +39,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.ParameterException;
+
+import jline.console.ConsoleReader;
 
 public class ShellConfigTest {
   TestOutputStream output;

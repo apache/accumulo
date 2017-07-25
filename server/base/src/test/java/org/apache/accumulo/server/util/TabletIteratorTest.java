@@ -18,8 +18,6 @@ package org.apache.accumulo.server.util;
 
 import java.util.Map.Entry;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -37,6 +35,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 public class TabletIteratorTest extends TestCase {
 

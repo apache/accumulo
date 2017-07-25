@@ -25,15 +25,15 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import jline.console.ConsoleReader;
-import jline.console.history.History;
-import jline.console.history.MemoryHistory;
-
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+
+import jline.console.ConsoleReader;
+import jline.console.history.History;
+import jline.console.history.MemoryHistory;
 
 public class HistoryCommandTest {
 

@@ -19,8 +19,6 @@ package org.apache.accumulo.server.security.handler;
 import java.util.Set;
 import java.util.TreeSet;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -28,6 +26,8 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import junit.framework.TestCase;
 
 public class ZKAuthenticatorTest extends TestCase {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthenticatorTest.class);

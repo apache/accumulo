@@ -35,9 +35,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
-import jline.UnsupportedTerminal;
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Key;
@@ -46,6 +43,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.shell.Shell;
 import org.junit.Before;
 import org.junit.Test;
+
+import jline.UnsupportedTerminal;
+import jline.console.ConsoleReader;
 
 public class DeleterFormatterTest {
   DeleterFormatter formatter;

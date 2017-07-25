@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.trace;
 
-import org.apache.htrace.HTraceConfiguration;
-
 import java.util.Collections;
+
+import org.apache.htrace.HTraceConfiguration;
 
 /**
  * This wrapper intended for internal Accumulo tracing makes creating a ProbabilitySampler easier.

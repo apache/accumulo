@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
-
 import java.math.BigInteger;
 import java.util.Arrays;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 
 /**
  *

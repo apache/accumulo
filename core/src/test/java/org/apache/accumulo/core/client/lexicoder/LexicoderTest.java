@@ -16,14 +16,15 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import junit.framework.TestCase;
-import org.apache.accumulo.core.util.TextUtil;
-import org.apache.hadoop.io.Text;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import org.apache.accumulo.core.util.TextUtil;
+import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 public abstract class LexicoderTest extends TestCase {
 
