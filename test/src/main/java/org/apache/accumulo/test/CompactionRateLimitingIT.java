@@ -17,6 +17,7 @@
 package org.apache.accumulo.test;
 
 import java.util.Random;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;

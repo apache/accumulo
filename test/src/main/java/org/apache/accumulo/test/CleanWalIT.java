@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map.Entry;
@@ -46,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class CleanWalIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(CleanWalIT.class);

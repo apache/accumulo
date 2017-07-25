@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -66,7 +68,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Replication tests which start at least two MAC instances and replicate data between them

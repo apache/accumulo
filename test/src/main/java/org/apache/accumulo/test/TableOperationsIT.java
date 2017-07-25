@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -67,7 +68,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class TableOperationsIT extends AccumuloClusterHarness {
 

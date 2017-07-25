@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.fs;
 
 import java.util.Optional;
+
 import org.apache.accumulo.core.client.impl.Table;
 
 public class VolumeChooserEnvironment {

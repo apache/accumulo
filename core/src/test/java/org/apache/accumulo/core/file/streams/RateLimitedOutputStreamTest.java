@@ -16,13 +16,15 @@
  */
 package org.apache.accumulo.core.file.streams;
 
-import com.google.common.io.ByteStreams;
-import com.google.common.io.CountingOutputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.util.Random;
+
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.io.ByteStreams;
+import com.google.common.io.CountingOutputStream;
 
 public class RateLimitedOutputStreamTest {
 

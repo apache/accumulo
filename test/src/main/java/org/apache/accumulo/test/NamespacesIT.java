@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -75,17 +76,15 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // Testing default namespace configuration with inheritance requires altering the system state and restoring it back to normal
 // Punt on this for now and just let it use a minicluster.

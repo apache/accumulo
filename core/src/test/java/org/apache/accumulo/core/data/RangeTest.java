@@ -25,12 +25,12 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 public class RangeTest extends TestCase {
   private Range newRange(String k1, String k2) {

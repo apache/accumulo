@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
-
 import java.util.Arrays;
+
+import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 
 public class IntegerLexicoderTest extends AbstractLexicoderTest {
   public void testSortOrder() {

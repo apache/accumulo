@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import java.util.Arrays;
+
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 import org.apache.accumulo.core.util.ComparablePair;
-
-import java.util.Arrays;
 
 /**
  *

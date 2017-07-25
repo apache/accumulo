@@ -16,15 +16,15 @@
  */
 package org.apache.accumulo.core.data;
 
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.hadoop.io.Text;
-import org.junit.Test;
-
-import java.nio.charset.StandardCharsets;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
+
+import java.nio.charset.StandardCharsets;
+
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
 public class KeyBuilderTest {
 

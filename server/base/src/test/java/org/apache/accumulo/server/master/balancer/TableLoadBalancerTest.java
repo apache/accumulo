@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.net.HostAndPort;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,6 +25,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.Table;
@@ -48,6 +47,9 @@ import org.apache.thrift.TException;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HostAndPort;
 
 public class TableLoadBalancerTest {
 

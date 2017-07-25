@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.io.Serializable;
+
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
-
-import java.io.Serializable;
 
 class ExportInfo implements Serializable {
 

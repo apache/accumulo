@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.master.replication;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -31,8 +33,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /**
  * Read work records from the replication table, create work entries for other nodes to complete.

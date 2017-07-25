@@ -18,6 +18,7 @@ package org.apache.accumulo.shell.format;
 
 import java.io.IOException;
 import java.util.Map.Entry;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
@@ -28,7 +29,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

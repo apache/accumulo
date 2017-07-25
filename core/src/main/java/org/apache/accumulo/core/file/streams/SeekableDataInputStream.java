@@ -19,6 +19,7 @@ package org.apache.accumulo.core.file.streams;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
 import org.apache.hadoop.fs.Seekable;
 
 /**

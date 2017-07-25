@@ -24,8 +24,6 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -39,6 +37,8 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.hadoop.io.Text;
+
+import junit.framework.TestCase;
 
 public class SourceSwitchingIteratorTest extends TestCase {
 

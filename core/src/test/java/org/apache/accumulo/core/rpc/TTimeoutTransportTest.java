@@ -16,13 +16,6 @@
  */
 package org.apache.accumulo.core.rpc;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
-import java.net.SocketAddress;
-
-import org.junit.Test;
-
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
@@ -30,6 +23,13 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.net.SocketAddress;
+
+import org.junit.Test;
 
 /**
  * Tests for {@link TTimeoutTransport}.

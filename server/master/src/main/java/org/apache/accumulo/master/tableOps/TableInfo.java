@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Table;
-
 import java.io.Serializable;
 import java.util.Map;
+
+import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.client.impl.Table;
 
 class TableInfo implements Serializable {
 

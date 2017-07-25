@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.client;
 
-import org.apache.accumulo.core.data.Range;
-
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.accumulo.core.data.Range;
 
 /**
  * In exchange for possibly <b>returning scanned entries out of order</b>, BatchScanner implementations may scan an Accumulo table more efficiently by

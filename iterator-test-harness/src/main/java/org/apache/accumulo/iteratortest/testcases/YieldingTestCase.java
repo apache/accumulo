@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.iteratortest.testcases;
 
+import java.io.IOException;
+import java.util.TreeMap;
+
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -25,9 +28,6 @@ import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
 import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
-
-import java.io.IOException;
-import java.util.TreeMap;
 
 /**
  * Test case that verifies that an iterator works correctly with the yielding api. Note that most iterators do nothing in terms of yielding in which case this

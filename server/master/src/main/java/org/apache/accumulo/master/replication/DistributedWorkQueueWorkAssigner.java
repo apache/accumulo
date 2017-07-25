@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.master.replication;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -47,7 +49,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**

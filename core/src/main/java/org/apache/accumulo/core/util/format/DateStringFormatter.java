@@ -18,6 +18,7 @@ package org.apache.accumulo.core.util.format;
 
 import java.util.Map.Entry;
 import java.util.TimeZone;
+
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 

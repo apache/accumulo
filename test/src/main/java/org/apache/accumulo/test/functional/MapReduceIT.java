@@ -38,8 +38,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.test.mapreduce.RowHash;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.test.mapreduce.RowHash;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 

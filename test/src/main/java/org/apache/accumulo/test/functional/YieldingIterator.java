@@ -16,8 +16,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.io.IOException;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -26,11 +30,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

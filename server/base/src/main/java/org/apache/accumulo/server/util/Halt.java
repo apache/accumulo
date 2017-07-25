@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.util.Daemon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 public class Halt {
   static private final Logger log = LoggerFactory.getLogger(Halt.class);

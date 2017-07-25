@@ -994,6 +994,17 @@
           <artifactId>warbucks-maven-plugin</artifactId>
           <version>1.0.0</version>
         </plugin>
+        <plugin>
+          <groupId>net.revelc.code</groupId>
+          <artifactId>impsort-maven-plugin</artifactId>
+          <version>1.0.0</version>
+          <configuration>
+            <groups>java.,javax.,org.,com.</groups>
+            <excludes>
+              <exclude>**/thrift/*.java</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -1348,6 +1359,19 @@
                     </pluginExecution>
                     <pluginExecution>
                       <pluginExecutionFilter>
+                        <groupId>net.revelc.code</groupId>
+                        <artifactId>impsort-maven-plugin</artifactId>
+                        <versionRange>[0,)</versionRange>
+                        <goals>
+                          <goal>sort</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <ignore />
+                      </action>
+                    </pluginExecution>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
                         <groupId>org.gaul</groupId>
                         <artifactId>modernizer-maven-plugin</artifactId>
                         <versionRange>[0,)</versionRange>
@@ -1566,6 +1590,18 @@
                   <goal>sort</goal>
                 </goals>
                 <phase>process-sources</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.revelc.code</groupId>
+            <artifactId>impsort-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sort-imports</id>
+                <goals>
+                  <goal>sort</goal>
+                </goals>
               </execution>
             </executions>
           </plugin>

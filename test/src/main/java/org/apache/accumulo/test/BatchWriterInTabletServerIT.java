@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.test;
 
-import com.google.common.collect.Iterators;
+import java.util.Map;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -35,7 +36,7 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Map;
+import com.google.common.collect.Iterators;
 
 /**
  * Test writing to another table from inside an iterator.

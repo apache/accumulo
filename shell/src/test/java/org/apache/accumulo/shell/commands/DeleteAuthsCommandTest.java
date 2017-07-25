@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import jline.console.ConsoleReader;
-
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.security.Authorizations;
@@ -26,6 +24,8 @@ import org.apache.commons.cli.CommandLine;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
+
+import jline.console.ConsoleReader;
 
 /**
  *

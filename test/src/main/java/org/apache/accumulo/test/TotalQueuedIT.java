@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
@@ -38,7 +39,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 import com.google.common.net.HostAndPort;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 // see ACCUMULO-1950
 public class TotalQueuedIT extends ConfigurableMacBase {
