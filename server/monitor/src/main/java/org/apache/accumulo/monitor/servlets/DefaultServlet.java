@@ -47,10 +47,13 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultServlet extends BasicServlet {
 
   private static final long serialVersionUID = 1L;
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultServlet.class);
 
   @Override
   protected String getTitle(HttpServletRequest req) {
@@ -77,7 +80,8 @@ public class DefaultServlet extends BasicServlet {
           while ((n = data.read(buffer)) > 0)
             out.write(buffer, 0, n);
         } else {
-          out.write(("could not get resource " + path + "").getBytes(UTF_8));
+          LOG.debug("Client requested {}, but it could not be loaded", path);
+          out.write("could not access requested resource".getBytes(UTF_8));
         }
       } finally {
         if (data != null)

@@ -97,8 +97,13 @@ public class OperationServlet extends BasicServlet {
   public static class RefreshOperation implements WebOperation {
     @Override
     public List<Cookie> execute(HttpServletRequest req, Logger log) {
-      String value = req.getParameter("value");
-      return Collections.singletonList(new Cookie("page.refresh.rate", value == null ? "5" : BasicServlet.encode(value)));
+      String rawValue = req.getParameter("value");
+      int refreshTime = 5;
+      // Verify that the value provided is actually a number
+      if (rawValue != null) {
+        refreshTime = Integer.parseInt(rawValue);
+      }
+      return Collections.singletonList(createCookie("page.refresh.rate", Integer.toString(refreshTime)));
     }
   }
 
@@ -151,10 +156,10 @@ public class OperationServlet extends BasicServlet {
       table = BasicServlet.encode(table);
       if (asc == null) {
         col = BasicServlet.encode(col);
-        return Collections.singletonList(new Cookie("tableSort." + page + "." + table + "." + "sortCol", col));
+        return Collections.singletonList(createCookie("tableSort." + page + "." + table + "." + "sortCol", col));
       } else {
         asc = BasicServlet.encode(asc);
-        return Collections.singletonList(new Cookie("tableSort." + page + "." + table + "." + "sortAsc", asc));
+        return Collections.singletonList(createCookie("tableSort." + page + "." + table + "." + "sortAsc", asc));
       }
     }
   }
@@ -170,7 +175,7 @@ public class OperationServlet extends BasicServlet {
       page = BasicServlet.encode(page);
       table = BasicServlet.encode(table);
       show = BasicServlet.encode(show);
-      return Collections.singletonList(new Cookie("tableLegend." + page + "." + table + "." + "show", show));
+      return Collections.singletonList(createCookie("tableLegend." + page + "." + table + "." + "show", show));
     }
   }
 
