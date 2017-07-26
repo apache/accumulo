@@ -23,6 +23,10 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.FileNotFoundException;
 
+import com.google.common.collect.Sets;
+import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -81,5 +85,52 @@ public class AccumuloTest {
     replay(fs);
 
     assertEquals(-1, Accumulo.getAccumuloPersistentVersion(fs, path));
+  }
+
+  @Test
+  public void testUpdateAccumuloVersion() throws Exception {
+    Volume v1 = createMock(Volume.class);
+    FileSystem fs1 = createMock(FileSystem.class);
+    Path baseVersion1 = new Path("hdfs://volume1/accumulo/version");
+    Path oldVersion1 = new Path("hdfs://volume1/accumulo/version/7");
+    Path newVersion1 = new Path("hdfs://volume1/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
+
+    FileStatus[] files1 = mockPersistentVersion("7");
+    expect(fs1.listStatus(baseVersion1)).andReturn(files1);
+    replay(fs1);
+
+    FSDataOutputStream fsdos1 = createMock(FSDataOutputStream.class);
+    expect(v1.getFileSystem()).andReturn(fs1);
+    expect(v1.prefixChild(ServerConstants.VERSION_DIR)).andReturn(baseVersion1).times(2);
+    replay(v1);
+    fsdos1.close();
+    replay(fsdos1);
+
+    Volume v2 = createMock(Volume.class);
+    FileSystem fs2 = createMock(FileSystem.class);
+    Path baseVersion2 = new Path("hdfs://volume2/accumulo/version");
+    Path oldVersion2 = new Path("hdfs://volume2/accumulo/version/7");
+    Path newVersion2 = new Path("hdfs://volume2/accumulo/version/" + Integer.toString(ServerConstants.DATA_VERSION));
+
+    FileStatus[] files2 = mockPersistentVersion("7");
+    expect(fs2.listStatus(baseVersion2)).andReturn(files2);
+    replay(fs2);
+
+    FSDataOutputStream fsdos2 = createMock(FSDataOutputStream.class);
+    expect(v2.getFileSystem()).andReturn(fs2);
+    expect(v2.prefixChild(ServerConstants.VERSION_DIR)).andReturn(baseVersion2).times(2);
+    replay(v2);
+    fsdos2.close();
+    replay(fsdos2);
+
+    VolumeManager vm = createMock(VolumeManager.class);
+    expect(vm.getVolumes()).andReturn(Sets.newHashSet(v1, v2));
+    expect(vm.delete(oldVersion1)).andReturn(true);
+    expect(vm.create(newVersion1)).andReturn(fsdos1);
+    expect(vm.delete(oldVersion2)).andReturn(true);
+    expect(vm.create(newVersion2)).andReturn(fsdos2);
+    replay(vm);
+
+    Accumulo.updateAccumuloVersion(vm, 7);
   }
 }
