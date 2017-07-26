@@ -62,7 +62,7 @@ public class Accumulo {
   public static synchronized void updateAccumuloVersion(VolumeManager fs, int oldVersion) {
     for (Volume volume : fs.getVolumes()) {
       try {
-        if (getAccumuloPersistentVersion(fs) == oldVersion) {
+        if (getAccumuloPersistentVersion(volume) == oldVersion) {
           log.debug("Attempting to upgrade " + volume);
           Path dataVersionLocation = ServerConstants.getDataVersionLocation(volume);
           fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION))).close();
@@ -93,11 +93,14 @@ public class Accumulo {
     }
   }
 
-  public static synchronized int getAccumuloPersistentVersion(VolumeManager fs) {
-    // It doesn't matter which Volume is used as they should all have the data version stored
-    Volume v = fs.getVolumes().iterator().next();
+  public static synchronized int getAccumuloPersistentVersion(Volume v) {
     Path path = ServerConstants.getDataVersionLocation(v);
     return getAccumuloPersistentVersion(v.getFileSystem(), path);
+  }
+
+  public static synchronized int getAccumuloPersistentVersion(VolumeManager fs) {
+    // It doesn't matter which Volume is used as they should all have the data version stored
+    return getAccumuloPersistentVersion(fs.getVolumes().iterator().next());
   }
 
   public static synchronized Path getAccumuloInstanceIdPath(VolumeManager fs) {
