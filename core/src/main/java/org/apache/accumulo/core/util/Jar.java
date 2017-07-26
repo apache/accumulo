@@ -41,9 +41,7 @@ public class Jar implements KeywordExecutable {
     String jarFileName = args[0];
     String candidateMainClass = args.length > 1 ? args[1] : null;
     Class<?> mainClass = null;
-    JarFile f = null;
-    try {
-      f = new JarFile(jarFileName);
+    try (JarFile f = new JarFile(jarFileName)) {
       mainClass = Main.loadClassFromJar(args, f, Main.getClassLoader());
     } catch (IOException ioe) {
       System.out.println("File " + jarFileName + " could not be found or read.");
@@ -52,10 +50,6 @@ public class Jar implements KeywordExecutable {
       System.out.println("Classname " + (candidateMainClass != null ? candidateMainClass : "in JAR manifest")
           + " not found.  Please make sure you use the wholly qualified package name.");
       System.exit(1);
-    } finally {
-      if (f != null) {
-        f.close();
-      }
     }
     // strip the jar file name and, if specified, the main class name from the args; then execute
     String[] newArgs = Main.stripArgs(args, mainClass.getName().equals(candidateMainClass) ? 2 : 1);
