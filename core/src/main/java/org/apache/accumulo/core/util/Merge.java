@@ -51,7 +51,7 @@ public class Merge {
     MergeException(Exception ex) {
       super(ex);
     }
-  };
+  }
 
   private static final Logger log = LoggerFactory.getLogger(Merge.class);
 

@@ -70,7 +70,7 @@ public class DeleterFormatterTest {
     public void set(String in) {
       bais = new ByteArrayInputStream(in.getBytes(UTF_8));
     }
-  };
+  }
 
   @Before
   public void setUp() throws IOException, MutationsRejectedException {

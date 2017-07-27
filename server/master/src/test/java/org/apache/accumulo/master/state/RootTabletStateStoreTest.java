@@ -59,7 +59,7 @@ public class RootTabletStateStoreTest {
           return node;
       return null;
     }
-  };
+  }
 
   static class FakeZooStore implements DistributedStore {
 

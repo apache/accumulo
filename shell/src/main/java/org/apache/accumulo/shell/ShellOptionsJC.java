@@ -104,7 +104,7 @@ public class ShellOptionsJC {
       String process(String value) {
         return value;
       }
-    };
+    }
 
     @Override
     public String convert(String value) {

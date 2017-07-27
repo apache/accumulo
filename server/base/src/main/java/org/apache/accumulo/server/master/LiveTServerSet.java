@@ -205,7 +205,7 @@ public class LiveTServerSet implements Watcher {
       this.connection = connection;
       this.instance = instance;
     }
-  };
+  }
 
   // The set of active tservers with locks, indexed by their name in zookeeper
   private Map<String,TServerInfo> current = new HashMap<>();

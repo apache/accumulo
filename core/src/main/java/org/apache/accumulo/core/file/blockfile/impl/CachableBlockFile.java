@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 
 public class CachableBlockFile {
 
-  private CachableBlockFile() {};
+  private CachableBlockFile() {}
 
   private static final Logger log = LoggerFactory.getLogger(CachableBlockFile.class);
 

@@ -74,7 +74,7 @@ public class Mutation implements Writable {
    */
   public static enum SERIALIZED_FORMAT {
     VERSION1, VERSION2
-  };
+  }
 
   private boolean useOldDeserialize = false;
   private byte[] row;

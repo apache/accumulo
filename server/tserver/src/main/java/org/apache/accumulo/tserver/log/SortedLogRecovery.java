@@ -69,7 +69,7 @@ public class SortedLogRecovery {
 
   private enum Status {
     INITIAL, LOOKING_FOR_FINISH, COMPLETE
-  };
+  }
 
   private static class LastStartToFinish {
     long lastStart = -1;

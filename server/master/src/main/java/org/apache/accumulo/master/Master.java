@@ -719,7 +719,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
   static enum TabletGoalState {
     HOSTED, UNASSIGNED, DELETED
-  };
+  }
 
   TabletGoalState getSystemGoalState(TabletLocationState tls) {
     switch (getMasterState()) {

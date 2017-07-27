@@ -161,7 +161,6 @@ public class ThriftScanner {
     public ScanState(ClientContext context, Text tableId, Authorizations authorizations, Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long readaheadThreshold) {
       this.context = context;
-      ;
       this.authorizations = authorizations;
 
       columns = new ArrayList<>(fetchedColumns.size());
@@ -423,7 +422,7 @@ public class ThriftScanner {
           client.closeScan(tinfo, is.scanID);
 
       } else {
-        // log.debug("Calling continue scan : "+scanState.range+"  loc = "+loc);
+        // log.debug("Calling continue scan : "+scanState.range+" loc = "+loc);
         String msg = "Continuing scan tserver=" + loc.tablet_location + " scanid=" + scanState.scanID;
         Thread.currentThread().setName(msg);
         opTimer.start(msg);

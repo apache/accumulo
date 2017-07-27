@@ -124,7 +124,7 @@ public class TransactionWatcherTest {
       });
       Assert.fail("work against stopped transaction should fail");
     } catch (Exception ex) {
-      ;
+
     }
     final long txid2 = 9;
     sa.start(txType, txid2);

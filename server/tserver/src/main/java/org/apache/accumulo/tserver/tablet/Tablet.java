@@ -205,7 +205,7 @@ public class Tablet implements TabletCommitter {
 
   static enum CompactionState {
     WAITING_TO_START, IN_PROGRESS
-  };
+  }
 
   private volatile CompactionState minorCompactionState = null;
   private volatile CompactionState majorCompactionState = null;

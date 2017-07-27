@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.trace.wrappers.RpcServerInvocationHandler;
-import org.apache.accumulo.server.rpc.RpcWrapper;
 import org.apache.thrift.ProcessFunction;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
@@ -196,7 +195,7 @@ public class RpcWrapperTest {
     public long barfoo() {
       return 0;
     }
-  };
+  }
 
   /**
    * A fake ProcessFunction implementation for testing that allows injection of method name and oneway.

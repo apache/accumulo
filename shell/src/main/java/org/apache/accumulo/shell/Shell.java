@@ -1021,7 +1021,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     @Override
     public void close() {}
-  };
+  }
 
   public static class PrintFile implements PrintLine {
     PrintWriter writer;
@@ -1039,7 +1039,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     public void close() {
       writer.close();
     }
-  };
+  }
 
   public final void printLines(Iterator<String> lines, boolean paginate) throws IOException {
     printLines(lines, paginate, null);

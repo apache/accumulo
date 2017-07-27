@@ -145,7 +145,7 @@ public class ClientConfiguration extends CompositeConfiguration {
           return prop;
       return null;
     }
-  };
+  }
 
   public ClientConfiguration(String configFile) throws ConfigurationException {
     this(new PropertiesConfiguration(), configFile);
