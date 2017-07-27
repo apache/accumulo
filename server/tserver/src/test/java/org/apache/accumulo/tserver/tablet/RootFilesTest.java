@@ -29,6 +29,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.server.fs.RandomVolumeChooser;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
@@ -123,6 +124,7 @@ public class RootFilesTest {
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(Property.INSTANCE_DFS_URI, "file:///");
     conf.set(Property.INSTANCE_DFS_DIR, "/");
+    conf.set(Property.GENERAL_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     VolumeManager vm = VolumeManagerImpl.get(conf);
 

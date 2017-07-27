@@ -79,8 +79,18 @@ public class VolumeManagerImpl implements VolumeManager {
     this.volumesByFileSystemUri = HashMultimap.create();
     invertVolumesByFileSystem(volumesByName, volumesByFileSystemUri);
     ensureSyncIsEnabled();
-    // Keep in sync with default type in the property definition.
-    chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new PerTableVolumeChooser());
+    // if they supplied a property and we cannot load it, then fail hard
+    VolumeChooser chooser1;
+    try {
+      chooser1 = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, null);
+    } catch (NullPointerException npe) {
+      chooser1 = null;
+      // null chooser handled below
+    }
+    if (chooser1 == null) {
+      throw new RuntimeException("Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
+    }
+    chooser = chooser1;
   }
 
   private void invertVolumesByFileSystem(Map<String,Volume> forward, Multimap<URI,Volume> inverted) {
@@ -408,7 +418,7 @@ public class VolumeManagerImpl implements VolumeManager {
     if (path.startsWith("../"))
       path = path.substring(2);
     else if (path.startsWith("/"))
-      path = "/" + tableId + path;
+      path = "/" + tableId.canonicalID() + path;
     else
       throw new IllegalArgumentException("Unexpected path prefix " + path);
 
@@ -464,17 +474,17 @@ public class VolumeManagerImpl implements VolumeManager {
     return getVolumeByPath(dir).getFileSystem().getContentSummary(dir);
   }
 
-  // Only used as a fall back if the configured chooser misbehaves.
-  private final VolumeChooser failsafeChooser = new RandomVolumeChooser();
-
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options) {
-    final String choice = chooser.choose(env, options);
+    final String choice;
+    choice = chooser.choose(env, options);
+
     if (!(ArrayUtils.contains(options, choice))) {
-      log.error("The configured volume chooser, '{}', or one of its delegates returned a volume not in the set of options provided; "
-          + "will continue by relying on a RandomVolumeChooser. You should investigate and correct the named chooser.", chooser.getClass());
-      return failsafeChooser.choose(env, options);
+      // we may want to go with random if they chooser was not overridden
+      String msg = "The configured volume chooser, '" + chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided";
+      throw new RuntimeException(msg);
     }
+
     return choice;
   }
 
