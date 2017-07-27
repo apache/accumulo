@@ -83,7 +83,7 @@ abstract public class BasicServlet extends HttpServlet {
   private static final String DEFAULT_CONTENT_TYPE = "text/html";
 
   public static final void setCookie(HttpServletResponse resp, String name, String value) {
-    resp.addCookie(new Cookie(name, value));
+    resp.addCookie(createCookie(name, value));
   }
 
   public static final String getCookieValue(HttpServletRequest req, String name) {
@@ -264,4 +264,12 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<br />\n<h2 class='").append(klass).append("'>").append(text).append("</h2>\n");
   }
 
+  /**
+   * Creates a {@link Cookie} with the given name and value, also setting the HttpOnly attribute on the cookie.
+   */
+  protected static Cookie createCookie(String name, String value) {
+    Cookie c = new Cookie(name, value);
+    c.setHttpOnly(true);
+    return c;
+  }
 }
