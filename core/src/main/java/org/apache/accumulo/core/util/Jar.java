@@ -41,8 +41,7 @@ public class Jar implements KeywordExecutable {
     String jarFileName = args[0];
     String candidateMainClass = args.length > 1 ? args[1] : null;
     Class<?> mainClass = null;
-    try {
-      JarFile f = new JarFile(jarFileName);
+    try (JarFile f = new JarFile(jarFileName)) {
       mainClass = Main.loadClassFromJar(args, f, Main.getClassLoader());
     } catch (IOException ioe) {
       System.out.println("File " + jarFileName + " could not be found or read.");
