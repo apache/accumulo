@@ -35,12 +35,12 @@ public class SummaryCollectionTest {
   public void testDeleted() {
     SummarizerConfiguration conf = SummarizerConfiguration.builder(FamilySummarizer.class).build();
 
-    HashMap<String,Long> stats = new HashMap<String,Long>();
+    HashMap<String,Long> stats = new HashMap<>();
     stats.put("c:foo", 9L);
     FileSummary fs1 = new FileSummary(conf, stats, false);
     SummaryCollection sc1 = new SummaryCollection(Collections.singleton(fs1));
 
-    stats = new HashMap<String,Long>();
+    stats = new HashMap<>();
     stats.put("c:foo", 5L);
     stats.put("c:bar", 3L);
     FileSummary fs2 = new FileSummary(conf, stats, true);

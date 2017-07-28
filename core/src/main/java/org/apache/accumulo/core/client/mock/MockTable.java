@@ -85,7 +85,7 @@ public class MockTable {
       }
       return 0;
     }
-  };
+  }
 
   final SortedMap<Key,Value> table = new ConcurrentSkipListMap<>();
   int mutationCount = 0;

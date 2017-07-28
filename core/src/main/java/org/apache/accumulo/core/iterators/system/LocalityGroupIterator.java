@@ -77,7 +77,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
 
     public LocalityGroupContext(LocalityGroup[] groups) {
       this.groups = Collections.unmodifiableList(Arrays.asList(groups));
-      this.groupByCf = new HashMap<ByteSequence,LocalityGroup>();
+      this.groupByCf = new HashMap<>();
       LocalityGroup foundDefault = null;
 
       for (LocalityGroup group : groups) {
@@ -182,7 +182,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
         groups = lgContext.groups;
       }
     } else {
-      groups = new HashSet<LocalityGroup>();
+      groups = new HashSet<>();
 
       // do not know what column families are in the default locality group,
       // only know what column families are not in it

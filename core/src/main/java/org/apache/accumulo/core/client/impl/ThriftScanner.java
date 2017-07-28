@@ -168,7 +168,6 @@ public class ThriftScanner {
         List<IterInfo> serverSideIteratorList, Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated, long readaheadThreshold,
         SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext) {
       this.context = context;
-
       this.authorizations = authorizations;
       this.classLoaderContext = classLoaderContext;
 

@@ -150,7 +150,7 @@ public class SummarizerConfiguration {
    *           when there are duplicate values for {@link #getPropertyId()}
    */
   public static Map<String,String> toTableProperties(Collection<SummarizerConfiguration> configurations) {
-    return SummarizerConfigurationUtil.toTablePropertiesMap(new ArrayList<SummarizerConfiguration>(configurations));
+    return SummarizerConfigurationUtil.toTablePropertiesMap(new ArrayList<>(configurations));
   }
 
   /**

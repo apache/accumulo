@@ -147,7 +147,7 @@ public class TabletServerResourceManager {
   }
 
   private ExecutorService createIdlingEs(Property max, String name, long timeout, TimeUnit timeUnit) {
-    LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     int maxThreads = conf.getSystemConfiguration().getCount(max);
     ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, timeout, timeUnit, queue, new NamingThreadFactory(name));
     tp.allowCoreThreadTimeOut(true);

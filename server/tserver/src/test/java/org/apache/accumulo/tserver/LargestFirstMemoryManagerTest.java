@@ -172,7 +172,7 @@ public class LargestFirstMemoryManagerTest {
   @Test
   public void testDeletedTable() throws Exception {
     final String deletedTableId = "1";
-    Function<Table.ID,Boolean> existenceCheck = tableId -> !deletedTableId.equals(tableId);
+    Function<Table.ID,Boolean> existenceCheck = tableId -> !deletedTableId.contentEquals(tableId.canonicalID());
     LargestFirstMemoryManagerWithExistenceCheck mgr = new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
     ServerConfiguration config = new ServerConfiguration() {
       ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);

@@ -470,7 +470,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
         if (newInfo != null) {
           Collection<String> tableIdCopied = serverTableIdCopied.get(server);
           if (tableIdCopied.isEmpty()) {
-            newTableMap = new HashMap<String,TableInfo>(newTableMap);
+            newTableMap = new HashMap<>(newTableMap);
             currentCopy.get(server).setTableMap(newTableMap);
           }
           if (!tableIdCopied.contains(tableId)) {

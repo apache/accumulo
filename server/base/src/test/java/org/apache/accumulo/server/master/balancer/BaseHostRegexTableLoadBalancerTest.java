@@ -189,7 +189,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       String tableName = idToTableName(tableId);
       TServerInstance initialLocation = initialTableLocation.get(tableName);
       if (tserver.equals(initialLocation)) {
-        List<TabletStats> list = new ArrayList<TabletStats>(5);
+        List<TabletStats> list = new ArrayList<>(5);
         for (KeyExtent extent : tableExtents.get(tableName)) {
           TabletStats stats = new TabletStats();
           stats.setExtent(extent.toThrift());
@@ -338,7 +338,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     TreeMap<TServerInstance,TabletServerStatus> current = new TreeMap<>();
     for (int i = 1; i <= numTservers; i++) {
       TabletServerStatus status = new TabletServerStatus();
-      Map<String,TableInfo> tableMap = new HashMap<String,TableInfo>();
+      Map<String,TableInfo> tableMap = new HashMap<>();
       tableMap.put(FOO.getId().canonicalID(), new TableInfo());
       tableMap.put(BAR.getId().canonicalID(), new TableInfo());
       tableMap.put(BAZ.getId().canonicalID(), new TableInfo());

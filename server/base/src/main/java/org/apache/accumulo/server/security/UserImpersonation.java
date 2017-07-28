@@ -259,7 +259,6 @@ public class UserImpersonation {
    * @param configProperties
    *          The relevant configuration properties for impersonation.
    */
-  @SuppressWarnings("javadoc")
   private void parseMultiPropertyConfiguration(Map<String,String> configProperties) {
     @SuppressWarnings("deprecation")
     final String configKey = Property.INSTANCE_RPC_SASL_PROXYUSERS.getKey();

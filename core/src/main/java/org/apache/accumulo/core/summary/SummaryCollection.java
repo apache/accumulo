@@ -132,7 +132,6 @@ public class SummaryCollection {
     FileSummary(SummarizerConfiguration conf) {
       this.conf = conf;
       this.summary = new HashMap<>();
-      ;
       this.exceededBoundry = false;
       this.exceededMaxSize = true;
     }
