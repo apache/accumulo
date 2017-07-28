@@ -105,8 +105,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
   private volatile int maxTServerMigrations = HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT;
   private volatile int maxOutstandingMigrations = DEFAULT_OUTSTANDING_MIGRATIONS;
-  private final Map<KeyExtent,TabletMigration> migrationsFromLastPass = new HashMap<KeyExtent,TabletMigration>();
-  private final Map<String,Long> tableToTimeSinceNoMigrations = new HashMap<String,Long>();
+  private final Map<KeyExtent,TabletMigration> migrationsFromLastPass = new HashMap<>();
+  private final Map<String,Long> tableToTimeSinceNoMigrations = new HashMap<>();
 
   /**
    * Group the set of current tservers by pool name. Tservers that don't match a regex are put into a default pool. This could be expensive in the terms of the
@@ -477,7 +477,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
         if (newInfo != null) {
           Collection<String> tableIdCopied = serverTableIdCopied.get(server);
           if (tableIdCopied.isEmpty()) {
-            newTableMap = new HashMap<String,TableInfo>(newTableMap);
+            newTableMap = new HashMap<>(newTableMap);
             currentCopy.get(server).setTableMap(newTableMap);
           }
           if (!tableIdCopied.contains(tableId)) {

@@ -47,7 +47,7 @@ public class ColumnFilterTest extends TestCase {
   }
 
   public void test1() {
-    TreeMap<Key,Value> data = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data = new TreeMap<>();
     data.put(newKey("r1", "cf1", "cq1"), new Value());
     data.put(newKey("r1", "cf2", "cq1"), new Value());
 
@@ -62,7 +62,7 @@ public class ColumnFilterTest extends TestCase {
 
   public void test2() throws Exception {
 
-    TreeMap<Key,Value> data = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data = new TreeMap<>();
     data.put(newKey("r1", "cf1", "cq1"), new Value());
     data.put(newKey("r1", "cf2", "cq1"), new Value());
     data.put(newKey("r1", "cf2", "cq2"), new Value());
@@ -86,7 +86,7 @@ public class ColumnFilterTest extends TestCase {
 
   public void test3() throws Exception {
 
-    TreeMap<Key,Value> data = new TreeMap<Key,Value>();
+    TreeMap<Key,Value> data = new TreeMap<>();
     data.put(newKey("r1", "cf1", "cq1"), new Value());
     data.put(newKey("r1", "cf2", "cq1"), new Value());
     data.put(newKey("r1", "cf2", "cq2"), new Value());

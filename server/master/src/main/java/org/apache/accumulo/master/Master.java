@@ -749,7 +749,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     public TUnloadTabletGoal howUnload() {
       return unloadGoal;
     }
-  };
+  }
 
   TabletGoalState getSystemGoalState(TabletLocationState tls) {
     switch (getMasterState()) {

@@ -77,8 +77,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testBalance() {
     init(factory);
-    Set<KeyExtent> migrations = new HashSet<KeyExtent>();
-    List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+    Set<KeyExtent> migrations = new HashSet<>();
+    List<TabletMigration> migrationsOut = new ArrayList<>();
     long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
     Assert.assertEquals(20000, wait);
     // should balance four tablets in one of the tables before reaching max
@@ -120,7 +120,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     List<TabletMigration> migrationsOut = new ArrayList<>();
     init(factory);
     // lets say we already have migrations ongoing for the FOO and BAR table extends (should be 5 of each of them) for a total of 10
-    Set<KeyExtent> migrations = new HashSet<KeyExtent>();
+    Set<KeyExtent> migrations = new HashSet<>();
     migrations.addAll(tableExtents.get(FOO.getTableName()));
     migrations.addAll(tableExtents.get(BAR.getTableName()));
     long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations, migrationsOut);
