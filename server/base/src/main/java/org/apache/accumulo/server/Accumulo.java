@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.ReadOnlyStore;
@@ -112,9 +111,8 @@ public class Accumulo {
     log.info("Data Version " + dataVersion);
     Accumulo.waitForZookeeperAndHdfs(fs);
 
-    Version codeVersion = new Version(Constants.VERSION);
     if (!(canUpgradeFromDataVersion(dataVersion))) {
-      throw new RuntimeException("This version of accumulo (" + codeVersion + ") is not compatible with files stored using data version " + dataVersion);
+      throw new RuntimeException("This version of accumulo (" + Constants.VERSION + ") is not compatible with files stored using data version " + dataVersion);
     }
 
     TreeMap<String,String> sortedProps = new TreeMap<>();
