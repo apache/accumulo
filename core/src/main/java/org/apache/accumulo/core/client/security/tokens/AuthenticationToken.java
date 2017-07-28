@@ -181,19 +181,22 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     @Override
     public boolean containsKey(Object key) {
       checkDestroyed();
-      return map.containsKey(key);
+      String k = (String) key;
+      return map.containsKey(k);
     }
 
     @Override
     public boolean containsValue(Object value) {
       checkDestroyed();
-      return map.containsValue(value);
+      char[] v = (char[]) value;
+      return map.containsValue(v);
     }
 
     @Override
     public char[] get(Object key) {
       checkDestroyed();
-      return map.get(key);
+      String k = (String) key;
+      return map.get(k);
     }
 
     @Override
@@ -205,7 +208,8 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     @Override
     public char[] remove(Object key) {
       checkDestroyed();
-      return map.remove(key);
+      String k = (String) key;
+      return map.remove(k);
     }
 
     @Override

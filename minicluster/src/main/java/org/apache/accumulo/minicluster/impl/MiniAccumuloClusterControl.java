@@ -308,11 +308,11 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     throw new UnsupportedOperationException();
   }
 
-  public void killProcess(ServerType type, ProcessReference proc) throws ProcessNotFoundException, InterruptedException {
+  public void killProcess(ServerType type, ProcessReference procRef) throws ProcessNotFoundException, InterruptedException {
     boolean found = false;
     switch (type) {
       case MASTER:
-        if (proc.equals(masterProcess)) {
+        if (procRef.getProcess().equals(masterProcess)) {
           try {
             cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException e) {
@@ -327,7 +327,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
           for (Process tserver : tabletServerProcesses) {
-            if (proc.equals(tserver)) {
+            if (procRef.getProcess().equals(tserver)) {
               tabletServerProcesses.remove(tserver);
               try {
                 cluster.stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
@@ -343,7 +343,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case ZOOKEEPER:
-        if (proc.equals(zooKeeperProcess)) {
+        if (procRef.getProcess().equals(zooKeeperProcess)) {
           try {
             cluster.stopProcessWithTimeout(zooKeeperProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException e) {
@@ -356,7 +356,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case GARBAGE_COLLECTOR:
-        if (proc.equals(gcProcess)) {
+        if (procRef.getProcess().equals(gcProcess)) {
           try {
             cluster.stopProcessWithTimeout(gcProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException e) {
