@@ -34,10 +34,11 @@ public class DefaultMap<K,V> extends HashMap<K,V> {
   @SuppressWarnings("unchecked")
   @Override
   public V get(Object key) {
-    V result = super.get(key);
+    K k = (K) key; // fail early that key is correct type, rather than during put
+    V result = super.get(k);
     if (result == null) {
       try {
-        super.put((K) key, result = construct());
+        super.put(k, result = construct());
       } catch (Exception ex) {
         throw new RuntimeException(ex);
       }
