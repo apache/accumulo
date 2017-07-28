@@ -17,38 +17,40 @@
 
 package org.apache.accumulo.minicluster.impl;
 
+import java.util.Objects;
+
 /**
  * Opaque handle to a process.
  */
 public class ProcessReference {
-  private Process process;
+  private final Process process;
 
   ProcessReference(Process process) {
-    this.process = process;
+    this.process = Objects.requireNonNull(process);
   }
 
-  /**
-   * Visible for testing, not intended for client consumption
-   */
   public Process getProcess() {
     return process;
   }
 
   @Override
   public String toString() {
-    return process.toString();
+    return getProcess().toString();
   }
 
   @Override
   public int hashCode() {
-    return process.hashCode();
+    return getProcess().hashCode();
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof Process) {
-      return process == obj;
+    if (this == obj) {
+      return true;
     }
-    return this == obj;
+    if (obj instanceof ProcessReference) {
+      return getProcess().equals(((ProcessReference) obj).getProcess());
+    }
+    throw new IllegalArgumentException(String.valueOf(obj) + " is not of type " + this.getClass().getName());
   }
 }

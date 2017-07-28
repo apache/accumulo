@@ -169,7 +169,7 @@ public class DefaultLoadBalancerTest {
   public void testUnevenAssignment() {
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
-      HostAndPort fakeAddress = HostAndPort.fromParts("127.0.0.1", (int) c);
+      HostAndPort fakeAddress = HostAndPort.fromParts("127.0.0.1", c);
       String fakeInstance = cString;
       TServerInstance tsi = new TServerInstance(fakeAddress, fakeInstance);
       FakeTServer fakeTServer = new FakeTServer();
@@ -210,7 +210,7 @@ public class DefaultLoadBalancerTest {
     // make 26 servers
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
-      HostAndPort fakeAddress = HostAndPort.fromParts("127.0.0.1", (int) c);
+      HostAndPort fakeAddress = HostAndPort.fromParts("127.0.0.1", c);
       String fakeInstance = cString;
       TServerInstance tsi = new TServerInstance(fakeAddress, fakeInstance);
       FakeTServer fakeTServer = new FakeTServer();

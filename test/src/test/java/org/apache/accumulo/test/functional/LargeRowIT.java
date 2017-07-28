@@ -202,7 +202,7 @@ public class LargeRowIT extends AccumuloClusterIT {
         if (!entry.getKey().getRow().equals(new Text(rowData))) {
           throw new Exception("verification failed, unexpected row i =" + i);
         }
-        if (!entry.getValue().equals(Integer.toString(i).getBytes(UTF_8))) {
+        if (!entry.getValue().equals(new Value(Integer.toString(i).getBytes(UTF_8)))) {
           throw new Exception("verification failed, unexpected value i =" + i + " value = " + entry.getValue());
         }
         count++;
