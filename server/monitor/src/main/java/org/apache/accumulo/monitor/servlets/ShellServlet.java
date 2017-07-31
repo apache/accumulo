@@ -230,8 +230,8 @@ public class ShellServlet extends BasicServlet {
     return "<div id='login'><form method=POST action='" + requestURI + "'>"
         + "<table><tr><td>Mock:&nbsp</td><td><input type='checkbox' name='mock' value='mock'></td></tr>"
         + "<tr><td>Username:&nbsp;</td><td><input type='text' name='user'></td></tr>"
-        + "<tr><td>Password:&nbsp;</td><td><input type='password' name='pass'></td><td>" + "<input type='hidden' name='" + CSRF_KEY + "' value='" + csrfToken
-        + "'/><input type='submit' value='Enter'></td></tr></table></form></div>";
+        + "<tr><td>Password:&nbsp;</td><td><input type='password' name='pass' autocomplete='off'></td><td>" + "<input type='hidden' name='" + CSRF_KEY
+        + "' value='" + csrfToken + "'/><input type='submit' value='Enter'></td></tr></table></form></div>";
   }
 
   private static class StringBuilderOutputStream extends OutputStream {
