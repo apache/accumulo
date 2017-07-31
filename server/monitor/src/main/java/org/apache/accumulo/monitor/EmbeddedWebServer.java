@@ -52,27 +52,7 @@ public class EmbeddedWebServer {
       usingSsl = false;
     } else {
       SslContextFactory sslContextFactory = new SslContextFactory();
-      sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
-      sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
-      sslContextFactory.setKeyStoreType(conf.get(Property.MONITOR_SSL_KEYSTORETYPE));
-      sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
-      sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
-      sslContextFactory.setTrustStoreType(conf.get(Property.MONITOR_SSL_TRUSTSTORETYPE));
-
-      final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
-      if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
-        sslContextFactory.setIncludeCipherSuites(StringUtils.split(includedCiphers, ','));
-      }
-
-      final String excludedCiphers = conf.get(Property.MONITOR_SSL_EXCLUDE_CIPHERS);
-      if (!Property.MONITOR_SSL_EXCLUDE_CIPHERS.getDefaultValue().equals(excludedCiphers)) {
-        sslContextFactory.setExcludeCipherSuites(StringUtils.split(excludedCiphers, ','));
-      }
-
-      final String includeProtocols = conf.get(Property.MONITOR_SSL_INCLUDE_PROTOCOLS);
-      if (null != includeProtocols && !includeProtocols.isEmpty()) {
-        sslContextFactory.setIncludeProtocols(StringUtils.split(includeProtocols, ','));
-      }
+      configureSslContextFactory(sslContextFactory, conf);
 
       connector = new ServerConnector(server, sslContextFactory);
       usingSsl = true;
@@ -85,6 +65,39 @@ public class EmbeddedWebServer {
     handler.getSessionHandler().getSessionManager().getSessionCookieConfig().setHttpOnly(true);
 
     disableTrace("/");
+  }
+
+  // static and package-private for testing visibility
+  static void configureSslContextFactory(SslContextFactory sslContextFactory, AccumuloConfiguration conf) {
+    sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
+    sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
+    // Only set keystore type if it was non-empty. We do not want to override the default JKS from Jetty
+    final String keystoreType = conf.get(Property.MONITOR_SSL_KEYSTORETYPE);
+    if (!keystoreType.isEmpty()) {
+      sslContextFactory.setKeyStoreType(keystoreType);
+    }
+    sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
+    sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+    // Only set truststore type if it was non-empty. We do not want to override the default JKS from Jetty
+    final String truststoreType = conf.get(Property.MONITOR_SSL_TRUSTSTORETYPE);
+    if (!truststoreType.isEmpty()) {
+      sslContextFactory.setTrustStoreType(truststoreType);
+    }
+
+    final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
+    if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
+      sslContextFactory.setIncludeCipherSuites(StringUtils.split(includedCiphers, ','));
+    }
+
+    final String excludedCiphers = conf.get(Property.MONITOR_SSL_EXCLUDE_CIPHERS);
+    if (!Property.MONITOR_SSL_EXCLUDE_CIPHERS.getDefaultValue().equals(excludedCiphers)) {
+      sslContextFactory.setExcludeCipherSuites(StringUtils.split(excludedCiphers, ','));
+    }
+
+    final String includeProtocols = conf.get(Property.MONITOR_SSL_INCLUDE_PROTOCOLS);
+    if (null != includeProtocols && !includeProtocols.isEmpty()) {
+      sslContextFactory.setIncludeProtocols(StringUtils.split(includeProtocols, ','));
+    }
   }
 
   public void addServlet(Class<? extends HttpServlet> klass, String where) {
