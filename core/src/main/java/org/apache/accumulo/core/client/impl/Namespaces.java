@@ -57,7 +57,7 @@ public class Namespaces {
   public static final Validator<String> NOT_DEFAULT = new Validator<String>() {
     @Override
     public boolean test(String namespace) {
-      return !Namespaces.DEFAULT_NAMESPACE.equals(namespace);
+      return !Namespace.DEFAULT.equals(namespace);
     }
 
     @Override
@@ -69,19 +69,14 @@ public class Namespaces {
   public static final Validator<String> NOT_ACCUMULO = new Validator<String>() {
     @Override
     public boolean test(String namespace) {
-      return !Namespaces.ACCUMULO_NAMESPACE.equals(namespace);
+      return !Namespace.ACCUMULO.equals(namespace);
     }
 
     @Override
     public String invalidMessage(String namespace) {
-      return "Namespace cannot be the reserved namespace, " + Namespaces.ACCUMULO_NAMESPACE;
+      return "Namespace cannot be the reserved namespace, " + Namespace.ACCUMULO;
     }
   };
-
-  public static final Namespace.ID DEFAULT_NAMESPACE_ID = Namespace.ID.DEFAULT;
-  public static final String DEFAULT_NAMESPACE = Namespace.DEFAULT;
-  public static final Namespace.ID ACCUMULO_NAMESPACE_ID = Namespace.ID.ACCUMULO;
-  public static final String ACCUMULO_NAMESPACE = Namespace.ACCUMULO;
 
   private static ZooCache getZooCache(Instance instance) {
     return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());

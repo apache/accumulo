@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.client.impl.Tables.qualify;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -83,12 +83,12 @@ public class TableValidators {
 
     @Override
     public boolean test(String tableName) {
-      return !Namespaces.ACCUMULO_NAMESPACE.equals(qualify(tableName).getFirst());
+      return !Namespace.ACCUMULO.equals(qualify(tableName).getFirst());
     }
 
     @Override
     public String invalidMessage(String tableName) {
-      return "Table cannot be in the " + Namespaces.ACCUMULO_NAMESPACE + " namespace";
+      return "Table cannot be in the " + Namespace.ACCUMULO + " namespace";
     }
   };
 

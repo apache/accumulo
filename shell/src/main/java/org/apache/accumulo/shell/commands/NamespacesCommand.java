@@ -23,7 +23,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -43,7 +43,7 @@ public class NamespacesCommand extends Command {
 
     Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(), entry -> {
       String name = entry.getKey();
-      if (Namespaces.DEFAULT_NAMESPACE.equals(name))
+      if (Namespace.DEFAULT.equals(name))
         name = DEFAULT_NAMESPACE_DISPLAY_NAME;
       String id = entry.getValue();
       if (cl.hasOption(namespaceIdOption.getOpt()))

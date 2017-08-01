@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.proxy.thrift.AccumuloException;
@@ -103,8 +103,8 @@ public class TestProxyNamespaceOperations {
 
   @Test
   public void systemDefault() throws TException {
-    assertEquals(tpc.proxy().systemNamespace(), Namespaces.ACCUMULO_NAMESPACE);
-    assertEquals(tpc.proxy().defaultNamespace(), Namespaces.DEFAULT_NAMESPACE);
+    assertEquals(tpc.proxy().systemNamespace(), Namespace.ACCUMULO);
+    assertEquals(tpc.proxy().defaultNamespace(), Namespace.DEFAULT);
   }
 
   @Test

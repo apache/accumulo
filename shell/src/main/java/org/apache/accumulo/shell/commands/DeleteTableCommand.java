@@ -19,7 +19,7 @@ package org.apache.accumulo.shell.commands;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.shell.Shell;
@@ -74,7 +74,7 @@ public class DeleteTableCommand extends TableOperation {
     while (tableNames.hasNext()) {
       String table = tableNames.next();
       Pair<String,String> qualifiedName = Tables.qualify(table);
-      if (Namespaces.ACCUMULO_NAMESPACE.equals(qualifiedName.getFirst())) {
+      if (Namespace.ACCUMULO.equals(qualifiedName.getFirst())) {
         log.trace("Removing table from deletion set: {}", table);
         tableNames.remove();
       }

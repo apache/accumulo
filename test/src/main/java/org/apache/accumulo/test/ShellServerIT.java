@@ -49,7 +49,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -311,7 +311,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void deleteTables() throws Exception {
     Connector c = getConnector();
     for (String table : c.tableOperations().list()) {
-      if (!table.startsWith(Namespaces.ACCUMULO_NAMESPACE + ".") && !table.equals("trace"))
+      if (!table.startsWith(Namespace.ACCUMULO + ".") && !table.equals("trace"))
         try {
           c.tableOperations().delete(table);
         } catch (TableNotFoundException e) {
@@ -1643,7 +1643,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void namespaces() throws Exception {
     ts.exec("namespaces", true, "\"\"", true); // default namespace, displayed as quoted empty string
-    ts.exec("namespaces", true, Namespaces.ACCUMULO_NAMESPACE, true);
+    ts.exec("namespaces", true, Namespace.ACCUMULO, true);
     ts.exec("createnamespace thing1", true);
     String namespaces = ts.exec("namespaces");
     assertTrue(namespaces.contains("thing1"));

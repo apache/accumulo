@@ -22,7 +22,6 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.ObservableConfiguration;
@@ -87,7 +86,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   public String get(Property property) {
     String key = property.getKey();
     AccumuloConfiguration getParent;
-    if (!(namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) && isIteratorOrConstraint(key))) {
+    if (!(namespaceId.equals(Namespace.ID.ACCUMULO) && isIteratorOrConstraint(key))) {
       getParent = parent;
     } else {
       // ignore iterators from parent if system namespace
@@ -101,7 +100,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     Predicate<String> parentFilter = filter;
     // exclude system iterators/constraints from the system namespace
     // so they don't affect the metadata or root tables.
-    if (getNamespaceId().equals(Namespaces.ACCUMULO_NAMESPACE_ID))
+    if (getNamespaceId().equals(Namespace.ID.ACCUMULO))
       parentFilter = key -> isIteratorOrConstraint(key) ? false : filter.test(key);
 
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, parentFilter);

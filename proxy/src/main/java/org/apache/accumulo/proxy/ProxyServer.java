@@ -64,7 +64,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
@@ -1607,12 +1607,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   @Override
   public String systemNamespace() throws TException {
-    return Namespaces.ACCUMULO_NAMESPACE;
+    return Namespace.ACCUMULO;
   }
 
   @Override
   public String defaultNamespace() throws TException {
-    return Namespaces.DEFAULT_NAMESPACE;
+    return Namespace.DEFAULT;
   }
 
   @Override

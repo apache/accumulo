@@ -29,7 +29,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -47,7 +47,7 @@ public class ReplicationTable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationTable.class);
 
   public static final Table.ID ID = new Table.ID("+rep");
-  public static final String NAME = Namespaces.ACCUMULO_NAMESPACE + ".replication";
+  public static final String NAME = Namespace.ACCUMULO + ".replication";
 
   public static final String COMBINER_NAME = "statuscombiner";
 

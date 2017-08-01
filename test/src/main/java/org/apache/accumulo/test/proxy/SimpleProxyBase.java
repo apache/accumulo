@@ -48,7 +48,7 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -2619,8 +2619,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   @Test
   public void namespaceOperations() throws Exception {
     // default namespace and accumulo namespace
-    assertEquals("System namespace is wrong", client.systemNamespace(), Namespaces.ACCUMULO_NAMESPACE);
-    assertEquals("Default namespace is wrong", client.defaultNamespace(), Namespaces.DEFAULT_NAMESPACE);
+    assertEquals("System namespace is wrong", client.systemNamespace(), Namespace.ACCUMULO);
+    assertEquals("Default namespace is wrong", client.defaultNamespace(), Namespace.DEFAULT);
 
     // namespace existance and namespace listing
     assertTrue("Namespace created during setup should exist", client.namespaceExists(creds, namespaceName));

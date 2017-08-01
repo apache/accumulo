@@ -37,7 +37,6 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
@@ -105,11 +104,10 @@ public class NamespaceConfigurationTest {
 
   @Test
   public void testGet_SkipParentIfAccumuloNS() {
-    c = new NamespaceConfiguration(Namespaces.ACCUMULO_NAMESPACE_ID, instance, parent);
+    c = new NamespaceConfiguration(Namespace.ID.ACCUMULO, instance, parent);
     c.setZooCacheFactory(zcf);
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + Namespaces.ACCUMULO_NAMESPACE_ID + Constants.ZNAMESPACE_CONF + "/" + p.getKey()))
-        .andReturn(null);
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + Namespace.ID.ACCUMULO + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(null);
     replay(zc);
     assertNull(c.get(Property.INSTANCE_SECRET));
   }

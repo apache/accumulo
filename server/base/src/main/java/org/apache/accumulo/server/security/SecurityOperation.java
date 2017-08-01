@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
@@ -379,7 +378,7 @@ public class SecurityOperation {
 
     targetUserExists(user);
 
-    if (namespace.equals(Namespaces.ACCUMULO_NAMESPACE_ID) && permission.equals(NamespacePermission.READ))
+    if (namespace.equals(Namespace.ID.ACCUMULO) && permission.equals(NamespacePermission.READ))
       return true;
 
     try {

@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -388,8 +387,8 @@ public class ZKPermHandler implements PermissionHandler {
     tablePerms.put(MetadataTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     // essentially the same but on the system namespace, the ALTER_TABLE permission is now redundant
     Map<Namespace.ID,Set<NamespacePermission>> namespacePerms = new HashMap<>();
-    namespacePerms.put(Namespaces.ACCUMULO_NAMESPACE_ID, Collections.singleton(NamespacePermission.ALTER_NAMESPACE));
-    namespacePerms.put(Namespaces.ACCUMULO_NAMESPACE_ID, Collections.singleton(NamespacePermission.ALTER_TABLE));
+    namespacePerms.put(Namespace.ID.ACCUMULO, Collections.singleton(NamespacePermission.ALTER_NAMESPACE));
+    namespacePerms.put(Namespace.ID.ACCUMULO, Collections.singleton(NamespacePermission.ALTER_TABLE));
 
     try {
       // prep parent node of users with root username

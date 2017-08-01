@@ -29,7 +29,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -187,7 +187,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     while (iterator.hasNext()) {
       String curr = iterator.next();
-      if (!curr.startsWith(Namespaces.ACCUMULO_NAMESPACE + ".")) {
+      if (!curr.startsWith(Namespace.ACCUMULO + ".")) {
         tableName = curr;
       }
     }

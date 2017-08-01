@@ -54,7 +54,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -115,11 +115,11 @@ public class NamespacesIT extends AccumuloClusterHarness {
     }
     // clean up any added tables, namespaces, and users, after each test
     for (String t : c.tableOperations().list())
-      if (!Tables.qualify(t).getFirst().equals(Namespaces.ACCUMULO_NAMESPACE))
+      if (!Tables.qualify(t).getFirst().equals(Namespace.ACCUMULO))
         c.tableOperations().delete(t);
     assertEquals(3, c.tableOperations().list().size());
     for (String n : c.namespaceOperations().list())
-      if (!n.equals(Namespaces.ACCUMULO_NAMESPACE) && !n.equals(Namespaces.DEFAULT_NAMESPACE))
+      if (!n.equals(Namespace.ACCUMULO) && !n.equals(Namespace.DEFAULT))
         c.namespaceOperations().delete(n);
     assertEquals(2, c.namespaceOperations().list().size());
     for (String u : c.securityOperations().listLocalUsers())
@@ -130,14 +130,14 @@ public class NamespacesIT extends AccumuloClusterHarness {
 
   @Test
   public void checkReservedNamespaces() throws Exception {
-    assertEquals(c.namespaceOperations().defaultNamespace(), Namespaces.DEFAULT_NAMESPACE);
-    assertEquals(c.namespaceOperations().systemNamespace(), Namespaces.ACCUMULO_NAMESPACE);
+    assertEquals(c.namespaceOperations().defaultNamespace(), Namespace.DEFAULT);
+    assertEquals(c.namespaceOperations().systemNamespace(), Namespace.ACCUMULO);
   }
 
   @Test
   public void checkBuiltInNamespaces() throws Exception {
-    assertTrue(c.namespaceOperations().exists(Namespaces.DEFAULT_NAMESPACE));
-    assertTrue(c.namespaceOperations().exists(Namespaces.ACCUMULO_NAMESPACE));
+    assertTrue(c.namespaceOperations().exists(Namespace.DEFAULT));
+    assertTrue(c.namespaceOperations().exists(Namespace.ACCUMULO));
   }
 
   @Test
@@ -149,19 +149,19 @@ public class NamespacesIT extends AccumuloClusterHarness {
 
   @Test(expected = AccumuloException.class)
   public void createTableInAccumuloNamespace() throws Exception {
-    String tableName = Namespaces.ACCUMULO_NAMESPACE + ".1";
+    String tableName = Namespace.ACCUMULO + ".1";
     assertFalse(c.tableOperations().exists(tableName));
     c.tableOperations().create(tableName); // should fail
   }
 
   @Test(expected = AccumuloSecurityException.class)
   public void deleteDefaultNamespace() throws Exception {
-    c.namespaceOperations().delete(Namespaces.DEFAULT_NAMESPACE); // should fail
+    c.namespaceOperations().delete(Namespace.DEFAULT); // should fail
   }
 
   @Test(expected = AccumuloSecurityException.class)
   public void deleteAccumuloNamespace() throws Exception {
-    c.namespaceOperations().delete(Namespaces.ACCUMULO_NAMESPACE); // should fail
+    c.namespaceOperations().delete(Namespace.ACCUMULO); // should fail
   }
 
   @Test
@@ -254,14 +254,14 @@ public class NamespacesIT extends AccumuloClusterHarness {
     // verify no property
     assertFalse(checkNamespaceHasProp(namespace, k, v));
     assertFalse(checkTableHasProp(t1, k, v));
-    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT, k, v));
     assertFalse(checkTableHasProp(t0, k, v));
 
     // set property and verify
     c.namespaceOperations().setProperty(namespace, k, v);
     assertTrue(checkNamespaceHasProp(namespace, k, v));
     assertTrue(checkTableHasProp(t1, k, v));
-    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT, k, v));
     assertFalse(checkTableHasProp(t0, k, v));
 
     // add a new table to namespace and verify
@@ -271,7 +271,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertTrue(checkNamespaceHasProp(namespace, k, v));
     assertTrue(checkTableHasProp(t1, k, v));
     assertTrue(checkTableHasProp(t2, k, v));
-    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT, k, v));
     assertFalse(checkTableHasProp(t0, k, v));
 
     // remove property and verify
@@ -279,15 +279,15 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertFalse(checkNamespaceHasProp(namespace, k, v));
     assertFalse(checkTableHasProp(t1, k, v));
     assertFalse(checkTableHasProp(t2, k, v));
-    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT, k, v));
     assertFalse(checkTableHasProp(t0, k, v));
 
     // set property on default namespace and verify
-    c.namespaceOperations().setProperty(Namespaces.DEFAULT_NAMESPACE, k, v);
+    c.namespaceOperations().setProperty(Namespace.DEFAULT, k, v);
     assertFalse(checkNamespaceHasProp(namespace, k, v));
     assertFalse(checkTableHasProp(t1, k, v));
     assertFalse(checkTableHasProp(t2, k, v));
-    assertTrue(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertTrue(checkNamespaceHasProp(Namespace.DEFAULT, k, v));
     assertTrue(checkTableHasProp(t0, k, v));
 
     // test that table properties override namespace properties
@@ -865,10 +865,10 @@ public class NamespacesIT extends AccumuloClusterHarness {
       throws Exception {
     // nobody should have any of these properties yet
     assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertFalse(checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
+    assertFalse(checkNamespaceHasProp(Namespace.ACCUMULO, k, v));
     assertFalse(checkTableHasProp(RootTable.NAME, k, v));
     assertFalse(checkTableHasProp(MetadataTable.NAME, k, v));
-    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT, k, v));
     assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
     assertFalse(checkNamespaceHasProp(namespace, k, v));
     assertFalse(checkTableHasProp(namespaceTable, k, v));
@@ -878,10 +878,10 @@ public class NamespacesIT extends AccumuloClusterHarness {
     // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
     sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
     assertTrue(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertEquals(systemNamespaceShouldInherit, checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
+    assertEquals(systemNamespaceShouldInherit, checkNamespaceHasProp(Namespace.ACCUMULO, k, v));
     assertEquals(systemNamespaceShouldInherit, checkTableHasProp(RootTable.NAME, k, v));
     assertEquals(systemNamespaceShouldInherit, checkTableHasProp(MetadataTable.NAME, k, v));
-    assertTrue(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertTrue(checkNamespaceHasProp(Namespace.DEFAULT, k, v));
     assertTrue(checkTableHasProp(defaultNamespaceTable, k, v));
     assertTrue(checkNamespaceHasProp(namespace, k, v));
     assertTrue(checkTableHasProp(namespaceTable, k, v));
@@ -891,10 +891,10 @@ public class NamespacesIT extends AccumuloClusterHarness {
     // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
     sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
     assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertFalse(checkNamespaceHasProp(Namespaces.ACCUMULO_NAMESPACE, k, v));
+    assertFalse(checkNamespaceHasProp(Namespace.ACCUMULO, k, v));
     assertFalse(checkTableHasProp(RootTable.NAME, k, v));
     assertFalse(checkTableHasProp(MetadataTable.NAME, k, v));
-    assertFalse(checkNamespaceHasProp(Namespaces.DEFAULT_NAMESPACE, k, v));
+    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT, k, v));
     assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
     assertFalse(checkNamespaceHasProp(namespace, k, v));
     assertFalse(checkTableHasProp(namespaceTable, k, v));
@@ -906,11 +906,11 @@ public class NamespacesIT extends AccumuloClusterHarness {
     Map<String,String> map = c.namespaceOperations().namespaceIdMap();
     assertEquals(2, namespaces.size());
     assertEquals(2, map.size());
-    assertTrue(namespaces.contains(Namespaces.ACCUMULO_NAMESPACE));
-    assertTrue(namespaces.contains(Namespaces.DEFAULT_NAMESPACE));
+    assertTrue(namespaces.contains(Namespace.ACCUMULO));
+    assertTrue(namespaces.contains(Namespace.DEFAULT));
     assertFalse(namespaces.contains(namespace));
-    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID.canonicalID(), map.get(Namespaces.ACCUMULO_NAMESPACE));
-    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID.canonicalID(), map.get(Namespaces.DEFAULT_NAMESPACE));
+    assertEquals(Namespace.ID.ACCUMULO.canonicalID(), map.get(Namespace.ACCUMULO));
+    assertEquals(Namespace.ID.DEFAULT.canonicalID(), map.get(Namespace.DEFAULT));
     assertNull(map.get(namespace));
 
     c.namespaceOperations().create(namespace);
@@ -918,11 +918,11 @@ public class NamespacesIT extends AccumuloClusterHarness {
     map = c.namespaceOperations().namespaceIdMap();
     assertEquals(3, namespaces.size());
     assertEquals(3, map.size());
-    assertTrue(namespaces.contains(Namespaces.ACCUMULO_NAMESPACE));
-    assertTrue(namespaces.contains(Namespaces.DEFAULT_NAMESPACE));
+    assertTrue(namespaces.contains(Namespace.ACCUMULO));
+    assertTrue(namespaces.contains(Namespace.DEFAULT));
     assertTrue(namespaces.contains(namespace));
-    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID.canonicalID(), map.get(Namespaces.ACCUMULO_NAMESPACE));
-    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID.canonicalID(), map.get(Namespaces.DEFAULT_NAMESPACE));
+    assertEquals(Namespace.ID.ACCUMULO.canonicalID(), map.get(Namespace.ACCUMULO));
+    assertEquals(Namespace.ID.DEFAULT.canonicalID(), map.get(Namespace.DEFAULT));
     assertNotNull(map.get(namespace));
 
     c.namespaceOperations().delete(namespace);
@@ -930,18 +930,18 @@ public class NamespacesIT extends AccumuloClusterHarness {
     map = c.namespaceOperations().namespaceIdMap();
     assertEquals(2, namespaces.size());
     assertEquals(2, map.size());
-    assertTrue(namespaces.contains(Namespaces.ACCUMULO_NAMESPACE));
-    assertTrue(namespaces.contains(Namespaces.DEFAULT_NAMESPACE));
+    assertTrue(namespaces.contains(Namespace.ACCUMULO));
+    assertTrue(namespaces.contains(Namespace.DEFAULT));
     assertFalse(namespaces.contains(namespace));
-    assertEquals(Namespaces.ACCUMULO_NAMESPACE_ID.canonicalID(), map.get(Namespaces.ACCUMULO_NAMESPACE));
-    assertEquals(Namespaces.DEFAULT_NAMESPACE_ID.canonicalID(), map.get(Namespaces.DEFAULT_NAMESPACE));
+    assertEquals(Namespace.ID.ACCUMULO.canonicalID(), map.get(Namespace.ACCUMULO));
+    assertEquals(Namespace.ID.DEFAULT.canonicalID(), map.get(Namespace.DEFAULT));
     assertNull(map.get(namespace));
   }
 
   @Test
   public void loadClass() throws Exception {
-    assertTrue(c.namespaceOperations().testClassLoad(Namespaces.DEFAULT_NAMESPACE, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName()));
-    assertFalse(c.namespaceOperations().testClassLoad(Namespaces.DEFAULT_NAMESPACE, "dummy", SortedKeyValueIterator.class.getName()));
+    assertTrue(c.namespaceOperations().testClassLoad(Namespace.DEFAULT, VersioningIterator.class.getName(), SortedKeyValueIterator.class.getName()));
+    assertFalse(c.namespaceOperations().testClassLoad(Namespace.DEFAULT, "dummy", SortedKeyValueIterator.class.getName()));
     try {
       c.namespaceOperations().testClassLoad(namespace, "dummy", "dummy");
       fail();
@@ -1348,21 +1348,21 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 2:
-            ops.create(Namespaces.DEFAULT_NAMESPACE);
+            ops.create(Namespace.DEFAULT);
             fail();
             break;
           case 3:
-            ops.create(Namespaces.ACCUMULO_NAMESPACE);
+            ops.create(Namespace.ACCUMULO);
             fail();
             break;
           case 4:
             ops.create(namespace + i + "_1");
-            ops.rename(namespace + i + "_1", Namespaces.DEFAULT_NAMESPACE); // should fail here
+            ops.rename(namespace + i + "_1", Namespace.DEFAULT); // should fail here
             fail();
             break;
           case 5:
             ops.create(namespace + i + "_1");
-            ops.rename(namespace + i + "_1", Namespaces.ACCUMULO_NAMESPACE); // should fail here
+            ops.rename(namespace + i + "_1", Namespace.ACCUMULO); // should fail here
             fail();
             break;
           default:

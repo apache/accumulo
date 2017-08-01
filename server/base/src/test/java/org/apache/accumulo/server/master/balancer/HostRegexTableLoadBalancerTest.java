@@ -28,7 +28,7 @@ import java.util.SortedMap;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -166,7 +166,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
-        NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, this.instance, DefaultConfiguration.getInstance());
+        NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, this.instance, DefaultConfiguration.getInstance());
         return new TableConfiguration(instance, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
           {
@@ -238,7 +238,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
-        NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, this.instance, DefaultConfiguration.getInstance());
+        NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, this.instance, DefaultConfiguration.getInstance());
         return new TableConfiguration(instance, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
           {

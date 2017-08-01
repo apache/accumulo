@@ -128,7 +128,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(namespace != null, "namespace is null");
     Namespace.ID namespaceId = Namespaces.getNamespaceId(context.getInstance(), namespace);
 
-    if (namespaceId.equals(Namespaces.ACCUMULO_NAMESPACE_ID) || namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
+    if (namespaceId.equals(Namespace.ID.ACCUMULO) || namespaceId.equals(Namespace.ID.DEFAULT)) {
       Credentials credentials = context.getCredentials();
       log.debug("{} attempted to delete the {} namespace", credentials.getPrincipal(), namespaceId);
       throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.UNSUPPORTED_OPERATION);

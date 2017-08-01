@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.Namespaces;
+import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -55,7 +55,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
 
-    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespaces.DEFAULT_NAMESPACE_ID, inst, DefaultConfiguration.getInstance());
+    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, inst, DefaultConfiguration.getInstance());
 
     // Cache invalidates 25% of the time
     int randomMax = 4;

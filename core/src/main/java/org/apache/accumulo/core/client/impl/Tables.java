@@ -178,19 +178,19 @@ public class Tables {
   }
 
   public static String qualified(String tableName) {
-    return qualified(tableName, Namespaces.DEFAULT_NAMESPACE);
+    return qualified(tableName, Namespace.DEFAULT);
   }
 
   public static String qualified(String tableName, String defaultNamespace) {
     Pair<String,String> qualifiedTableName = qualify(tableName, defaultNamespace);
-    if (Namespaces.DEFAULT_NAMESPACE.equals(qualifiedTableName.getFirst()))
+    if (Namespace.DEFAULT.equals(qualifiedTableName.getFirst()))
       return qualifiedTableName.getSecond();
     else
       return qualifiedTableName.toString("", ".", "");
   }
 
   public static Pair<String,String> qualify(String tableName) {
-    return qualify(tableName, Namespaces.DEFAULT_NAMESPACE);
+    return qualify(tableName, Namespace.DEFAULT);
   }
 
   public static Pair<String,String> qualify(String tableName, String defaultNamespace) {
@@ -242,13 +242,13 @@ public class Tables {
     for (String tableId : tableIds) {
       byte[] tableName = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
       byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
-      String namespaceName = Namespaces.DEFAULT_NAMESPACE;
+      String namespaceName = Namespace.DEFAULT;
       // create fully qualified table name
       if (nId == null) {
         namespaceName = null;
       } else {
         Namespace.ID namespaceId = new Namespace.ID(new String(nId, UTF_8));
-        if (!namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
+        if (!namespaceId.equals(Namespace.ID.DEFAULT)) {
           try {
             namespaceName = namespaceIdToNameMap.get(namespaceId);
             if (namespaceName == null) {

@@ -390,9 +390,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         // create initial namespaces
         String namespaces = ZooUtil.getRoot(getInstance()) + Constants.ZNAMESPACES;
         zoo.putPersistentData(namespaces, new byte[0], NodeExistsPolicy.SKIP);
-        for (Pair<String,Namespace.ID> namespace : Iterables.concat(
-            Collections.singleton(new Pair<>(Namespaces.ACCUMULO_NAMESPACE, Namespaces.ACCUMULO_NAMESPACE_ID)),
-            Collections.singleton(new Pair<>(Namespaces.DEFAULT_NAMESPACE, Namespaces.DEFAULT_NAMESPACE_ID)))) {
+        for (Pair<String,Namespace.ID> namespace : Iterables.concat(Collections.singleton(new Pair<>(Namespace.ACCUMULO, Namespace.ID.ACCUMULO)),
+            Collections.singleton(new Pair<>(Namespace.DEFAULT, Namespace.ID.DEFAULT)))) {
           String ns = namespace.getFirst();
           Namespace.ID id = namespace.getSecond();
           log.debug("Upgrade creating namespace \"" + ns + "\" (ID: " + id + ")");
@@ -402,22 +401,22 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
 
         // create replication table in zk
         log.debug("Upgrade creating table " + ReplicationTable.NAME + " (ID: " + ReplicationTable.ID + ")");
-        TableManager.prepareNewTableState(getInstance().getInstanceID(), ReplicationTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, ReplicationTable.NAME,
-            TableState.OFFLINE, NodeExistsPolicy.SKIP);
+        TableManager.prepareNewTableState(getInstance().getInstanceID(), ReplicationTable.ID, Namespace.ID.ACCUMULO, ReplicationTable.NAME, TableState.OFFLINE,
+            NodeExistsPolicy.SKIP);
 
         // create root table
         log.debug("Upgrade creating table " + RootTable.NAME + " (ID: " + RootTable.ID + ")");
-        TableManager.prepareNewTableState(getInstance().getInstanceID(), RootTable.ID, Namespaces.ACCUMULO_NAMESPACE_ID, RootTable.NAME, TableState.ONLINE,
+        TableManager.prepareNewTableState(getInstance().getInstanceID(), RootTable.ID, Namespace.ID.ACCUMULO, RootTable.NAME, TableState.ONLINE,
             NodeExistsPolicy.SKIP);
         Initialize.initSystemTablesConfig();
         // ensure root user can flush root table
-        security.grantTablePermission(rpcCreds(), security.getRootUsername(), RootTable.ID, TablePermission.ALTER_TABLE, Namespaces.ACCUMULO_NAMESPACE_ID);
+        security.grantTablePermission(rpcCreds(), security.getRootUsername(), RootTable.ID, TablePermission.ALTER_TABLE, Namespace.ID.ACCUMULO);
 
         // put existing tables in the correct namespaces
         String tables = ZooUtil.getRoot(getInstance()) + Constants.ZTABLES;
         for (String tableId : zoo.getChildren(tables)) {
-          Namespace.ID targetNamespace = (MetadataTable.ID.canonicalID().equals(tableId) || RootTable.ID.canonicalID().equals(tableId)) ? Namespaces.ACCUMULO_NAMESPACE_ID
-              : Namespaces.DEFAULT_NAMESPACE_ID;
+          Namespace.ID targetNamespace = (MetadataTable.ID.canonicalID().equals(tableId) || RootTable.ID.canonicalID().equals(tableId)) ? Namespace.ID.ACCUMULO
+              : Namespace.ID.DEFAULT;
           log.debug("Upgrade moving table " + new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8) + " (ID: " + tableId
               + ") into namespace with ID " + targetNamespace);
           zoo.putPersistentData(tables + "/" + tableId + Constants.ZTABLE_NAMESPACE, targetNamespace.getUtf8(), NodeExistsPolicy.SKIP);
@@ -436,9 +435,9 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         String users = ZooUtil.getRoot(getInstance()) + "/users";
         for (String user : zoo.getChildren(users)) {
           zoo.putPersistentData(users + "/" + user + "/Namespaces", new byte[0], NodeExistsPolicy.SKIP);
-          perm.grantNamespacePermission(user, Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.READ);
+          perm.grantNamespacePermission(user, Namespace.ID.ACCUMULO, NamespacePermission.READ);
         }
-        perm.grantNamespacePermission("root", Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.ALTER_TABLE);
+        perm.grantNamespacePermission("root", Namespace.ID.ACCUMULO, NamespacePermission.ALTER_TABLE);
 
         // add the currlog location for root tablet current logs
         zoo.putPersistentData(ZooUtil.getRoot(getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS, new byte[0], NodeExistsPolicy.SKIP);
