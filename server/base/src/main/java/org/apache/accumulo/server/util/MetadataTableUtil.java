@@ -1052,8 +1052,8 @@ public class MetadataTableUtil {
     }
 
     for (Entry<Key,Value> entry : tabletKeyValues.entrySet()) {
-
-      if (columns != null && !colSet.contains(new ColumnFQ(entry.getKey()))) {
+      ColumnFQ currentKey = new ColumnFQ(entry.getKey());
+      if (columns != null && !colSet.contains(currentKey)) {
         continue;
       }
 
@@ -1065,7 +1065,7 @@ public class MetadataTableUtil {
         tabletEntries.put(row, colVals);
       }
 
-      colVals.put(new ColumnFQ(entry.getKey()), entry.getValue());
+      colVals.put(currentKey, entry.getValue());
     }
 
     return tabletEntries;
