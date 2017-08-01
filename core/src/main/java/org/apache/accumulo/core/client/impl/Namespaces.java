@@ -107,9 +107,9 @@ public class Namespaces {
   }
 
   /**
-   * Populate map passed in as the BiConsumer. key = ID, value = namespaceName
+   * Gets all the namespaces from ZK. The first arg (t) the BiConsumer accepts is the ID and the second (u) is the namespaceName.
    */
-  private static void populateMap(Instance instance, BiConsumer<String,String> biConsumer) {
+  private static void getAllNamespaces(Instance instance, BiConsumer<String,String> biConsumer) {
     final ZooCache zc = getZooCache(instance);
     List<String> namespaceIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
     for (String id : namespaceIds) {
@@ -125,7 +125,7 @@ public class Namespaces {
    */
   public static SortedMap<Namespace.ID,String> getIdToNameMap(Instance instance) {
     SortedMap<Namespace.ID,String> idMap = new TreeMap<>();
-    populateMap(instance, (id, name) -> idMap.put(new Namespace.ID(id), name));
+    getAllNamespaces(instance, (id, name) -> idMap.put(new Namespace.ID(id), name));
     return idMap;
   }
 
@@ -134,7 +134,7 @@ public class Namespaces {
    */
   public static SortedMap<String,Namespace.ID> getNameToIdMap(Instance instance) {
     SortedMap<String,Namespace.ID> nameMap = new TreeMap<>();
-    populateMap(instance, (id, name) -> nameMap.put(name, new Namespace.ID(id)));
+    getAllNamespaces(instance, (id, name) -> nameMap.put(name, new Namespace.ID(id)));
     return nameMap;
   }
 
@@ -143,7 +143,7 @@ public class Namespaces {
    */
   public static Namespace.ID getNamespaceId(Instance instance, String namespaceName) throws NamespaceNotFoundException {
     final ArrayList<Namespace.ID> singleId = new ArrayList<>(1);
-    populateMap(instance, (id, name) -> {
+    getAllNamespaces(instance, (id, name) -> {
       if (name.equals(namespaceName))
         singleId.add(new Namespace.ID(id));
     });
