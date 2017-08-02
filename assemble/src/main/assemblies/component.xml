@@ -52,6 +52,7 @@
         <include>org.slf4j:slf4j-api</include>
         <include>org.slf4j:slf4j-log4j12</include>
         <!-- Jersey/Jackson-based webservice -->
+        <include>com.fasterxml:classmate</include>
         <include>com.fasterxml.jackson.core:jackson-annotations</include>
         <include>com.fasterxml.jackson.core:jackson-core</include>
         <include>com.fasterxml.jackson.core:jackson-databind</include>
@@ -59,6 +60,7 @@
         <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider</include>
         <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations</include>
         <include>javax.annotation:javax.annotation-api</include>
+        <include>javax.el:javax.el-api</include>
         <include>javax.validation:validation-api</include>
         <include>javax.ws.rs:javax.ws.rs-api</include>
         <include>org.freemarker:freemarker</include>
@@ -75,12 +77,17 @@
         <include>org.glassfish.jersey.core:jersey-client</include>
         <include>org.glassfish.jersey.core:jersey-common</include>
         <include>org.glassfish.jersey.core:jersey-server</include>
+        <include>org.glassfish.jersey.ext:jersey-bean-validation</include>
         <include>org.glassfish.jersey.ext:jersey-entity-filtering</include>
         <include>org.glassfish.jersey.ext:jersey-mvc-freemarker</include>
         <include>org.glassfish.jersey.ext:jersey-mvc</include>
         <include>org.glassfish.jersey.media:jersey-media-jaxb</include>
         <include>org.glassfish.jersey.media:jersey-media-json-jackson</include>
+        <include>org.glassfish.web:javax.el</include>
+        <include>org.glassfish.web:javax.el-impl</include>
+        <include>org.hibernate:hibernate-validator</include>
         <include>org.javassist:javassist</include>
+        <include>org.jboss.logging:jboss-logging</include>
         <include>log4j:log4j</include>
       </includes>
     </dependencySet>

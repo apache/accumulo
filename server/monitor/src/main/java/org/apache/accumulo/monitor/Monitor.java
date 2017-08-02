@@ -90,6 +90,7 @@ import org.eclipse.jetty.util.resource.Resource;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.mvc.MvcFeature;
 import org.glassfish.jersey.server.mvc.freemarker.FreemarkerMvcFeature;
 import org.glassfish.jersey.servlet.ServletContainer;
@@ -547,13 +548,14 @@ public class Monitor implements HighlyAvailableService {
   private ServletHolder getViewServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.view")
         .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(FreemarkerMvcFeature.class)
-        .property(MvcFeature.TEMPLATE_BASE_PATH, "/templates");
+        .property(MvcFeature.TEMPLATE_BASE_PATH, "/templates").property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
     return new ServletHolder(new ServletContainer(rc));
   }
 
   private ServletHolder getRestServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest")
-        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class);
+        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class)
+        .property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
     return new ServletHolder(new ServletContainer(rc));
   }
 

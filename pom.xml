@@ -163,6 +163,11 @@
         <version>1.72</version>
       </dependency>
       <dependency>
+        <groupId>com.fasterxml</groupId>
+        <artifactId>classmate</artifactId>
+        <version>1.0.0</version>
+      </dependency>
+      <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
         <version>${jackson.version}</version>
@@ -258,6 +263,11 @@
         <groupId>javax.annotation</groupId>
         <artifactId>javax.annotation-api</artifactId>
         <version>1.2</version>
+      </dependency>
+      <dependency>
+        <groupId>javax.el</groupId>
+        <artifactId>javax.el-api</artifactId>
+        <version>2.2.4</version>
       </dependency>
       <dependency>
         <groupId>javax.servlet</groupId>
@@ -635,6 +645,11 @@
       </dependency>
       <dependency>
         <groupId>org.glassfish.jersey.ext</groupId>
+        <artifactId>jersey-bean-validation</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jersey.ext</groupId>
         <artifactId>jersey-entity-filtering</artifactId>
         <version>${jersey.version}</version>
       </dependency>
@@ -659,14 +674,34 @@
         <version>${jersey.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.glassfish.web</groupId>
+        <artifactId>el-impl</artifactId>
+        <version>2.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.web</groupId>
+        <artifactId>javax.el</artifactId>
+        <version>2.2.4</version>
+      </dependency>
+      <dependency>
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest-core</artifactId>
         <version>1.3</version>
       </dependency>
       <dependency>
+        <groupId>org.hibernate</groupId>
+        <artifactId>hibernate-validator</artifactId>
+        <version>5.1.3.Final</version>
+      </dependency>
+      <dependency>
         <groupId>org.javassist</groupId>
         <artifactId>javassist</artifactId>
         <version>3.18.1-GA</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.logging</groupId>
+        <artifactId>jboss-logging</artifactId>
+        <version>3.1.3.GA</version>
       </dependency>
       <dependency>
         <groupId>org.powermock</groupId>
@@ -702,6 +737,12 @@
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-nop</artifactId>
         <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jersey.test-framework.providers</groupId>
+        <artifactId>jersey-test-framework-provider-jetty</artifactId>
+        <version>${jersey.version}</version>
+        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -1031,6 +1072,8 @@
                 <usedUndeclaredDependency>org.glassfish.jersey.ext:jersey-mvc:jar:${jersey.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-server:jar:${jersey.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-common:jar:${jersey.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-client:jar:${jersey.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.glassfish.jersey.test-framework:jersey-test-framework-core:jar:${jersey.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:${powermock.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:${powermock.version}</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
@@ -1040,6 +1083,8 @@
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-minicluster:jar:${hadoop.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.httpcomponents:httpclient:jar:${httpclient.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.glassfish.jersey.containers:jersey-container-jetty-http:jar:${jersey.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.glassfish.jersey.ext:jersey-bean-validation:jar:${jersey.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-jetty:jar:${jersey.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:${powermock.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.slf4j:slf4j-log4j12:jar:${slf4j.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.httpcomponents:httpclient:jar:${httpclient.version}</unusedDeclaredDependency>
