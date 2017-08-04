@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -262,7 +261,7 @@ public class VolumeUtil {
       throw new IllegalArgumentException("Unexpected table dir " + dir);
     }
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(extent.getTableId()));
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId());
     Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
         + dir.getParent().getName() + Path.SEPARATOR + dir.getName());
 

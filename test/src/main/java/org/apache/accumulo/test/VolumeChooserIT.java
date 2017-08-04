@@ -49,6 +49,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.fs.PerTableVolumeChooser;
 import org.apache.accumulo.server.fs.PreferredVolumeChooser;
 import org.apache.accumulo.server.fs.RandomVolumeChooser;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -105,8 +106,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     siteConfig.put(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, systemPreferredVolumes); // exclude v4
     cfg.setSiteConfig(siteConfig);
 
-    siteConfig.put(PerTableVolumeChooser.SCOPED_VOLUME_CHOOSER("logger"), PreferredVolumeChooser.class.getName());
-    siteConfig.put(PreferredVolumeChooser.SCOPED_PREFERRED_VOLUMES("logger"), v2.toString());
+    siteConfig.put(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER), PreferredVolumeChooser.class.getName());
+    siteConfig.put(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER), v2.toString());
     cfg.setSiteConfig(siteConfig);
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in the options list when they are choosing

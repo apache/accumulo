@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import java.util.Optional;
-
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
@@ -45,7 +43,7 @@ public class ImportTableTest {
 
     EasyMock.expect(master.getFileSystem()).andReturn(volumeManager);
     // Choose the 2nd element
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(iti.tableId));
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(iti.tableId);
     EasyMock.expect(volumeManager.choose(EasyMock.eq(chooserEnv), EasyMock.eq(tableDirs))).andReturn(tableDirs[1]);
 
     EasyMock.replay(master, volumeManager);

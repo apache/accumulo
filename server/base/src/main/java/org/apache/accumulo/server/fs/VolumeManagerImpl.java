@@ -40,6 +40,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
@@ -88,7 +89,7 @@ public class VolumeManagerImpl implements VolumeManager {
       // null chooser handled below
     }
     if (chooser1 == null) {
-      throw new RuntimeException("Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
+      throw new VolumeChooserException("Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
     }
     chooser = chooser1;
   }
@@ -480,9 +481,8 @@ public class VolumeManagerImpl implements VolumeManager {
     choice = chooser.choose(env, options);
 
     if (!(ArrayUtils.contains(options, choice))) {
-      // we may want to go with random if they chooser was not overridden
       String msg = "The configured volume chooser, '" + chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided";
-      throw new RuntimeException(msg);
+      throw new VolumeChooserException(msg);
     }
 
     return choice;

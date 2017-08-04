@@ -18,7 +18,6 @@ package org.apache.accumulo.server.fs;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -136,7 +135,7 @@ public class VolumeManagerImplTest {
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     thrown.expect(RuntimeException.class);
     VolumeManager vm = VolumeManagerImpl.get(conf);
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(Table.ID.of("sometable")));
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Table.ID.of("sometable"));
     String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));
     Assert.assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));
   }

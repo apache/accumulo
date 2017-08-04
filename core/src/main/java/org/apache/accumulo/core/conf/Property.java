@@ -18,7 +18,6 @@ package org.apache.accumulo.core.conf;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -632,7 +631,6 @@ public enum Property {
 
   private String key, defaultValue, description;
   private PropertyType type;
-  private static final Logger log = LoggerFactory.getLogger(Property.class);
 
   private Property(String name, String defaultValue, PropertyType type, String description) {
     this.key = name;
@@ -909,35 +907,6 @@ public enum Property {
         || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
   }
 
-  // This is not a cache for loaded classes, just a way to avoid spamming the debug log
-  static Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<String,Class<?>>());
-
-  private static <T> T createInstance(String context, String clazzName, Class<T> base, T defaultInstance) {
-    T instance = null;
-
-    try {
-
-      Class<? extends T> clazz;
-      if (context != null && !context.equals("")) {
-        clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName, base);
-      } else {
-        clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
-      }
-
-      instance = clazz.newInstance();
-      if (loaded.put(clazzName, clazz) != clazz)
-        log.debug("Loaded class : {}", clazzName);
-    } catch (Exception e) {
-      log.warn("Failed to load class ", e);
-    }
-
-    if (instance == null) {
-      log.info("Using default class {}", defaultInstance.getClass().getName());
-      instance = defaultInstance;
-    }
-    return instance;
-  }
-
   /**
    * Creates a new instance of a class specified in a configuration property. The table classpath context is used if set.
    *
@@ -955,8 +924,7 @@ public enum Property {
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     String context = conf.get(TABLE_CLASSPATH);
-
-    return createInstance(context, clazzName, base, defaultInstance);
+    return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);
   }
 
   /**
@@ -975,8 +943,7 @@ public enum Property {
    */
   public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
-
-    return createInstance(null, clazzName, base, defaultInstance);
+    return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
   }
 
   /**
