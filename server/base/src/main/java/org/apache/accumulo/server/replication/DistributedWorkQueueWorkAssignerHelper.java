@@ -73,6 +73,6 @@ public class DistributedWorkQueueWorkAssignerHelper {
     }
 
     return Maps.immutableEntry(filename, new ReplicationTarget(queueKey.substring(index + 1, secondIndex), queueKey.substring(secondIndex + 1, thirdIndex),
-        new Table.ID(queueKey.substring(thirdIndex + 1))));
+        Table.ID.of(queueKey.substring(thirdIndex + 1))));
   }
 }

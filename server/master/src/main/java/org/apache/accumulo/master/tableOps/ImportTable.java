@@ -72,7 +72,7 @@ public class ImportTable extends MasterRepo {
     Utils.idLock.lock();
     try {
       Instance instance = env.getInstance();
-      tableInfo.tableId = Utils.getNextTableId(tableInfo.tableName, instance, Table.ID.class);
+      tableInfo.tableId = Table.ID.of(Utils.getNextTableId(tableInfo.tableName, instance));
       return new ImportSetupPermissions(tableInfo);
     } finally {
       Utils.idLock.unlock();

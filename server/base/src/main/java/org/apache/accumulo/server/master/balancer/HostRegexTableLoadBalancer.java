@@ -197,7 +197,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     tableIdToTableName = new HashMap<>();
     poolNameToRegexPattern = new HashMap<>();
     for (Entry<String,String> table : t.tableIdMap().entrySet()) {
-      Table.ID tableId = new Table.ID(table.getValue());
+      Table.ID tableId = Table.ID.of(table.getValue());
       tableIdToTableName.put(tableId, table.getKey());
       conf.getTableConfiguration(tableId).addObserver(this);
       Map<String,String> customProps = conf.getTableConfiguration(tableId).getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
@@ -344,7 +344,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
               continue;
             }
             try {
-              List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), new Table.ID(tid));
+              List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), Table.ID.of(tid));
               if (null == outOfBoundsTablets) {
                 continue;
               }
@@ -422,7 +422,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     }
 
     for (String s : tableIdMap.values()) {
-      Table.ID tableId = new Table.ID(s);
+      Table.ID tableId = Table.ID.of(s);
       String tableName = tableIdToTableName.get(tableId);
       String regexTableName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped.get(regexTableName);

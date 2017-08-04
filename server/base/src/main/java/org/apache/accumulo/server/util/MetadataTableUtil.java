@@ -743,7 +743,7 @@ public class MetadataTableUtil {
   }
 
   private static int compareEndRows(Text endRow1, Text endRow2) {
-    return new KeyExtent(new Table.ID("0"), endRow1, null).compareTo(new KeyExtent(new Table.ID("0"), endRow2, null));
+    return new KeyExtent(Table.ID.of("0"), endRow1, null).compareTo(new KeyExtent(Table.ID.of("0"), endRow2, null));
   }
 
   @VisibleForTesting
@@ -958,7 +958,7 @@ public class MetadataTableUtil {
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root table
     // because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(new Table.ID("anythingNotMetadata"), null, null));
+    update(context, m, new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null));
   }
 
   public static void removeBulkLoadInProgressFlag(AccumuloServerContext context, String path) {
@@ -968,7 +968,7 @@ public class MetadataTableUtil {
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root table
     // because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(new Table.ID("anythingNotMetadata"), null, null));
+    update(context, m, new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null));
   }
 
   /**
@@ -1010,7 +1010,7 @@ public class MetadataTableUtil {
 
   public static void moveMetaDeleteMarkersFrom14(ClientContext context) {
     // new KeyExtent is only added to force update to write to the metadata table, not the root table
-    KeyExtent notMetadata = new KeyExtent(new Table.ID("anythingNotMetadata"), null, null);
+    KeyExtent notMetadata = new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null);
 
     // move delete markers from the normal delete keyspace to the root tablet delete keyspace if the files are for the !METADATA table
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {

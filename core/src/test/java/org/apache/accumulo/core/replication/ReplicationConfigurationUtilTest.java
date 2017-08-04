@@ -73,13 +73,13 @@ public class ReplicationConfigurationUtilTest {
 
   @Test
   public void regularTable() {
-    KeyExtent extent = new KeyExtent(new Table.ID("1"), new Text("b"), new Text("a"));
+    KeyExtent extent = new KeyExtent(Table.ID.of("1"), new Text("b"), new Text("a"));
     Assert.assertTrue("Table should be replicated", ReplicationConfigurationUtil.isEnabled(extent, conf));
   }
 
   @Test
   public void regularNonEnabledTable() {
-    KeyExtent extent = new KeyExtent(new Table.ID("1"), new Text("b"), new Text("a"));
+    KeyExtent extent = new KeyExtent(Table.ID.of("1"), new Text("b"), new Text("a"));
     Assert.assertFalse("Table should not be replicated", ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<String,String>())));
   }
 }

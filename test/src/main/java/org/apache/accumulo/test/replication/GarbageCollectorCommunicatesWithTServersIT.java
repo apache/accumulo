@@ -124,7 +124,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    */
   private Set<String> getFilesForTable(String tableName) throws Exception {
     final Connector conn = getConnector();
-    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
 
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 

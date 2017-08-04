@@ -774,7 +774,7 @@ public abstract class GroupBalancer extends TabletBalancer {
         Scanner scanner = new IsolatedScanner(context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY));
         scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
         MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-        scanner.setRange(MetadataSchema.TabletsSection.getRange(new org.apache.accumulo.core.client.impl.Table.ID(tableId)));
+        scanner.setRange(MetadataSchema.TabletsSection.getRange(org.apache.accumulo.core.client.impl.Table.ID.of(tableId)));
 
         RowIterator rowIter = new RowIterator(scanner);
 

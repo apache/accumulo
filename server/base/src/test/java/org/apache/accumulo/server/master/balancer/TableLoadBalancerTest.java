@@ -176,9 +176,9 @@ public class TableLoadBalancerTest {
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
     Map<Table.ID,Integer> movedByTable = new HashMap<>();
-    movedByTable.put(new Table.ID(t1Id), Integer.valueOf(0));
-    movedByTable.put(new Table.ID(t2Id), Integer.valueOf(0));
-    movedByTable.put(new Table.ID(t3Id), Integer.valueOf(0));
+    movedByTable.put(Table.ID.of(t1Id), Integer.valueOf(0));
+    movedByTable.put(Table.ID.of(t2Id), Integer.valueOf(0));
+    movedByTable.put(Table.ID.of(t3Id), Integer.valueOf(0));
     for (TabletMigration migration : migrationsOut) {
       if (migration.oldServer.equals(svr))
         count++;

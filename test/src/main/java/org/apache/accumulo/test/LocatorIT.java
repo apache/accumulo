@@ -71,7 +71,7 @@ public class LocatorIT extends AccumuloClusterHarness {
   }
 
   private static TabletId newTabletId(String tableId, String endRow, String prevRow) {
-    return new TabletIdImpl(new KeyExtent(new Table.ID(tableId), endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow)));
+    return new TabletIdImpl(new KeyExtent(Table.ID.of(tableId), endRow == null ? null : new Text(endRow), prevRow == null ? null : new Text(prevRow)));
   }
 
   @Test

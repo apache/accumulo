@@ -67,7 +67,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
     @Override
     public Set<Table.ID> onlineTables() {
-      return Collections.singleton(new Table.ID("t"));
+      return Collections.singleton(Table.ID.of("t"));
     }
 
     @Override
@@ -114,7 +114,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     // Create a fake METADATA table with these splits
     String splits[] = {"a", "e", "j", "o", "t", "z"};
     // create metadata for a table "t" with the splits above
-    Table.ID tableId = new Table.ID("t");
+    Table.ID tableId = Table.ID.of("t");
     Text pr = null;
     for (String s : splits) {
       Text split = new Text(s);

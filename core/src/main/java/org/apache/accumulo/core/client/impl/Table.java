@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.lang.ref.WeakReference;
+import java.util.WeakHashMap;
+
 import org.apache.accumulo.core.client.Instance;
 
 public class Table {
@@ -23,16 +26,48 @@ public class Table {
   /**
    * Object representing an internal table ID. This class was created to help with type safety. For help obtaining the value of a table ID from Zookeeper, see
    * {@link Tables#getTableId(Instance, String)}
+   *
+   * Uses an internal WeakHashMap and private constructor for storing a WeakReference of every Table.ID. Therefore, a Table.ID can't be instantiated outside
+   * this class and is accessed by calling Table.ID.{@link #of(String)}.
    */
   public static class ID extends AbstractId {
     private static final long serialVersionUID = 7399913185860577809L;
+    static final WeakHashMap<String,WeakReference<Table.ID>> tableIds = new WeakHashMap<>();
 
-    public static final ID METADATA = new ID("!0");
-    public static final ID REPLICATION = new ID("+rep");
-    public static final ID ROOT = new ID("+r");
+    public static final ID METADATA = of("!0");
+    public static final ID REPLICATION = of("+rep");
+    public static final ID ROOT = of("+r");
 
-    public ID(final String canonical) {
+    private ID(final String canonical) {
       super(canonical);
+    }
+
+    /**
+     * Get a Table.ID object for the provided canonical string.
+     *
+     * @param canonical
+     *          table ID string
+     * @return Table.ID object
+     */
+    public static Table.ID of(final String canonical) {
+      return dedupeTableId(canonical);
+    }
+
+    private static Table.ID dedupeTableId(String tableIdString) {
+      Table.ID tableId;
+      synchronized (tableIds) {
+        WeakReference<Table.ID> tableIdRef = tableIds.get(tableIdString);
+        if (tableIdRef != null) {
+          tableId = tableIdRef.get();
+          if (tableId != null) {
+            return tableId;
+          }
+        }
+
+        tableId = new ID(tableIdString);
+        tableIds.put(tableIdString, new WeakReference<>(tableId));
+      }
+      return tableId;
     }
   }
 

@@ -153,7 +153,7 @@ public class TableLoadBalancer extends TabletBalancer {
       return minBalanceTime;
     for (String s : t.tableIdMap().values()) {
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime = getBalancerForTable(new Table.ID(s)).balance(current, migrations, newMigrations);
+      long tableBalanceTime = getBalancerForTable(Table.ID.of(s)).balance(current, migrations, newMigrations);
       if (tableBalanceTime < minBalanceTime)
         minBalanceTime = tableBalanceTime;
       migrationsOut.addAll(newMigrations);

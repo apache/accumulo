@@ -105,7 +105,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void createWorkForFilesInCorrectOrder() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", Table.ID.of("1"));
     Text serializedTarget = target.toText();
 
     // Create two mutations, both of which need replication work done
@@ -164,10 +164,10 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void workAcrossTablesHappensConcurrently() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", Table.ID.of("1"));
     Text serializedTarget1 = target1.toText();
 
-    ReplicationTarget target2 = new ReplicationTarget("cluster1", "table2", new Table.ID("2"));
+    ReplicationTarget target2 = new ReplicationTarget("cluster1", "table2", Table.ID.of("2"));
     Text serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
@@ -233,10 +233,10 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void workAcrossPeersHappensConcurrently() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", Table.ID.of("1"));
     Text serializedTarget1 = target1.toText();
 
-    ReplicationTarget target2 = new ReplicationTarget("cluster2", "table1", new Table.ID("1"));
+    ReplicationTarget target2 = new ReplicationTarget("cluster2", "table1", Table.ID.of("1"));
     Text serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
@@ -304,7 +304,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void reprocessingOfCompletedWorkRemovesWork() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", Table.ID.of("1"));
     Text serializedTarget = target.toText();
 
     // Create two mutations, both of which need replication work done

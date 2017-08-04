@@ -65,7 +65,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().create(tableName);
 
-    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -123,7 +123,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().create(tableName);
 
-    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -180,7 +180,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().create(tableName);
 
-    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());

@@ -71,7 +71,7 @@ class TableConfWatcher implements Watcher {
         return;
       }
     }
-    Table.ID tableId = new Table.ID(tableIdString);
+    Table.ID tableId = Table.ID.of(tableIdString);
 
     switch (event.getType()) {
       case NodeDataChanged:

@@ -38,7 +38,7 @@ public class ConfigurableCompactionStrategyTest {
 
   @Test
   public void testOutputOptions() throws Exception {
-    MajorCompactionRequest mcr = new MajorCompactionRequest(new KeyExtent(new Table.ID("1"), null, null), MajorCompactionReason.USER, null);
+    MajorCompactionRequest mcr = new MajorCompactionRequest(new KeyExtent(Table.ID.of("1"), null, null), MajorCompactionReason.USER, null);
 
     Map<FileRef,DataFileValue> files = new HashMap<>();
     files.put(new FileRef("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"), new DataFileValue(50000, 400));

@@ -100,7 +100,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
 
     BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
     DIRECTORY_COLUMN.fetch(scanner);
-    Table.ID tableId = new Table.ID(c.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
     assertNotNull("TableID for " + tableName + " was null", tableId);
     scanner.setRanges(Collections.singletonList(TabletsSection.getRange(tableId)));
     // verify the directory entries are all on v1, make a few entries relative

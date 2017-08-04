@@ -62,14 +62,14 @@ public class ReplicationSchemaTest {
 
   @Test
   public void extractTableId() {
-    Table.ID tableId = new Table.ID("1");
+    Table.ID tableId = Table.ID.of("1");
     Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.getUtf8()));
     Assert.assertEquals(tableId, StatusSection.getTableId(k));
   }
 
   @Test
   public void extractTableIdUsingText() {
-    Table.ID tableId = new Table.ID("1");
+    Table.ID tableId = Table.ID.of("1");
     Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.getUtf8()));
     Assert.assertEquals(tableId, StatusSection.getTableId(k));
   }

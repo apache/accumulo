@@ -64,8 +64,8 @@ public class WrongTabletTest {
 
       Mutation mutation = new Mutation(new Text("row_0003750001"));
       mutation.putDelete(new Text("colf"), new Text("colq"));
-      client.update(Tracer.traceInfo(), context.rpcCreds(), new KeyExtent(new Table.ID("!!"), null, new Text("row_0003750000")).toThrift(),
-          mutation.toThrift(), TDurability.DEFAULT);
+      client.update(Tracer.traceInfo(), context.rpcCreds(), new KeyExtent(Table.ID.of("!!"), null, new Text("row_0003750000")).toThrift(), mutation.toThrift(),
+          TDurability.DEFAULT);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

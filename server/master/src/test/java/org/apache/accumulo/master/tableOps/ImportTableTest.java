@@ -36,7 +36,7 @@ public class ImportTableTest {
     Master master = EasyMock.createMock(Master.class);
     VolumeManager volumeManager = EasyMock.createMock(VolumeManager.class);
     ImportedTableInfo iti = new ImportedTableInfo();
-    iti.tableId = new Table.ID("5");
+    iti.tableId = Table.ID.of("5");
 
     // Different volumes with different paths
     String[] tableDirs = new String[] {"hdfs://nn1:8020/apps/accumulo1/tables", "hdfs://nn2:8020/applications/accumulo/tables"};

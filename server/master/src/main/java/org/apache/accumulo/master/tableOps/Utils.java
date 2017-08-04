@@ -18,7 +18,6 @@ package org.apache.accumulo.master.tableOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.lang.reflect.Constructor;
 import java.math.BigInteger;
 import java.util.Base64;
 import java.util.concurrent.locks.Lock;
@@ -37,7 +36,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooQueueLock;
@@ -59,21 +57,16 @@ public class Utils {
       throw new AcceptableThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, null);
   }
 
-  static <T extends AbstractId> T getNextTableId(String tableName, Instance instance, Class<T> idClassType) throws AcceptableThriftTableOperationException {
+  static String getNextTableId(String tableName, Instance instance) throws AcceptableThriftTableOperationException {
     try {
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       final String ntp = ZooUtil.getRoot(instance) + Constants.ZTABLES;
-      byte[] nid = zoo.mutate(ntp, ZERO_BYTE, ZooUtil.PUBLIC, new Mutator() {
-        @Override
-        public byte[] mutate(byte[] currentValue) throws Exception {
-          BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
-          nextId = nextId.add(BigInteger.ONE);
-          return nextId.toString(Character.MAX_RADIX).getBytes(UTF_8);
-        }
+      byte[] nid = zoo.mutate(ntp, ZERO_BYTE, ZooUtil.PUBLIC, currentValue -> {
+        BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
+        nextId = nextId.add(BigInteger.ONE);
+        return nextId.toString(Character.MAX_RADIX).getBytes(UTF_8);
       });
-      Constructor<T> constructor = idClassType.getConstructor(String.class);
-      return constructor.newInstance(new String(nid, UTF_8));
-      // return idClassType.cast(new String(nid, UTF_8));
+      return new String(nid, UTF_8);
     } catch (Exception e1) {
       log.error("Failed to assign tableId to " + tableName, e1);
       throw new AcceptableThriftTableOperationException(null, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());

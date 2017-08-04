@@ -102,4 +102,13 @@
     <Class name="org.apache.accumulo.core.client.impl.ScannerOptionsTest" />
     <Bug code="NP" pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS" />
   </Match>
+  <Match>
+    <!-- These are specifically for testing GC  -->
+    <Or>
+      <Class name="org.apache.accumulo.core.client.impl.TableTest" />
+      <Class name="org.apache.accumulo.core.client.impl.NamespaceTest" />
+    </Or>
+    <Method name="garbageCollect" params="java.lang.Integer" returns="void" />
+    <Bug code="DM" pattern="DM_GC" />
+  </Match>
 </FindBugsFilter>

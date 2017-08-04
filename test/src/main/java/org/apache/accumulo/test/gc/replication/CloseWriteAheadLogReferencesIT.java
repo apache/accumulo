@@ -168,7 +168,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     Set<String> wals = Collections.singleton(file);
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
     Mutation m = new Mutation(file);
-    StatusSection.add(m, new Table.ID("1"), ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));
+    StatusSection.add(m, Table.ID.of("1"), ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));
     bw.addMutation(m);
     bw.close();
 

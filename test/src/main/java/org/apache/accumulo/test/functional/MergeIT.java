@@ -219,7 +219,7 @@ public class MergeIT extends AccumuloClusterHarness {
     protected void resetScanner() {
       try {
         Scanner ds = conn.createScanner(metadataTableName, Authorizations.EMPTY);
-        Text tablet = new KeyExtent(new Table.ID("0"), new Text("m"), null).getMetadataEntry();
+        Text tablet = new KeyExtent(Table.ID.of("0"), new Text("m"), null).getMetadataEntry();
         ds.setRange(new Range(tablet, true, tablet, true));
 
         Mutation m = new Mutation(tablet);
@@ -250,11 +250,11 @@ public class MergeIT extends AccumuloClusterHarness {
     String metadataTableName = getUniqueNames(1)[0];
     getConnector().tableOperations().create(metadataTableName);
 
-    KeyExtent ke1 = new KeyExtent(new Table.ID("0"), new Text("m"), null);
+    KeyExtent ke1 = new KeyExtent(Table.ID.of("0"), new Text("m"), null);
     Mutation mut1 = ke1.getPrevRowUpdateMutation();
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut1, new Value("/d1".getBytes()));
 
-    KeyExtent ke2 = new KeyExtent(new Table.ID("0"), null, null);
+    KeyExtent ke2 = new KeyExtent(Table.ID.of("0"), null, null);
     Mutation mut2 = ke2.getPrevRowUpdateMutation();
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut2, new Value("/d2".getBytes()));
 

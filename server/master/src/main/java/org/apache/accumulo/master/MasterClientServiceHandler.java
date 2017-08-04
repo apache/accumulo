@@ -114,7 +114,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
 
   @Override
   public long initiateFlush(TInfo tinfo, TCredentials c, String tableIdStr) throws ThriftSecurityException, ThriftTableOperationException {
-    Table.ID tableId = new Table.ID(tableIdStr);
+    Table.ID tableId = Table.ID.of(tableIdStr);
     Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
@@ -143,7 +143,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
   @Override
   public void waitForFlush(TInfo tinfo, TCredentials c, String tableIdStr, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
       throws ThriftSecurityException, ThriftTableOperationException {
-    Table.ID tableId = new Table.ID(tableIdStr);
+    Table.ID tableId = Table.ID.of(tableIdStr);
     Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 

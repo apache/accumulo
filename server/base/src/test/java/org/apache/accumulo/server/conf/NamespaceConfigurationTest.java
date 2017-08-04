@@ -47,7 +47,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class NamespaceConfigurationTest {
-  private static final Namespace.ID NSID = new Namespace.ID("namespace");
+  private static final Namespace.ID NSID = Namespace.ID.of("namespace");
   private static final String ZOOKEEPERS = "localhost";
   private static final int ZK_SESSION_TIMEOUT = 120000;
 

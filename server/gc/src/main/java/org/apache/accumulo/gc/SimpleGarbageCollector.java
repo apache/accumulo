@@ -391,7 +391,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 }
                 String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
                 if (parts.length > 2) {
-                  Table.ID tableId = new Table.ID(parts[1]);
+                  Table.ID tableId = Table.ID.of(parts[1]);
                   String tabletDir = parts[2];
                   TableManager.getInstance().updateTableStateCache(tableId);
                   TableState tableState = TableManager.getInstance().getTableState(tableId);

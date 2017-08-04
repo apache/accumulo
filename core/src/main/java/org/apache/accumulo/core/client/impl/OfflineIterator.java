@@ -162,7 +162,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       this.range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
-    this.tableId = new Table.ID(table.toString());
+    this.tableId = Table.ID.of(table.toString());
     this.authorizations = authorizations;
     this.readers = new ArrayList<>();
 

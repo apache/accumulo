@@ -88,7 +88,7 @@ public class ByteBufferUtil {
   }
 
   public static Table.ID toTableId(ByteBuffer bytes) {
-    return new Table.ID(toString(bytes));
+    return Table.ID.of(toString(bytes));
   }
 
   public static ByteBuffer toByteBuffers(ByteSequence bs) {

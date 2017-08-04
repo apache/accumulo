@@ -78,7 +78,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
   }
 
   private Table.ID createTableId(int i) {
-    return new Table.ID(Integer.toString(i));
+    return Table.ID.of(Integer.toString(i));
   }
 
   @Test
@@ -165,14 +165,14 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     // Add two records that we can delete
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
-    StatusSection.add(m, new Table.ID("5"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
+    StatusSection.add(m, Table.ID.of("5"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
     replBw.addMutation(m);
 
     numRecords++;
 
     fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     m = new Mutation(fileToRemove);
-    StatusSection.add(m, new Table.ID("6"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
+    StatusSection.add(m, Table.ID.of("6"), ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
     replBw.addMutation(m);
 
     numRecords++;
@@ -229,14 +229,14 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     filesToRemove.add(fileToRemove);
     Mutation m = new Mutation(fileToRemove);
-    ReplicationTarget target = new ReplicationTarget("peer1", "5", new Table.ID("5"));
+    ReplicationTarget target = new ReplicationTarget("peer1", "5", Table.ID.of("5"));
     Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
-    StatusSection.add(m, new Table.ID("5"), value);
+    StatusSection.add(m, Table.ID.of("5"), value);
     WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
 
     m = OrderSection.createMutation(fileToRemove, time);
-    OrderSection.add(m, new Table.ID("5"), value);
+    OrderSection.add(m, Table.ID.of("5"), value);
     replBw.addMutation(m);
     time++;
 
@@ -246,13 +246,13 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     filesToRemove.add(fileToRemove);
     m = new Mutation(fileToRemove);
     value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
-    target = new ReplicationTarget("peer1", "6", new Table.ID("6"));
-    StatusSection.add(m, new Table.ID("6"), value);
+    target = new ReplicationTarget("peer1", "6", Table.ID.of("6"));
+    StatusSection.add(m, Table.ID.of("6"), value);
     WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
 
     m = OrderSection.createMutation(fileToRemove, time);
-    OrderSection.add(m, new Table.ID("6"), value);
+    OrderSection.add(m, Table.ID.of("6"), value);
     replBw.addMutation(m);
     time++;
 
@@ -308,13 +308,13 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     // Add two records that we can delete
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
-    ReplicationTarget target = new ReplicationTarget("peer1", "5", new Table.ID("5"));
+    ReplicationTarget target = new ReplicationTarget("peer1", "5", Table.ID.of("5"));
     Value value = ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
-    StatusSection.add(m, new Table.ID("5"), value);
+    StatusSection.add(m, Table.ID.of("5"), value);
     WorkSection.add(m, target.toText(), value);
-    target = new ReplicationTarget("peer2", "5", new Table.ID("5"));
+    target = new ReplicationTarget("peer2", "5", Table.ID.of("5"));
     WorkSection.add(m, target.toText(), value);
-    target = new ReplicationTarget("peer3", "5", new Table.ID("5"));
+    target = new ReplicationTarget("peer3", "5", Table.ID.of("5"));
     WorkSection.add(m, target.toText(), ProtobufUtil.toValue(builder.setClosed(false).build()));
     replBw.addMutation(m);
 

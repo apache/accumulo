@@ -345,7 +345,7 @@ public class MultiIteratorTest extends TestCase {
     List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
 
-    KeyExtent extent = new KeyExtent(new Table.ID("tablename"), newRow(1), newRow(0));
+    KeyExtent extent = new KeyExtent(Table.ID.of("tablename"), newRow(1), newRow(0));
 
     MultiIterator mi = new MultiIterator(skvil, extent);
 

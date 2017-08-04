@@ -44,7 +44,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ProblemReportTest {
-  private static final Table.ID TABLE_ID = new Table.ID("table");
+  private static final Table.ID TABLE_ID = Table.ID.of("table");
   private static final String RESOURCE = "resource";
   private static final String SERVER = "server";
 

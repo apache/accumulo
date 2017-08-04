@@ -191,7 +191,7 @@ public class RootTabletStateStoreTest {
     }
     assertEquals(count, 1);
 
-    KeyExtent notRoot = new KeyExtent(new Table.ID("0"), null, null);
+    KeyExtent notRoot = new KeyExtent(Table.ID.of("0"), null, null);
     try {
       tstore.setLocations(Collections.singletonList(new Assignment(notRoot, server)));
       Assert.fail("should not get here");

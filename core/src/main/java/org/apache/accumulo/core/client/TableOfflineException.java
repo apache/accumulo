@@ -27,7 +27,7 @@ public class TableOfflineException extends RuntimeException {
     if (tableId == null)
       return " <unknown table> ";
     try {
-      String tableName = Tables.getTableName(instance, new Table.ID(tableId));
+      String tableName = Tables.getTableName(instance, Table.ID.of(tableId));
       return tableName + " (" + tableId + ")";
     } catch (TableNotFoundException e) {
       return " <unknown table> (" + tableId + ")";

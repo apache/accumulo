@@ -96,7 +96,7 @@ public class ProblemsResource {
   public void clearTableProblems(@QueryParam("s") String tableID) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(new Table.ID(tableID));
+      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(Table.ID.of(tableID));
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table " + tableID, e);
     }
@@ -147,7 +147,7 @@ public class ProblemsResource {
   public void clearDetailsProblems(@QueryParam("table") String tableID, @QueryParam("resource") String resource, @QueryParam("ptype") String ptype) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(new Table.ID(tableID), ProblemType.valueOf(ptype), resource);
+      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(Table.ID.of(tableID), ProblemType.valueOf(ptype), resource);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table " + tableID, e);
     }

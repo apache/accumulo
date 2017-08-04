@@ -132,7 +132,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       }
     }
 
-    return new Table.ID(tableId);
+    return Table.ID.of(tableId);
   }
 
   @Override

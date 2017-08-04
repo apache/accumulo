@@ -205,7 +205,7 @@ public class SampleIT extends AccumuloClusterHarness {
     Set<String> es = Collections.emptySet();
     conn.tableOperations().clone(tableName, clone, false, em, es);
     conn.tableOperations().offline(clone, true);
-    Table.ID cloneID = new Table.ID(conn.tableOperations().tableIdMap().get(clone));
+    Table.ID cloneID = Table.ID.of(conn.tableOperations().tableIdMap().get(clone));
     OfflineScanner oScanner = new OfflineScanner(conn.getInstance(), new Credentials(getAdminPrincipal(), getAdminToken()), cloneID, Authorizations.EMPTY);
     if (sc != null) {
       oScanner.setSamplerConfiguration(sc);
