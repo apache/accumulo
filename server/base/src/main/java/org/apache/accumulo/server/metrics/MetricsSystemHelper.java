@@ -16,13 +16,44 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
+import org.apache.hadoop.metrics2.source.JvmMetrics;
+import org.apache.hadoop.metrics2.source.JvmMetricsInfo;
 
 /**
  *
  */
 public class MetricsSystemHelper {
+
+  private static Map<String,String> serviceNameMap = new HashMap<>();
+
+  static {
+    serviceNameMap.put("master", "Master");
+    serviceNameMap.put("tserver", "TabletServer");
+    serviceNameMap.put("monitor", "Monitor");
+    serviceNameMap.put("gc", "GarbageCollector");
+    serviceNameMap.put("tracer", "Tracer");
+    serviceNameMap.put("shell", "Shell");
+  }
+
+  public static String getProcessName() {
+    String serviceName = System.getProperty("app", "Unknown");
+    if (MetricsSystemHelper.serviceNameMap.containsKey(serviceName)) {
+      serviceName = MetricsSystemHelper.serviceNameMap.get(serviceName);
+    }
+    // this system property is used if more than one TabletServer is started on a host
+    String serviceInstance = System.getProperty("accumulo.service.instance", "");
+    if (StringUtils.isNotBlank(serviceInstance)) {
+      // property ends with an underscore because it's used in log filenames
+      serviceInstance = "-" + serviceInstance.replaceAll("_", "");
+    }
+    return serviceName + serviceInstance;
+  }
 
   private static class MetricsSystemHolder {
     // Singleton, rely on JVM to initialize the MetricsSystem only when it is accessed.
@@ -30,6 +61,10 @@ public class MetricsSystemHelper {
   }
 
   public static MetricsSystem getInstance() {
+    if (MetricsSystemHolder.metricsSystem.getSource(JvmMetricsInfo.JvmMetrics.name()) == null) {
+      JvmMetrics.create(getProcessName(), "", MetricsSystemHolder.metricsSystem);
+    }
     return MetricsSystemHolder.metricsSystem;
   }
+
 }
