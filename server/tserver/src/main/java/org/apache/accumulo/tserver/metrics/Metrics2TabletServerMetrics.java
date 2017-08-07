@@ -17,11 +17,13 @@
 package org.apache.accumulo.tserver.metrics;
 
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
 import org.apache.hadoop.metrics2.MetricsSystem;
+import org.apache.hadoop.metrics2.impl.MsInfo;
 import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
@@ -44,6 +46,7 @@ public class Metrics2TabletServerMetrics implements Metrics, MetricsSource, Tabl
     util = new TabletServerMetricsUtil(tserver);
     this.system = system;
     this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
+    this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
 
     entries = registry.newGauge(Interns.info(ENTRIES, "Number of entries"), 0l);
     entriesInMemory = registry.newGauge(Interns.info(ENTRIES_IN_MEM, "Number of entries in memory"), 0l);

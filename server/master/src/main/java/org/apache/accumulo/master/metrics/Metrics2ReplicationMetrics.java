@@ -25,11 +25,13 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
 import org.apache.hadoop.metrics2.MetricsSystem;
+import org.apache.hadoop.metrics2.impl.MsInfo;
 import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 
@@ -50,7 +52,8 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
     this.master = master;
     this.system = system;
 
-    registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
+    this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
+    this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
     replicationUtil = new ReplicationUtil(master);
   }
 
