@@ -19,7 +19,6 @@ package org.apache.accumulo.server.metrics;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.metrics2.source.JvmMetrics;
@@ -31,6 +30,7 @@ import org.apache.hadoop.metrics2.source.JvmMetricsInfo;
 public class MetricsSystemHelper {
 
   private static Map<String,String> serviceNameMap = new HashMap<>();
+  private static String processName = "Unknown";
 
   static {
     serviceNameMap.put("master", "Master");
@@ -41,18 +41,28 @@ public class MetricsSystemHelper {
     serviceNameMap.put("shell", "Shell");
   }
 
+  public static void configure(String application) {
+    String serviceName = application;
+    if (MetricsSystemHelper.serviceNameMap.containsKey(application)) {
+      serviceName = MetricsSystemHelper.serviceNameMap.get(application);
+    }
+
+    // a system property containing 'instance' can be used if more than one TabletServer is started on a host
+    String serviceInstance = "";
+    if (serviceName.equals("TabletServer")) {
+      for (Map.Entry<Object,Object> p : System.getProperties().entrySet()) {
+        if (((String) p.getKey()).contains("instance")) {
+          // get rid of all non-alphanumeric characters and then prefix with a -
+          serviceInstance = "-" + ((String) p.getValue()).replaceAll("[^a-zA-Z0-9]", "");
+          break;
+        }
+      }
+    }
+    MetricsSystemHelper.processName = serviceName + serviceInstance;
+  }
+
   public static String getProcessName() {
-    String serviceName = System.getProperty("app", "Unknown");
-    if (MetricsSystemHelper.serviceNameMap.containsKey(serviceName)) {
-      serviceName = MetricsSystemHelper.serviceNameMap.get(serviceName);
-    }
-    // this system property is used if more than one TabletServer is started on a host
-    String serviceInstance = System.getProperty("accumulo.service.instance", "");
-    if (StringUtils.isNotBlank(serviceInstance)) {
-      // property ends with an underscore because it's used in log filenames
-      serviceInstance = "-" + serviceInstance.replaceAll("_", "");
-    }
-    return serviceName + serviceInstance;
+    return MetricsSystemHelper.processName;
   }
 
   private static class MetricsSystemHolder {
