@@ -20,7 +20,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.Serializable;
+import java.lang.ref.WeakReference;
 import java.util.Objects;
+import java.util.WeakHashMap;
+import java.util.function.Supplier;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 /**
  * An abstract identifier class for comparing equality of identifiers of the same type.
@@ -84,6 +90,29 @@ public abstract class AbstractId implements Comparable<AbstractId>, Serializable
   public int compareTo(AbstractId id) {
     requireNonNull(id, "id cannot be null");
     return this.canonicalID().compareTo(id.canonicalID());
+  }
+
+  /**
+   * Method used to obtain ID key from cache and prevent duplicates in the cache.
+   *
+   * @param cache
+   *          existing ID cache
+   * @param canonicalKey
+   *          canonical string cache key
+   * @param newInstanceFunction
+   *          function to call for creating new ID keys when canonicalKey is not present in cache
+   * @param <T>
+   *          type of AbstractID
+   * @return ID pulled from the cache
+   */
+  protected static <T extends AbstractId> T dedupeId(Cache<String,T> cache, String canonicalKey, Supplier<T> newInstanceFunction) {
+    T id;
+    synchronized (cache) {
+      id = cache.getIfPresent(canonicalKey);
+      if (id == null)
+        id = newInstanceFunction.get();
+    }
+    return id;
   }
 
 }

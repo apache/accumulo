@@ -21,6 +21,9 @@ import java.util.WeakHashMap;
 
 import org.apache.accumulo.core.client.Instance;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
 public class Namespace {
   public static final String ACCUMULO = "accumulo";
   public static final String DEFAULT = "";
@@ -35,7 +38,7 @@ public class Namespace {
    */
   public static class ID extends AbstractId {
     private static final long serialVersionUID = 8931104141709170293L;
-    static final WeakHashMap<String,WeakReference<Namespace.ID>> namespaceIds = new WeakHashMap<>();
+    static final Cache<String,ID> cache = CacheBuilder.newBuilder().weakValues().build();
 
     public static final ID ACCUMULO = of("+accumulo");
     public static final ID DEFAULT = of("+default");
@@ -52,24 +55,7 @@ public class Namespace {
      * @return Namespace.ID object
      */
     public static Namespace.ID of(final String canonical) {
-      return dedupeNamespaceId(canonical);
-    }
-
-    private static Namespace.ID dedupeNamespaceId(String idString) {
-      synchronized (namespaceIds) {
-        Namespace.ID namespaceId;
-        WeakReference<Namespace.ID> namespaceIdRef = namespaceIds.get(idString);
-        if (namespaceIdRef != null) {
-          namespaceId = namespaceIdRef.get();
-          if (namespaceId != null) {
-            return namespaceId;
-          }
-        }
-
-        namespaceId = new ID(idString);
-        namespaceIds.put(idString, new WeakReference<>(namespaceId));
-        return namespaceId;
-      }
+      return dedupeId(cache, canonical, () -> new ID(canonical));
     }
 
   }

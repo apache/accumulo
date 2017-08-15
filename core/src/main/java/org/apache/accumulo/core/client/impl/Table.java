@@ -21,18 +21,21 @@ import java.util.WeakHashMap;
 
 import org.apache.accumulo.core.client.Instance;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
 public class Table {
 
   /**
    * Object representing an internal table ID. This class was created to help with type safety. For help obtaining the value of a table ID from Zookeeper, see
    * {@link Tables#getTableId(Instance, String)}
    *
-   * Uses an internal WeakHashMap and private constructor for storing a WeakReference of every Table.ID. Therefore, a Table.ID can't be instantiated outside
-   * this class and is accessed by calling Table.ID.{@link #of(String)}.
+   * Uses an internal cache and private constructor for storing a WeakReference of every Table.ID. Therefore, a Table.ID can't be instantiated outside this
+   * class and is accessed by calling Table.ID.{@link #of(String)}.
    */
   public static class ID extends AbstractId {
     private static final long serialVersionUID = 7399913185860577809L;
-    static final WeakHashMap<String,WeakReference<Table.ID>> tableIds = new WeakHashMap<>();
+    static final Cache<String,ID> cache = CacheBuilder.newBuilder().weakValues().build();
 
     public static final ID METADATA = of("!0");
     public static final ID REPLICATION = of("+rep");
@@ -49,26 +52,10 @@ public class Table {
      *          table ID string
      * @return Table.ID object
      */
-    public static Table.ID of(final String canonical) {
-      return dedupeTableId(canonical);
+    public static ID of(final String canonical) {
+      return dedupeId(cache, canonical, () -> new ID(canonical));
     }
 
-    private static Table.ID dedupeTableId(String tableIdString) {
-      Table.ID tableId;
-      synchronized (tableIds) {
-        WeakReference<Table.ID> tableIdRef = tableIds.get(tableIdString);
-        if (tableIdRef != null) {
-          tableId = tableIdRef.get();
-          if (tableId != null) {
-            return tableId;
-          }
-        }
-
-        tableId = new ID(tableIdString);
-        tableIds.put(tableIdString, new WeakReference<>(tableId));
-      }
-      return tableId;
-    }
   }
 
 }
