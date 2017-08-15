@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.util.concurrent.ExecutionException;
+
 import org.apache.accumulo.core.client.Instance;
 
 import com.google.common.cache.Cache;
@@ -50,7 +52,11 @@ public class Table {
      * @return Table.ID object
      */
     public static ID of(final String canonical) {
-      return dedupeId(cache, canonical, () -> new ID(canonical));
+      try {
+        return cache.get(canonical, () -> new Table.ID(canonical));
+      } catch (ExecutionException e) {
+        throw new AssertionError("This should never happen: ID constructor should never return null.");
+      }
     }
 
   }

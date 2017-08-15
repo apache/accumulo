@@ -21,10 +21,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.Serializable;
 import java.util.Objects;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-
-import com.google.common.cache.Cache;
 
 /**
  * An abstract identifier class for comparing equality of identifiers of the same type.
@@ -35,7 +31,7 @@ public abstract class AbstractId implements Comparable<AbstractId>, Serializable
   private final String canonical;
   private Integer hashCode = null;
 
-  AbstractId(final String canonical) {
+  protected AbstractId(final String canonical) {
     requireNonNull(canonical, "canonical cannot be null");
     this.canonical = canonical;
   }
@@ -88,27 +84,6 @@ public abstract class AbstractId implements Comparable<AbstractId>, Serializable
   public int compareTo(AbstractId id) {
     requireNonNull(id, "id cannot be null");
     return this.canonicalID().compareTo(id.canonicalID());
-  }
-
-  /**
-   * Method used to obtain ID key from cache and prevent duplicates in the cache.
-   *
-   * @param cache
-   *          existing ID cache
-   * @param canonicalKey
-   *          canonical string cache key
-   * @param newInstanceFunction
-   *          function to call for creating new ID keys when canonicalKey is not present in cache
-   * @param <T>
-   *          type of AbstractID
-   * @return ID pulled from the cache
-   */
-  static <T extends AbstractId> T dedupeId(Cache<String,T> cache, String canonicalKey, Callable<T> newInstanceFunction) {
-    try {
-      return cache.get(canonicalKey, newInstanceFunction);
-    } catch (ExecutionException e) {
-      throw new AssertionError("This should never happen: ID constructor should never return null.");
-    }
   }
 
 }
