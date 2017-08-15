@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.lang.ref.WeakReference;
-import java.util.WeakHashMap;
-
 import org.apache.accumulo.core.client.Instance;
 
 import com.google.common.cache.Cache;

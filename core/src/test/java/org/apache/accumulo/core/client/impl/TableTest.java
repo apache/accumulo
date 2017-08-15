@@ -17,38 +17,30 @@
 package org.apache.accumulo.core.client.impl;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import org.junit.After;
 import org.junit.Test;
 
 /**
- * Tests the Table ID class, mainly the internal WeakHashMap.
+ * Tests the Table ID class, mainly the internal cache.
  */
 public class TableTest {
 
-  @After
-  public void cleanup() {
-    garbageCollect(Table.ID.tableIds.size());
-  }
-
   @Test
-  public void testWeakHashMapIncreases() {
-    // ensure initial size contains just the built in Table IDs (metadata, root, replication)
-    assertEquals(3, Table.ID.tableIds.size());
+  public void testCacheIncreases() {
+    Integer initialSize = Table.ID.cache.asMap().size();
 
-    String tableString = new String("table-testWeakHashMapIncreases");
+    String tableString = "table-testWeakHashMapIncreases";
     Table.ID table1 = Table.ID.of(tableString);
-    assertEquals(4, Table.ID.tableIds.size());
+    assertEquals(initialSize + 1, Table.ID.cache.asMap().size());
     assertEquals(tableString, table1.canonicalID());
   }
 
   @Test
-  public void testWeakHashMapNoDuplicates() {
-    String tableString = new String("table-testWeakHashMapNoDuplicates");
+  public void testCacheNoDuplicates() {
+    String tableString = "table-testWeakHashMapNoDuplicates";
+    Integer initialSize = Table.ID.cache.asMap().size();
     Table.ID table1 = Table.ID.of(tableString);
-    assertEquals(4, Table.ID.tableIds.size());
+    assertEquals(initialSize + 1, Table.ID.cache.asMap().size());
     assertEquals(tableString, table1.canonicalID());
 
     // ensure duplicates are not created
@@ -59,32 +51,11 @@ public class TableTest {
     builtInTableId = Table.ID.of("+rep");
     assertEquals(Table.ID.REPLICATION, builtInTableId);
     table1 = Table.ID.of(tableString);
-    assertEquals(4, Table.ID.tableIds.size());
+    assertEquals(initialSize + 1, Table.ID.cache.asMap().size());
     assertEquals(tableString, table1.canonicalID());
-  }
-
-  @Test
-  public void testWeakHashMapDecreases() {
-    // get bunch of table IDs that are not used
-    for (int i = 0; i < 1000; i++)
-      Table.ID.of(new String("table" + i));
-  }
-
-  private void garbageCollect(Integer initialSize) {
-    System.out.println("GC with initial Size = " + initialSize);
-    int count = 0;
-    while (Table.ID.tableIds.size() >= initialSize && count < 10) {
-      System.gc();
-      count++;
-      try {
-        Thread.sleep(5000);
-      } catch (InterruptedException e) {
-        fail("Thread interrupted while waiting for GC");
-        break;
-      }
-      System.out.println("after GC: Size of tableIds = " + Table.ID.tableIds.size());
-    }
-    assertTrue("Size of WeakHashMap did not decrease after GC.", Table.ID.tableIds.size() < initialSize);
+    table1 = Table.ID.of("table-testWeakHashMapNoDuplicates");
+    assertEquals(initialSize + 1, Table.ID.cache.asMap().size());
+    assertEquals(tableString, table1.canonicalID());
   }
 
 }

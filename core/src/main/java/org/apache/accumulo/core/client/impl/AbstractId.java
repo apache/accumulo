@@ -20,13 +20,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.Serializable;
-import java.lang.ref.WeakReference;
 import java.util.Objects;
-import java.util.WeakHashMap;
-import java.util.function.Supplier;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 
 /**
  * An abstract identifier class for comparing equality of identifiers of the same type.
@@ -37,7 +35,7 @@ public abstract class AbstractId implements Comparable<AbstractId>, Serializable
   private final String canonical;
   private Integer hashCode = null;
 
-  protected AbstractId(final String canonical) {
+  AbstractId(final String canonical) {
     requireNonNull(canonical, "canonical cannot be null");
     this.canonical = canonical;
   }
@@ -105,14 +103,12 @@ public abstract class AbstractId implements Comparable<AbstractId>, Serializable
    *          type of AbstractID
    * @return ID pulled from the cache
    */
-  protected static <T extends AbstractId> T dedupeId(Cache<String,T> cache, String canonicalKey, Supplier<T> newInstanceFunction) {
-    T id;
-    synchronized (cache) {
-      id = cache.getIfPresent(canonicalKey);
-      if (id == null)
-        id = newInstanceFunction.get();
+  static <T extends AbstractId> T dedupeId(Cache<String,T> cache, String canonicalKey, Callable<T> newInstanceFunction) {
+    try {
+      return cache.get(canonicalKey, newInstanceFunction);
+    } catch (ExecutionException e) {
+      throw new AssertionError("This should never happen: ID constructor should never return null.");
     }
-    return id;
   }
 
 }
