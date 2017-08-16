@@ -17,38 +17,73 @@
 package org.apache.accumulo.core.client.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 /**
- * Tests the Namespace ID class, mainly the internal WeakHashMap.
+ * Tests the Namespace ID class, mainly the internal cache.
  */
 public class NamespaceTest {
+  @Rule
+  public TestName name = new TestName();
 
   @Test
-  public void testWeakHashMapIncreases() {
-    String namespaceString = "namespace-testWeakHashMapIncreases";
-    Integer initialSize = Namespace.ID.cache.asMap().size();
+  public void testCacheIncreases() {
+    String namespaceString = "namespace-" + name.getMethodName();
+    Long initialSize = Namespace.ID.cache.asMap().entrySet().stream().count();
     Namespace.ID nsId = Namespace.ID.of(namespaceString);
-    assertEquals(initialSize + 1, Namespace.ID.cache.asMap().size());
+    assertEquals(initialSize + 1, Namespace.ID.cache.asMap().entrySet().stream().count());
     assertEquals(namespaceString, nsId.canonicalID());
   }
 
   @Test
-  public void testWeakHashMapNoDuplicates() {
-    String namespaceString = "namespace-testWeakHashMapNoDuplicates";
-    Integer initialSize = Namespace.ID.cache.asMap().size();
+  public void testCacheNoDuplicates() {
+    String namespaceString = "namespace-" + name.getMethodName();
+    Long initialSize = Namespace.ID.cache.asMap().entrySet().stream().count();
     Namespace.ID nsId = Namespace.ID.of(namespaceString);
-    assertEquals(initialSize + 1, Namespace.ID.cache.asMap().size());
+    assertEquals(initialSize + 1, Namespace.ID.cache.asMap().entrySet().stream().count());
     assertEquals(namespaceString, nsId.canonicalID());
 
     // ensure duplicates are not created
     Namespace.ID builtInNamespaceId = Namespace.ID.of("+accumulo");
-    assertEquals(Namespace.ID.ACCUMULO, builtInNamespaceId);
+    assertSame(Namespace.ID.ACCUMULO, builtInNamespaceId);
     builtInNamespaceId = Namespace.ID.of("+default");
-    assertEquals(Namespace.ID.DEFAULT, builtInNamespaceId);
+    assertSame(Namespace.ID.DEFAULT, builtInNamespaceId);
     nsId = Namespace.ID.of(namespaceString);
-    assertEquals(initialSize + 1, Namespace.ID.cache.asMap().size());
+    assertEquals(initialSize + 1, Namespace.ID.cache.asMap().entrySet().stream().count());
     assertEquals(namespaceString, nsId.canonicalID());
+    Namespace.ID nsId2 = Namespace.ID.of(namespaceString);
+    assertEquals(initialSize + 1, Namespace.ID.cache.asMap().entrySet().stream().count());
+    assertSame(nsId, nsId2);
+  }
+
+  @Test(timeout = 60_000)
+  public void testCacheDecreasesAfterGC() {
+    generateJunkCacheEntries();
+    Long initialSize = Namespace.ID.cache.asMap().entrySet().stream().count();
+    Long postGCSize;
+    System.out.println("Namespace.ID.cache.asMap().entrySet().stream().count() = " + initialSize);
+    do {
+      System.gc();
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException e) {
+        fail("Thread interrupted while waiting for GC");
+      }
+      postGCSize = Namespace.ID.cache.asMap().entrySet().stream().count();
+      System.out.println("After GC: Namespace.ID.cache.asMap().entrySet().stream().count() = " + postGCSize);
+    } while (postGCSize == initialSize);
+
+    assertTrue("Cache did not decrease with GC.", Namespace.ID.cache.asMap().entrySet().stream().count() < initialSize);
+  }
+
+  private void generateJunkCacheEntries() {
+    for (int i = 0; i < 1000; i++)
+      Namespace.ID.of(new String("namespace" + i));
   }
 }

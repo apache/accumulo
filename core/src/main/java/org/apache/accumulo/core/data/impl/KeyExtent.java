@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -62,7 +63,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   private Text textEndRow;
   private Text textPrevEndRow;
 
-  private final Table.ID EMPTY_ID = Table.ID.of("");
+  private static final Table.ID EMPTY_ID = Table.ID.of("");
 
   private void check() {
 
@@ -152,9 +153,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
    *
    */
   public void setTableId(Table.ID tId) {
-
-    if (tId == null)
-      throw new IllegalArgumentException("null table id not allowed");
+    Objects.requireNonNull(tId, "null table id not allowed");
 
     this.tableId = tId;
 
@@ -248,7 +247,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       per.readFields(in);
       setPrevEndRow(per, false, true);
     } else {
-      setPrevEndRow((Text) null);
+      setPrevEndRow(null);
     }
 
     hashCode = 0;
@@ -616,7 +615,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   public static KeyExtent findContainingExtent(KeyExtent extent, SortedSet<KeyExtent> extents) {
 
     KeyExtent lookupExtent = new KeyExtent(extent);
-    lookupExtent.setPrevEndRow((Text) null);
+    lookupExtent.setPrevEndRow(null);
 
     SortedSet<KeyExtent> tailSet = extents.tailSet(lookupExtent);
 
@@ -733,7 +732,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       return getPrevEndRow() == null;
 
     if (!prevExtent.getTableId().equals(getTableId()))
-      throw new IllegalArgumentException("Cannot compare accross tables " + prevExtent + " " + this);
+      throw new IllegalArgumentException("Cannot compare across tables " + prevExtent + " " + this);
 
     if (prevExtent.getEndRow() == null)
       return false;

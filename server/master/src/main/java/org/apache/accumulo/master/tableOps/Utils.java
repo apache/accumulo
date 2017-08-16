@@ -22,6 +22,7 @@ import java.math.BigInteger;
 import java.util.Base64;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -57,7 +58,7 @@ public class Utils {
       throw new AcceptableThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, null);
   }
 
-  static String getNextTableId(String tableName, Instance instance) throws AcceptableThriftTableOperationException {
+  static <T extends AbstractId> T getNextId(String name, Instance instance, Function<String,T> newIdFunction) throws AcceptableThriftTableOperationException {
     try {
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       final String ntp = ZooUtil.getRoot(instance) + Constants.ZTABLES;
@@ -66,10 +67,10 @@ public class Utils {
         nextId = nextId.add(BigInteger.ONE);
         return nextId.toString(Character.MAX_RADIX).getBytes(UTF_8);
       });
-      return new String(nid, UTF_8);
+      return newIdFunction.apply(new String(nid, UTF_8));
     } catch (Exception e1) {
-      log.error("Failed to assign tableId to " + tableName, e1);
-      throw new AcceptableThriftTableOperationException(null, tableName, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
+      log.error("Failed to assign id to " + name, e1);
+      throw new AcceptableThriftTableOperationException(null, name, TableOperation.CREATE, TableOperationExceptionType.OTHER, e1.getMessage());
     }
   }
 

@@ -17,45 +17,77 @@
 package org.apache.accumulo.core.client.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 /**
  * Tests the Table ID class, mainly the internal cache.
  */
 public class TableTest {
+  @Rule
+  public TestName name = new TestName();
 
   @Test
   public void testCacheIncreases() {
-    Integer initialSize = Table.ID.cache.asMap().size();
-
-    String tableString = "table-testWeakHashMapIncreases";
+    Long initialSize = Table.ID.cache.asMap().entrySet().stream().count();
+    String tableString = "table-" + name.getMethodName();
     Table.ID table1 = Table.ID.of(tableString);
-    assertEquals(initialSize + 1, Table.ID.cache.asMap().size());
+    assertEquals(initialSize + 1, Table.ID.cache.asMap().entrySet().stream().count());
     assertEquals(tableString, table1.canonicalID());
   }
 
   @Test
   public void testCacheNoDuplicates() {
-    String tableString = "table-testWeakHashMapNoDuplicates";
-    Integer initialSize = Table.ID.cache.asMap().size();
+    String tableString = "table-" + name.getMethodName();
+    Long initialSize = Table.ID.cache.asMap().entrySet().stream().count();
     Table.ID table1 = Table.ID.of(tableString);
-    assertEquals(initialSize + 1, Table.ID.cache.asMap().size());
+    assertEquals(initialSize + 1, Table.ID.cache.asMap().entrySet().stream().count());
     assertEquals(tableString, table1.canonicalID());
 
     // ensure duplicates are not created
     Table.ID builtInTableId = Table.ID.of("!0");
-    assertEquals(Table.ID.METADATA, builtInTableId);
+    assertSame(Table.ID.METADATA, builtInTableId);
     builtInTableId = Table.ID.of("+r");
-    assertEquals(Table.ID.ROOT, builtInTableId);
+    assertSame(Table.ID.ROOT, builtInTableId);
     builtInTableId = Table.ID.of("+rep");
-    assertEquals(Table.ID.REPLICATION, builtInTableId);
+    assertSame(Table.ID.REPLICATION, builtInTableId);
     table1 = Table.ID.of(tableString);
-    assertEquals(initialSize + 1, Table.ID.cache.asMap().size());
+    assertEquals(initialSize + 1, Table.ID.cache.asMap().entrySet().stream().count());
     assertEquals(tableString, table1.canonicalID());
-    table1 = Table.ID.of("table-testWeakHashMapNoDuplicates");
-    assertEquals(initialSize + 1, Table.ID.cache.asMap().size());
-    assertEquals(tableString, table1.canonicalID());
+    Table.ID table2 = Table.ID.of(tableString);
+    assertEquals(initialSize + 1, Table.ID.cache.asMap().entrySet().stream().count());
+    assertEquals(tableString, table2.canonicalID());
+    assertSame(table1, table2);
+  }
+
+  @Test(timeout = 60_000)
+  public void testCacheDecreasesAfterGC() {
+    generateJunkCacheEntries();
+    Long initialSize = Table.ID.cache.asMap().entrySet().stream().count();
+    Long postGCSize;
+    System.out.println("Table.ID.cache.asMap().entrySet().stream().count() = " + initialSize);
+    do {
+      System.gc();
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException e) {
+        fail("Thread interrupted while waiting for GC");
+      }
+      postGCSize = Table.ID.cache.asMap().entrySet().stream().count();
+      System.out.println("After GC: Table.ID.cache.asMap().entrySet().stream().count() = " + postGCSize);
+    } while (postGCSize == initialSize);
+
+    assertTrue("Cache did not decrease with GC.", Table.ID.cache.asMap().entrySet().stream().count() < initialSize);
+  }
+
+  private void generateJunkCacheEntries() {
+    for (int i = 0; i < 1000; i++)
+      Table.ID.of(new String("table" + i));
   }
 
 }
