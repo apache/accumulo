@@ -251,7 +251,7 @@ public class GarbageCollectionAlgorithm {
       String[] tokens = delete.split("/");
       if (tokens.length == 2) {
         // its a directory
-        Table.ID tableId = new Table.ID(delete.split("/")[0]);
+        Table.ID tableId = Table.ID.of(delete.split("/")[0]);
         tableIdsWithDeletes.add(tableId);
       }
     }

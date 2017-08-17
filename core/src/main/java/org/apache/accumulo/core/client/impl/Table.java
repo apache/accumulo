@@ -16,24 +16,49 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.util.concurrent.ExecutionException;
+
 import org.apache.accumulo.core.client.Instance;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 public class Table {
 
   /**
    * Object representing an internal table ID. This class was created to help with type safety. For help obtaining the value of a table ID from Zookeeper, see
    * {@link Tables#getTableId(Instance, String)}
+   *
+   * Uses an internal cache and private constructor for storing a WeakReference of every Table.ID. Therefore, a Table.ID can't be instantiated outside this
+   * class and is accessed by calling Table.ID.{@link #of(String)}.
    */
   public static class ID extends AbstractId {
     private static final long serialVersionUID = 7399913185860577809L;
+    static final Cache<String,ID> cache = CacheBuilder.newBuilder().weakValues().build();
 
-    public static final ID METADATA = new ID("!0");
-    public static final ID REPLICATION = new ID("+rep");
-    public static final ID ROOT = new ID("+r");
+    public static final ID METADATA = of("!0");
+    public static final ID REPLICATION = of("+rep");
+    public static final ID ROOT = of("+r");
 
-    public ID(final String canonical) {
+    private ID(final String canonical) {
       super(canonical);
     }
+
+    /**
+     * Get a Table.ID object for the provided canonical string.
+     *
+     * @param canonical
+     *          table ID string
+     * @return Table.ID object
+     */
+    public static ID of(final String canonical) {
+      try {
+        return cache.get(canonical, () -> new Table.ID(canonical));
+      } catch (ExecutionException e) {
+        throw new AssertionError("This should never happen: ID constructor should never return null.");
+      }
+    }
+
   }
 
 }

@@ -78,7 +78,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     conn.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
     conn.tableOperations().create(tableName);
 
-    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     final int numericTableId = Integer.parseInt(tableId.canonicalID());
     final int fakeTableId = numericTableId + 1;
 
@@ -114,7 +114,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     value.write(out);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(new Table.ID(Integer.toString(fakeTableId)), null, null);
+    key.tablet = new KeyExtent(Table.ID.of(Integer.toString(fakeTableId)), null, null);
     key.seq = 1l;
     key.tid = 1;
 

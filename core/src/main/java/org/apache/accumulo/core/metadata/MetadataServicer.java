@@ -34,7 +34,7 @@ public abstract class MetadataServicer {
 
   public static MetadataServicer forTableName(ClientContext context, String tableName) throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
-    return forTableId(context, new Table.ID(context.getConnector().tableOperations().tableIdMap().get(tableName)));
+    return forTableId(context, Table.ID.of(context.getConnector().tableOperations().tableIdMap().get(tableName)));
   }
 
   public static MetadataServicer forTableId(ClientContext context, Table.ID tableId) {

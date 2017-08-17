@@ -64,7 +64,7 @@ public class TwoTierCompactionStrategyTest {
   public void testDefaultCompaction() throws IOException {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
-    KeyExtent ke = new KeyExtent(new Table.ID("0"), null, null);
+    KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "10M", "f2", "10M", "f3", "10M", "f4", "10M", "f5", "100M", "f6", "100M", "f7", "100M", "f8",
         "100M");
@@ -83,7 +83,7 @@ public class TwoTierCompactionStrategyTest {
   public void testLargeCompaction() throws IOException {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
-    KeyExtent ke = new KeyExtent(new Table.ID("0"), null, null);
+    KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G");
     mcr.setFiles(fileMap);
@@ -112,7 +112,7 @@ public class TwoTierCompactionStrategyTest {
   public void testFileSubsetCompaction() throws IOException {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
-    KeyExtent ke = new KeyExtent(new Table.ID("0"), null, null);
+    KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf);
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "1G", "f2", "10M", "f3", "10M", "f4", "10M", "f5", "10M", "f6", "10M", "f7", "10M");
     Map<FileRef,DataFileValue> filesToCompactMap = createFileMap("f2", "10M", "f3", "10M", "f4", "10M", "f5", "10M", "f6", "10M", "f7", "10M");

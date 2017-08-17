@@ -73,7 +73,7 @@ class NamespaceConfWatcher implements Watcher {
         return;
       }
     }
-    Namespace.ID namespaceId = new Namespace.ID(namespaceIdStr);
+    Namespace.ID namespaceId = Namespace.ID.of(namespaceIdStr);
 
     switch (event.getType()) {
       case NodeDataChanged:

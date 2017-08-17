@@ -115,7 +115,7 @@ public class Gatherer {
 
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig) {
     this.ctx = context;
-    this.tableId = new Table.ID(request.tableId);
+    this.tableId = Table.ID.of(request.tableId);
     this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
     this.endRow = ByteBufferUtil.toText(request.bounds.endRow);
     this.clipRange = new Range(startRow, false, endRow, true);

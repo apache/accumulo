@@ -58,7 +58,7 @@ public class UnorderedWorkAssignerTest {
 
   @Test
   public void workQueuedUsingFileName() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", new Table.ID("1"));
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", Table.ID.of("1"));
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
     Set<String> queuedWork = new HashSet<>();

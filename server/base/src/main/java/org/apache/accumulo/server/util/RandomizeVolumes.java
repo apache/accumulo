@@ -86,7 +86,7 @@ public class RandomizeVolumes {
       log.error("Could not determine the table ID for table " + tableName);
       return 2;
     }
-    Table.ID tableId = new Table.ID(tblStr);
+    Table.ID tableId = Table.ID.of(tblStr);
     TableState tableState = TableManager.getInstance().getTableState(tableId);
     if (TableState.OFFLINE != tableState) {
       log.info("Taking " + tableName + " offline");
@@ -105,7 +105,7 @@ public class RandomizeVolumes {
       String directory;
       if (oldLocation.contains(":")) {
         String[] parts = oldLocation.split(Path.SEPARATOR);
-        Table.ID tableIdEntry = new Table.ID(parts[parts.length - 2]);
+        Table.ID tableIdEntry = Table.ID.of(parts[parts.length - 2]);
         if (!tableIdEntry.equals(tableId)) {
           log.error("Unexpected table id found: " + tableIdEntry + ", expected " + tableId + "; skipping");
           continue;

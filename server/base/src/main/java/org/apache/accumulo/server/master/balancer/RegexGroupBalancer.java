@@ -58,7 +58,7 @@ public class RegexGroupBalancer extends GroupBalancer {
 
   @Override
   protected long getWaitTime() {
-    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(new Table.ID(tableId))
+    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(Table.ID.of(tableId))
         .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     if (customProps.containsKey(WAIT_TIME_PROPERTY)) {
       return ConfigurationTypeHelper.getTimeInMillis(customProps.get(WAIT_TIME_PROPERTY));
@@ -70,7 +70,7 @@ public class RegexGroupBalancer extends GroupBalancer {
   @Override
   protected Function<KeyExtent,String> getPartitioner() {
 
-    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(new Table.ID(tableId))
+    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(Table.ID.of(tableId))
         .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     String regex = customProps.get(REGEX_PROPERTY);
     final String defaultGroup = customProps.get(DEFAUT_GROUP_PROPERTY);

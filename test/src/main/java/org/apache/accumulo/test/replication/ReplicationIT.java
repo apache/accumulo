@@ -159,7 +159,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       for (UUID id : entry.getValue()) {
         Pair<WalState,Path> state = wals.state(entry.getKey(), id);
         for (String tableId : serverToTableID.get(entry.getKey())) {
-          logs.put(state.getSecond().toString(), new Table.ID(tableId));
+          logs.put(state.getSecond().toString(), Table.ID.of(tableId));
         }
       }
     }
@@ -676,7 +676,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     String table = "table";
     conn.tableOperations().create(table);
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(table));
 
     Assert.assertNotNull(tableId);
 
@@ -974,7 +974,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     writeSomeData(conn, table1, 2000, 50);
     conn.tableOperations().flush(table1, null, null, true);
 
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table1));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(table1));
     Assert.assertNotNull("Table ID was null", tableId);
 
     // Make sure the replication table exists at this point
@@ -1220,7 +1220,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
     }
 
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table1));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(table1));
     Assert.assertNotNull("Could not determine table id for " + table1, tableId);
 
     // Write some data to table1

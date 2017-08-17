@@ -46,7 +46,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
     Credentials credentials = new Credentials(getAdminPrincipal(), getAdminToken());
     ClientContext context = new ClientContext(getConnector().getInstance(), credentials, cluster.getClientConfig());
     Writer w = new Writer(context, MetadataTable.ID);
-    KeyExtent extent = new KeyExtent(new Table.ID("5"), null, null);
+    KeyExtent extent = new KeyExtent(Table.ID.of("5"), null, null);
 
     Mutation m = new Mutation(extent.getMetadataEntry());
     // unknown columns should cause contraint violation

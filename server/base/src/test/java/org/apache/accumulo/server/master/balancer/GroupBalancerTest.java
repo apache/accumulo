@@ -68,7 +68,7 @@ public class GroupBalancerTest {
 
     public void addTablet(String er, String location) {
       TServerInstance tsi = new TServerInstance(location, 6);
-      tabletLocs.put(new KeyExtent(new Table.ID("b"), er == null ? null : new Text(er), null), new TServerInstance(location, 6));
+      tabletLocs.put(new KeyExtent(Table.ID.of("b"), er == null ? null : new Text(er), null), new TServerInstance(location, 6));
       tservers.add(tsi);
     }
 

@@ -572,13 +572,13 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
         try {
           if (isOffline) {
-            scanner = new OfflineScanner(instance, new Credentials(principal, token), new Table.ID(split.getTableId()), authorizations);
+            scanner = new OfflineScanner(instance, new Credentials(principal, token), Table.ID.of(split.getTableId()), authorizations);
           } else if (DeprecationUtil.isMockInstance(instance)) {
             scanner = instance.getConnector(principal, token).createScanner(split.getTableName(), authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(attempt);
             ClientContext context = new ClientContext(instance, new Credentials(principal, token), clientConf);
-            scanner = new ScannerImpl(context, new Table.ID(split.getTableId()), authorizations);
+            scanner = new ScannerImpl(context, Table.ID.of(split.getTableId()), authorizations);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");

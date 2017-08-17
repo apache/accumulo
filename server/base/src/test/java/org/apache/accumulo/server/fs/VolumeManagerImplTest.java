@@ -113,7 +113,7 @@ public class VolumeManagerImplTest {
     conf.set(Property.INSTANCE_VOLUMES, StringUtils.join(volumes, ","));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     VolumeManager vm = VolumeManagerImpl.get(conf);
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(new Table.ID("sometable")));
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(Table.ID.of("sometable")));
     String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));
     Assert.assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));
   }

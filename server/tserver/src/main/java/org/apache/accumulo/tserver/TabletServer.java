@@ -490,7 +490,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         long readaheadThreshold, TSamplerConfiguration tSamplerConfig, long batchTimeOut, String context) throws NotServingTabletException,
         ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException, TSampleNotPresentException {
 
-      Table.ID tableId = new Table.ID(new String(textent.getTable(), UTF_8));
+      Table.ID tableId = Table.ID.of(new String(textent.getTable(), UTF_8));
       Namespace.ID namespaceId;
       try {
         namespaceId = Tables.getNamespaceId(getInstance(), tableId);
@@ -649,7 +649,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       // find all of the tables that need to be scanned
       final HashSet<Table.ID> tables = new HashSet<>();
       for (TKeyExtent keyExtent : tbatch.keySet()) {
-        tables.add(new Table.ID(new String(keyExtent.getTable(), UTF_8)));
+        tables.add(Table.ID.of(new String(keyExtent.getTable(), UTF_8)));
       }
 
       if (tables.size() != 1)
@@ -1084,7 +1084,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public void update(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, TMutation tmutation, TDurability tdurability)
         throws NotServingTabletException, ConstraintViolationException, ThriftSecurityException {
 
-      final Table.ID tableId = new Table.ID(new String(tkeyExtent.getTable(), UTF_8));
+      final Table.ID tableId = Table.ID.of(new String(tkeyExtent.getTable(), UTF_8));
       Namespace.ID namespaceId;
       try {
         namespaceId = Tables.getNamespaceId(getInstance(), tableId);
@@ -1323,7 +1323,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials, List<ByteBuffer> authorizations, String tableIdStr,
         TDurability tdurabilty, String classLoaderContext) throws ThriftSecurityException, TException {
 
-      Table.ID tableId = new Table.ID(tableIdStr);
+      Table.ID tableId = Table.ID.of(tableIdStr);
       Authorizations userauths = null;
       Namespace.ID namespaceId;
       try {
@@ -1416,7 +1416,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent, ByteBuffer splitPoint) throws NotServingTabletException,
         ThriftSecurityException {
 
-      Table.ID tableId = new Table.ID(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
+      Table.ID tableId = Table.ID.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
       Namespace.ID namespaceId;
       try {
         namespaceId = Tables.getNamespaceId(getInstance(), tableId);
@@ -1459,7 +1459,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         onlineTabletsCopy = new TreeMap<>(onlineTablets);
       }
       List<TabletStats> result = new ArrayList<>();
-      Table.ID text = new Table.ID(tableId);
+      Table.ID text = Table.ID.of(tableId);
       KeyExtent start = new KeyExtent(text, new Text(), null);
       for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.tailMap(start).entrySet()) {
         KeyExtent ke = entry.getKey();
@@ -1634,7 +1634,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       ArrayList<Tablet> tabletsToFlush = new ArrayList<>();
 
-      KeyExtent ke = new KeyExtent(new Table.ID(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
+      KeyExtent ke = new KeyExtent(Table.ID.of(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
       synchronized (onlineTablets) {
         for (Tablet tablet : onlineTablets.values())
@@ -1752,7 +1752,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         throw new RuntimeException(e);
       }
 
-      KeyExtent ke = new KeyExtent(new Table.ID(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
+      KeyExtent ke = new KeyExtent(Table.ID.of(tableId), ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
       ArrayList<Tablet> tabletsToCompact = new ArrayList<>();
       synchronized (onlineTablets) {
@@ -1848,7 +1848,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials, TSummaryRequest request) throws ThriftSecurityException,
         ThriftTableOperationException, NoSuchScanIDException, TException {
       Namespace.ID namespaceId;
-      Table.ID tableId = new Table.ID(request.getTableId());
+      Table.ID tableId = Table.ID.of(request.getTableId());
       try {
         namespaceId = Tables.getNamespaceId(TabletServer.this.getInstance(), tableId);
       } catch (TableNotFoundException e1) {
@@ -1876,7 +1876,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       ServerConfigurationFactory factory = TabletServer.this.getServerConfigurationFactory();
       ExecutorService spe = resourceManager.getSummaryRemoteExecutor();
-      Future<SummaryCollection> future = new Gatherer(TabletServer.this, request, factory.getTableConfiguration(new Table.ID(request.getTableId())))
+      Future<SummaryCollection> future = new Gatherer(TabletServer.this, request, factory.getTableConfiguration(Table.ID.of(request.getTableId())))
           .processPartition(spe, modulus, remainder);
 
       return startSummaryOperation(credentials, future);
@@ -1891,7 +1891,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       ExecutorService srp = resourceManager.getSummaryRetrievalExecutor();
-      TableConfiguration tableCfg = confFactory.getTableConfiguration(new Table.ID(request.getTableId()));
+      TableConfiguration tableCfg = confFactory.getTableConfiguration(Table.ID.of(request.getTableId()));
       BlockCache summaryCache = resourceManager.getSummaryCache();
       BlockCache indexCache = resourceManager.getIndexCache();
       FileSystemResolver volMgr = p -> fs.getVolumeByPath(p).getFileSystem();

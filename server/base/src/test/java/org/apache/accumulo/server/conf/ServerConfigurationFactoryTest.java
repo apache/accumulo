@@ -114,7 +114,7 @@ public class ServerConfigurationFactoryTest {
     assertNotNull(c);
   }
 
-  private static final Namespace.ID NSID = new Namespace.ID("NAMESPACE");
+  private static final Namespace.ID NSID = Namespace.ID.of("NAMESPACE");
 
   @Test
   public void testGetNamespaceConfiguration() {

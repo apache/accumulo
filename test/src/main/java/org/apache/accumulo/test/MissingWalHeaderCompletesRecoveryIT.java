@@ -125,7 +125,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345", emptyWalog.toURI().toString());
@@ -180,7 +180,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345", partialHeaderWalog.toURI().toString());

@@ -86,7 +86,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
   public void singleUnitSingleTarget() throws Exception {
     String table = testName.getMethodName();
     conn.tableOperations().create(table);
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(table));
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     // Create a status record for a file
@@ -128,7 +128,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     String table = testName.getMethodName();
     conn.tableOperations().create(table);
 
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(table));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(table));
 
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 

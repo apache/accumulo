@@ -172,7 +172,7 @@ public class TableManager {
     synchronized (tableStateCache) {
       for (String tableId : zooStateCache.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES))
         if (zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE) != null)
-          updateTableStateCache(new Table.ID(tableId));
+          updateTableStateCache(Table.ID.of(tableId));
     }
   }
 
@@ -252,7 +252,7 @@ public class TableManager {
         if (suffix.contains("/")) {
           String[] sa = suffix.split("/", 2);
           if (Constants.ZTABLE_STATE.equals("/" + sa[1]))
-            tableId = new Table.ID(sa[0]);
+            tableId = Table.ID.of(sa[0]);
         }
         if (tableId == null) {
           log.warn("Unknown path in " + event);

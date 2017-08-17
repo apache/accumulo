@@ -228,7 +228,7 @@ public class Tables {
       throw new TableNotFoundException(tableId.canonicalID(), null, null);
     }
 
-    return new Namespace.ID(new String(n, UTF_8));
+    return Namespace.ID.of(new String(n, UTF_8));
   }
 
   /**
@@ -247,7 +247,7 @@ public class Tables {
       if (nId == null) {
         namespaceName = null;
       } else {
-        Namespace.ID namespaceId = new Namespace.ID(new String(nId, UTF_8));
+        Namespace.ID namespaceId = Namespace.ID.of(new String(nId, UTF_8));
         if (!namespaceId.equals(Namespace.ID.DEFAULT)) {
           try {
             namespaceName = namespaceIdToNameMap.get(namespaceId);
@@ -270,13 +270,13 @@ public class Tables {
 
   public static SortedMap<Table.ID,String> getIdToNameMap(Instance instance) {
     SortedMap<Table.ID,String> map = new TreeMap<>();
-    getAllTables(instance, (id, name) -> map.put(new Table.ID(id), name));
+    getAllTables(instance, (id, name) -> map.put(Table.ID.of(id), name));
     return map;
   }
 
   public static SortedMap<String,Table.ID> getNameToIdMap(Instance instance) {
     SortedMap<String,Table.ID> map = new TreeMap<>();
-    getAllTables(instance, (id, name) -> map.put(name, new Table.ID(id)));
+    getAllTables(instance, (id, name) -> map.put(name, Table.ID.of(id)));
     return map;
   }
 
@@ -287,7 +287,7 @@ public class Tables {
     ArrayList<Table.ID> singleId = new ArrayList<>(1);
     getAllTables(instance, (id, name) -> {
       if (name.equals(tableName))
-        singleId.add(new Table.ID(id));
+        singleId.add(Table.ID.of(id));
     });
     if (singleId.isEmpty())
       return null;

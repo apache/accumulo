@@ -66,7 +66,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true).setInfiniteEnd(false).build();
-    ReplicationTarget target = new ReplicationTarget("peer", "table1", new Table.ID("1"));
+    ReplicationTarget target = new ReplicationTarget("peer", "table1", Table.ID.of("1"));
 
     // Create a single work record for a file to some peer
     BatchWriter bw = ReplicationTable.getBatchWriter(conn);
@@ -101,9 +101,9 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true).setInfiniteEnd(false).build(),
         stat2 = Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true).setInfiniteEnd(false).build(),
         stat3 = Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(false).build();
-    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", new Table.ID("1")),
-        target2 = new ReplicationTarget("peer2", "table2", new Table.ID("1")),
-        target3 = new ReplicationTarget("peer3", "table3", new Table.ID("1"));
+    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", Table.ID.of("1")),
+        target2 = new ReplicationTarget("peer2", "table2", Table.ID.of("1")),
+        target3 = new ReplicationTarget("peer3", "table3", Table.ID.of("1"));
     // @formatter:on
 
     // Create a single work record for a file to some peer
@@ -141,9 +141,9 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true).setInfiniteEnd(true).build(),
         stat2 = Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(true).build(),
         stat3 = Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true).setInfiniteEnd(true).build();
-    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", new Table.ID("1")),
-        target2 = new ReplicationTarget("peer2", "table2", new Table.ID("1")),
-        target3 = new ReplicationTarget("peer3", "table3", new Table.ID("1"));
+    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", Table.ID.of("1")),
+        target2 = new ReplicationTarget("peer2", "table2", Table.ID.of("1")),
+        target3 = new ReplicationTarget("peer3", "table3", Table.ID.of("1"));
     // @formatter:on
 
     // Create a single work record for a file to some peer

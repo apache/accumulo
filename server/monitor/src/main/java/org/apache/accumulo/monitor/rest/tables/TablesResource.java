@@ -103,7 +103,7 @@ public class TablesResource {
 
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
       for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
-        tableStats.put(Tables.getPrintableTableInfoFromId(inst, new Table.ID(te.getKey())), te.getValue());
+        tableStats.put(Tables.getPrintableTableInfoFromId(inst, Table.ID.of(te.getKey())), te.getValue());
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
     List<TableInformation> tables = new ArrayList<>();
@@ -203,7 +203,7 @@ public class TablesResource {
   @GET
   public TabletServers getParticipatingTabletServers(@PathParam("tableId") String tableIdStr) throws Exception {
     Instance instance = Monitor.getContext().getInstance();
-    Table.ID tableId = new Table.ID(tableIdStr);
+    Table.ID tableId = Table.ID.of(tableIdStr);
 
     TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
 

@@ -78,7 +78,7 @@ public class MetadataBatchScanTest {
       splits.add((r.nextLong() & 0x7fffffffffffffffl) % 1000000000000l);
     }
 
-    Table.ID tid = new Table.ID("8");
+    Table.ID tid = Table.ID.of("8");
     Text per = null;
 
     ArrayList<KeyExtent> extents = new ArrayList<>();

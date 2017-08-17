@@ -158,7 +158,7 @@ public class DefaultCompactionStrategyTest {
   }
 
   private MajorCompactionRequest createRequest(MajorCompactionReason reason, Object... objs) throws IOException {
-    return createRequest(new KeyExtent(new Table.ID("0"), null, null), reason, objs);
+    return createRequest(new KeyExtent(Table.ID.of("0"), null, null), reason, objs);
   }
 
   private MajorCompactionRequest createRequest(KeyExtent extent, MajorCompactionReason reason, Object... objs) throws IOException {

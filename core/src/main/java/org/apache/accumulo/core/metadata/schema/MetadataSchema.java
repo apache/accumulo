@@ -262,7 +262,7 @@ public class MetadataSchema {
      */
     public static Table.ID getTableId(Key k) {
       requireNonNull(k);
-      return new Table.ID(k.getColumnQualifier().toString());
+      return Table.ID.of(k.getColumnQualifier().toString());
     }
 
     /**

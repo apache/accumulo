@@ -81,7 +81,7 @@ public class LogFileTest {
     assertEquals(key.seq, 3);
     assertEquals(key.tid, 4);
     assertEquals(key.filename, "some file");
-    KeyExtent tablet = new KeyExtent(new Table.ID("table"), new Text("bbbb"), new Text("aaaa"));
+    KeyExtent tablet = new KeyExtent(Table.ID.of("table"), new Text("bbbb"), new Text("aaaa"));
     readWrite(DEFINE_TABLET, 5, 6, null, tablet, null, key, value);
     assertEquals(key.event, DEFINE_TABLET);
     assertEquals(key.seq, 5);

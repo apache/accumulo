@@ -92,7 +92,7 @@ public class ReplicationTableUtilTest {
     String myFile = "file:////home/user/accumulo/wal/server+port/" + uuid;
 
     long createdTime = System.currentTimeMillis();
-    ReplicationTableUtil.updateFiles(context, new KeyExtent(new Table.ID("1"), null, null), myFile, StatusUtil.fileCreated(createdTime));
+    ReplicationTableUtil.updateFiles(context, new KeyExtent(Table.ID.of("1"), null, null), myFile, StatusUtil.fileCreated(createdTime));
 
     verify(writer);
 
@@ -117,7 +117,7 @@ public class ReplicationTableUtilTest {
     String file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
     Path filePath = new Path(file);
     Text row = new Text(filePath.toString());
-    KeyExtent extent = new KeyExtent(new Table.ID("1"), new Text("b"), new Text("a"));
+    KeyExtent extent = new KeyExtent(Table.ID.of("1"), new Text("b"), new Text("a"));
 
     Mutation m = ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat), extent);
 
