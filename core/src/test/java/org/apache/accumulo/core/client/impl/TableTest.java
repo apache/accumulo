@@ -67,20 +67,18 @@ public class TableTest {
 
   @Test(timeout = 60_000)
   public void testCacheDecreasesAfterGC() {
-    generateJunkCacheEntries();
     Long initialSize = Table.ID.cache.asMap().entrySet().stream().count();
+    generateJunkCacheEntries();
     Long postGCSize;
-    System.out.println("Table.ID.cache.asMap().entrySet().stream().count() = " + initialSize);
     do {
       System.gc();
       try {
-        Thread.sleep(5000);
+        Thread.sleep(500);
       } catch (InterruptedException e) {
         fail("Thread interrupted while waiting for GC");
       }
       postGCSize = Table.ID.cache.asMap().entrySet().stream().count();
-      System.out.println("After GC: Table.ID.cache.asMap().entrySet().stream().count() = " + postGCSize);
-    } while (postGCSize == initialSize);
+    } while (postGCSize > initialSize);
 
     assertTrue("Cache did not decrease with GC.", Table.ID.cache.asMap().entrySet().stream().count() < initialSize);
   }
