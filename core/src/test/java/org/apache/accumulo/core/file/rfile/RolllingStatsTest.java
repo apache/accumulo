@@ -17,13 +17,18 @@
 
 package org.apache.accumulo.core.file.rfile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Random;
 import java.util.function.IntSupplier;
+import java.util.stream.Stream;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.distribution.ZipfDistribution;
 import org.apache.commons.math3.random.Well19937c;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -201,4 +206,36 @@ public class RolllingStatsTest {
 
     st.check();
   }
+
+  @Test
+  public void testFoo() throws IOException {
+
+    SummaryStatistics gss = new SummaryStatistics();
+    SummaryStatistics ss = new SummaryStatistics();
+    RollingStats rs = new RollingStats(4017);
+
+    String fileName = "/home/rkturn2/local/data/all-shuf.txt";
+
+    // read file into stream, try-with-resources
+    try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
+      stream.map(line -> line.split(" ")[0]).mapToInt(Integer::parseInt).forEach(len -> {
+        for (int i = 0; i < 10; i++) {
+          ss.addValue(len);
+          rs.addValue(len);
+        }
+
+        if (len > rs.getMean() + Math.max(9 * rs.getMean(), 4 * rs.getStandardDeviation())) {
+
+          System.out.println("giant : " + len + " " + rs.getMean() + " " + rs.getStandardDeviation());
+
+          gss.addValue(len);
+        }
+
+      });
+    }
+
+    System.out.println(ss);
+    System.out.println(gss);
+  }
+
 }

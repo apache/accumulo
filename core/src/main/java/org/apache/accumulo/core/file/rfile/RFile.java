@@ -418,7 +418,7 @@ public class RFile {
     private boolean isGiantKey(Key k) {
       double mean = keyLenStats.getMean();
       double stddev = keyLenStats.getStandardDeviation();
-      return k.getSize() > mean + 3 * Math.max(mean, stddev);
+      return k.getSize() > mean + Math.max(9 * mean, 4 * stddev);
     }
 
     public void append(Key key, Value value) throws IOException {
