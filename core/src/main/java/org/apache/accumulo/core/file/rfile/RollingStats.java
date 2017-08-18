@@ -47,12 +47,12 @@ class RollingStats {
   /**
    * @see <a href= "http://jonisalonen.com/2014/efficient-and-accurate-rolling-standard-deviation/">Efficient and accurate rolling standard deviation</a>
    */
-  private void update(double n, double o, int w) {
-    double delta = n - o;
+  private void update(double newValue, double oldValue, int windowSize) {
+    double delta = newValue - oldValue;
 
     double oldAverage = average;
-    average = average + delta / w;
-    variance += delta * (n - average + o - oldAverage) / (w - 1);
+    average = average + delta / windowSize;
+    variance += delta * (newValue - average + oldValue - oldAverage) / (windowSize - 1);
     stddev = FastMath.sqrt(variance);
   }
 
