@@ -147,7 +147,7 @@ public class BulkImporter {
             try {
               tabletsToAssignMapFileTo = findOverlappingTablets(context, fs, locator, mapFile);
             } catch (Exception ex) {
-              log.warn("Unable to find tablets that overlap file {}", mapFile.toString(), ex);
+              log.warn("Unable to find tablets that overlap file " + mapFile.toString(), ex);
             }
             log.debug("Map file {} found to overlap {} tablets", mapFile, tabletsToAssignMapFileTo.size());
             if (tabletsToAssignMapFileTo.size() == 0) {
@@ -210,7 +210,7 @@ public class BulkImporter {
               tabletsToAssignMapFileTo.addAll(findOverlappingTablets(context, fs, locator, entry.getKey(), ke));
               keListIter.remove();
             } catch (Exception ex) {
-              log.warn("Exception finding overlapping tablets, will retry tablet {}", ke, ex);
+              log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
             }
             timer.stop(Timers.QUERY_METADATA);
           }
@@ -345,7 +345,7 @@ public class BulkImporter {
         mapFileSizes.put(path, fs.getContentSummary(path).getLength());
       }
     } catch (IOException e) {
-      log.error("Failed to get map files in for {}: {}", paths,  e.getMessage(), e);
+      log.error("Failed to get map files in for {}: {}", paths, e.getMessage(), e);
       throw new RuntimeException(e);
     }
 

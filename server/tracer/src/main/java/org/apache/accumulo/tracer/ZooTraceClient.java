@@ -105,7 +105,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
           // Once this passes, we can issue a shutdown of the pool
           svc.shutdown();
         } catch (Exception e) {
-          log.error("Unabled to get destination tracer hosts in ZooKeeper, will retry in {} milliseconds", retryPause, e);
+          log.error("Unabled to get destination tracer hosts in ZooKeeper, will retry in " + retryPause + " milliseconds", e);
           // We failed to connect to ZK, try again in `retryPause` milliseconds
           svc.schedule(this, retryPause, TimeUnit.MILLISECONDS);
         }

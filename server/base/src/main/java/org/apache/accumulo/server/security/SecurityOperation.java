@@ -699,8 +699,7 @@ public class SecurityOperation {
 
     try {
       permHandle.grantNamespacePermission(user, namespace, permission);
-      log.info("Granted namespace permission {} for user {} on the namespace {} at the request of user {}",
-          permission, user, namespace, c.getPrincipal());
+      log.info("Granted namespace permission {} for user {} on the namespace {} at the request of user {}", permission, user, namespace, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     } catch (NamespaceNotFoundException e) {
@@ -749,8 +748,7 @@ public class SecurityOperation {
 
     try {
       permHandle.revokeNamespacePermission(user, namespace, permission);
-      log.info("Revoked namespace permission {} for user {} on the namespace {} at the request of user {}",
-          permission, user, namespace, c.getPrincipal());
+      log.info("Revoked namespace permission {} for user {} on the namespace {} at the request of user {}", permission, user, namespace, c.getPrincipal());
 
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();

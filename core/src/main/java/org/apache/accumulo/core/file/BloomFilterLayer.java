@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class BloomFilterLayer {
-  private static final Logger log = LoggerFactory.getLogger(BloomFilterLayer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(BloomFilterLayer.class);
   public static final String BLOOM_FILE_NAME = "acu_bloom";
   public static final int HASH_COUNT = 5;
 
@@ -132,7 +132,7 @@ public class BloomFilterLayer {
         transformer = clazz.newInstance();
 
       } catch (Exception e) {
-        log.error("Failed to find KeyFunctor: {}", acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), e);
+        LOG.error("Failed to find KeyFunctor: " + acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), e);
         throw new IllegalArgumentException("Failed to find KeyFunctor: " + acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR));
 
       }
@@ -252,31 +252,31 @@ public class BloomFilterLayer {
             // file does not have a bloom filter, ignore it
           } catch (IOException ioe) {
             if (!closed)
-              log.warn("Can't open BloomFilter", ioe);
+              LOG.warn("Can't open BloomFilter", ioe);
             else
-              log.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
+              LOG.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
 
             bloomFilter = null;
           } catch (ClassNotFoundException e) {
-            log.error("Failed to find KeyFunctor in config: {}", ClassName, e);
+            LOG.error("Failed to find KeyFunctor in config: " + ClassName, e);
             bloomFilter = null;
           } catch (InstantiationException e) {
-            log.error("Could not instantiate KeyFunctor: {}", ClassName, e);
+            LOG.error("Could not instantiate KeyFunctor: " + ClassName, e);
             bloomFilter = null;
           } catch (IllegalAccessException e) {
-            log.error("Illegal acess exception", e);
+            LOG.error("Illegal acess exception", e);
             bloomFilter = null;
           } catch (RuntimeException rte) {
             if (!closed)
               throw rte;
             else
-              log.debug("Can't open BloomFilter, RTE after closed", rte);
+              LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
           } finally {
             if (in != null) {
               try {
                 in.close();
               } catch (IOException e) {
-                log.warn("Failed to close", e);
+                LOG.warn("Failed to close ", e);
               }
             }
           }
@@ -298,7 +298,7 @@ public class BloomFilterLayer {
             loadTask.run();
           } else {
             // load the bloom filter in the background
-            ltp.execute(new LoggingRunnable(log, loadTask));
+            ltp.execute(new LoggingRunnable(LOG, loadTask));
           }
         } finally {
           // set load task to null so no one else can initiate the load

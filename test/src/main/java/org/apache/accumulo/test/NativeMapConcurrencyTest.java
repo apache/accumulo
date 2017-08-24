@@ -182,7 +182,7 @@ public class NativeMapConcurrencyTest {
       try {
         thread.join();
       } catch (InterruptedException e) {
-        log.error("Could not join thread '{}'", thread.getName(), e);
+        log.error("Could not join thread '" + thread.getName() + "'", e);
       }
     }
 

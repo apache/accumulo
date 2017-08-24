@@ -41,7 +41,7 @@ public class DeadServerList {
     try {
       zoo.mkdirs(path);
     } catch (Exception ex) {
-      log.error("Unable to make parent directories of {}", path, ex);
+      log.error("Unable to make parent directories of " + path, ex);
     }
   }
 

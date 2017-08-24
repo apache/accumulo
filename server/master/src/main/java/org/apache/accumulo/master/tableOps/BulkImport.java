@@ -140,7 +140,7 @@ public class BulkImport extends MasterRepo {
       log.debug(" tid {} bulkDir {}", tid, bulkDir);
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
-      log.error("error preparing the bulk import directory {}", ex);
+      log.error("error preparing the bulk import directory", ex);
       throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null, TableOperation.BULK_IMPORT,
           TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY, sourceDir + ": " + ex);
     }

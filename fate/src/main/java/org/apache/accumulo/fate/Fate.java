@@ -152,7 +152,7 @@ public class Fate<T> {
       try {
         op.undo(tid, environment);
       } catch (Exception e) {
-        log.warn("Failed to undo Repo, tid={}", String.format("%016x", tid), e);
+        log.warn("Failed to undo Repo, tid=" + String.format("%016x", tid), e);
       }
     }
 

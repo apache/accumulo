@@ -94,7 +94,7 @@ public class SecurityUtil {
         return true;
       }
     } catch (IOException io) {
-      log.error("Error logging in user {} using keytab at {}", principalConfig, keyTabPath, io);
+      log.error("Error logging in user " + principalConfig + " using keytab at " + keyTabPath, io);
     }
     return false;
   }

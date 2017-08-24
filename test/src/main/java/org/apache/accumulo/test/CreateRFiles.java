@@ -72,7 +72,7 @@ public class CreateRFiles {
           try {
             TestIngest.main(tia.split(" "));
           } catch (Exception e) {
-            log.error("Could not run {}.main using the input '{}'", TestIngest.class.getName(), tia, e);
+            log.error("Could not run " + TestIngest.class.getName() + ".main using the input '" + tia + "'", e);
           }
         }
 

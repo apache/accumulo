@@ -60,7 +60,7 @@ public class HadoopLogCloser implements LogCloser {
       } catch (FileNotFoundException ex) {
         throw ex;
       } catch (Exception ex) {
-        log.warn("Error recovering lease on {}", source.toString(), ex);
+        log.warn("Error recovering lease on " + source.toString(), ex);
         ns.append(source).close();
         log.info("Recovered lease on {} using append", source.toString());
       }

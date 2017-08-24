@@ -250,6 +250,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (log.isTraceEnabled())
           log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms", failures.size());
+
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -709,7 +710,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         ThriftUtil.returnClient(client);
       }
     } catch (TTransportException e) {
-      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
+      log.debug("Server : {} msg : {}", server, e.getMessage());
       timeoutTracker.errorOccured(e);
       throw new IOException(e);
     } catch (ThriftSecurityException e) {
@@ -722,7 +723,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new IOException(e);
     } catch (TSampleNotPresentException e) {
-      log.debug("Server : {} msg : {}", server, e.getMessage(), e);
+      log.debug("Server : " + server + " msg : " + e.getMessage(), e);
       String tableInfo = "?";
       if (e.getExtent() != null) {
         Table.ID tableId = new KeyExtent(e.getExtent()).getTableId();

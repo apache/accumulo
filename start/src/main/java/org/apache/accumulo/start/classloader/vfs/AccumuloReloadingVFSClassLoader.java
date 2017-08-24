@@ -88,11 +88,11 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
           updateClassloader(files, cl);
           return;
         } catch (Exception e) {
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
           try {
             Thread.sleep(DEFAULT_TIMEOUT);
           } catch (InterruptedException ie) {
-            log.error(e.getMessage(), ie);
+            log.error("{}", ie.getMessage(), ie);
           }
         }
       }
@@ -203,7 +203,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
       try {
         buf.append("\t").append(f.getURL().toString()).append("\n");
       } catch (FileSystemException e) {
-        log.error("Error getting URL for file {}", e);
+        log.error("Error getting URL for file", e);
       }
     }
 

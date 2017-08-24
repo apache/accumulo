@@ -157,7 +157,7 @@ public class LogSorter {
           fs.mkdirs(new Path(destPath));
           fs.create(SortedLogState.getFailedMarkerPath(destPath)).close();
         } catch (IOException e) {
-          log.error("Error creating failed flag file {}", name, e);
+          log.error("Error creating failed flag file " + name, e);
         }
         log.error("Caught throwable", t);
       } finally {
@@ -165,7 +165,7 @@ public class LogSorter {
         try {
           close();
         } catch (Exception e) {
-          log.error("Error during cleanup sort/copy {}", name, e);
+          log.error("Error during cleanup sort/copy " + name, e);
         }
         synchronized (this) {
           sortStop = System.currentTimeMillis();

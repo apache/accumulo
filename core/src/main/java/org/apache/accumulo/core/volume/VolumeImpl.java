@@ -76,7 +76,7 @@ public class VolumeImpl implements Volume {
     try {
       other = p.getFileSystem(CachedConfiguration.getInstance());
     } catch (IOException e) {
-      log.warn("Could not determine filesystem from path: {}", p);
+      log.warn("Could not determine filesystem from path: {}", p, e);
       return false;
     }
 

@@ -412,7 +412,7 @@ public class Monitor implements HighlyAvailableService {
         }
       }
     } catch (Exception ex) {
-      log.warn("Unable to contact the garbage collector at {}", address, ex);
+      log.warn("Unable to contact the garbage collector at " + address, ex);
     }
     return result;
   }
@@ -509,7 +509,7 @@ public class Monitor implements HighlyAvailableService {
           try {
             Monitor.fetchData();
           } catch (Exception e) {
-            log.warn(e.getMessage(), e);
+            log.warn("{}", e.getMessage(), e);
           }
 
           sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
@@ -525,7 +525,7 @@ public class Monitor implements HighlyAvailableService {
           try {
             Monitor.fetchScans();
           } catch (Exception e) {
-            log.warn(e.getMessage(), e);
+            log.warn("{}", e.getMessage(), e);
           }
           sleepUninterruptibly(5, TimeUnit.SECONDS);
         }
@@ -706,7 +706,7 @@ public class Monitor implements HighlyAvailableService {
 
     @Override
     public synchronized void failedToAcquireLock(Exception e) {
-      log.warn("Failed to get monitor lock", e);
+      log.warn("Failed to get monitor lock " + e);
 
       if (acquiredLock) {
         Halt.halt("Zoolock in unexpected state FAL " + acquiredLock + " " + failedToAcquireLock, -1);

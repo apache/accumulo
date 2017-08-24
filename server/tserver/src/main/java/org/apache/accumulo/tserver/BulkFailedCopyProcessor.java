@@ -65,9 +65,9 @@ public class BulkFailedCopyProcessor implements Processor {
         VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());
         FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
         destFs.create(dest).close();
-        log.warn(" marked {} failed", dest, ex);
+        log.warn(" marked " + dest + " failed", ex);
       } catch (IOException e) {
-        log.error("Unable to create failure flag file {}", dest, e);
+        log.error("Unable to create failure flag file " + dest, e);
       }
     }
 

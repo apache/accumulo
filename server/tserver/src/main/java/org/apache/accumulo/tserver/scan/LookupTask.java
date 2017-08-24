@@ -121,7 +121,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           interruptFlag.set(false);
 
         } catch (IOException e) {
-          log.warn("lookup failed for tablet {}", entry.getKey(), e);
+          log.warn("lookup failed for tablet " + entry.getKey(), e);
           throw new RuntimeException(e);
         }
 

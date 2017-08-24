@@ -722,7 +722,8 @@ public class Initialize implements KeywordExecutable {
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getFirst()))
         log.error("{} is set to be replaced in {} and should not appear in {}"
-            + ". It is highly recommended that this property be removed as data could still be written to this volume.", aBasePath, Property.INSTANCE_VOLUMES_REPLACEMENTS,  Property.INSTANCE_VOLUMES);
+            + ". It is highly recommended that this property be removed as data could still be written to this volume.", aBasePath,
+            Property.INSTANCE_VOLUMES_REPLACEMENTS, Property.INSTANCE_VOLUMES);
     }
 
     if (ServerConstants.DATA_VERSION != Accumulo.getAccumuloPersistentVersion(versionPath.getFileSystem(CachedConfiguration.getInstance()), versionPath)) {

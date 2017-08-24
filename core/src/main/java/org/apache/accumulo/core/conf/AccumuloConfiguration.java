@@ -303,7 +303,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     try {
       Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
       instance = clazz.newInstance();
-      log.info("Loaded class : {}",  clazzName);
+      log.info("Loaded class : {}", clazzName);
     } catch (Exception e) {
       log.warn("Failed to load class ", e);
     }
