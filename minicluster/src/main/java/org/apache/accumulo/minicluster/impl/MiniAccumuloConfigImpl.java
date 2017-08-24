@@ -214,7 +214,7 @@ public class MiniAccumuloConfigImpl {
       try {
         CredentialProviderFactoryShim.createEntry(conf, entry.getKey(), entry.getValue().toCharArray());
       } catch (IOException e) {
-        log.warn("Attempted to add {} to CredentialProvider but failed", entry.getKey(), e);
+        log.warn("Attempted to add " + entry.getKey() + " to CredentialProvider but failed", e);
         continue;
       }
 

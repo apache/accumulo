@@ -78,7 +78,7 @@ public class QueryMetadataTable {
         }
 
       } catch (TableNotFoundException e) {
-        log.error("Table '{}' not found.", MetadataTable.NAME, e);
+        log.error("Table '" + MetadataTable.NAME + "' not found.", e);
         throw new RuntimeException(e);
       } catch (AccumuloException e) {
         log.error("AccumuloException encountered.", e);

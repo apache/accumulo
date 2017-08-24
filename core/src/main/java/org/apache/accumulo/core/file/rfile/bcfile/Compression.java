@@ -48,7 +48,8 @@ import com.google.common.collect.Maps;
  * Compression related stuff.
  */
 public final class Compression {
-  private static final Logger log = LoggerFactory.getLogger(Compression.class);
+  static final Logger log = LoggerFactory.getLogger(Compression.class);
+
   /**
    * Prevent the instantiation of class.
    */
@@ -132,30 +133,32 @@ public final class Compression {
       private static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
 
       @Override
-      public  boolean isSupported() {
+      public boolean isSupported() {
         return codec != null;
       }
 
       @Override
-      public void initializeDefaultCodec() {if (!checked.get()) {
-          checked .set( true);
+      public void initializeDefaultCodec() {
+        if (!checked.get()) {
+          checked.set(true);
           codec = createNewCodec(DEFAULT_BUFFER_SIZE);
         }
       }
 
       @Override
-      CompressionCodec createNewCodec(int bufferSize) {String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
-          String clazz = (extClazz != null) ? extClazz : defaultClazz;
-          try {
-            log.info("Trying to load Lzo codec class: {}" , clazz);
-           Configuration myConf = new Configuration(conf);
+      CompressionCodec createNewCodec(int bufferSize) {
+        String extClazz = (conf.get(CONF_LZO_CLASS) == null ? System.getProperty(CONF_LZO_CLASS) : null);
+        String clazz = (extClazz != null) ? extClazz : defaultClazz;
+        try {
+          log.info("Trying to load Lzo codec class: {}", clazz);
+          Configuration myConf = new Configuration(conf);
           // only use the buffersize if > 0, otherwise we'll use
-          // the default defined within the codec if (bufferSize > 0)
+          // the default defined within the codec
+          if (bufferSize > 0)
             myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
           return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
-          } catch (ClassNotFoundException e) {
-            // that is okay
-
+        } catch (ClassNotFoundException e) {
+          // that is okay
         }
         return null;
       }

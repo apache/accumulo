@@ -166,7 +166,7 @@ public class VolumeUtil {
     String newLocation = switchVolume(location, FileType.TABLE, ServerConstants.getVolumeReplacements());
     if (newLocation != null) {
       MetadataTableUtil.setRootTabletDir(newLocation);
-        log.info("Volume replaced: {} -> {}", location, newLocation);
+      log.info("Volume replaced: {} -> {}", location, newLocation);
       return new Path(newLocation).toString();
     }
     return location;

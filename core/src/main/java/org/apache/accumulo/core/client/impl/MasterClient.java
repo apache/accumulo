@@ -76,7 +76,7 @@ public class MasterClient {
         // do not expect to recover from this
         throw new RuntimeException(tte);
       }
-      log.debug("Failed to connect to master={}, will retry... ", master, tte);
+      log.debug("Failed to connect to master=" + master + ", will retry... ", tte);
       return null;
     }
   }

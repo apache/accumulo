@@ -110,17 +110,17 @@ public class DistributedWorkQueue {
                 try {
                   zoo.recursiveDelete(childPath, NodeMissingPolicy.SKIP);
                 } catch (Exception e) {
-                  log.error("Error received when trying to delete entry in zookeeper {}", childPath, e);
+                  log.error("Error received when trying to delete entry in zookeeper " + childPath, e);
                 }
 
               } catch (Exception e) {
-                log.warn("Failed to process work {}", child, e);
+                log.warn("Failed to process work " + child, e);
               }
 
               try {
                 zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
               } catch (Exception e) {
-                log.error("Error received when trying to delete entry in zookeeper {}", childPath, e);
+                log.error("Error received when trying to delete entry in zookeeper " + childPath, e);
               }
 
             } finally {

@@ -134,7 +134,7 @@ public class VerifyIngest {
           bytesRead += val.length;
           Value value = new Value(val);
           if (value.compareTo(ev) != 0) {
-            log.error("unexpected value  ({} {} {} : saw {} expected {}",rowKey, colf, colq, value, new Value(ev));
+            log.error("unexpected value  ({} {} {} : saw {} expected {}", rowKey, colf, colq, value, new Value(ev));
             errors++;
           }
         }
@@ -180,7 +180,8 @@ public class VerifyIngest {
           }
 
           if (expectedRow >= (opts.rows + opts.startRow)) {
-            log.error("expectedRow ({}) >= (ingestArgs.rows + ingestArgs.startRow)  ({}), get batch returned data passed end key", expectedRow, (opts.rows + opts.startRow));
+            log.error("expectedRow ({}) >= (ingestArgs.rows + ingestArgs.startRow)  ({}), get batch returned data passed end key", expectedRow,
+                (opts.rows + opts.startRow));
             errors++;
             break;
           }

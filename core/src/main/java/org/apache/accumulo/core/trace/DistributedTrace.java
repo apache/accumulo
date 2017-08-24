@@ -199,7 +199,7 @@ public class DistributedTrace {
       try {
         rcvr.close();
       } catch (IOException e) {
-        log.warn("Unable to close SpanReceiver correctly: {} {}", e.getMessage(), e);
+        log.warn("Unable to close SpanReceiver correctly: {}", e.getMessage(), e);
       }
     }
     receivers.clear();

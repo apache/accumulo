@@ -50,11 +50,9 @@ import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.tserver.TLevel;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
-
+import org.slf4j.LoggerFactory;
 
 class DatafileManager {
   private final Logger log = LoggerFactory.getLogger(DatafileManager.class);
@@ -95,7 +93,7 @@ class DatafileManager {
         try {
           tablet.wait(50);
         } catch (InterruptedException e) {
-          log.warn("", e);
+          log.warn("{}", e.getMessage(), e);
         }
       }
 
@@ -187,7 +185,7 @@ class DatafileManager {
             try {
               tablet.wait(100);
             } catch (InterruptedException e) {
-              log.warn("", e);
+              log.warn("{}", e.getMessage(), e);
             }
           }
         }
@@ -275,7 +273,7 @@ class DatafileManager {
     }
 
     for (Entry<FileRef,DataFileValue> entry : paths.entrySet()) {
-      TLevel.logAtLevel(log, TLevel.TABLET_HIST, "{} import {} {}", tablet.getExtent(), entry.getKey() ,entry.getValue());
+      log.debug("TABLET_HIST {} import {} {}", tablet.getExtent(), entry.getKey(), entry.getValue());
     }
   }
 
@@ -364,7 +362,7 @@ class DatafileManager {
         }
         break;
       } catch (IOException ioe) {
-        log.warn("Tablet {} failed to rename {} after MinC, will retry in 60 secs...", tablet.getExtent(), newDatafile, ioe);
+        log.warn("Tablet " + tablet.getExtent() + " failed to rename " + newDatafile + " after MinC, will retry in 60 secs...", ioe);
         sleepUninterruptibly(1, TimeUnit.MINUTES);
       }
     } while (true);
@@ -437,7 +435,7 @@ class DatafileManager {
         tablet.getTabletServer().minorCompactionFinished(tablet.getTabletMemory().getCommitSession(), newDatafile.toString(), commitSession.getWALogSeq() + 2);
         break;
       } catch (IOException e) {
-        log.error("Failed to write to write-ahead log {} will retry", e.getMessage(), e);
+        log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
     } while (true);
@@ -468,9 +466,9 @@ class DatafileManager {
     removeFilesAfterScan(filesInUseByScans);
 
     if (absMergeFile != null)
-      TLevel.logAtLevel(log, TLevel.TABLET_HIST, "{} MinC [{},memory] -> {}", tablet.getExtent(), absMergeFile, newDatafile);
+      log.debug("TABLET_HIST {} MinC [{},memory] -> {}", tablet.getExtent(), absMergeFile, newDatafile);
     else
-      TLevel.logAtLevel(log, TLevel.TABLET_HIST, "{} MinC [memory] -> {}", tablet.getExtent(), newDatafile);
+      log.debug("TABLET_HIST {} MinC [memory] -> {}", tablet.getExtent(), newDatafile);
     log.debug(String.format("MinC finish lock %.2f secs %s", (t2 - t1) / 1000.0, tablet.getExtent().toString()));
     long splitSize = tablet.getTableConfiguration().getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     if (dfv.getSize() > splitSize) {
@@ -499,7 +497,7 @@ class DatafileManager {
     if (!extent.isRootTablet()) {
 
       if (tablet.getTabletServer().getFileSystem().exists(newDatafile.path())) {
-        log.error("Target map file already exist {} {}", newDatafile, new Exception());
+        log.error("Target map file already exist " + newDatafile, new Exception());
         throw new IllegalStateException("Target map file already exist " + newDatafile);
       }
 
@@ -580,7 +578,7 @@ class DatafileManager {
     }
 
     log.debug(String.format("MajC finish lock %.2f secs", (t2 - t1) / 1000.0));
-    TLevel.logAtLevel(log, TLevel.TABLET_HIST, "{} MajC  --> ", oldDatafiles, newDatafile);
+    log.debug("TABLET_HIST {} MajC  --> {}", oldDatafiles, newDatafile);
   }
 
   public SortedMap<FileRef,DataFileValue> getDatafileSizes() {

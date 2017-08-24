@@ -85,8 +85,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     }
 
     long end = System.currentTimeMillis();
-    log.debug("{} with {} iterations and {} threads and cache invalidates {}% took {} second(s)",
-        tableConf, iterations, numThreads, ((1. / randomMax) * 100.), (end - start) / 1000);
+    log.debug("{} with {} iterations and {} threads and cache invalidates {}% took {} second(s)", tableConf, iterations, numThreads, ((1. / randomMax) * 100.),
+        (end - start) / 1000);
   }
 
   public static class TableConfRunner implements Callable<Exception> {

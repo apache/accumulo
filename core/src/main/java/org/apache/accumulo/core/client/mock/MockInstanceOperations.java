@@ -76,7 +76,7 @@ class MockInstanceOperations implements InstanceOperations {
     try {
       AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
-      log.warn("Could not find class named '{}' in testClassLoad. ", className, e);
+      log.warn("Could not find class named '" + className + "' in testClassLoad.", e);
       return false;
     }
     return true;

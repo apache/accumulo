@@ -48,7 +48,7 @@ public class RootFiles {
 
   public static void renameReplacement(VolumeManager fs, FileRef tmpDatafile, FileRef newDatafile) throws IOException {
     if (fs.exists(newDatafile.path())) {
-      log.error("Target map file already exist {}", newDatafile, new Exception());
+      log.error("Target map file already exist " + newDatafile, new Exception());
       throw new IllegalStateException("Target map file already exist " + newDatafile);
     }
 

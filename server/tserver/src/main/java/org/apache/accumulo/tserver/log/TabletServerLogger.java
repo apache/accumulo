@@ -335,7 +335,7 @@ public class TabletServerLogger {
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
         } catch (Throwable ex) {
-          log.error("Unable to cleanly close log {}: {} {}", currentLog.getFileName(), ex, ex);
+          log.error("Unable to cleanly close log " + currentLog.getFileName() + ": " + ex, ex);
         } finally {
           this.tserver.walogClosed(currentLog);
         }
@@ -413,7 +413,7 @@ public class TabletServerLogger {
         log.debug("Logs closed while writing, retrying {}", attempt);
       } catch (Exception t) {
         if (attempt != 1) {
-          log.error("Unexpected error writing to log, retrying attempt {}", attempt, t);
+          log.error("Unexpected error writing to log, retrying attempt " + attempt, t);
         }
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {

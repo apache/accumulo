@@ -125,7 +125,6 @@ import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.TConstraintViolationException;
-import org.apache.accumulo.tserver.TLevel;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper;
@@ -142,7 +141,7 @@ import org.apache.accumulo.tserver.constraints.ConstraintChecker;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
-import org.apache.accumulo.tserver.metrics.TabletServerMinCMetricsKeys;
+import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionCanceledException;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionEnv;
@@ -154,8 +153,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
@@ -459,7 +458,7 @@ public class Tablet implements TabletCommitter {
           // the WAL isn't closed (WRT replication Status) and thus we're safe to update its progress.
           Status status = StatusUtil.openWithUnknownLength();
           for (LogEntry logEntry : logEntries) {
-            log.debug("Writing updated status to metadata table for {} {}",logEntry.filename, ProtobufUtil.toString(status));
+            log.debug("Writing updated status to metadata table for {} {}", logEntry.filename, ProtobufUtil.toString(status));
             ReplicationTableUtil.updateFiles(tabletServer, extent, logEntry.filename, status);
           }
         }
@@ -477,7 +476,8 @@ public class Tablet implements TabletCommitter {
         currentLogs.add(new DfsLogger(tabletServer.getServerConfig(), logEntry.filename, logEntry.getColumnQualifier().toString()));
       }
 
-      log.info("Write-Ahead Log recovery complete for {} ({} mutations applied, {} entries created)", this.extent,  entriesUsedOnTablet.get(), getTabletMemory().getNumEntries());
+      log.info("Write-Ahead Log recovery complete for {} ({} mutations applied, {} entries created)", this.extent, entriesUsedOnTablet.get(), getTabletMemory()
+          .getNumEntries());
     }
 
     String contextName = tableConfiguration.get(Property.TABLE_CLASSPATH);
@@ -501,7 +501,7 @@ public class Tablet implements TabletCommitter {
       removeOldTemporaryFiles();
     }
 
-    TLevel.logAtLevel(log, TLevel.TABLET_HIST, "{} opened", extent);
+    log.debug("TABLET_HIST {} opened", extent);
   }
 
   private void removeOldTemporaryFiles() {
@@ -512,7 +512,7 @@ public class Tablet implements TabletCommitter {
           log.debug("Removing old temp file {}", tmp.getPath());
           getTabletServer().getFileSystem().delete(tmp.getPath());
         } catch (IOException ex) {
-          log.error("Unable to remove old temp file {}:", tmp.getPath(), ex);
+          log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
         }
       }
     } catch (IOException ex) {
@@ -528,7 +528,7 @@ public class Tablet implements TabletCommitter {
         ColumnVisibility cv = new ColumnVisibility(tableConfiguration.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
         this.defaultSecurityLabel = cv.getExpression();
       } catch (Exception e) {
-        log.error("", e);
+        log.error("{}", e.getMessage(), e);
         this.defaultSecurityLabel = new byte[0];
       }
     }
@@ -889,11 +889,11 @@ public class Tablet implements TabletCommitter {
       }
       Metrics minCMetrics = getTabletServer().getMinCMetrics();
       if (minCMetrics.isEnabled())
-        minCMetrics.add(TabletServerMinCMetricsKeys.MINC, (lastMinorCompactionFinishTime - start));
+        minCMetrics.add(TabletServerMinCMetrics.MINC, (lastMinorCompactionFinishTime - start));
       if (hasQueueTime) {
         timer.updateTime(Operation.MINOR, queued, start, count, failed);
         if (minCMetrics.isEnabled())
-          minCMetrics.add(TabletServerMinCMetricsKeys.QUEUE, (start - queued));
+          minCMetrics.add(TabletServerMinCMetrics.QUEUE, (start - queued));
       } else
         timer.updateTime(Operation.MINOR, start, count, failed);
     }
@@ -1380,7 +1380,7 @@ public class Tablet implements TabletCommitter {
     try {
       getTabletMemory().getMemTable().delete(0);
     } catch (Throwable t) {
-      log.error("Failed to delete mem table : {}", t.getMessage(), t);
+      log.error("Failed to delete mem table : " + t.getMessage(), t);
     }
 
     getTabletMemory().close();
@@ -1388,7 +1388,7 @@ public class Tablet implements TabletCommitter {
     // close map files
     getTabletResources().close();
 
-    TLevel.logAtLevel(log, TLevel.TABLET_HIST, "{} closed", extent);
+    log.debug("TABLET_HIST {} closed", extent);
 
     tableConfiguration.getNamespaceConfiguration().removeObserver(configObserver);
     tableConfiguration.removeObserver(configObserver);
@@ -2024,9 +2024,9 @@ public class Tablet implements TabletCommitter {
     } catch (CompactionCanceledException cce) {
       log.debug("Major compaction canceled, extent = {}", getExtent());
     } catch (IOException ioe) {
-      log.error("MajC Failed, extent = {}", getExtent(), ioe);
+      log.error("MajC Failed, extent = " + getExtent(), ioe);
     } catch (RuntimeException e) {
-      log.error("MajC Unexpected exception, extent = {}", getExtent(), e);
+      log.error("MajC Unexpected exception, extent = " + getExtent(), e);
     } finally {
       // ensure we always reset boolean, even
       // when an exception is thrown
@@ -2191,7 +2191,7 @@ public class Tablet implements TabletCommitter {
           time, lastFlushID, lastCompactID, getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, getTabletServer(), getTabletServer().getLock());
 
-      TLevel.logAtLevel(log, TLevel.TABLET_HIST, "{} split {} {}", extent, low, high);
+      log.debug("TABLET_HIST {} split {} {}", extent, low, high);
 
       newTablets.put(high, new TabletData(tabletDirectory, highDatafileSizes, time, lastFlushID, lastCompactID, lastLocation, getBulkIngestedFiles()));
       newTablets.put(low, new TabletData(lowDirectory, lowDatafileSizes, time, lastFlushID, lastCompactID, lastLocation, getBulkIngestedFiles()));
@@ -2692,7 +2692,7 @@ public class Tablet implements TabletCommitter {
           }
         }
       } catch (IOException e) {
-        log.warn("", e);
+        log.warn("{}", e.getMessage(), e);
       }
 
       log.warn("Failed to create dir for tablet in table {} in volume {} will retry ...", tableId, volume);

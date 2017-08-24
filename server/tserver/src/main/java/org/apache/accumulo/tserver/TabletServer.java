@@ -830,7 +830,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           updateMetrics.add(TabletServerUpdateMetrics.UNKNOWN_TABLET_ERRORS, 0);
         return;
       } catch (ThriftSecurityException e) {
-        log.error("Denying permission to check user {} for user {}", us.getUser(), e.getUser(), e);
+        log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(), e);
         long t2 = System.currentTimeMillis();
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
@@ -1441,7 +1441,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             throw new NotServingTabletException(tkeyExtent);
           }
         } catch (IOException e) {
-          log.warn("Failed to split {}", keyExtent, e);
+          log.warn("Failed to split " + keyExtent, e);
           throw new RuntimeException(e);
         }
       }
@@ -1569,8 +1569,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
               all.remove(extent);
 
               if (all.size() > 0) {
-                log.error("Tablet {} overlaps previously assigned {} {} {}", extent, unopenedOverlapping,  openingOverlapping, onlineOverlapping
-                    + " " + all);
+                log.error("Tablet {} overlaps previously assigned {} {} {}", extent, unopenedOverlapping, openingOverlapping, onlineOverlapping + " " + all);
               }
               return;
             }
@@ -2027,7 +2026,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             }
           }
         } catch (Throwable t) {
-          log.error("Unexpected exception in {}",  Thread.currentThread().getName(), t);
+          log.error("Unexpected exception in {}", Thread.currentThread().getName(), t);
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       }
@@ -2091,8 +2090,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     statsKeeper.updateTime(Operation.SPLIT, start, 0, false);
     long t2 = System.currentTimeMillis();
-    log.info("Tablet split: {} size0 {} size1 {} time {}ms",
-        tablet.getExtent(), newTablets[0].estimateTabletSize(), newTablets[1].estimateTabletSize(), (t2 - t1));
+    log.info("Tablet split: {} size0 {} size1 {} time {}ms", tablet.getExtent(), newTablets[0].estimateTabletSize(), newTablets[1].estimateTabletSize(),
+        (t2 - t1));
 
     return tabletInfo;
   }
@@ -2153,7 +2152,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } catch (Throwable e) {
 
         if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
-          log.debug("Failed to unload tablet {}... it was alread closing or closed : {}", extent, e.getMessage());
+          log.debug("Failed to unload tablet {}... it was already closing or closed : {}", extent, e.getMessage());
         } else {
           log.error("Failed to close tablet {}... Aborting migration", extent, e);
           enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_ERROR, extent));
@@ -2276,7 +2275,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           openingTablets.remove(extent);
           openingTablets.notifyAll();
         }
-        log.warn("Failed to verify tablet {}", extent, e);
+        log.warn("Failed to verify tablet " + extent, e);
         enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
         throw new RuntimeException(e);
       }
@@ -2404,7 +2403,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         return null;
       return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
-      log.warn("Failed to obtain master host", e);
+      log.warn("Failed to obtain master host " + e);
     }
 
     return null;
@@ -2420,7 +2419,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       // log.info("Listener API to master has been opened");
       return client;
     } catch (Exception e) {
-      log.warn("Issue with masterConnection ({}) ", address, e);
+      log.warn("Issue with masterConnection (" + address + ") " + e, e);
     }
     return null;
   }
@@ -2571,7 +2570,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } catch (KeeperException | InterruptedException e) {
         // TODO Does there need to be a better check? What are the error conditions that we'd fall out here? AUTH_FAILURE?
         // If we get the error, do we just put it on a timer and retry the exists(String, Watcher) call?
-        log.error("Failed to perform initial check for authentication tokens in ZooKeeper. Delegation token authentication will be unavailable. {}", e);
+        log.error("Failed to perform initial check for authentication tokens in ZooKeeper. Delegation token authentication will be unavailable.", e);
       }
     }
 
@@ -2689,7 +2688,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         // may have lost connection with master
         // loop back to the beginning and wait for a new one
         // this way we survive master failures
-        log.error("{}: TServerInfo: Exception. Master down?", getClientAddressString(), e);
+        log.error(getClientAddressString() + ": TServerInfo: Exception. Master down?", e);
       }
     }
 
@@ -2902,7 +2901,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     try {
       return new TServerInstance(address, tabletServerLock.getSessionId());
     } catch (Exception ex) {
-      log.warn("Unable to read session from tablet server lock", ex);
+      log.warn("Unable to read session from tablet server lock" + ex);
       return null;
     }
   }
@@ -2939,7 +2938,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         try {
           AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
         } catch (IOException e) {
-          log.warn(e.getMessage(), e);
+          log.warn("{}", e.getMessage(), e);
         }
       }
     };

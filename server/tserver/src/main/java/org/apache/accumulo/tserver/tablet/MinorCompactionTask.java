@@ -96,7 +96,7 @@ class MinorCompactionTask implements Runnable {
         tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
       }
     } catch (Throwable t) {
-      log.error("Unknown error during minor compaction for extent: {}", tablet.getExtent(), t);
+      log.error("Unknown error during minor compaction for extent: " + tablet.getExtent(), t);
       throw new RuntimeException(t);
     } finally {
       tablet.minorCompactionComplete();

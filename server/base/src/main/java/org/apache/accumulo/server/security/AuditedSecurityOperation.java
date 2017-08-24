@@ -51,8 +51,8 @@ import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
 import org.apache.hadoop.io.Text;
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -111,7 +111,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
    * digging through loads of other code to find it.
    */
   private void audit(TCredentials credentials, ThriftSecurityException ex, String template, Object... args) {
-    audit.warn("operation: failed; user: {}; {}; exception: {}",credentials.getPrincipal(), String.format(template, args), ex.toString());
+    audit.warn("operation: failed; user: {}; {}; exception: {}", credentials.getPrincipal(), String.format(template, args), ex.toString());
   }
 
   private void audit(TCredentials credentials, String template, Object... args) {
@@ -123,8 +123,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   private void audit(TCredentials credentials, boolean permitted, String template, Object... args) {
     if (shouldAudit(credentials)) {
       String prefix = permitted ? "permitted" : "denied";
-      audit.info("operation: {}; user: {}; client: {}; {}",
-          prefix, credentials.getPrincipal(), TServerUtils.clientAddress.get(), String.format(template, args));
+      audit
+          .info("operation: {}; user: {}; client: {}; {}", prefix, credentials.getPrincipal(), TServerUtils.clientAddress.get(), String.format(template, args));
     }
   }
 

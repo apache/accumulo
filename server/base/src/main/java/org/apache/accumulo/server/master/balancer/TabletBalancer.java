@@ -235,11 +235,11 @@ public abstract class TabletBalancer {
         continue;
       }
       if (m.newServer == null) {
-        log.warn("Balancer did not set the destination {}",  m);
+        log.warn("Balancer did not set the destination {}", m);
         continue;
       }
       if (m.oldServer == null) {
-        log.warn("Balancer did not set the source {}",  m);
+        log.warn("Balancer did not set the source {}", m);
         continue;
       }
       if (!current.contains(m.oldServer)) {

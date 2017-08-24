@@ -143,7 +143,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
       try {
         close();
       } catch (MutationsRejectedException mre) {
-        log.error("{} internal error.", MultiTableBatchWriterImpl.class.getSimpleName() , mre);
+        log.error(MultiTableBatchWriterImpl.class.getSimpleName() + " internal error.", mre);
         throw new RuntimeException("Exception when closing " + MultiTableBatchWriterImpl.class.getSimpleName(), mre);
       }
     }

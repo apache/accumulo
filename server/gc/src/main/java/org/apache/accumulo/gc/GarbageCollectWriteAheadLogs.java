@@ -246,7 +246,7 @@ public class GarbageCollectWriteAheadLogs {
       } catch (FileNotFoundException ex) {
         // ignored
       } catch (IOException ex) {
-        log.error("Unable to delete wal {}: ", path, ex);
+        log.error("Unable to delete wal {}", path, ex);
       }
     }
     return status.currentLog.deleted;

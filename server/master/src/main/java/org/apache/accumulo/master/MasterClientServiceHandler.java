@@ -134,7 +134,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
     } catch (Exception e) {
-      Master.log.warn(e.getMessage(), e);
+      Master.log.warn("{}", e.getMessage(), e);
       throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH, TableOperationExceptionType.OTHER, null);
     }
     return Long.parseLong(new String(fid));
@@ -249,10 +249,10 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
       } catch (TabletDeletedException tde) {
         Master.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME, tableId, tde);
       } catch (AccumuloSecurityException e) {
-        Master.log.warn(e.getMessage(), e);
+        Master.log.warn("{}", e.getMessage(), e);
         throw new ThriftSecurityException();
       } catch (TableNotFoundException e) {
-        Master.log.error(e.getMessage(), e);
+        Master.log.error("{}", e.getMessage(), e);
         throw new ThriftTableOperationException();
       }
     }

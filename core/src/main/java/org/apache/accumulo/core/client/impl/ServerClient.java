@@ -94,7 +94,7 @@ public class ServerClient {
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
-        log.debug("ClientService request failed {}, retrying ...", server, tte);
+        log.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null)
@@ -116,7 +116,7 @@ public class ServerClient {
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
-        log.debug("ClientService request failed {}, retrying ...", server, tte);
+        log.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null)

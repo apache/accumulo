@@ -48,10 +48,9 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.helpers.LogLog;
 import org.apache.zookeeper.KeeperException;
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Accumulo {
 
@@ -217,7 +216,7 @@ public class Accumulo {
           if (unknownHostTries > 0) {
             log.warn("Unable to connect to HDFS, will retry. cause: {}", exception.getCause());
             /* We need to make sure our sleep period is long enough to avoid getting a cached failure of the host lookup. */
-            sleep = Math.max(sleep, (org.apache.accumulo.fate.util.AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1) * 1000);
+            sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1) * 1000);
           } else {
             log.error("Unable to connect to HDFS and have exceeded the maximum number of retries.", exception);
             throw exception;

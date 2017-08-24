@@ -105,13 +105,12 @@ public class CryptoModuleFactory {
         log.debug("Successfully instantiated crypto module {}", cryptoModuleClassname);
 
       } catch (InstantiationException e) {
-        log.warn("Got instantiation exception {} when instantiating crypto module \"{}\".  No encryption will be used.", e.getCause().getClass()
-            .getName(), cryptoModuleClassname);
+        log.warn("Got instantiation exception {} when instantiating crypto module \"{}\".  No encryption will be used.", e.getCause().getClass().getName(),
+            cryptoModuleClassname);
         log.warn("InstantiationException {}", e.getCause());
         return new NullCryptoModule();
       } catch (IllegalAccessException e) {
-        log.warn("Got illegal access exception when trying to instantiate crypto module \"{}\".  No encryption will be used.",
-            cryptoModuleClassname);
+        log.warn("Got illegal access exception when trying to instantiate crypto module \"{}\".  No encryption will be used.", cryptoModuleClassname);
         log.warn("IllegalAccessException", e);
         return new NullCryptoModule();
       }
@@ -182,13 +181,12 @@ public class CryptoModuleFactory {
         log.debug("Successfully instantiated secret key encryption strategy {}", className);
 
       } catch (InstantiationException e) {
-        log.warn("Got instantiation exception {} when instantiating secret key encryption strategy \"{}\".  No encryption will be used.", e
-            .getCause().getClass().getName(), className);
+        log.warn("Got instantiation exception {} when instantiating secret key encryption strategy \"{}\".  No encryption will be used.", e.getCause()
+            .getClass().getName(), className);
         log.warn("InstantiationException {}", e.getCause());
         return new NullSecretKeyEncryptionStrategy();
       } catch (IllegalAccessException e) {
-        log.warn("Got illegal access exception when trying to instantiate secret key encryption strategy \"{}\".  No encryption will be used.",
-            className);
+        log.warn("Got illegal access exception when trying to instantiate secret key encryption strategy \"{}\".  No encryption will be used.", className);
         log.warn("IllegalAccessException", e);
         return new NullSecretKeyEncryptionStrategy();
       }

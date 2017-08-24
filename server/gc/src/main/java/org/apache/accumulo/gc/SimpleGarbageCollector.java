@@ -411,7 +411,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
                 putMarkerDeleteMutation(delete, finalWriter);
               }
             } catch (Exception e) {
-              log.error(e.getMessage(), e);
+              log.error("{}", e.getMessage(), e);
             }
 
           }
@@ -426,7 +426,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       try {
         while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {}
       } catch (InterruptedException e1) {
-        log.error(e1.getMessage(), e1);
+        log.error("{}", e1.getMessage(), e1);
       }
 
       if (writer != null) {
@@ -504,7 +504,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     try {
       getZooLock(startStatsService());
     } catch (Exception ex) {
-      log.error(ex.getMessage(), ex);
+      log.error("{}", ex.getMessage(), ex);
       System.exit(1);
     }
 
@@ -513,7 +513,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       log.debug("Sleeping for {} milliseconds before beginning garbage collection cycles", delay);
       Thread.sleep(delay);
     } catch (InterruptedException e) {
-      log.warn(e.getMessage(), e);
+      log.warn("{}", e.getMessage(), e);
       return;
     }
 
@@ -542,7 +542,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         status.current = new GcCycleStats();
 
       } catch (Exception e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       }
 
       tStop = System.currentTimeMillis();
@@ -567,7 +567,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
       } finally {
         waLogs.stop();
       }
@@ -579,7 +579,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         connector.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
         connector.tableOperations().compact(RootTable.NAME, null, null, true, true);
       } catch (Exception e) {
-        log.warn(e.getMessage(), e);
+        log.warn("{}", e.getMessage(), e);
       }
 
       Trace.off();
@@ -588,7 +588,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         log.debug("Sleeping for {} milliseconds", gcDelay);
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
-        log.warn(e.getMessage(), e);
+        log.warn("{}", e.getMessage(), e);
         return;
       }
     }

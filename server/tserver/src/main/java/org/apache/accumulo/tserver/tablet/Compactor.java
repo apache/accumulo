@@ -244,10 +244,10 @@ public class Compactor implements Callable<CompactionStats> {
       majCStats.setFileSize(mfwTmp.getLength());
       return majCStats;
     } catch (IOException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw e;
     } catch (RuntimeException e) {
-      log.error(e.getMessage(), e);
+      log.error("{}", e.getMessage(), e);
       throw e;
     } finally {
       Thread.currentThread().setName(oldThreadName);
@@ -268,9 +268,9 @@ public class Compactor implements Callable<CompactionStats> {
           }
         }
       } catch (IOException e) {
-        log.warn(e.getMessage(), e);
+        log.warn("{}", e.getMessage(), e);
       } catch (RuntimeException exception) {
-        log.warn(exception.getMessage(), exception);
+        log.warn("{}", exception.getMessage(), exception);
       }
     }
   }
@@ -380,7 +380,7 @@ public class Compactor implements Callable<CompactionStats> {
             try {
               mfw.close();
             } catch (IOException e) {
-              log.error(e.getMessage(), e);
+              log.error("{}", e.getMessage(), e);
             }
             fs.deleteRecursively(outputFile.path());
           } catch (Exception e) {

@@ -150,7 +150,7 @@ public class MergeStats {
         // Perhaps a split occurred after we chopped, but before we went offline: start over
         state = MergeState.WAITING_FOR_CHOPPED;
       } else {
-        log.info("{} tablets are chopped, {} are offline {}", chopped,  unassigned, info.getExtent());
+        log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned, info.getExtent());
         if (unassigned == total && chopped == needsToBeChopped) {
           if (verifyMergeConsistency(connector, master))
             state = MergeState.MERGING;
@@ -198,7 +198,7 @@ public class MergeStats {
       try {
         tls = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
       } catch (BadLocationStateException e) {
-        log.error(e.getMessage(), e);
+        log.error("{}", e.getMessage(), e);
         return false;
       }
       log.debug("consistency check: {} walogs {}", tls, tls.walogs.size());
@@ -236,8 +236,7 @@ public class MergeStats {
         break;
       }
     }
-    log.debug("chopped {} v.chopped {} unassigned {} v.unassigned {} verify.total {}",
-        chopped, verify.chopped, unassigned, verify.unassigned, verify.total);
+    log.debug("chopped {} v.chopped {} unassigned {} v.unassigned {} verify.total {}", chopped, verify.chopped, unassigned, verify.unassigned, verify.total);
 
     return chopped == verify.chopped && unassigned == verify.unassigned && unassigned == verify.total;
   }

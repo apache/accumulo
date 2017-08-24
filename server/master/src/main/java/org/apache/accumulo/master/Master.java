@@ -417,7 +417,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
         for (String tableId : zoo.getChildren(tables)) {
           Namespace.ID targetNamespace = (MetadataTable.ID.canonicalID().equals(tableId) || RootTable.ID.canonicalID().equals(tableId)) ? Namespace.ID.ACCUMULO
               : Namespace.ID.DEFAULT;
-          log.debug("Upgrade moving table {} (ID: {}) into namespace with ID {}", new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8), tableId, targetNamespace);
+          log.debug("Upgrade moving table {} (ID: {}) into namespace with ID {}", new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null),
+              UTF_8), tableId, targetNamespace);
           zoo.putPersistentData(tables + "/" + tableId + Constants.ZTABLE_NAMESPACE, targetNamespace.getUtf8(), NodeExistsPolicy.SKIP);
         }
 
@@ -1047,7 +1048,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           if (connection != null)
             connection.fastHalt(masterLock);
         } catch (TException e) {
-          log.error(e.getMessage(), e);
+          log.error("{}", e.getMessage(), e);
         }
         tserverSet.remove(instance);
       }

@@ -109,7 +109,7 @@ public class ZooSession {
            */
           sleepTime = Math.max(sleepTime, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e) + 1) * 1000);
         }
-        log.warn("Connection to zooKeeper failed, will try again in {} {}", String.format("%.2f secs", sleepTime / 1000.0), e);
+        log.warn("Connection to zooKeeper failed, will try again in " + String.format("%.2f secs", sleepTime / 1000.0), e);
       } finally {
         if (tryAgain && zooKeeper != null)
           try {
