@@ -175,7 +175,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
         File dir = new File(mDir);
         if (!dir.isDirectory())
           if (!dir.mkdir())
-            log.warn("Could not create log directory: " + dir);
+            log.warn("Could not create log directory: {}", dir);
         logDir = dir;
         // Create new log file
         startNewLog();

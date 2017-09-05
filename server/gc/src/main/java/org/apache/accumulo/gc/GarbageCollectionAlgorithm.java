@@ -120,7 +120,7 @@ public class GarbageCollectionAlgorithm {
       try {
         relPath = makeRelative(candidate, 0);
       } catch (IllegalArgumentException iae) {
-        log.warn("Ignoring invalid deletion candidate " + candidate);
+        log.warn("Ignoring invalid deletion candidate {}", candidate);
         continue;
       }
       ret.put(relPath, candidate);
@@ -161,7 +161,7 @@ public class GarbageCollectionAlgorithm {
         }
 
         if (count > 0)
-          log.debug("Folder has bulk processing flag: " + blipPath);
+          log.debug("Folder has bulk processing flag: {}", blipPath);
       }
 
     }
@@ -188,11 +188,11 @@ public class GarbageCollectionAlgorithm {
         // WARNING: This line is EXTREMELY IMPORTANT.
         // You MUST REMOVE candidates that are still in use
         if (candidateMap.remove(reference) != null)
-          log.debug("Candidate was still in use: " + reference);
+          log.debug("Candidate was still in use: {}", reference);
 
         String dir = reference.substring(0, reference.lastIndexOf('/'));
         if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: " + reference);
+          log.debug("Candidate was still in use: {}", reference);
 
       } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
         String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
@@ -206,7 +206,7 @@ public class GarbageCollectionAlgorithm {
         dir = makeRelative(dir, 2);
 
         if (candidateMap.remove(dir) != null)
-          log.debug("Candidate was still in use: " + dir);
+          log.debug("Candidate was still in use: {}", dir);
       } else
         throw new RuntimeException("Scanner over metadata table returned unexpected column : " + entry.getKey());
     }

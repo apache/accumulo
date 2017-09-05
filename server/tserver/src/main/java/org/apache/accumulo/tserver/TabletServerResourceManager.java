@@ -125,7 +125,7 @@ public class TabletServerResourceManager {
         try {
           int max = tserver.getConfiguration().getCount(maxThreads);
           if (tp.getMaximumPoolSize() != max) {
-            log.info("Changing " + maxThreads.getKey() + " to " + max);
+            log.info("Changing {} to {}", maxThreads.getKey(), max);
             tp.setCorePoolSize(max);
             tp.setMaximumPoolSize(max);
           }
@@ -287,9 +287,9 @@ public class TabletServerResourceManager {
 
           // Print a warning if an assignment has been running for over the configured time length
           if (duration > millisBeforeWarning) {
-            log.warn("Assignment for " + extent + " has been running for at least " + duration + "ms", runnable.getTask().getException());
+            log.warn("Assignment for {} has been running for at least {}ms", extent, duration, runnable.getTask().getException());
           } else if (log.isTraceEnabled()) {
-            log.trace("Assignment for " + extent + " only running for " + duration + "ms");
+            log.trace("Assignment for {} only running for {}ms", extent, duration);
           }
         }
       } catch (Exception e) {
@@ -298,7 +298,7 @@ public class TabletServerResourceManager {
         // Don't run more often than every 5s
         long delay = Math.max((long) (millisBeforeWarning * 0.5), 5000l);
         if (log.isTraceEnabled()) {
-          log.trace("Rescheduling assignment watcher to run in " + delay + "ms");
+          log.trace("Rescheduling assignment watcher to run in {}ms", delay);
         }
         timer.schedule(this, delay);
       }
@@ -451,7 +451,7 @@ public class TabletServerResourceManager {
               TabletStateImpl tabletReport = tabletReportsCopy.get(keyExtent);
 
               if (tabletReport == null) {
-                log.warn("Memory manager asked to compact nonexistent tablet " + keyExtent + "; manager implementation might be misbehaving");
+                log.warn("Memory manager asked to compact nonexistent tablet {}; manager implementation might be misbehaving", keyExtent);
                 continue;
               }
               Tablet tablet = tabletReport.getTablet();
@@ -465,13 +465,13 @@ public class TabletServerResourceManager {
                         // different tablet instance => put it back
                         tabletReports.put(keyExtent, latestReport);
                       } else {
-                        log.debug("Cleaned up report for closed tablet " + keyExtent);
+                        log.debug("Cleaned up report for closed tablet {}", keyExtent);
                       }
                     }
                   }
-                  log.debug("Ignoring memory manager recommendation: not minor compacting closed tablet " + keyExtent);
+                  log.debug("Ignoring memory manager recommendation: not minor compacting closed tablet {}", keyExtent);
                 } else {
-                  log.info("Ignoring memory manager recommendation: not minor compacting " + keyExtent);
+                  log.info("Ignoring memory manager recommendation: not minor compacting {}", keyExtent);
                 }
               }
             }
@@ -558,7 +558,7 @@ public class TabletServerResourceManager {
         try {
           if (entry.getValue().awaitTermination(60, TimeUnit.SECONDS))
             break;
-          log.info("Waiting for thread pool " + entry.getKey() + " to shutdown");
+          log.info("Waiting for thread pool {} to shutdown", entry.getKey());
         } catch (InterruptedException e) {
           log.warn("Interrupted waiting for executor to terminate", e);
         }

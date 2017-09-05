@@ -330,7 +330,7 @@ public class FileManager {
           if (!tablet.isMeta()) {
             filePermits.release(1);
           }
-          log.warn("Failed to open file {} {}  continuing...", file, e.getMessage());
+          log.warn("Failed to open file {} {} continuing...", file, e.getMessage(), e);
         } else {
           // close whatever files were opened
           closeReaders(reservedFiles);

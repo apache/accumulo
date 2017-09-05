@@ -65,7 +65,7 @@ public class RandomWriter {
       }
       mutations_so_far++;
       if (mutations_so_far % 1000000 == 0) {
-        log.info("Created " + mutations_so_far + " mutations so far");
+        log.info("Created {} mutations so far", mutations_so_far);
       }
       return m;
     }
@@ -96,11 +96,11 @@ public class RandomWriter {
     opts.parseArgs(RandomWriter.class.getName(), args, bwOpts);
 
     long start = System.currentTimeMillis();
-    log.info("starting at " + start + " for user " + opts.getPrincipal());
+    log.info("starting at {} for user {}", start, opts.getPrincipal());
     try {
       Connector connector = opts.getConnector();
       BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
-      log.info("Writing " + opts.count + " mutations...");
+      log.info("Writing {} mutations...", opts.count);
       bw.addMutations(new RandomMutationGenerator(opts.count));
       bw.close();
     } catch (Exception e) {
@@ -109,8 +109,8 @@ public class RandomWriter {
     }
     long stop = System.currentTimeMillis();
 
-    log.info("stopping at " + stop);
-    log.info("elapsed: " + (((double) stop - (double) start) / 1000.0));
+    log.info("stopping at {}", stop);
+    log.info("elapsed: {}", (((double) stop - (double) start) / 1000.0));
   }
 
 }

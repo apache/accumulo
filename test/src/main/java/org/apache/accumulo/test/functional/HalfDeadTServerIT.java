@@ -159,7 +159,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
         sleepUninterruptibly(seconds, TimeUnit.SECONDS);
       } finally {
         if (!trickFile.delete()) {
-          log.error("Couldn't delete " + trickFile);
+          log.error("Couldn't delete {}", trickFile);
         }
       }
 

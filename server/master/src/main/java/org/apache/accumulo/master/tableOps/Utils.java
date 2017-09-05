@@ -85,7 +85,7 @@ public class Utils {
         if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId))
           throw new AcceptableThriftTableOperationException(tableId.canonicalID(), "", op, TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
-      log.info("table " + tableId + " (" + Long.toHexString(tid) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
+      log.info("table {} ({}) locked for {} operation: {}", tableId, Long.toHexString(tid), (writeLock ? "write" : "read"), op);
       return 0;
     } else
       return 100;
@@ -93,12 +93,12 @@ public class Utils {
 
   public static void unreserveTable(Table.ID tableId, long tid, boolean writeLock) throws Exception {
     getLock(tableId, tid, writeLock).unlock();
-    log.info("table " + tableId + " (" + Long.toHexString(tid) + ") unlocked for " + (writeLock ? "write" : "read"));
+    log.info("table {} ({}) unlocked for ", tableId, Long.toHexString(tid), (writeLock ? "write" : "read"));
   }
 
   public static void unreserveNamespace(Namespace.ID namespaceId, long id, boolean writeLock) throws Exception {
     getLock(namespaceId, id, writeLock).unlock();
-    log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") unlocked for " + (writeLock ? "write" : "read"));
+    log.info("namespace {} ({}) unlocked for {}", namespaceId, Long.toHexString(id), (writeLock ? "write" : "read"));
   }
 
   public static long reserveNamespace(Namespace.ID namespaceId, long id, boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
@@ -110,7 +110,7 @@ public class Utils {
           throw new AcceptableThriftTableOperationException(namespaceId.canonicalID(), "", op, TableOperationExceptionType.NAMESPACE_NOTFOUND,
               "Namespace does not exist");
       }
-      log.info("namespace " + namespaceId + " (" + Long.toHexString(id) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
+      log.info("namespace {} ({}) locked for {} operation: {}", namespaceId, Long.toHexString(id), (writeLock ? "write" : "read"), op);
       return 0;
     } else
       return 100;

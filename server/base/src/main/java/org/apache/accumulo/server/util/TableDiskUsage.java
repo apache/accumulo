@@ -102,12 +102,12 @@ public class TableDiskUsage {
     Map<List<Integer>,Long> usage = new HashMap<>();
 
     if (log.isTraceEnabled()) {
-      log.trace("fileSizes " + fileSizes);
+      log.trace("fileSizes {}", fileSizes);
     }
     // For each file w/ referenced-table bitset
     for (Entry<String,Integer[]> entry : tableFiles.entrySet()) {
       if (log.isTraceEnabled()) {
-        log.trace("file " + entry.getKey() + " table bitset " + Arrays.toString(entry.getValue()));
+        log.trace("file {} table bitset {}", entry.getKey(), Arrays.toString(entry.getValue()));
       }
       List<Integer> key = Arrays.asList(entry.getValue());
       Long size = fileSizes.get(entry.getKey());

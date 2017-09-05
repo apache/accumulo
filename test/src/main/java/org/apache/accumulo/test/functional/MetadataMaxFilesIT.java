@@ -72,7 +72,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
     sleepUninterruptibly(5, TimeUnit.SECONDS);
     for (int i = 0; i < 5; i++) {
       String tableName = "table" + i;
-      log.info("Creating " + tableName);
+      log.info("Creating {}", tableName);
       c.tableOperations().create(tableName);
       log.info("adding splits");
       c.tableOperations().addSplits(tableName, splits);

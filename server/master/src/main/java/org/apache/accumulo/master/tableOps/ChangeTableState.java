@@ -56,7 +56,7 @@ public class ChangeTableState extends MasterRepo {
     TableManager.getInstance().transitionTableState(tableId, ts);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);
-    LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state " + tableId + " " + ts);
+    LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state {} {}", tableId, ts);
     env.getEventCoordinator().event("Set table state of %s to %s", tableId, ts);
     return null;
   }

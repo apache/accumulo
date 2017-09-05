@@ -189,7 +189,7 @@ public class KerberosProxyIT extends AccumuloITBase {
       }
 
       TSocket socket = new TSocket(hostname, proxyPort);
-      log.info("Connecting to proxy with server primary '" + proxyPrimary + "' running on " + hostname);
+      log.info("Connecting to proxy with server primary '{}' running on {}", proxyPrimary, hostname);
       TSaslClientTransport transport = new TSaslClientTransport("GSSAPI", null, proxyPrimary, hostname, Collections.singletonMap("javax.security.sasl.qop",
           "auth"), null, socket);
 
@@ -315,7 +315,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
 
     TSocket socket = new TSocket(hostname, proxyPort);
-    log.info("Connecting to proxy with server primary '" + proxyPrimary + "' running on " + hostname);
+    log.info("Connecting to proxy with server primary '{}' running on {}", proxyPrimary, hostname);
     TSaslClientTransport transport = new TSaslClientTransport("GSSAPI", null, proxyPrimary, hostname, Collections.singletonMap("javax.security.sasl.qop",
         "auth"), null, socket);
 
@@ -394,7 +394,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     // Login as the new user
     UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab.getAbsolutePath());
 
-    log.info("Logged in as " + ugi);
+    log.info("Logged in as {}", ugi);
 
     // Expect an AccumuloSecurityException
     thrown.expect(AccumuloSecurityException.class);
@@ -407,7 +407,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     thrown.expect(new ThriftExceptionMatchesPattern(".*Expected '" + proxyPrincipal + "' but was '" + kdc.qualifyUser(user) + "'.*"));
 
     TSocket socket = new TSocket(hostname, proxyPort);
-    log.info("Connecting to proxy with server primary '" + proxyPrimary + "' running on " + hostname);
+    log.info("Connecting to proxy with server primary '{}' running on {}", proxyPrimary, hostname);
 
     // Should fail to open the tran
     TSaslClientTransport transport = new TSaslClientTransport("GSSAPI", null, proxyPrimary, hostname, Collections.singletonMap("javax.security.sasl.qop",
@@ -446,10 +446,10 @@ public class KerberosProxyIT extends AccumuloITBase {
     // Login as the new user
     UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytab.getAbsolutePath());
 
-    log.info("Logged in as " + ugi);
+    log.info("Logged in as {}", ugi);
 
     TSocket socket = new TSocket(hostname, proxyPort);
-    log.info("Connecting to proxy with server primary '" + proxyPrimary + "' running on " + hostname);
+    log.info("Connecting to proxy with server primary '{}' running on {}", proxyPrimary, hostname);
 
     // Should fail to open the tran
     TSaslClientTransport transport = new TSaslClientTransport("GSSAPI", null, proxyPrimary, hostname, Collections.singletonMap("javax.security.sasl.qop",

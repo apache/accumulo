@@ -108,7 +108,7 @@ public class BulkImport extends MasterRepo {
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
-    log.debug(" tid " + tid + " sourceDir " + sourceDir);
+    log.debug(" tid {} sourceDir {}", tid, sourceDir);
 
     Utils.getReadLock(tableId, tid).lock();
 
@@ -137,7 +137,7 @@ public class BulkImport extends MasterRepo {
     // move the files into the directory
     try {
       String bulkDir = prepareBulkImport(master, fs, sourceDir, tableId);
-      log.debug(" tid " + tid + " bulkDir " + bulkDir);
+      log.debug(" tid {} bulkDir {}", tid, bulkDir);
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
       log.error("error preparing the bulk import directory", ex);
@@ -171,7 +171,7 @@ public class BulkImport extends MasterRepo {
         throw new IOException("Dir exist when it should not " + newBulkDir);
       if (fs.mkdirs(newBulkDir))
         return newBulkDir;
-      log.warn("Failed to create " + newBulkDir + " for unknown reason");
+      log.warn("Failed to create {} for unknown reason", newBulkDir);
 
       sleepUninterruptibly(3, TimeUnit.SECONDS);
     }
@@ -203,7 +203,7 @@ public class BulkImport extends MasterRepo {
               extension = sa[sa.length - 1];
 
               if (!FileOperations.getValidExtensions().contains(extension)) {
-                log.warn(fileStatus.getPath() + " does not have a valid extension, ignoring");
+                log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
                 return null;
               }
             } else {
@@ -213,22 +213,22 @@ public class BulkImport extends MasterRepo {
 
             if (extension.equals(Constants.MAPFILE_EXTENSION)) {
               if (!fileStatus.isDirectory()) {
-                log.warn(fileStatus.getPath() + " is not a map file, ignoring");
+                log.warn("{} is not a map file, ignoring", fileStatus.getPath());
                 return null;
               }
 
               if (fileStatus.getPath().getName().equals("_logs")) {
-                log.info(fileStatus.getPath() + " is probably a log directory from a map/reduce task, skipping");
+                log.info("{} is probably a log directory from a map/reduce task, skipping", fileStatus.getPath());
                 return null;
               }
               try {
                 FileStatus dataStatus = fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
                 if (dataStatus.isDirectory()) {
-                  log.warn(fileStatus.getPath() + " is not a map file, ignoring");
+                  log.warn("{} is not a map file, ignoring", fileStatus.getPath());
                   return null;
                 }
               } catch (FileNotFoundException fnfe) {
-                log.warn(fileStatus.getPath() + " is not a map file, ignoring");
+                log.warn("{} is not a map file, ignoring", fileStatus.getPath());
                 return null;
               }
             }
@@ -237,7 +237,7 @@ public class BulkImport extends MasterRepo {
             Path newPath = new Path(bulkDir, newName);
             try {
               fs.rename(fileStatus.getPath(), newPath);
-              log.debug("Moved " + fileStatus.getPath() + " to " + newPath);
+              log.debug("Moved {} to {}", fileStatus.getPath(), newPath);
             } catch (IOException E1) {
               log.error("Could not move: {} {}", fileStatus.getPath().toString(), E1.getMessage());
             }

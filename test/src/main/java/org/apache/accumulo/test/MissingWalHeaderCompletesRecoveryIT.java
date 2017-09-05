@@ -115,7 +115,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
     File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
-    log.info("Created empty WAL at " + emptyWalog.toURI());
+    log.info("Created empty WAL at {}", emptyWalog.toURI());
 
     fs.create(new Path(emptyWalog.toURI())).close();
 
@@ -167,7 +167,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
     File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
-    log.info("Created WAL with malformed header at " + partialHeaderWalog.toURI());
+    log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
 
     // Write half of the header
     FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toURI()));

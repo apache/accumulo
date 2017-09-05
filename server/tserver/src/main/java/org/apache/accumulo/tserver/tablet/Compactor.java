@@ -231,7 +231,7 @@ public class Compactor implements Callable<CompactionStats> {
       } catch (IOException ex) {
         if (!fs.deleteRecursively(outputFile.path())) {
           if (fs.exists(outputFile.path())) {
-            log.error("Unable to delete " + outputFile);
+            log.error("Unable to delete {}", outputFile);
           }
         }
         throw ex;
@@ -264,7 +264,7 @@ public class Compactor implements Callable<CompactionStats> {
           } finally {
             if (!fs.deleteRecursively(outputFile.path()))
               if (fs.exists(outputFile.path()))
-                log.error("Unable to delete " + outputFile);
+                log.error("Unable to delete {}", outputFile);
           }
         }
       } catch (IOException e) {
@@ -384,7 +384,7 @@ public class Compactor implements Callable<CompactionStats> {
             }
             fs.deleteRecursively(outputFile.path());
           } catch (Exception e) {
-            log.warn("Failed to delete Canceled compaction output file " + outputFile, e);
+            log.warn("Failed to delete Canceled compaction output file {}", outputFile, e);
           }
           throw new CompactionCanceledException();
         }

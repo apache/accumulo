@@ -81,7 +81,7 @@ public class RenameNamespace extends MasterRepo {
       Utils.unreserveNamespace(namespaceId, id, true);
     }
 
-    LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace " + namespaceId + " " + oldName + " " + newName);
+    LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace {} {} {}", namespaceId, oldName, newName);
 
     return null;
   }

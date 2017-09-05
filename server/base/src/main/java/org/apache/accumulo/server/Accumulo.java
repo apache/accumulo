@@ -48,18 +48,19 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Accumulo {
 
-  private static final Logger log = Logger.getLogger(Accumulo.class);
+  private static final Logger log = LoggerFactory.getLogger(Accumulo.class);
 
   public static synchronized void updateAccumuloVersion(VolumeManager fs, int oldVersion) {
     for (Volume volume : fs.getVolumes()) {
       try {
         if (getAccumuloPersistentVersion(fs) == oldVersion) {
-          log.debug("Attempting to upgrade " + volume);
+          log.debug("Attempting to upgrade {}", volume);
           Path dataVersionLocation = ServerConstants.getDataVersionLocation(volume);
           fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION))).close();
           // TODO document failure mode & recovery if FS permissions cause above to work and below to fail ACCUMULO-2596
@@ -105,10 +106,10 @@ public class Accumulo {
   public static void init(VolumeManager fs, Instance instance, ServerConfigurationFactory serverConfig, String application) throws IOException {
     final AccumuloConfiguration conf = serverConfig.getSystemConfiguration();
 
-    log.info(application + " starting");
-    log.info("Instance " + instance.getInstanceID());
+    log.info("{} starting", application);
+    log.info("Instance {}", instance.getInstanceID());
     int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
-    log.info("Data Version " + dataVersion);
+    log.info("Data Version {}", dataVersion);
     Accumulo.waitForZookeeperAndHdfs(fs);
 
     if (!(canUpgradeFromDataVersion(dataVersion))) {
@@ -121,7 +122,7 @@ public class Accumulo {
 
     for (Entry<String,String> entry : sortedProps.entrySet()) {
       String key = entry.getKey();
-      log.info(key + " = " + (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
+      log.info("{} = {}", key, (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
     }
 
     monitorSwappiness(conf);
@@ -132,7 +133,7 @@ public class Accumulo {
         Property.MONITOR_SSL_INCLUDE_PROTOCOLS)) {
       String value = conf.get(sslProtocolProperty);
       if (value.contains(SSL)) {
-        log.warn("It is recommended that " + sslProtocolProperty + " only allow TLS");
+        log.warn("It is recommended that {} only allow TLS", sslProtocolProperty);
       }
     }
   }
@@ -172,15 +173,15 @@ public class Accumulo {
               String setting = new String(buffer, 0, bytes, UTF_8);
               setting = setting.trim();
               if (bytes > 0 && Integer.parseInt(setting) > 10) {
-                log.warn("System swappiness setting is greater than ten (" + setting + ") which can cause time-sensitive operations to be delayed. "
-                    + " Accumulo is time sensitive because it needs to maintain distributed lock agreement.");
+                log.warn("System swappiness setting is greater than ten ({}) which can cause time-sensitive operations to be delayed. "
+                    + " Accumulo is time sensitive because it needs to maintain distributed lock agreement.", setting);
               }
             } finally {
               is.close();
             }
           }
         } catch (Throwable t) {
-          log.error(t, t);
+          log.error("", t);
         }
       }
     }, 1000, 10 * 60 * 1000);
@@ -213,7 +214,7 @@ public class Accumulo {
         /* Unwrap the UnknownHostException so we can deal with it directly */
         if (exception.getCause() instanceof UnknownHostException) {
           if (unknownHostTries > 0) {
-            log.warn("Unable to connect to HDFS, will retry. cause: " + exception.getCause());
+            log.warn("Unable to connect to HDFS, will retry. cause: {}", exception.getCause());
             /* We need to make sure our sleep period is long enough to avoid getting a cached failure of the host lookup. */
             sleep = Math.max(sleep, (AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1) * 1000);
           } else {
@@ -225,7 +226,7 @@ public class Accumulo {
           throw exception;
         }
       }
-      log.info("Backing off due to failure; current sleep period is " + sleep / 1000. + " seconds");
+      log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
       sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
       /* Back off to give transient failures more time to clear. */
       sleep = Math.min(60 * 1000, sleep * 2);
@@ -253,7 +254,7 @@ public class Accumulo {
             + "Please see the README document for instructions on what to do under your previous version.");
       }
     } catch (Exception exception) {
-      log.fatal("Problem verifying Fate readiness", exception);
+      log.error("Problem verifying Fate readiness", exception);
       System.exit(1);
     }
   }

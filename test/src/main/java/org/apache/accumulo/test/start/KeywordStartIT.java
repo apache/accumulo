@@ -133,14 +133,14 @@ public class KeywordStartIT {
     boolean moreExpected = expectIter.hasNext();
     if (moreExpected) {
       while (expectIter.hasNext()) {
-        log.warn("Missing class for keyword '" + expectIter.next() + "'");
+        log.warn("Missing class for keyword '{}'", expectIter.next());
       }
     }
     assertFalse("Missing expected classes", moreExpected);
     boolean moreActual = actualIter.hasNext();
     if (moreActual) {
       while (actualIter.hasNext()) {
-        log.warn("Extra class found with keyword '" + actualIter.next() + "'");
+        log.warn("Extra class found with keyword '{}'", actualIter.next());
       }
     }
     assertFalse("Found additional unexpected classes", moreActual);

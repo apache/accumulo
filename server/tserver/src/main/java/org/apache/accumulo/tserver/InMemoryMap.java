@@ -814,7 +814,7 @@ public class InMemoryMap {
 
         out.close();
 
-        log.debug("Created mem dump file " + tmpFile);
+        log.debug("Created mem dump file {}", tmpFile);
 
         memDumpFile = tmpFile;
 
@@ -829,7 +829,7 @@ public class InMemoryMap {
         fs.delete(new Path(memDumpFile), true);
 
       } catch (IOException ioe) {
-        log.error("Failed to create mem dump file ", ioe);
+        log.error("Failed to create mem dump file", ioe);
 
         while (activeIters.size() > 0) {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);

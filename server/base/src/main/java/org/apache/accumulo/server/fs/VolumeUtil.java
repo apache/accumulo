@@ -106,12 +106,12 @@ public class VolumeUtil {
 
       if (key.equals(volume)) {
         String replacement = new Path(pair.getSecond(), ft.removeVolume(p)).toString();
-        log.trace("Replacing " + path + " with " + replacement);
+        log.trace("Replacing {} with {}", path, replacement);
         return replacement;
       }
     }
 
-    log.trace("Could not find replacement for " + ft + " at " + path);
+    log.trace("Could not find replacement for {} at {}", ft, path);
 
     return null;
   }
@@ -134,13 +134,13 @@ public class VolumeUtil {
     }
 
     if (numSwitched == 0) {
-      log.trace("Did not switch " + le);
+      log.trace("Did not switch {}", le);
       return null;
     }
 
     LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedPath);
 
-    log.trace("Switched " + le + " to " + newLogEntry);
+    log.trace("Switched {} to {}", le, newLogEntry);
 
     return newLogEntry;
   }
@@ -166,7 +166,7 @@ public class VolumeUtil {
     String newLocation = switchVolume(location, FileType.TABLE, ServerConstants.getVolumeReplacements());
     if (newLocation != null) {
       MetadataTableUtil.setRootTabletDir(newLocation);
-      log.info("Volume replaced: " + location + " -> " + newLocation);
+      log.info("Volume replaced: {} -> {}", location, newLocation);
       return new Path(newLocation).toString();
     }
     return location;
@@ -179,7 +179,7 @@ public class VolumeUtil {
   public static TabletFiles updateTabletVolumes(AccumuloServerContext context, ZooLock zooLock, VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles,
       boolean replicate) throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
-    log.trace("Using volume replacements: " + replacements);
+    log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
     List<LogEntry> logsToAdd = new ArrayList<>();
@@ -195,7 +195,7 @@ public class VolumeUtil {
         logsToRemove.add(logEntry);
         logsToAdd.add(switchedLogEntry);
         ret.logEntries.add(switchedLogEntry);
-        log.debug("Replacing volume " + extent + " : " + logEntry.filename + " -> " + switchedLogEntry.filename);
+        log.debug("Replacing volume {} : {} -> {}", extent, logEntry.filename, switchedLogEntry.filename);
       } else {
         ret.logEntries.add(logEntry);
       }
@@ -212,7 +212,7 @@ public class VolumeUtil {
           FileRef switchedRef = new FileRef(switchedPath, new Path(switchedPath));
           filesToAdd.put(switchedRef, entry.getValue());
           ret.datafiles.put(switchedRef, entry.getValue());
-          log.debug("Replacing volume " + extent + " : " + metaPath + " -> " + switchedPath);
+          log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
         } else {
           ret.datafiles.put(entry.getKey(), entry.getValue());
         }
@@ -223,7 +223,7 @@ public class VolumeUtil {
     String switchedDir = switchVolume(tabletDir, FileType.TABLE, replacements);
 
     if (switchedDir != null) {
-      log.debug("Replacing volume " + extent + " : " + tabletDir + " -> " + switchedDir);
+      log.debug("Replacing volume {} : {} -> {}", extent, tabletDir, switchedDir);
       tabletDir = switchedDir;
     }
 
@@ -231,7 +231,7 @@ public class VolumeUtil {
       MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove, filesToAdd, switchedDir, zooLock, context);
       if (replicate) {
         Status status = StatusUtil.fileClosed();
-        log.debug("Tablet directory switched, need to record old log files " + logsToRemove + " " + ProtobufUtil.toString(status));
+        log.debug("Tablet directory switched, need to record old log files {} {}", logsToRemove, ProtobufUtil.toString(status));
         // Before deleting these logs, we need to mark them for replication
         for (LogEntry logEntry : logsToRemove) {
           ReplicationTableUtil.updateFiles(context, extent, logEntry.filename, status);
@@ -266,7 +266,7 @@ public class VolumeUtil {
     Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris()) + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
         + dir.getParent().getName() + Path.SEPARATOR + dir.getName());
 
-    log.info("Updating directory for " + extent + " from " + dir + " to " + newDir);
+    log.info("Updating directory for {} from {} to {}", extent, dir, newDir);
     if (extent.isRootTablet()) {
       // the root tablet is special case, its files need to be copied if its dir is changed
 
@@ -280,30 +280,30 @@ public class VolumeUtil {
           Path newDirBackup = getBackupName(fs2, newDir);
           // never delete anything because were dealing with the root tablet
           // one reason this dir may exist is because this method failed previously
-          log.info("renaming " + newDir + " to " + newDirBackup);
+          log.info("renaming {} to {}", newDir, newDirBackup);
           if (!fs2.rename(newDir, newDirBackup)) {
             throw new IOException("Failed to rename " + newDir + " to " + newDirBackup);
           }
         }
 
         // do a lot of logging since this is the root tablet
-        log.info("copying " + dir + " to " + newDir);
+        log.info("copying {} to {}", dir, newDir);
         if (!FileUtil.copy(fs1, dir, fs2, newDir, false, CachedConfiguration.getInstance())) {
           throw new IOException("Failed to copy " + dir + " to " + newDir);
         }
 
         // only set the new location in zookeeper after a successful copy
-        log.info("setting root tablet location to " + newDir);
+        log.info("setting root tablet location to {}", newDir);
         MetadataTableUtil.setRootTabletDir(newDir.toString());
 
         // rename the old dir to avoid confusion when someone looks at filesystem... its ok if we fail here and this does not happen because the location in
         // zookeeper is the authority
         Path dirBackup = getBackupName(fs1, dir);
-        log.info("renaming " + dir + " to " + dirBackup);
+        log.info("renaming {} to {}", dir, dirBackup);
         fs1.rename(dir, dirBackup);
 
       } else {
-        log.info("setting root tablet location to " + newDir);
+        log.info("setting root tablet location to {}", newDir);
         MetadataTableUtil.setRootTabletDir(newDir.toString());
       }
 

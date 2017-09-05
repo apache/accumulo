@@ -152,8 +152,8 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
       }
     }
 
-    log.info("Count for volume1: " + v1Count);
-    log.info("Count for volume2: " + v2Count);
+    log.info("Count for volume1: {}", v1Count);
+    log.info("Count for volume2: {}", v2Count);
 
     assertEquals(splits.size() + 1, v1Count + v2Count);
     // a fair chooser will differ by less than count(volumes)

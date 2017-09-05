@@ -62,7 +62,7 @@ public class ZooSession {
     @Override
     public void process(WatchedEvent event) {
       if (event.getState() == KeeperState.Expired) {
-        log.debug("Session expired, state of current session : " + event.getState());
+        log.debug("Session expired, state of current session : {}", event.getState());
       }
     }
 
@@ -151,7 +151,7 @@ public class ZooSession {
     String readOnlySessionKey = sessionKey(zooKeepers, timeout, null, null);
     ZooSessionInfo zsi = sessions.get(sessionKey);
     if (zsi != null && zsi.zooKeeper.getState() == States.CLOSED) {
-      log.debug("Removing closed ZooKeeper session to " + zooKeepers);
+      log.debug("Removing closed ZooKeeper session to {}", zooKeepers);
       if (auth != null && sessions.get(readOnlySessionKey) == zsi)
         sessions.remove(readOnlySessionKey);
       zsi = null;
@@ -160,7 +160,7 @@ public class ZooSession {
 
     if (zsi == null) {
       ZooWatcher watcher = new ZooWatcher();
-      log.debug("Connecting to " + zooKeepers + " with timeout " + timeout + " with auth");
+      log.debug("Connecting to {} with timeout {} with auth", zooKeepers, timeout);
       zsi = new ZooSessionInfo(connect(zooKeepers, timeout, scheme, auth, watcher), watcher);
       sessions.put(sessionKey, zsi);
       if (auth != null && !sessions.containsKey(readOnlySessionKey))

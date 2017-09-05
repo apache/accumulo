@@ -550,13 +550,13 @@ public class MetadataTableUtil {
   }
 
   public static List<LogEntry> getLogEntries(ClientContext context, KeyExtent extent) throws IOException, KeeperException, InterruptedException {
-    log.info("Scanning logging entries for " + extent);
+    log.info("Scanning logging entries for {}", extent);
     ArrayList<LogEntry> result = new ArrayList<>();
     if (extent.equals(RootTable.EXTENT)) {
       log.info("Getting logs for root tablet from zookeeper");
       getRootLogEntries(result);
     } else {
-      log.info("Scanning metadata for logs used for tablet " + extent);
+      log.info("Scanning metadata for logs used for tablet {}", extent);
       Scanner scanner = getTabletLogScanner(context, extent);
       Text pattern = extent.getMetadataEntry();
       for (Entry<Key,Value> entry : scanner) {
@@ -569,7 +569,7 @@ public class MetadataTableUtil {
       }
     }
 
-    log.info("Returning logs " + result + " for extent " + extent);
+    log.info("Returning logs {} for extent {}", result, extent);
     return result;
   }
 
@@ -618,7 +618,7 @@ public class MetadataTableUtil {
       rootTableEntries = getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null)).iterator();
       try {
         Scanner scanner = context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-        log.info("Setting range to " + MetadataSchema.TabletsSection.getRange());
+        log.info("Setting range to {}", MetadataSchema.TabletsSection.getRange());
         scanner.setRange(MetadataSchema.TabletsSection.getRange());
         scanner.fetchColumnFamily(LogColumnFamily.NAME);
         metadataEntries = scanner.iterator();
@@ -860,7 +860,7 @@ public class MetadataTableUtil {
           // delete what we have cloned and try again
           deleteTable(tableId, false, context, null);
 
-          log.debug("Tablets merged in table " + srcTableId + " while attempting to clone, trying again");
+          log.debug("Tablets merged in table {} while attempting to clone, trying again", srcTableId);
 
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
@@ -1030,7 +1030,7 @@ public class MetadataTableUtil {
     String filename = rowID.substring(prefix.length());
 
     // add the new entry first
-    log.info("Moving " + filename + " marker in " + RootTable.NAME);
+    log.info("Moving {} marker in {}", filename, RootTable.NAME);
     Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + filename);
     m.put(EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES);
     update(context, m, RootTable.EXTENT);

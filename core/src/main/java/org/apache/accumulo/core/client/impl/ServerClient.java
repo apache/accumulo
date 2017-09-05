@@ -176,7 +176,7 @@ public class ServerClient {
           if (servers.isEmpty()) {
             log.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
           } else {
-            log.warn("Failed to find an available server in the list of servers: " + servers);
+            log.warn("Failed to find an available server in the list of servers: {}", servers);
           }
           warnedAboutTServersBeingDown = true;
         }

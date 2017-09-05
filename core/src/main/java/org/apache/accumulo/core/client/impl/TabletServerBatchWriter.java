@@ -546,7 +546,7 @@ public class TabletServerBatchWriter {
     somethingFailed = true;
     this.serverSideErrors.add(server);
     this.notifyAll();
-    log.error("Server side error on " + server + ": " + e);
+    log.error("Server side error on {}", server, e);
   }
 
   private synchronized void updateUnknownErrors(String msg, Throwable t) {
@@ -639,7 +639,7 @@ public class TabletServerBatchWriter {
 
         if (rf != null) {
           if (log.isTraceEnabled())
-            log.trace("tid=" + Thread.currentThread().getId() + "  Requeuing " + rf.size() + " failed mutations");
+            log.trace("tid={}  Requeuing {} failed mutations", Thread.currentThread().getId(), rf.size());
           addFailedMutations(rf);
         }
       } catch (Throwable t) {

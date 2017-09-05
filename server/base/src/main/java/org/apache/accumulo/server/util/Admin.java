@@ -375,7 +375,7 @@ public class Admin implements KeywordExecutable {
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
-        log.info("Stopping server " + finalServer);
+        log.info("Stopping server {}", finalServer);
         MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
           @Override
           public void execute(MasterClientService.Client client) throws Exception {

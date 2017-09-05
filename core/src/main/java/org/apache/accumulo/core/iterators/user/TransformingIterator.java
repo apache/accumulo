@@ -388,7 +388,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
         colVis = new ColumnVisibility(visibility.toArray());
         parsedVisibilitiesCache.put(visibility, Boolean.TRUE);
       } catch (BadArgumentException e) {
-        log.error("Parse error after transformation : " + visibility);
+        log.error("Parse error after transformation : {}", visibility);
         parsedVisibilitiesCache.put(visibility, Boolean.FALSE);
         if (scanning) {
           return false;

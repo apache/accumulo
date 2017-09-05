@@ -245,6 +245,6 @@ public class Main {
   }
 
   private static void warnDuplicate(final KeywordExecutable service) {
-    log.warn("Ambiguous duplicate binding for keyword '" + service.keyword() + "' found: " + service.getClass().getName());
+    log.warn("Ambiguous duplicate binding for keyword '{}' found: {}", service.keyword(), service.getClass().getName());
   }
 }

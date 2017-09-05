@@ -712,7 +712,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       // the single thread executor shouldn't have any pending tasks, but check anyways
       if (!tasksRemaining.isEmpty()) {
-        log.warn("Unexpectedly had " + tasksRemaining.size() + " task(s) remaining in threadpool for execution when being stopped");
+        log.warn("Unexpectedly had {} task(s) remaining in threadpool for execution when being stopped", tasksRemaining.size());
       }
 
       executor = null;

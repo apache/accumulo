@@ -147,7 +147,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       assertTrue(startText != null || endText != null);
       count++;
     }
-    log.info("Finished table " + table);
+    log.info("Finished table {}", table);
     assertEquals(entries, count);
   }
 

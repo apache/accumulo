@@ -41,7 +41,7 @@ public class LongSummation implements Aggregator {
     try {
       sum += bytesToLong(value.get());
     } catch (IOException e) {
-      log.error(LongSummation.class.getSimpleName() + " trying to convert bytes to long, but byte array isn't length 8");
+      log.error("{} trying to convert bytes to long, but byte array isn't length 8", LongSummation.class.getSimpleName());
     }
   }
 

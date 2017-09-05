@@ -97,7 +97,7 @@ public class KerberosAuthenticator implements Authenticator {
         zooCache.clear();
         if (zoo.exists(zkUserPath)) {
           zoo.recursiveDelete(zkUserPath, NodeMissingPolicy.SKIP);
-          log.info("Removed " + zkUserPath + "/" + " from zookeeper");
+          log.info("Removed {}/ from zookeeper", zkUserPath);
         }
 
         // prep parent node of users with root username

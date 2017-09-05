@@ -364,10 +364,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
         for (String line; (line = reader.readLine()) != null;) {
           Path exportedFile = new Path(line);
           // There isn't a cp on FileSystem??
-          log.info("Copying " + line + " to " + localTmpPath);
+          log.info("Copying {} to {}", line, localTmpPath);
           fs.copyToLocalFile(exportedFile, localTmpPath);
           Path tmpFile = new Path(localTmpPath, exportedFile.getName());
-          log.info("Moving " + tmpFile + " to the import directory " + importDir);
+          log.info("Moving {} to the import directory {}", tmpFile, importDir);
           fs.moveFromLocalFile(tmpFile, importDir);
         }
       }
@@ -1529,15 +1529,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // Try to find the active scan for about 15seconds
     for (int i = 0; i < 50 && scans.isEmpty(); i++) {
       String currentScans = ts.exec("listscans", true);
-      log.info("Got output from listscans:\n" + currentScans);
+      log.info("Got output from listscans:\n{}", currentScans);
       String[] lines = currentScans.split("\n");
       for (int scanOffset = 2; scanOffset < lines.length; scanOffset++) {
         String currentScan = lines[scanOffset];
         if (currentScan.contains(table)) {
-          log.info("Retaining scan: " + currentScan);
+          log.info("Retaining scan: {}", currentScan);
           scans.add(currentScan);
         } else {
-          log.info("Ignoring scan because of wrong table: " + currentScan);
+          log.info("Ignoring scan because of wrong table: {}", currentScan);
         }
       }
       sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
@@ -1548,7 +1548,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     for (String scan : scans) {
       if (!scan.contains("RUNNING")) {
-        log.info("Ignoring scan because it doesn't contain 'RUNNING': " + scan);
+        log.info("Ignoring scan because it doesn't contain 'RUNNING': {}", scan);
         continue;
       }
       String parts[] = scan.split("\\|");
@@ -1868,7 +1868,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("scan -t " + MetadataTable.NAME + " -np -c file -b " + tableId + " -e " + tableId + "~");
 
-    log.debug("countFiles(): " + ts.output.get());
+    log.debug("countFiles(): {}", ts.output.get());
 
     String[] lines = StringUtils.split(ts.output.get(), "\n");
     ts.output.clear();

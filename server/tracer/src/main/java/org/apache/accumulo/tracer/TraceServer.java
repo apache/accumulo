@@ -335,7 +335,7 @@ public class TraceServer implements Watcher {
   private void registerInZooKeeper(String name, String root) throws Exception {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
-    log.info("Registering tracer " + name + " at " + root);
+    log.info("Registering tracer {} at {}", name, root);
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(UTF_8));
     zoo.exists(path, this);
   }
@@ -398,12 +398,12 @@ public class TraceServer implements Watcher {
 
   @Override
   public void process(WatchedEvent event) {
-    log.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());
+    log.debug("event {} {} {}", event.getPath(), event.getType(), event.getState());
     if (event.getState() == KeeperState.Expired) {
-      log.warn("Trace server lost zookeeper registration at " + event.getPath());
+      log.warn("Trace server lost zookeeper registration at {} ", event.getPath());
       server.stop();
     } else if (event.getType() == EventType.NodeDeleted) {
-      log.warn("Trace server zookeeper entry lost " + event.getPath());
+      log.warn("Trace server zookeeper entry lost {}", event.getPath());
       server.stop();
     }
     if (event.getPath() != null) {

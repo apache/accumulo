@@ -221,7 +221,7 @@ public class TabletServerLogger {
       if (next instanceof DfsLogger) {
         currentLog = (DfsLogger) next;
         logId.incrementAndGet();
-        log.info("Using next log " + currentLog.getFileName());
+        log.info("Using next log {}", currentLog.getFileName());
 
         // When we successfully create a WAL, make sure to reset the Retry.
         if (null != retry) {
@@ -281,7 +281,7 @@ public class TabletServerLogger {
             log.debug("Created next WAL " + fileName);
             tserver.addNewLogMarker(alog);
             while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
-              log.info("Our WAL was not used for 12 hours: " + fileName);
+              log.info("Our WAL was not used for 12 hours: {}", fileName);
             }
           } catch (Exception t) {
             log.error("Failed to open WAL", t);
@@ -410,7 +410,7 @@ public class TabletServerLogger {
           success = (currentLogId == logId.get());
         }
       } catch (DfsLogger.LogClosedException ex) {
-        log.debug("Logs closed while writing, retrying " + attempt);
+        log.debug("Logs closed while writing, retrying {}", attempt);
       } catch (Exception t) {
         if (attempt != 1) {
           log.error("Unexpected error writing to log, retrying attempt " + attempt, t);

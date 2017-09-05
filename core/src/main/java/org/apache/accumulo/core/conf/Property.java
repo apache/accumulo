@@ -929,13 +929,13 @@ public enum Property {
 
       instance = clazz.newInstance();
       if (loaded.put(clazzName, clazz) != clazz)
-        log.debug("Loaded class : " + clazzName);
+        log.debug("Loaded class : {}", clazzName);
     } catch (Exception e) {
       log.warn("Failed to load class ", e);
     }
 
     if (instance == null) {
-      log.info("Using default class " + defaultInstance.getClass().getName());
+      log.info("Using default class {}", defaultInstance.getClass().getName());
       instance = defaultInstance;
     }
     return instance;

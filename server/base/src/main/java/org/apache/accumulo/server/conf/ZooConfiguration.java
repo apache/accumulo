@@ -71,7 +71,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
-        log.error("Using parent value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+        log.error("Using parent value for {} due to improperly formatted {}: {}", key, property.getType(), value);
       value = parent.get(property);
     }
     return value;

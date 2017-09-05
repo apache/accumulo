@@ -96,7 +96,7 @@ public class MinorCompactor extends Compactor {
   @Override
   public CompactionStats call() {
     final String outputFileName = getOutputFile();
-    log.debug("Begin minor compaction " + outputFileName + " " + getExtent());
+    log.debug("Begin minor compaction {} {}", outputFileName, getExtent());
 
     // output to new MapFile with a temporary name
     int sleepTime = 100;
@@ -135,7 +135,7 @@ public class MinorCompactor extends Compactor {
         Random random = new Random();
 
         int sleep = sleepTime + random.nextInt(sleepTime);
-        log.debug("MinC failed sleeping " + sleep + " ms before retrying");
+        log.debug("MinC failed sleeping {} ms before retrying", sleep);
         sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
         sleepTime = (int) Math.round(Math.min(maxSleepTime, sleepTime * growthFactor));
 

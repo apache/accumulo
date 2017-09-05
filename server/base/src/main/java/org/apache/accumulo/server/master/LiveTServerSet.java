@@ -415,7 +415,7 @@ public class LiveTServerSet implements Watcher {
     current.remove(zPath);
     currentInstances.remove(server);
 
-    log.info("Removing zookeeper lock for " + server);
+    log.info("Removing zookeeper lock for {}", server);
     String fullpath = ZooUtil.getRoot(context.getInstance()) + Constants.ZTSERVERS + "/" + zPath;
     try {
       ZooReaderWriter.getInstance().recursiveDelete(fullpath, SKIP);

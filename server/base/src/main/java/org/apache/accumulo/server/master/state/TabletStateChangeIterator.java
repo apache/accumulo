@@ -76,7 +76,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       masterState = MasterState.valueOf(options.get(MASTER_STATE_OPTION));
     } catch (Exception ex) {
       if (options.get(MASTER_STATE_OPTION) != null) {
-        log.error("Unable to decode masterState " + options.get(MASTER_STATE_OPTION));
+        log.error("Unable to decode masterState {}", options.get(MASTER_STATE_OPTION));
       }
     }
     Set<TServerInstance> shuttingDown = parseServers(options.get(SHUTTING_DOWN_OPTION));
@@ -183,7 +183,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       boolean shouldBeOnline = onlineTables.contains(tls.extent.getTableId());
 
       if (debug) {
-        log.debug(tls.extent + " is " + tls.getState(current) + " and should be " + (shouldBeOnline ? "on" : "off") + "line");
+        log.debug("{} is {} and should be {} line", tls.extent, tls.getState(current), (shouldBeOnline ? "on" : "off"));
       }
       switch (tls.getState(current)) {
         case ASSIGNED:
