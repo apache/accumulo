@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.FileNotFoundException;
 
-import com.google.common.collect.Sets;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -32,6 +31,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Sets;
 
 public class AccumuloTest {
   private FileSystem fs;
