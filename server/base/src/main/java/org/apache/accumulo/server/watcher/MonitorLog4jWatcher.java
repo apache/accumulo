@@ -19,6 +19,7 @@ package org.apache.accumulo.server.watcher;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Appender;
@@ -28,8 +29,6 @@ import org.apache.log4j.helpers.FileWatchdog;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Watcher that updates the monitor's log4j port from ZooKeeper in a system property
@@ -114,7 +113,7 @@ public class MonitorLog4jWatcher extends FileWatchdog implements Watcher {
       String hostPortString = new String(ZooReaderWriter.getInstance().getData(path, null), UTF_8);
       HostAndPort hostAndPort = HostAndPort.fromString(hostPortString);
 
-      System.setProperty(HOST_PROPERTY_NAME, hostAndPort.getHostText());
+      System.setProperty(HOST_PROPERTY_NAME, hostAndPort.getHost());
       System.setProperty(PORT_PROPERTY_NAME, Integer.toString(hostAndPort.getPort()));
 
       log.info("Changing monitor log4j address to " + hostAndPort.toString());

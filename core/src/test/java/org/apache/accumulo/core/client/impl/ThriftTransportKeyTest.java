@@ -32,14 +32,13 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class ThriftTransportKeyTest {
 

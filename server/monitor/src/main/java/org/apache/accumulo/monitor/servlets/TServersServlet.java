@@ -39,6 +39,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.Duration;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.util.Table;
 import org.apache.accumulo.monitor.util.TableRow;
@@ -53,8 +54,6 @@ import org.apache.accumulo.monitor.util.celltypes.TableLinkType;
 import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 import org.apache.accumulo.server.util.TableInfoUtil;
-
-import com.google.common.net.HostAndPort;
 
 public class TServersServlet extends BasicServlet {
 
@@ -252,7 +251,7 @@ public class TServersServlet extends BasicServlet {
 
   private void doDetailTable(HttpServletRequest req, StringBuilder sb, HostAndPort address, int numTablets, TabletStats total, TabletStats historical) {
     Table detailTable = new Table("tServerDetail", "Details");
-    detailTable.setSubCaption(address.getHostText() + ":" + address.getPort());
+    detailTable.setSubCaption(address.getHost() + ":" + address.getPort());
     detailTable.addSortableColumn("Hosted&nbsp;Tablets", new NumberType<Integer>(), null);
     detailTable.addSortableColumn("Entries", new NumberType<Long>(), null);
     detailTable.addSortableColumn("Minor&nbsp;Compacting", new NumberType<Integer>(), null);
