@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.Monitor.ScanStats;
 import org.apache.accumulo.monitor.util.Table;
@@ -30,8 +31,6 @@ import org.apache.accumulo.monitor.util.TableRow;
 import org.apache.accumulo.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.monitor.util.celltypes.PreciseNumberType;
 import org.apache.accumulo.monitor.util.celltypes.TServerLinkType;
-
-import com.google.common.net.HostAndPort;
 
 public class ScanServlet extends BasicServlet {
 
