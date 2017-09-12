@@ -86,7 +86,7 @@ public class WebViews {
     List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
 
     Map<String,Object> model = getModel();
-    model.put("title", "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), false).getHostText()));
+    model.put("title", "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), false).getHost()));
     model.put("template", "master.ftl");
     model.put("js", "master.js");
 

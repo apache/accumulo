@@ -30,6 +30,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.proxy.thrift.NamespacePermission;
 import org.apache.accumulo.proxy.thrift.SystemPermission;
@@ -43,8 +44,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class TestProxySecurityOperations {
   protected static TServer proxy;

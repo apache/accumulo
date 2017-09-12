@@ -48,14 +48,13 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.master.MasterResource;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
-
-import com.google.common.net.HostAndPort;
 
 /**
  *
@@ -125,7 +124,7 @@ public class TabletServerResource {
     for (TabletServerStatus server : mmi.tServerInfo) {
       if (server.logSorts != null) {
         for (RecoveryStatus recovery : server.logSorts) {
-          String serv = AddressUtil.parseAddress(server.name, false).getHostText();
+          String serv = AddressUtil.parseAddress(server.name, false).getHost();
           String log = recovery.name;
           int time = recovery.runtime;
           double copySort = recovery.progress;

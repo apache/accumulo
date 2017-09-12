@@ -85,7 +85,7 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.net.HostAndPort;
+import org.apache.accumulo.core.util.HostAndPort;
 
 /**
  * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the metadata location entries for a table to

@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.proxy.thrift.AccumuloException;
 import org.apache.accumulo.proxy.thrift.IteratorScope;
@@ -43,8 +44,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class TestProxyNamespaceOperations {
 

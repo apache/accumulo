@@ -21,6 +21,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -71,6 +72,7 @@ import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
@@ -111,7 +113,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
-import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 // Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
@@ -488,7 +489,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         });
       } catch (ReplicationTableOfflineException e) {
         // No elements that we need to preclude
-        return Iterators.emptyIterator();
+        return Collections.emptyIterator();
       }
     }
 

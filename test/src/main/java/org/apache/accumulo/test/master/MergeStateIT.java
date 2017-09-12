@@ -37,6 +37,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.master.state.MergeStats;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.master.state.Assignment;
@@ -51,8 +52,6 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class MergeStateIT extends ConfigurableMacBase {
 

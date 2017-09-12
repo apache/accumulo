@@ -16,9 +16,8 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.thrift.server.TServer;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Encapsulate a Thrift server and the address, host and port, to which it is bound.
