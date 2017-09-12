@@ -22,8 +22,7 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-
-import com.google.common.net.HostAndPort;
+import org.apache.accumulo.core.util.HostAndPort;
 
 /** For a suspended tablet, the time of suspension and the server it was suspended from. */
 public class SuspendingTServer {
