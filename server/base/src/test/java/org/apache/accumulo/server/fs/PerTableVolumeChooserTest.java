@@ -16,265 +16,164 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createStrictMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
-import org.easymock.EasyMock;
-import org.easymock.IExpectationSetters;
-import org.junit.Assert;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.google.common.collect.Sets;
-
 public class PerTableVolumeChooserTest {
-  private static final int REQUIRED_NUMBER_TRIES = 20; // times to call choose for likely exercising of each preferred volume
-  private static final String[] ALL_OPTIONS = new String[] {"1", "2", "3"};
-  public static final String INVALID_CHOOSER_CLASSNAME = "MysteriousVolumeChooser";
-  private ServerConfigurationFactory mockedServerConfigurationFactory;
-  private TableConfiguration mockedTableConfiguration;
-  private PerTableVolumeChooser perTableVolumeChooser;
-  private AccumuloConfiguration mockedAccumuloConfiguration;
+
+  private ServerConfigurationFactory confFactory;
+  private TableConfiguration tableConf;
+  private PerTableVolumeChooser chooser;
+  private AccumuloConfiguration systemConf;
+
+  public static class MockChooser1 extends RandomVolumeChooser {}
+
+  public static class MockChooser2 extends RandomVolumeChooser {}
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void before() throws Exception {
-    perTableVolumeChooser = new PerTableVolumeChooser();
+    confFactory = createStrictMock(ServerConfigurationFactory.class);
 
-    mockedServerConfigurationFactory = EasyMock.createMock(ServerConfigurationFactory.class);
-    Field field = perTableVolumeChooser.getClass().getDeclaredField("lazyConfFactory");
-    field.setAccessible(true);
-    field.set(perTableVolumeChooser, mockedServerConfigurationFactory);
-
-    mockedTableConfiguration = EasyMock.createMock(TableConfiguration.class);
-    mockedAccumuloConfiguration = EasyMock.createMock(AccumuloConfiguration.class);
-    EasyMock.expect(mockedServerConfigurationFactory.getTableConfiguration(EasyMock.<Table.ID> anyObject())).andReturn(mockedTableConfiguration).anyTimes();
-    EasyMock.expect(mockedServerConfigurationFactory.getSystemConfiguration()).andReturn(mockedAccumuloConfiguration).anyTimes();
-    EasyMock.expect(mockedTableConfiguration.get(Property.TABLE_CLASSPATH)).andReturn(null).anyTimes();
-  }
-
-  private IExpectationSetters<String> expectDefaultScope(String className) {
-    return expectScope(ChooserScope.DEFAULT, className);
-  }
-
-  private IExpectationSetters<String> expectLoggerScope(String className) {
-    return expectScope(ChooserScope.LOGGER, className);
-  }
-
-  private IExpectationSetters<String> expectScope(ChooserScope scope, String className) {
-    return EasyMock.expect(mockedAccumuloConfiguration.get(PerTableVolumeChooser.getPropertyNameForScope(scope))).andReturn(className);
-  }
-
-  private IExpectationSetters<String> expectTableChooser(String className) {
-    return EasyMock.expect(mockedTableConfiguration.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER)).andReturn(className);
-  }
-
-  private Set<String> chooseRepeatedlyForTable() {
-    VolumeChooserEnvironment volumeChooserEnvironment = new VolumeChooserEnvironment(Table.ID.of("h"));
-    Set<String> results = new HashSet<>();
-    for (int i = 0; i < REQUIRED_NUMBER_TRIES; i++) {
-      results.add(perTableVolumeChooser.choose(volumeChooserEnvironment, ALL_OPTIONS));
-    }
-    return results;
-  }
-
-  public static class VolumeChooserAlwaysOne extends VolumeChooserForFixedVolume {
-    public VolumeChooserAlwaysOne() {
-      super("1");
-    }
-  }
-
-  public static class VolumeChooserAlwaysTwo extends VolumeChooserForFixedVolume {
-    public VolumeChooserAlwaysTwo() {
-      super("2");
-    }
-  }
-
-  public static class VolumeChooserAlwaysThree extends VolumeChooserForFixedVolume {
-    public VolumeChooserAlwaysThree() {
-      super("3");
-    }
-  }
-
-  public static class VolumeChooserForFixedVolume implements VolumeChooser {
-    private final String onlyValidOption;
-
-    public VolumeChooserForFixedVolume(String fixedVolume) {
-      onlyValidOption = fixedVolume;
-    }
-
-    @Override
-    public String choose(VolumeChooserEnvironment env, String[] options) {
-      for (String option : options) {
-        if (onlyValidOption.equals(option)) {
-          return onlyValidOption;
-        }
+    chooser = new PerTableVolumeChooser() {
+      @Override
+      ServerConfigurationFactory loadConfFactory() {
+        return confFactory;
       }
-      return null;
-    }
+
+      @Override
+      String getTableContext(TableConfiguration tableConf) {
+        return null;
+      }
+    };
+
+    tableConf = createStrictMock(TableConfiguration.class);
+    systemConf = createStrictMock(AccumuloConfiguration.class);
+    expect(confFactory.getTableConfiguration(anyObject())).andReturn(tableConf).anyTimes();
+    expect(confFactory.getSystemConfiguration()).andReturn(systemConf).anyTimes();
   }
 
-  private Set<String> chooseRepeatedlyForLogger() {
-    return chooseRepeatedlyForScope(ChooserScope.LOGGER);
+  @After
+  public void after() throws Exception {
+    verify(confFactory, tableConf, systemConf);
   }
 
-  private Set<String> chooseRepeatedlyForScope(ChooserScope scope) {
-    VolumeChooserEnvironment volumeChooserEnvironment = new VolumeChooserEnvironment(scope);
-    Set<String> results = new HashSet<>();
-
-    for (int i = 0; i < REQUIRED_NUMBER_TRIES; i++) {
-      results.add(perTableVolumeChooser.choose(volumeChooserEnvironment, ALL_OPTIONS));
-    }
-    return results;
+  private VolumeChooser getTableDelegate() {
+    VolumeChooserEnvironment env = new VolumeChooserEnvironment(Table.ID.of("testTable"));
+    return chooser.getDelegateChooser(env);
   }
 
-  @Test
-  public void testInitScope() throws Exception {
-    VolumeChooserEnvironment volumeChooserEnvironment = new VolumeChooserEnvironment(ChooserScope.INIT);
-
-    Set<String> results = new HashSet<>();
-    for (int i = 0; i < REQUIRED_NUMBER_TRIES; i++) {
-      results.add(perTableVolumeChooser.choose(volumeChooserEnvironment, ALL_OPTIONS));
-    }
-
-    Assert.assertEquals(Sets.newHashSet(Arrays.asList(ALL_OPTIONS)), results);
-  }
-
-  @Test
-  public void testTableConfig() throws Exception {
-    expectTableChooser(VolumeChooserAlwaysTwo.class.getName()).atLeastOnce();
-
-    EasyMock.replay(mockedServerConfigurationFactory, mockedTableConfiguration, mockedAccumuloConfiguration);
-
-    Set<String> results = chooseRepeatedlyForTable();
-
-    EasyMock.verify(mockedServerConfigurationFactory, mockedTableConfiguration, mockedAccumuloConfiguration);
-    Assert.assertEquals(Sets.newHashSet(Arrays.asList("2")), results);
+  private VolumeChooser getDelegate(ChooserScope scope) {
+    VolumeChooserEnvironment env = new VolumeChooserEnvironment(scope);
+    return chooser.getDelegateChooser(env);
   }
 
   @Test
-  public void testTableMisconfigured() throws Exception {
-    expectDefaultScope(VolumeChooserAlwaysOne.class.getName());
-    expectTableChooser(INVALID_CHOOSER_CLASSNAME);
+  public void testInitScopeSelectsRandomChooser() throws Exception {
+    replay(confFactory, tableConf, systemConf);
+    VolumeChooser delegate = getDelegate(ChooserScope.INIT);
+    assertSame(RandomVolumeChooser.class, delegate.getClass());
+  }
 
-    EasyMock.replay(mockedServerConfigurationFactory, mockedTableConfiguration, mockedAccumuloConfiguration);
+  @Test
+  public void testTableScopeUsingTableProperty() throws Exception {
+    expect(tableConf.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER)).andReturn(MockChooser1.class.getName());
+    replay(confFactory, tableConf, systemConf);
+
+    VolumeChooser delegate = getTableDelegate();
+    assertSame(MockChooser1.class, delegate.getClass());
+  }
+
+  @Test
+  public void testTableScopeUsingDefaultScopeProperty() throws Exception {
+    expect(tableConf.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER)).andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(MockChooser2.class.getName()).once();
+    replay(confFactory, tableConf, systemConf);
+
+    VolumeChooser delegate = getTableDelegate();
+    assertSame(MockChooser2.class, delegate.getClass());
+  }
+
+  @Test
+  public void testTableScopeWithNoConfig() throws Exception {
+    expect(tableConf.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER)).andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(null).once();
+    replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
-    chooseRepeatedlyForTable();
+    getTableDelegate();
+    fail("should not reach");
   }
 
   @Test
-  public void testTableMissing() throws Exception {
-    expectDefaultScope(null);
-    expectTableChooser(null);
-
-    EasyMock.replay(mockedServerConfigurationFactory, mockedTableConfiguration, mockedAccumuloConfiguration);
+  public void testTableScopeWithBadDelegate() throws Exception {
+    expect(tableConf.get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER)).andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn("not a valid class name").once();
+    replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
-    chooseRepeatedlyForTable();
+    getTableDelegate();
+    fail("should not reach");
   }
 
   @Test
-  public void testTableMisconfiguredAndDefaultEmpty() throws Exception {
-    expectDefaultScope("");
-    expectTableChooser(INVALID_CHOOSER_CLASSNAME);
+  public void testLoggerScopeUsingLoggerProperty() throws Exception {
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(MockChooser1.class.getName()).once();
+    replay(confFactory, tableConf, systemConf);
 
-    EasyMock.replay(mockedServerConfigurationFactory, mockedTableConfiguration, mockedAccumuloConfiguration);
+    VolumeChooser delegate = getDelegate(ChooserScope.LOGGER);
+    assertSame(MockChooser1.class, delegate.getClass());
+  }
+
+  @Test
+  public void testLoggerScopeUsingDefaultProperty() throws Exception {
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(MockChooser2.class.getName()).once();
+    replay(confFactory, tableConf, systemConf);
+
+    VolumeChooser delegate = getDelegate(ChooserScope.LOGGER);
+    assertSame(MockChooser2.class, delegate.getClass());
+  }
+
+  @Test
+  public void testLoggerScopeWithNoConfig() throws Exception {
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn(null).once();
+    replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
-    chooseRepeatedlyForTable();
+    getDelegate(ChooserScope.LOGGER);
+    fail("should not reach");
   }
 
   @Test
-  public void testTableEmptyConfig() throws Exception {
-    expectDefaultScope("");
-    expectTableChooser("");
-
-    EasyMock.replay(mockedServerConfigurationFactory, mockedTableConfiguration, mockedAccumuloConfiguration);
+  public void testLoggerScopeWithBadDelegate() throws Exception {
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER))).andReturn(null).once();
+    expect(systemConf.get(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT))).andReturn("not a valid class name").once();
+    replay(confFactory, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
-    chooseRepeatedlyForTable();
-  }
-
-  @Test
-  public void testTableAndDefaultEmpty() throws Exception {
-    expectDefaultScope("");
-    expectTableChooser("");
-
-    EasyMock.replay(mockedServerConfigurationFactory, mockedTableConfiguration, mockedAccumuloConfiguration);
-
-    thrown.expect(VolumeChooserException.class);
-    chooseRepeatedlyForTable();
-  }
-
-  @Test
-  public void testScopeConfig() throws Exception {
-    expectLoggerScope(VolumeChooserAlwaysOne.class.getName()).atLeastOnce();
-
-    EasyMock.replay(mockedServerConfigurationFactory, mockedAccumuloConfiguration);
-
-    Set<String> results = chooseRepeatedlyForLogger();
-
-    EasyMock.verify(mockedServerConfigurationFactory, mockedAccumuloConfiguration);
-    Assert.assertEquals(Sets.newHashSet(Arrays.asList("1")), results);
-  }
-
-  @Test
-  public void testScopeMisconfigured() throws Exception {
-    expectDefaultScope(VolumeChooserAlwaysThree.class.getName());
-    expectLoggerScope(INVALID_CHOOSER_CLASSNAME);
-
-    EasyMock.replay(mockedServerConfigurationFactory, mockedAccumuloConfiguration);
-
-    thrown.expect(VolumeChooserException.class);
-    chooseRepeatedlyForLogger();
-  }
-
-  @Test
-  public void testScopeMissing() throws Exception {
-    expectLoggerScope(null);
-    expectDefaultScope(null);
-
-    EasyMock.replay(mockedServerConfigurationFactory, mockedAccumuloConfiguration);
-
-    thrown.expect(VolumeChooserException.class);
-    chooseRepeatedlyForLogger();
-  }
-
-  @Test
-  public void testScopeMisconfiguredAndDefaultEmpty() throws Exception {
-    expectDefaultScope("");
-    expectTableChooser("");
-    expectLoggerScope(INVALID_CHOOSER_CLASSNAME);
-
-    EasyMock.replay(mockedServerConfigurationFactory, mockedAccumuloConfiguration);
-
-    thrown.expect(VolumeChooserException.class);
-    chooseRepeatedlyForLogger();
-  }
-
-  @Test
-  public void testScopeAndDefaultBothEmpty() throws Exception {
-    expectDefaultScope("");
-    expectLoggerScope("");
-
-    EasyMock.replay(mockedServerConfigurationFactory, mockedAccumuloConfiguration);
-
-    thrown.expect(VolumeChooserException.class);
-    chooseRepeatedlyForLogger();
+    getDelegate(ChooserScope.LOGGER);
+    fail("should not reach");
   }
 
 }

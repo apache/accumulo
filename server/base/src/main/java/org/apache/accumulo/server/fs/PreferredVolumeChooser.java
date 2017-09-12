@@ -53,29 +53,27 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException {
     log.trace("{}.choose", getClass().getSimpleName());
+    // Randomly choose the volume from the preferred volumes
+    String choice = super.choose(env, getPreferredVolumes(env, options));
+    log.trace("Choice = {}", choice);
+    return choice;
+  }
 
-    Set<String> preferredVolumes;
+  // visible (not private) for testing
+  String[] getPreferredVolumes(VolumeChooserEnvironment env, String[] options) {
     switch (env.getScope()) {
       case INIT:
         // TODO should be possible to read from SiteConfiguration during init
         log.warn("Not possible to determine preferred volumes at '{}' scope. Using all volumes.", ChooserScope.INIT);
-        return super.choose(env, options);
+        return options;
       case TABLE:
-        preferredVolumes = getPreferredVolumesForTable(env, loadConfFactory(), options);
-        break;
+        return getPreferredVolumesForTable(env, loadConfFactory(), options);
       default:
-        preferredVolumes = getPreferredVolumesForScope(env, loadConfFactory(), options);
-        break;
+        return getPreferredVolumesForScope(env, loadConfFactory(), options);
     }
-
-    // Randomly choose the volume from the preferred volumes
-    String choice = super.choose(env, preferredVolumes.toArray(new String[preferredVolumes.size()]));
-    log.trace("Choice = {}", choice);
-
-    return choice;
   }
 
-  private Set<String> getPreferredVolumesForTable(VolumeChooserEnvironment env, ServerConfigurationFactory confFactory, String[] options) {
+  private String[] getPreferredVolumesForTable(VolumeChooserEnvironment env, ServerConfigurationFactory confFactory, String[] options) {
     log.trace("Looking up property {} + for Table id: {}", TABLE_PREFERRED_VOLUMES, env.getTableId());
 
     final TableConfiguration tableConf = confFactory.getTableConfiguration(env.getTableId());
@@ -96,7 +94,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     return parsePreferred(TABLE_PREFERRED_VOLUMES, preferredVolumes, options);
   }
 
-  private Set<String> getPreferredVolumesForScope(VolumeChooserEnvironment env, ServerConfigurationFactory confFactory, String[] options) {
+  private String[] getPreferredVolumesForScope(VolumeChooserEnvironment env, ServerConfigurationFactory confFactory, String[] options) {
     ChooserScope scope = env.getScope();
     String property = getPropertyNameForScope(scope);
     log.trace("Looking up property {} for scope: {}", property, scope);
@@ -122,7 +120,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     return parsePreferred(property, preferredVolumes, options);
   }
 
-  private Set<String> parsePreferred(String property, String preferredVolumes, String[] options) {
+  private String[] parsePreferred(String property, String preferredVolumes, String[] options) {
     log.trace("Found {} = {}", property, preferredVolumes);
 
     Set<String> preferred = Arrays.stream(StringUtils.split(preferredVolumes, ',')).map(String::trim).collect(Collectors.toSet());
@@ -137,10 +135,11 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
       throw new VolumeChooserException(msg);
     }
 
-    return preferred;
+    return preferred.toArray(new String[preferred.size()]);
   }
 
-  private ServerConfigurationFactory loadConfFactory() {
+  // visible (not private) for testing
+  ServerConfigurationFactory loadConfFactory() {
     // Get the current table's properties, and find the preferred volumes property
     // This local variable is an intentional component of the single-check idiom.
     ServerConfigurationFactory localConf = lazyConfFactory;

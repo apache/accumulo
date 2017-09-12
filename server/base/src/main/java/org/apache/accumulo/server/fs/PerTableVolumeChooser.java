@@ -58,22 +58,21 @@ public class PerTableVolumeChooser implements VolumeChooser {
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException {
     log.trace("{}.choose", getClass().getSimpleName());
+    return getDelegateChooser(env).choose(env, options);
+  }
 
-    VolumeChooser delegateChooser;
+  // visible (not private) for testing
+  VolumeChooser getDelegateChooser(VolumeChooserEnvironment env) {
     switch (env.getScope()) {
       case INIT:
         // TODO should be possible to read from SiteConfiguration during init
-        log.warn("Not possible to determine delegate chooser at '{}' scope. Using all volumes.", ChooserScope.INIT);
-        delegateChooser = randomChooser;
-        break;
+        log.warn("Not possible to determine delegate chooser at '{}' scope. Using {}.", ChooserScope.INIT, RandomVolumeChooser.class.getName());
+        return randomChooser;
       case TABLE:
-        delegateChooser = getVolumeChooserForTable(env, loadConfFactory());
-        break;
+        return getVolumeChooserForTable(env, loadConfFactory());
       default:
-        delegateChooser = getVolumeChooserForScope(env, loadConfFactory());
-        break;
+        return getVolumeChooserForScope(env, loadConfFactory());
     }
-    return delegateChooser.choose(env, options);
   }
 
   private VolumeChooser getVolumeChooserForTable(VolumeChooserEnvironment env, ServerConfigurationFactory confFactory) {
@@ -92,8 +91,13 @@ public class PerTableVolumeChooser implements VolumeChooser {
       throw new VolumeChooserException(msg);
     }
 
-    String context = tableConf.get(Property.TABLE_CLASSPATH); // can be null
+    String context = getTableContext(tableConf); // can be null
     return createVolumeChooser(context, clazz, TABLE_VOLUME_CHOOSER, env.getTableId(), tableSpecificChooserCache);
+  }
+
+  // visible (not private) for testing
+  String getTableContext(TableConfiguration tableConf) {
+    return tableConf.get(Property.TABLE_CLASSPATH);
   }
 
   private VolumeChooser getVolumeChooserForScope(VolumeChooserEnvironment env, ServerConfigurationFactory confFactory) {
@@ -142,22 +146,22 @@ public class PerTableVolumeChooser implements VolumeChooser {
       if (previousChooser != null && previousChooser.getClass().getName().equals(className)) {
         // no change; return the old one
         return previousChooser;
+      } else if (previousChooser == null) {
+        // TODO stricter definition of when the updated property is used, ref ACCUMULO-3412
+        // don't log change if this is the first use
+        log.trace("Change detected for {} for {}", property, key);
       }
-      // TODO stricter definition of when the updated property is used, ref ACCUMULO-3412
-        if (previousChooser == null) {
-          // don't log change if this is the first use
-          log.trace("Change detected for {} for {}", property, key);
-        }
-        try {
-          return ConfigurationTypeHelper.getClassInstance(context, className, VolumeChooser.class);
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException e) {
-          String msg = "Failed to create instance for " + key + " configured to use " + className + " via " + property;
-          throw new VolumeChooserException(msg, e);
-        }
-      });
+      try {
+        return ConfigurationTypeHelper.getClassInstance(context, className, VolumeChooser.class);
+      } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException e) {
+        String msg = "Failed to create instance for " + key + " configured to use " + className + " via " + property;
+        throw new VolumeChooserException(msg, e);
+      }
+    });
   }
 
-  private ServerConfigurationFactory loadConfFactory() {
+  // visible (not private) for testing
+  ServerConfigurationFactory loadConfFactory() {
     // This local variable is an intentional component of the single-check idiom.
     ServerConfigurationFactory localConf = lazyConfFactory;
     if (localConf == null) {
