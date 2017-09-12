@@ -25,6 +25,7 @@ import com.google.common.base.Strings;
  * This class was copied from Guava release 23.0 to replace the older Guava 14 version that had been used in Accumulo.
  * It was annotated as Beta by Google, therefore unstable to use in a core Accumulo library.  We learned this the hard
  * way when Guava version 20 deprecated the getHostText method and then removed the method all together in version 22.
+ * See ACCUMULO-4702
  *
  * Unused methods and annotations were removed to reduce maintenance costs.
  *
