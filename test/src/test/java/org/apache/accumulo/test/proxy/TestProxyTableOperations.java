@@ -31,6 +31,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.proxy.TestProxyClient;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
@@ -43,8 +44,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class TestProxyTableOperations {
 

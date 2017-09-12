@@ -20,9 +20,9 @@ import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.util.HostAndPort;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.net.HostAndPort;
 
 @VisibleForTesting
 public class ThriftTransportKey {
