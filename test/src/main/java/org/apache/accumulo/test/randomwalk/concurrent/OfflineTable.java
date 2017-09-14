@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.List;
 import java.util.Properties;

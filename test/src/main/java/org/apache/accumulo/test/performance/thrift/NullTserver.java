@@ -78,7 +78,7 @@ import org.apache.thrift.TException;
 import com.beust.jcommander.Parameter;
 import org.apache.accumulo.core.util.HostAndPort;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 
 /**

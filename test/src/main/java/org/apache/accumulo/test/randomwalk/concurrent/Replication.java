@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.randomwalk.concurrent;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.core.conf.Property.MASTER_REPLICATION_SCAN_INTERVAL;
 import static org.apache.accumulo.core.conf.Property.REPLICATION_NAME;
 import static org.apache.accumulo.core.conf.Property.REPLICATION_PEERS;
@@ -27,6 +26,7 @@ import static org.apache.accumulo.core.conf.Property.REPLICATION_WORK_PROCESSOR_
 import static org.apache.accumulo.core.conf.Property.REPLICATION_WORK_PROCESSOR_PERIOD;
 import static org.apache.accumulo.core.conf.Property.TABLE_REPLICATION;
 import static org.apache.accumulo.core.conf.Property.TABLE_REPLICATION_TARGET;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.server.replication.ReplicaSystemFactory.getPeerConfigurationValue;
 
 import java.util.Map.Entry;
