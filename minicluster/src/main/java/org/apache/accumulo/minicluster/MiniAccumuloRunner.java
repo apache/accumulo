@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
+import java.nio.file.Files;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +36,6 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
-import com.google.common.io.Files;
 
 /**
  * A runner for starting up a {@link MiniAccumuloCluster} from the command line using an optional configuration properties file. An example property file looks
@@ -154,8 +154,9 @@ public class MiniAccumuloRunner {
 
     if (opts.prop.containsKey(DIRECTORY_PROP))
       miniDir = new File(opts.prop.getProperty(DIRECTORY_PROP));
-    else
-      miniDir = Files.createTempDir();
+    else {
+      miniDir = Files.createTempDirectory(System.currentTimeMillis() + "", null).toFile();
+    }
 
     String rootPass = opts.prop.containsKey(ROOT_PASSWORD_PROP) ? opts.prop.getProperty(ROOT_PASSWORD_PROP) : "secret";
 
