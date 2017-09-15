@@ -151,6 +151,7 @@
     <surefire.groups />
     <!-- Thrift version -->
     <thrift.version>0.10.0</thrift.version>
+    <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
     <zookeeper.version>3.4.10</zookeeper.version>
   </properties>
@@ -868,7 +869,7 @@
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
-            <argLine>-Xmx1G</argLine>
+            <argLine>${unitTestMemSize}</argLine>
           </configuration>
         </plugin>
         <plugin>
