@@ -1216,8 +1216,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   /**
    * Checks the max size of a key because external operations, such as writing to RFiles, require the key size fits within [0,Integer.MAX_VALUE]
-   * 
-   * @return
+   *
+   * @return true if the key is a legal size
    */
   public boolean sanityCheckKey() {
     // If fails the check
