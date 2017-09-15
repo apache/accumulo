@@ -101,6 +101,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
     colVisibility = copyIfNeeded(cv, cvOff, cvLen, copy);
     timestamp = ts;
     deleted = del;
+    if (!sanityCheckKey()) {
+      throw new IllegalArgumentException("Invalid Key entry. Key exceeds " + Integer.MAX_VALUE + " bytes.");
+    }
   }
 
   /**
@@ -544,6 +547,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
     }
     if (colVisibility == null) {
       throw new IllegalArgumentException("null column visibility");
+    }
+    if (!sanityCheckKey()) {
+      throw new IllegalArgumentException("Invalid Key entry. Key exceeds " + Integer.MAX_VALUE + " bytes.");
     }
   }
 
@@ -1206,5 +1212,18 @@ public class Key implements WritableComparable<Key>, Cloneable {
     r.colQualifier = Arrays.copyOf(colQualifier, colQualifier.length);
     r.colVisibility = Arrays.copyOf(colVisibility, colVisibility.length);
     return r;
+  }
+
+  /**
+   * Checks the max size of a key because external operations, such as writing to RFiles, require the key size fits within [0,Integer.MAX_VALUE]
+   * 
+   * @return
+   */
+  public boolean sanityCheckKey() {
+    // If fails the check
+    if ((long) ((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length) > Integer.MAX_VALUE) {
+      return false;
+    }
+    return true;
   }
 }

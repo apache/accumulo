@@ -82,7 +82,13 @@ public class RFileOperations extends FileOperations {
     AccumuloConfiguration acuconf = options.getTableConfiguration();
 
     long blockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
+    if (blockSize >= Integer.MAX_VALUE || blockSize < 0) {
+      throw new IllegalArgumentException("table.file.compress.blocksize must be greater than 0 and less than " + Integer.MAX_VALUE);
+    }
     long indexBlockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
+    if (indexBlockSize >= Integer.MAX_VALUE || indexBlockSize < 0) {
+      throw new IllegalArgumentException("table.file.compress.blocksize.index must be greater than 0 and less than " + Integer.MAX_VALUE);
+    }
 
     SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl.newSamplerConfig(acuconf);
     Sampler sampler = null;

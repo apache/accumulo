@@ -404,7 +404,7 @@ public class RFile {
     private SampleLocalityGroupWriter sample;
 
     private SummaryStatistics keyLenStats = new SummaryStatistics();
-    private double avergageKeySize = 0;
+    private double averageKeySize = 0;
 
     LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, long maxBlockSize, LocalityGroupMetadata currentLocalityGroup,
         SampleLocalityGroupWriter sample) {
@@ -426,6 +426,10 @@ public class RFile {
         throw new IllegalArgumentException("Keys appended out-of-order.  New key " + key + ", previous key " + prevKey);
       }
 
+      if ((long) ((long) key.getSize() + (long) value.getSize()) >= Integer.MAX_VALUE) {
+        throw new IllegalArgumentException("Key/value pair is too large to be appended to RFile.");
+      }
+
       currentLocalityGroup.updateColumnCount(key);
 
       if (currentLocalityGroup.getFirstKey() == null) {
@@ -441,19 +445,27 @@ public class RFile {
       } else if (blockWriter.getRawSize() > blockSize) {
 
         // Look for a key thats short to put in the index, defining short as average or below.
-        if (avergageKeySize == 0) {
+        if (averageKeySize == 0) {
           // use the same average for the search for a below average key for a block
-          avergageKeySize = keyLenStats.getMean();
+          averageKeySize = keyLenStats.getMean();
         }
 
         // Possibly produce a shorter key that does not exist in data. Even if a key can be shortened, it may not be below average.
         Key closeKey = KeyShortener.shorten(prevKey, key);
 
-        if ((closeKey.getSize() <= avergageKeySize || blockWriter.getRawSize() > maxBlockSize) && !isGiantKey(closeKey)) {
+        if ((closeKey.getSize() <= averageKeySize || blockWriter.getRawSize() > maxBlockSize) && !isGiantKey(closeKey)) {
           closeBlock(closeKey, false);
           blockWriter = fileWriter.prepareDataBlock();
           // set average to zero so its recomputed for the next block
-          avergageKeySize = 0;
+          averageKeySize = 0;
+          // If the block reaches or exceeds 2GB, it has no way to determine the amount of data actually written. To prevent
+          // this, we check to see if adding the key/value will create a problem, and if it will, we force a transition to
+          // the next block.
+        } else if (((long) key.getSize() + (long) value.getSize() + blockWriter.getRawSize()) >= Integer.MAX_VALUE) {
+          closeBlock(closeKey, false);
+          blockWriter = fileWriter.prepareDataBlock();
+          averageKeySize = 0;
+
         }
       }
 
@@ -528,6 +540,10 @@ public class RFile {
 
     public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
       this(bfw, blockSize, (int) DefaultConfiguration.getInstance().getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
+      long indexBlockSize = DefaultConfiguration.getInstance().getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
+      if (indexBlockSize > Integer.MAX_VALUE || indexBlockSize < 0) {
+        throw new IllegalArgumentException("table.file.compress.blocksize.index must be greater than 0 and no more than " + Integer.MAX_VALUE);
+      }
     }
 
     public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize, SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {

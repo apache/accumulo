@@ -287,8 +287,13 @@ public final class BCFile {
        */
       public long getRawSize() throws IOException {
         /**
-         * Expecting the size() of a block not exceeding 4GB. Assuming the size() will wrap to negative integer if it exceeds 2GB.
+         * size() comes from DataOutputStream, which returns Integer.MAX_VALUE on an overflow, which means we do not know if 2GB or more data has been written.
+         * Because the data is of an unknown length, we cannot know the block size. To avoid corrupt RFiles, we throw an exception. This should be addressed by
+         * whatever object is putting data into the stream to ensure this condition is never reached.
          */
+        if (size() == Integer.MAX_VALUE) {
+          throw new IOException("Unknown block size of at least " + Integer.MAX_VALUE + " bytes.");
+        }
         return size() & 0x00000000ffffffffL;
       }
 
