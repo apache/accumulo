@@ -426,7 +426,7 @@ public class RFile {
         throw new IllegalArgumentException("Keys appended out-of-order.  New key " + key + ", previous key " + prevKey);
       }
 
-      if ((long) ((long) key.getSize() + (long) value.getSize()) >= Integer.MAX_VALUE) {
+      if (((long) key.getSize() + (long) value.getSize()) >= Integer.MAX_VALUE) {
         throw new IllegalArgumentException("Key/value pair is too large to be appended to RFile.");
       }
 
@@ -540,10 +540,6 @@ public class RFile {
 
     public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
       this(bfw, blockSize, (int) DefaultConfiguration.getInstance().getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
-      long indexBlockSize = DefaultConfiguration.getInstance().getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
-      if (indexBlockSize > Integer.MAX_VALUE || indexBlockSize < 0) {
-        throw new IllegalArgumentException("table.file.compress.blocksize.index must be greater than 0 and no more than " + Integer.MAX_VALUE);
-      }
     }
 
     public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize, SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {

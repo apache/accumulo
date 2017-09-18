@@ -1221,7 +1221,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public boolean sanityCheckKey() {
     // If fails the check
-    if ((long) ((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length) > Integer.MAX_VALUE) {
+    if (((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length) > Integer.MAX_VALUE) {
       return false;
     }
     return true;
