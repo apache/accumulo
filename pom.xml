@@ -157,7 +157,7 @@
     <!-- Thrift version -->
     <thrift.version>0.10.0</thrift.version>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.4.6</zookeeper.version>
+    <zookeeper.version>3.4.10</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
