@@ -1220,8 +1220,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *
    */
   private void sanityCheckKey() {
-	  //If the key is too large, we throw an exception. We subtract 5L from KEY_VALUE_OVERHEAD to remove the accounting for value overhead
-    if (((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length + (RFile.KEY_VALUE_OVERHEAD-5L)) >= Integer.MAX_VALUE) {
+    // If the key is too large, we throw an exception.
+    if (((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length + (RFile.KEY_OVERHEAD)) >= Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Invalid key entry, key size of "
           + ((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length)
           + " bytes exceeds the maximimum value of " + (Integer.MAX_VALUE - 1) + " for key: " + this.toString());
