@@ -118,7 +118,7 @@
     <apilyzer.ignoreDeprecated>false</apilyzer.ignoreDeprecated>
     <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.54</bouncycastle.version>
+    <bouncycastle.version>1.58</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>2.11.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
