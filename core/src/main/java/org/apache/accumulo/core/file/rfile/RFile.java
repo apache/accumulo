@@ -118,6 +118,9 @@ public class RFile {
   // Buffer sample data so that many sample data blocks are stored contiguously.
   private static int sampleBufferSize = 10000000;
 
+  // 5 bytes of overhead for fields: value, row, colFamily, colQualifier, colVisibility, and 8 for the timestamp
+  public static final long KEY_VALUE_OVERHEAD = 5L*5L+8L;
+  
   @VisibleForTesting
   public static void setSampleBufferSize(int bufferSize) {
     sampleBufferSize = bufferSize;
@@ -427,8 +430,8 @@ public class RFile {
       }
 
       // 5 bytes of overhead for fields: value, row, colFamily, colQualifier, colVisibility, and 8 for the long timestamp
-      if (((long) key.getSize() + (long) value.getSize() + (5L * 5L + 8L)) >= Integer.MAX_VALUE) {
-        throw new IllegalArgumentException("Key/value pair is too large (" + ((long) key.getSize() + (long) value.getSize())
+      if (((long) key.getSize() + (long) value.getSize() + KEY_VALUE_OVERHEAD) >= Integer.MAX_VALUE) {
+        throw new IllegalArgumentException("(Key, value) pair is too large (" + key.getSize() + ", " + value.getSize()
             + ") to be appended to RFile for key: " + key);
       }
 

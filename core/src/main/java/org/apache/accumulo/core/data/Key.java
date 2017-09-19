@@ -28,6 +28,7 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.thrift.TKey;
 import org.apache.accumulo.core.data.thrift.TKeyValue;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
@@ -1218,9 +1219,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Throws an exception if the key is too large.
    *
    */
-  public void sanityCheckKey() {
-    // If fails the check
-    if (((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length + (4L * 5L + 8L)) >= Integer.MAX_VALUE) {
+  private void sanityCheckKey() {
+	  //If the key is too large, we throw an exception. We subtract 5L from KEY_VALUE_OVERHEAD to remove the accounting for value overhead
+    if (((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length + (RFile.KEY_VALUE_OVERHEAD-5L)) >= Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Invalid key entry, key size of "
           + ((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length)
           + " bytes exceeds the maximimum value of " + (Integer.MAX_VALUE - 1) + " for key: " + this.toString());
