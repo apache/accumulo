@@ -632,7 +632,7 @@ public class Initialize implements KeywordExecutable {
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader().readLine("Enter initial password for " + rootUser + " (this may not be applicable for your security setup): ", '*');
+      rootpass = getConsoleReader().readLine("Enter initial password for " + rootUser + ": ", '*');
       if (rootpass == null)
         System.exit(0);
       confirmpass = getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
