@@ -142,7 +142,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
-    <maven.min-version>3.0.5</maven.min-version>
+    <maven.min-version>3.2.5</maven.min-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.6.5</powermock.version>
