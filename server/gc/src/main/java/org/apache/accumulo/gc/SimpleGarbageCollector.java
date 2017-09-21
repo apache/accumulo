@@ -144,8 +144,10 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
   private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
-  public static void main(String[] args) throws UnknownHostException, IOException {
+  public static void main(String[] args) throws IOException {
     final String app = "gc";
+    Opts opts = new Opts();
+    opts.parseArgs(app, args);
     SecurityUtil.serverLogin(SiteConfiguration.getInstance());
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
@@ -153,8 +155,6 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("Instance " + instance.getInstanceID());
     final VolumeManager fs = VolumeManagerImpl.get();
     Accumulo.init(fs, instance, conf, app);
-    Opts opts = new Opts();
-    opts.parseArgs(app, args);
     SimpleGarbageCollector gc = new SimpleGarbageCollector(opts, instance, fs, conf);
 
     DistributedTrace.enable(opts.getAddress(), app, conf.getSystemConfiguration());

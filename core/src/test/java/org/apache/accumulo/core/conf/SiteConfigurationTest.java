@@ -71,4 +71,13 @@ public class SiteConfigurationTest {
     Assert.assertEquals(null, props.get("ignored.property"));
     Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(), props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
   }
+
+  @Test
+  public void testCliConfig() {
+    SiteConfiguration conf = SiteConfiguration.getInstance();
+    Assert.assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
+
+    CliConfiguration.set(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181");
+    Assert.assertEquals("myhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
+  }
 }

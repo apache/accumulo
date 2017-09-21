@@ -379,9 +379,9 @@ public class TraceServer implements Watcher {
 
   public static void main(String[] args) throws Exception {
     final String app = "tracer";
-    loginTracer(SiteConfiguration.getInstance());
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
+    loginTracer(SiteConfiguration.getInstance());
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
     VolumeManager fs = VolumeManagerImpl.get();

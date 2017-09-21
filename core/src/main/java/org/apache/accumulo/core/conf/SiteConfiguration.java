@@ -119,8 +119,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   @Override
   public String get(Property property) {
-    String key = property.getKey();
+    return get(property, true);
+  }
 
+  public String get(Property property, boolean useDefault) {
+    if (CliConfiguration.get(property) != null) {
+      return CliConfiguration.get(property);
+    }
+
+    String key = property.getKey();
     // If the property is sensitive, see if CredentialProvider was configured.
     if (property.isSensitive()) {
       Configuration hadoopConf = getHadoopConfiguration();
@@ -140,17 +147,24 @@ public class SiteConfiguration extends AccumuloConfiguration {
     /* Check the available-on-load configs and fall-back to the possibly-update Configuration object. */
     String value = staticConfigs.containsKey(key) ? staticConfigs.get(key) : getXmlConfig().get(key);
 
-    if (value == null || !property.getType().isValidFormat(value)) {
+    if (useDefault && (value == null || !property.getType().isValidFormat(value))) {
       if (value != null)
         log.error("Using default value for {} due to improperly formatted {}: {}", key, property.getType(), value);
       value = parent.get(property);
     }
+
     return value;
   }
 
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
-    parent.getProperties(props, filter);
+    getProperties(props, filter, true);
+  }
+
+  public void getProperties(Map<String,String> props, Predicate<String> filter, boolean useDefaults) {
+    if (useDefaults) {
+      parent.getProperties(props, filter);
+    }
 
     for (Entry<String,String> entry : getXmlConfig())
       if (filter.test(entry.getKey()))
@@ -176,6 +190,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
         log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
       }
     }
+    CliConfiguration.getProperties(props, filter);
   }
 
   protected Configuration getHadoopConfiguration() {
