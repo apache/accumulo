@@ -76,9 +76,6 @@
       <archive>https://lists.apache.org/list.html?notifications@accumulo.apache.org</archive>
     </mailingList>
   </mailingLists>
-  <prerequisites>
-    <maven>${maven.min-version}</maven>
-  </prerequisites>
   <modules>
     <module>assemble</module>
     <module>core</module>
