@@ -944,9 +944,9 @@
           <version>1.0.1</version>
         </plugin>
         <plugin>
-          <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-          <artifactId>maven-java-formatter-plugin</artifactId>
-          <version>0.4</version>
+          <groupId>net.revelc.code.formatter</groupId>
+          <artifactId>formatter-maven-plugin</artifactId>
+          <version>2.0.1</version>
           <configuration>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
             <compilerSource>${maven.compiler.source}</compilerSource>
@@ -1343,8 +1343,8 @@
                     </pluginExecution>
                     <pluginExecution>
                       <pluginExecutionFilter>
-                        <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-                        <artifactId>maven-java-formatter-plugin</artifactId>
+                        <groupId>net.revelc.code.formatter</groupId>
+                        <artifactId>formatter-maven-plugin</artifactId>
                         <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>format</goal>
@@ -1603,8 +1603,8 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-            <artifactId>maven-java-formatter-plugin</artifactId>
+            <groupId>net.revelc.code.formatter</groupId>
+            <artifactId>formatter-maven-plugin</artifactId>
             <configuration>
               <configFile>${eclipseFormatterStyle}</configFile>
             </configuration>
