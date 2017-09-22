@@ -492,7 +492,6 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
         return Collections.emptyIterator();
       }
     }
-
   }
 
   private void run() {
