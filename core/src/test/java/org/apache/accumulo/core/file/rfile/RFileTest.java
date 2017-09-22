@@ -84,8 +84,10 @@ import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.hash.HashCode;
@@ -2270,5 +2272,41 @@ public class RFileTest {
     testRfile.closeReader();
 
     conf = null;
+  }
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
+
+  @Test
+  public void testKeyTooLarge() throws Exception {
+    // If we don't have enough memory (6G) skip these very memory-intensive unit tests
+    Assume.assumeTrue(Runtime.getRuntime().maxMemory() >= 5726797824L);
+    byte row[] = new byte[536870912];
+    byte cf[] = new byte[536870912];
+    byte cq[] = new byte[536870912];
+    byte cv[] = new byte[536870912];
+    exception.expect(IllegalArgumentException.class);
+    Key key = new Key(row, 0, 536870912, cf, 0, 536870912, cq, 0, 536870912, cv, 0, 536870912, 1l);
+  }
+
+  @Test
+  public void testKeyValuePairTooLarge() throws Exception {
+    // If we don't have enough memory (6G) skip these very memory-intensive unit tests
+    Assume.assumeTrue(Runtime.getRuntime().maxMemory() >= 5726797824L);
+    byte row[] = new byte[536870910];
+    byte cf[] = new byte[536870910];
+    byte cq[] = new byte[536870910];
+    byte cv[] = new byte[536870910];
+    byte val[] = new byte[8];
+
+    Key key = new Key(row, 0, 536870910, cf, 0, 536870910, cq, 0, 536870910, cv, 0, 536870910, 1l);
+    Value value = new Value(val);
+
+    TestRFile trf = new TestRFile(conf);
+
+    trf.openWriter();
+    exception.expect(IllegalArgumentException.class);
+    trf.writer.append(key, value);
+    trf.closeWriter();
   }
 }

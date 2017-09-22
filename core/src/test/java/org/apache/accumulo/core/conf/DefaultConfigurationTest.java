@@ -51,11 +51,4 @@ public class DefaultConfigurationTest {
   public void testSanityCheck() {
     ConfigSanityCheck.validate(c);
   }
-
-  @Test
-  public void testDefaultBlockSizeIsAllowed() {
-    long bsi = c.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
-    assert (bsi > 0);
-    assert (bsi < Integer.MAX_VALUE);
-  }
 }

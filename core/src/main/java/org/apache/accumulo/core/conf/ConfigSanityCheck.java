@@ -21,6 +21,8 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * A utility class for validating {@link AccumuloConfiguration} instances.
  */
@@ -65,6 +67,13 @@ public class ConfigSanityCheck {
 
       if (key.equals(Property.INSTANCE_VOLUMES.getKey())) {
         usingVolumes = value != null && !value.isEmpty();
+      }
+
+      // If the block size or block size index is configured to be too large, we throw an exception to avoid potentially corrupting RFiles later
+      if (key.equals(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()) || key.equals(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey())) {
+        long bsize = ConfigurationTypeHelper.getFixedMemoryAsBytes(value);
+        Preconditions.checkArgument(bsize > 0 && bsize < Integer.MAX_VALUE, key + " must be greater than 0 and less than " + Integer.MAX_VALUE + " but was: "
+            + bsize);
       }
     }
 

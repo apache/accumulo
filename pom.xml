@@ -873,7 +873,7 @@
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
-            <argLine>-Xmx1G</argLine>
+            <argLine>${testingMemSize}</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -1548,6 +1548,7 @@
         <findbugs.skip>true</findbugs.skip>
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
+        <testingMemSize>-Xmx1G</testingMemSize>
       </properties>
     </profile>
     <profile>
