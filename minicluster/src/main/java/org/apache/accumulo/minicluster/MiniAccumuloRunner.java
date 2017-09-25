@@ -155,7 +155,7 @@ public class MiniAccumuloRunner {
     if (opts.prop.containsKey(DIRECTORY_PROP))
       miniDir = new File(opts.prop.getProperty(DIRECTORY_PROP));
     else {
-      miniDir = Files.createTempDirectory(System.currentTimeMillis() + "", null).toFile();
+      miniDir = Files.createTempDirectory(System.currentTimeMillis() + "").toFile();
     }
 
     String rootPass = opts.prop.containsKey(ROOT_PASSWORD_PROP) ? opts.prop.getProperty(ROOT_PASSWORD_PROP) : "secret";

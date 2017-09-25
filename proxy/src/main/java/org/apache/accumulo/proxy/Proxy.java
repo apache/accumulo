@@ -139,7 +139,7 @@ public class Proxy implements KeywordExecutable {
 
     if (useMini) {
       log.info("Creating mini cluster");
-      final File folder = Files.createTempDirectory(System.currentTimeMillis() + "", null).toFile();
+      final File folder = Files.createTempDirectory(System.currentTimeMillis() + "").toFile();
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
       opts.prop.setProperty("instance", accumulo.getConfig().getInstanceName());
