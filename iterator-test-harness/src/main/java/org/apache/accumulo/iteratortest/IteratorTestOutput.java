@@ -39,11 +39,11 @@ public class IteratorTestOutput {
      * The IteratorTestCase proactively passed.
      */
     PASSED, /**
-     * The IteratorTestCase proactively failed.
-     */
+             * The IteratorTestCase proactively failed.
+             */
     FAILED, /**
-     * The IteratorTestCase completed, but the pass/fail should be determined by the other context.
-     */
+             * The IteratorTestCase completed, but the pass/fail should be determined by the other context.
+             */
     COMPLETED
   }
 

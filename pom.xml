@@ -76,9 +76,6 @@
       <archive>https://lists.apache.org/list.html?notifications@accumulo.apache.org</archive>
     </mailingList>
   </mailingLists>
-  <prerequisites>
-    <maven>${maven.min-version}</maven>
-  </prerequisites>
   <modules>
     <module>assemble</module>
     <module>core</module>
@@ -142,7 +139,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
-    <maven.min-version>3.0.5</maven.min-version>
+    <maven.min-version>3.2.5</maven.min-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.6.5</powermock.version>
@@ -157,7 +154,7 @@
     <!-- Thrift version -->
     <thrift.version>0.10.0</thrift.version>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.4.6</zookeeper.version>
+    <zookeeper.version>3.4.10</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -947,9 +944,9 @@
           <version>1.0.1</version>
         </plugin>
         <plugin>
-          <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-          <artifactId>maven-java-formatter-plugin</artifactId>
-          <version>0.4</version>
+          <groupId>net.revelc.code.formatter</groupId>
+          <artifactId>formatter-maven-plugin</artifactId>
+          <version>2.0.1</version>
           <configuration>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
             <compilerSource>${maven.compiler.source}</compilerSource>
@@ -1346,8 +1343,8 @@
                     </pluginExecution>
                     <pluginExecution>
                       <pluginExecutionFilter>
-                        <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-                        <artifactId>maven-java-formatter-plugin</artifactId>
+                        <groupId>net.revelc.code.formatter</groupId>
+                        <artifactId>formatter-maven-plugin</artifactId>
                         <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>format</goal>
@@ -1606,8 +1603,8 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-            <artifactId>maven-java-formatter-plugin</artifactId>
+            <groupId>net.revelc.code.formatter</groupId>
+            <artifactId>formatter-maven-plugin</artifactId>
             <configuration>
               <configFile>${eclipseFormatterStyle}</configFile>
             </configuration>
