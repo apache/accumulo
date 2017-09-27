@@ -632,7 +632,7 @@ public class Initialize implements KeywordExecutable {
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader().readLine("Enter initial password for " + rootUser + ": ", '*');
+      rootpass = getConsoleReader().readLine("Enter initial password for " + rootUser + getInitialPasswordWarning(), '*');
       if (rootpass == null)
         System.exit(0);
       confirmpass = getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
@@ -642,6 +642,25 @@ public class Initialize implements KeywordExecutable {
         log.error("Passwords do not match");
     } while (!rootpass.equals(confirmpass));
     return rootpass.getBytes(UTF_8);
+  }
+
+  /**
+   * Create warning message related to initial password, if appropriate.
+   *
+   * ACCUMULO-2907 Remove unnecessary security warning from console message unless its actually appropriate.
+   * The warning message should only be displayed when the value of <code>instance.security.authenticator</code>
+   * differs between the SiteConfiguration and the DefaultConfiguration values.
+   *
+   * @return String containing warning portion of console message.
+   */
+  private String getInitialPasswordWarning() {
+    StringBuilder optionalWarning = new StringBuilder();
+    Property authenticatorProperty = Property.INSTANCE_SECURITY_AUTHENTICATOR;
+    if (SiteConfiguration.getInstance().get(authenticatorProperty).equals(authenticatorProperty.getDefaultValue()))
+      optionalWarning.append(": ");
+    else
+      optionalWarning.append(" (this may not be applicable for your security setup): ");
+    return optionalWarning.toString();
   }
 
   private static void initSecurity(AccumuloServerContext context, Opts opts, String iid, String rootUser) throws AccumuloSecurityException,
