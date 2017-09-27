@@ -654,13 +654,13 @@ public class Initialize implements KeywordExecutable {
    * @return String containing warning portion of console message.
    */
   private String getInitialPasswordWarning() {
-    StringBuilder optionalWarning = new StringBuilder();
+    String optionalWarning;
     Property authenticatorProperty = Property.INSTANCE_SECURITY_AUTHENTICATOR;
     if (SiteConfiguration.getInstance().get(authenticatorProperty).equals(authenticatorProperty.getDefaultValue()))
-      optionalWarning.append(": ");
+      optionalWarning = ": ";
     else
-      optionalWarning.append(" (this may not be applicable for your security setup): ");
-    return optionalWarning.toString();
+      optionalWarning = " (this may not be applicable for your security setup): ";
+    return optionalWarning;
   }
 
   private static void initSecurity(AccumuloServerContext context, Opts opts, String iid, String rootUser) throws AccumuloSecurityException,
