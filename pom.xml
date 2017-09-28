@@ -156,6 +156,7 @@
     <surefire.groups />
     <!-- Thrift version -->
     <thrift.version>0.10.0</thrift.version>
+    <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
     <zookeeper.version>3.4.6</zookeeper.version>
   </properties>
@@ -1548,7 +1549,6 @@
         <findbugs.skip>true</findbugs.skip>
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
-        <unitTestMemSize>-Xmx1G</unitTestMemSize>
       </properties>
     </profile>
     <profile>

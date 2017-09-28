@@ -1224,7 +1224,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
     if (((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length + (RFile.KEY_OVERHEAD)) >= Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Invalid key entry, key size of "
           + ((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length)
-          + " bytes exceeds the maximimum value of " + (Integer.MAX_VALUE - 1) + " for key: " + this.toString());
+          + " bytes exceeds the maximimum value of " + (Integer.MAX_VALUE - 1 - RFile.KEY_OVERHEAD) + " for key: " + this.toString());
     }
   }
 }
