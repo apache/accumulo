@@ -1686,7 +1686,9 @@ public class Tablet implements TabletCommitter {
   // BEGIN PRIVATE METHODS RELATED TO MAJOR COMPACTION
 
   private boolean isCompactionEnabled() {
-    return !isClosing() && !getTabletServer().isMajorCompactionDisabled();
+    // ACCUMULO-2968: Removed reference to <em>!isMajorCompactionDisabled</em> in return
+    // statement which always equated to <em>true</em>.
+    return !isClosing();
   }
 
   private CompactionStats _majorCompact(MajorCompactionReason reason) throws IOException, CompactionCanceledException {
