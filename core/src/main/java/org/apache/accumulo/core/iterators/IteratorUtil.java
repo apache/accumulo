@@ -300,10 +300,15 @@ public class IteratorUtil {
   public static Range maximizeStartKeyTimeStamp(Range range) {
     Range seekRange = range;
 
-    if (range.getStartKey() != null && range.getStartKey().getTimestamp() != Long.MAX_VALUE) {
-      Key seekKey = new Key(seekRange.getStartKey());
-      seekKey.setTimestamp(Long.MAX_VALUE);
-      seekRange = new Range(seekKey, true, range.getEndKey(), range.isEndKeyInclusive());
+    if (range.getStartKey() != null) {
+      Key seekKey = range.getStartKey();
+      if (range.getStartKey().getTimestamp() != Long.MAX_VALUE) {
+        seekKey = new Key(seekRange.getStartKey());
+        seekKey.setTimestamp(Long.MAX_VALUE);
+        seekRange = new Range(seekKey, true, range.getEndKey(), range.isEndKeyInclusive());
+      } else if (!range.isStartKeyInclusive()) {
+        seekRange = new Range(seekKey, true, range.getEndKey(), range.isEndKeyInclusive());
+      }
     }
 
     return seekRange;
@@ -312,10 +317,15 @@ public class IteratorUtil {
   public static Range minimizeEndKeyTimeStamp(Range range) {
     Range seekRange = range;
 
-    if (range.getEndKey() != null && range.getEndKey().getTimestamp() != Long.MIN_VALUE) {
+    if (range.getEndKey() != null) {
       Key seekKey = new Key(seekRange.getEndKey());
-      seekKey.setTimestamp(Long.MIN_VALUE);
-      seekRange = new Range(range.getStartKey(), range.isStartKeyInclusive(), seekKey, true);
+      if (range.getEndKey().getTimestamp() != Long.MIN_VALUE) {
+        seekKey = new Key(seekRange.getEndKey());
+        seekKey.setTimestamp(Long.MIN_VALUE);
+        seekRange = new Range(range.getStartKey(), range.isStartKeyInclusive(), seekKey, true);
+      } else if (!range.isEndKeyInclusive()) {
+        seekRange = new Range(range.getStartKey(), range.isStartKeyInclusive(), seekKey, true);
+      }
     }
 
     return seekRange;
