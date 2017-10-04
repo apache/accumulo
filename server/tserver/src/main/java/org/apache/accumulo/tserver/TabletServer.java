@@ -330,7 +330,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private HostAndPort clientAddress;
 
   private volatile boolean serverStopRequested = false;
-  private volatile boolean majorCompactorDisabled = false;
   private volatile boolean shutdownComplete = false;
 
   private ZooLock tabletServerLock;
@@ -1925,18 +1924,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public void run() {
-      if (majorCompactorDisabled) {
-        // this will make split task that were queued when shutdown was
-        // initiated exit
-        return;
-      }
-
       splitTablet(tablet);
     }
-  }
-
-  public boolean isMajorCompactionDisabled() {
-    return majorCompactorDisabled;
   }
 
   public long updateTotalQueuedMutationSize(long additionalMutationSize) {
@@ -1963,7 +1952,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public void run() {
-      while (!majorCompactorDisabled) {
+      while (true) {
         try {
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY), TimeUnit.MILLISECONDS);
 
@@ -1980,7 +1969,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           Iterator<Entry<KeyExtent,Tablet>> iter = copyOnlineTablets.entrySet().iterator();
 
           // bail early now if we're shutting down
-          while (iter.hasNext() && !majorCompactorDisabled) {
+          while (iter.hasNext()) {
 
             Entry<KeyExtent,Tablet> entry = iter.next();
 
@@ -2015,7 +2004,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             // idle compactions
             iter = copyOnlineTablets.entrySet().iterator();
 
-            while (iter.hasNext() && !majorCompactorDisabled && numMajorCompactionsInProgress < idleCompactionsToStart) {
+            while (iter.hasNext() && numMajorCompactionsInProgress < idleCompactionsToStart) {
               Entry<KeyExtent,Tablet> entry = iter.next();
               Tablet tablet = entry.getValue();
 
