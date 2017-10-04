@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -118,134 +119,35 @@ public class TimeSettingIteratorTest {
   }
 
   @Test
-  public void testExclusiveEndKey() throws IOException {
+  public void testEndKeyRangeAtMinLongValue() throws IOException {
     Text row = new Text("a");
     Text colf = new Text("b");
     Text colq = new Text("c");
     Text cv = new Text();
 
-    List<Map.Entry<Key,Value>> sources = new ArrayList<>();
-    sources.add(new AbstractMap.SimpleImmutableEntry<>(new Key(row, colf, colq, cv, Long.MIN_VALUE), new Value("00".getBytes())));
-    sources.add(new AbstractMap.SimpleImmutableEntry<>(new Key(row, colf, colq, cv, Long.MIN_VALUE), new Value("11".getBytes())));
+    for (boolean inclusiveEndRange : new boolean[] {true, false}) {
+      TreeMap<Key,Value> sources = new TreeMap<>();
+      sources.put(new Key(row.getBytes(), colf.getBytes(), colq.getBytes(), cv.getBytes(), Long.MIN_VALUE, true), new Value("00".getBytes()));
+      sources.put(new Key(row.getBytes(), colf.getBytes(), colq.getBytes(), cv.getBytes(), Long.MIN_VALUE), new Value("11".getBytes()));
 
-    TimeSettingIterator it = new TimeSettingIterator(new IteratorToSortedKeyValueIterator(sources.iterator()), 111L);
-    IteratorSetting is = new IteratorSetting(1, TimeSettingIterator.class);
-    it.init(null, is.getOptions(), null);
+      TimeSettingIterator it = new TimeSettingIterator(new SortedMapIterator(sources), 111L);
+      IteratorSetting is = new IteratorSetting(1, TimeSettingIterator.class);
+      it.init(null, is.getOptions(), null);
 
-    Key startKey = new Key();
-    Key endKey = new Key(row, colf, colq, cv, Long.MIN_VALUE);
-    Range testRange = new Range(startKey, false, endKey, false);
-    it.seek(testRange, new HashSet<ByteSequence>(), false);
+      Key startKey = new Key();
+      Key endKey = new Key(row, colf, colq, cv, Long.MIN_VALUE);
+      Range testRange = new Range(startKey, false, endKey, inclusiveEndRange);
+      it.seek(testRange, new HashSet<ByteSequence>(), false);
 
-    assertTrue(it.hasTop());
-    assertTrue(it.getTopValue().equals(new Value("00".getBytes())));
-    assertTrue(it.getTopKey().getTimestamp() == 111L);
-    it.next();
-    assertTrue(it.hasTop());
-    assertTrue(it.getTopValue().equals(new Value("11".getBytes())));
-    assertTrue(it.getTopKey().getTimestamp() == 111L);
-    it.next();
-    assertFalse(it.hasTop());
-  }
-
-  @Test
-  public void testInclusiveEndKey() throws IOException {
-    Text row = new Text("a");
-    Text colf = new Text("b");
-    Text colq = new Text("c");
-    Text cv = new Text();
-
-    List<Map.Entry<Key,Value>> sources = new ArrayList<>();
-    sources.add(new AbstractMap.SimpleImmutableEntry<>(new Key(row, colf, colq, cv, Long.MIN_VALUE), new Value("00".getBytes())));
-    sources.add(new AbstractMap.SimpleImmutableEntry<>(new Key(row, colf, colq, cv, Long.MIN_VALUE), new Value("11".getBytes())));
-
-    TimeSettingIterator it = new TimeSettingIterator(new IteratorToSortedKeyValueIterator(sources.iterator()), 111L);
-    IteratorSetting is = new IteratorSetting(1, TimeSettingIterator.class);
-    it.init(null, is.getOptions(), null);
-
-    Key startKey = new Key();
-    Key endKey = new Key(row, colf, colq, cv, Long.MIN_VALUE);
-    Range testRange = new Range(startKey, false, endKey, true);
-    it.seek(testRange, new HashSet<ByteSequence>(), false);
-
-    assertTrue(it.hasTop());
-    assertTrue(it.getTopValue().equals(new Value("00".getBytes())));
-    assertTrue(it.getTopKey().getTimestamp() == 111L);
-    it.next();
-    assertTrue(it.hasTop());
-    assertTrue(it.getTopValue().equals(new Value("11".getBytes())));
-    assertTrue(it.getTopKey().getTimestamp() == 111L);
-    it.next();
-    assertFalse(it.hasTop());
-  }
-
-  public class IteratorToSortedKeyValueIterator implements SortedKeyValueIterator<Key,Value> {
-    private Iterator<Map.Entry<Key,Value>> iterator = null;
-    private Map.Entry<Key,Value> next = null;
-    private boolean initialized = false;
-
-    public IteratorToSortedKeyValueIterator(Iterator<Map.Entry<Key,Value>> iterator) {
-      this.iterator = iterator;
-    }
-
-    @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-      // no-op
-    }
-
-    private void init() {
-      if (!initialized) {
-        if (iterator.hasNext()) {
-          next = iterator.next();
-        }
-        initialized = true;
-      }
-    }
-
-    @Override
-    public boolean hasTop() {
-      init();
-      return next != null;
-    }
-
-    @Override
-    public void next() throws IOException {
-      init();
-      next = null;
-      if (iterator.hasNext()) {
-        next = iterator.next();
-        if (next.getKey() == null && next.getValue() == null) {
-          next = null;
-        }
-      }
-    }
-
-    @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-      // no-op
-    }
-
-    @Override
-    public Key getTopKey() {
-      if (next != null) {
-        return next.getKey();
-      }
-
-      return null;
-    }
-
-    @Override
-    public Value getTopValue() {
-      if (next != null) {
-        return next.getValue();
-      }
-
-      return null;
-    }
-
-    @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-      return new IteratorToSortedKeyValueIterator(this.iterator);
+      assertTrue(it.hasTop());
+      assertTrue(it.getTopValue().equals(new Value("00".getBytes())));
+      assertTrue(it.getTopKey().getTimestamp() == 111L);
+      it.next();
+      assertTrue(it.hasTop());
+      assertTrue(it.getTopValue().equals(new Value("11".getBytes())));
+      assertTrue(it.getTopKey().getTimestamp() == 111L);
+      it.next();
+      assertFalse(it.hasTop());
     }
   }
 }

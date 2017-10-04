@@ -318,7 +318,7 @@ public class IteratorUtil {
     Range seekRange = range;
 
     if (range.getEndKey() != null) {
-      Key seekKey = new Key(seekRange.getEndKey());
+      Key seekKey = seekRange.getEndKey();
       if (range.getEndKey().getTimestamp() != Long.MIN_VALUE) {
         seekKey = new Key(seekRange.getEndKey());
         seekKey.setTimestamp(Long.MIN_VALUE);
