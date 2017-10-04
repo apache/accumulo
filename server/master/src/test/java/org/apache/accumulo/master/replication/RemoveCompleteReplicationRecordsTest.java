@@ -39,6 +39,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.io.Text;
@@ -56,15 +57,19 @@ public class RemoveCompleteReplicationRecordsTest {
   private RemoveCompleteReplicationRecords rcrr;
   private MockInstance inst;
   private Connector conn;
+  private Master master;
 
   @Rule
   public TestName test = new TestName();
 
   @Before
   public void initialize() throws Exception {
+    master = EasyMock.createNiceMock(Master.class);
+    EasyMock.expect(master.getReplicationLatency()).andReturn(0l).anyTimes();
+    EasyMock.replay(master);
     inst = new MockInstance(test.getMethodName());
     conn = inst.getConnector("root", new PasswordToken(""));
-    rcrr = new RemoveCompleteReplicationRecords(conn);
+    rcrr = new RemoveCompleteReplicationRecords(master);
   }
 
   @Test

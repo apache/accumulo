@@ -34,6 +34,7 @@ import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -192,6 +193,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   private ReplicationDriver replicationWorkDriver;
   private WorkDriver replicationWorkAssigner;
   RecoveryManager recoveryManager = null;
+  private AtomicLong replicationLatency = new AtomicLong(0L);
 
   // Delegation Token classes
   private final boolean delegationTokensAvailable;
@@ -1579,5 +1581,13 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     synchronized (serversToShutdown) {
       return new HashSet<>(serversToShutdown);
     }
+  }
+
+  public long getReplicationLatency() {
+    return replicationLatency.get();
+  }
+
+  public void setReplicationLatency(long latency) {
+    this.replicationLatency.set(latency);
   }
 }
