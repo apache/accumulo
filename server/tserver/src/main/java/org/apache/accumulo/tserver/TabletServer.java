@@ -1924,7 +1924,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public void run() {
-      // ACCUMULO-2968: Removed <em>if</em> condition that always returned <em>false</em>.
       splitTablet(tablet);
     }
   }
@@ -1953,9 +1952,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public void run() {
-      // ACCUMULO-2968: While loop previously checked for value of <em>!majorCompactionDisabled</em>.
-      // This always resolved to <em>true</em>. Removing reference to <em>majorCompactionDisabled</em>
-      // in class.
       while (true) {
         try {
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY), TimeUnit.MILLISECONDS);

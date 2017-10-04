@@ -34,9 +34,6 @@ final class CompactionRunner implements Runnable, Comparable<CompactionRunner> {
 
   @Override
   public void run() {
-    // ACCUMULO-2968: isMajorCompactionDisabled() previously always returned false.
-    // Removed <em>if</em> condition that would never be executed (would have called
-    // tablet.removeMajorCompactionQueuedReason(reason) and then returned).
 
     tablet.majorCompact(reason, queued);
 
