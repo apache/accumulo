@@ -342,7 +342,11 @@ public class CachableBlockFile {
 
     private BlockRead cacheBlock(String _lookup, BlockCache cache, BlockReader _currBlock, String block) throws IOException {
 
-      if ((cache == null) || (_currBlock.getRawSize() > cache.getMaxSize())) {
+      // ACCUMULO-4716 - Define MAX_ARRAY_SIZE smaller than Integer.MAX_VALUE to prevent possible OutOfMemory
+      // error as described in stackoverflow post: https://stackoverflow.com/a/8381338.
+      int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+
+      if ((cache == null) || (_currBlock.getRawSize() > Math.min(cache.getMaxSize(), MAX_ARRAY_SIZE))) {
         return new BlockRead(_currBlock, _currBlock.getRawSize());
       } else {
 
