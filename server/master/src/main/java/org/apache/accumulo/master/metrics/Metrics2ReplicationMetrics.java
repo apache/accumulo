@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.master.metrics;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,12 +29,15 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.replication.ReplicationUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
+import org.apache.hadoop.metrics2.lib.MutableQuantiles;
+import org.apache.hadoop.metrics2.lib.MutableStat;
 
 /**
  *
@@ -39,25 +45,35 @@ import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
   public static final String NAME = MASTER_NAME + ",sub=Replication", DESCRIPTION = "Data-Center Replication Metrics", CONTEXT = "master",
       RECORD = "MasterReplication";
-  public static final String PENDING_FILES = "filesPendingReplication", NUM_PEERS = "numPeers", MAX_REPLICATION_THREADS = "maxReplicationThreads";
+  public static final String PENDING_FILES = "filesPendingReplication", NUM_PEERS = "numPeers", MAX_REPLICATION_THREADS = "maxReplicationThreads",
+      REPLICATION_QUEUE_TIME_QUANTILES = "replicationQueue10m", REPLICATION_QUEUE_TIME = "replicationQueue";
 
   private final Master master;
   private final MetricsSystem system;
   private final MetricsRegistry registry;
   private final ReplicationUtil replicationUtil;
+  private final MutableQuantiles replicationQueueTimeQuantiles;
+  private final MutableStat replicationQueueTimeStat;
+  private final Map<Path,Long> pathModTimes;
 
   Metrics2ReplicationMetrics(Master master, MetricsSystem system) {
     this.master = master;
     this.system = system;
 
+    pathModTimes = new HashMap<>();
+
     registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
     replicationUtil = new ReplicationUtil(master);
+    replicationQueueTimeQuantiles = registry.newQuantiles(REPLICATION_QUEUE_TIME_QUANTILES, "replication queue time quantiles in milliseconds", "ops",
+        "latency", 600);
+    replicationQueueTimeStat = registry.newStat(REPLICATION_QUEUE_TIME, "replication queue time stat in milliseconds", "ops", "latency", true);
   }
 
   protected void snapshot() {
     registry.add(PENDING_FILES, getNumFilesPendingReplication());
     registry.add(NUM_PEERS, getNumConfiguredPeers());
     registry.add(MAX_REPLICATION_THREADS, getMaxReplicationThreads());
+    addReplicationQueueTimeMetrics();
   }
 
   @Override
@@ -67,6 +83,8 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
     snapshot();
 
     registry.snapshot(builder, all);
+    replicationQueueTimeQuantiles.snapshot(builder, all);
+    replicationQueueTimeStat.snapshot(builder, all);
   }
 
   @Override
@@ -123,5 +141,56 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
 
   protected int getMaxReplicationThreads() {
     return replicationUtil.getMaxReplicationThreads(master.getMasterMonitorInfo());
+  }
+
+  protected void addReplicationQueueTimeMetrics() {
+    // Exit early if replication table is offline
+    if (TableState.ONLINE != Tables.getTableState(master.getInstance(), ReplicationTable.ID)) {
+      return;
+    }
+
+    // Exit early if we have no replication peers configured
+    if (replicationUtil.getPeers().isEmpty()) {
+      return;
+    }
+
+    Set<Path> paths = replicationUtil.getPendingReplicationPaths();
+
+    // We'll take a snap of the current time and use this as a diff between any deleted
+    // file's modification time and now. The reported latency will be off by at most a
+    // number of seconds equal to the metric polling period
+    long currentTime = System.currentTimeMillis();
+
+    // Iterate through all the pending paths and update the mod time if we don't know it yet
+    for (Path path : paths) {
+      if (!pathModTimes.containsKey(path)) {
+        try {
+          pathModTimes.put(path, master.getFileSystem().getFileStatus(path).getModificationTime());
+        } catch (IOException e) {
+          // Ignore all IOExceptions
+          // Either the system is unavailable or the file was deleted
+          // since the initial scan and this check
+        }
+      }
+    }
+
+    // Remove all currently pending files
+    Set<Path> deletedPaths = new HashSet<>(pathModTimes.keySet());
+    deletedPaths.removeAll(paths);
+
+    // Exit early if we have no replicated files to report on
+    if (deletedPaths.isEmpty()) {
+      return;
+    }
+
+    replicationQueueTimeStat.resetMinMax();
+
+    for (Path path : deletedPaths) {
+      // Remove this path and add the latency
+      long modTime = pathModTimes.remove(path);
+      long diff = Math.max(0, currentTime - modTime);
+      replicationQueueTimeQuantiles.add(diff);
+      replicationQueueTimeStat.add(diff);
+    }
   }
 }
