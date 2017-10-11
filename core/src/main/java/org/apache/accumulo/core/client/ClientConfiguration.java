@@ -41,7 +41,22 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Contains a list of property keys recognized by the Accumulo client and convenience methods for setting them.
- *
+ * <p>
+ * When loading a configuration file from the system, Accumulo uses the <em>ACCUMULO_CLIENT_CONF_PATH</em> environment variable,
+ * split on <em>File.pathSeparator</em>, for a list of target files.
+ * <p>
+ * If <em>ACCUMULO_CLIENT_CONF_PATH</em> is not set, uses the following in this order:
+ * <ul>
+ *   <li> ~/.accumulo/config
+ *   <li> either:
+ *   <ul>
+ *     <li><em>$ACCUMULO_CONF_DIR</em>/client.conf, if <em>$ACCUMULO_CONF_DIR</em> is defined.
+ *     <li><em>$ACCUMULO_HOME</em>/conf/client.conf, otherwise.
+ *   </ul>
+ *   <li>/etc/accumulo/client.conf
+ *   <li>/etc/accumulo/conf/client.conf
+ * </ul>
+ * <p>
  * @since 1.6.0
  */
 public class ClientConfiguration extends CompositeConfiguration {
@@ -199,16 +214,17 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Attempts to load a configuration file from the system. Uses the "ACCUMULO_CLIENT_CONF_PATH" environment variable, split on File.pathSeparator, for a list
-   * of target files. If not set, uses the following in this order- ~/.accumulo/config $ACCUMULO_CONF_DIR/client.conf -OR- $ACCUMULO_HOME/conf/client.conf
-   * (depending on whether $ACCUMULO_CONF_DIR is set) /etc/accumulo/client.conf
-   *
-   * A client configuration will then be read from each location using PropertiesConfiguration to construct a configuration. That means the latest item will be
-   * the one in the configuration.
-   *
-   * @see PropertiesConfiguration
-   * @see File#pathSeparator
-   */
+  * Attempts to load a configuration file from the system. Uses the <em>ACCUMULO_CLIENT_CONF_PATH</em> environment variable, split on
+  * <em>File.pathSeparator</em>, for a list of target files.
+  * <p>
+  * If <em>ACCUMULO_CLIENT_CONF_PATH</em> is not set, see class comments above for default search path.
+  * <p>
+  * A client configuration will then be read from each location using <em>PropertiesConfiguration</em> to construct a configuration. That means the latest item
+  * will be the one in the configuration.
+  *
+  * @see PropertiesConfiguration
+  * @see File#pathSeparator
+  */
   public static ClientConfiguration loadDefault() {
     return loadFromSearchPath(getDefaultSearchPath());
   }
