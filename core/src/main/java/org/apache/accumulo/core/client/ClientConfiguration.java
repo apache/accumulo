@@ -209,8 +209,12 @@ public class ClientConfiguration extends CompositeConfiguration {
    * <li>/etc/accumulo/client.conf
    * <li>/etc/accumulo/conf/client.conf
    * </ul>
-   *
-   * @since 1.6.0
+   * <p>
+   * A client configuration will then be read from each location using <em>PropertiesConfiguration</em> to construct a configuration.
+   * That means the latest item will be the one in the configuration.
+   *<p>
+   * @see PropertiesConfiguration
+   * @see File#pathSeparator
    */
   public static ClientConfiguration loadDefault() {
     return loadFromSearchPath(getDefaultSearchPath());
