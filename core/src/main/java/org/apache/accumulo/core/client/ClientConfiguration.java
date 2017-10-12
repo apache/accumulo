@@ -199,22 +199,22 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-  * Attempts to load a configuration file from the system using the default search paths.
-  * Uses the <em>ACCUMULO_CLIENT_CONF_PATH</em> environment variable, split on
-  * <em>File.pathSeparator</em>, for a list of target files.
-  * <p>
-  * If <em>ACCUMULO_CLIENT_CONF_PATH</em> is not set, uses the following in this order:
+   * Attempts to load a configuration file from the system using the default search paths. Uses the <em>ACCUMULO_CLIENT_CONF_PATH</em> environment variable,
+   * split on <em>File.pathSeparator</em>, for a list of target files.
+   * <p>
+   * If <em>ACCUMULO_CLIENT_CONF_PATH</em> is not set, uses the following in this order:
    * <ul>
-   *   <li> ~/.accumulo/config
-   *   <li> either:
-   *   <ul>
-   *     <li><em>$ACCUMULO_CONF_DIR</em>/client.conf, if <em>$ACCUMULO_CONF_DIR</em> is defined.
-   *     <li><em>$ACCUMULO_HOME</em>/conf/client.conf, otherwise.
-   *   </ul>
-   *   <li>/etc/accumulo/client.conf
-   *   <li>/etc/accumulo/conf/client.conf
+   * <li>~/.accumulo/config
+   * <li>either:
+   * <ul>
+   * <li><em>$ACCUMULO_CONF_DIR</em>/client.conf, if <em>$ACCUMULO_CONF_DIR</em> is defined.
+   * <li><em>$ACCUMULO_HOME</em>/conf/client.conf, otherwise.
+   * </ul>
+   * <li>/etc/accumulo/client.conf
+   * <li>/etc/accumulo/conf/client.conf
    * </ul>
    * <p>
+   *
    * @since 1.6.0
    */
   public static ClientConfiguration loadDefault() {
