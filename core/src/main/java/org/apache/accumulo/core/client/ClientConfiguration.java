@@ -213,9 +213,6 @@ public class ClientConfiguration extends CompositeConfiguration {
    * <li>/etc/accumulo/client.conf
    * <li>/etc/accumulo/conf/client.conf
    * </ul>
-   * <p>
-   *
-   * @since 1.6.0
    */
   public static ClientConfiguration loadDefault() {
     return loadFromSearchPath(getDefaultSearchPath());
