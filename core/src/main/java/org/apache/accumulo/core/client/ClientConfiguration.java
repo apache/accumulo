@@ -213,7 +213,7 @@ public class ClientConfiguration extends CompositeConfiguration {
    * A client configuration will then be read from each location using <em>PropertiesConfiguration</em> to construct a configuration. That means the latest item
    * will be the one in the configuration.
    * <p>
-   * 
+   *
    * @see PropertiesConfiguration
    * @see File#pathSeparator
    */
