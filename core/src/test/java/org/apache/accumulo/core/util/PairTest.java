@@ -37,10 +37,13 @@ public class PairTest {
     Pair<Integer,String> pair1 = new Pair<>(25, "twenty-five");
     Pair<Integer,String> pair2 = new Pair<>(25, "twenty-five");
     Pair<Integer,String> pair3 = new Pair<>(null, null);
+    Pair<Integer,String> pair4 = new Pair<>(25, "twentyfive");
+    Pair<Integer,String> pair5 = new Pair<>(225, "twenty-five");
     assertNotSame(pair1, pair2);
     assertEquals(pair1.hashCode(), pair2.hashCode());
     assertNotSame(pair2, pair3);
-    assertNotEquals(pair2.hashCode(), pair3.hashCode());
+    assertNotEquals(pair1.hashCode(), pair4.hashCode());
+    assertNotEquals(pair1.hashCode(), pair5.hashCode());
   }
 
   /**
