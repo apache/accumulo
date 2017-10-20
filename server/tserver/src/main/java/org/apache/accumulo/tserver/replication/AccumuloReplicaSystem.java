@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.tserver.replication;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;

@@ -60,10 +60,10 @@ import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jce.provider.X509CertificateObject;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.slf4j.Logger;
@@ -250,7 +250,7 @@ public class CertUtils {
     PrivateKey signerKey = findPrivateKey(signerKeystore, signerPasswordArray);
 
     KeyPair kp = generateKeyPair();
-    X509CertificateObject cert = generateCert(keyName, kp, false, signerCert.getPublicKey(), signerKey);
+    Certificate cert = generateCert(kp, false, signerCert.getPublicKey(), signerKey);
 
     char[] password = keystorePassword.toCharArray();
     KeyStore keystore = KeyStore.getInstance(keystoreType);
@@ -270,7 +270,7 @@ public class CertUtils {
 
     KeyPair kp = generateKeyPair();
 
-    X509CertificateObject cert = generateCert(keyName, kp, true, kp.getPublic(), kp.getPrivate());
+    Certificate cert = generateCert(kp, true, kp.getPublic(), kp.getPrivate());
 
     char[] password = keystorePassword.toCharArray();
     KeyStore keystore = KeyStore.getInstance(keystoreType);
@@ -288,8 +288,8 @@ public class CertUtils {
     return gen.generateKeyPair();
   }
 
-  private X509CertificateObject generateCert(String keyName, KeyPair kp, boolean isCertAuthority, PublicKey signerPublicKey, PrivateKey signerPrivateKey)
-      throws IOException, CertIOException, OperatorCreationException, CertificateException, NoSuchAlgorithmException {
+  private Certificate generateCert(KeyPair kp, boolean isCertAuthority, PublicKey signerPublicKey, PrivateKey signerPrivateKey) throws IOException,
+      CertIOException, OperatorCreationException, CertificateException, NoSuchAlgorithmException {
     Calendar startDate = Calendar.getInstance();
     Calendar endDate = Calendar.getInstance();
     endDate.add(Calendar.YEAR, 100);
@@ -305,7 +305,7 @@ public class CertUtils {
       certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign));
     }
     X509CertificateHolder cert = certGen.build(new JcaContentSignerBuilder(signingAlgorithm).build(signerPrivateKey));
-    return new X509CertificateObject(cert.toASN1Structure());
+    return new JcaX509CertificateConverter().getCertificate(cert);
   }
 
   static Certificate findCert(KeyStore keyStore) throws KeyStoreException {

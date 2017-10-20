@@ -71,5 +71,4 @@ public class SiteConfigurationTest {
     Assert.assertEquals(null, props.get("ignored.property"));
     Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(), props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
   }
-
 }
