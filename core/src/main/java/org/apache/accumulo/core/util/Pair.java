@@ -18,6 +18,7 @@ package org.apache.accumulo.core.util;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 public class Pair<A,B> {
   A first;
@@ -28,29 +29,16 @@ public class Pair<A,B> {
     this.second = s;
   }
 
-  private int hashCode(Object o) {
-    if (o == null)
-      return 0;
-    return o.hashCode();
-  }
-
   @Override
   public int hashCode() {
-    return hashCode(first) + hashCode(second);
-  }
-
-  private boolean equals(Object o1, Object o2) {
-    if (o1 == null || o2 == null)
-      return o1 == o2;
-
-    return o1.equals(o2);
+    return Objects.hashCode(first) + Objects.hashCode(second);
   }
 
   @Override
   public boolean equals(Object o) {
     if (o instanceof Pair<?,?>) {
-      Pair<?,?> op = (Pair<?,?>) o;
-      return equals(first, op.first) && equals(second, op.second);
+      Pair<?,?> other = (Pair<?,?>) o;
+      return Objects.equals(first, other.first) && Objects.equals(second, other.second);
     }
     return false;
   }

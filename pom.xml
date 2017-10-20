@@ -132,10 +132,9 @@
     <htrace.version>3.1.0-incubating</htrace.version>
     <httpclient.version>4.3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
-    <jackson.version>2.3.2</jackson.version>
+    <jackson.version>2.9.0</jackson.version>
     <jersey.version>2.25.1</jersey.version>
-    <!-- jetty 9.2 is the last version to support jdk less than 1.8 -->
-    <jetty.version>9.2.17.v20160517</jetty.version>
+    <jetty.version>9.3.21.v20170918</jetty.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
@@ -162,7 +161,7 @@
       <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
-        <version>1.60</version>
+        <version>1.72</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>

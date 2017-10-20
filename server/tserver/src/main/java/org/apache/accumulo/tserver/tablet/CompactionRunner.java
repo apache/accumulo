@@ -34,12 +34,6 @@ final class CompactionRunner implements Runnable, Comparable<CompactionRunner> {
 
   @Override
   public void run() {
-    if (tablet.getTabletServer().isMajorCompactionDisabled()) {
-      // this will make compaction tasks that were queued when shutdown was
-      // initiated exit
-      tablet.removeMajorCompactionQueuedReason(reason);
-      return;
-    }
 
     tablet.majorCompact(reason, queued);
 

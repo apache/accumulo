@@ -94,7 +94,9 @@ public class ShellConfigTest {
   @Test
   public void testBadArg() throws IOException {
     assertFalse(shell.config(args("--bogus")));
-    assertTrue("Did not print usage", output.get().startsWith("Usage"));
+    // JCommander versions after 1.60 will cause the Shell to detect the arg as Unrecognized option
+    assertTrue("Did not print Error", output.get().startsWith("ERROR"));
+    assertTrue("Did not print usage", output.get().contains("Usage"));
   }
 
   @Test
