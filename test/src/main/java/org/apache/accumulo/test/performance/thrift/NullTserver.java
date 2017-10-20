@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.performance.thrift;
 
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -68,6 +70,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -83,10 +86,6 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
-import org.apache.accumulo.core.util.HostAndPort;
-
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 
 /**
  * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the metadata location entries for a table to
