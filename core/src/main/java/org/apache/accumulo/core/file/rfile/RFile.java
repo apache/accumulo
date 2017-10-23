@@ -118,11 +118,6 @@ public class RFile {
   // Buffer sample data so that many sample data blocks are stored contiguously.
   private static int sampleBufferSize = 10000000;
 
-  // 5 bytes of overhead for worst-case serialazation forfields: row, colFamily, colQualifier, colVisibility, and 8 for the timestamp
-  public static final long KEY_OVERHEAD = 4L * 5L + 8L;
-  // and 5 bytes for the value
-  public static final long VALUE_OVERHEAD = 5L;
-
   @VisibleForTesting
   public static void setSampleBufferSize(int bufferSize) {
     sampleBufferSize = bufferSize;
@@ -431,12 +426,6 @@ public class RFile {
         throw new IllegalArgumentException("Keys appended out-of-order.  New key " + key + ", previous key " + prevKey);
       }
 
-      // 5 bytes of overhead for fields: value, row, colFamily, colQualifier, colVisibility, and 8 for the long timestamp
-      if (((long) key.getSize() + (long) value.getSize() + KEY_OVERHEAD + VALUE_OVERHEAD) >= Integer.MAX_VALUE) {
-        throw new IllegalArgumentException("(Key, value) pair is too large (" + key.getSize() + ", " + value.getSize() + ") to be appended to RFile for key: "
-            + key);
-      }
-
       currentLocalityGroup.updateColumnCount(key);
 
       if (currentLocalityGroup.getFirstKey() == null) {
@@ -465,9 +454,9 @@ public class RFile {
           blockWriter = fileWriter.prepareDataBlock();
           // set average to zero so its recomputed for the next block
           averageKeySize = 0;
-          // If the block reaches or exceeds 2GB, it has no way to determine the amount of data actually written. To prevent
-          // this, we check to see if adding the key/value will create a problem, and if it will, we force a transition to
-          // the next block. 128 bytes added for metadata overhead
+          // To constrain the growth of data blocks, we limit our worst case scenarios to closing
+          // blocks if they reach the maximum configurable block size of Integer.MAX_VALUE.
+          // 128 bytes added for metadata overhead
         } else if (((long) key.getSize() + (long) value.getSize() + blockWriter.getRawSize() + 128L) >= Integer.MAX_VALUE) {
           closeBlock(closeKey, false);
           blockWriter = fileWriter.prepareDataBlock();

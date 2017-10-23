@@ -48,7 +48,6 @@ import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -85,10 +84,8 @@ import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.hash.HashCode;
@@ -97,10 +94,6 @@ import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 
 public class RFileTest {
-
-  // Because the tests run in parallel, at least 6G is required to catch appropriate exceptions for Key/Value sizes that are
-  // too large. If memory is smaller than this, those tests are skipped.
-  private static final long requiredMemoryForKeyValueSizeTests = ConfigurationTypeHelper.getFixedMemoryAsBytes("6G");
 
   public static class SampleIE extends BaseIteratorEnvironment {
 
@@ -2277,42 +2270,5 @@ public class RFileTest {
     testRfile.closeReader();
 
     conf = null;
-  }
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
-
-  private final int quarterMax = (Integer.MAX_VALUE / 4) + 1;
-
-  @Test
-  public void testKeyTooLarge() throws Exception {
-    Assume.assumeTrue(Runtime.getRuntime().maxMemory() >= requiredMemoryForKeyValueSizeTests);
-    byte row[] = new byte[quarterMax];
-    byte cf[] = new byte[quarterMax];
-    byte cq[] = new byte[quarterMax];
-    byte cv[] = new byte[quarterMax];
-    exception.expect(IllegalArgumentException.class);
-    new Key(row, 0, quarterMax, cf, 0, quarterMax, cq, 0, quarterMax, cv, 0, quarterMax, 1l);
-  }
-
-  @Test
-  public void testKeyValuePairTooLarge() throws Exception {
-    Assume.assumeTrue(Runtime.getRuntime().maxMemory() >= requiredMemoryForKeyValueSizeTests);
-    // We want to make sure the key + value is too large, but the key itself is not too large
-    byte row[] = new byte[quarterMax - 32];
-    byte cf[] = new byte[quarterMax - 32];
-    byte cq[] = new byte[quarterMax - 32];
-    byte cv[] = new byte[quarterMax - 32];
-    byte val[] = new byte[128];
-
-    Key key = new Key(row, 0, quarterMax - 32, cf, 0, quarterMax - 32, cq, 0, quarterMax - 32, cv, 0, quarterMax - 32, 1l);
-    Value value = new Value(val);
-
-    TestRFile trf = new TestRFile(conf);
-
-    trf.openWriter();
-    exception.expect(IllegalArgumentException.class);
-    trf.writer.append(key, value);
-    trf.closeWriter();
   }
 }

@@ -28,7 +28,6 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.thrift.TKey;
 import org.apache.accumulo.core.data.thrift.TKeyValue;
-import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
@@ -102,7 +101,6 @@ public class Key implements WritableComparable<Key>, Cloneable {
     colVisibility = copyIfNeeded(cv, cvOff, cvLen, copy);
     timestamp = ts;
     deleted = del;
-    sanityCheckKey();
   }
 
   /**
@@ -547,7 +545,6 @@ public class Key implements WritableComparable<Key>, Cloneable {
     if (colVisibility == null) {
       throw new IllegalArgumentException("null column visibility");
     }
-    sanityCheckKey();
   }
 
   /**
@@ -1209,22 +1206,5 @@ public class Key implements WritableComparable<Key>, Cloneable {
     r.colQualifier = Arrays.copyOf(colQualifier, colQualifier.length);
     r.colVisibility = Arrays.copyOf(colVisibility, colVisibility.length);
     return r;
-  }
-
-  /**
-   * Checks the max size of a key because external operations, such as writing to RFiles, require the key size fits within [0,Integer.MAX_VALUE]
-   *
-   * Accounts for 5 bytes of overhead for each array and 8 bytes of overhead for the timestamp.
-   *
-   * Throws an exception if the key is too large.
-   *
-   */
-  private void sanityCheckKey() {
-    // If the key is too large, we throw an exception.
-    if (((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length + (RFile.KEY_OVERHEAD)) >= Integer.MAX_VALUE) {
-      throw new IllegalArgumentException("Invalid key entry, key size of "
-          + ((long) this.row.length + (long) this.colFamily.length + (long) this.colQualifier.length + (long) this.colVisibility.length)
-          + " bytes exceeds the maximimum value of " + (Integer.MAX_VALUE - 1 - RFile.KEY_OVERHEAD) + " for key: " + this.toString());
-    }
   }
 }

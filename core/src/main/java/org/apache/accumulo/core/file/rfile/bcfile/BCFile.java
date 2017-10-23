@@ -283,17 +283,13 @@ public final class BCFile {
       /**
        * Get the raw size of the block.
        *
+       * Caution: size() comes from DataOutputStream which returns Integer.MAX_VALUE on an overflow. This results in a value of 2GiB meaning that
+       * an unknown amount of data, at least 2GiB large, has been written. RFiles handle this issue by keeping track of the position of blocks
+       * instead of relying on blocks to provide this information.
+       *
        * @return the number of uncompressed bytes written through the BlockAppender so far.
        */
       public long getRawSize() throws IOException {
-        /**
-         * size() comes from DataOutputStream, which returns Integer.MAX_VALUE on an overflow, which means we do not know if 2GB or more data has been written.
-         * Because the data is of an unknown length, we cannot know the block size. To avoid corrupt RFiles, we throw an exception. This should be addressed by
-         * whatever object is putting data into the stream to ensure this condition is never reached.
-         */
-        if (size() >= Integer.MAX_VALUE) {
-          throw new IOException("Unknown block size of at least " + Integer.MAX_VALUE + " bytes.");
-        }
         return size() & 0x00000000ffffffffL;
       }
 
