@@ -647,9 +647,8 @@ public class Initialize implements KeywordExecutable {
   /**
    * Create warning message related to initial password, if appropriate.
    *
-   * ACCUMULO-2907 Remove unnecessary security warning from console message unless its actually appropriate.
-   * The warning message should only be displayed when the value of <code>instance.security.authenticator</code>
-   * differs between the SiteConfiguration and the DefaultConfiguration values.
+   * ACCUMULO-2907 Remove unnecessary security warning from console message unless its actually appropriate. The warning message should only be displayed when
+   * the value of <code>instance.security.authenticator</code> differs between the SiteConfiguration and the DefaultConfiguration values.
    *
    * @return String containing warning portion of console message.
    */

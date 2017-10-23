@@ -35,15 +35,20 @@ public class IteratorTestOutput {
    * An outcome about what happened during a test case.
    */
   public enum TestOutcome {
+
     /**
      * The IteratorTestCase proactively passed.
      */
-    PASSED, /**
-             * The IteratorTestCase proactively failed.
-             */
-    FAILED, /**
-             * The IteratorTestCase completed, but the pass/fail should be determined by the other context.
-             */
+    PASSED,
+
+    /**
+     * The IteratorTestCase proactively failed.
+     */
+    FAILED,
+
+    /**
+     * The IteratorTestCase completed, but the pass/fail should be determined by the other context.
+     */
     COMPLETED
   }
 
