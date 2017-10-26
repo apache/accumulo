@@ -18,6 +18,7 @@ package org.apache.accumulo.core.security.crypto;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -45,7 +46,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
   private SecretKeyCache secretKeyCache = new SecretKeyCache();
 
   @Override
-  public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters context) {
+  public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters context) throws RuntimeException {
     try {
       secretKeyCache.ensureSecretKeyCacheInitialized(context);
       doKeyEncryptionOperation(Cipher.WRAP_MODE, context);
@@ -127,7 +128,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         pathToKeyName = Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getDefaultValue();
       }
 
-      // TODO ACCUMULO-2530 Ensure volumes a properly supported
+      // TODO ACCUMULO-2530 Ensure volumes are properly supported
       Path pathToKey = new Path(pathToKeyName);
       FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
 
@@ -140,13 +141,22 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         in = fs.open(pathToKey);
 
         int keyEncryptionKeyLength = in.readInt();
+        // If the file length does not correctly relate to the expected key size, there is an inconsistency and
+        // we have no way of knowing the correct key length.
+        // The keyEncryptionKeyLength+4 accounts for the integer read from the file.
+        if (fs.getFileStatus(pathToKey).getLen() != keyEncryptionKeyLength + 4) {
+          throw new IOException("Could not initialize key encryption cache, malformed key encryption key file. Expected key of " + "length "
+              + keyEncryptionKeyLength + " but file contained " + (fs.getFileStatus(pathToKey).getLen() - 4) + " bytes for key encryption key.");
+        }
         keyEncryptionKey = new byte[keyEncryptionKeyLength];
         in.readFully(keyEncryptionKey);
 
         initialized = true;
 
+      } catch (EOFException e) {
+        throw new IOException("Could not initialize key encryption cache, malformed key encryption key file", e);
       } catch (IOException e) {
-        log.error("Could not initialize key encryption cache", e);
+        throw new IOException("Could not initialize key encryption cache, unable to access or find key encryption key file", e);
       } finally {
         IOUtils.closeQuietly(in);
       }
