@@ -46,13 +46,13 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
   private SecretKeyCache secretKeyCache = new SecretKeyCache();
 
   @Override
-  public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters context) throws RuntimeException {
+  public CryptoModuleParameters encryptSecretKey(CryptoModuleParameters context) throws IOException {
     try {
       secretKeyCache.ensureSecretKeyCacheInitialized(context);
       doKeyEncryptionOperation(Cipher.WRAP_MODE, context);
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IOException(e);
     }
     return context;
   }
@@ -133,6 +133,9 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
 
       DataInputStream in = null;
+      boolean invalidFile = false;
+      int keyEncryptionKeyLength = 0;
+
       try {
         if (!fs.exists(pathToKey)) {
           initializeKeyEncryptionKey(fs, pathToKey, context);
@@ -140,13 +143,14 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
         in = fs.open(pathToKey);
 
-        int keyEncryptionKeyLength = in.readInt();
+        keyEncryptionKeyLength = in.readInt();
         // If the file length does not correctly relate to the expected key size, there is an inconsistency and
         // we have no way of knowing the correct key length.
         // The keyEncryptionKeyLength+4 accounts for the integer read from the file.
         if (fs.getFileStatus(pathToKey).getLen() != keyEncryptionKeyLength + 4) {
-          throw new IOException("Could not initialize key encryption cache, malformed key encryption key file. Expected key of " + "length "
-              + keyEncryptionKeyLength + " but file contained " + (fs.getFileStatus(pathToKey).getLen() - 4) + " bytes for key encryption key.");
+          invalidFile = true;
+	// Passing this exception forward so we can provide the more useful error message
+          throw new IOException();
         }
         keyEncryptionKey = new byte[keyEncryptionKeyLength];
         in.readFully(keyEncryptionKey);
@@ -156,7 +160,12 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       } catch (EOFException e) {
         throw new IOException("Could not initialize key encryption cache, malformed key encryption key file", e);
       } catch (IOException e) {
-        throw new IOException("Could not initialize key encryption cache, unable to access or find key encryption key file", e);
+        if (invalidFile) {
+          throw new IOException("Could not initialize key encryption cache, malformed key encryption key file. Expected key of lengh " + keyEncryptionKeyLength
+              + " but file contained " + (fs.getFileStatus(pathToKey).getLen() - 4) + "bytes for key encryption key.");
+        } else {
+          throw new IOException("Could not initialize key encryption cache, unable to access or find key encryption key file", e);
+        }
       } finally {
         IOUtils.closeQuietly(in);
       }

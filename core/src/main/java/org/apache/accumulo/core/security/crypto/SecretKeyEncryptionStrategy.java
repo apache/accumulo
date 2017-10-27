@@ -16,12 +16,14 @@
  */
 package org.apache.accumulo.core.security.crypto;
 
+import java.io.IOException;
+
 /**
  *
  */
 public interface SecretKeyEncryptionStrategy {
 
-  CryptoModuleParameters encryptSecretKey(CryptoModuleParameters params);
+  CryptoModuleParameters encryptSecretKey(CryptoModuleParameters params) throws IOException;
 
   CryptoModuleParameters decryptSecretKey(CryptoModuleParameters params);
 

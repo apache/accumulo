@@ -370,40 +370,32 @@ public class CryptoTest {
 
   }
 
-  @SuppressWarnings("deprecation")
   @Test
-  public void testKeyEncryptionKeyCacheCorrectlyInteractsWithKEKFile() {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-    CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-    // TODO Accumulo-2530 this will need to be fixed when CachingHDFSSecretKeyEncryptionStrategy is fixed
-    params.getAllOptions().put(Property.INSTANCE_DFS_DIR.getKey(), "src/test/resources/org/apache/accumulo/core/security/crypto");
-    byte[] ptk = new byte[16];
-    params.setPlaintextKey(ptk);
-
-    testKekFile("kekWorks.kek", params);
-
-    exception.expect(RuntimeException.class);
-    testKekFile("kekTooLong.kek", params);
-
+  public void testKeyEncryptionKeyCatchCorrectlyUsesValidKEKFile() throws IOException {
+    testKekFile("kekWorks.kek");
   }
 
-  @SuppressWarnings("deprecation")
-@Test
-  public void testKeyEncryptionKeyCacheCorrectlyFailsIfKEKIsTooSmall() {
-    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
-    CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-    // TODO Accumulo-2530 this will need to be fixed when CachingHDFSSecretKeyEncryptionStrategy is fixed
-    params.getAllOptions().put(Property.INSTANCE_DFS_DIR.getKey(), "src/test/resources/org/apache/accumulo/core/security/crypto");
-    byte[] ptk = new byte[16];
-    params.setPlaintextKey(ptk);
+  @Test
+  public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidLongKEKFile() throws IOException {
+    exception.expect(IOException.class);
+    testKekFile("kekTooLong.kek");
+  }
 
-    exception.expect(RuntimeException.class);
-    testKekFile("KekTooShort.kek", params);
-
+  @Test
+  public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidShortKEKFile() throws IOException {
+    exception.expect(IOException.class);
+    testKekFile("kekTooShort.kek");
   }
 
   // Used to check reading of KEK files
-  private void testKekFile(String filename, CryptoModuleParameters params) {
+  @SuppressWarnings("deprecation")
+  private void testKekFile(String filename) throws IOException {
+    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+    CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+    // TODO ACCUMULO-2530 this will need to be fixed when CachingHDFSSecretKeyEncryptionStrategy is fixed
+    params.getAllOptions().put(Property.INSTANCE_DFS_DIR.getKey(), "src/test/resources/org/apache/accumulo/core/security/crypto");
+    byte[] ptk = new byte[16];
+    params.setPlaintextKey(ptk);
     CachingHDFSSecretKeyEncryptionStrategy skc = new CachingHDFSSecretKeyEncryptionStrategy();
     params.getAllOptions().put(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey(), filename);
     skc.encryptSecretKey(params);
