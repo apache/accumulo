@@ -204,6 +204,26 @@ public class CryptoModuleParameters {
   }
 
   /**
+   * Gets the security provider name.
+   *
+   * @see CryptoParameters#setSecurityProvider(String)
+   * @return the security provider name
+   */
+  public String getSecurityProvider() {
+    return securityProvider;
+  }
+
+  /**
+   * Sets the name of the security provider to use for crypto.
+   *
+   * @param securityProvider
+   *          the name of the provider to use
+   */
+  public void setSecurityProvider(String securityProvider) {
+    this.securityProvider = securityProvider;
+  }
+
+  /**
    * Gets the key encryption strategy class.
    *
    * @see CryptoModuleParameters#setKeyEncryptionStrategyClass(String)
@@ -580,6 +600,7 @@ public class CryptoModuleParameters {
   private int keyLength = 0;
   private String randomNumberGenerator = null;
   private String randomNumberGeneratorProvider = null;
+  private String securityProvider = null;
 
   private String keyEncryptionStrategyClass;
   private byte[] encryptedKey;

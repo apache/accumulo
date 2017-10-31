@@ -100,6 +100,10 @@
       <value>SUN</value>
     </property>
     <property>
+      <name>crypto.security.provider</name>
+      <value>SunJCE</value>
+    </property>
+    <property>
       <name>crypto.secret.key.encryption.strategy.class</name>
       <value>org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy</value>
     </property>

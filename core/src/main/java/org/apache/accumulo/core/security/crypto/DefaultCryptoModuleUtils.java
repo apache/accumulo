@@ -50,19 +50,26 @@ public class DefaultCryptoModuleUtils {
     return secureRandom;
   }
 
-  public static Cipher getCipher(String cipherSuite) {
+  public static Cipher getCipher(String cipherSuite, String securityProvider) {
     Cipher cipher = null;
 
     if (cipherSuite.equals("NullCipher")) {
       cipher = new NullCipher();
     } else {
       try {
-        cipher = Cipher.getInstance(cipherSuite);
+        if (securityProvider == null || securityProvider.equals("")) {
+          cipher = Cipher.getInstance(cipherSuite);
+        } else {
+          cipher = Cipher.getInstance(cipherSuite, securityProvider);
+        }
       } catch (NoSuchAlgorithmException e) {
         log.error(String.format("Accumulo configuration file contained a cipher suite \"%s\" that was not recognized by any providers", cipherSuite));
         throw new RuntimeException(e);
       } catch (NoSuchPaddingException e) {
         log.error(String.format("Accumulo configuration file contained a cipher, \"%s\" with a padding that was not recognized by any providers", cipherSuite));
+        throw new RuntimeException(e);
+      } catch (NoSuchProviderException e) {
+        log.error(String.format("Accumulo configuration file contained a provider, \"%s\" an unrecognized provider", securityProvider));
         throw new RuntimeException(e);
       }
     }
