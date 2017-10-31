@@ -21,6 +21,8 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * A utility class for validating {@link AccumuloConfiguration} instances.
  */
@@ -58,6 +60,14 @@ public class ConfigSanityCheck {
         fatal(PREFIX + "incomplete property key (" + key + ")");
       else if (!prop.getType().isValidFormat(value))
         fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ") : " + value);
+
+      if (key.equals(Property.CRYPTO_SECURE_RNG_PROVIDER.getKey())) {
+        Preconditions.checkArgument(value != null && !value.equals(""), Property.CRYPTO_SECURE_RNG_PROVIDER.getKey() + " cannot be empty or null");
+      }
+
+      if (key.equals(Property.CRYPTO_SECURITY_PROVIDER.getKey())) {
+        Preconditions.checkArgument(value != null && !value.equals(""), Property.CRYPTO_SECURITY_PROVIDER.getKey() + " cannot be empty or null");
+      }
 
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
         instanceZkTimeoutValue = value;

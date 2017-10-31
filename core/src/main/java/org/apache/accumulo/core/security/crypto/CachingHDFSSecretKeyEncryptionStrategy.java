@@ -69,7 +69,8 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
   }
 
   private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params) throws IOException {
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()),
+        params.getSecurityProvider());
 
     try {
       cipher.init(encryptionMode, new SecretKeySpec(secretKeyCache.getKeyEncryptionKey(), params.getAlgorithmName()));

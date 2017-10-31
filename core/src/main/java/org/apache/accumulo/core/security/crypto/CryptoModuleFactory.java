@@ -288,6 +288,7 @@ public class CryptoModuleFactory {
     params.setPadding(cipherTransformParts[2]);
     params.setRandomNumberGenerator(cryptoOpts.get(Property.CRYPTO_SECURE_RNG.getKey()));
     params.setRandomNumberGeneratorProvider(cryptoOpts.get(Property.CRYPTO_SECURE_RNG_PROVIDER.getKey()));
+    params.setSecurityProvider(cryptoOpts.get(Property.CRYPTO_SECURITY_PROVIDER.getKey()));
     String blockStreamSize = cryptoOpts.get(Property.CRYPTO_BLOCK_STREAM_SIZE.getKey());
     if (blockStreamSize != null)
       params.setBlockStreamSize(Integer.parseInt(blockStreamSize));

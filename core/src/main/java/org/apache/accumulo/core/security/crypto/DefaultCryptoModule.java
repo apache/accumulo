@@ -68,7 +68,7 @@ public class DefaultCryptoModule implements CryptoModule {
       params.setSecureRandom(secureRandom);
     }
 
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(cipherTransformation);
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(cipherTransformation, params.getSecurityProvider());
 
     if (params.getInitializationVector() == null) {
       try {
@@ -383,7 +383,7 @@ public class DefaultCryptoModule implements CryptoModule {
       throw new RuntimeException("CryptoModuleParameters object failed validation for decrypt");
     }
 
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(getCipherTransformation(params));
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(getCipherTransformation(params), params.getSecurityProvider());
 
     try {
       cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName()),
