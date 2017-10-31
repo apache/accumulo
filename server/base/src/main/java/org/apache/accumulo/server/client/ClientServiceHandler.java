@@ -309,7 +309,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       if (!security.canPerformSystemActions(credentials))
         throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       bulkImportStatus.updateBulkImportStatus(files, BulkImportState.INITIAL);
-      log.debug("Got request to bulk import files to table(" + tableId + "): " + files);
+      log.debug("Got request to bulk import files to table({}): {}", tableId, files);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         @Override
         public List<String> call() throws Exception {
@@ -431,20 +431,19 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials) throws ThriftTableOperationException, ThriftSecurityException, TException {
     try {
-      HashSet<String> tableIds = new HashSet<>();
+      HashSet<Table.ID> tableIds = new HashSet<>();
 
       for (String table : tables) {
         // ensure that table table exists
         Table.ID tableId = checkTableId(instance, table, null);
-        tableIds.add(tableId.canonicalID());
+        tableIds.add(tableId);
         Namespace.ID namespaceId = Tables.getNamespaceId(instance, tableId);
         if (!security.canScan(credentials, tableId, namespaceId))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       }
 
       // use the same set of tableIds that were validated above to avoid race conditions
-      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(context.getServerConfigurationFactory().getSystemConfiguration(), tableIds, fs,
-          context.getConnector());
+      Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(tableIds, fs, context.getConnector());
       List<TDiskUsage> retUsages = new ArrayList<>();
       for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
         retUsages.add(new TDiskUsage(new ArrayList<>(usageItem.getKey()), usageItem.getValue()));

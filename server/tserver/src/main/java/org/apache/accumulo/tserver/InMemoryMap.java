@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -814,7 +814,7 @@ public class InMemoryMap {
 
         out.close();
 
-        log.debug("Created mem dump file " + tmpFile);
+        log.debug("Created mem dump file {}", tmpFile);
 
         memDumpFile = tmpFile;
 
@@ -829,7 +829,7 @@ public class InMemoryMap {
         fs.delete(new Path(memDumpFile), true);
 
       } catch (IOException ioe) {
-        log.error("Failed to create mem dump file ", ioe);
+        log.error("Failed to create mem dump file", ioe);
 
         while (activeIters.size() > 0) {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);

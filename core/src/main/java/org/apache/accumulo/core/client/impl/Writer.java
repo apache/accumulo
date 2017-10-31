@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
 
@@ -35,13 +35,12 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 public class Writer {
 
@@ -86,7 +85,7 @@ public class Writer {
       TabletLocation tabLoc = TabletLocator.getLocator(context, tableId).locateTablet(context, new Text(m.getRow()), false, true);
 
       if (tabLoc == null) {
-        log.trace("No tablet location found for row " + new String(m.getRow(), UTF_8));
+        log.trace("No tablet location found for row {}", new String(m.getRow(), UTF_8));
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
         continue;
       }
@@ -96,15 +95,15 @@ public class Writer {
         updateServer(context, m, tabLoc.tablet_extent, parsedLocation);
         return;
       } catch (NotServingTabletException e) {
-        log.trace("Not serving tablet, server = " + parsedLocation);
+        log.trace("Not serving tablet, server = {}", parsedLocation);
         TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.tablet_extent);
       } catch (ConstraintViolationException cve) {
-        log.error("error sending update to " + parsedLocation + ": " + cve);
+        log.error("error sending update to {}", parsedLocation, cve);
         // probably do not need to invalidate cache, but it does not hurt
         TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.tablet_extent);
         throw cve;
       } catch (TException e) {
-        log.error("error sending update to " + parsedLocation + ": " + e);
+        log.error("error sending update to {}", parsedLocation, e);
         TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.tablet_extent);
       }
 

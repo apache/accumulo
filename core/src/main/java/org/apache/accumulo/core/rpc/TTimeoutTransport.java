@@ -27,13 +27,12 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.spi.SelectorProvider;
 
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * A utility class for setting up a {@link TTransport} with various necessary configurations for ideal performance in Accumulo. These configurations include:
@@ -108,7 +107,7 @@ public class TTimeoutTransport {
    *           If the transport fails to be created/connected
    */
   public static TTransport create(HostAndPort addr, long timeoutMillis) throws IOException {
-    return INSTANCE.createInternal(new InetSocketAddress(addr.getHostText(), addr.getPort()), timeoutMillis);
+    return INSTANCE.createInternal(new InetSocketAddress(addr.getHost(), addr.getPort()), timeoutMillis);
   }
 
   /**

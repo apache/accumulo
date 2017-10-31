@@ -99,7 +99,7 @@ public class RootFiles {
         if (fs.exists(new Path(expectedCompactedFile))) {
           // compaction finished, but did not finish deleting compacted files.. so delete it
           if (!fs.deleteRecursively(file.getPath()))
-            log.warn("Delete of file: " + file.getPath().toString() + " return false");
+            log.warn("Delete of file: {} return false", file.getPath().toString());
           continue;
         }
         // compaction did not finish, so put files back
@@ -113,16 +113,16 @@ public class RootFiles {
 
       if (filename.endsWith("_tmp")) {
         if (deleteTmp) {
-          log.warn("cleaning up old tmp file: " + path);
+          log.warn("cleaning up old tmp file: {}", path);
           if (!fs.deleteRecursively(file.getPath()))
-            log.warn("Delete of tmp file: " + file.getPath().toString() + " return false");
+            log.warn("Delete of tmp file: {} return false", file.getPath().toString());
 
         }
         continue;
       }
 
       if (!filename.startsWith(Constants.MAPFILE_EXTENSION + "_") && !FileOperations.getValidExtensions().contains(filename.split("\\.")[1])) {
-        log.error("unknown file in tablet: " + path);
+        log.error("unknown file in tablet: {}", path);
         continue;
       }
 

@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -81,7 +81,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     try {
       timeoutFactor = Integer.parseInt(System.getProperty("timeout.factor"));
     } catch (NumberFormatException e) {
-      log.warn("Could not parse property value for 'timeout.factor' as integer: " + System.getProperty("timeout.factor"));
+      log.warn("Could not parse property value for 'timeout.factor' as integer: {}", System.getProperty("timeout.factor"));
     }
 
     Assert.assertTrue("Timeout factor must be greater than or equal to 1", timeoutFactor >= 1);

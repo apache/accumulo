@@ -115,7 +115,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
     File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
-    log.info("Created empty WAL at " + emptyWalog.toURI());
+    log.info("Created empty WAL at {}", emptyWalog.toURI());
 
     fs.create(new Path(emptyWalog.toURI())).close();
 
@@ -125,7 +125,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345", emptyWalog.toURI().toString());
@@ -167,7 +167,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
     File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
-    log.info("Created WAL with malformed header at " + partialHeaderWalog.toURI());
+    log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
 
     // Write half of the header
     FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toURI()));
@@ -180,7 +180,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345", partialHeaderWalog.toURI().toString());

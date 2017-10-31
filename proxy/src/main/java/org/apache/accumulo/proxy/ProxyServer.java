@@ -1852,7 +1852,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     if (ThriftServerType.SASL == serverType) {
       String remoteUser = UGIAssumingProcessor.rpcPrincipal();
       if (null == remoteUser || !remoteUser.equals(principal)) {
-        logger.error("Denying login from user " + remoteUser + " who attempted to log in as " + principal);
+        logger.error("Denying login from user {} who attempted to log in as {}", remoteUser, principal);
         throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG);
       }
     }

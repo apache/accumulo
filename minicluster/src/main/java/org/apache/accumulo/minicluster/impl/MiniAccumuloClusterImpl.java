@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.minicluster.impl;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -712,7 +712,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       // the single thread executor shouldn't have any pending tasks, but check anyways
       if (!tasksRemaining.isEmpty()) {
-        log.warn("Unexpectedly had " + tasksRemaining.size() + " task(s) remaining in threadpool for execution when being stopped");
+        log.warn("Unexpectedly had {} task(s) remaining in threadpool for execution when being stopped", tasksRemaining.size());
       }
 
       executor = null;

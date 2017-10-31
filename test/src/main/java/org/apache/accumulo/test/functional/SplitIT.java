@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -148,7 +148,7 @@ public class SplitIT extends AccumuloClusterHarness {
     while (c.tableOperations().listSplits(table).size() < 10) {
       sleepUninterruptibly(15, TimeUnit.SECONDS);
     }
-    Table.ID id = new Table.ID(c.tableOperations().tableIdMap().get(table));
+    Table.ID id = Table.ID.of(c.tableOperations().tableIdMap().get(table));
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     KeyExtent extent = new KeyExtent(id, null, null);
     s.setRange(extent.toMetadataRange());

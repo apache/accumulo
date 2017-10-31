@@ -21,6 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
@@ -116,14 +117,11 @@ public class Main {
   }
 
   private static void execKeyword(final KeywordExecutable keywordExec, final String[] args) {
-    Runnable r = new Runnable() {
-      @Override
-      public void run() {
-        try {
-          keywordExec.execute(args);
-        } catch (Exception e) {
-          die(e);
-        }
+    Runnable r = () -> {
+      try {
+        keywordExec.execute(args);
+      } catch (Exception e) {
+        die(e);
       }
     };
     startThread(r, keywordExec.keyword());
@@ -153,22 +151,19 @@ public class Main {
       System.exit(1);
     }
     final Method finalMain = main;
-    Runnable r = new Runnable() {
-      @Override
-      public void run() {
-        try {
-          final Object thisIsJustOneArgument = args;
-          finalMain.invoke(null, thisIsJustOneArgument);
-        } catch (InvocationTargetException e) {
-          if (e.getCause() != null) {
-            die(e.getCause());
-          } else {
-            // Should never happen, but check anyway.
-            die(e);
-          }
-        } catch (Exception e) {
+    Runnable r = () -> {
+      try {
+        final Object thisIsJustOneArgument = args;
+        finalMain.invoke(null, thisIsJustOneArgument);
+      } catch (InvocationTargetException e) {
+        if (e.getCause() != null) {
+          die(e.getCause());
+        } else {
+          // Should never happen, but check anyway.
           die(e);
         }
+      } catch (Exception e) {
+        die(e);
       }
     };
     startThread(r, classWithMain.getName());
@@ -203,10 +198,10 @@ public class Main {
   }
 
   public static void printUsage() {
-    TreeSet<KeywordExecutable> executables = new TreeSet<>((x, y) -> x.keyword().compareTo(y.keyword()));
+    TreeSet<KeywordExecutable> executables = new TreeSet<>(Comparator.comparing(KeywordExecutable::keyword));
     executables.addAll(getExecutables(getClassLoader()).values());
 
-    System.out.println("\nUsage: accumulo <command> [-h] (<argument> ...)\n\n  -h   Prints usage for specified command");
+    System.out.println("\nUsage: accumulo <command> [--help] (<argument> ...)\n\n  --help   Prints usage for specified command");
     System.out.println("\nCore Commands:");
     printCommands(executables, UsageGroup.CORE);
 
@@ -250,6 +245,6 @@ public class Main {
   }
 
   private static void warnDuplicate(final KeywordExecutable service) {
-    log.warn("Ambiguous duplicate binding for keyword '" + service.keyword() + "' found: " + service.getClass().getName());
+    log.warn("Ambiguous duplicate binding for keyword '{}' found: {}", service.keyword(), service.getClass().getName());
   }
 }

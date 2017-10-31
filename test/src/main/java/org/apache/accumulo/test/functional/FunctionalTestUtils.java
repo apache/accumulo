@@ -68,7 +68,7 @@ public class FunctionalTestUtils {
 
   public static int countRFiles(Connector c, String tableName) throws Exception {
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    Table.ID tableId = new Table.ID(c.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
     scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 

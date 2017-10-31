@@ -56,7 +56,7 @@ public class TransactionWatcher {
       synchronized (counts) {
         AtomicInteger count = counts.get(tid);
         if (count == null) {
-          log.error("unexpected missing count for transaction" + tid);
+          log.error("unexpected missing count for transaction {}", tid);
         } else {
           if (count.decrementAndGet() == 0)
             counts.remove(tid);
@@ -67,7 +67,7 @@ public class TransactionWatcher {
 
   public boolean isActive(long tid) {
     synchronized (counts) {
-      log.debug("Transactions in progress " + counts);
+      log.debug("Transactions in progress {}", counts);
       AtomicInteger count = counts.get(tid);
       return count != null && count.get() > 0;
     }

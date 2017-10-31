@@ -107,7 +107,7 @@ public class Retry {
   }
 
   public void waitForNextAttempt() throws InterruptedException {
-    log.debug("Sleeping for " + currentWait + "ms before retrying operation");
+    log.debug("Sleeping for {}ms before retrying operation", currentWait);
     sleep(currentWait);
     currentWait = Math.min(maxWait, currentWait + waitIncrement);
   }

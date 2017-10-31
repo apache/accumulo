@@ -105,12 +105,12 @@ public class ZooCache {
               clear();
               break;
             default:
-              log.warn("Unhandled: " + event);
+              log.warn("Unhandled: {}", event);
               break;
           }
           break;
         default:
-          log.warn("Unhandled: " + event);
+          log.warn("Unhandled: {}", event);
           break;
       }
 
@@ -320,7 +320,7 @@ public class ZooCache {
           byte[] data = null;
           if (stat == null) {
             if (log.isTraceEnabled()) {
-              log.trace("zookeeper did not contain " + zPath);
+              log.trace("zookeeper did not contain {}", zPath);
             }
           } else {
             try {
@@ -331,7 +331,7 @@ public class ZooCache {
               throw new ConcurrentModificationException();
             }
             if (log.isTraceEnabled()) {
-              log.trace("zookeeper contained " + zPath + " " + (data == null ? null : new String(data, UTF_8)));
+              log.trace("zookeeper contained {} {}", zPath, (data == null ? null : new String(data, UTF_8)));
             }
           }
           put(zPath, data, stat);

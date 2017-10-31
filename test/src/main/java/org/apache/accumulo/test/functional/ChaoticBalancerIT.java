@@ -79,5 +79,4 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
     c.tableOperations().flush(tableName, null, null, true);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
-
 }

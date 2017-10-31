@@ -94,7 +94,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       @Override
       public void run() {
 
-        log.debug("Filing problem report " + pr.getTableId() + " " + pr.getProblemType() + " " + pr.getResource());
+        log.debug("Filing problem report {} {} {}", pr.getTableId(), pr.getProblemType(), pr.getResource());
 
         try {
           if (isMeta(pr.getTableId())) {

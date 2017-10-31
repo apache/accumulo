@@ -83,7 +83,7 @@ public class ReplicationProcessorTest {
     ReplicationProcessor proc = EasyMock.createMockBuilder(ReplicationProcessor.class)
         .addMockedMethods("getReplicaSystem", "doesFileExist", "getStatus", "getHelper").createMock();
 
-    ReplicationTarget target = new ReplicationTarget("peer", "1", new Table.ID("1"));
+    ReplicationTarget target = new ReplicationTarget("peer", "1", Table.ID.of("1"));
     Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     Path path = new Path("/accumulo");
 

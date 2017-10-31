@@ -125,7 +125,7 @@ public class Namespaces {
    */
   public static SortedMap<Namespace.ID,String> getIdToNameMap(Instance instance) {
     SortedMap<Namespace.ID,String> idMap = new TreeMap<>();
-    getAllNamespaces(instance, (id, name) -> idMap.put(new Namespace.ID(id), name));
+    getAllNamespaces(instance, (id, name) -> idMap.put(Namespace.ID.of(id), name));
     return idMap;
   }
 
@@ -134,7 +134,7 @@ public class Namespaces {
    */
   public static SortedMap<String,Namespace.ID> getNameToIdMap(Instance instance) {
     SortedMap<String,Namespace.ID> nameMap = new TreeMap<>();
-    getAllNamespaces(instance, (id, name) -> nameMap.put(name, new Namespace.ID(id)));
+    getAllNamespaces(instance, (id, name) -> nameMap.put(name, Namespace.ID.of(id)));
     return nameMap;
   }
 
@@ -145,7 +145,7 @@ public class Namespaces {
     final ArrayList<Namespace.ID> singleId = new ArrayList<>(1);
     getAllNamespaces(instance, (id, name) -> {
       if (name.equals(namespaceName))
-        singleId.add(new Namespace.ID(id));
+        singleId.add(Namespace.ID.of(id));
     });
     if (singleId.isEmpty())
       throw new NamespaceNotFoundException(null, namespaceName, "getNamespaceId() failed to find namespace");

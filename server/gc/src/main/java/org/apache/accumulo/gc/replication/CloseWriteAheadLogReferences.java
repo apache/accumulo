@@ -44,6 +44,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -59,7 +60,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.net.HostAndPort;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
@@ -109,7 +109,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       findWalsSpan.stop();
     }
 
-    log.info("Found " + closed.size() + " WALs referenced in metadata in " + sw.toString());
+    log.info("Found {} WALs referenced in metadata in {}", closed.size(), sw.toString());
     sw.reset();
 
     Span updateReplicationSpan = Trace.start("updateReplicationTable");
@@ -122,7 +122,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       updateReplicationSpan.stop();
     }
 
-    log.info("Closed " + recordsClosed + " WAL replication references in replication table in " + sw.toString());
+    log.info("Closed {} WAL replication references in replication table in {}", recordsClosed, sw.toString());
   }
 
   /**
@@ -190,7 +190,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
             closeWal(bw, entry.getKey());
             recordsClosed++;
           } catch (MutationsRejectedException e) {
-            log.error("Failed to submit delete mutation for " + entry.getKey());
+            log.error("Failed to submit delete mutation for {}", entry.getKey());
             continue;
           }
         }
@@ -236,7 +236,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
         return null;
       return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
-      log.warn("Failed to obtain master host " + e);
+      log.warn("Failed to obtain master host", e);
     }
 
     return null;

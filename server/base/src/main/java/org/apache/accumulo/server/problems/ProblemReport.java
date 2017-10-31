@@ -189,7 +189,7 @@ public class ProblemReport {
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     DataInputStream dis = new DataInputStream(bais);
 
-    Table.ID tableId = new Table.ID(dis.readUTF());
+    Table.ID tableId = Table.ID.of(dis.readUTF());
     String problemType = dis.readUTF();
     String resource = dis.readUTF();
 
@@ -201,7 +201,7 @@ public class ProblemReport {
   }
 
   public static ProblemReport decodeMetadataEntry(Entry<Key,Value> entry) throws IOException {
-    Table.ID tableId = new Table.ID(entry.getKey().getRow().toString().substring("~err_".length()));
+    Table.ID tableId = Table.ID.of(entry.getKey().getRow().toString().substring("~err_".length()));
     String problemType = entry.getKey().getColumnFamily().toString();
     String resource = entry.getKey().getColumnQualifier().toString();
 

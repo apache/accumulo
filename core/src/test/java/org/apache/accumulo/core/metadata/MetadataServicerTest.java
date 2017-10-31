@@ -40,7 +40,7 @@ import org.junit.Test;
 public class MetadataServicerTest {
 
   private static final String userTableName = "tableName";
-  private static final Table.ID userTableId = new Table.ID("tableId");
+  private static final Table.ID userTableId = Table.ID.of("tableId");
   private static ClientContext context;
 
   @BeforeClass

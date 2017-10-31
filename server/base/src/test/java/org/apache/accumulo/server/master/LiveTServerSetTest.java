@@ -23,14 +23,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerInfo;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.easymock.EasyMock;
 import org.junit.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class LiveTServerSetTest {
 

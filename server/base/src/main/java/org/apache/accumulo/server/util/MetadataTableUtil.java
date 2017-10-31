@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.server.util;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,7 +32,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -550,13 +549,13 @@ public class MetadataTableUtil {
   }
 
   public static List<LogEntry> getLogEntries(ClientContext context, KeyExtent extent) throws IOException, KeeperException, InterruptedException {
-    log.info("Scanning logging entries for " + extent);
+    log.info("Scanning logging entries for {}", extent);
     ArrayList<LogEntry> result = new ArrayList<>();
     if (extent.equals(RootTable.EXTENT)) {
       log.info("Getting logs for root tablet from zookeeper");
       getRootLogEntries(result);
     } else {
-      log.info("Scanning metadata for logs used for tablet " + extent);
+      log.info("Scanning metadata for logs used for tablet {}", extent);
       Scanner scanner = getTabletLogScanner(context, extent);
       Text pattern = extent.getMetadataEntry();
       for (Entry<Key,Value> entry : scanner) {
@@ -569,7 +568,7 @@ public class MetadataTableUtil {
       }
     }
 
-    log.info("Returning logs " + result + " for extent " + extent);
+    log.info("Returning logs {} for extent {}", result, extent);
     return result;
   }
 
@@ -618,7 +617,7 @@ public class MetadataTableUtil {
       rootTableEntries = getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null)).iterator();
       try {
         Scanner scanner = context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-        log.info("Setting range to " + MetadataSchema.TabletsSection.getRange());
+        log.info("Setting range to {}", MetadataSchema.TabletsSection.getRange());
         scanner.setRange(MetadataSchema.TabletsSection.getRange());
         scanner.fetchColumnFamily(LogColumnFamily.NAME);
         metadataEntries = scanner.iterator();
@@ -743,7 +742,7 @@ public class MetadataTableUtil {
   }
 
   private static int compareEndRows(Text endRow1, Text endRow2) {
-    return new KeyExtent(new Table.ID("0"), endRow1, null).compareTo(new KeyExtent(new Table.ID("0"), endRow2, null));
+    return new KeyExtent(Table.ID.of("0"), endRow1, null).compareTo(new KeyExtent(Table.ID.of("0"), endRow2, null));
   }
 
   @VisibleForTesting
@@ -860,7 +859,7 @@ public class MetadataTableUtil {
           // delete what we have cloned and try again
           deleteTable(tableId, false, context, null);
 
-          log.debug("Tablets merged in table " + srcTableId + " while attempting to clone, trying again");
+          log.debug("Tablets merged in table {} while attempting to clone, trying again", srcTableId);
 
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
@@ -877,7 +876,7 @@ public class MetadataTableUtil {
         Key k = entry.getKey();
         Mutation m = new Mutation(k.getRow());
         m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(tableId));
+        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId);
         String dir = volumeManager.choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
             + new String(FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES));
         TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dir.getBytes(UTF_8)));
@@ -958,7 +957,7 @@ public class MetadataTableUtil {
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root table
     // because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(new Table.ID("anythingNotMetadata"), null, null));
+    update(context, m, new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null));
   }
 
   public static void removeBulkLoadInProgressFlag(AccumuloServerContext context, String path) {
@@ -968,7 +967,7 @@ public class MetadataTableUtil {
 
     // new KeyExtent is only added to force update to write to the metadata table, not the root table
     // because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(new Table.ID("anythingNotMetadata"), null, null));
+    update(context, m, new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null));
   }
 
   /**
@@ -976,7 +975,7 @@ public class MetadataTableUtil {
    */
   public static void createReplicationTable(ClientContext context) throws IOException {
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Optional.of(ReplicationTable.ID));
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ReplicationTable.ID);
     String dir = VolumeManagerImpl.get().choose(chooserEnv, ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
         + Constants.DEFAULT_TABLET_LOCATION;
 
@@ -1010,7 +1009,7 @@ public class MetadataTableUtil {
 
   public static void moveMetaDeleteMarkersFrom14(ClientContext context) {
     // new KeyExtent is only added to force update to write to the metadata table, not the root table
-    KeyExtent notMetadata = new KeyExtent(new Table.ID("anythingNotMetadata"), null, null);
+    KeyExtent notMetadata = new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null);
 
     // move delete markers from the normal delete keyspace to the root tablet delete keyspace if the files are for the !METADATA table
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
@@ -1030,7 +1029,7 @@ public class MetadataTableUtil {
     String filename = rowID.substring(prefix.length());
 
     // add the new entry first
-    log.info("Moving " + filename + " marker in " + RootTable.NAME);
+    log.info("Moving {} marker in {}", filename, RootTable.NAME);
     Mutation m = new Mutation(MetadataSchema.DeletesSection.getRowPrefix() + filename);
     m.put(EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES);
     update(context, m, RootTable.EXTENT);

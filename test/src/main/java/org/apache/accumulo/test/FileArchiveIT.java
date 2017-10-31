@@ -65,7 +65,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().create(tableName);
 
-    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -88,7 +88,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     // Then force another to make an unreferenced file
     conn.tableOperations().compact(tableName, null, null, true, true);
 
-    log.info("File for table: " + file);
+    log.info("File for table: {}", file);
 
     FileSystem fs = getCluster().getFileSystem();
     int i = 0;
@@ -96,7 +96,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
       i++;
       Thread.sleep(1000);
       if (0 == i % 10) {
-        log.info("Waited " + i + " iterations, file still exists");
+        log.info("Waited {} iterations, file still exists", i);
       }
     }
 
@@ -104,7 +104,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
-    log.info("File relative to accumulo dir: " + filePath);
+    log.info("File relative to accumulo dir: {}", filePath);
 
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
 
@@ -123,7 +123,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().create(tableName);
 
-    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -145,7 +145,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().delete(tableName);
 
-    log.info("File for table: " + file);
+    log.info("File for table: {}", file);
 
     FileSystem fs = getCluster().getFileSystem();
     int i = 0;
@@ -153,7 +153,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
       i++;
       Thread.sleep(1000);
       if (0 == i % 10) {
-        log.info("Waited " + i + " iterations, file still exists");
+        log.info("Waited {} iterations, file still exists", i);
       }
     }
 
@@ -161,7 +161,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
-    log.info("File relative to accumulo dir: " + filePath);
+    log.info("File relative to accumulo dir: {}", filePath);
 
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
 
@@ -180,7 +180,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().create(tableName);
 
-    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Assert.assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
@@ -203,7 +203,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     // Then force another to make an unreferenced file
     conn.tableOperations().compact(tableName, null, null, true, true);
 
-    log.info("File for table: " + file);
+    log.info("File for table: {}", file);
 
     FileSystem fs = getCluster().getFileSystem();
     int i = 0;
@@ -211,7 +211,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
       i++;
       Thread.sleep(1000);
       if (0 == i % 10) {
-        log.info("Waited " + i + " iterations, file still exists");
+        log.info("Waited {} iterations, file still exists", i);
       }
     }
 
@@ -219,7 +219,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
-    log.info("File relative to accumulo dir: " + filePath);
+    log.info("File relative to accumulo dir: {}", filePath);
 
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
 
@@ -244,14 +244,14 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     conn.tableOperations().delete(tableName);
 
-    log.info("File for table: " + finalPath);
+    log.info("File for table: {}", finalPath);
 
     i = 0;
     while (fs.exists(finalPath)) {
       i++;
       Thread.sleep(1000);
       if (0 == i % 10) {
-        log.info("Waited " + i + " iterations, file still exists");
+        log.info("Waited {} iterations, file still exists", i);
       }
     }
 
@@ -259,7 +259,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     String finalFilePath = finalPath.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
 
-    log.info("File relative to accumulo dir: " + finalFilePath);
+    log.info("File relative to accumulo dir: {}", finalFilePath);
 
     Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 

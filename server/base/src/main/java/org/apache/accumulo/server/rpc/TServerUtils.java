@@ -38,6 +38,7 @@ import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.AccumuloServerContext;
@@ -59,8 +60,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Factory methods for creating Thrift server objects
@@ -184,7 +183,7 @@ public class TServerUtils {
   public static ServerAddress createNonBlockingServer(HostAndPort address, TProcessor processor, TProtocolFactory protocolFactory, final String serverName,
       String threadName, final int numThreads, final int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
 
-    final TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHostText(), address.getPort()));
+    final TNonblockingServerSocket transport = new TNonblockingServerSocket(new InetSocketAddress(address.getHost(), address.getPort()));
     final CustomNonBlockingServer.Args options = new CustomNonBlockingServer.Args(transport);
 
     options.protocolFactory(protocolFactory);
@@ -199,7 +198,7 @@ public class TServerUtils {
     options.processorFactory(new TProcessorFactory(processor));
 
     if (address.getPort() == 0) {
-      address = HostAndPort.fromParts(address.getHostText(), transport.getPort());
+      address = HostAndPort.fromParts(address.getHost(), transport.getPort());
     }
 
     return new ServerAddress(new CustomNonBlockingServer(options), address);
@@ -266,7 +265,7 @@ public class TServerUtils {
     TThreadPoolServer server = createTThreadPoolServer(transport, processor, ThriftUtil.transportFactory(maxMessageSize), protocolFactory, pool);
 
     if (address.getPort() == 0) {
-      address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
+      address = HostAndPort.fromParts(address.getHost(), transport.getServerSocket().getLocalPort());
       log.info("Blocking Server bound on {}", address);
     }
 
@@ -373,13 +372,13 @@ public class TServerUtils {
       SslConnectionParams sslParams, String serverName, int numThreads, int numSimpleTimerThreads, long timeBetweenThreadChecks) throws TTransportException {
     TServerSocket transport;
     try {
-      transport = getSslServerSocket(address.getPort(), (int) socketTimeout, InetAddress.getByName(address.getHostText()), sslParams);
+      transport = getSslServerSocket(address.getPort(), (int) socketTimeout, InetAddress.getByName(address.getHost()), sslParams);
     } catch (UnknownHostException e) {
       throw new TTransportException(e);
     }
 
     if (address.getPort() == 0) {
-      address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
+      address = HostAndPort.fromParts(address.getHost(), transport.getServerSocket().getLocalPort());
       log.info("SSL Thread Pool Server bound on {}", address);
     }
 
@@ -394,12 +393,12 @@ public class TServerUtils {
     // We'd really prefer to use THsHaServer (or similar) to avoid 1 RPC == 1 Thread that the TThreadPoolServer does,
     // but sadly this isn't the case. Because TSaslTransport needs to issue a handshake when it open()'s which will fail
     // when the server does an accept() to (presumably) wake up the eventing system.
-    log.info("Creating SASL thread pool thrift server on listening on {}:{}", address.getHostText(), address.getPort());
+    log.info("Creating SASL thread pool thrift server on listening on {}:{}", address.getHost(), address.getPort());
     TServerSocket transport = new TServerSocket(address.getPort(), (int) socketTimeout);
 
     String hostname, fqdn;
     try {
-      hostname = InetAddress.getByName(address.getHostText()).getCanonicalHostName();
+      hostname = InetAddress.getByName(address.getHost()).getCanonicalHostName();
       fqdn = InetAddress.getLocalHost().getCanonicalHostName();
     } catch (UnknownHostException e) {
       transport.close();
@@ -452,7 +451,7 @@ public class TServerUtils {
 
     if (address.getPort() == 0) {
       // If we chose a port dynamically, make a new use it (along with the proper hostname)
-      address = HostAndPort.fromParts(address.getHostText(), transport.getServerSocket().getLocalPort());
+      address = HostAndPort.fromParts(address.getHost(), transport.getServerSocket().getLocalPort());
       log.info("SASL thrift server bound on {}", address);
     }
 
@@ -550,7 +549,7 @@ public class TServerUtils {
     thread.start();
 
     // check for the special "bind to everything address"
-    if (serverAddress.address.getHostText().equals("0.0.0.0")) {
+    if (serverAddress.address.getHost().equals("0.0.0.0")) {
       // can't get the address from the bind, so we'll do our best to invent our hostname
       try {
         serverAddress = new ServerAddress(finalServer, HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), serverAddress.address.getPort()));

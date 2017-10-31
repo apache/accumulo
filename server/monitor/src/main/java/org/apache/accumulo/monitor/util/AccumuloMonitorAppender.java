@@ -29,6 +29,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -37,8 +38,6 @@ import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.AsyncAppender;
 import org.apache.log4j.net.SocketAppender;
 import org.apache.zookeeper.data.Stat;
-
-import com.google.common.net.HostAndPort;
 
 public class AccumuloMonitorAppender extends AsyncAppender implements AutoCloseable {
 
@@ -164,7 +163,7 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
 
       SocketAppender socketAppender = new SocketAppender();
       socketAppender.setApplication(System.getProperty("accumulo.application", "unknown"));
-      socketAppender.setRemoteHost(remote.getHostText());
+      socketAppender.setRemoteHost(remote.getHost());
       socketAppender.setPort(remote.getPortOrDefault(defaultPort));
 
       return socketAppender;

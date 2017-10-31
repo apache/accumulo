@@ -139,7 +139,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   @Override
   protected void finalize() {
     if (!closed.get()) {
-      log.warn(MultiTableBatchWriterImpl.class.getSimpleName() + " not shutdown; did you forget to call close()?");
+      log.warn("{} not shutdown; did you forget to call close()?", MultiTableBatchWriterImpl.class.getSimpleName());
       try {
         close();
       } catch (MutationsRejectedException mre) {
@@ -162,7 +162,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
     } catch (UncheckedExecutionException e) {
       Throwable cause = e.getCause();
 
-      log.error("Unexpected exception when fetching table id for " + tableName);
+      log.error("Unexpected exception when fetching table id for {}", tableName);
 
       if (null == cause) {
         throw new RuntimeException(e);
@@ -176,7 +176,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
 
-      log.error("Unexpected exception when fetching table id for " + tableName);
+      log.error("Unexpected exception when fetching table id for {}", tableName);
 
       if (null == cause) {
         throw new RuntimeException(e);

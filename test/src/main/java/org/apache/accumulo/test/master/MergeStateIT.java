@@ -37,6 +37,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.master.state.MergeStats;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.master.state.Assignment;
@@ -52,8 +53,6 @@ import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.net.HostAndPort;
-
 public class MergeStateIT extends ConfigurableMacBase {
 
   private static class MockCurrentState implements CurrentState {
@@ -67,7 +66,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
     @Override
     public Set<Table.ID> onlineTables() {
-      return Collections.singleton(new Table.ID("t"));
+      return Collections.singleton(Table.ID.of("t"));
     }
 
     @Override
@@ -114,7 +113,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     // Create a fake METADATA table with these splits
     String splits[] = {"a", "e", "j", "o", "t", "z"};
     // create metadata for a table "t" with the splits above
-    Table.ID tableId = new Table.ID("t");
+    Table.ID tableId = Table.ID.of("t");
     Text pr = null;
     for (String s : splits) {
       Text split = new Text(s);

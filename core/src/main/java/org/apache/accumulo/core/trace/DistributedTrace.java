@@ -161,10 +161,10 @@ public class DistributedTrace {
       SpanReceiverBuilder builder = new SpanReceiverBuilder(wrapHadoopConf(conf));
       SpanReceiver rcvr = builder.spanReceiverClass(className.trim()).build();
       if (rcvr == null) {
-        log.warn("Failed to load SpanReceiver " + className);
+        log.warn("Failed to load SpanReceiver {}", className);
       } else {
         receivers.add(rcvr);
-        log.info("SpanReceiver " + className + " was loaded successfully.");
+        log.info("SpanReceiver {} was loaded successfully.", className);
       }
     }
     for (SpanReceiver rcvr : receivers) {

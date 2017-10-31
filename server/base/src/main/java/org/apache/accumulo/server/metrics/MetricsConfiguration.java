@@ -182,7 +182,7 @@ public class MetricsConfiguration {
       // set the enabled boolean from the configuration
       enabled = config.getBoolean(enabledName);
       if (log.isDebugEnabled())
-        log.debug("Metrics collection enabled=" + enabled);
+        log.debug("Metrics collection enabled={}", enabled);
     } else {
       enabled = false;
     }

@@ -115,7 +115,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
     // test each permission
     for (SystemPermission perm : SystemPermission.values()) {
-      log.debug("Verifying the " + perm + " permission");
+      log.debug("Verifying the {} permission", perm);
 
       // test permission before and after granting it
       String tableNamePrefix = getUniqueNames(1)[0];
@@ -142,7 +142,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
       SystemPermission perm) throws Exception {
     String tableName, user, password = "password", namespace;
     boolean passwordBased = testUser.getPassword() != null;
-    log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
+    log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
 
     // test permission prior to granting it
     switch (perm) {
@@ -235,7 +235,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().listLocalUsers().contains(user)) {
-            log.info("Failed to authenticate as " + user);
+            log.info("Failed to authenticate as {}", user);
             throw e;
           }
         }
@@ -347,7 +347,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
       SystemPermission perm) throws Exception {
     String tableName, user, password = "password", namespace;
     boolean passwordBased = testUser.getPassword() != null;
-    log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
+    log.debug("Confirming that the presence of the {} permission properly permits the user", perm);
 
     // test permission after granting it
     switch (perm) {
@@ -533,7 +533,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
     // test each permission
     for (TablePermission perm : TablePermission.values()) {
-      log.debug("Verifying the " + perm + " permission");
+      log.debug("Verifying the {} permission", perm);
 
       // test permission before and after granting it
       createTestTable(c, principal, tableName);
@@ -574,7 +574,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     Scanner scanner;
     BatchWriter writer;
     Mutation m;
-    log.debug("Confirming that the lack of the " + perm + " permission properly restricts the user");
+    log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
 
     // test permission prior to granting it
     switch (perm) {
@@ -661,7 +661,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     Scanner scanner;
     BatchWriter writer;
     Mutation m;
-    log.debug("Confirming that the presence of the " + perm + " permission properly permits the user");
+    log.debug("Confirming that the presence of the {} permission properly permits the user", perm);
 
     // test permission after granting it
     switch (perm) {

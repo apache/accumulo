@@ -96,7 +96,7 @@ public class DistributedWorkQueue {
           break;
         }
 
-        log.debug("got lock for " + child);
+        log.debug("got lock for {}", child);
 
         Runnable task = new Runnable() {
 
@@ -186,13 +186,13 @@ public class DistributedWorkQueue {
                 log.info("Interrupted looking for work", e);
               }
             else
-              log.info("Unexpected path for NodeChildrenChanged event " + event.getPath());
+              log.info("Unexpected path for NodeChildrenChanged event {}", event.getPath());
             break;
           case NodeCreated:
           case NodeDataChanged:
           case NodeDeleted:
           case None:
-            log.info("Got unexpected zookeeper event: " + event.getType() + " for " + path);
+            log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
             break;
 
         }
@@ -205,7 +205,7 @@ public class DistributedWorkQueue {
     SimpleTimer.getInstance(config).schedule(new Runnable() {
       @Override
       public void run() {
-        log.debug("Looking for work in " + path);
+        log.debug("Looking for work in {}", path);
         try {
           lookForWork(processor, zoo.getChildren(path));
         } catch (KeeperException e) {
@@ -255,7 +255,7 @@ public class DistributedWorkQueue {
           case NodeDataChanged:
           case NodeDeleted:
           case None:
-            log.info("Got unexpected zookeeper event: " + event.getType() + " for " + path);
+            log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
             break;
 
         }

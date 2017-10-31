@@ -318,7 +318,7 @@ class FateServiceHandler implements FateService.Iface {
         if (!canMerge)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        Master.log.debug("Creating merge op: " + tableId + " " + startRow + " " + endRow);
+        Master.log.debug("Creating merge op: {} {} {}", tableId, startRow, endRow);
         master.fate.seedTransaction(opid, new TraceRepo<>(new TableRangeOp(MergeInfo.Operation.MERGE, namespaceId, tableId, startRow, endRow)), autoCleanup);
         break;
       }

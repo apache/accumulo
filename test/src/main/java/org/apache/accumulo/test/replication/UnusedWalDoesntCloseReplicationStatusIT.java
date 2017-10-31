@@ -78,7 +78,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     conn.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
     conn.tableOperations().create(tableName);
 
-    final Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     final int numericTableId = Integer.parseInt(tableId.canonicalID());
     final int fakeTableId = numericTableId + 1;
 
@@ -114,7 +114,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     value.write(out);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(new Table.ID(Integer.toString(fakeTableId)), null, null);
+    key.tablet = new KeyExtent(Table.ID.of(Integer.toString(fakeTableId)), null, null);
     key.seq = 1l;
     key.tid = 1;
 
@@ -187,13 +187,13 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
     for (Entry<Key,Value> entry : s) {
-      log.info(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
+      log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
     }
 
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.ReplicationSection.getRange());
     for (Entry<Key,Value> entry : s) {
-      log.info(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+      log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
     }
 
     log.info("Bringing table online");
@@ -206,14 +206,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
     for (Entry<Key,Value> entry : s) {
-      log.info(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
+      log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
     }
 
     s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.ReplicationSection.getRange());
     for (Entry<Key,Value> entry : s) {
       Status status = Status.parseFrom(entry.getValue().get());
-      log.info(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(status));
+      log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
       Assert.assertFalse("Status record was closed and it should not be", status.getClosed());
     }
   }

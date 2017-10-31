@@ -167,7 +167,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       }
     }
     URL url = new URL(scheme + monitorLocation);
-    log.debug("Fetching web page " + url);
+    log.debug("Fetching web page {}", url);
     String result = FunctionalTestUtils.readAll(url.openStream());
     assertTrue(result.length() > 100);
     log.debug("Stopping accumulo cluster");
@@ -430,7 +430,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
             args.add(new Path(hadoopConfDir, "core-site.xml").toString());
             args.add(new Path(hadoopConfDir, "hdfs-site.xml").toString());
           }
-          log.info("Invoking PrintInfo with " + args);
+          log.info("Invoking PrintInfo with {}", args);
           PrintInfo.main(args.toArray(new String[args.size()]));
           newOut.flush();
           String stdout = baos.toString();

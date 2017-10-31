@@ -62,7 +62,7 @@ public class TableRangeOp extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
 
     if (RootTable.ID.equals(tableId) && Operation.MERGE.equals(op)) {
-      log.warn("Attempt to merge tablets for " + RootTable.NAME + " does nothing. It is not splittable.");
+      log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.", RootTable.NAME);
     }
 
     Text start = startRow.length == 0 ? null : new Text(startRow);
@@ -90,7 +90,7 @@ public class TableRangeOp extends MasterRepo {
     // Not sure this is a good thing to do. The Master state engine should be the one to remove it.
     MergeInfo mergeInfo = env.getMergeInfo(tableId);
     if (mergeInfo.getState() != MergeState.NONE)
-      log.info("removing merge information " + mergeInfo);
+      log.info("removing merge information {}", mergeInfo);
     env.clearMergeState(tableId);
     Utils.unreserveNamespace(namespaceId, tid, false);
     Utils.unreserveTable(tableId, tid, true);

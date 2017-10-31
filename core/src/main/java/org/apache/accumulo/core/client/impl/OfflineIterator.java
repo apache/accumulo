@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -162,7 +162,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       this.range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
-    this.tableId = new Table.ID(table.toString());
+    this.tableId = Table.ID.of(table.toString());
     this.authorizations = authorizations;
     this.readers = new ArrayList<>();
 

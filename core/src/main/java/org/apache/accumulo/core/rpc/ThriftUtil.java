@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 import org.apache.thrift.TException;
@@ -49,8 +50,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Factory methods for creating Thrift client objects
@@ -244,7 +243,7 @@ public class ThriftUtil {
 
         // TSSLTransportFactory handles timeout 0 -> forever natively
         if (sslParams.useJsse()) {
-          transport = TSSLTransportFactory.getClientSocket(address.getHostText(), address.getPort(), timeout);
+          transport = TSSLTransportFactory.getClientSocket(address.getHost(), address.getPort(), timeout);
         } else {
           // JDK6's factory doesn't appear to pass the protocol onto the Socket properly so we have
           // to do some magic to make sure that happens. Not an issue in JDK7
@@ -260,7 +259,7 @@ public class ThriftUtil {
               new String[] {sslParams.getClientProtocol()});
 
           // Create the TSocket from that
-          transport = createClient(wrappingSslSockFactory, address.getHostText(), address.getPort(), timeout);
+          transport = createClient(wrappingSslSockFactory, address.getHost(), address.getPort(), timeout);
           // TSSLTransportFactory leaves transports open, so no need to open here
         }
 
@@ -270,7 +269,7 @@ public class ThriftUtil {
           throw new IllegalStateException("Expected Kerberos security to be enabled if SASL is in use");
         }
 
-        log.trace("Creating SASL connection to {}:{}", address.getHostText(), address.getPort());
+        log.trace("Creating SASL connection to {}:{}", address.getHost(), address.getPort());
 
         // Make sure a timeout is set
         try {
@@ -303,7 +302,7 @@ public class ThriftUtil {
           }
 
           // Is this pricey enough that we want to cache it?
-          final String hostname = InetAddress.getByName(address.getHostText()).getCanonicalHostName();
+          final String hostname = InetAddress.getByName(address.getHost()).getCanonicalHostName();
 
           final SaslMechanism mechanism = saslParams.getMechanism();
 
@@ -335,13 +334,13 @@ public class ThriftUtil {
       } else {
         log.trace("Opening normal transport");
         if (timeout == 0) {
-          transport = new TSocket(address.getHostText(), address.getPort());
+          transport = new TSocket(address.getHost(), address.getPort());
           transport.open();
         } else {
           try {
             transport = TTimeoutTransport.create(address, timeout);
           } catch (IOException ex) {
-            log.warn("Failed to open transport to " + address);
+            log.warn("Failed to open transport to {}", address);
             throw new TTransportException(ex);
           }
 

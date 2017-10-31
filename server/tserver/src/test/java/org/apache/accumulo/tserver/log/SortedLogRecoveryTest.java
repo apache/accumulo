@@ -57,7 +57,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class SortedLogRecoveryTest {
 
-  static final KeyExtent extent = new KeyExtent(new Table.ID("table"), null, null);
+  static final KeyExtent extent = new KeyExtent(Table.ID.of("table"), null, null);
   static final Text cf = new Text("cf");
   static final Text cq = new Text("cq");
   static final Value value = new Value("value".getBytes());

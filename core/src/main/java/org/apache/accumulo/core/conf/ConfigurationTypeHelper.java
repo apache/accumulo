@@ -16,8 +16,13 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +41,7 @@ public class ConfigurationTypeHelper {
     char lastChar = str.charAt(str.length() - 1);
 
     if (lastChar == 'b') {
-      log.warn("The 'b' in " + str + " is being considered as bytes. " + "Setting memory by bits is not supported");
+      log.warn("The 'b' in {} is being considered as bytes. Setting memory by bits is not supported", str);
     }
     try {
       int multiplier;
@@ -136,4 +141,64 @@ public class ConfigurationTypeHelper {
     return Double.parseDouble(str);
   }
 
+  // This is not a cache for loaded classes, just a way to avoid spamming the debug log
+  private static Map<String,Class<?>> loaded = Collections.synchronizedMap(new HashMap<String,Class<?>>());
+
+  /**
+   * Loads a class in the given classloader context, suppressing any exceptions, and optionally providing a default instance to use.
+   *
+   * @param context
+   *          the per-table context, can be null
+   * @param clazzName
+   *          the name of the class to load
+   * @param base
+   *          the type of the class
+   * @param defaultInstance
+   *          a default instance if the class cannot be loaded
+   * @return a new instance of the class, or the defaultInstance
+   */
+  public static <T> T getClassInstance(String context, String clazzName, Class<T> base, T defaultInstance) {
+    T instance = null;
+
+    try {
+      instance = getClassInstance(context, clazzName, base);
+    } catch (RuntimeException | ClassNotFoundException | IOException | InstantiationException | IllegalAccessException e) {
+      log.warn("Failed to load class {}", clazzName, e);
+    }
+
+    if (instance == null && defaultInstance != null) {
+      log.info("Using default class {}", defaultInstance.getClass().getName());
+      instance = defaultInstance;
+    }
+    return instance;
+  }
+
+  /**
+   * Loads a class in the given classloader context.
+   *
+   * @param context
+   *          the per-table context, can be null
+   * @param clazzName
+   *          the name of the class to load
+   * @param base
+   *          the type of the class
+   * @return a new instance of the class
+   */
+  public static <T> T getClassInstance(String context, String clazzName, Class<T> base) throws ClassNotFoundException, IOException, InstantiationException,
+      IllegalAccessException {
+    T instance;
+
+    Class<? extends T> clazz;
+    if (context != null && !context.isEmpty()) {
+      clazz = AccumuloVFSClassLoader.getContextManager().loadClass(context, clazzName, base);
+    } else {
+      clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
+    }
+
+    instance = clazz.newInstance();
+    if (loaded.put(clazzName, clazz) != clazz)
+      log.debug("Loaded class : {}", clazzName);
+
+    return instance;
+  }
 }

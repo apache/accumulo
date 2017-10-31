@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -102,7 +102,7 @@ public class MasterMetadataUtil {
 
   public static KeyExtent fixSplit(ClientContext context, Text metadataEntry, SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, ZooLock lock)
       throws AccumuloException, IOException {
-    log.info("Incomplete split " + metadataEntry + " attempting to fix");
+    log.info("Incomplete split {} attempting to fix", metadataEntry);
 
     Value oper = columns.get(TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN);
 
@@ -156,11 +156,11 @@ public class MasterMetadataUtil {
 
       VolumeManager fs = VolumeManagerImpl.get();
       if (!scanner2.iterator().hasNext()) {
-        log.info("Rolling back incomplete split " + metadataEntry + " " + metadataPrevEndRow);
+        log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
         MetadataTableUtil.rollBackSplit(metadataEntry, KeyExtent.decodePrevEndRow(oper), context, lock);
         return new KeyExtent(metadataEntry, KeyExtent.decodePrevEndRow(oper));
       } else {
-        log.info("Finishing incomplete split " + metadataEntry + " " + metadataPrevEndRow);
+        log.info("Finishing incomplete split {} {}", metadataEntry, metadataPrevEndRow);
 
         List<FileRef> highDatafilesToRemove = new ArrayList<>();
 
@@ -274,7 +274,7 @@ public class MasterMetadataUtil {
       while (true) {
         try {
           if (zk.exists(zpath)) {
-            log.debug("Removing WAL reference for root table " + zpath);
+            log.debug("Removing WAL reference for root table {}", zpath);
             zk.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
           }
           break;

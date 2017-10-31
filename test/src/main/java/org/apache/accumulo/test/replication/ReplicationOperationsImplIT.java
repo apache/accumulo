@@ -90,7 +90,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
       @Override
       protected Table.ID getTableId(Instance inst, String tableName) throws ThriftTableOperationException {
         try {
-          return new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+          return Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -114,7 +114,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   @Test
   public void waitsUntilEntriesAreReplicated() throws Exception {
     conn.tableOperations().create("foo");
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get("foo"));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(), file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
@@ -210,8 +210,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     conn.tableOperations().create("foo");
     conn.tableOperations().create("bar");
 
-    Table.ID tableId1 = new Table.ID(conn.tableOperations().tableIdMap().get("foo"));
-    Table.ID tableId2 = new Table.ID(conn.tableOperations().tableIdMap().get("bar"));
+    Table.ID tableId1 = Table.ID.of(conn.tableOperations().tableIdMap().get("foo"));
+    Table.ID tableId2 = Table.ID.of(conn.tableOperations().tableIdMap().get("bar"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(), file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
@@ -293,7 +293,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   public void inprogressReplicationRecordsBlockExecution() throws Exception {
     conn.tableOperations().create("foo");
 
-    Table.ID tableId1 = new Table.ID(conn.tableOperations().tableIdMap().get("foo"));
+    Table.ID tableId1 = Table.ID.of(conn.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();
@@ -371,7 +371,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   public void laterCreatedLogsDontBlockExecution() throws Exception {
     conn.tableOperations().create("foo");
 
-    Table.ID tableId1 = new Table.ID(conn.tableOperations().tableIdMap().get("foo"));
+    Table.ID tableId1 = Table.ID.of(conn.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false).setClosed(false).build();

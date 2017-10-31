@@ -48,13 +48,13 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
     // create a table with a bunch of splits
 
     final Connector c = getConnector();
-    log.info("Creating table " + tableName);
+    log.info("Creating table {}", tableName);
     c.tableOperations().create(tableName);
     final SortedSet<Text> splits = new TreeSet<>();
     for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
       splits.add(new Text(split));
     }
-    log.info("Splitting table " + tableName);
+    log.info("Splitting table {}", tableName);
     c.tableOperations().addSplits(tableName, splits);
     log.info("Balancing");
     c.instanceOperations().waitForBalance();
@@ -62,15 +62,15 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
     // create a new table which will unbalance the cluster
     final String table2 = tableNames[1];
-    log.info("Creating table " + table2);
+    log.info("Creating table {}", table2);
     c.tableOperations().create(table2);
-    log.info("Creating splits " + table2);
+    log.info("Creating splits {}", table2);
     c.tableOperations().addSplits(table2, splits);
 
     // offline the table, hopefully while there are some migrations going on
-    log.info("Offlining " + table2);
+    log.info("Offlining {}", table2);
     c.tableOperations().offline(table2, true);
-    log.info("Offlined " + table2);
+    log.info("Offlined {}", table2);
 
     log.info("Waiting for balance");
 

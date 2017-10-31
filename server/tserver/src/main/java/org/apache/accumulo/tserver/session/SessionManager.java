@@ -181,7 +181,7 @@ public class SessionManager {
         }
         long idleTime = System.currentTimeMillis() - session.lastAccessTime;
         if (idleTime > configuredIdle && !session.reserved) {
-          log.info("Closing idle session from user=" + session.getUser() + ", client=" + session.client + ", idle=" + idleTime + "ms");
+          log.info("Closing idle session from user={}, client={}, idle={}ms", session.getUser(), session.client, idleTime);
           iter.remove();
           sessionsToCleanup.add(session);
         }
@@ -215,7 +215,7 @@ public class SessionManager {
           synchronized (SessionManager.this) {
             Session session2 = sessions.get(sessionId);
             if (session2 != null && session2.lastAccessTime == removeTime && !session2.reserved) {
-              log.info("Closing not accessed session from user=" + session2.getUser() + ", client=" + session2.client + ", duration=" + delay + "ms");
+              log.info("Closing not accessed session from user={}, client={}, duration={}ms", session2.getUser(), session2.client, delay);
               sessions.remove(sessionId);
               sessionToCleanup = session2;
             }

@@ -41,12 +41,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
 public class QueryMetadataTable {
-  private static final Logger log = Logger.getLogger(QueryMetadataTable.class);
+  private static final Logger log = LoggerFactory.getLogger(QueryMetadataTable.class);
 
   private static String principal;
   private static AuthenticationToken token;

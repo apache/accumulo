@@ -63,7 +63,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     int numThreads = 2;
     // Number of iterations per thread
     int iterations = 100000;
-    AccumuloConfiguration tableConf = new TableConfiguration(inst, new org.apache.accumulo.core.client.impl.Table.ID(table), defaultConf);
+    AccumuloConfiguration tableConf = new TableConfiguration(inst, org.apache.accumulo.core.client.impl.Table.ID.of(table), defaultConf);
 
     long start = System.currentTimeMillis();
     ExecutorService svc = Executors.newFixedThreadPool(numThreads);
@@ -85,8 +85,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     }
 
     long end = System.currentTimeMillis();
-    log.debug(tableConf + " with " + iterations + " iterations and " + numThreads + " threads and cache invalidates " + ((1. / randomMax) * 100.) + "% took "
-        + (end - start) / 1000 + " second(s)");
+    log.debug("{} with {} iterations and {} threads and cache invalidates {}% took {} second(s)", tableConf, iterations, numThreads, ((1. / randomMax) * 100.),
+        (end - start) / 1000);
   }
 
   public static class TableConfRunner implements Callable<Exception> {

@@ -86,7 +86,7 @@ public class WebViews {
     List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
 
     Map<String,Object> model = getModel();
-    model.put("title", "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), false).getHostText()));
+    model.put("title", "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), false).getHost()));
     model.put("template", "master.ftl");
     model.put("js", "master.js");
 
@@ -237,7 +237,7 @@ public class WebViews {
   @Template(name = "/default.ftl")
   public Map<String,Object> getTables(@PathParam("tableID") String tableID) throws TableNotFoundException {
 
-    String tableName = Tables.getTableName(Monitor.getContext().getInstance(), new Table.ID(tableID));
+    String tableName = Tables.getTableName(Monitor.getContext().getInstance(), Table.ID.of(tableID));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");

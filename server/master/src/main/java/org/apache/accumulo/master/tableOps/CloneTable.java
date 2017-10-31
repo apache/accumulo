@@ -53,7 +53,7 @@ public class CloneTable extends MasterRepo {
 
     Utils.idLock.lock();
     try {
-      cloneInfo.tableId = Utils.getNextTableId(cloneInfo.tableName, environment.getInstance(), Table.ID.class);
+      cloneInfo.tableId = Utils.getNextId(cloneInfo.tableName, environment.getInstance(), Table.ID::of);
       return new ClonePermissions(cloneInfo);
     } finally {
       Utils.idLock.unlock();

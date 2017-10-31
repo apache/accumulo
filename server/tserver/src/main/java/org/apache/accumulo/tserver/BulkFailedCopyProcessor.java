@@ -59,7 +59,7 @@ public class BulkFailedCopyProcessor implements Processor {
 
       FileUtil.copy(origFs, orig, destFs, tmp, false, true, CachedConfiguration.getInstance());
       destFs.rename(tmp, dest);
-      log.debug("copied " + orig + " to " + dest);
+      log.debug("copied {} to {}", orig, dest);
     } catch (IOException ex) {
       try {
         VolumeManager vm = VolumeManagerImpl.get(SiteConfiguration.getInstance());

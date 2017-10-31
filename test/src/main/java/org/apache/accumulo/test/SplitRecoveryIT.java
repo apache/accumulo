@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map.Entry;
@@ -87,7 +87,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
       // poke a partial split into the metadata table
       connector.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME, TablePermission.WRITE);
-      Table.ID tableId = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
+      Table.ID tableId = Table.ID.of(connector.tableOperations().tableIdMap().get(tableName));
 
       KeyExtent extent = new KeyExtent(tableId, null, new Text("b"));
       Mutation m = extent.getPrevRowUpdateMutation();

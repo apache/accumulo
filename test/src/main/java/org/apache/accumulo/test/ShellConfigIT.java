@@ -30,6 +30,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.server.fs.PerTableVolumeChooser;
 import org.apache.accumulo.test.ShellServerIT.TestShell;
 import org.junit.After;
 import org.junit.Assert;
@@ -49,15 +50,15 @@ public class ShellConfigIT extends AccumuloClusterHarness {
     Connector conn = getConnector();
     // TABLE_VOLUME_CHOOSER is a valid property that can be updated in ZK, whereas the crypto properties are not.
     // This lets us run this test more generically rather than forcibly needing to update some property in accumulo-site.xml
-    origPropValue = conn.instanceOperations().getSystemConfiguration().get(Property.TABLE_VOLUME_CHOOSER.getKey());
-    conn.instanceOperations().setProperty(Property.TABLE_VOLUME_CHOOSER.getKey(), FairVolumeChooser.class.getName());
+    origPropValue = conn.instanceOperations().getSystemConfiguration().get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER);
+    conn.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, FairVolumeChooser.class.getName());
   }
 
   @After
   public void resetProperty() throws Exception {
     if (null != origPropValue) {
       Connector conn = getConnector();
-      conn.instanceOperations().setProperty(Property.TABLE_VOLUME_CHOOSER.getKey(), origPropValue);
+      conn.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, origPropValue);
     }
   }
 
@@ -92,12 +93,11 @@ public class ShellConfigIT extends AccumuloClusterHarness {
       Assert.fail("Unknown token type");
     }
 
-    assertTrue(Property.TABLE_VOLUME_CHOOSER.isExperimental());
     assertTrue(Property.CRYPTO_CIPHER_ALGORITHM_NAME.isExperimental());
 
     String configOutput = ts.exec("config");
 
-    assertTrue(configOutput.contains(Property.TABLE_VOLUME_CHOOSER.getKey()));
+    assertTrue(configOutput.contains(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER));
     assertFalse(configOutput.contains(Property.CRYPTO_CIPHER_ALGORITHM_NAME.getKey()));
   }
 }

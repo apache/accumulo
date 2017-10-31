@@ -88,9 +88,9 @@ public class SecurityUtil {
     try {
       String principalName = getServerPrincipal(principalConfig);
       if (keyTabPath != null && principalName != null && keyTabPath.length() != 0 && principalName.length() != 0) {
-        log.info("Attempting to login with keytab as " + principalName);
+        log.info("Attempting to login with keytab as {}", principalName);
         UserGroupInformation.loginUserFromKeytab(principalName, keyTabPath);
-        log.info("Succesfully logged in as user " + principalName);
+        log.info("Succesfully logged in as user {}", principalName);
         return true;
       }
     } catch (IOException io) {

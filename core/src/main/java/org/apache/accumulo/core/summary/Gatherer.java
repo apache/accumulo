@@ -67,6 +67,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.CancelFlagFuture;
 import org.apache.accumulo.core.util.CompletableFutureUtil;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -81,7 +82,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
-import com.google.common.net.HostAndPort;
 
 /**
  * This class implements using multiple tservers to gather summaries.
@@ -115,7 +115,7 @@ public class Gatherer {
 
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig) {
     this.ctx = context;
-    this.tableId = new Table.ID(request.tableId);
+    this.tableId = Table.ID.of(request.tableId);
     this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
     this.endRow = ByteBufferUtil.toText(request.bounds.endRow);
     this.clipRange = new Range(startRow, false, endRow, true);

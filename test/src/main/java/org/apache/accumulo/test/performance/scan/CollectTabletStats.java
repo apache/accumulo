@@ -63,6 +63,7 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -80,7 +81,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.net.HostAndPort;
 
 public class CollectTabletStats {
   private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
@@ -116,7 +116,7 @@ public class CollectTabletStats {
 
     Table.ID tableId = Tables.getTableId(instance, opts.getTableName());
     if (tableId == null) {
-      log.error("Unable to find table named " + opts.getTableName());
+      log.error("Unable to find table named {}", opts.getTableName());
       System.exit(-1);
     }
 
@@ -360,7 +360,7 @@ public class CollectTabletStats {
     for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
       String loc = entry.getValue();
       if (loc != null) {
-        boolean isLocal = HostAndPort.fromString(entry.getValue()).getHostText().equals(localaddress.getHostName());
+        boolean isLocal = HostAndPort.fromString(entry.getValue()).getHost().equals(localaddress.getHostName());
 
         if (selectLocalTablets && isLocal) {
           candidates.add(entry.getKey());

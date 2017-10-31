@@ -56,6 +56,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -75,7 +76,6 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.Lists;
-import com.google.common.net.HostAndPort;
 
 @AutoService(KeywordExecutable.class)
 public class Admin implements KeywordExecutable {
@@ -375,7 +375,7 @@ public class Admin implements KeywordExecutable {
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
-        log.info("Stopping server " + finalServer);
+        log.info("Stopping server {}", finalServer);
         MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
           @Override
           public void execute(MasterClientService.Client client) throws Exception {

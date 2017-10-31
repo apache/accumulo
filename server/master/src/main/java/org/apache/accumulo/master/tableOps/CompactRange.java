@@ -104,8 +104,8 @@ public class CompactRange extends MasterRepo {
             if (tokens[i].startsWith(txidString))
               continue; // skip self
 
-            log.debug("txidString : " + txidString);
-            log.debug("tokens[" + i + "] : " + tokens[i]);
+            log.debug("txidString : {}", txidString);
+            log.debug("tokens[{}] : {}", i, tokens[i]);
 
             throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null, TableOperation.COMPACT, TableOperationExceptionType.OTHER,
                 "Another compaction with iterators and/or a compaction strategy is running");

@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
@@ -176,7 +176,7 @@ public class ServerClient {
           if (servers.isEmpty()) {
             log.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
           } else {
-            log.warn("Failed to find an available server in the list of servers: " + servers);
+            log.warn("Failed to find an available server in the list of servers: {}", servers);
           }
           warnedAboutTServersBeingDown = true;
         }

@@ -276,7 +276,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
     if (status != null && status.tableMap != null) {
       Map<String,TableInfo> tableMap = status.tableMap;
       for (Entry<String,TableInfo> entry : tableMap.entrySet()) {
-        result.put(new Table.ID(entry.getKey()), entry.getValue().onlineTablets);
+        result.put(Table.ID.of(entry.getKey()), entry.getValue().onlineTablets);
       }
     }
     return result;
@@ -304,7 +304,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
       double busy = info.ingestRate + info.queryRate;
       if (busy > busiest) {
         busiest = busy;
-        result = new Table.ID(entry.getKey());
+        result = Table.ID.of(entry.getKey());
       }
     }
     return result;

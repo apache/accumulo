@@ -51,8 +51,8 @@ import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.PermissionHandler;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -60,7 +60,7 @@ import org.apache.log4j.Logger;
 public class AuditedSecurityOperation extends SecurityOperation {
 
   public static final String AUDITLOG = "org.apache.accumulo.audit";
-  public static final Logger audit = Logger.getLogger(AUDITLOG);
+  public static final Logger audit = LoggerFactory.getLogger(AUDITLOG);
 
   public AuditedSecurityOperation(AccumuloServerContext context, Authorizor author, Authenticator authent, PermissionHandler pm) {
     super(context, author, authent, pm);
@@ -96,7 +96,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   private boolean shouldAudit(TCredentials credentials, Table.ID tableId) {
-    return (audit.isInfoEnabled() || audit.isEnabledFor(Level.WARN)) && !tableId.equals(MetadataTable.ID) && shouldAudit(credentials);
+    return (audit.isInfoEnabled() || audit.isWarnEnabled()) && !tableId.equals(MetadataTable.ID) && shouldAudit(credentials);
   }
 
   // Is INFO the right level to check? Do we even need that check?
@@ -111,20 +111,20 @@ public class AuditedSecurityOperation extends SecurityOperation {
    * digging through loads of other code to find it.
    */
   private void audit(TCredentials credentials, ThriftSecurityException ex, String template, Object... args) {
-    audit.warn("operation: failed; user: " + credentials.getPrincipal() + "; " + String.format(template, args) + "; exception: " + ex.toString());
+    audit.warn("operation: failed; user: {}; {}; exception: {}", credentials.getPrincipal(), String.format(template, args), ex.toString());
   }
 
   private void audit(TCredentials credentials, String template, Object... args) {
     if (shouldAudit(credentials)) {
-      audit.info("operation: success; user: " + credentials.getPrincipal() + ": " + String.format(template, args));
+      audit.info("operation: success; user: {}: {}", credentials.getPrincipal(), String.format(template, args));
     }
   }
 
   private void audit(TCredentials credentials, boolean permitted, String template, Object... args) {
     if (shouldAudit(credentials)) {
       String prefix = permitted ? "permitted" : "denied";
-      audit.info("operation: " + prefix + "; user: " + credentials.getPrincipal() + "; client: " + TServerUtils.clientAddress.get() + "; "
-          + String.format(template, args));
+      audit
+          .info("operation: {}; user: {}; client: {}; {}", prefix, credentials.getPrincipal(), TServerUtils.clientAddress.get(), String.format(template, args));
     }
   }
 

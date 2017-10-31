@@ -41,6 +41,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
@@ -50,6 +51,7 @@ import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.ZooCache;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,6 +185,34 @@ public class ReplicationUtil {
     }
 
     return counts;
+  }
+
+  public Set<Path> getPendingReplicationPaths() {
+    final Set<Path> paths = new HashSet<>();
+
+    // Read over the queued work
+    BatchScanner bs;
+    try {
+      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+      log.debug("No replication table exists", e);
+      return paths;
+    }
+
+    bs.setRanges(Collections.singleton(new Range()));
+    StatusSection.limit(bs);
+    try {
+      Text buffer = new Text();
+      for (Entry<Key,Value> entry : bs) {
+        Key k = entry.getKey();
+        k.getRow(buffer);
+        paths.add(new Path(buffer.toString()));
+      }
+    } finally {
+      bs.close();
+    }
+
+    return paths;
   }
 
   /**

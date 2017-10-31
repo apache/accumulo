@@ -46,7 +46,7 @@ import com.google.common.collect.ImmutableMap;
 public class ReplicationTable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationTable.class);
 
-  public static final Table.ID ID = new Table.ID("+rep");
+  public static final Table.ID ID = Table.ID.of("+rep");
   public static final String NAME = Namespace.ACCUMULO + ".replication";
 
   public static final String COMBINER_NAME = "statuscombiner";

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.util;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -179,7 +179,7 @@ public class ReplicationTableUtil {
    */
   public static void updateFiles(ClientContext context, KeyExtent extent, String file, Status stat) {
     if (log.isDebugEnabled()) {
-      log.debug("Updating replication status for " + extent + " with " + file + " using " + ProtobufUtil.toString(stat));
+      log.debug("Updating replication status for {} with {} using {}", extent, file, ProtobufUtil.toString(stat));
     }
     // TODO could use batch writer, would need to handle failure and retry like update does - ACCUMULO-1294
 

@@ -67,15 +67,15 @@ public class ShutdownTServer extends MasterRepo {
         try {
           TabletServerStatus status = connection.getTableMap(false);
           if (status.tableMap != null && status.tableMap.isEmpty()) {
-            log.info("tablet server hosts no tablets " + server);
+            log.info("tablet server hosts no tablets {}", server);
             connection.halt(master.getMasterLock());
-            log.info("tablet server asked to halt " + server);
+            log.info("tablet server asked to halt {}", server);
             return 0;
           }
         } catch (TTransportException ex) {
           // expected
         } catch (Exception ex) {
-          log.error("Error talking to tablet server " + server + ": " + ex);
+          log.error("Error talking to tablet server {}: ", server, ex);
         }
 
         // If the connection was non-null and we could communicate with it

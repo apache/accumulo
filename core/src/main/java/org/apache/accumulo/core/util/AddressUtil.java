@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import com.google.common.net.HostAndPort;
+import org.apache.accumulo.core.util.HostAndPort;
 
 public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
 

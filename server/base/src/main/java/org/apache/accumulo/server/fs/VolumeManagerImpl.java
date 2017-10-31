@@ -40,6 +40,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
@@ -79,8 +80,18 @@ public class VolumeManagerImpl implements VolumeManager {
     this.volumesByFileSystemUri = HashMultimap.create();
     invertVolumesByFileSystem(volumesByName, volumesByFileSystemUri);
     ensureSyncIsEnabled();
-    // Keep in sync with default type in the property definition.
-    chooser = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, new PerTableVolumeChooser());
+    // if they supplied a property and we cannot load it, then fail hard
+    VolumeChooser chooser1;
+    try {
+      chooser1 = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, null);
+    } catch (NullPointerException npe) {
+      chooser1 = null;
+      // null chooser handled below
+    }
+    if (chooser1 == null) {
+      throw new VolumeChooserException("Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
+    }
+    chooser = chooser1;
   }
 
   private void invertVolumesByFileSystem(Map<String,Volume> forward, Multimap<URI,Volume> inverted) {
@@ -172,7 +183,7 @@ public class VolumeManagerImpl implements VolumeManager {
     blockSize = correctBlockSize(fs.getConf(), blockSize);
     bufferSize = correctBufferSize(fs.getConf(), bufferSize);
     EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
-    log.debug("creating " + logPath + " with CreateFlag set: " + set);
+    log.debug("creating {} with CreateFlag set: {}", logPath, set);
     try {
       return fs.create(logPath, FsPermission.getDefault(), set, bufferSize, replication, blockSize, null);
     } catch (Exception ex) {
@@ -215,7 +226,7 @@ public class VolumeManagerImpl implements VolumeManager {
           synchronized (WARNED_ABOUT_SYNCONCLOSE) {
             if (!WARNED_ABOUT_SYNCONCLOSE.contains(entry.getKey())) {
               WARNED_ABOUT_SYNCONCLOSE.add(entry.getKey());
-              log.warn(DFS_DATANODE_SYNCONCLOSE + " set to false in hdfs-site.xml: data loss is possible on hard system reset or power loss");
+              log.warn("{} set to false in hdfs-site.xml: data loss is possible on hard system reset or power loss", DFS_DATANODE_SYNCONCLOSE);
             }
           }
         }
@@ -247,7 +258,7 @@ public class VolumeManagerImpl implements VolumeManager {
             }
           }
         } else {
-          log.debug("Could not determine volume for Path: " + path);
+          log.debug("Could not determine volume for Path: {}", path);
         }
 
         return new NonConfiguredVolume(desiredFs);
@@ -374,7 +385,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // TODO sanity check col fam
     String relPath = key.getColumnQualifierData().toString();
     byte[] tableId = KeyExtent.tableOfMetadataRow(key.getRow());
-    return getFullPath(new Table.ID(new String(tableId)), relPath);
+    return getFullPath(Table.ID.of(new String(tableId)), relPath);
   }
 
   @Override
@@ -408,7 +419,7 @@ public class VolumeManagerImpl implements VolumeManager {
     if (path.startsWith("../"))
       path = path.substring(2);
     else if (path.startsWith("/"))
-      path = "/" + tableId + path;
+      path = "/" + tableId.canonicalID() + path;
     else
       throw new IllegalArgumentException("Unexpected path prefix " + path);
 
@@ -464,17 +475,16 @@ public class VolumeManagerImpl implements VolumeManager {
     return getVolumeByPath(dir).getFileSystem().getContentSummary(dir);
   }
 
-  // Only used as a fall back if the configured chooser misbehaves.
-  private final VolumeChooser failsafeChooser = new RandomVolumeChooser();
-
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options) {
-    final String choice = chooser.choose(env, options);
+    final String choice;
+    choice = chooser.choose(env, options);
+
     if (!(ArrayUtils.contains(options, choice))) {
-      log.error("The configured volume chooser, '" + chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided; "
-          + "will continue by relying on a RandomVolumeChooser. You should investigate and correct the named chooser.");
-      return failsafeChooser.choose(env, options);
+      String msg = "The configured volume chooser, '" + chooser.getClass() + "', or one of its delegates returned a volume not in the set of options provided";
+      throw new VolumeChooserException(msg);
     }
+
     return choice;
   }
 

@@ -30,18 +30,18 @@ public class ReplicationTargetTest {
 
   @Test
   public void properEquality() {
-    ReplicationTarget expected1 = new ReplicationTarget("foo", "bar", new Table.ID("1"));
+    ReplicationTarget expected1 = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
 
-    Assert.assertEquals(expected1, new ReplicationTarget("foo", "bar", new Table.ID("1")));
-    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", "foo", new Table.ID("1")));
-    Assert.assertNotEquals(expected1, new ReplicationTarget("bar", "bar", new Table.ID("1")));
-    Assert.assertNotEquals(expected1, new ReplicationTarget(null, "bar", new Table.ID("1")));
-    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", null, new Table.ID("1")));
+    Assert.assertEquals(expected1, new ReplicationTarget("foo", "bar", Table.ID.of("1")));
+    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", "foo", Table.ID.of("1")));
+    Assert.assertNotEquals(expected1, new ReplicationTarget("bar", "bar", Table.ID.of("1")));
+    Assert.assertNotEquals(expected1, new ReplicationTarget(null, "bar", Table.ID.of("1")));
+    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", null, Table.ID.of("1")));
   }
 
   @Test
   public void writableOut() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar", new Table.ID("1"));
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
 
@@ -65,7 +65,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void staticFromTextHelper() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar", new Table.ID("1"));
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
     Text t = new Text();
@@ -76,7 +76,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void staticToTextHelper() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar", new Table.ID("1"));
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
     Text t = new Text();
@@ -87,7 +87,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void staticFromStringHelper() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar", new Table.ID("1"));
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
     Text t = new Text();

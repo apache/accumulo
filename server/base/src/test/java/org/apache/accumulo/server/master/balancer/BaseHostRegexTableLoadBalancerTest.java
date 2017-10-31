@@ -179,9 +179,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
   }
 
-  protected static final TestTable FOO = new TestTable("foo", new Table.ID("1"));
-  protected static final TestTable BAR = new TestTable("bar", new Table.ID("2"));
-  protected static final TestTable BAZ = new TestTable("baz", new Table.ID("3"));
+  protected static final TestTable FOO = new TestTable("foo", Table.ID.of("1"));
+  protected static final TestTable BAR = new TestTable("bar", Table.ID.of("2"));
+  protected static final TestTable BAZ = new TestTable("baz", Table.ID.of("3"));
 
   protected class TestDefaultBalancer extends DefaultLoadBalancer {
     @Override

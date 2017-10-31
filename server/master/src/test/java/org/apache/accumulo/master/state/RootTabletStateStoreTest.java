@@ -30,6 +30,7 @@ import java.util.List;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.DistributedStore;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
@@ -39,8 +40,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationSt
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class RootTabletStateStoreTest {
 
@@ -191,7 +190,7 @@ public class RootTabletStateStoreTest {
     }
     assertEquals(count, 1);
 
-    KeyExtent notRoot = new KeyExtent(new Table.ID("0"), null, null);
+    KeyExtent notRoot = new KeyExtent(Table.ID.of("0"), null, null);
     try {
       tstore.setLocations(Collections.singletonList(new Assignment(notRoot, server)));
       Assert.fail("should not get here");

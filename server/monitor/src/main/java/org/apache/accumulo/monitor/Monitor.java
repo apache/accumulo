@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.monitor;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -57,6 +57,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -94,8 +95,6 @@ import org.glassfish.jersey.server.mvc.freemarker.FreemarkerMvcFeature;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Serve master statistics with an embedded web server.
@@ -285,7 +284,7 @@ public class Monitor implements HighlyAvailableService {
           Monitor.gcStatus = fetchGcStatus();
         } catch (Exception e) {
           mmi = null;
-          log.info("Error fetching stats: " + e);
+          log.info("Error fetching stats: ", e);
         } finally {
           if (client != null) {
             MasterClient.close(client);
@@ -451,7 +450,7 @@ public class Monitor implements HighlyAvailableService {
     int ports[] = config.getSystemConfiguration().getPort(Property.MONITOR_PORT);
     for (int port : ports) {
       try {
-        log.debug("Creating monitor on port " + port);
+        log.debug("Creating monitor on port {}", port);
         server = new EmbeddedWebServer(hostname, port);
         server.addServlet(getDefaultServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
@@ -481,13 +480,13 @@ public class Monitor implements HighlyAvailableService {
         log.error("Unable to get hostname", e);
       }
     }
-    log.debug("Using " + advertiseHost + " to advertise monitor location");
+    log.debug("Using {} to advertise monitor location in ZooKeeper", hostname);
 
     try {
       String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
       ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
-      log.info("Set monitor address in zookeeper to " + monitorAddress);
+      log.info("Set monitor address in zookeeper to {}", monitorAddress);
     } catch (Exception ex) {
       log.error("Unable to set monitor HTTP address in zookeeper", ex);
     }

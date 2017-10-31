@@ -86,22 +86,22 @@ public class TableLoadBalancer extends TabletBalancer {
             balancer.init(this.context);
           }
 
-          log.info("Loaded new class " + clazzName + " for table " + tableId);
+          log.info("Loaded new class {} for table {}", clazzName, tableId);
         } catch (Exception e) {
-          log.warn("Failed to load table balancer class " + clazzName + " for table " + tableId, e);
+          log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
         }
       }
     }
     if (balancer == null) {
       try {
         balancer = constructNewBalancerForTable(clazzName, tableId);
-        log.info("Loaded class " + clazzName + " for table " + tableId);
+        log.info("Loaded class {} for table {}", clazzName, tableId);
       } catch (Exception e) {
-        log.warn("Failed to load table balancer class " + clazzName + " for table " + tableId, e);
+        log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
       }
 
       if (balancer == null) {
-        log.info("Using balancer " + DefaultLoadBalancer.class.getName() + " for table " + tableId);
+        log.info("Using balancer {} for table {}", DefaultLoadBalancer.class.getName(), tableId);
         balancer = new DefaultLoadBalancer(tableId);
       }
       perTableBalancers.put(tableId, balancer);
@@ -153,7 +153,7 @@ public class TableLoadBalancer extends TabletBalancer {
       return minBalanceTime;
     for (String s : t.tableIdMap().values()) {
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime = getBalancerForTable(new Table.ID(s)).balance(current, migrations, newMigrations);
+      long tableBalanceTime = getBalancerForTable(Table.ID.of(s)).balance(current, migrations, newMigrations);
       if (tableBalanceTime < minBalanceTime)
         minBalanceTime = tableBalanceTime;
       migrationsOut.addAll(newMigrations);

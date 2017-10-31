@@ -111,7 +111,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
       if (null == combined) {
         if (!iter.hasNext()) {
           if (log.isTraceEnabled()) {
-            log.trace("Returned single value: " + key.toStringNoTruncate() + " " + ProtobufUtil.toString(status));
+            log.trace("Returned single value: {} {}", key.toStringNoTruncate(), ProtobufUtil.toString(status));
           }
           return status;
         } else {
@@ -124,7 +124,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
     }
 
     if (log.isTraceEnabled()) {
-      log.trace("Combined: " + key.toStringNoTruncate() + " " + ProtobufUtil.toString(combined.build()));
+      log.trace("Combined: {} {}", key.toStringNoTruncate(), ProtobufUtil.toString(combined.build()));
     }
 
     return combined.build();
@@ -140,7 +140,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
    */
   public void combine(Builder combined, Status status) {
     if (log.isTraceEnabled()) {
-      log.trace("Combining " + status.toString().replace("\n", ", ") + " into " + builderToString(combined));
+      log.trace("Combining {} into {}", status.toString().replace("\n", ", "), builderToString(combined));
     }
 
     // offset up to which replication is completed

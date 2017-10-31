@@ -103,7 +103,7 @@ public class ReplicationTarget implements Writable {
       this.remoteIdentifier = WritableUtils.readString(in);
     }
     if (in.readBoolean()) {
-      this.sourceTableId = new Table.ID(WritableUtils.readString(in));
+      this.sourceTableId = Table.ID.of(WritableUtils.readString(in));
     }
   }
 

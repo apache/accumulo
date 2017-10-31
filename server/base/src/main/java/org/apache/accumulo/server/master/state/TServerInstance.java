@@ -27,9 +27,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * A tablet is assigned to a tablet server at the given address as long as it is alive and well. When the tablet server is restarted, the instance information
@@ -123,7 +122,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
 
   public String host() {
-    return getLocation().getHostText();
+    return getLocation().getHost();
   }
 
   public String hostPort() {

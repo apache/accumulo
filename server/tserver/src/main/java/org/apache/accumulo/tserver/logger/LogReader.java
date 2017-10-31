@@ -85,7 +85,7 @@ public class LogReader {
       row = new Text(opts.row);
     if (opts.extent != null) {
       String sa[] = opts.extent.split(";");
-      ke = new KeyExtent(new Table.ID(sa[0]), new Text(sa[1]), new Text(sa[2]));
+      ke = new KeyExtent(Table.ID.of(sa[0]), new Text(sa[1]), new Text(sa[2]));
     }
     if (opts.regexp != null) {
       Pattern pattern = Pattern.compile(opts.regexp);
@@ -106,7 +106,7 @@ public class LogReader {
         try {
           streams = DfsLogger.readHeaderAndReturnStream(fs, path, SiteConfiguration.getInstance());
         } catch (LogHeaderIncompleteException e) {
-          log.warn("Could not read header for " + path + ". Ignoring...");
+          log.warn("Could not read header for {}. Ignoring...", path);
           continue;
         }
         DataInputStream input = streams.getDecryptingInputStream();

@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.fs.PerTableVolumeChooser;
 import org.apache.accumulo.server.fs.PreferredVolumeChooser;
 import org.apache.accumulo.server.fs.RandomVolumeChooser;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -63,14 +65,16 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value(new byte[] {});
   private File volDirBase;
+  @SuppressWarnings("unused")
   private Path v1, v2, v3, v4;
-  private String[] rows = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
+  private static String[] rows = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
   private String namespace1;
   private String namespace2;
+  private String systemPreferredVolumes;
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 30;
+    return 60;
   }
 
   @Override
@@ -83,7 +87,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Set the general volume chooser to the PerTableVolumeChooser so that different choosers can be specified
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), PerTableVolumeChooser.class.getName());
-    cfg.setSiteConfig(siteConfig);
+    // if a table doesn't have a volume chooser, use the preferred volume chooser
+    siteConfig.put(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
 
     // Set up 4 different volume paths
     File baseDir = cfg.getDir();
@@ -97,6 +102,14 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     v3 = new Path("file://" + v3f.getAbsolutePath());
     v4 = new Path("file://" + v4f.getAbsolutePath());
 
+    systemPreferredVolumes = v1.toString() + "," + v2.toString();
+    siteConfig.put(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, systemPreferredVolumes); // exclude v4
+    cfg.setSiteConfig(siteConfig);
+
+    siteConfig.put(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER), PreferredVolumeChooser.class.getName());
+    siteConfig.put(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER), v2.toString());
+    cfg.setSiteConfig(siteConfig);
+
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in the options list when they are choosing
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString() + "," + v4.toString());
 
@@ -107,23 +120,16 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   }
 
-  public void addSplits(Connector connector, String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  public static void addSplits(Connector connector, String tableName) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // Add 10 splits to the table
     SortedSet<Text> partitions = new TreeSet<>();
-    for (String s : "b,e,g,j,l,o,q,t,v,y".split(","))
+    for (String s : rows)
       partitions.add(new Text(s));
     connector.tableOperations().addSplits(tableName, partitions);
   }
 
-  public void writeAndReadData(Connector connector, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    // Write some data to the table
-    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
-    for (String s : rows) {
-      Mutation m = new Mutation(new Text(s));
-      m.put(EMPTY, EMPTY, EMPTY_VALUE);
-      bw.addMutation(m);
-    }
-    bw.close();
+  public static void writeAndReadData(Connector connector, String tableName) throws Exception {
+    writeDataToTable(connector, tableName);
 
     // Write the data to disk, read it back
     connector.tableOperations().flush(tableName, null, null, true);
@@ -134,12 +140,24 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     }
   }
 
-  public void verifyVolumes(Connector connector, String tableName, Range tableRange, String vol) throws TableNotFoundException {
+  public static void writeDataToTable(Connector connector, String tableName) throws Exception {
+    // Write some data to the table
+    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
+    for (String s : rows) {
+      Mutation m = new Mutation(new Text(s));
+      m.put(EMPTY, EMPTY, EMPTY_VALUE);
+      bw.addMutation(m);
+    }
+    bw.close();
+  }
+
+  public static void verifyVolumes(Connector connector, String tableName, Range tableRange, String vol) throws Exception {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
     for (String s : vol.split(","))
       volumes.add(s);
 
+    TreeSet<String> volumesSeen = new TreeSet<>();
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(tableRange);
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -147,13 +165,67 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     for (Entry<Key,Value> entry : scanner) {
       boolean inVolume = false;
       for (String volume : volumes) {
-        if (entry.getKey().getColumnQualifier().toString().contains(volume))
+        if (entry.getKey().getColumnQualifier().toString().contains(volume)) {
+          volumesSeen.add(volume);
           inVolume = true;
+        }
       }
-      assertTrue("Data not written to the correct volumes", inVolume);
+      assertTrue("Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier().toString(), inVolume);
       fileCount++;
     }
-    assertEquals("Wrong number of files", 11, fileCount);
+    assertEquals("Did not see all the volumes. volumes: " + volumes.toString() + " volumes seen: " + volumesSeen.toString(), volumes.size(), volumesSeen.size());
+    assertEquals("Wrong number of files", 26, fileCount);
+  }
+
+  public static void verifyNoVolumes(Connector connector, String tableName, Range tableRange) throws Exception {
+    Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    scanner.setRange(tableRange);
+    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    for (Entry<Key,Value> entry : scanner) {
+      fail("Data incorrectly written to " + entry.getKey().getColumnQualifier().toString());
+    }
+  }
+
+  private void configureNamespace(Connector connector, String volumeChooserClassName, String configuredVolumes, String namespace) throws Exception {
+    connector.namespaceOperations().create(namespace);
+    // Set properties on the namespace
+    connector.namespaceOperations().setProperty(namespace, PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, volumeChooserClassName);
+    connector.namespaceOperations().setProperty(namespace, PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, configuredVolumes);
+  }
+
+  private void verifyVolumesForWritesToNewTable(Connector connector, String myNamespace, String expectedVolumes) throws Exception {
+    String tableName = myNamespace + ".1";
+
+    connector.tableOperations().create(tableName);
+    Table.ID tableID = Table.ID.of(connector.tableOperations().tableIdMap().get(tableName));
+
+    // Add 10 splits to the table
+    addSplits(connector, tableName);
+    // Write some data to the table
+    writeAndReadData(connector, tableName);
+    // Verify the new files are written to the Volumes specified
+    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), expectedVolumes);
+  }
+
+  public static void verifyWaLogVolumes(Connector connector, Range tableRange, String vol) throws TableNotFoundException {
+    // Verify the new files are written to the Volumes specified
+    ArrayList<String> volumes = new ArrayList<>();
+    for (String s : vol.split(","))
+      volumes.add(s);
+
+    TreeSet<String> volumesSeen = new TreeSet<>();
+    Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    scanner.setRange(tableRange);
+    scanner.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
+    for (Entry<Key,Value> entry : scanner) {
+      boolean inVolume = false;
+      for (String volume : volumes) {
+        if (entry.getKey().getColumnQualifier().toString().contains(volume))
+          volumesSeen.add(volume);
+        inVolume = true;
+      }
+      assertTrue("Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier().toString(), inVolume);
+    }
   }
 
   // Test that uses two tables with 10 split points each. They each use the PreferredVolumeChooser to choose volumes.
@@ -166,49 +238,20 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     connector.namespaceOperations().create(namespace1);
 
     // Set properties on the namespace
-    String propertyName = Property.TABLE_VOLUME_CHOOSER.getKey();
-    String volume = PreferredVolumeChooser.class.getName();
-    connector.namespaceOperations().setProperty(namespace1, propertyName, volume);
-
-    propertyName = "table.custom.preferredVolumes";
-    volume = v2.toString();
-    connector.namespaceOperations().setProperty(namespace1, propertyName, volume);
+    // namespace 1 -> v2
+    connector.namespaceOperations().setProperty(namespace1, PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
+    connector.namespaceOperations().setProperty(namespace1, PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v2.toString());
 
     // Create table1 on namespace1
-    String tableName = namespace1 + ".1";
-    connector.tableOperations().create(tableName);
-    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
-
-    // Add 10 splits to the table
-    addSplits(connector, tableName);
-    // Write some data to the table
-    writeAndReadData(connector, tableName);
-    // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), volume);
+    verifyVolumesForWritesToNewTable(connector, namespace1, v2.toString());
 
     connector.namespaceOperations().create(namespace2);
-
     // Set properties on the namespace
-    propertyName = Property.TABLE_VOLUME_CHOOSER.getKey();
-    volume = PreferredVolumeChooser.class.getName();
-    connector.namespaceOperations().setProperty(namespace2, propertyName, volume);
-
-    propertyName = "table.custom.preferredVolumes";
-    volume = v1.toString();
-    connector.namespaceOperations().setProperty(namespace2, propertyName, volume);
+    connector.namespaceOperations().setProperty(namespace2, PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
+    connector.namespaceOperations().setProperty(namespace2, PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v1.toString());
 
     // Create table2 on namespace2
-    String tableName2 = namespace2 + ".1";
-
-    connector.tableOperations().create(tableName2);
-    Table.ID tableID2 = new Table.ID(connector.tableOperations().tableIdMap().get(tableName2));
-
-    // Add 10 splits to the table
-    addSplits(connector, tableName2);
-    // Write some data to the table
-    writeAndReadData(connector, tableName2);
-    // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName2, TabletsSection.getRange(tableID2), volume);
+    verifyVolumesForWritesToNewTable(connector, namespace2, v1.toString());
   }
 
   // Test that uses two tables with 10 split points each. They each use the RandomVolumeChooser to choose volumes.
@@ -221,14 +264,12 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     connector.namespaceOperations().create(namespace1);
 
     // Set properties on the namespace
-    String propertyName = Property.TABLE_VOLUME_CHOOSER.getKey();
-    String volume = RandomVolumeChooser.class.getName();
-    connector.namespaceOperations().setProperty(namespace1, propertyName, volume);
+    connector.namespaceOperations().setProperty(namespace1, PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     // Create table1 on namespace1
     String tableName = namespace1 + ".1";
     connector.tableOperations().create(tableName);
-    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableID = Table.ID.of(connector.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
     addSplits(connector, tableName);
@@ -241,14 +282,12 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     connector.namespaceOperations().create(namespace2);
 
     // Set properties on the namespace
-    propertyName = Property.TABLE_VOLUME_CHOOSER.getKey();
-    volume = RandomVolumeChooser.class.getName();
-    connector.namespaceOperations().setProperty(namespace2, propertyName, volume);
+    connector.namespaceOperations().setProperty(namespace2, PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     // Create table2 on namespace2
     String tableName2 = namespace2 + ".1";
     connector.tableOperations().create(tableName2);
-    Table.ID tableID2 = new Table.ID(connector.tableOperations().tableIdMap().get(tableName2));
+    Table.ID tableID2 = Table.ID.of(connector.tableOperations().tableIdMap().get(tableName2));
 
     // / Add 10 splits to the table
     addSplits(connector, tableName2);
@@ -269,125 +308,41 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     connector.namespaceOperations().create(namespace1);
 
     // Set properties on the namespace
-    String propertyName = Property.TABLE_VOLUME_CHOOSER.getKey();
-    String volume = RandomVolumeChooser.class.getName();
-    connector.namespaceOperations().setProperty(namespace1, propertyName, volume);
+    connector.namespaceOperations().setProperty(namespace1, PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     // Create table1 on namespace1
-    String tableName = namespace1 + ".1";
-    connector.tableOperations().create(tableName);
-    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
-
-    // Add 10 splits to the table
-    addSplits(connector, tableName);
-    // Write some data to the table
-    writeAndReadData(connector, tableName);
-    // Verify the new files are written to the Volumes specified
-
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1.toString() + "," + v2.toString() + "," + v4.toString());
-
+    verifyVolumesForWritesToNewTable(connector, namespace1, v1.toString() + "," + v2.toString() + "," + v4.toString());
     connector.namespaceOperations().create(namespace2);
 
-    // Set properties on the namespace
-    propertyName = Property.TABLE_VOLUME_CHOOSER.getKey();
-    volume = PreferredVolumeChooser.class.getName();
-    connector.namespaceOperations().setProperty(namespace2, propertyName, volume);
-
-    propertyName = "table.custom.preferredVolumes";
-    volume = v1.toString();
-    connector.namespaceOperations().setProperty(namespace2, propertyName, volume);
+    connector.namespaceOperations().setProperty(namespace2, PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
+    connector.namespaceOperations().setProperty(namespace2, PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v1.toString());
 
     // Create table2 on namespace2
-    String tableName2 = namespace2 + ".1";
-    connector.tableOperations().create(tableName2);
-    Table.ID tableID2 = new Table.ID(connector.tableOperations().tableIdMap().get(tableName2));
-
-    // Add 10 splits to the table
-    addSplits(connector, tableName2);
-    // Write some data to the table
-    writeAndReadData(connector, tableName2);
-    // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName2, TabletsSection.getRange(tableID2), volume);
+    verifyVolumesForWritesToNewTable(connector, namespace2, v1.toString());
   }
 
-  // Test that uses one table with 10 split points each. It uses the StaticVolumeChooser, but no preferred volume is specified. This means that the volume
-  // is chosen randomly from all instance volumes.
   @Test
-  public void missingVolumePreferredVolumeChooser() throws Exception {
-    log.info("Starting missingVolumePreferredVolumeChooser");
-
-    // Create namespace
+  public void includeSpecialVolumeForTable() throws Exception {
+    log.info("Starting includeSpecialVolumeForTable");
     Connector connector = getConnector();
-    connector.namespaceOperations().create(namespace1);
 
-    // Set properties on the namespace
-    String propertyName = Property.TABLE_VOLUME_CHOOSER.getKey();
-    String volume = PreferredVolumeChooser.class.getName();
-    connector.namespaceOperations().setProperty(namespace1, propertyName, volume);
-
-    // Create table1 on namespace1
-    String tableName = namespace1 + ".1";
-    connector.tableOperations().create(tableName);
-    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
-
-    // Add 10 splits to the table
-    addSplits(connector, tableName);
-    // Write some data to the table
-    writeAndReadData(connector, tableName);
-    // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1.toString() + "," + v2.toString() + "," + v4.toString());
+    // the following table will be configured to go to the excluded volume
+    String configuredVolumes = v4.toString();
+    configureNamespace(connector, PreferredVolumeChooser.class.getName(), configuredVolumes, namespace2);
+    verifyVolumesForWritesToNewTable(connector, namespace2, configuredVolumes);
   }
 
-  // Test that uses one table with 10 split points each. It uses the PreferredVolumeChooser, but preferred volume is not an instance volume. This means that the
-  // volume is chosen randomly from all instance volumes
   @Test
-  public void notInstancePreferredVolumeChooser() throws Exception {
-    log.info("Starting notInstancePreferredVolumeChooser");
+  public void waLogsSentToConfiguredVolumes() throws Exception {
+    log.info("Starting waLogsSentToConfiguredVolumes");
 
-    // Create namespace
     Connector connector = getConnector();
-    connector.namespaceOperations().create(namespace1);
-
-    // Set properties on the namespace
-    String propertyName = Property.TABLE_VOLUME_CHOOSER.getKey();
-    String volume = PreferredVolumeChooser.class.getName();
-    connector.namespaceOperations().setProperty(namespace1, propertyName, volume);
-
-    propertyName = "table.custom.preferredVolumes";
-    volume = v3.toString();
-    connector.namespaceOperations().setProperty(namespace1, propertyName, volume);
-
-    // Create table1 on namespace1
-    String tableName = namespace1 + ".1";
+    String tableName = "anotherTable";
     connector.tableOperations().create(tableName);
-    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
 
-    // Add 10 splits to the table
-    addSplits(connector, tableName);
-    // Write some data to the table
-    writeAndReadData(connector, tableName);
-    // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1.toString() + "," + v2.toString() + "," + v4.toString());
+    VolumeChooserIT.addSplits(connector, tableName);
+    VolumeChooserIT.writeDataToTable(connector, tableName);
+    // should only go to v2 as per configuration in configure()
+    VolumeChooserIT.verifyWaLogVolumes(connector, new Range(), v2.toString());
   }
-
-  // Test that uses one table with 10 split points each. It does not specify a specific chooser, so the volume is chosen randomly from all instance volumes.
-  @Test
-  public void chooserNotSpecified() throws Exception {
-    log.info("Starting chooserNotSpecified");
-
-    // Create a table
-    Connector connector = getConnector();
-    String tableName = getUniqueNames(2)[0];
-    connector.tableOperations().create(tableName);
-    Table.ID tableID = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
-
-    // Add 10 splits to the table
-    addSplits(connector, tableName);
-    // Write some data to the table
-    writeAndReadData(connector, tableName);
-
-    // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1.toString() + "," + v2.toString() + "," + v4.toString());
-  }
-
 }

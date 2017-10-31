@@ -19,6 +19,8 @@ package org.apache.accumulo.core.file.rfile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.PrintStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,9 +32,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.AtomicLongMap;
 
 /**
@@ -127,11 +126,16 @@ public class VisMetricsGatherer implements MetricsGatherer<Map<String,ArrayList<
       out.printf("%-27s", metricWord);
       out.println("Number of keys" + "\t   " + "Percent of keys" + "\t" + "Number of blocks" + "\t" + "Percent of blocks");
       for (Entry<String,Long> entry : metric.get(lGName).asMap().entrySet()) {
-        HashFunction hf = Hashing.md5();
-        HashCode hc = hf.newHasher().putString(entry.getKey(), UTF_8).hash();
-        if (hash)
-          out.printf("%-20s", hc.toString().substring(0, 8));
-        else
+        if (hash) {
+          String md5String = "";
+          try {
+            byte[] md5Bytes = MessageDigest.getInstance("MD5").digest(entry.getKey().getBytes(UTF_8));
+            md5String = new String(md5Bytes, UTF_8);
+          } catch (NoSuchAlgorithmException e) {
+            out.println("Failed to convert key to MD5 hash: " + e.getMessage());
+          }
+          out.printf("%-20s", md5String.substring(0, 8));
+        } else
           out.printf("%-20s", entry.getKey());
         out.print("\t\t" + entry.getValue() + "\t\t\t");
         out.printf("%.2f", ((double) entry.getValue() / numEntries.get(i)) * 100);

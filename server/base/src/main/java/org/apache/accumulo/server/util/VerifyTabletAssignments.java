@@ -51,6 +51,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -59,7 +60,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.net.HostAndPort;
 
 public class VerifyTabletAssignments {
   private static final Logger log = LoggerFactory.getLogger(VerifyTabletAssignments.class);

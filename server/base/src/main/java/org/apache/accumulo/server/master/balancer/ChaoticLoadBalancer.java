@@ -130,7 +130,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
 
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
       for (String tableId : e.getValue().getTableMap().keySet()) {
-        Table.ID id = new Table.ID(tableId);
+        Table.ID id = Table.ID.of(tableId);
         if (!moveMetadata && MetadataTable.ID.equals(id))
           continue;
         try {

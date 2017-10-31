@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -72,7 +72,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
     // Eliminate whole tablets
     for (int test = 0; test < 10; test++) {
       // create a table
-      log.info("Test " + test);
+      log.info("Test {}", test);
       conn.tableOperations().create(tableName);
 
       // put some data in it

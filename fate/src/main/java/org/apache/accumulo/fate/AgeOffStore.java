@@ -95,7 +95,7 @@ public class AgeOffStore<T> implements TStore<T> {
             case FAILED:
             case SUCCESSFUL:
               store.delete(txid);
-              log.debug("Aged off FATE tx " + String.format("%016x", txid));
+              log.debug("Aged off FATE tx {}", String.format("%016x", txid));
               break;
             default:
               break;

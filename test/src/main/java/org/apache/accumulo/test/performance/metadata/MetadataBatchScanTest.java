@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
@@ -51,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-import com.google.common.net.HostAndPort;
 
 /**
  * This little program can be used to write a lot of metadata entries and measure the performance of varying numbers of threads doing metadata lookups using the
@@ -78,7 +78,7 @@ public class MetadataBatchScanTest {
       splits.add((r.nextLong() & 0x7fffffffffffffffl) % 1000000000000l);
     }
 
-    Table.ID tid = new Table.ID("8");
+    Table.ID tid = Table.ID.of("8");
     Text per = null;
 
     ArrayList<KeyExtent> extents = new ArrayList<>();

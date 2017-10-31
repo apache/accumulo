@@ -83,7 +83,7 @@ public class ConfigSanityCheck {
     }
 
     if (!usingVolumes) {
-      log.warn("Use of " + INSTANCE_DFS_URI + " and " + INSTANCE_DFS_DIR + " are deprecated. Consider using " + Property.INSTANCE_VOLUMES + " instead.");
+      log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI, INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
     }
   }
 

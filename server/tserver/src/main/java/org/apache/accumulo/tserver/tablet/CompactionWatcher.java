@@ -74,7 +74,7 @@ public class CompactionWatcher implements Runnable {
 
     for (ObservedCompactionInfo oci : copy.values()) {
       if (oci.loggedWarning) {
-        LoggerFactory.getLogger(CompactionWatcher.class).info("Compaction of " + oci.compactionInfo.getExtent() + " is no longer stuck");
+        LoggerFactory.getLogger(CompactionWatcher.class).info("Compaction of {} is no longer stuck", oci.compactionInfo.getExtent());
       }
     }
 

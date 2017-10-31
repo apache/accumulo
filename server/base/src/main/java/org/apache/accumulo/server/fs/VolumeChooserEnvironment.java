@@ -16,38 +16,40 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.util.Optional;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.impl.Table;
 
 public class VolumeChooserEnvironment {
 
-  private final Optional<Table.ID> tableId;
-  // scope is meant for non-table identifiers
-  private String scope;
-
-  public VolumeChooserEnvironment(Optional<Table.ID> tableId) {
-    this.tableId = tableId;
+  /**
+   * A scope the volume chooser environment; a TABLE scope should be accompanied by a tableId.
+   *
+   * @since 2.0.0
+   */
+  public static enum ChooserScope {
+    DEFAULT, TABLE, INIT, LOGGER
   }
 
-  public boolean hasTableId() {
-    return tableId.isPresent();
+  private final ChooserScope scope;
+  private final Table.ID tableId;
+
+  public VolumeChooserEnvironment(ChooserScope scope) {
+    this.scope = Objects.requireNonNull(scope);
+    this.tableId = null;
+  }
+
+  public VolumeChooserEnvironment(Table.ID tableId) {
+    this.scope = ChooserScope.TABLE;
+    this.tableId = Objects.requireNonNull(tableId);
   }
 
   public Table.ID getTableId() {
-    return tableId.get();
+    return tableId;
   }
 
-  public void setScope(String scope) {
-    this.scope = scope;
-  }
-
-  public String getScope() {
+  public ChooserScope getScope() {
     return this.scope;
-  }
-
-  public boolean hasScope() {
-    return this.scope != null;
   }
 
   @Override
@@ -55,30 +57,15 @@ public class VolumeChooserEnvironment {
     if (obj == this) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (!(obj instanceof VolumeChooserEnvironment)) {
+    if (obj == null || !(obj instanceof VolumeChooserEnvironment)) {
       return false;
     }
     VolumeChooserEnvironment other = (VolumeChooserEnvironment) obj;
-    if (other.hasTableId() != this.hasTableId()) {
-      return false;
-    }
-    if (!other.getTableId().equals(this.getTableId())) {
-      return false;
-    }
-    if (other.hasScope() != this.hasScope()) {
-      return false;
-    }
-    if (other.hasScope() && !other.getScope().equals(this.getScope())) {
-      return false;
-    }
-    return true;
+    return getScope() == other.getScope() && Objects.equals(getTableId(), other.getTableId());
   }
 
   @Override
   public int hashCode() {
-    return tableId.hashCode() * 31 + (this.scope == null ? 17 : this.scope.hashCode());
+    return Objects.hashCode(scope) * 31 + Objects.hashCode(tableId);
   }
 }

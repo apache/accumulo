@@ -189,7 +189,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
 
-    Table.ID tableId = new Table.ID(connector.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(connector.tableOperations().tableIdMap().get(tableName));
 
     SortedSet<Text> partitions = new TreeSet<>();
     // with some splits
@@ -404,7 +404,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
 
-    Table.ID tableId = new Table.ID(conn.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
     Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
     metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);

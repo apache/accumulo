@@ -60,12 +60,12 @@ public class ZooUtil extends org.apache.accumulo.fate.zookeeper.ZooUtil {
       } catch (FileNotFoundException ex) {
         // ignored
       }
-      log.debug("Trying to read instance id from " + instanceDirectory);
+      log.debug("Trying to read instance id from {}", instanceDirectory);
       if (files == null || files.length == 0) {
-        log.error("unable obtain instance id at " + instanceDirectory);
+        log.error("unable obtain instance id at {}", instanceDirectory);
         throw new RuntimeException("Accumulo not initialized, there is no instance id at " + instanceDirectory);
       } else if (files.length != 1) {
-        log.error("multiple potential instances in " + instanceDirectory);
+        log.error("multiple potential instances in {}", instanceDirectory);
         throw new RuntimeException("Accumulo found multiple possible instance ids in " + instanceDirectory);
       } else {
         String result = files[0].getPath().getName();

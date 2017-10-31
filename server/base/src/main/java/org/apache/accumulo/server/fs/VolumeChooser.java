@@ -28,5 +28,32 @@ import org.apache.accumulo.core.volume.Volume;
  * benefit from using per-table configuration using {@link Property#TABLE_ARBITRARY_PROP_PREFIX}.
  */
 public interface VolumeChooser {
-  String choose(VolumeChooserEnvironment env, String[] options);
+
+  /**
+   * Choose a volume from the provided options.
+   *
+   * @param env
+   *          the server environment provided by the calling framework
+   * @param options
+   *          the list of volumes to choose from
+   * @return one of the options
+   * @throws VolumeChooserException
+   *           if there is an error choosing (this is a RuntimeException); this does not preclude other RuntimeExceptions from occurring
+   */
+  String choose(VolumeChooserEnvironment env, String[] options) throws VolumeChooserException;
+
+  public static class VolumeChooserException extends RuntimeException {
+
+    private static final long serialVersionUID = 1L;
+
+    public VolumeChooserException(String message) {
+      super(message);
+    }
+
+    public VolumeChooserException(String message, Throwable cause) {
+      super(message, cause);
+    }
+
+  }
+
 }

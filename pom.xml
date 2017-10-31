@@ -76,9 +76,6 @@
       <archive>https://lists.apache.org/list.html?notifications@accumulo.apache.org</archive>
     </mailingList>
   </mailingLists>
-  <prerequisites>
-    <maven>${maven.min-version}</maven>
-  </prerequisites>
   <modules>
     <module>assemble</module>
     <module>core</module>
@@ -99,10 +96,10 @@
     <module>test</module>
   </modules>
   <scm>
-    <connection>scm:git:git://git.apache.org/accumulo.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/accumulo.git</developerConnection>
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/accumulo.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/accumulo.git</developerConnection>
     <tag>HEAD</tag>
-    <url>https://git-wip-us.apache.org/repos/asf?p=accumulo.git</url>
+    <url>https://gitbox.apache.org/repos/asf?p=accumulo.git</url>
   </scm>
   <issueManagement>
     <system>JIRA</system>
@@ -118,7 +115,7 @@
     <apilyzer.ignoreDeprecated>false</apilyzer.ignoreDeprecated>
     <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.54</bouncycastle.version>
+    <bouncycastle.version>1.58</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>2.11.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -135,14 +132,12 @@
     <htrace.version>3.1.0-incubating</htrace.version>
     <httpclient.version>4.3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
-    <jackson.version>2.3.2</jackson.version>
+    <jackson.version>2.9.0</jackson.version>
     <jersey.version>2.25.1</jersey.version>
-    <!-- jetty 9.2 is the last version to support jdk less than 1.8 -->
-    <jetty.version>9.2.17.v20160517</jetty.version>
+    <jetty.version>9.3.21.v20170918</jetty.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
-    <maven.min-version>3.0.5</maven.min-version>
+    <maven.plugin-version>3.2.5</maven.plugin-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.6.5</powermock.version>
@@ -157,14 +152,14 @@
     <!-- Thrift version -->
     <thrift.version>0.10.0</thrift.version>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.4.6</zookeeper.version>
+    <zookeeper.version>3.4.10</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
-        <version>1.48</version>
+        <version>1.72</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
@@ -475,22 +470,22 @@
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-artifact</artifactId>
-        <version>${maven.min-version}</version>
+        <version>${maven.plugin-version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-core</artifactId>
-        <version>${maven.min-version}</version>
+        <version>${maven.plugin-version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-model</artifactId>
-        <version>${maven.min-version}</version>
+        <version>${maven.plugin-version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-plugin-api</artifactId>
-        <version>${maven.min-version}</version>
+        <version>${maven.plugin-version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven.plugin-tools</groupId>
@@ -923,7 +918,7 @@
                 <version>[${maven.compiler.target},)</version>
               </requireJavaVersion>
               <requireMavenVersion>
-                <version>[${maven.min-version},)</version>
+                <version>[3.0.5,)</version>
               </requireMavenVersion>
             </rules>
           </configuration>
@@ -947,9 +942,9 @@
           <version>1.0.1</version>
         </plugin>
         <plugin>
-          <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-          <artifactId>maven-java-formatter-plugin</artifactId>
-          <version>0.4</version>
+          <groupId>net.revelc.code.formatter</groupId>
+          <artifactId>formatter-maven-plugin</artifactId>
+          <version>2.6.0</version>
           <configuration>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
             <compilerSource>${maven.compiler.source}</compilerSource>
@@ -960,6 +955,11 @@
             </excludes>
             <lineEnding>LF</lineEnding>
             <overrideConfigCompilerVersion>true</overrideConfigCompilerVersion>
+            <skipJsFormatting>true</skipJsFormatting>
+            <skipHtmlFormatting>true</skipHtmlFormatting>
+            <skipXmlFormatting>true</skipXmlFormatting>
+            <skipJsonFormatting>true</skipJsonFormatting>
+            <skipCssFormatting>true</skipCssFormatting>
           </configuration>
           <dependencies>
             <dependency>
@@ -997,7 +997,7 @@
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.0.0</version>
+          <version>1.0.1</version>
           <configuration>
             <groups>java.,javax.,org.,com.</groups>
             <excludes>
@@ -1346,8 +1346,8 @@
                     </pluginExecution>
                     <pluginExecution>
                       <pluginExecutionFilter>
-                        <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-                        <artifactId>maven-java-formatter-plugin</artifactId>
+                        <groupId>net.revelc.code.formatter</groupId>
+                        <artifactId>formatter-maven-plugin</artifactId>
                         <versionRange>[0,)</versionRange>
                         <goals>
                           <goal>format</goal>
@@ -1606,8 +1606,8 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
-            <artifactId>maven-java-formatter-plugin</artifactId>
+            <groupId>net.revelc.code.formatter</groupId>
+            <artifactId>formatter-maven-plugin</artifactId>
             <configuration>
               <configFile>${eclipseFormatterStyle}</configFile>
             </configuration>

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.master;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -114,7 +114,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
 
   @Override
   public long initiateFlush(TInfo tinfo, TCredentials c, String tableIdStr) throws ThriftSecurityException, ThriftTableOperationException {
-    Table.ID tableId = new Table.ID(tableIdStr);
+    Table.ID tableId = Table.ID.of(tableIdStr);
     Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
@@ -143,7 +143,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
   @Override
   public void waitForFlush(TInfo tinfo, TCredentials c, String tableIdStr, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
       throws ThriftSecurityException, ThriftTableOperationException {
-    Table.ID tableId = new Table.ID(tableIdStr);
+    Table.ID tableId = Table.ID.of(tableIdStr);
     Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
@@ -245,9 +245,9 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
           throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
 
       } catch (AccumuloException e) {
-        Master.log.debug("Failed to scan " + MetadataTable.NAME + " table to wait for flush " + tableId, e);
+        Master.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME, tableId, e);
       } catch (TabletDeletedException tde) {
-        Master.log.debug("Failed to scan " + MetadataTable.NAME + " table to wait for flush " + tableId, tde);
+        Master.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME, tableId, tde);
       } catch (AccumuloSecurityException e) {
         Master.log.warn("{}", e.getMessage(), e);
         throw new ThriftSecurityException();
@@ -307,7 +307,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
     if (!force) {
       final TServerConnection server = master.tserverSet.getConnection(doomed);
       if (server == null) {
-        Master.log.warn("No server found for name " + tabletServer);
+        Master.log.warn("No server found for name {}", tabletServer);
         return;
       }
     }
@@ -327,7 +327,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
   public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName, TabletSplit split) {
     KeyExtent oldTablet = new KeyExtent(split.oldTablet);
     if (master.migrations.remove(oldTablet) != null) {
-      Master.log.info("Canceled migration of " + split.oldTablet);
+      Master.log.info("Canceled migration of {}", split.oldTablet);
     }
     for (TServerInstance instance : master.tserverSet.getCurrentServers()) {
       if (serverName.equals(instance.hostPort())) {
@@ -335,7 +335,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
         return;
       }
     }
-    Master.log.warn("Got a split from a server we don't recognize: " + serverName);
+    Master.log.warn("Got a split from a server we don't recognize: {}", serverName);
   }
 
   @Override
@@ -344,7 +344,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
 
     switch (status) {
       case LOAD_FAILURE:
-        Master.log.error(serverName + " reports assignment failed for tablet " + tablet);
+        Master.log.error("{} reports assignment failed for tablet {}", serverName, tablet);
         break;
       case LOADED:
         master.nextEvent.event("tablet %s was loaded on %s", tablet, serverName);
@@ -353,11 +353,11 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
         master.nextEvent.event("tablet %s was unloaded from %s", tablet, serverName);
         break;
       case UNLOAD_ERROR:
-        Master.log.error(serverName + " reports unload failed for tablet " + tablet);
+        Master.log.error("{} reports unload failed for tablet {}", serverName, tablet);
         break;
       case UNLOAD_FAILURE_NOT_SERVING:
         if (Master.log.isTraceEnabled()) {
-          Master.log.trace(serverName + " reports unload failed: not serving tablet, could be a split: " + tablet);
+          Master.log.trace("{} reports unload failed: not serving tablet, could be a split: {}", serverName, tablet);
         }
         break;
       case CHOPPED:
@@ -471,7 +471,7 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
           new DefaultLoadBalancer());
       balancer.init(master);
       master.tabletBalancer = balancer;
-      log.info("tablet balancer changed to " + master.tabletBalancer.getClass().getName());
+      log.info("tablet balancer changed to {}", master.tabletBalancer.getClass().getName());
     }
   }
 

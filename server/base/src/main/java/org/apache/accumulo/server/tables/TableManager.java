@@ -63,7 +63,7 @@ public class TableManager {
 
   public static void prepareNewNamespaceState(String instanceId, Namespace.ID namespaceId, String namespace, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
-    log.debug("Creating ZooKeeper entries for new namespace " + namespace + " (ID: " + namespaceId + ")");
+    log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
     String zPath = Constants.ZROOT + "/" + instanceId + Constants.ZNAMESPACES + "/" + namespaceId;
 
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -75,7 +75,7 @@ public class TableManager {
   public static void prepareNewTableState(String instanceId, Table.ID tableId, Namespace.ID namespaceId, String tableName, TableState state,
       NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
     // state gets created last
-    log.debug("Creating ZooKeeper entries for new table " + tableName + " (ID: " + tableId + ") in namespace (ID: " + namespaceId + ")");
+    log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})", tableName, tableId, namespaceId);
     Pair<String,String> qualifiedTableName = Tables.qualify(tableName);
     tableName = qualifiedTableName.getSecond();
     String zTablePath = Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId;
@@ -157,13 +157,13 @@ public class TableManager {
           }
           if (!transition)
             throw new IllegalTableTransitionException(oldState, newState);
-          log.debug("Transitioning state for table " + tableId + " from " + oldState + " to " + newState);
+          log.debug("Transitioning state for table {} from {} to {}", tableId, oldState, newState);
           return newState.name().getBytes(UTF_8);
         }
       });
     } catch (Exception e) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compability
-      log.error("FATAL Failed to transition table to state " + newState);
+      log.error("FATAL Failed to transition table to state {}", newState);
       throw new RuntimeException(e);
     }
   }
@@ -172,7 +172,7 @@ public class TableManager {
     synchronized (tableStateCache) {
       for (String tableId : zooStateCache.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES))
         if (zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE) != null)
-          updateTableStateCache(new Table.ID(tableId));
+          updateTableStateCache(Table.ID.of(tableId));
     }
   }
 
@@ -185,7 +185,7 @@ public class TableManager {
         try {
           tState = TableState.valueOf(sState);
         } catch (IllegalArgumentException e) {
-          log.error("Unrecognized state for table with tableId=" + tableId + ": " + sState);
+          log.error("Unrecognized state for table with tableId={}: {}", tableId, sState);
         }
         tableStateCache.put(tableId, tState);
       }
@@ -252,10 +252,10 @@ public class TableManager {
         if (suffix.contains("/")) {
           String[] sa = suffix.split("/", 2);
           if (Constants.ZTABLE_STATE.equals("/" + sa[1]))
-            tableId = new Table.ID(sa[0]);
+            tableId = Table.ID.of(sa[0]);
         }
         if (tableId == null) {
-          log.warn("Unknown path in " + event);
+          log.warn("Unknown path in {}", event);
           return;
         }
       }
@@ -265,14 +265,14 @@ public class TableManager {
           if (zPath != null && zPath.equals(tablesPrefix)) {
             updateTableStateCache();
           } else {
-            log.warn("Unexpected path " + zPath);
+            log.warn("Unexpected path {}", zPath);
           }
           break;
         case NodeCreated:
         case NodeDataChanged:
           // state transition
           TableState tState = updateTableStateCache(tableId);
-          log.debug("State transition to " + tState + " @ " + event);
+          log.debug("State transition to {} @ {}", tState, event);
           synchronized (observers) {
             for (TableObserver to : observers)
               to.stateChanged(tableId, tState);
@@ -289,7 +289,7 @@ public class TableManager {
           switch (event.getState()) {
             case Expired:
               if (log.isTraceEnabled())
-                log.trace("Session expired " + event);
+                log.trace("Session expired {}", event);
               synchronized (observers) {
                 for (TableObserver to : observers)
                   to.sessionExpired();
@@ -298,11 +298,11 @@ public class TableManager {
             case SyncConnected:
             default:
               if (log.isTraceEnabled())
-                log.trace("Ignored " + event);
+                log.trace("Ignored {}", event);
           }
           break;
         default:
-          log.warn("Unandled " + event);
+          log.warn("Unandled {}", event);
       }
     }
   }

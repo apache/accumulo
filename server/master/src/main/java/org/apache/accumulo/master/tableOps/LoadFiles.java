@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;
@@ -45,6 +45,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -56,8 +57,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.htrace.wrappers.TraceExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 class LoadFiles extends MasterRepo {
 

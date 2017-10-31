@@ -69,6 +69,7 @@ import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
@@ -78,7 +79,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
-import com.google.common.net.HostAndPort;
 
 /*
  * Differences from previous TabletServerBatchWriter
@@ -546,7 +546,7 @@ public class TabletServerBatchWriter {
     somethingFailed = true;
     this.serverSideErrors.add(server);
     this.notifyAll();
-    log.error("Server side error on " + server + ": " + e);
+    log.error("Server side error on {}", server, e);
   }
 
   private synchronized void updateUnknownErrors(String msg, Throwable t) {
@@ -639,7 +639,7 @@ public class TabletServerBatchWriter {
 
         if (rf != null) {
           if (log.isTraceEnabled())
-            log.trace("tid=" + Thread.currentThread().getId() + "  Requeuing " + rf.size() + " failed mutations");
+            log.trace("tid={}  Requeuing {} failed mutations", Thread.currentThread().getId(), rf.size());
           addFailedMutations(rf);
         }
       } catch (Throwable t) {

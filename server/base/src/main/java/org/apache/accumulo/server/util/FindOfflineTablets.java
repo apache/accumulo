@@ -66,9 +66,9 @@ public class FindOfflineTablets {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
         if (!deleted.isEmpty() && scanning.get())
-          log.warn("Tablet servers deleted while scanning: " + deleted);
+          log.warn("Tablet servers deleted while scanning: {}", deleted);
         if (!added.isEmpty() && scanning.get())
-          log.warn("Tablet servers added while scanning: " + added);
+          log.warn("Tablet servers added while scanning: {}", added);
       }
     });
     tservers.startListeningForTabletServerChanges();

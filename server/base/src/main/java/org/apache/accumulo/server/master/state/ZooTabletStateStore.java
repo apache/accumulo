@@ -28,12 +28,11 @@ import java.util.Map;
 
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 public class ZooTabletStateStore extends TabletStateStore {
 
@@ -90,11 +89,11 @@ public class ZooTabletStateStore extends TabletStateStore {
             if (logInfo != null) {
               LogEntry logEntry = LogEntry.fromBytes(logInfo);
               logs.add(Collections.singleton(logEntry.filename));
-              log.debug("root tablet log " + logEntry.filename);
+              log.debug("root tablet log {}", logEntry.filename);
             }
           }
           TabletLocationState result = new TabletLocationState(RootTable.EXTENT, futureSession, currentSession, lastSession, null, logs, false);
-          log.debug("Returning root tablet state: " + result);
+          log.debug("Returning root tablet state: {}", result);
           return result;
         } catch (Exception ex) {
           throw new RuntimeException(ex);

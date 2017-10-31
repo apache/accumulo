@@ -44,7 +44,7 @@ public class MergeTest {
           end = null;
         else
           end = new Text(String.format("%05d", tablets.size()));
-        KeyExtent extent = new KeyExtent(new Table.ID("table"), end, start);
+        KeyExtent extent = new KeyExtent(Table.ID.of("table"), end, start);
         start = end;
         tablets.add(new Size(extent, size));
       }

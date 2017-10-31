@@ -34,13 +34,12 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.junit.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class ChaoticLoadBalancerTest {
 
@@ -155,7 +154,7 @@ public class ChaoticLoadBalancerTest {
   }
 
   private static KeyExtent makeExtent(String table, String end, String prev) {
-    return new KeyExtent(new Table.ID(table), toText(end), toText(prev));
+    return new KeyExtent(Table.ID.of(table), toText(end), toText(prev));
   }
 
   private static Text toText(String value) {

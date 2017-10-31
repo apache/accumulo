@@ -202,13 +202,13 @@ public class FileUtil {
       if (mapFiles.size() > maxToOpen) {
         tmpDir = createTmpDir(acuconf, fs, tabletDir);
 
-        log.debug("Too many indexes (" + mapFiles.size() + ") to open at once for " + endRow + " " + prevEndRow + ", reducing in tmpDir = " + tmpDir);
+        log.debug("Too many indexes ({}) to open at once for {} {}, reducing in tmpDir = {}", mapFiles.size(), endRow, prevEndRow, tmpDir);
 
         long t1 = System.currentTimeMillis();
         mapFiles = reduceFiles(acuconf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
-        log.debug("Finished reducing indexes for " + endRow + " " + prevEndRow + " in " + String.format("%6.2f secs", (t2 - t1) / 1000.0));
+        log.debug("Finished reducing indexes for {} {} in {}", endRow, prevEndRow, String.format("%6.2f secs", (t2 - t1) / 1000.0));
       }
 
       if (prevEndRow == null)
@@ -277,13 +277,13 @@ public class FileUtil {
           throw new IOException("Cannot find mid point using data files, too many " + mapFiles.size());
         tmpDir = createTmpDir(acuConf, fs, tabletDirectory);
 
-        log.debug("Too many indexes (" + mapFiles.size() + ") to open at once for " + endRow + " " + prevEndRow + ", reducing in tmpDir = " + tmpDir);
+        log.debug("Too many indexes ({}) to open at once for {} {}, reducing in tmpDir = {}", mapFiles.size(), endRow, prevEndRow, tmpDir);
 
         long t1 = System.currentTimeMillis();
         mapFiles = reduceFiles(acuConf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
-        log.debug("Finished reducing indexes for " + endRow + " " + prevEndRow + " in " + String.format("%6.2f secs", (t2 - t1) / 1000.0));
+        log.debug("Finished reducing indexes for {} {} in {}", endRow, prevEndRow, String.format("%6.2f secs", (t2 - t1) / 1000.0));
       }
 
       if (prevEndRow == null)
@@ -297,8 +297,8 @@ public class FileUtil {
 
       if (numKeys == 0) {
         if (useIndex) {
-          log.warn("Failed to find mid point using indexes, falling back to data files which is slower. No entries between " + prevEndRow + " and " + endRow
-              + " for " + mapFiles);
+          log.warn("Failed to find mid point using indexes, falling back to data files which is slower. No entries between {} and {} for {}", prevEndRow,
+              endRow, mapFiles);
           // need to pass original map files, not possibly reduced indexes
           return findMidPoint(fs, tabletDirectory, acuConf, prevEndRow, endRow, origMapFiles, minSplit, false);
         }
@@ -379,7 +379,7 @@ public class FileUtil {
         return;
       }
 
-      log.error("Did not delete tmp dir because it wasn't a tmp dir " + tmpDir);
+      log.error("Did not delete tmp dir because it wasn't a tmp dir {}", tmpDir);
     }
   }
 

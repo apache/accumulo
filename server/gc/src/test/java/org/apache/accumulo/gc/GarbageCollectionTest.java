@@ -93,7 +93,7 @@ public class GarbageCollectionTest {
     }
 
     public Key newFileReferenceKey(String tableId, String endRow, String file) {
-      String row = new KeyExtent(new Table.ID(tableId), endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
+      String row = new KeyExtent(Table.ID.of(tableId), endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
       String cf = MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString();
       String cq = file;
       Key key = new Key(row, cf, cq);
@@ -111,7 +111,7 @@ public class GarbageCollectionTest {
     }
 
     Key newDirReferenceKey(String tableId, String endRow) {
-      String row = new KeyExtent(new Table.ID(tableId), endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
+      String row = new KeyExtent(Table.ID.of(tableId), endRow == null ? null : new Text(endRow), null).getMetadataEntry().toString();
       String cf = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily().toString();
       String cq = MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier().toString();
       Key key = new Key(row, cf, cq);
@@ -534,7 +534,7 @@ public class GarbageCollectionTest {
 
     TestGCE gce = new TestGCE();
 
-    gce.tableIds.add(new Table.ID("4"));
+    gce.tableIds.add(Table.ID.of("4"));
 
     gce.candidates.add("/4/t-0");
     gce.candidates.add("/4/t-0/F002.rf");
@@ -547,8 +547,8 @@ public class GarbageCollectionTest {
     gca.collect(gce);
 
     HashSet<Table.ID> tids = new HashSet<>();
-    tids.add(new Table.ID("5"));
-    tids.add(new Table.ID("6"));
+    tids.add(Table.ID.of("5"));
+    tids.add(Table.ID.of("6"));
 
     Assert.assertEquals(tids.size(), gce.tablesDirsToDelete.size());
     Assert.assertTrue(tids.containsAll(gce.tablesDirsToDelete));

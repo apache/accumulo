@@ -83,7 +83,7 @@ public class LogSorter {
       String src = parts[0];
       String dest = parts[1];
       String sortId = new Path(src).getName();
-      log.debug("Sorting " + src + " to " + dest + " using sortId " + sortId);
+      log.debug("Sorting {} to {} using sortId {}", src, dest, sortId);
 
       synchronized (currentWork) {
         if (currentWork.containsKey(sortId))
@@ -92,7 +92,7 @@ public class LogSorter {
       }
 
       try {
-        log.info("Copying " + src + " to " + dest);
+        log.info("Copying {} to {}", src, dest);
         sort(sortId, new Path(src), dest);
       } finally {
         currentWork.remove(sortId);
@@ -117,7 +117,7 @@ public class LogSorter {
         try {
           inputStreams = DfsLogger.readHeaderAndReturnStream(fs, srcPath, conf);
         } catch (LogHeaderIncompleteException e) {
-          log.warn("Could not read header from write-ahead log " + srcPath + ". Not sorting.");
+          log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
           // Creating a 'finished' marker will cause recovery to proceed normally and the
           // empty file will be correctly ignored downstream.
           fs.mkdirs(new Path(destPath));
@@ -150,7 +150,7 @@ public class LogSorter {
           }
         }
         fs.create(new Path(destPath, "finished")).close();
-        log.info("Finished log sort " + name + " " + getBytesCopied() + " bytes " + part + " parts in " + getSortTime() + "ms");
+        log.info("Finished log sort {} {} bytes {} parts in {}ms", name, getBytesCopied(), part, getSortTime());
       } catch (Throwable t) {
         try {
           // parent dir may not exist

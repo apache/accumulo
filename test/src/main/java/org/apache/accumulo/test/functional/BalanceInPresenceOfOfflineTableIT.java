@@ -177,11 +177,11 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       }
 
       if (stats.getTServerInfoSize() < 2) {
-        log.debug("we need >= 2 servers. sleeping for " + currentWait + "ms");
+        log.debug("we need >= 2 servers. sleeping for {}ms", currentWait);
         continue;
       }
       if (stats.getUnassignedTablets() != 0) {
-        log.debug("We shouldn't have unassigned tablets. sleeping for " + currentWait + "ms");
+        log.debug("We shouldn't have unassigned tablets. sleeping for {}ms", currentWait);
         continue;
       }
 
@@ -194,13 +194,13 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       }
 
       if (tabletsPerServer[0] <= 10) {
-        log.debug("We should have > 10 tablets. sleeping for " + currentWait + "ms");
+        log.debug("We should have > 10 tablets. sleeping for {}ms", currentWait);
         continue;
       }
       long min = NumberUtils.min(tabletsPerServer), max = NumberUtils.max(tabletsPerServer);
-      log.debug("Min=" + min + ", Max=" + max);
+      log.debug("Min={}, Max={}", min, max);
       if ((min / ((double) max)) < 0.5) {
-        log.debug("ratio of min to max tablets per server should be roughly even. sleeping for " + currentWait + "ms");
+        log.debug("ratio of min to max tablets per server should be roughly even. sleeping for {}ms", currentWait);
         continue;
       }
       balancingWorked = true;
