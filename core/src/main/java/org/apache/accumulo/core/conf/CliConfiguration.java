@@ -50,10 +50,7 @@ public class CliConfiguration {
   }
 
   public static String get(Property property) {
-    if (config.containsKey(property.getKey())) {
-      return config.get(property.getKey());
-    }
-    return null;
+    return config.get(property.getKey());
   }
 
   public static void getProperties(Map<String,String> props, Predicate<String> filter) {
