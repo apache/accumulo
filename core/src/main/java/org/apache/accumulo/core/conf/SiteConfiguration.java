@@ -34,8 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An {@link AccumuloConfiguration} which loads properties from an XML file, usually accumulo-site.xml. This implementation supports defaulting undefined
- * property values to a parent configuration's definitions.
+ * An {@link AccumuloConfiguration} which first loads any properties set on the command-line (using the -o option) and then from an XML file, usually
+ * accumulo-site.xml. This implementation supports defaulting undefined property values to a parent configuration's definitions.
  * <p>
  * The system property "accumulo.configuration" can be used to specify the location of the XML configuration file on the classpath or filesystem if the path is
  * prefixed with 'file://'. If the system property is not defined, it defaults to "accumulo-site.xml" and will look on classpath for file.
@@ -119,10 +119,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   @Override
   public String get(Property property) {
-    return get(property, true);
-  }
-
-  public String get(Property property, boolean useDefault) {
     if (CliConfiguration.get(property) != null) {
       return CliConfiguration.get(property);
     }
@@ -147,7 +143,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     /* Check the available-on-load configs and fall-back to the possibly-update Configuration object. */
     String value = staticConfigs.containsKey(key) ? staticConfigs.get(key) : getXmlConfig().get(key);
 
-    if (useDefault && (value == null || !property.getType().isValidFormat(value))) {
+    if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
         log.error("Using default value for {} due to improperly formatted {}: {}", key, property.getType(), value);
       value = parent.get(property);

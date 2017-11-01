@@ -28,25 +28,17 @@ import org.slf4j.LoggerFactory;
 public class CliConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(CliConfiguration.class);
-  private static Map<String,String> config = new HashMap<>();
+  private static volatile Map<String,String> config = new HashMap<>();
 
   /**
-   * Sets CliConfiguration with map of configuration. Additional calls to will add new properties and overwrite existing values.
+   * Sets CliConfiguration with map of configuration. Additional calls will overwrite existing properties and values.
    *
    * @param conf
    *          Map of configuration
    */
   public static void set(Map<String,String> conf) {
     Objects.requireNonNull(conf);
-    for (Map.Entry<String,String> entry : conf.entrySet()) {
-      config.put(entry.getKey(), entry.getValue());
-    }
-  }
-
-  public static void set(String key, String value) {
-    Objects.requireNonNull(key);
-    Objects.requireNonNull(value);
-    config.put(key, value);
+    config = conf;
   }
 
   public static void print() {

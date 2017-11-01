@@ -22,11 +22,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.beust.jcommander.converters.IParameterSplitter;
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.conf.CliConfiguration;
 
 import com.beust.jcommander.Parameter;
-import org.apache.accumulo.core.conf.CliConfiguration;
+import com.beust.jcommander.converters.IParameterSplitter;
 
 public class ServerOpts extends Help {
   @Parameter(names = {"-a", "--address"}, description = "address to bind to")
@@ -39,7 +39,8 @@ public class ServerOpts extends Help {
     }
   }
 
-  @Parameter(names = "-o", splitter = NullSplitter.class, description = "Overrides configuration set in accumulo-site.xml. Expected format: -o <key>=<value>")
+  @Parameter(names = "-o", splitter = NullSplitter.class,
+      description = "Overrides configuration set in accumulo-site.xml (but NOT system-wide config set in Zookeeper). Expected format: -o <key>=<value>")
   private List<String> properties = new ArrayList<>();
 
   public String getAddress() {

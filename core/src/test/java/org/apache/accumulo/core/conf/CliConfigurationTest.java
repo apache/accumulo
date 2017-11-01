@@ -22,6 +22,8 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 public class CliConfigurationTest {
 
   @Test
@@ -43,6 +45,6 @@ public class CliConfigurationTest {
 
     Map<String,String> results = new HashMap<>();
     CliConfiguration.getProperties(results, p -> p.startsWith("trace"));
-    Assert.assertEquals(1, results.size());
+    Assert.assertEquals(ImmutableMap.of(Property.TRACE_USER.getKey(), "test"), results);
   }
 }

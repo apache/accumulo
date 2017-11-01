@@ -413,6 +413,7 @@ public class Initialize implements KeywordExecutable {
         }
       } catch (Exception e) {
         log.error("FATAL: Failed to upload accumulo-site.xml to Zookeeper", e);
+        return false;
       }
     }
 
