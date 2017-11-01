@@ -34,8 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An {@link AccumuloConfiguration} which loads properties from an XML file, usually accumulo-site.xml. This implementation supports defaulting undefined
- * property values to a parent configuration's definitions.
+ * An {@link AccumuloConfiguration} which first loads any properties set on the command-line (using the -o option) and then from an XML file, usually
+ * accumulo-site.xml. This implementation supports defaulting undefined property values to a parent configuration's definitions.
  * <p>
  * The system property "accumulo.configuration" can be used to specify the location of the XML configuration file on the classpath or filesystem if the path is
  * prefixed with 'file://'. If the system property is not defined, it defaults to "accumulo-site.xml" and will look on classpath for file.
@@ -119,8 +119,11 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   @Override
   public String get(Property property) {
-    String key = property.getKey();
+    if (CliConfiguration.get(property) != null) {
+      return CliConfiguration.get(property);
+    }
 
+    String key = property.getKey();
     // If the property is sensitive, see if CredentialProvider was configured.
     if (property.isSensitive()) {
       Configuration hadoopConf = getHadoopConfiguration();
@@ -145,12 +148,19 @@ public class SiteConfiguration extends AccumuloConfiguration {
         log.error("Using default value for {} due to improperly formatted {}: {}", key, property.getType(), value);
       value = parent.get(property);
     }
+
     return value;
   }
 
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
-    parent.getProperties(props, filter);
+    getProperties(props, filter, true);
+  }
+
+  public void getProperties(Map<String,String> props, Predicate<String> filter, boolean useDefaults) {
+    if (useDefaults) {
+      parent.getProperties(props, filter);
+    }
 
     for (Entry<String,String> entry : getXmlConfig())
       if (filter.test(entry.getKey()))
@@ -176,6 +186,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
         log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
       }
     }
+    CliConfiguration.getProperties(props, filter);
   }
 
   protected Configuration getHadoopConfiguration() {

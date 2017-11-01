@@ -28,6 +28,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 public class SiteConfigurationTest {
   private static boolean isCredentialProviderAvailable;
 
@@ -70,5 +72,14 @@ public class SiteConfigurationTest {
     Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
     Assert.assertEquals(null, props.get("ignored.property"));
     Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(), props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
+  }
+
+  @Test
+  public void testCliConfig() {
+    SiteConfiguration conf = SiteConfiguration.getInstance();
+    Assert.assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
+
+    CliConfiguration.set(ImmutableMap.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181"));
+    Assert.assertEquals("myhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
   }
 }

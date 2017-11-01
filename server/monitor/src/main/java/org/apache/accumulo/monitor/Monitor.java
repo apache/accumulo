@@ -418,11 +418,10 @@ public class Monitor implements HighlyAvailableService {
 
   public static void main(String[] args) throws Exception {
     final String app = "monitor";
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
     String hostname = opts.getAddress();
+    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
     VolumeManager fs = VolumeManagerImpl.get();
     instance = HdfsZooInstance.getInstance();

@@ -1438,10 +1438,9 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   public static void main(String[] args) throws Exception {
     try {
       final String app = "master";
-      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);
+      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
       String hostname = opts.getAddress();
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
