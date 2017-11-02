@@ -30,7 +30,6 @@ import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -251,7 +250,7 @@ public class DefaultCryptoModule implements CryptoModule {
       throw new RuntimeException("Encryption cipher must be a block cipher");
     }
 
-    CipherOutputStream cipherOutputStream = new CipherOutputStream(params.getPlaintextOutputStream(), cipher);
+    RFileCipherOutputStream cipherOutputStream = new RFileCipherOutputStream(params.getPlaintextOutputStream(), cipher);
     BlockedOutputStream blockedOutputStream = new BlockedOutputStream(cipherOutputStream, cipher.getBlockSize(), params.getBlockStreamSize());
 
     params.setEncryptedOutputStream(blockedOutputStream);
