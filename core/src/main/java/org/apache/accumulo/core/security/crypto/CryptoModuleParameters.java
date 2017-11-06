@@ -37,17 +37,17 @@ import javax.crypto.CipherOutputStream;
 public class CryptoModuleParameters {
 
   /**
-   * Gets the name of the symmetric algorithm to use for encryption.
+   * Gets the name of the symmetric algorithm to use for the creation of encryption keys.
    *
-   * @see CryptoModuleParameters#setAlgorithmName(String)
+   * @see CryptoModuleParameters#setKeyAlgorithmName(String)
    */
 
-  public String getAlgorithmName() {
-    return algorithmName;
+  public String getKeyAlgorithmName() {
+    return keyAlgorithmName;
   }
 
   /**
-   * Sets the name of the symmetric algorithm to use for an encryption stream.
+   * Sets the name of the symmetric algorithm to use for the creation of encryption keys.
    * <p>
    * Valid names are names recognized by your cryptographic engine provider. For the default Java provider, valid names would include things like "AES", "RC4",
    * "DESede", etc.
@@ -56,73 +56,45 @@ public class CryptoModuleParameters {
    * decryption. <br>
    * For <b>decryption</b>, this value is often disregarded in favor of the value encoded with the ciphertext.
    *
-   * @param algorithmName
+   * @param keyAlgorithmName
    *          the name of the cryptographic algorithm to use.
    * @see <a href="http://docs.oracle.com/javase/1.5.0/docs/guide/security/jce/JCERefGuide.html#AppA">Standard Algorithm Names in JCE</a>
    *
    */
 
-  public void setAlgorithmName(String algorithmName) {
-    this.algorithmName = algorithmName;
+  public void setKeyAlgorithmName(String keyAlgorithmName) {
+    this.keyAlgorithmName = keyAlgorithmName;
   }
 
   /**
-   * Gets the name of the encryption mode to use for encryption.
+   * Gets the name of the cipher suite used for encryption
    *
-   * @see CryptoModuleParameters#setEncryptionMode(String)
+   * @see CryptoModuleParameters#setCipherSuite(String)
    */
 
-  public String getEncryptionMode() {
-    return encryptionMode;
+  public String getCipherSuite() {
+    return cipherSuite;
   }
 
   /**
-   * Sets the name of the encryption mode to use for an encryption stream.
+   * Sets the name of the crypto suite to use for an encryption stream.
    * <p>
-   * Valid names are names recognized by your cryptographic engine provider. For the default Java provider, valid names would include things like "EBC", "CBC",
-   * "CFB", etc.
-   * <p>
-   * For <b>encryption</b>, this value is <b>required</b> and is always used. Its value should be prepended or otherwise included with the ciphertext for future
-   * decryption. <br>
-   * For <b>decryption</b>, this value is often disregarded in favor of the value encoded with the ciphertext.
+   * Valid names are names recognized by your cryptographic engine provider.
    *
-   * @param encryptionMode
-   *          the name of the encryption mode to use.
-   * @see <a href="http://docs.oracle.com/javase/1.5.0/docs/guide/security/jce/JCERefGuide.html#AppA">Standard Mode Names in JCE</a>
+   * The format for input should be: algorithm/mode/padding
    *
-   */
-
-  public void setEncryptionMode(String encryptionMode) {
-    this.encryptionMode = encryptionMode;
-  }
-
-  /**
-   * Gets the name of the padding type to use for encryption.
-   *
-   * @see CryptoModuleParameters#setPadding(String)
-   */
-
-  public String getPadding() {
-    return padding;
-  }
-
-  /**
-   * Sets the name of the padding type to use for an encryption stream.
-   * <p>
-   * Valid names are names recognized by your cryptographic engine provider. For the default Java provider, valid names would include things like "NoPadding",
-   * "None", etc.
+   * For the default Java provider, valid names would include things like "AES/CBC/NoPadding".
    * <p>
    * For <b>encryption</b>, this value is <b>required</b> and is always used. Its value should be prepended or otherwise included with the ciphertext for future
    * decryption. <br>
    * For <b>decryption</b>, this value is often disregarded in favor of the value encoded with the ciphertext.
    *
-   * @param padding
-   *          the name of the padding type to use.
-   * @see <a href="http://docs.oracle.com/javase/1.5.0/docs/guide/security/jce/JCERefGuide.html#AppA">Standard Padding Names in JCE</a>
+   * @param cipherSuite
+   *          the cipher suite to use.
    *
    */
-  public void setPadding(String padding) {
-    this.padding = padding;
+  public void setCipherSuite(String cipherSuite) {
+    this.cipherSuite = cipherSuite;
   }
 
   /**
@@ -602,9 +574,8 @@ public class CryptoModuleParameters {
     this.allOptions = allOptions;
   }
 
-  private String algorithmName = null;
-  private String encryptionMode = null;
-  private String padding = null;
+  private String cipherSuite = null;
+  private String keyAlgorithmName = null;
   private byte[] plaintextKey;
   private int keyLength = 0;
   private String randomNumberGenerator = null;

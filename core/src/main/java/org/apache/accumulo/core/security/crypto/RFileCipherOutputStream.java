@@ -24,9 +24,8 @@ import javax.crypto.CipherOutputStream;
 
 /**
  *
- * This class extends {@link CipherOutputStream} to include a way to track the number of bytes that have
- * been encrypted by the stream. The write method also includes a mechanism to stop writing and
- * throw an exception if exceeding a maximum number of bytes is attempted.
+ * This class extends {@link CipherOutputStream} to include a way to track the number of bytes that have been encrypted by the stream. The write method also
+ * includes a mechanism to stop writing and throw an exception if exceeding a maximum number of bytes is attempted.
  *
  */
 public class RFileCipherOutputStream extends CipherOutputStream {
@@ -35,7 +34,7 @@ public class RFileCipherOutputStream extends CipherOutputStream {
   // will cause an exception. Given that each block in an rfile is encrypted separately, and blocks
   // should be written such that a block cannot ever reach 16GiB, this is believed to be a safe number.
   // If this does cause an exception, it is an issue best addressed elsewhere.
-  private final long maxOutputSize = 1L << 34; //16GiB
+  private final long maxOutputSize = 1L << 34; // 16GiB
 
   // The total number of bytes that have been written out
   private long count = 0;
@@ -54,8 +53,8 @@ public class RFileCipherOutputStream extends CipherOutputStream {
   }
 
   /**
-   * Override of CipherOutputStream's write to count the number of bytes that have been encrypted.
-   * This method now throws an exception if an attempt to write bytes beyond a maximum is made.
+   * Override of CipherOutputStream's write to count the number of bytes that have been encrypted. This method now throws an exception if an attempt to write
+   * bytes beyond a maximum is made.
    */
   @Override
   public void write(byte b[], int off, int len) throws IOException {
@@ -72,8 +71,8 @@ public class RFileCipherOutputStream extends CipherOutputStream {
   }
 
   /**
-   * Override of CipherOutputStream's write for a single byte to count it. This method now throws
-   * an exception if an attempt to write bytes beyond a maximum is made.
+   * Override of CipherOutputStream's write for a single byte to count it. This method now throws an exception if an attempt to write bytes beyond a maximum is
+   * made.
    */
   @Override
   public void write(int b) throws IOException {

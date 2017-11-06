@@ -283,9 +283,9 @@ public final class BCFile {
       /**
        * Get the raw size of the block.
        *
-       * Caution: size() comes from DataOutputStream which returns Integer.MAX_VALUE on an overflow. This results in a value of 2GiB meaning that
-       * an unknown amount of data, at least 2GiB large, has been written. RFiles handle this issue by keeping track of the position of blocks
-       * instead of relying on blocks to provide this information.
+       * Caution: size() comes from DataOutputStream which returns Integer.MAX_VALUE on an overflow. This results in a value of 2GiB meaning that an unknown
+       * amount of data, at least 2GiB large, has been written. RFiles handle this issue by keeping track of the position of blocks instead of relying on blocks
+       * to provide this information.
        *
        * @return the number of uncompressed bytes written through the BlockAppender so far.
        */
@@ -395,7 +395,7 @@ public final class BCFile {
           long offsetIndexMeta = out.position();
           metaIndex.write(out);
 
-          if (cryptoParams.getAlgorithmName() == null || cryptoParams.getAlgorithmName().equals(Property.CRYPTO_CIPHER_SUITE.getDefaultValue())) {
+          if (cryptoParams.getCipherSuite() == null || cryptoParams.getCipherSuite().equals(Property.CRYPTO_CIPHER_SUITE.getDefaultValue())) {
             out.writeLong(offsetIndexMeta);
             API_VERSION_1.write(out);
           } else {

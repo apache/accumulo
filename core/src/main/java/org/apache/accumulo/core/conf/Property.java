@@ -48,10 +48,18 @@ public enum Property {
       "Fully qualified class name of the class that implements the CryptoModule interface, to be used in setting up encryption at rest for the WAL and "
           + "(future) other parts of the code."),
   @Experimental
-  CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING, "Describes the cipher suite to use for the write-ahead log"),
+  CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING,
+      "Describes the cipher suite to use for rfile encryption. If a WAL cipher suite is not set, it will default to this value. The suite should be in the "
+          + "form of algorithm/mode/padding, e.g. AES/CBC/NoPadding"),
   @Experimental
-  CRYPTO_CIPHER_ALGORITHM_NAME("crypto.cipher.algorithm.name", "NullCipher", PropertyType.STRING,
-      "States the name of the algorithm used in the corresponding cipher suite. Do not make these different, unless you enjoy mysterious exceptions and bugs."),
+  CRYPTO_WAL_CIPHER_SUITE(
+      "crypto.wal.cipher.suite",
+      "NullCipher",
+      PropertyType.STRING,
+      "Describes the cipher suite to use for the write-ahead log. Defaults to 'cyrpto.cipher.suite' and will use that value for WAL encryption unless otherwise specified."),
+  @Experimental
+  CRYPTO_CIPHER_KEY_ALGORITHM_NAME("crypto.cipher.key.algorithm.name", "NullCipher", PropertyType.STRING,
+      "States the name of the algorithm used for the key for the corresponding cipher suite. The key type must be compatible with the cipher suite."),
   @Experimental
   CRYPTO_BLOCK_STREAM_SIZE("crypto.block.stream.size", "1K", PropertyType.BYTES,
       "The size of the buffer above the cipher stream. Used for reading files and padding walog entries."),
