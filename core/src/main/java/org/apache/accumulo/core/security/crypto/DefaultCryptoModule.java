@@ -57,10 +57,9 @@ public class DefaultCryptoModule implements CryptoModule {
 
   @Override
   public CryptoModuleParameters initializeCipher(CryptoModuleParameters params) {
-    String cipherTransformation = getCipherTransformation(params);
 
     log.trace(String.format("Using cipher suite \"%s\" with key length %d with RNG \"%s\" and RNG provider \"%s\" and key encryption strategy \"%s\"",
-        cipherTransformation, params.getKeyLength(), params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider(),
+        params.getCipherSuite(), params.getKeyLength(), params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider(),
         params.getKeyEncryptionStrategyClass()));
 
     if (params.getSecureRandom() == null) {
@@ -68,11 +67,11 @@ public class DefaultCryptoModule implements CryptoModule {
       params.setSecureRandom(secureRandom);
     }
 
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(cipherTransformation);
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getCipherSuite());
 
     if (params.getInitializationVector() == null) {
       try {
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName()), params.getSecureRandom());
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName()), params.getSecureRandom());
       } catch (InvalidKeyException e) {
         log.error("Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
         throw new RuntimeException(e);
@@ -82,7 +81,7 @@ public class DefaultCryptoModule implements CryptoModule {
 
     } else {
       try {
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName()),
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName()),
             new IvParameterSpec(params.getInitializationVector()));
       } catch (InvalidKeyException e) {
         log.error("Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
@@ -97,15 +96,6 @@ public class DefaultCryptoModule implements CryptoModule {
 
     return params;
 
-  }
-
-  private String getCipherTransformation(CryptoModuleParameters params) {
-    String cipherSuite = params.getAlgorithmName() + "/" + params.getEncryptionMode() + "/" + params.getPadding();
-    return cipherSuite;
-  }
-
-  private String[] parseCipherSuite(String cipherSuite) {
-    return cipherSuite.split("/");
   }
 
   private boolean validateNotEmpty(String givenValue, boolean allIsWell, StringBuilder buf, String errorMessage) {
@@ -146,15 +136,14 @@ public class DefaultCryptoModule implements CryptoModule {
           "The following problems were found with the CryptoModuleParameters object you provided for an encrypt operation:\n");
       boolean allIsWell = true;
 
-      allIsWell = validateNotEmpty(params.getAlgorithmName(), allIsWell, errorBuf, "No algorithm name was specified.");
+      allIsWell = validateNotEmpty(params.getCipherSuite(), allIsWell, errorBuf, "No cipher suite was specified.");
 
-      if (allIsWell && params.getAlgorithmName().equals("NullCipher")) {
+      if (allIsWell && params.getCipherSuite().equals("NullCipher")) {
         return true;
       }
 
-      allIsWell = validateNotEmpty(params.getPadding(), allIsWell, errorBuf, "No padding was specified.");
       allIsWell = validateNotZero(params.getKeyLength(), allIsWell, errorBuf, "No key length was specified.");
-      allIsWell = validateNotEmpty(params.getEncryptionMode(), allIsWell, errorBuf, "No encryption mode was specified.");
+      allIsWell = validateNotEmpty(params.getKeyAlgorithmName(), allIsWell, errorBuf, "No key algorithm name was specified.");
       allIsWell = validateNotEmpty(params.getRandomNumberGenerator(), allIsWell, errorBuf, "No random number generator was specified.");
       allIsWell = validateNotEmpty(params.getRandomNumberGeneratorProvider(), allIsWell, errorBuf, "No random number generate provider was specified.");
       allIsWell = validateNotNull(params.getPlaintextOutputStream(), allIsWell, errorBuf, "No plaintext output stream was specified.");
@@ -172,9 +161,7 @@ public class DefaultCryptoModule implements CryptoModule {
           "The following problems were found with the CryptoModuleParameters object you provided for a decrypt operation:\n");
       boolean allIsWell = true;
 
-      allIsWell = validateNotEmpty(params.getPadding(), allIsWell, errorBuf, "No padding was specified.");
       allIsWell = validateNotZero(params.getKeyLength(), allIsWell, errorBuf, "No key length was specified.");
-      allIsWell = validateNotEmpty(params.getEncryptionMode(), allIsWell, errorBuf, "No encryption mode was specified.");
       allIsWell = validateNotEmpty(params.getRandomNumberGenerator(), allIsWell, errorBuf, "No random number generator was specified.");
       allIsWell = validateNotEmpty(params.getRandomNumberGeneratorProvider(), allIsWell, errorBuf, "No random number generate provider was specified.");
       allIsWell = validateNotNull(params.getEncryptedInputStream(), allIsWell, errorBuf, "No encrypted input stream was specified.");
@@ -212,7 +199,7 @@ public class DefaultCryptoModule implements CryptoModule {
     }
 
     // If they want a null output stream, just return their plaintext stream as the encrypted stream
-    if (params.getAlgorithmName().equals("NullCipher")) {
+    if (params.getCipherSuite().equals("NullCipher")) {
       params.setEncryptedOutputStream(params.getPlaintextOutputStream());
       return params;
     }
@@ -272,8 +259,8 @@ public class DefaultCryptoModule implements CryptoModule {
 
       // Write out the cipher suite and algorithm used to encrypt this file. In case the admin changes, we want to still
       // decode the old format.
-      dataOut.writeUTF(getCipherTransformation(params));
-      dataOut.writeUTF(params.getAlgorithmName());
+      dataOut.writeUTF(params.getCipherSuite());
+      dataOut.writeUTF(params.getKeyAlgorithmName());
 
       // Write the init vector to the log file
       dataOut.writeInt(params.getInitializationVector().length);
@@ -314,10 +301,8 @@ public class DefaultCryptoModule implements CryptoModule {
         // Set the cipher parameters
         String cipherSuiteFromFile = dataIn.readUTF();
         String algorithmNameFromFile = dataIn.readUTF();
-        String[] cipherSuiteParts = parseCipherSuite(cipherSuiteFromFile);
-        params.setAlgorithmName(algorithmNameFromFile);
-        params.setEncryptionMode(cipherSuiteParts[1]);
-        params.setPadding(cipherSuiteParts[2]);
+        params.setCipherSuite(cipherSuiteFromFile);
+        params.setKeyAlgorithmName(algorithmNameFromFile);
 
         // Read the secret key and initialization vector from the file
         int initVectorLength = dataIn.readInt();
@@ -383,10 +368,10 @@ public class DefaultCryptoModule implements CryptoModule {
       throw new RuntimeException("CryptoModuleParameters object failed validation for decrypt");
     }
 
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(getCipherTransformation(params));
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getCipherSuite());
 
     try {
-      cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName()),
+      cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName()),
           new IvParameterSpec(params.getInitializationVector()));
     } catch (InvalidKeyException e) {
       log.error("Error when trying to initialize cipher with secret key");
@@ -401,7 +386,7 @@ public class DefaultCryptoModule implements CryptoModule {
     if (params.getBlockStreamSize() > 0)
       blockedDecryptingInputStream = new BlockedInputStream(blockedDecryptingInputStream, cipher.getBlockSize(), params.getBlockStreamSize());
 
-    log.trace("Initialized cipher input stream with transformation [{}]", getCipherTransformation(params));
+    log.trace("Initialized cipher input stream with transformation [{}]", params.getCipherSuite());
 
     params.setPlaintextInputStream(blockedDecryptingInputStream);
 
@@ -421,5 +406,4 @@ public class DefaultCryptoModule implements CryptoModule {
 
     return params;
   }
-
 }
