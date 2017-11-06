@@ -49,7 +49,7 @@ public class EntryLengthSummarizer implements Summarizer {
   public static final String SUM_QUALIFIERS_STAT = "sumQualifiers";
   //Log2 Histogram for Qualifiers
   
-  public static final String MIN_VISIBILITY_STAT = "minVisbility";
+  public static final String MIN_VISIBILITY_STAT = "minVisibility";
   public static final String MAX_VISIBILITY_STAT = "maxVisibility";
   public static final String SUM_VISIBILITIES_STAT = "sumVisibilities";
   //Log2 Histogram for Visibilities
@@ -65,28 +65,28 @@ public class EntryLengthSummarizer implements Summarizer {
   public Collector collector(SummarizerConfiguration sc) {
     return new Collector() {
 
-      private long minKey = Long.MIN_VALUE;
-      private long maxKey = Long.MAX_VALUE;
+      private long minKey = Long.MAX_VALUE;
+      private long maxKey = Long.MIN_VALUE;
       private long sumKeys = 0;
       
-      private long minRow = Long.MIN_VALUE;
-      private long maxRow = Long.MAX_VALUE;
+      private long minRow = Long.MAX_VALUE;
+      private long maxRow = Long.MIN_VALUE;
       private long sumRows = 0;
       
-      private long minFamily = Long.MIN_VALUE;
-      private long maxFamily = Long.MAX_VALUE;
+      private long minFamily = Long.MAX_VALUE;
+      private long maxFamily = Long.MIN_VALUE;
       private long sumFamilies = 0;
       
-      private long minQualifier = Long.MIN_VALUE;
-      private long maxQualifier = Long.MAX_VALUE;
+      private long minQualifier = Long.MAX_VALUE;
+      private long maxQualifier = Long.MIN_VALUE;
       private long sumQualifiers = 0;
       
-      private long minVisibility = Long.MIN_VALUE;
-      private long maxVisibility = Long.MAX_VALUE;
+      private long minVisibility = Long.MAX_VALUE;
+      private long maxVisibility = Long.MIN_VALUE;
       private long sumVisibilities = 0;
       
-      private long minValue = Long.MIN_VALUE;
-      private long maxValue = Long.MAX_VALUE;
+      private long minValue = Long.MAX_VALUE;
+      private long maxValue = Long.MIN_VALUE;
       private long sumValues = 0;
       
       private long total = 0;
@@ -165,28 +165,28 @@ public class EntryLengthSummarizer implements Summarizer {
 
       @Override
       public void summarize(StatisticConsumer sc) {
-        sc.accept(MIN_KEY_STAT, minKey);
-        sc.accept(MAX_KEY_STAT, maxKey);
+        sc.accept(MIN_KEY_STAT, (minKey != Long.MAX_VALUE ? minKey:0));
+        sc.accept(MAX_KEY_STAT, (maxKey != Long.MIN_VALUE ? maxKey:0));
         sc.accept(SUM_KEYS_STAT, sumKeys);
         
-        sc.accept(MIN_ROW_STAT, minRow);
-        sc.accept(MAX_ROW_STAT, maxRow);
-        sc.accept(SUM_KEYS_STAT, sumRows);
+        sc.accept(MIN_ROW_STAT, (minRow != Long.MAX_VALUE ? minRow:0));
+        sc.accept(MAX_ROW_STAT, (maxRow != Long.MIN_VALUE ? maxRow:0));
+        sc.accept(SUM_ROWS_STAT, sumRows);
         
-        sc.accept(MIN_FAMILY_STAT, minFamily);
-        sc.accept(MAX_FAMILY_STAT, minFamily);
+        sc.accept(MIN_FAMILY_STAT, (minFamily != Long.MAX_VALUE ? minFamily:0));
+        sc.accept(MAX_FAMILY_STAT, (maxFamily != Long.MIN_VALUE ? maxFamily:0));
         sc.accept(SUM_FAMILIES_STAT, sumFamilies);
         
-        sc.accept(MIN_QUALIFIER_STAT, minQualifier);
-        sc.accept(MAX_QUALIFIER_STAT, maxQualifier);
+        sc.accept(MIN_QUALIFIER_STAT, (minQualifier != Long.MAX_VALUE ? minQualifier:0));
+        sc.accept(MAX_QUALIFIER_STAT, (maxQualifier != Long.MIN_VALUE ? maxQualifier:0));
         sc.accept(SUM_QUALIFIERS_STAT, sumQualifiers);
         
-        sc.accept(MIN_VISIBILITY_STAT, minVisibility);
-        sc.accept(MAX_VISIBILITY_STAT, maxVisibility);
+        sc.accept(MIN_VISIBILITY_STAT, (minVisibility != Long.MAX_VALUE ? minVisibility:0));
+        sc.accept(MAX_VISIBILITY_STAT, (maxVisibility != Long.MIN_VALUE ? maxVisibility:0));
         sc.accept(SUM_VISIBILITIES_STAT, sumVisibilities);
         
-        sc.accept(MIN_VALUE_STAT, minValue);
-        sc.accept(MAX_VALUE_STAT, maxValue);
+        sc.accept(MIN_VALUE_STAT, (minValue != Long.MAX_VALUE ? minValue:0));
+        sc.accept(MAX_VALUE_STAT, (maxValue != Long.MIN_VALUE ? maxValue:0));
         sc.accept(SUM_VALUES_STAT, sumValues);
         
         sc.accept(TOTAL_STAT, total);
@@ -198,27 +198,27 @@ public class EntryLengthSummarizer implements Summarizer {
   @Override
   public Combiner combiner(SummarizerConfiguration sc) {
     return (stats1, stats2) -> {
-      stats1.merge(MIN_KEY_STAT, stats2.get(MIN_KEY_STAT), Long::min);
+      stats1.merge(MIN_KEY_STAT, stats2.get(MIN_KEY_STAT), Long::max);
       stats1.merge(MAX_KEY_STAT, stats2.get(MAX_KEY_STAT), Long::max);
       stats1.merge(SUM_KEYS_STAT, stats2.get(SUM_KEYS_STAT), Long::sum);
       
-      stats1.merge(MIN_ROW_STAT, stats2.get(MIN_ROW_STAT), Long::min);
+      stats1.merge(MIN_ROW_STAT, stats2.get(MIN_ROW_STAT), Long::max);
       stats1.merge(MAX_ROW_STAT, stats2.get(MAX_ROW_STAT), Long::max);
       stats1.merge(SUM_ROWS_STAT, stats2.get(SUM_ROWS_STAT), Long::sum);
       
-      stats1.merge(MIN_FAMILY_STAT, stats2.get(MIN_FAMILY_STAT), Long::min);
+      stats1.merge(MIN_FAMILY_STAT, stats2.get(MIN_FAMILY_STAT), Long::max);
       stats1.merge(MAX_FAMILY_STAT, stats2.get(MAX_FAMILY_STAT), Long::max);
       stats1.merge(SUM_FAMILIES_STAT, stats2.get(SUM_FAMILIES_STAT), Long::sum);
       
-      stats1.merge(MIN_QUALIFIER_STAT, stats2.get(MIN_QUALIFIER_STAT), Long::min);
+      stats1.merge(MIN_QUALIFIER_STAT, stats2.get(MIN_QUALIFIER_STAT), Long::max);
       stats1.merge(MAX_QUALIFIER_STAT, stats2.get(MAX_QUALIFIER_STAT), Long::max);
       stats1.merge(SUM_QUALIFIERS_STAT, stats2.get(SUM_QUALIFIERS_STAT), Long::sum);
       
-      stats1.merge(MIN_VISIBILITY_STAT, stats2.get(MIN_VISIBILITY_STAT), Long::min);
+      stats1.merge(MIN_VISIBILITY_STAT, stats2.get(MIN_VISIBILITY_STAT), Long::max);
       stats1.merge(MAX_VISIBILITY_STAT, stats2.get(MAX_VISIBILITY_STAT), Long::max);
       stats1.merge(SUM_VISIBILITIES_STAT, stats2.get(SUM_VISIBILITIES_STAT), Long::sum);
       
-      stats1.merge(MIN_VALUE_STAT, stats2.get(MIN_VALUE_STAT), Long::min);
+      stats1.merge(MIN_VALUE_STAT, stats2.get(MIN_VALUE_STAT), Long::max);
       stats1.merge(MAX_VALUE_STAT, stats2.get(MAX_VALUE_STAT), Long::max);
       stats1.merge(SUM_VALUES_STAT, stats2.get(SUM_VALUES_STAT), Long::sum);
       
