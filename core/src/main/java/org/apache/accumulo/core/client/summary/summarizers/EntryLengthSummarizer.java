@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.summary.summarizers;
 
 import java.math.RoundingMode;
 
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -57,7 +56,7 @@ public class EntryLengthSummarizer implements Summarizer {
   public static final String MAX_VALUE_STAT = "maxValue";
   public static final String SUM_VALUES_STAT = "sumValues";
   
-  public static final String TOTAL_STAT = "total"; //Count
+  public static final String TOTAL_STAT = "total"; // Total number of Keys
   
   @Override
   public Collector collector(SummarizerConfiguration sc) {
@@ -213,7 +212,7 @@ public class EntryLengthSummarizer implements Summarizer {
         
         valueCounts[idx]++;
         
-        // COUNT
+        // TOTAL
         total++;
       }
 

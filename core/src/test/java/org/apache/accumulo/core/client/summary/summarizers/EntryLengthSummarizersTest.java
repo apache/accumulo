@@ -16,12 +16,8 @@
  */
 package org.apache.accumulo.core.client.summary.summarizers;
 
-
-import java.util.Arrays;
 import java.util.HashMap;
-
 import org.apache.accumulo.core.client.summary.summarizers.EntryLengthSummarizer;
-import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.Summarizer.Collector;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Key;
