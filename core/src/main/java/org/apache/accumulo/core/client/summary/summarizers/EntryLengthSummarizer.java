@@ -289,43 +289,37 @@ public class EntryLengthSummarizer implements Summarizer {
     return (stats1, stats2) -> {
       stats1.merge(MIN_KEY_STAT, stats2.get(MIN_KEY_STAT), Long::max);
       stats1.merge(MAX_KEY_STAT, stats2.get(MAX_KEY_STAT), Long::max);
-      stats1.merge(SUM_KEYS_STAT, stats2.get(SUM_KEYS_STAT), Long::sum);
-      
+      stats1.merge(SUM_KEYS_STAT, stats2.get(SUM_KEYS_STAT), Long::sum);      
       // Log2 Histogram for Keys
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
       stats1.merge(MIN_ROW_STAT, stats2.get(MIN_ROW_STAT), Long::max);
       stats1.merge(MAX_ROW_STAT, stats2.get(MAX_ROW_STAT), Long::max);
-      stats1.merge(SUM_ROWS_STAT, stats2.get(SUM_ROWS_STAT), Long::sum);
-      
+      stats1.merge(SUM_ROWS_STAT, stats2.get(SUM_ROWS_STAT), Long::sum);      
       // Log2 Histogram for Rows
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
       stats1.merge(MIN_FAMILY_STAT, stats2.get(MIN_FAMILY_STAT), Long::max);
       stats1.merge(MAX_FAMILY_STAT, stats2.get(MAX_FAMILY_STAT), Long::max);
-      stats1.merge(SUM_FAMILIES_STAT, stats2.get(SUM_FAMILIES_STAT), Long::sum);
-      
+      stats1.merge(SUM_FAMILIES_STAT, stats2.get(SUM_FAMILIES_STAT), Long::sum);     
       // Log2 Histogram for Families
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
       stats1.merge(MIN_QUALIFIER_STAT, stats2.get(MIN_QUALIFIER_STAT), Long::max);
       stats1.merge(MAX_QUALIFIER_STAT, stats2.get(MAX_QUALIFIER_STAT), Long::max);
-      stats1.merge(SUM_QUALIFIERS_STAT, stats2.get(SUM_QUALIFIERS_STAT), Long::sum);
-      
+      stats1.merge(SUM_QUALIFIERS_STAT, stats2.get(SUM_QUALIFIERS_STAT), Long::sum);      
       // Log2 Histogram for Qualifiers
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
       stats1.merge(MIN_VISIBILITY_STAT, stats2.get(MIN_VISIBILITY_STAT), Long::max);
       stats1.merge(MAX_VISIBILITY_STAT, stats2.get(MAX_VISIBILITY_STAT), Long::max);
-      stats1.merge(SUM_VISIBILITIES_STAT, stats2.get(SUM_VISIBILITIES_STAT), Long::sum);
-      
+      stats1.merge(SUM_VISIBILITIES_STAT, stats2.get(SUM_VISIBILITIES_STAT), Long::sum);     
       // Log2 Histogram for Visibilities
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
       stats1.merge(MIN_VALUE_STAT, stats2.get(MIN_VALUE_STAT), Long::max);
       stats1.merge(MAX_VALUE_STAT, stats2.get(MAX_VALUE_STAT), Long::max);
       stats1.merge(SUM_VALUES_STAT, stats2.get(SUM_VALUES_STAT), Long::sum);
-      
       // Log2 Histogram for Values
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
 
