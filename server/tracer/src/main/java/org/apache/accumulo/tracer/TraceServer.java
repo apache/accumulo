@@ -385,7 +385,7 @@ public class TraceServer implements Watcher {
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
     VolumeManager fs = VolumeManagerImpl.get();
-    MetricsSystemHelper.configure(app);
+    MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
     Accumulo.init(fs, conf, app);
     String hostname = opts.getAddress();
     TraceServer server = new TraceServer(conf, hostname);

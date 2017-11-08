@@ -435,7 +435,7 @@ public class Monitor {
     context = new AccumuloServerContext(config);
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
-    MetricsSystemHelper.configure(app);
+    MetricsSystemHelper.configure(Monitor.class.getSimpleName());
     Accumulo.init(fs, config, app);
     Monitor monitor = new Monitor();
     DistributedTrace.enable(hostname, app, config.getConfiguration());

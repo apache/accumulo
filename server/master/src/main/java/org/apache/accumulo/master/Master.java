@@ -1429,7 +1429,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       String hostname = opts.getAddress();
       ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
-      MetricsSystemHelper.configure(app);
+      MetricsSystemHelper.configure(Master.class.getSimpleName());
       Accumulo.init(fs, conf, app);
       Master master = new Master(conf, fs, hostname);
       DistributedTrace.enable(hostname, app, conf.getConfiguration());

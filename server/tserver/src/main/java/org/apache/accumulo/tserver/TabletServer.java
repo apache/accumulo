@@ -2959,7 +2959,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       String hostname = opts.getAddress();
       ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
-      MetricsSystemHelper.configure(app);
+      MetricsSystemHelper.configure(TabletServer.class.getSimpleName());
       Accumulo.init(fs, conf, app);
       final TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);

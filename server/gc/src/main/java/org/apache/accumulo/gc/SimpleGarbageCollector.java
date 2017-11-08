@@ -151,7 +151,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
     final VolumeManager fs = VolumeManagerImpl.get();
-    MetricsSystemHelper.configure(app);
+    MetricsSystemHelper.configure(SimpleGarbageCollector.class.getSimpleName());
     Accumulo.init(fs, conf, app);
     Opts opts = new Opts();
     opts.parseArgs(app, args);
