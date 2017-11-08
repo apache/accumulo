@@ -3,7 +3,7 @@
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
+ * (the "License");you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
@@ -56,7 +56,7 @@ public class EntryLengthSummarizer implements Summarizer {
   public static final String MAX_VALUE_STAT = "maxValue";
   public static final String SUM_VALUES_STAT = "sumValues";
   
-  public static final String TOTAL_STAT = "total"; // Total number of Keys
+  public static final String TOTAL_STAT = "total";// Total number of Keys
   
   @Override
   public Collector collector(SummarizerConfiguration sc) {
@@ -222,7 +222,7 @@ public class EntryLengthSummarizer implements Summarizer {
         sc.accept(MAX_KEY_STAT, (maxKey != Long.MIN_VALUE ? maxKey:0));
         sc.accept(SUM_KEYS_STAT, sumKeys);
         
-        for (int i = 0; i < keyCounts.length; i++) {
+        for (int i = 0;i < keyCounts.length;i++) {
           if(keyCounts[i] > 0) {
             sc.accept("key.logHist."+i, keyCounts[i]);
           }
@@ -232,7 +232,7 @@ public class EntryLengthSummarizer implements Summarizer {
         sc.accept(MAX_ROW_STAT, (maxRow != Long.MIN_VALUE ? maxRow:0));
         sc.accept(SUM_ROWS_STAT, sumRows);
         
-        for (int i = 0; i < rowCounts.length; i++) {
+        for (int i = 0;i < rowCounts.length;i++) {
           if(rowCounts[i] > 0) {
             sc.accept("row.logHist."+i, rowCounts[i]);
           }
@@ -242,7 +242,7 @@ public class EntryLengthSummarizer implements Summarizer {
         sc.accept(MAX_FAMILY_STAT, (maxFamily != Long.MIN_VALUE ? maxFamily:0));
         sc.accept(SUM_FAMILIES_STAT, sumFamilies);
         
-        for (int i = 0; i < familyCounts.length; i++) {
+        for (int i = 0;i < familyCounts.length;i++) {
           if(familyCounts[i] > 0) {
             sc.accept("family.logHist."+i, familyCounts[i]);
           }
@@ -252,7 +252,7 @@ public class EntryLengthSummarizer implements Summarizer {
         sc.accept(MAX_QUALIFIER_STAT, (maxQualifier != Long.MIN_VALUE ? maxQualifier:0));
         sc.accept(SUM_QUALIFIERS_STAT, sumQualifiers);
         
-        for (int i = 0; i < qualifierCounts.length; i++) {
+        for (int i = 0;i < qualifierCounts.length;i++) {
           if(qualifierCounts[i] > 0) {
             sc.accept("qualifier.logHist."+i, qualifierCounts[i]);
           }
@@ -262,7 +262,7 @@ public class EntryLengthSummarizer implements Summarizer {
         sc.accept(MAX_VISIBILITY_STAT, (maxVisibility != Long.MIN_VALUE ? maxVisibility:0));
         sc.accept(SUM_VISIBILITIES_STAT, sumVisibilities);
         
-        for (int i = 0; i < visibilityCounts.length; i++) {
+        for (int i = 0;i < visibilityCounts.length;i++) {
           if(visibilityCounts[i] > 0) {
             sc.accept("visibility.logHist."+i, visibilityCounts[i]);
           }
@@ -272,7 +272,7 @@ public class EntryLengthSummarizer implements Summarizer {
         sc.accept(MAX_VALUE_STAT, (maxValue != Long.MIN_VALUE ? maxValue:0));
         sc.accept(SUM_VALUES_STAT, sumValues);
         
-        for (int i = 0; i < valueCounts.length; i++) {
+        for (int i = 0;i < valueCounts.length;i++) {
           if(valueCounts[i] > 0) {
             sc.accept("value.logHist."+i, valueCounts[i]);
           }
@@ -289,31 +289,31 @@ public class EntryLengthSummarizer implements Summarizer {
     return (stats1, stats2) -> {
       stats1.merge(MIN_KEY_STAT, stats2.get(MIN_KEY_STAT), Long::max);
       stats1.merge(MAX_KEY_STAT, stats2.get(MAX_KEY_STAT), Long::max);
-      stats1.merge(SUM_KEYS_STAT, stats2.get(SUM_KEYS_STAT), Long::sum);      
+      stats1.merge(SUM_KEYS_STAT, stats2.get(SUM_KEYS_STAT), Long::sum);
       // Log2 Histogram for Keys
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
       stats1.merge(MIN_ROW_STAT, stats2.get(MIN_ROW_STAT), Long::max);
       stats1.merge(MAX_ROW_STAT, stats2.get(MAX_ROW_STAT), Long::max);
-      stats1.merge(SUM_ROWS_STAT, stats2.get(SUM_ROWS_STAT), Long::sum);      
+      stats1.merge(SUM_ROWS_STAT, stats2.get(SUM_ROWS_STAT), Long::sum);
       // Log2 Histogram for Rows
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
       stats1.merge(MIN_FAMILY_STAT, stats2.get(MIN_FAMILY_STAT), Long::max);
       stats1.merge(MAX_FAMILY_STAT, stats2.get(MAX_FAMILY_STAT), Long::max);
-      stats1.merge(SUM_FAMILIES_STAT, stats2.get(SUM_FAMILIES_STAT), Long::sum);     
+      stats1.merge(SUM_FAMILIES_STAT, stats2.get(SUM_FAMILIES_STAT), Long::sum);
       // Log2 Histogram for Families
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
       stats1.merge(MIN_QUALIFIER_STAT, stats2.get(MIN_QUALIFIER_STAT), Long::max);
       stats1.merge(MAX_QUALIFIER_STAT, stats2.get(MAX_QUALIFIER_STAT), Long::max);
-      stats1.merge(SUM_QUALIFIERS_STAT, stats2.get(SUM_QUALIFIERS_STAT), Long::sum);      
+      stats1.merge(SUM_QUALIFIERS_STAT, stats2.get(SUM_QUALIFIERS_STAT), Long::sum);
       // Log2 Histogram for Qualifiers
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
       stats1.merge(MIN_VISIBILITY_STAT, stats2.get(MIN_VISIBILITY_STAT), Long::max);
       stats1.merge(MAX_VISIBILITY_STAT, stats2.get(MAX_VISIBILITY_STAT), Long::max);
-      stats1.merge(SUM_VISIBILITIES_STAT, stats2.get(SUM_VISIBILITIES_STAT), Long::sum);     
+      stats1.merge(SUM_VISIBILITIES_STAT, stats2.get(SUM_VISIBILITIES_STAT), Long::sum);
       // Log2 Histogram for Visibilities
       stats2.forEach((k,v) -> stats1.merge(k, v, Long::sum));
       
