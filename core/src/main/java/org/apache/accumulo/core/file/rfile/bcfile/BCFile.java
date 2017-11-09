@@ -394,7 +394,7 @@ public final class BCFile {
           long offsetIndexMeta = out.position();
           metaIndex.write(out);
 
-          if (cryptoParams.getAlgorithmName() == null || cryptoParams.getAlgorithmName().equals(Property.CRYPTO_CIPHER_SUITE.getDefaultValue())) {
+          if (cryptoParams.getCipherSuite() == null || cryptoParams.getCipherSuite().equals(Property.CRYPTO_CIPHER_SUITE.getDefaultValue())) {
             out.writeLong(offsetIndexMeta);
             API_VERSION_1.write(out);
           } else {

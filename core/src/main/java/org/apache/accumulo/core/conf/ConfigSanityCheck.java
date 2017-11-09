@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.conf;
 
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,8 @@ public class ConfigSanityCheck {
   public static void validate(Iterable<Entry<String,String>> entries) {
     String instanceZkTimeoutValue = null;
     boolean usingVolumes = false;
+    String cipherSuite = null;
+    String keyAlgorithm = null;
     for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
       String value = entry.getValue();
@@ -66,6 +69,14 @@ public class ConfigSanityCheck {
       if (key.equals(Property.INSTANCE_VOLUMES.getKey())) {
         usingVolumes = value != null && !value.isEmpty();
       }
+
+      if (key.equals(Property.CRYPTO_CIPHER_SUITE.getKey())) {
+        cipherSuite = Objects.requireNonNull(value);
+      }
+
+      if (key.equals(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey())) {
+        keyAlgorithm = Objects.requireNonNull(value);
+      }
     }
 
     if (instanceZkTimeoutValue != null) {
@@ -74,6 +85,14 @@ public class ConfigSanityCheck {
 
     if (!usingVolumes) {
       log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI, INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
+    }
+
+    if (cipherSuite.equals("NullCipher") && !keyAlgorithm.equals("NullCipher")) {
+      fatal(Property.CRYPTO_CIPHER_SUITE.getKey() + " should be configured when " + Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey() + " is set.");
+    }
+
+    if (!cipherSuite.equals("NullCipher") && keyAlgorithm.equals("NullCipher")) {
+      fatal(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey() + " should be configured when " + Property.CRYPTO_CIPHER_SUITE.getKey() + " is set.");
     }
   }
 

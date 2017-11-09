@@ -19,7 +19,6 @@ package org.apache.accumulo.core.security.crypto;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -71,9 +70,7 @@ public class CryptoTest {
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertNotNull(params);
-    assertEquals("NullCipher", params.getAlgorithmName());
-    assertNull(params.getEncryptionMode());
-    assertNull(params.getPadding());
+    assertEquals("NullCipher", params.getCipherSuite());
 
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
     assertNotNull(cryptoModule);
@@ -95,9 +92,9 @@ public class CryptoTest {
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertNotNull(params);
-    assertEquals("AES", params.getAlgorithmName());
-    assertEquals("CFB", params.getEncryptionMode());
-    assertEquals("NoPadding", params.getPadding());
+    assertEquals("AES/CFB/NoPadding", params.getCipherSuite());
+    assertEquals("AES/CBC/NoPadding", params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()));
+    assertEquals("AES", params.getKeyAlgorithmName());
     assertEquals(128, params.getKeyLength());
     assertEquals("SHA1PRNG", params.getRandomNumberGenerator());
     assertEquals("SUN", params.getRandomNumberGeneratorProvider());
@@ -314,7 +311,7 @@ public class CryptoTest {
     // from those configured within the site configuration. After doing this, we should
     // still be able to read the file that was created with a different set of parameters.
     params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-    params.setAlgorithmName("DESede");
+    params.setKeyAlgorithmName("DESede");
     params.setKeyLength(24 * 8);
 
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
