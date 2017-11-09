@@ -57,7 +57,11 @@ public class DefaultCryptoModuleUtils {
       cipher = new NullCipher();
     } else {
       try {
-        cipher = Cipher.getInstance(cipherSuite, securityProvider);
+        if (securityProvider == null || securityProvider.equals("")) {
+          cipher = Cipher.getInstance(cipherSuite);
+        } else {
+          cipher = Cipher.getInstance(cipherSuite, securityProvider);
+        }
       } catch (NoSuchAlgorithmException e) {
         log.error(String.format("Accumulo configuration file contained a cipher suite \"%s\" that was not recognized by any providers", cipherSuite));
         throw new RuntimeException(e);

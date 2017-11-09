@@ -59,8 +59,8 @@ public enum Property {
   CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
       "Specifies the key length *in bits* to use for the symmetric key, should probably be 128 or 256 unless you really know what you're doing"),
   @Experimental
-  CRYPTO_SECURITY_PROVIDER("crypto.security.provider", "SunJCE", PropertyType.STRING,
-      "States the security provider to use, and defaults to the SunJCE provider"),
+  CRYPTO_SECURITY_PROVIDER("crypto.security.provider", "", PropertyType.STRING,
+      "States the security provider to use, and defaults to the system configured provider"),
   @Experimental
   CRYPTO_SECURE_RNG("crypto.secure.rng", "SHA1PRNG", PropertyType.STRING,
       "States the secure random number generator to use, and defaults to the built-in Sun SHA1PRNG"),
