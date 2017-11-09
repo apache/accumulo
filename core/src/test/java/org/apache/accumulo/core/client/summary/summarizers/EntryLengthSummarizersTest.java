@@ -47,44 +47,44 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 2L);
-    expected.put("maxKey", 2L);
-    expected.put("sumKeys", 6L);
+    expected.put("key.min", 2L);
+    expected.put("key.max", 2L);
+    expected.put("key.sum", 6L);
 
     // Log2 Histogram
     expected.put("key.logHist.1", 3L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 2L);
-    expected.put("sumRows", 6L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 2L);
+    expected.put("row.sum", 6L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 3L);
 
-    expected.put("minFamily", 0L);
-    expected.put("maxFamily", 0L);
-    expected.put("sumFamilies", 0L);
+    expected.put("family.min", 0L);
+    expected.put("family.max", 0L);
+    expected.put("family.sum", 0L);
 
     // Log2 Histogram
     expected.put("family.logHist.0", 3L);
 
-    expected.put("minQualifier", 0L);
-    expected.put("maxQualifier", 0L);
-    expected.put("sumQualifiers", 0L);
+    expected.put("qualifier.min", 0L);
+    expected.put("qualifier.max", 0L);
+    expected.put("qualifier.sum", 0L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.0", 3L);
 
-    expected.put("minVisibility", 0L);
-    expected.put("maxVisibility", 0L);
-    expected.put("sumVisibilities", 0L);
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.0", 3L);
 
-    expected.put("minValue", 0L);
-    expected.put("maxValue", 0L);
-    expected.put("sumValues", 0L);
+    expected.put("value.min", 0L);
+    expected.put("value.max", 0L);
+    expected.put("value.sum", 0L);
 
     // Log2 Histogram
     expected.put("value.logHist.0", 3L);
@@ -112,44 +112,44 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 4L);
-    expected.put("maxKey", 4L);
-    expected.put("sumKeys", 12L);
+    expected.put("key.min", 4L);
+    expected.put("key.max", 4L);
+    expected.put("key.sum", 12L);
 
     // Log2 Histogram
     expected.put("key.logHist.2", 3L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 2L);
-    expected.put("sumRows", 6L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 2L);
+    expected.put("row.sum", 6L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 3L);
 
-    expected.put("minFamily", 2L);
-    expected.put("maxFamily", 2L);
-    expected.put("sumFamilies", 6L);
+    expected.put("family.min", 2L);
+    expected.put("family.max", 2L);
+    expected.put("family.sum", 6L);
 
     // Log2 Histogram
     expected.put("family.logHist.1", 3L);
 
-    expected.put("minQualifier", 0L);
-    expected.put("maxQualifier", 0L);
-    expected.put("sumQualifiers", 0L);
+    expected.put("qualifier.min", 0L);
+    expected.put("qualifier.max", 0L);
+    expected.put("qualifier.sum", 0L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.0", 3L);
 
-    expected.put("minVisibility", 0L);
-    expected.put("maxVisibility", 0L);
-    expected.put("sumVisibilities", 0L);
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.0", 3L);
 
-    expected.put("minValue", 0L);
-    expected.put("maxValue", 0L);
-    expected.put("sumValues", 0L);
+    expected.put("value.min", 0L);
+    expected.put("value.max", 0L);
+    expected.put("value.sum", 0L);
 
     // Log2 Histogram
     expected.put("value.logHist.0", 3L);
@@ -177,44 +177,44 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 6L);
-    expected.put("maxKey", 6L);
-    expected.put("sumKeys", 18L);
+    expected.put("key.min", 6L);
+    expected.put("key.max", 6L);
+    expected.put("key.sum", 18L);
 
     // Log2 Histogram
     expected.put("key.logHist.3", 3L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 2L);
-    expected.put("sumRows", 6L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 2L);
+    expected.put("row.sum", 6L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 3L);
 
-    expected.put("minFamily", 2L);
-    expected.put("maxFamily", 2L);
-    expected.put("sumFamilies", 6L);
+    expected.put("family.min", 2L);
+    expected.put("family.max", 2L);
+    expected.put("family.sum", 6L);
 
     // Log2 Histogram
     expected.put("family.logHist.1", 3L);
 
-    expected.put("minQualifier", 2L);
-    expected.put("maxQualifier", 2L);
-    expected.put("sumQualifiers", 6L);
+    expected.put("qualifier.min", 2L);
+    expected.put("qualifier.max", 2L);
+    expected.put("qualifier.sum", 6L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.1", 3L);
 
-    expected.put("minVisibility", 0L);
-    expected.put("maxVisibility", 0L);
-    expected.put("sumVisibilities", 0L);
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.0", 3L);
 
-    expected.put("minValue", 0L);
-    expected.put("maxValue", 0L);
-    expected.put("sumValues", 0L);
+    expected.put("value.min", 0L);
+    expected.put("value.max", 0L);
+    expected.put("value.sum", 0L);
 
     // Log2 Histogram
     expected.put("value.logHist.0", 3L);
@@ -242,44 +242,44 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 8L);
-    expected.put("maxKey", 8L);
-    expected.put("sumKeys", 24L);
+    expected.put("key.min", 8L);
+    expected.put("key.max", 8L);
+    expected.put("key.sum", 24L);
 
     // Log2 Histogram
     expected.put("key.logHist.3", 3L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 2L);
-    expected.put("sumRows", 6L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 2L);
+    expected.put("row.sum", 6L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 3L);
 
-    expected.put("minFamily", 2L);
-    expected.put("maxFamily", 2L);
-    expected.put("sumFamilies", 6L);
+    expected.put("family.min", 2L);
+    expected.put("family.max", 2L);
+    expected.put("family.sum", 6L);
 
     // Log2 Histogram
     expected.put("family.logHist.1", 3L);
 
-    expected.put("minQualifier", 2L);
-    expected.put("maxQualifier", 2L);
-    expected.put("sumQualifiers", 6L);
+    expected.put("qualifier.min", 2L);
+    expected.put("qualifier.max", 2L);
+    expected.put("qualifier.sum", 6L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.1", 3L);
 
-    expected.put("minVisibility", 2L);
-    expected.put("maxVisibility", 2L);
-    expected.put("sumVisibilities", 6L);
+    expected.put("visibility.min", 2L);
+    expected.put("visibility.max", 2L);
+    expected.put("visibility.sum", 6L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.1", 3L);
 
-    expected.put("minValue", 0L);
-    expected.put("maxValue", 0L);
-    expected.put("sumValues", 0L);
+    expected.put("value.min", 0L);
+    expected.put("value.max", 0L);
+    expected.put("value.sum", 0L);
 
     // Log2 Histogram
     expected.put("value.logHist.0", 3L);
@@ -307,44 +307,44 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 8L);
-    expected.put("maxKey", 8L);
-    expected.put("sumKeys", 24L);
+    expected.put("key.min", 8L);
+    expected.put("key.max", 8L);
+    expected.put("key.sum", 24L);
 
     // Log2 Histogram
     expected.put("key.logHist.3", 3L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 2L);
-    expected.put("sumRows", 6L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 2L);
+    expected.put("row.sum", 6L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 3L);
 
-    expected.put("minFamily", 2L);
-    expected.put("maxFamily", 2L);
-    expected.put("sumFamilies", 6L);
+    expected.put("family.min", 2L);
+    expected.put("family.max", 2L);
+    expected.put("family.sum", 6L);
 
     // Log2 Histogram
     expected.put("family.logHist.1", 3L);
 
-    expected.put("minQualifier", 2L);
-    expected.put("maxQualifier", 2L);
-    expected.put("sumQualifiers", 6L);
+    expected.put("qualifier.min", 2L);
+    expected.put("qualifier.max", 2L);
+    expected.put("qualifier.sum", 6L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.1", 3L);
 
-    expected.put("minVisibility", 2L);
-    expected.put("maxVisibility", 2L);
-    expected.put("sumVisibilities", 6L);
+    expected.put("visibility.min", 2L);
+    expected.put("visibility.max", 2L);
+    expected.put("visibility.sum", 6L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.1", 3L);
 
-    expected.put("minValue", 2L);
-    expected.put("maxValue", 2L);
-    expected.put("sumValues", 6L);
+    expected.put("value.min", 2L);
+    expected.put("value.max", 2L);
+    expected.put("value.sum", 6L);
 
     // Log2 Histogram
     expected.put("value.logHist.1", 3L);
@@ -374,48 +374,48 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 2L);
-    expected.put("maxKey", 10L);
-    expected.put("sumKeys", 16L);
+    expected.put("key.min", 2L);
+    expected.put("key.max", 10L);
+    expected.put("key.sum", 16L);
 
     // Log2 Histogram
     expected.put("key.logHist.1", 1L);
     expected.put("key.logHist.2", 1L);
     expected.put("key.logHist.3", 1L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 10L);
-    expected.put("sumRows", 16L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 10L);
+    expected.put("row.sum", 16L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 1L);
     expected.put("row.logHist.2", 1L);
     expected.put("row.logHist.3", 1L);
 
-    expected.put("minFamily", 0L);
-    expected.put("maxFamily", 0L);
-    expected.put("sumFamilies", 0L);
+    expected.put("family.min", 0L);
+    expected.put("family.max", 0L);
+    expected.put("family.sum", 0L);
 
     // Log2 Histogram
     expected.put("family.logHist.0", 3L);
 
-    expected.put("minQualifier", 0L);
-    expected.put("maxQualifier", 0L);
-    expected.put("sumQualifiers", 0L);
+    expected.put("qualifier.min", 0L);
+    expected.put("qualifier.max", 0L);
+    expected.put("qualifier.sum", 0L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.0", 3L);
 
-    expected.put("minVisibility", 0L);
-    expected.put("maxVisibility", 0L);
-    expected.put("sumVisibilities", 0L);
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.0", 3L);
 
-    expected.put("minValue", 0L);
-    expected.put("maxValue", 0L);
-    expected.put("sumValues", 0L);
+    expected.put("value.min", 0L);
+    expected.put("value.max", 0L);
+    expected.put("value.sum", 0L);
 
     // Log2 Histogram
     expected.put("value.logHist.0", 3L);
@@ -443,49 +443,49 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 9L);
-    expected.put("maxKey", 17L);
-    expected.put("sumKeys", 38L);
+    expected.put("key.min", 9L);
+    expected.put("key.max", 17L);
+    expected.put("key.sum", 38L);
 
     // Log2 Histogram
     expected.put("key.logHist.3", 1L);
     expected.put("key.logHist.4", 2L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 10L);
-    expected.put("sumRows", 16L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 10L);
+    expected.put("row.sum", 16L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 1L);
     expected.put("row.logHist.2", 1L);
     expected.put("row.logHist.3", 1L);
 
-    expected.put("minFamily", 2L);
-    expected.put("maxFamily", 13L);
-    expected.put("sumFamilies", 22L);
+    expected.put("family.min", 2L);
+    expected.put("family.max", 13L);
+    expected.put("family.sum", 22L);
 
     // Log2 Histogram
     expected.put("family.logHist.1", 1L);
     expected.put("family.logHist.3", 1L);
     expected.put("family.logHist.4", 1L);
 
-    expected.put("minQualifier", 0L);
-    expected.put("maxQualifier", 0L);
-    expected.put("sumQualifiers", 0L);
+    expected.put("qualifier.min", 0L);
+    expected.put("qualifier.max", 0L);
+    expected.put("qualifier.sum", 0L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.0", 3L);
 
-    expected.put("minVisibility", 0L);
-    expected.put("maxVisibility", 0L);
-    expected.put("sumVisibilities", 0L);
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.0", 3L);
 
-    expected.put("minValue", 0L);
-    expected.put("maxValue", 0L);
-    expected.put("sumValues", 0L);
+    expected.put("value.min", 0L);
+    expected.put("value.max", 0L);
+    expected.put("value.sum", 0L);
 
     // Log2 Histogram
     expected.put("value.logHist.0", 3L);
@@ -513,51 +513,51 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 19L);
-    expected.put("maxKey", 25L);
-    expected.put("sumKeys", 66L);
+    expected.put("key.min", 19L);
+    expected.put("key.max", 25L);
+    expected.put("key.sum", 66L);
 
     // Log2 Histogram
     expected.put("key.logHist.4", 2L);
     expected.put("key.logHist.5", 1L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 10L);
-    expected.put("sumRows", 16L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 10L);
+    expected.put("row.sum", 16L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 1L);
     expected.put("row.logHist.2", 1L);
     expected.put("row.logHist.3", 1L);
 
-    expected.put("minFamily", 2L);
-    expected.put("maxFamily", 13L);
-    expected.put("sumFamilies", 22L);
+    expected.put("family.min", 2L);
+    expected.put("family.max", 13L);
+    expected.put("family.sum", 22L);
 
     // Log2 Histogram
     expected.put("family.logHist.1", 1L);
     expected.put("family.logHist.3", 1L);
     expected.put("family.logHist.4", 1L);
 
-    expected.put("minQualifier", 2L);
-    expected.put("maxQualifier", 16L);
-    expected.put("sumQualifiers", 28L);
+    expected.put("qualifier.min", 2L);
+    expected.put("qualifier.max", 16L);
+    expected.put("qualifier.sum", 28L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.1", 1L);
     expected.put("qualifier.logHist.3", 1L);
     expected.put("qualifier.logHist.4", 1L);
 
-    expected.put("minVisibility", 0L);
-    expected.put("maxVisibility", 0L);
-    expected.put("sumVisibilities", 0L);
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.0", 3L);
 
-    expected.put("minValue", 0L);
-    expected.put("maxValue", 0L);
-    expected.put("sumValues", 0L);
+    expected.put("value.min", 0L);
+    expected.put("value.max", 0L);
+    expected.put("value.sum", 0L);
 
     // Log2 Histogram
     expected.put("value.logHist.0", 3L);
@@ -585,52 +585,52 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 27L);
-    expected.put("maxKey", 39L);
-    expected.put("sumKeys", 96L);
+    expected.put("key.min", 27L);
+    expected.put("key.max", 39L);
+    expected.put("key.sum", 96L);
 
     // Log2 Histogram
     expected.put("key.logHist.5", 3L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 10L);
-    expected.put("sumRows", 16L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 10L);
+    expected.put("row.sum", 16L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 1L);
     expected.put("row.logHist.2", 1L);
     expected.put("row.logHist.3", 1L);
 
-    expected.put("minFamily", 2L);
-    expected.put("maxFamily", 13L);
-    expected.put("sumFamilies", 22L);
+    expected.put("family.min", 2L);
+    expected.put("family.max", 13L);
+    expected.put("family.sum", 22L);
 
     // Log2 Histogram
     expected.put("family.logHist.1", 1L);
     expected.put("family.logHist.3", 1L);
     expected.put("family.logHist.4", 1L);
 
-    expected.put("minQualifier", 2L);
-    expected.put("maxQualifier", 16L);
-    expected.put("sumQualifiers", 28L);
+    expected.put("qualifier.min", 2L);
+    expected.put("qualifier.max", 16L);
+    expected.put("qualifier.sum", 28L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.1", 1L);
     expected.put("qualifier.logHist.3", 1L);
     expected.put("qualifier.logHist.4", 1L);
 
-    expected.put("minVisibility", 2L);
-    expected.put("maxVisibility", 17L);
-    expected.put("sumVisibilities", 30L);
+    expected.put("visibility.min", 2L);
+    expected.put("visibility.max", 17L);
+    expected.put("visibility.sum", 30L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.1", 1L);
     expected.put("visibility.logHist.3", 1L);
     expected.put("visibility.logHist.4", 1L);
 
-    expected.put("minValue", 0L);
-    expected.put("maxValue", 0L);
-    expected.put("sumValues", 0L);
+    expected.put("value.min", 0L);
+    expected.put("value.max", 0L);
+    expected.put("value.sum", 0L);
 
     // Log2 Histogram
     expected.put("value.logHist.0", 3L);
@@ -658,52 +658,52 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 27L);
-    expected.put("maxKey", 39L);
-    expected.put("sumKeys", 96L);
+    expected.put("key.min", 27L);
+    expected.put("key.max", 39L);
+    expected.put("key.sum", 96L);
 
     // Log2 Histogram
     expected.put("key.logHist.5", 3L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 10L);
-    expected.put("sumRows", 16L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 10L);
+    expected.put("row.sum", 16L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 1L);
     expected.put("row.logHist.2", 1L);
     expected.put("row.logHist.3", 1L);
 
-    expected.put("minFamily", 2L);
-    expected.put("maxFamily", 13L);
-    expected.put("sumFamilies", 22L);
+    expected.put("family.min", 2L);
+    expected.put("family.max", 13L);
+    expected.put("family.sum", 22L);
 
     // Log2 Histogram
     expected.put("family.logHist.1", 1L);
     expected.put("family.logHist.3", 1L);
     expected.put("family.logHist.4", 1L);
 
-    expected.put("minQualifier", 2L);
-    expected.put("maxQualifier", 16L);
-    expected.put("sumQualifiers", 28L);
+    expected.put("qualifier.min", 2L);
+    expected.put("qualifier.max", 16L);
+    expected.put("qualifier.sum", 28L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.1", 1L);
     expected.put("qualifier.logHist.3", 1L);
     expected.put("qualifier.logHist.4", 1L);
 
-    expected.put("minVisibility", 2L);
-    expected.put("maxVisibility", 17L);
-    expected.put("sumVisibilities", 30L);
+    expected.put("visibility.min", 2L);
+    expected.put("visibility.max", 17L);
+    expected.put("visibility.sum", 30L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.1", 1L);
     expected.put("visibility.logHist.3", 1L);
     expected.put("visibility.logHist.4", 1L);
 
-    expected.put("minValue", 2L);
-    expected.put("maxValue", 9L);
-    expected.put("sumValues", 17L);
+    expected.put("value.min", 2L);
+    expected.put("value.max", 9L);
+    expected.put("value.sum", 17L);
 
     // Log2 Histogram
     expected.put("value.logHist.1", 1L);
@@ -722,7 +722,7 @@ public class EntryLengthSummarizersTest {
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("maximumnoqualifier","f1", "q", "vis1");
-    Key k2 = new Key("minkey","fam2", "q2", "visibility2");
+    Key k2 = new Key("minKey","fam2", "q2", "visibility2");
     Key k3 = new Key("row3","f3", "qualifier3", "v3");
     Key k4 = new Key("r4", "family4", "qual4", "vis4");
     Key k5 = new Key("fifthrow", "thirdfamily", "q5", "v5");
@@ -740,17 +740,17 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 18L);
-    expected.put("maxKey", 25L);
-    expected.put("sumKeys", 132L);
+    expected.put("key.min", 18L);
+    expected.put("key.max", 25L);
+    expected.put("key.sum", 132L);
 
     // Log2 Histogram
     expected.put("key.logHist.4", 2L);
     expected.put("key.logHist.5", 4L);
 
-    expected.put("minRow", 2L);
-    expected.put("maxRow", 18L);
-    expected.put("sumRows", 40L);
+    expected.put("row.min", 2L);
+    expected.put("row.max", 18L);
+    expected.put("row.sum", 40L);
 
     // Log2 Histogram
     expected.put("row.logHist.1", 2L);
@@ -758,18 +758,18 @@ public class EntryLengthSummarizersTest {
     expected.put("row.logHist.3", 2L);
     expected.put("row.logHist.4", 1L);
 
-    expected.put("minFamily", 2L);
-    expected.put("maxFamily", 11L);
-    expected.put("sumFamilies", 37L);
+    expected.put("family.min", 2L);
+    expected.put("family.max", 11L);
+    expected.put("family.sum", 37L);
 
     // Log2 Histogram
     expected.put("family.logHist.1", 2L);
     expected.put("family.logHist.2", 1L);
     expected.put("family.logHist.3", 3L);
 
-    expected.put("minQualifier", 1L);
-    expected.put("maxQualifier", 10L);
-    expected.put("sumQualifiers", 25L);
+    expected.put("qualifier.min", 1L);
+    expected.put("qualifier.max", 10L);
+    expected.put("qualifier.sum", 25L);
 
     // Log2 Histogram
     expected.put("qualifier.logHist.0", 1L);
@@ -777,18 +777,18 @@ public class EntryLengthSummarizersTest {
     expected.put("qualifier.logHist.2", 2L);
     expected.put("qualifier.logHist.3", 1L);
 
-    expected.put("minVisibility", 2L);
-    expected.put("maxVisibility", 11L);
-    expected.put("sumVisibilities", 30L);
+    expected.put("visibility.min", 2L);
+    expected.put("visibility.max", 11L);
+    expected.put("visibility.sum", 30L);
 
     // Log2 Histogram
     expected.put("visibility.logHist.1", 2L);
     expected.put("visibility.logHist.2", 2L);
     expected.put("visibility.logHist.3", 2L);
 
-    expected.put("minValue", 0L);
-    expected.put("maxValue", 11L);
-    expected.put("sumValues", 29L);
+    expected.put("value.min", 0L);
+    expected.put("value.max", 11L);
+    expected.put("value.sum", 29L);
 
     // Log2 Histogram
     expected.put("value.logHist.0", 1L);
@@ -819,44 +819,44 @@ public class EntryLengthSummarizersTest {
     collector.summarize(stats::put);
 
     HashMap<String,Long> expected = new HashMap<>();
-    expected.put("minKey", 4L);
-    expected.put("maxKey", 4L);
-    expected.put("sumKeys", 12L);
+    expected.put("key.min", 4L);
+    expected.put("key.max", 4L);
+    expected.put("key.sum", 12L);
 
     // Log2 Histogram for Key
     expected.put("key.logHist.2", 3L);
 
-    expected.put("minRow", 4L);
-    expected.put("maxRow", 4L);
-    expected.put("sumRows", 12L);
+    expected.put("row.min", 4L);
+    expected.put("row.max", 4L);
+    expected.put("row.sum", 12L);
 
     // Log2 Histogram for Row
     expected.put("row.logHist.2", 3L);
 
-    expected.put("minFamily", 0L);
-    expected.put("maxFamily", 0L);
-    expected.put("sumFamilies", 0L);
+    expected.put("family.min", 0L);
+    expected.put("family.max", 0L);
+    expected.put("family.sum", 0L);
 
     // Log2 Histogram for Family
     expected.put("family.logHist.0", 3L);
 
-    expected.put("minQualifier", 0L);
-    expected.put("maxQualifier", 0L);
-    expected.put("sumQualifiers", 0L);
+    expected.put("qualifier.min", 0L);
+    expected.put("qualifier.max", 0L);
+    expected.put("qualifier.sum", 0L);
 
     // Log2 Histogram for Qualifier
     expected.put("qualifier.logHist.0", 3L);
 
-    expected.put("minVisibility", 0L);
-    expected.put("maxVisibility", 0L);
-    expected.put("sumVisibilities", 0L);
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
 
     // Log2 Histogram for Visibility
     expected.put("visibility.logHist.0", 3L);
 
-    expected.put("minValue", 2L);
-    expected.put("maxValue", 9L);
-    expected.put("sumValues", 20L);
+    expected.put("value.min", 2L);
+    expected.put("value.max", 9L);
+    expected.put("value.sum", 20L);
 
     // Log2 Histogram for Value
     expected.put("value.logHist.1", 1L);
