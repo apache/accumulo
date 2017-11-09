@@ -78,7 +78,8 @@ public class NonCachingSecretKeyEncryptionStrategy implements SecretKeyEncryptio
       byte[] keyEncryptionKey = new byte[keyEncryptionKeyLength];
       int bytesRead = in.read(keyEncryptionKey);
 
-      Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
+      Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()),
+          params.getSecurityProvider());
 
       // check if the number of bytes read into the array is the same as the value of the length field,
       if (bytesRead == keyEncryptionKeyLength) {
