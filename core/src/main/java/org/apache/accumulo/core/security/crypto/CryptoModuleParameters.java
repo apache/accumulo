@@ -206,7 +206,7 @@ public class CryptoModuleParameters {
   /**
    * Gets the security provider name.
    *
-   * @see CryptoParameters#setSecurityProvider(String)
+   * @see #setSecurityProvider(String)
    * @return the security provider name
    */
   public String getSecurityProvider() {
@@ -380,9 +380,9 @@ public class CryptoModuleParameters {
    *
    * So, why is this important? Say you started out with the default secret key encryption strategy. So, now you have a secret key in HDFS that encrypts all the
    * other secret keys. <i>Then</i> you deploy a key management solution. You want to move that secret key up to the key management server. Great! No problem.
-   * Except, all your encrypted files now contain a setting that says
-   * "hey I was encrypted by the default strategy, so find decrypt my key using that, not the key management server". This setting signals the
-   * {@link CryptoModule} that it should ignore the setting in the file and prefer the one from the configuration.
+   * Except, all your encrypted files now contain a setting that says "hey I was encrypted by the default strategy, so find decrypt my key using that, not the
+   * key management server". This setting signals the {@link CryptoModule} that it should ignore the setting in the file and prefer the one from the
+   * configuration.
    *
    * @param overrideStreamsSecretKeyEncryptionStrategy
    *          the flag that indicates if the underlying stream's key encryption strategy should be overridden by the currently configured key encryption
