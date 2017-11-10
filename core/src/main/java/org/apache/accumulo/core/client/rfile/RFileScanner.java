@@ -23,10 +23,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -95,10 +97,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
   // block is accessed the entire thing is read into memory immediately allocating and deallocating
   // a decompressor. If the user does not read all data, no decompressors are left allocated.
   private static class NoopCache implements BlockCache {
-    @Override
-    public CacheEntry cacheBlock(String blockName, byte[] buf, boolean inMemory) {
-      return null;
-    }
 
     @Override
     public CacheEntry cacheBlock(String blockName, byte[] buf) {
@@ -131,6 +129,40 @@ class RFileScanner extends ScannerOptions implements Scanner {
         @Override
         public long requestCount() {
           return 0L;
+        }
+      };
+    }
+
+    @Override
+    public CacheEntry getBlock(String blockName, Loader loader) {
+      Map<String,Loader> depLoaders = loader.getDependencies();
+      Map<String,byte[]> depData;
+
+      switch (depLoaders.size()) {
+        case 0:
+          depData = Collections.emptyMap();
+          break;
+        case 1:
+          Entry<String,Loader> entry = depLoaders.entrySet().iterator().next();
+          depData = Collections.singletonMap(entry.getKey(), getBlock(entry.getKey(), entry.getValue()).getBuffer());
+          break;
+        default:
+          depData = new HashMap<>();
+          depLoaders.forEach((k, v) -> depData.put(k, getBlock(k, v).getBuffer()));
+      }
+
+      byte[] data = loader.load(Integer.MAX_VALUE, depData);
+
+      return new CacheEntry() {
+
+        @Override
+        public <T> T getIndex(Supplier<T> supplier) {
+          return null;
+        }
+
+        @Override
+        public byte[] getBuffer() {
+          return data;
         }
       };
     }
@@ -305,6 +337,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
       RFileSource[] sources = opts.in.getSources();
       List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(sources.length);
       for (int i = 0; i < sources.length; i++) {
+        // TODO may have been a bug with multiple files and caching in older version...
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
         readers.add(new RFile.Reader(new CachableBlockFile.Reader("source-" + i, inputStream, sources[i].getLength(), opts.in.getConf(), dataCache, indexCache,
             DefaultConfiguration.getInstance())));

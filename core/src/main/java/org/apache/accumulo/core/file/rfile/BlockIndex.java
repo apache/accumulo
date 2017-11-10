@@ -33,7 +33,9 @@ public class BlockIndex {
 
   public static BlockIndex getIndex(ABlockReader cacheBlock, IndexEntry indexEntry) throws IOException {
 
-    BlockIndex blockIndex = cacheBlock.getIndex(BlockIndex.class);
+    BlockIndex blockIndex = cacheBlock.getIndex(BlockIndex::new);
+    if (blockIndex == null)
+      return null;
 
     int accessCount = blockIndex.accessCount.incrementAndGet();
 

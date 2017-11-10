@@ -20,6 +20,7 @@ package org.apache.accumulo.core.file.blockfile.cache.lru;
 import java.util.Objects;
 
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
+import org.apache.accumulo.core.file.blockfile.cache.SoftIndexCacheEntry;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 
@@ -30,7 +31,7 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
  * Makes the block memory-aware with {@link HeapSize} and Comparable to sort by access time for the LRU. It also takes care of priority by either instantiating
  * as in-memory or handling the transition from single to multiple access.
  */
-public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntry {
+public class CachedBlock extends SoftIndexCacheEntry implements HeapSize, Comparable<CachedBlock>, CacheEntry {
 
   public final static long PER_BLOCK_OVERHEAD = ClassSize.align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
       + ClassSize.STRING + ClassSize.BYTE_BUFFER);
@@ -51,15 +52,13 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
   }
 
   private final String blockName;
-  private final byte buf[];
   private volatile long accessTime;
   private long size;
   private BlockPriority priority;
-  private Object index;
 
   public CachedBlock(String blockName, byte buf[], long accessTime, boolean inMemory) {
+    super(buf);
     this.blockName = blockName;
-    this.buf = buf;
     this.accessTime = accessTime;
     this.size = ClassSize.align(blockName.length()) + ClassSize.align(buf.length) + PER_BLOCK_OVERHEAD;
     if (inMemory) {
@@ -101,26 +100,11 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
     return this.accessTime < that.accessTime ? 1 : -1;
   }
 
-  @Override
-  public byte[] getBuffer() {
-    return this.buf;
-  }
-
   public String getName() {
     return this.blockName;
   }
 
   public BlockPriority getPriority() {
     return this.priority;
-  }
-
-  @Override
-  public Object getIndex() {
-    return index;
-  }
-
-  @Override
-  public void setIndex(Object idx) {
-    this.index = idx;
   }
 }

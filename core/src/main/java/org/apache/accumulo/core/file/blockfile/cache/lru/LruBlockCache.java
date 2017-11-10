@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
+import org.apache.accumulo.core.file.blockfile.cache.SynchronousLoadingBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -65,7 +66,7 @@ import org.slf4j.LoggerFactory;
  * then while scanning determines the fewest least-recently-used blocks necessary from each of the three priorities (would be 3 times bytes to free). It then
  * uses the priority chunk sizes to evict fairly according to the relative sizes and usage.
  */
-public class LruBlockCache implements BlockCache, HeapSize {
+public class LruBlockCache extends SynchronousLoadingBlockCache implements BlockCache, HeapSize {
 
   private static final Logger log = LoggerFactory.getLogger(LruBlockCache.class);
 
@@ -114,6 +115,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    *          block cache configuration
    */
   public LruBlockCache(final LruBlockCacheConfiguration conf) {
+    super();
     this.conf = conf;
 
     int mapInitialSize = (int) Math.ceil(1.2 * conf.getMaxSize() / conf.getBlockSize());
@@ -160,7 +162,6 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * @param inMemory
    *          if block is in-memory
    */
-  @Override
   public CacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory) {
     CachedBlock cb = map.get(blockName);
     if (cb != null) {
@@ -218,6 +219,15 @@ public class LruBlockCache implements BlockCache, HeapSize {
     }
     stats.hit();
     cb.access(count.incrementAndGet());
+    return cb;
+  }
+
+  @Override
+  protected CacheEntry getBlockNoStats(String blockName) {
+    CachedBlock cb = map.get(blockName);
+    if (cb != null) {
+      cb.access(count.incrementAndGet());
+    }
     return cb;
   }
 
@@ -386,6 +396,11 @@ public class LruBlockCache implements BlockCache, HeapSize {
     return this.conf.getMaxSize();
   }
 
+  @Override
+  public int getMaxEntrySize() {
+    return (int) Math.min(Integer.MAX_VALUE, getMaxSize());
+  }
+
   /**
    * Get the current size of this cache.
    *
@@ -507,6 +522,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * <p>
    * Includes: total accesses, hits, misses, evicted blocks, and runs of the eviction processes.
    */
+  @Override
   public CacheStats getStats() {
     return this.stats;
   }

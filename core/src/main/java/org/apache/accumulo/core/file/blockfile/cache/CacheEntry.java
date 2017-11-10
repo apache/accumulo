@@ -16,11 +16,17 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import java.util.function.Supplier;
+
 public interface CacheEntry {
   byte[] getBuffer();
 
-  Object getIndex();
-
-  void setIndex(Object idx);
-
+  /**
+   * Optionally cache what is returned by the supplier along with this cache entry. If caching what is returned by the supplier is not supported, its ok to
+   * return null.
+   *
+   * <p>
+   * This method exists to support building indexes of frequently accessed cached data.
+   */
+  <T> T getIndex(Supplier<T> supplier);
 }

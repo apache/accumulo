@@ -66,11 +66,6 @@ public class SummaryReader {
     }
 
     @Override
-    public CacheEntry cacheBlock(String blockName, byte[] buf, boolean inMemory) {
-      return summaryCache.cacheBlock(blockName, buf, inMemory);
-    }
-
-    @Override
     public CacheEntry getBlock(String blockName) {
       CacheEntry ce = summaryCache.getBlock(blockName);
       if (ce == null) {
@@ -78,6 +73,34 @@ public class SummaryReader {
         ce = indexCache.getBlock(blockName);
       }
       return ce;
+    }
+
+    @Override
+    public CacheEntry getBlock(String blockName, Loader loader) {
+      Loader idxLoader = new Loader() {
+
+        CacheEntry idxCacheEntry;
+
+        @Override
+        public Map<String,Loader> getDependencies() {
+          idxCacheEntry = indexCache.getBlock(blockName);
+          if (idxCacheEntry == null) {
+            return loader.getDependencies();
+          } else {
+            return Collections.emptyMap();
+          }
+        }
+
+        @Override
+        public byte[] load(int maxSize, Map<String,byte[]> dependencies) {
+          if (idxCacheEntry == null) {
+            return loader.load(maxSize, dependencies);
+          } else {
+            return idxCacheEntry.getBuffer();
+          }
+        }
+      };
+      return summaryCache.getBlock(blockName, idxLoader);
     }
 
     @Override
@@ -144,9 +167,9 @@ public class SummaryReader {
     return fileSummaries;
   }
 
-  public static SummaryReader load(String id, Configuration conf, AccumuloConfiguration aConf, InputStream inputStream, long length,
+  public static SummaryReader load(Configuration conf, AccumuloConfiguration aConf, InputStream inputStream, long length,
       Predicate<SummarizerConfiguration> summarySelector, SummarizerFactory factory) throws IOException {
-    org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.Reader bcReader = new CachableBlockFile.Reader(id, (InputStream & Seekable) inputStream,
+    org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.Reader bcReader = new CachableBlockFile.Reader((InputStream & Seekable) inputStream,
         length, conf, aConf);
     return load(bcReader, summarySelector, factory);
   }

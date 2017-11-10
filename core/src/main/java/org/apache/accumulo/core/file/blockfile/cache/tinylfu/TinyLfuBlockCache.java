@@ -17,8 +17,6 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +25,8 @@ import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
+import org.apache.accumulo.core.file.blockfile.cache.SoftIndexCacheEntry;
+import org.apache.accumulo.core.file.blockfile.cache.SynchronousLoadingBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.slf4j.Logger;
@@ -47,7 +47,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  * <li>Cache design: http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html</li>
  * </ul>
  */
-public final class TinyLfuBlockCache implements BlockCache {
+public final class TinyLfuBlockCache extends SynchronousLoadingBlockCache implements BlockCache {
   private static final Logger log = LoggerFactory.getLogger(TinyLfuBlockCache.class);
   private static final int STATS_PERIOD_SEC = 60;
 
@@ -65,7 +65,6 @@ public final class TinyLfuBlockCache implements BlockCache {
     statsExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("TinyLfuBlockCacheStatsExecutor").setDaemon(true)
         .build());
     statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC, TimeUnit.SECONDS);
-
   }
 
   @Override
@@ -79,24 +78,25 @@ public final class TinyLfuBlockCache implements BlockCache {
   }
 
   @Override
+  public int getMaxEntrySize() {
+    return (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
+  }
+
+  @Override
   public CacheEntry getBlock(String blockName) {
     return cache.getIfPresent(blockName);
   }
 
   @Override
-  public CacheEntry cacheBlock(String blockName, byte[] buffer) {
-    return cache.asMap().compute(blockName, (key, block) -> {
-      if (block == null) {
-        return new Block(buffer);
-      }
-      block.buffer = buffer;
-      return block;
-    });
+  protected CacheEntry getBlockNoStats(String blockName) {
+    return cache.asMap().get(blockName);
   }
 
   @Override
-  public CacheEntry cacheBlock(String blockName, byte[] buffer, /* ignored */boolean inMemory) {
-    return cacheBlock(blockName, buffer);
+  public CacheEntry cacheBlock(String blockName, byte[] buffer) {
+    return cache.asMap().compute(blockName, (key, block) -> {
+      return new Block(buffer);
+    });
   }
 
   @Override
@@ -123,31 +123,14 @@ public final class TinyLfuBlockCache implements BlockCache {
     log.debug(cache.stats().toString());
   }
 
-  private static final class Block implements CacheEntry {
-    private volatile byte[] buffer;
-    private volatile Object index;
+  private static final class Block extends SoftIndexCacheEntry implements CacheEntry {
 
     Block(byte[] buffer) {
-      this.buffer = requireNonNull(buffer);
-    }
-
-    @Override
-    public byte[] getBuffer() {
-      return buffer;
-    }
-
-    @Override
-    public Object getIndex() {
-      return index;
-    }
-
-    @Override
-    public void setIndex(Object index) {
-      this.index = index;
+      super(buffer);
     }
 
     int weight() {
-      return ClassSize.align(buffer.length) + SizeConstants.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.OBJECT + ClassSize.ARRAY;
+      return ClassSize.align(getBuffer().length) + SizeConstants.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.OBJECT + ClassSize.ARRAY;
     }
   }
 }
