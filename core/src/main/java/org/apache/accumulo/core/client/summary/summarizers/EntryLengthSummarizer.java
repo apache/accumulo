@@ -78,16 +78,30 @@ public class EntryLengthSummarizer implements Summarizer {
 
   /* Helper function for merging that is used by the Combiner. */
   private static void merge(String prefix, Map<String, Long> stats1, Map<String,Long> stats2 ) {
-    stats1.merge(prefix+".min", stats2.get(prefix+".min"), Long::min);
-    stats1.merge(prefix+".max", stats2.get(prefix+".max"), Long::max);
-    stats1.merge(prefix+".sum", stats2.get(prefix+".sum"), Long::sum);
-    
+    if (stats2.containsKey(prefix+".min") && (stats1.containsKey(prefix+".min") == false)) {
+      stats1.put(prefix+".min", stats2.get(prefix+".min"));
+    } else {
+      stats1.merge(prefix+".min", stats2.get(prefix+".min"), Long::min);
+    }
+
+    if (stats2.containsKey(prefix+".max") && (stats1.containsKey(prefix+".max") == false)) {
+      stats1.put(prefix+".max", stats2.get(prefix+".max"));
+    } else {
+      stats1.merge(prefix+".max", stats2.get(prefix+".max"), Long::max);
+    }
+
+    if (stats2.containsKey(prefix+".sum") && (stats1.containsKey(prefix+".sum") == false)) {
+      stats1.put(prefix+".sum", stats2.get(prefix+".sum"));
+    } else {
+      stats1.merge(prefix+".sum", stats2.get(prefix+".sum"), Long::sum);
+    }
+
     /* i must be less than 32 since counts[] size max is 32. */
     for (int i = 0; i < 32; i++) {
       if (stats1.containsKey(prefix+".logHist."+i) && stats2.containsKey(prefix+".logHist."+i)) {
         stats1.merge(prefix+".logHist."+i, stats2.get(prefix+".logHist."+i), Long::sum);
       }
-      
+
       if (stats2.containsKey(prefix+".logHist."+i) && (stats1.containsKey(prefix+".logHist."+i) == false)) {
         stats1.put(prefix+".logHist."+i, stats2.get(prefix+".logHist."+i));
       }
@@ -97,7 +111,7 @@ public class EntryLengthSummarizer implements Summarizer {
   @Override
   public Collector collector(SummarizerConfiguration sc) {
     return new Collector() {
-      
+
       private LengthStats keyStats = new LengthStats();
       private LengthStats rowStats = new LengthStats();
       private LengthStats familyStats = new LengthStats();

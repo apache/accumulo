@@ -71,7 +71,7 @@ public class EntryLengthSummarizersTest {
 
     Assert.assertEquals(expected, stats);
   }
-  
+
   @Test
   public void testBasicRow() {
     SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
@@ -909,9 +909,9 @@ public class EntryLengthSummarizersTest {
 
     Assert.assertEquals(expected, stats);
   }
-  
+
   /* COMBINER TEST */
-  
+
   @Test
   public void testCombine() {
     SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
@@ -947,7 +947,7 @@ public class EntryLengthSummarizersTest {
     System.out.println("========= Merged");
     stats1.entrySet().forEach(System.out::println);
     */
-    
+
     HashMap<String,Long> expected = new HashMap<>();
     expected.put("key.min", 5L);
     expected.put("key.max", 14L);
@@ -1003,6 +1003,166 @@ public class EntryLengthSummarizersTest {
     expected.put("value.logHist.3", 1L);
 
     expected.put("total", 6L);
+
+    Assert.assertEquals(expected, stats1);
+  }
+
+  @Test
+  public void testCombine2() {
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
+
+    Collector collector1 = entrySum.collector(sc);
+    collector1.accept(new Key("12345678901234567890","f12345","q123456"), new Value("value1234567890"));
+
+    HashMap<String, Long> stats1 = new HashMap<>();
+    collector1.summarize(stats1::put);
+
+    Collector collector2 = entrySum.collector(sc);
+    collector2.accept(new Key("5432","f11","q12"), new Value("2"));
+    collector2.accept(new Key("12","f11","q1234"), new Value("12"));
+    collector2.accept(new Key("12","f11","q11234567"), new Value("4444"));
+
+    HashMap<String, Long> stats2 = new HashMap<>();
+    collector2.summarize(stats2::put);
+
+    Combiner combiner = entrySum.combiner(sc);
+    combiner.merge(stats1, stats2);
+
+    /*
+    System.out.println("========= Merged");
+    stats1.entrySet().forEach(System.out::println);
+    */
+
+    HashMap<String,Long> expected = new HashMap<>();
+    expected.put("key.min", 10L);
+    expected.put("key.max", 33L);
+    expected.put("key.sum", 67L);
+
+    // Log2 Histogram for Key
+    expected.put("key.logHist.3", 2L);
+    expected.put("key.logHist.4", 1L);
+    expected.put("key.logHist.5", 1L);
+
+    expected.put("row.min", 2L);
+    expected.put("row.max", 20L);
+    expected.put("row.sum", 28L);
+
+    // Log2 Histogram for Row
+    expected.put("row.logHist.1", 2L);
+    expected.put("row.logHist.2", 1L);
+    expected.put("row.logHist.4", 1L);
+
+    expected.put("family.min", 3L);
+    expected.put("family.max", 6L);
+    expected.put("family.sum", 15L);
+
+    // Log2 Histogram for Family
+    expected.put("family.logHist.2", 3L);
+    expected.put("family.logHist.3", 1L);
+
+    expected.put("qualifier.min", 3L);
+    expected.put("qualifier.max", 9L);
+    expected.put("qualifier.sum", 24L);
+
+    // Log2 Histogram for Qualifier
+    expected.put("qualifier.logHist.2", 2L);
+    expected.put("qualifier.logHist.3", 2L);
+
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
+
+    // Log2 Histogram for Visibility
+    expected.put("visibility.logHist.0", 4L);
+
+    expected.put("value.min", 1L);
+    expected.put("value.max", 15L);
+    expected.put("value.sum", 22L);
+
+    // Log2 Histogram for Value
+    expected.put("value.logHist.0", 1L);
+    expected.put("value.logHist.1", 1L);
+    expected.put("value.logHist.2", 1L);
+    expected.put("value.logHist.4", 1L);
+
+    expected.put("total", 4L);
+
+    Assert.assertEquals(expected, stats1);
+  }
+
+  @Test
+  public void testCombine3() {
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
+
+    Collector collector1 = entrySum.collector(sc);
+    collector1.accept(new Key("r1","f1"), new Value("v1"));
+
+    HashMap<String, Long> stats1 = new HashMap<>();
+    collector1.summarize(stats1::put);
+
+    Collector collector2 = entrySum.collector(sc);
+    collector2.accept(new Key("row1","family1","q1"), new Value(""));
+
+    HashMap<String, Long> stats2 = new HashMap<>();
+    collector2.summarize(stats2::put);
+
+    Combiner combiner = entrySum.combiner(sc);
+    combiner.merge(stats1, stats2);
+
+    System.out.println("========= Merged");
+    stats1.entrySet().forEach(System.out::println);
+
+    HashMap<String,Long> expected = new HashMap<>();
+    expected.put("key.min", 4L);
+    expected.put("key.max", 13L);
+    expected.put("key.sum", 17L);
+
+    // Log2 Histogram for Key
+    expected.put("key.logHist.2", 1L);
+    expected.put("key.logHist.4", 1L);
+
+    expected.put("row.min", 2L);
+    expected.put("row.max", 4L);
+    expected.put("row.sum", 6L);
+
+    // Log2 Histogram for Row
+    expected.put("row.logHist.1", 1L);
+    expected.put("row.logHist.2", 1L);
+
+    expected.put("family.min", 2L);
+    expected.put("family.max", 7L);
+    expected.put("family.sum", 9L);
+
+    // Log2 Histogram for Family
+    expected.put("family.logHist.1", 1L);
+    expected.put("family.logHist.3", 1L);
+
+    expected.put("qualifier.min", 0L);
+    expected.put("qualifier.max", 2L);
+    expected.put("qualifier.sum", 2L);
+
+    // Log2 Histogram for Qualifier
+    expected.put("qualifier.logHist.0", 1L);
+    expected.put("qualifier.logHist.1", 1L);
+
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
+
+    // Log2 Histogram for Visibility
+    expected.put("visibility.logHist.0", 2L);
+
+    expected.put("value.min", 0L);
+    expected.put("value.max", 2L);
+    expected.put("value.sum", 2L);
+
+    // Log2 Histogram for Value
+    expected.put("value.logHist.0", 1L);
+    expected.put("value.logHist.1", 1L);
+
+    expected.put("total", 2L);
 
     Assert.assertEquals(expected, stats1);
   }
