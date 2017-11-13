@@ -17,8 +17,10 @@
 package org.apache.accumulo.core.client.summary.summarizers;
 
 import java.util.HashMap;
+
 import org.apache.accumulo.core.client.summary.summarizers.EntryLengthSummarizer;
 import org.apache.accumulo.core.client.summary.Summarizer.Collector;
+import org.apache.accumulo.core.client.summary.Summarizer.Combiner;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -27,8 +29,49 @@ import org.junit.Test;
 
 public class EntryLengthSummarizersTest {
 
+  /* COLLECTOR TEST */
   /* Basic Test: Each test adds to the next, all are simple lengths. */
 
+  @Test
+  public void testEmpty() {
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
+
+    Collector collector = entrySum.collector(sc);
+
+    HashMap<String,Long> stats = new HashMap<>();
+    collector.summarize(stats::put);
+
+    HashMap<String,Long> expected = new HashMap<>();
+    expected.put("key.min", 0L);
+    expected.put("key.max", 0L);
+    expected.put("key.sum", 0L);
+
+    expected.put("row.min", 0L);
+    expected.put("row.max", 0L);
+    expected.put("row.sum", 0L);
+
+    expected.put("family.min", 0L);
+    expected.put("family.max", 0L);
+    expected.put("family.sum", 0L);
+
+    expected.put("qualifier.min", 0L);
+    expected.put("qualifier.max", 0L);
+    expected.put("qualifier.sum", 0L);
+
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
+
+    expected.put("value.min", 0L);
+    expected.put("value.max", 0L);
+    expected.put("value.sum", 0L);
+
+    expected.put("total", 0L);
+
+    Assert.assertEquals(expected, stats);
+  }
+  
   @Test
   public void testBasicRow() {
     SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
@@ -865,5 +908,102 @@ public class EntryLengthSummarizersTest {
     expected.put("total", 3L);
 
     Assert.assertEquals(expected, stats);
+  }
+  
+  /* COMBINER TEST */
+  
+  @Test
+  public void testCombine() {
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
+    EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
+
+    Collector collector1 = entrySum.collector(sc);
+    collector1.accept(new Key("1","f1","q1"), new Value("v1"));
+    collector1.accept(new Key("1234","f1","q1"), new Value("v111"));
+    collector1.accept(new Key("12345678","f1","q1"), new Value("v111111"));
+
+    HashMap<String, Long> stats1 = new HashMap<>();
+    collector1.summarize(stats1::put);
+
+    Collector collector2 = entrySum.collector(sc);
+    collector2.accept(new Key("5432","f11","q12"), new Value("2"));
+    collector2.accept(new Key("12","f11","q1234"), new Value("12"));
+    collector2.accept(new Key("12","f11","q11234567"), new Value("4444"));
+
+    HashMap<String, Long> stats2 = new HashMap<>();
+    collector2.summarize(stats2::put);
+
+    /*
+    System.out.println("========= Stats 1");
+    stats1.entrySet().forEach(System.out::println);
+    System.out.println("========= Stats 2");
+    stats2.entrySet().forEach(System.out::println);
+    */
+
+    Combiner combiner = entrySum.combiner(sc);
+    combiner.merge(stats1, stats2);
+
+    /*
+    System.out.println("========= Merged");
+    stats1.entrySet().forEach(System.out::println);
+    */
+    
+    HashMap<String,Long> expected = new HashMap<>();
+    expected.put("key.min", 5L);
+    expected.put("key.max", 14L);
+    expected.put("key.sum", 59L);
+
+    // Log2 Histogram for Key
+    expected.put("key.logHist.2", 1L);
+    expected.put("key.logHist.3", 3L);
+    expected.put("key.logHist.4", 2L);
+
+    expected.put("row.min", 1L);
+    expected.put("row.max", 8L);
+    expected.put("row.sum", 21L);
+
+    // Log2 Histogram for Row
+    expected.put("row.logHist.0", 1L);
+    expected.put("row.logHist.1", 2L);
+    expected.put("row.logHist.2", 2L);
+    expected.put("row.logHist.3", 1L);
+
+    expected.put("family.min", 2L);
+    expected.put("family.max", 3L);
+    expected.put("family.sum", 15L);
+
+    // Log2 Histogram for Family
+    expected.put("family.logHist.1", 3L);
+    expected.put("family.logHist.2", 3L);
+
+    expected.put("qualifier.min", 2L);
+    expected.put("qualifier.max", 9L);
+    expected.put("qualifier.sum", 23L);
+
+    // Log2 Histogram for Qualifier
+    expected.put("qualifier.logHist.1", 3L);
+    expected.put("qualifier.logHist.2", 2L);
+    expected.put("qualifier.logHist.3", 1L);
+
+    expected.put("visibility.min", 0L);
+    expected.put("visibility.max", 0L);
+    expected.put("visibility.sum", 0L);
+
+    // Log2 Histogram for Visibility
+    expected.put("visibility.logHist.0", 6L);
+
+    expected.put("value.min", 1L);
+    expected.put("value.max", 7L);
+    expected.put("value.sum", 20L);
+
+    // Log2 Histogram for Value
+    expected.put("value.logHist.0", 1L);
+    expected.put("value.logHist.1", 2L);
+    expected.put("value.logHist.2", 2L);
+    expected.put("value.logHist.3", 1L);
+
+    expected.put("total", 6L);
+
+    Assert.assertEquals(expected, stats1);
   }
 }
