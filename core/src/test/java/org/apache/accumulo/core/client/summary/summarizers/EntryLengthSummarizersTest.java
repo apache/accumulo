@@ -933,20 +933,8 @@ public class EntryLengthSummarizersTest {
     HashMap<String, Long> stats2 = new HashMap<>();
     collector2.summarize(stats2::put);
 
-    /*
-    System.out.println("========= Stats 1");
-    stats1.entrySet().forEach(System.out::println);
-    System.out.println("========= Stats 2");
-    stats2.entrySet().forEach(System.out::println);
-    */
-
     Combiner combiner = entrySum.combiner(sc);
     combiner.merge(stats1, stats2);
-
-    /*
-    System.out.println("========= Merged");
-    stats1.entrySet().forEach(System.out::println);
-    */
 
     HashMap<String,Long> expected = new HashMap<>();
     expected.put("key.min", 5L);
@@ -1029,11 +1017,6 @@ public class EntryLengthSummarizersTest {
     Combiner combiner = entrySum.combiner(sc);
     combiner.merge(stats1, stats2);
 
-    /*
-    System.out.println("========= Merged");
-    stats1.entrySet().forEach(System.out::println);
-    */
-
     HashMap<String,Long> expected = new HashMap<>();
     expected.put("key.min", 10L);
     expected.put("key.max", 33L);
@@ -1110,11 +1093,6 @@ public class EntryLengthSummarizersTest {
 
     Combiner combiner = entrySum.combiner(sc);
     combiner.merge(stats1, stats2);
-
-    /*
-    System.out.println("========= Merged");
-    stats1.entrySet().forEach(System.out::println);
-    */
 
     HashMap<String,Long> expected = new HashMap<>();
     expected.put("key.min", 4L);

@@ -31,6 +31,8 @@ import com.google.common.math.IntMath;
  * Summarizer that computes summary information about field lengths.
  * Specifically key length, row length, family length, qualifier length, visibility length, and value length.
  * Incrementally computes minimum, maximum, count, sum, and log2 histogram of the lengths.
+ *
+ * @since 2.0.0
  */
 public class EntryLengthSummarizer implements Summarizer {
 
@@ -80,7 +82,7 @@ public class EntryLengthSummarizer implements Summarizer {
   /* Helper functions for merging that is used by the Combiner. */
   private static void merge(String key, BiFunction<Long,Long,Long> mergeFunc, Map<String, Long> stats1, Map<String,Long> stats2) {
     Long mergeVal = stats2.get(key);
-    
+
     if(mergeVal != null) {
       stats1.merge(key, mergeVal, mergeFunc);
     }
