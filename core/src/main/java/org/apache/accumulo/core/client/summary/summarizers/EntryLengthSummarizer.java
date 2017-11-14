@@ -79,10 +79,10 @@ public class EntryLengthSummarizer implements Summarizer {
 
   /* Helper functions for merging that is used by the Combiner. */
   private static void merge(String key, BiFunction<Long,Long,Long> mergeFunc, Map<String, Long> stats1, Map<String,Long> stats2) {
-    if (stats2.containsKey(key) && (stats1.containsKey(key) == false)) {
-      stats1.put(key, stats2.get(key));
-    } else if (stats2.containsKey(key) && stats1.containsKey(key)){
-      stats1.merge(key, stats2.get(key), mergeFunc);
+    Long mergeVal = stats2.get(key);
+    
+    if(mergeVal != null) {
+      stats1.merge(key, mergeVal, mergeFunc);
     }
   }
 
