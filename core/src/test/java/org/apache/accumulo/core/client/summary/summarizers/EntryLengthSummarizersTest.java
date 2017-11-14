@@ -1111,8 +1111,10 @@ public class EntryLengthSummarizersTest {
     Combiner combiner = entrySum.combiner(sc);
     combiner.merge(stats1, stats2);
 
+    /*
     System.out.println("========= Merged");
     stats1.entrySet().forEach(System.out::println);
+    */
 
     HashMap<String,Long> expected = new HashMap<>();
     expected.put("key.min", 4L);

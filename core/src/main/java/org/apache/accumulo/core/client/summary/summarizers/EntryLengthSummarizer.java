@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.summary.summarizers;
 
 import java.math.RoundingMode;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
@@ -76,35 +77,21 @@ public class EntryLengthSummarizer implements Summarizer {
 
   }
 
-  /* Helper function for merging that is used by the Combiner. */
-  private static void merge(String prefix, Map<String, Long> stats1, Map<String,Long> stats2 ) {
-    if (stats2.containsKey(prefix+".min") && (stats1.containsKey(prefix+".min") == false)) {
-      stats1.put(prefix+".min", stats2.get(prefix+".min"));
-    } else {
-      stats1.merge(prefix+".min", stats2.get(prefix+".min"), Long::min);
+  /* Helper functions for merging that is used by the Combiner. */
+  private static void merge(String key, BiFunction<Long,Long,Long> mergeFunc, Map<String, Long> stats1, Map<String,Long> stats2) {
+    if (stats2.containsKey(key) && (stats1.containsKey(key) == false)) {
+      stats1.put(key, stats2.get(key));
+    } else if (stats2.containsKey(key) && stats1.containsKey(key)){
+      stats1.merge(key, stats2.get(key), mergeFunc);
     }
+  }
 
-    if (stats2.containsKey(prefix+".max") && (stats1.containsKey(prefix+".max") == false)) {
-      stats1.put(prefix+".max", stats2.get(prefix+".max"));
-    } else {
-      stats1.merge(prefix+".max", stats2.get(prefix+".max"), Long::max);
-    }
-
-    if (stats2.containsKey(prefix+".sum") && (stats1.containsKey(prefix+".sum") == false)) {
-      stats1.put(prefix+".sum", stats2.get(prefix+".sum"));
-    } else {
-      stats1.merge(prefix+".sum", stats2.get(prefix+".sum"), Long::sum);
-    }
-
-    /* i must be less than 32 since counts[] size max is 32. */
+  private static void merge(String prefix, Map<String, Long> stats1, Map<String,Long> stats2) {
+    merge(prefix+".min", Long::min, stats1, stats2);
+    merge(prefix+".max", Long::max, stats1, stats2);
+    merge(prefix+".sum", Long::sum, stats1, stats2);
     for (int i = 0; i < 32; i++) {
-      if (stats1.containsKey(prefix+".logHist."+i) && stats2.containsKey(prefix+".logHist."+i)) {
-        stats1.merge(prefix+".logHist."+i, stats2.get(prefix+".logHist."+i), Long::sum);
-      }
-
-      if (stats2.containsKey(prefix+".logHist."+i) && (stats1.containsKey(prefix+".logHist."+i) == false)) {
-        stats1.put(prefix+".logHist."+i, stats2.get(prefix+".logHist."+i));
-      }
+      merge(prefix+".logHist."+i, Long::sum, stats1, stats2);
     }
   }
 
