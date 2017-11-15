@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.monitor.view;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.glassfish.jersey.server.mvc.Template;
@@ -47,12 +50,44 @@ import org.glassfish.jersey.server.mvc.Template;
 @Produces(MediaType.TEXT_HTML)
 public class WebViews {
 
+  /**
+   * Get urls for CSS and JS imports from configuration. See ACCUMULO-4739
+   *
+   * @param model map of the MVC model
+   */
+  private void addImports(Map<String,Object> model) {
+    AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
+    String[] cssURLs = conf.get(Property.MONITOR_CSS_IMPORT_URLS).split(",");
+    String[] jsURLs = conf.get(Property.MONITOR_JS_IMPORT_URLS).split(",");
+    List<String> cssImports = new ArrayList<>();
+    List<String> jsImports = new ArrayList<>();
+    for (String cssURL : cssURLs) {
+      if (!cssURL.isEmpty()) {
+        System.out.println("Got cssURL =" + cssURL);
+        cssImports.add(cssURL);
+      }
+    }
+    for (String jsURL : jsURLs) {
+      if (!jsURL.isEmpty()) {
+        System.out.println("Got jsURL =" + jsURL);
+        jsImports.add(jsURL);
+      }
+    }
+    if (!cssImports.isEmpty()) {
+      model.put("cssImports", cssImports);
+    }
+    if (!jsImports.isEmpty()) {
+      model.put("jsImports", jsImports);
+    }
+  }
+
   private Map<String,Object> getModel() {
 
     Map<String,Object> model = new HashMap<>();
     model.put("version", Constants.VERSION);
     model.put("instance_name", Monitor.cachedInstanceName.get());
     model.put("instance_id", Monitor.getContext().getInstance().getInstanceID());
+    addImports(model);
     return model;
   }
 

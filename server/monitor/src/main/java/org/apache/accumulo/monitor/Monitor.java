@@ -452,7 +452,7 @@ public class Monitor implements HighlyAvailableService {
       try {
         log.debug("Creating monitor on port {}", port);
         server = new EmbeddedWebServer(hostname, port);
-        server.addServlet(getDefaultServlet(), "/resources/*");
+        server.addServlet(getDefaultServlet(), "/org/apache/accumulo/monitor/*");
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getViewServlet(), "/*");
         server.start();
@@ -548,7 +548,7 @@ public class Monitor implements HighlyAvailableService {
   private ServletHolder getViewServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.view")
         .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(FreemarkerMvcFeature.class)
-        .property(MvcFeature.TEMPLATE_BASE_PATH, "/templates");
+        .property(MvcFeature.TEMPLATE_BASE_PATH, "/org/apache/accumulo/monitor/templates");
     return new ServletHolder(new ServletContainer(rc));
   }
 

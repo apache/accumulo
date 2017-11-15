@@ -137,7 +137,13 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/main/resources/resources/js/flot/**/*.js</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/monitor/js/flot/*.js</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/monitor/js/jquery/*.js</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/monitor/js/bootstrap/*.js</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/monitor/js/select2/*.js</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/monitor/css/jquery/*.css</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/monitor/css/bootstrap/*.css</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/monitor/css/select2/*.css</exclude>
             </excludes>
           </configuration>
         </plugin>
