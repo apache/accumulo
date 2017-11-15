@@ -80,6 +80,10 @@
       <value>AES/CFB/NoPadding</value>
     </property>
     <property>
+      <name>crypto.wal.cipher.suite</name>
+      <value>AES/CBC/NoPadding</value>
+    </property>
+    <property>
       <name>crypto.cipher.key.algorithm.name</name>
       <value>AES</value>
     </property>
