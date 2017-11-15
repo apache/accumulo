@@ -160,9 +160,12 @@ public final class BCFile {
         // *This* is also very important. We don't want the underlying stream messed with.
         cryptoParams.setRecordParametersToStream(false);
 
-        // It is also important to make sure we get a new initialization vector on every call in here,
-        // so set any existing one to null, in case we're reusing a parameters object for its RNG or other bits
-        cryptoParams.setInitializationVector(null);
+        // It is also important to make sure we get a new initialization vector on every call in here.
+        // This was originally done by setting any existing one to null, in case we were reusing a parameters object.
+        // We are also now keeping track of the IV across the use of a specific file key, because if the encryption
+        // mode is GCM, it's important to guarantee unique IVs. The updateInitializationVector will increment the vector if it
+        // already exists for GCM, or it will set the IV to null in other cases.
+        cryptoParams.updateInitializationVector();
 
         // Initialize the cipher including generating a new IV
         cryptoParams = cryptoModule.initializeCipher(cryptoParams);

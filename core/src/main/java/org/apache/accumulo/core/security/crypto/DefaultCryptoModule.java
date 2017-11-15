@@ -30,6 +30,7 @@ import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -50,6 +51,17 @@ public class DefaultCryptoModule implements CryptoModule {
 
   private static final String ENCRYPTION_HEADER_MARKER_V1 = "---Log File Encrypted (v1)---";
   private static final String ENCRYPTION_HEADER_MARKER_V2 = "---Log File Encrypted (v2)---";
+  public static final String ALGORITHM_PARAMETER_SPEC_GCM = "GCM";
+
+  // 128-bit tags are the longest available for GCM
+  private static final Integer GCM_TAG_LENGTH_IN_BYTES = 16;
+
+  /*
+   * According to NIST Special Publication 800-38D, Section 5.2.1.1: "For IVs, it is recommended that implementations restrict support to the length of 96 bits,
+   * to promote interoperability, efficiency, and simplicity of design"
+   */
+  private static final Integer GCM_IV_LENGTH_IN_BYTES = 12;
+
   private static final Logger log = LoggerFactory.getLogger(DefaultCryptoModule.class);
 
   public DefaultCryptoModule() {}
@@ -69,26 +81,21 @@ public class DefaultCryptoModule implements CryptoModule {
     Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getCipherSuite(), params.getSecurityProvider());
 
     if (params.getInitializationVector() == null) {
-      try {
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName()), params.getSecureRandom());
-      } catch (InvalidKeyException e) {
-        log.error("Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
-        throw new RuntimeException(e);
+      if (params.getCipherSuiteEncryptionMode().equals(ALGORITHM_PARAMETER_SPEC_GCM)) {
+        byte[] gcmIV = new byte[GCM_IV_LENGTH_IN_BYTES];
+        params.getSecureRandom().nextBytes(gcmIV);
+        params.setInitializationVector(gcmIV);
       }
+    }
 
-      params.setInitializationVector(cipher.getIV());
-
-    } else {
-      try {
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName()),
-            new IvParameterSpec(params.getInitializationVector()));
-      } catch (InvalidKeyException e) {
-        log.error("Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
-        throw new RuntimeException(e);
-      } catch (InvalidAlgorithmParameterException e) {
-        log.error("Accumulo encountered an unknown error in setting up the initialization vector for an encrypted stream");
-        throw new RuntimeException(e);
-      }
+    try {
+      initCipher(params, cipher, Cipher.ENCRYPT_MODE);
+    } catch (InvalidKeyException e) {
+      log.error("Accumulo encountered an unknown error in generating the secret key object (SecretKeySpec) for an encrypted stream");
+      throw new RuntimeException(e);
+    } catch (InvalidAlgorithmParameterException e) {
+      log.error("Accumulo encountered an unknown error in setting up the initialization vector for an encrypted stream");
+      throw new RuntimeException(e);
     }
 
     params.setCipher(cipher);
@@ -370,8 +377,7 @@ public class DefaultCryptoModule implements CryptoModule {
     Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getCipherSuite(), params.getSecurityProvider());
 
     try {
-      cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName()),
-          new IvParameterSpec(params.getInitializationVector()));
+      initCipher(params, cipher, Cipher.DECRYPT_MODE);
     } catch (InvalidKeyException e) {
       log.error("Error when trying to initialize cipher with secret key");
       throw new RuntimeException(e);
@@ -390,6 +396,33 @@ public class DefaultCryptoModule implements CryptoModule {
     params.setPlaintextInputStream(blockedDecryptingInputStream);
 
     return params;
+  }
+
+  /**
+   *
+   * @param params
+   *          the crypto parameters
+   * @param cipher
+   *          the Java Cipher object to be init'd
+   * @param opMode
+   *          encrypt or decrypt
+   * @throws InvalidKeyException
+   *           if the crypto params are missing necessary values
+   * @throws InvalidAlgorithmParameterException
+   *           if an invalid algorithm is chosen
+   */
+  private void initCipher(CryptoModuleParameters params, Cipher cipher, int opMode) throws InvalidKeyException, InvalidAlgorithmParameterException {
+    if (params.getCipherSuiteEncryptionMode().equals(ALGORITHM_PARAMETER_SPEC_GCM)) {
+      cipher.init(opMode, new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName()),
+          new GCMParameterSpec(GCM_TAG_LENGTH_IN_BYTES * 8, params.getInitializationVector()));
+    } else {
+      if (params.getInitializationVector() == null) {
+        cipher.init(opMode, new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName()), params.getSecureRandom());
+        params.setInitializationVector(cipher.getIV());
+      } else {
+        cipher.init(opMode, new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName()), new IvParameterSpec(params.getInitializationVector()));
+      }
+    }
   }
 
   @Override

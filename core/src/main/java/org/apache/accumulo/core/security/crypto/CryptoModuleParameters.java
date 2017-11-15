@@ -570,6 +570,52 @@ public class CryptoModuleParameters {
   }
 
   /**
+   * Returns the mode from the cipher suite. Assumes the suite is in the form of algorithm/mode/padding, returns null if the cipher suite is malformed or
+   * NullCipher.
+   *
+   * @return the encryption mode from the cipher suite
+   */
+  public String getCipherSuiteEncryptionMode() {
+    String[] parts = this.cipherSuite.split("/");
+    if (parts.length == 3) {
+      return parts[1];
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Updates the initialization vector for use when the encryption mode is GCM. If the IV is not currently null, and the encryption mode is GCM, it will
+   * increment the IV instead of letting the CryptoModule decide what to do.
+   */
+  public void updateInitializationVector() {
+    if (this.initializationVector != null && getCipherSuiteEncryptionMode().equals(DefaultCryptoModule.ALGORITHM_PARAMETER_SPEC_GCM)) {
+      incrementIV(this.initializationVector, this.initializationVector.length - 1);
+    } else {
+      this.initializationVector = null;
+    }
+  }
+
+  /**
+   * Because IVs can be longer than longs, this increments arbitrarily sized byte arrays by 1, with a roll over to 0 after the max value is reached.
+   *
+   * @param iv
+   *          The iv to be incremented
+   * @param i
+   *          The current byte being incremented
+   */
+  private static void incrementIV(byte[] iv, int i) {
+    iv[i]++;
+    if (iv[i] == 0) {
+      if (i != 0) {
+        incrementIV(iv, i - 1);
+      } else
+        return;
+    }
+
+  }
+
+  /**
    * Gets the overall set of options for the {@link CryptoModule}.
    *
    * @see CryptoModuleParameters#setAllOptions(Map)
@@ -617,7 +663,7 @@ public class CryptoModuleParameters {
 
   private Cipher cipher;
   private SecureRandom secureRandom;
-  private byte[] initializationVector;
+  private byte[] initializationVector = null;
 
   private Map<String,String> allOptions;
   private int blockStreamSize;
