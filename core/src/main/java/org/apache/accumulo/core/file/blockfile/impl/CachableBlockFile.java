@@ -35,6 +35,7 @@ import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache.Loader;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
+import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Writer.BlockAppender;
@@ -510,8 +511,13 @@ public class CachableBlockFile {
     }
 
     @Override
-    public <T> T getIndex(Supplier<T> indexSupplier) {
+    public <T extends Weighbable> T getIndex(Supplier<T> indexSupplier) {
       return cb.getIndex(indexSupplier);
+    }
+
+    @Override
+    public void indexWeightChanged() {
+      cb.indexWeightChanged();
     }
   }
 
@@ -553,7 +559,7 @@ public class CachableBlockFile {
     }
 
     @Override
-    public <T> T getIndex(Supplier<T> clazz) {
+    public <T extends Weighbable> T getIndex(Supplier<T> clazz) {
       throw new UnsupportedOperationException();
     }
 
@@ -562,6 +568,11 @@ public class CachableBlockFile {
      */
     @Override
     public byte[] getBuffer() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void indexWeightChanged() {
       throw new UnsupportedOperationException();
     }
 

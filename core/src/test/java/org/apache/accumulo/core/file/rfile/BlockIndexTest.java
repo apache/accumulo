@@ -46,7 +46,7 @@ public class BlockIndexTest {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getIndex(Supplier<T> indexSupplier) {
+    public <T extends Weighbable> T getIndex(Supplier<T> indexSupplier) {
       if (idx == null) {
         idx = indexSupplier.get();
       }
@@ -57,6 +57,9 @@ public class BlockIndexTest {
     public byte[] getBuffer() {
       return data;
     }
+
+    @Override
+    public void indexWeightChanged() {}
   }
 
   @Test

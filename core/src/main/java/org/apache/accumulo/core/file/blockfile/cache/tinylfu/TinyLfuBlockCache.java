@@ -24,12 +24,13 @@ import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
+import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
-import org.apache.accumulo.core.file.blockfile.cache.SoftIndexCacheEntry;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.slf4j.Logger;
@@ -82,14 +83,14 @@ public final class TinyLfuBlockCache implements BlockCache {
 
   @Override
   public CacheEntry getBlock(String blockName) {
-    return cache.getIfPresent(blockName);
+    return wrap(blockName, cache.getIfPresent(blockName));
   }
 
   @Override
   public CacheEntry cacheBlock(String blockName, byte[] buffer) {
-    return cache.asMap().compute(blockName, (key, block) -> {
+    return wrap(blockName, cache.asMap().compute(blockName, (key, block) -> {
       return new Block(buffer);
-    });
+    }));
   }
 
   @Override
@@ -116,14 +117,82 @@ public final class TinyLfuBlockCache implements BlockCache {
     log.debug(cache.stats().toString());
   }
 
-  private static final class Block extends SoftIndexCacheEntry implements CacheEntry {
+  private static final class Block {
+
+    private final byte[] buffer;
+    private Weighbable index;
+    private volatile int lastIndexWeight;
 
     Block(byte[] buffer) {
-      super(buffer);
+      this.buffer = buffer;
+      this.lastIndexWeight = buffer.length / 100;
     }
 
     int weight() {
-      return ClassSize.align(getBuffer().length) + SizeConstants.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.OBJECT + ClassSize.ARRAY;
+      int indexWeight = lastIndexWeight + SizeConstants.SIZEOF_INT + ClassSize.REFERENCE;
+      return indexWeight + ClassSize.align(getBuffer().length) + SizeConstants.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.OBJECT + ClassSize.ARRAY;
+    }
+
+    public byte[] getBuffer() {
+      return buffer;
+    }
+
+    @SuppressWarnings("unchecked")
+    public synchronized <T extends Weighbable> T getIndex(Supplier<T> supplier) {
+      if (index == null) {
+        index = supplier.get();
+      }
+
+      return (T) index;
+    }
+
+    public synchronized boolean indexWeightChanged() {
+      if (index != null) {
+        int indexWeight = index.weight();
+        if (indexWeight > lastIndexWeight) {
+          lastIndexWeight = indexWeight;
+          return true;
+        }
+      }
+
+      return false;
+    }
+  }
+
+  private CacheEntry wrap(String cacheKey, Block block) {
+    if (block != null) {
+      return new TlfuCacheEntry(cacheKey, block);
+    }
+
+    return null;
+  }
+
+  private class TlfuCacheEntry implements CacheEntry {
+
+    private final String cacheKey;
+    private final Block block;
+
+    TlfuCacheEntry(String k, Block b) {
+      this.cacheKey = k;
+      this.block = b;
+    }
+
+    @Override
+    public byte[] getBuffer() {
+      return block.getBuffer();
+    }
+
+    @Override
+    public <T extends Weighbable> T getIndex(Supplier<T> supplier) {
+      return block.getIndex(supplier);
+    }
+
+    @Override
+    public void indexWeightChanged() {
+      if (block.indexWeightChanged()) {
+        // update weight
+        cache.put(cacheKey, block);
+      }
     }
   }
 
@@ -160,15 +229,15 @@ public final class TinyLfuBlockCache implements BlockCache {
   @Override
   public CacheEntry getBlock(String blockName, Loader loader) {
     Map<String,Loader> deps = loader.getDependencies();
-
+    Block block;
     if (deps.size() == 0) {
-      return cache.get(blockName, k -> load(blockName, loader, Collections.emptyMap()));
+      block = cache.get(blockName, k -> load(blockName, loader, Collections.emptyMap()));
     } else {
       // This code path exist to handle the case where dependencies may need to be loaded. Loading dependencies will access the cache. Cache load functions
       // should not access the cache.
-      Block ce = cache.getIfPresent(blockName);
+      block = cache.getIfPresent(blockName);
 
-      if (ce == null) {
+      if (block == null) {
         // Load dependencies outside of cache load function.
         Map<String,byte[]> resolvedDeps = resolveDependencies(deps);
         if (resolvedDeps == null) {
@@ -177,10 +246,10 @@ public final class TinyLfuBlockCache implements BlockCache {
 
         // Use asMap because it will not increment stats, getIfPresent recorded a miss above. Use computeIfAbsent because it is possible another thread loaded
         // the data since this thread called getIfPresent.
-        ce = cache.asMap().computeIfAbsent(blockName, k -> load(blockName, loader, resolvedDeps));
+        block = cache.asMap().computeIfAbsent(blockName, k -> load(blockName, loader, resolvedDeps));
       }
-
-      return ce;
     }
+
+    return wrap(blockName, block);
   }
 }

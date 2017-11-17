@@ -156,14 +156,17 @@ class RFileScanner extends ScannerOptions implements Scanner {
       return new CacheEntry() {
 
         @Override
-        public <T> T getIndex(Supplier<T> supplier) {
+        public byte[] getBuffer() {
+          return data;
+        }
+
+        @Override
+        public <T extends Weighbable> T getIndex(Supplier<T> supplier) {
           return null;
         }
 
         @Override
-        public byte[] getBuffer() {
-          return data;
-        }
+        public void indexWeightChanged() {}
       };
     }
   }
