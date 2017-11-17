@@ -604,7 +604,7 @@ public class CryptoModuleParameters {
    * @param i
    *          The current byte being incremented
    */
-  private static void incrementIV(byte[] iv, int i) {
+  static void incrementIV(byte[] iv, int i) {
     iv[i]++;
     if (iv[i] == 0) {
       if (i != 0) {

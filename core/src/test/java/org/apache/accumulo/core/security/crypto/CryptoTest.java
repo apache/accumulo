@@ -396,6 +396,124 @@ public class CryptoTest {
     testDecryption(conf, encryptedBytes);
   }
 
+  @Test
+  public void testIVIncrements() {
+    // One byte
+    byte[] testIv1 = new byte[1];
+    testIv1[0] = (byte) 0xFE;
+    // 11111110
+
+    CryptoModuleParameters.incrementIV(testIv1, 0);
+    // 11111111
+
+    assertEquals(testIv1[0], (byte) 0xFF);
+    CryptoModuleParameters.incrementIV(testIv1, 0);
+    // 00000000
+    assertEquals(testIv1[0], (byte) 0x00);
+
+    // Two bytes
+    byte[] testIv2 = new byte[2];
+    testIv2[0] = (byte) 0x00;
+    testIv2[1] = (byte) 0xFE;
+    // 00000000 11111110
+
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    // 00000000 11111111
+    assertEquals(testIv2[0], (byte) 0x00);
+    assertEquals(testIv2[1], (byte) 0xFF);
+
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    // 00000001 00000000
+    assertEquals(testIv2[0], (byte) 0x01);
+    assertEquals(testIv2[1], (byte) 0x00);
+
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    // 00000001 00000001
+    assertEquals(testIv2[0], (byte) 0x01);
+    assertEquals(testIv2[1], (byte) 0x01);
+
+    testIv2[0] = (byte) 0xFF;
+    testIv2[1] = (byte) 0xFF;
+    // 11111111 11111111
+
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    // 00000000 00000000
+    assertEquals(testIv2[0], (byte) 0x00);
+    assertEquals(testIv2[1], (byte) 0x00);
+
+    // Three bytes
+    byte[] testIv3 = new byte[3];
+    testIv3[0] = (byte) 0x00;
+    testIv3[1] = (byte) 0x00;
+    testIv3[2] = (byte) 0xFE;
+    // 00000000 00000000 11111110
+
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    // 00000000 00000000 11111111
+    assertEquals(testIv3[0], (byte) 0x00);
+    assertEquals(testIv3[1], (byte) 0x00);
+    assertEquals(testIv3[2], (byte) 0xFF);
+
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    // 00000000 00000001 00000000
+    assertEquals(testIv3[0], (byte) 0x00);
+    assertEquals(testIv3[1], (byte) 0x01);
+    assertEquals(testIv3[2], (byte) 0x00);
+
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    // 00000000 00000001 00000001
+    assertEquals(testIv3[0], (byte) 0x00);
+    assertEquals(testIv3[1], (byte) 0x01);
+    assertEquals(testIv3[2], (byte) 0x01);
+
+    testIv3[0] = (byte) 0x00;
+    testIv3[1] = (byte) 0xFF;
+    testIv3[2] = (byte) 0xFE;
+    // 00000000 11111111 11111110
+
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    // 00000000 11111111 11111111
+    assertEquals(testIv3[0], (byte) 0x00);
+    assertEquals(testIv3[1], (byte) 0xFF);
+    assertEquals(testIv3[2], (byte) 0xFF);
+
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    // 00000001 00000000 00000000
+    assertEquals(testIv3[0], (byte) 0x01);
+    assertEquals(testIv3[1], (byte) 0x00);
+    assertEquals(testIv3[2], (byte) 0x00);
+
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    // 00000001 00000000 00000001
+    assertEquals(testIv3[0], (byte) 0x01);
+    assertEquals(testIv3[1], (byte) 0x00);
+    assertEquals(testIv3[2], (byte) 0x01);
+
+    testIv3[0] = (byte) 0xFF;
+    testIv3[1] = (byte) 0xFF;
+    testIv3[2] = (byte) 0xFE;
+    // 11111111 11111111 11111110
+
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    // 11111111 11111111 11111111
+    assertEquals(testIv3[0], (byte) 0xFF);
+    assertEquals(testIv3[1], (byte) 0xFF);
+    assertEquals(testIv3[2], (byte) 0xFF);
+
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    // 00000000 00000000 00000000
+    assertEquals(testIv3[0], (byte) 0x00);
+    assertEquals(testIv3[1], (byte) 0x00);
+    assertEquals(testIv3[2], (byte) 0x00);
+
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    // 00000000 00000000 00000001
+    assertEquals(testIv3[0], (byte) 0x00);
+    assertEquals(testIv3[1], (byte) 0x00);
+    assertEquals(testIv3[2], (byte) 0x01);
+
+  }
+
   /**
    * Used in AESGCM unit tests to encrypt data. Uses MARKER_STRING and MARKER_INT
    *
