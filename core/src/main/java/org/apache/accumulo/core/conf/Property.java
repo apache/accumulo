@@ -49,14 +49,13 @@ public enum Property {
           + "(future) other parts of the code."),
   @Experimental
   CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING,
-      "Describes the cipher suite to use for rfile encryption. If a WAL cipher suite is not set, it will default to this value. The suite should be in the "
-          + "form of algorithm/mode/padding, e.g. AES/CBC/NoPadding"),
+      "Describes the cipher suite to use for rfile encryption. The value must be either NullCipher or in the form of algorithm/mode/padding, "
+          + "e.g. AES/CBC/NoPadding"),
   @Experimental
-  CRYPTO_WAL_CIPHER_SUITE(
-      "crypto.wal.cipher.suite",
-      "NullCipher",
-      PropertyType.STRING,
-      "Describes the cipher suite to use for the write-ahead log. Defaults to 'cyrpto.cipher.suite' and will use that value for WAL encryption unless otherwise specified."),
+  CRYPTO_WAL_CIPHER_SUITE("crypto.wal.cipher.suite", "", PropertyType.STRING,
+      "Describes the cipher suite to use for the write-ahead log. Defaults to 'cyrpto.cipher.suite' "
+          + "and will use that value for WAL encryption unless otherwise specified. Valid suite values include: an empty string, NullCipher, or a string the "
+          + "form of algorithm/mode/padding, e.g. AES/CBC/NOPadding"),
   @Experimental
   CRYPTO_CIPHER_KEY_ALGORITHM_NAME("crypto.cipher.key.algorithm.name", "NullCipher", PropertyType.STRING,
       "States the name of the algorithm used for the key for the corresponding cipher suite. The key type must be compatible with the cipher suite."),
