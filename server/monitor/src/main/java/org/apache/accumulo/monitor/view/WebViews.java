@@ -63,13 +63,11 @@ public class WebViews {
     List<String> jsImports = new ArrayList<>();
     for (String cssURL : cssURLs) {
       if (!cssURL.isEmpty()) {
-        System.out.println("Got cssURL =" + cssURL);
         cssImports.add(cssURL);
       }
     }
     for (String jsURL : jsURLs) {
       if (!jsURL.isEmpty()) {
-        System.out.println("Got jsURL =" + jsURL);
         jsImports.add(jsURL);
       }
     }
