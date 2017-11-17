@@ -27,10 +27,10 @@
         <script src="${val}"></script>
       </#list>
     <#else>
-      <script src="/org/apache/accumulo/monitor/js/jquery/jquery-2.2.4.min.js"></script>
-      <script src="/org/apache/accumulo/monitor/js/bootstrap/bootstrap.min.js"></script>
-      <script src="/org/apache/accumulo/monitor/js/jquery/jquery-ui.js"></script>
-      <script src="/org/apache/accumulo/monitor/js/select2/select2.min.js"></script>
+      <script src="/resources/js/jquery/jquery-2.2.4.min.js"></script>
+      <script src="/resources/js/bootstrap/bootstrap.min.js"></script>
+      <script src="/resources/js/jquery/jquery-ui.js"></script>
+      <script src="/resources/js/select2/select2.min.js"></script>
     </#if>
 
     <!-- css imports -->
@@ -39,21 +39,21 @@
         <link rel="stylesheet" type="text/css" href="${val}" />
       </#list>
     <#else>
-      <link rel="stylesheet" href="/org/apache/accumulo/monitor/css/bootstrap/bootstrap.min.css" />
-      <link rel="stylesheet" href="/org/apache/accumulo/monitor/css/bootstrap/bootstrap-theme.min.css" />
-      <link rel="stylesheet" href="/org/apache/accumulo/monitor/css/jquery/jquery-ui.css" />
-      <link rel="stylesheet" href="/org/apache/accumulo/monitor/css/select2/select2.min.css" />
+      <link rel="stylesheet" href="/resources/css/bootstrap/bootstrap.min.css" />
+      <link rel="stylesheet" href="/resources/css/bootstrap/bootstrap-theme.min.css" />
+      <link rel="stylesheet" href="/resources/css/jquery/jquery-ui.css" />
+      <link rel="stylesheet" href="/resources/css/select2/select2.min.css" />
     </#if>
 
     <!-- accumulo resources -->
-    <link rel="shortcut icon" type="image/jng" href="/org/apache/accumulo/monitor/images/favicon.png" />
-    <script src="/org/apache/accumulo/monitor/js/global.js" type="text/javascript"></script>
-    <script src="/org/apache/accumulo/monitor/js/functions.js" type="text/javascript"></script>
-    <link rel="stylesheet" type="text/css" href="/org/apache/accumulo/monitor/css/screen.css" media="screen" />
+    <link rel="shortcut icon" type="image/jng" href="/resources/images/favicon.png" />
+    <script src="/resources/js/global.js" type="text/javascript"></script>
+    <script src="/resources/js/functions.js" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" href="/resources/css/screen.css" media="screen" />
 
     <!-- bundled flot resources -->
-    <script language="javascript" type="text/javascript" src="/org/apache/accumulo/monitor/js/flot/jquery.flot.js"></script>
-    <script language="javascript" type="text/javascript" src="/org/apache/accumulo/monitor/js/flot/jquery.flot.time.js"></script>
+    <script language="javascript" type="text/javascript" src="/resources/js/flot/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="/resources/js/flot/jquery.flot.time.js"></script>
 
     <script>
       /**
@@ -64,21 +64,21 @@
       });
     </script>
     <#if js??>
-      <script src="/org/apache/accumulo/monitor/js/${js}"></script>
+      <script src="/resources/js/${js}"></script>
     </#if>
-    <script src="/org/apache/accumulo/monitor/js/navbar.js"></script>
+    <script src="/resources/js/navbar.js"></script>
   </head>
 
   <body>
-    <#include "/org/apache/accumulo/monitor/templates/modals.ftl">
+    <#include "/resources/templates/modals.ftl">
     <div id="content-wrapper">
       <div id="content">
         <div id="navbar" class="navbar navbar-inverse navbar-fixed-top">
-          <#include "/org/apache/accumulo/monitor/templates/navbar.ftl">
+          <#include "/resources/templates/navbar.ftl">
         </div>
 
         <div id="main">
-          <#include "/org/apache/accumulo/monitor/templates/${template}">
+          <#include "/resources/templates/${template}">
 
         </div>
       </div>
