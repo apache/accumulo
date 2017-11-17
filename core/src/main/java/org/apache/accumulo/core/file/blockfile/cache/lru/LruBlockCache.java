@@ -30,7 +30,6 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
-import org.apache.accumulo.core.file.blockfile.cache.SynchronousLoadingBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 import org.apache.accumulo.core.util.NamingThreadFactory;
