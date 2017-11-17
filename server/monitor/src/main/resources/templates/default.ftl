@@ -70,15 +70,15 @@
   </head>
 
   <body>
-    <#include "/resources/templates/modals.ftl">
+    <#include "/templates/modals.ftl">
     <div id="content-wrapper">
       <div id="content">
         <div id="navbar" class="navbar navbar-inverse navbar-fixed-top">
-          <#include "/resources/templates/navbar.ftl">
+          <#include "/templates/navbar.ftl">
         </div>
 
         <div id="main">
-          <#include "/resources/templates/${template}">
+          <#include "/templates/${template}">
 
         </div>
       </div>
