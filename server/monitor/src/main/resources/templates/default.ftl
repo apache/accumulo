@@ -27,10 +27,10 @@
         <script src="${val}"></script>
       </#list>
     <#else>
-      <script src="/resources/js/jquery/jquery-2.2.4.min.js"></script>
-      <script src="/resources/js/bootstrap/bootstrap.min.js"></script>
-      <script src="/resources/js/jquery/jquery-ui.js"></script>
-      <script src="/resources/js/select2/select2.min.js"></script>
+      <script src="/resources/external/jquery-2.2.4.min.js"></script>
+      <script src="/resources/external/bootstrap.min.js"></script>
+      <script src="/resources/external/jquery-ui.js"></script>
+      <script src="/resources/external/select2.min.js"></script>
     </#if>
 
     <!-- css imports -->
@@ -39,10 +39,10 @@
         <link rel="stylesheet" type="text/css" href="${val}" />
       </#list>
     <#else>
-      <link rel="stylesheet" href="/resources/css/bootstrap/bootstrap.min.css" />
-      <link rel="stylesheet" href="/resources/css/bootstrap/bootstrap-theme.min.css" />
-      <link rel="stylesheet" href="/resources/css/jquery/jquery-ui.css" />
-      <link rel="stylesheet" href="/resources/css/select2/select2.min.css" />
+      <link rel="stylesheet" href="/resources/external/bootstrap.min.css" />
+      <link rel="stylesheet" href="/resources/external/bootstrap-theme.min.css" />
+      <link rel="stylesheet" href="/resources/external/jquery-ui.css" />
+      <link rel="stylesheet" href="/resources/external/select2.min.css" />
     </#if>
 
     <!-- accumulo resources -->
@@ -52,8 +52,8 @@
     <link rel="stylesheet" type="text/css" href="/resources/css/screen.css" media="screen" />
 
     <!-- bundled flot resources -->
-    <script language="javascript" type="text/javascript" src="/resources/js/flot/jquery.flot.js"></script>
-    <script language="javascript" type="text/javascript" src="/resources/js/flot/jquery.flot.time.js"></script>
+    <script language="javascript" type="text/javascript" src="/resources/external/flot/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="/resources/external/flot/jquery.flot.time.js"></script>
 
     <script>
       /**

@@ -137,13 +137,8 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/main/resources/resources/js/flot/*.js</exclude>
-              <exclude>src/main/resources/resources/js/jquery/*.js</exclude>
-              <exclude>src/main/resources/resources/js/bootstrap/*.js</exclude>
-              <exclude>src/main/resources/resources/js/select2/*.js</exclude>
-              <exclude>src/main/resources/resources/css/jquery/*.css</exclude>
-              <exclude>src/main/resources/resources/css/bootstrap/*.css</exclude>
-              <exclude>src/main/resources/resources/css/select2/*.css</exclude>
+              <exclude>src/main/resources/resources/external/*</exclude>
+              <exclude>src/main/resources/resources/external/flot/*</exclude>
             </excludes>
           </configuration>
         </plugin>
