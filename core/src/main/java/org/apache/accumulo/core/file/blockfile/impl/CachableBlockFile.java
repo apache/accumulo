@@ -147,7 +147,7 @@ public class CachableBlockFile {
   public static class Reader implements BlockFileReader {
     private final RateLimiter readLimiter;
     private BCFile.Reader _bc;
-    private String fileName = "not_available";
+    private final String fileName;
     private BlockCache _dCache = null;
     private BlockCache _iCache = null;
     private InputStream fin = null;
@@ -251,16 +251,18 @@ public class CachableBlockFile {
       this.readLimiter = readLimiter;
     }
 
-    public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len, Configuration conf, BlockCache data, BlockCache index,
-        AccumuloConfiguration accumuloConfiguration) throws IOException {
+    public <InputStreamType extends InputStream & Seekable> Reader(String cacheId, InputStreamType fsin, long len, Configuration conf, BlockCache data,
+        BlockCache index, AccumuloConfiguration accumuloConfiguration) throws IOException {
+      this.fileName = cacheId;
       this._dCache = data;
       this._iCache = index;
       this.readLimiter = null;
       init(fsin, len, conf, accumuloConfiguration);
     }
 
-    public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len, Configuration conf,
+    public <InputStreamType extends InputStream & Seekable> Reader(String cacheId, InputStreamType fsin, long len, Configuration conf,
         AccumuloConfiguration accumuloConfiguration) throws IOException {
+      this.fileName = cacheId;
       this.readLimiter = null;
       init(fsin, len, conf, accumuloConfiguration);
     }
