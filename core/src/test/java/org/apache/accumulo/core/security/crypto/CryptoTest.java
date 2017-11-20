@@ -47,6 +47,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -400,117 +401,96 @@ public class CryptoTest {
   public void testIVIncrements() {
     // One byte
     byte[] testIv1 = new byte[1];
-    testIv1[0] = (byte) 0xFE;
     // 11111110
-
-    CryptoModuleParameters.incrementIV(testIv1, 0);
+    testIv1[0] = (byte) 0xFE;
+    
     // 11111111
+    CryptoModuleParameters.incrementIV(testIv1, testIv1.length - 1);
+    Assert.assertArrayEquals(testIv1, new byte[] {(byte)0xff} );
 
-    assertEquals(testIv1[0], (byte) 0xFF);
-    CryptoModuleParameters.incrementIV(testIv1, 0);
     // 00000000
-    assertEquals(testIv1[0], (byte) 0x00);
+    CryptoModuleParameters.incrementIV(testIv1, testIv1.length - 1);
+    Assert.assertArrayEquals(testIv1, new byte[] {(byte)0x00});
 
     // Two bytes
     byte[] testIv2 = new byte[2];
+    // 00000000 11111110
     testIv2[0] = (byte) 0x00;
     testIv2[1] = (byte) 0xFE;
-    // 00000000 11111110
 
-    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
     // 00000000 11111111
-    assertEquals(testIv2[0], (byte) 0x00);
-    assertEquals(testIv2[1], (byte) 0xFF);
-
     CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    Assert.assertArrayEquals(testIv2, new byte[] {(byte)0x00, (byte)0xFF});
+
     // 00000001 00000000
-    assertEquals(testIv2[0], (byte) 0x01);
-    assertEquals(testIv2[1], (byte) 0x00);
-
     CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
-    // 00000001 00000001
-    assertEquals(testIv2[0], (byte) 0x01);
-    assertEquals(testIv2[1], (byte) 0x01);
+    Assert.assertArrayEquals(testIv2, new byte[] {(byte)0x01, (byte)0x00});
 
+    // 00000001 00000001
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    Assert.assertArrayEquals(testIv2, new byte[] {(byte)0x01, (byte)0x01});
+    
+    // 11111111 11111111
     testIv2[0] = (byte) 0xFF;
     testIv2[1] = (byte) 0xFF;
-    // 11111111 11111111
 
-    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
     // 00000000 00000000
-    assertEquals(testIv2[0], (byte) 0x00);
-    assertEquals(testIv2[1], (byte) 0x00);
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    Assert.assertArrayEquals(testIv2, new byte[] {(byte)0x00, (byte)0x00});
+    
 
     // Three bytes
     byte[] testIv3 = new byte[3];
+    // 00000000 00000000 11111110
     testIv3[0] = (byte) 0x00;
     testIv3[1] = (byte) 0x00;
     testIv3[2] = (byte) 0xFE;
-    // 00000000 00000000 11111110
 
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
     // 00000000 00000000 11111111
-    assertEquals(testIv3[0], (byte) 0x00);
-    assertEquals(testIv3[1], (byte) 0x00);
-    assertEquals(testIv3[2], (byte) 0xFF);
-
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    Assert.assertArrayEquals(testIv3, new byte[] {(byte)0x00, (byte)0x00, (byte)0xFF});
+
     // 00000000 00000001 00000000
-    assertEquals(testIv3[0], (byte) 0x00);
-    assertEquals(testIv3[1], (byte) 0x01);
-    assertEquals(testIv3[2], (byte) 0x00);
-
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    // 00000000 00000001 00000001
-    assertEquals(testIv3[0], (byte) 0x00);
-    assertEquals(testIv3[1], (byte) 0x01);
-    assertEquals(testIv3[2], (byte) 0x01);
+    Assert.assertArrayEquals(testIv3, new byte[] {(byte)0x00, (byte)0x01, (byte)0x00});
 
+    // 00000000 00000001 00000001
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    Assert.assertArrayEquals(testIv3, new byte[] {(byte)0x00, (byte)0x01, (byte)0x01});
+
+    // 00000000 11111111 11111110
     testIv3[0] = (byte) 0x00;
     testIv3[1] = (byte) 0xFF;
     testIv3[2] = (byte) 0xFE;
-    // 00000000 11111111 11111110
 
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
     // 00000000 11111111 11111111
-    assertEquals(testIv3[0], (byte) 0x00);
-    assertEquals(testIv3[1], (byte) 0xFF);
-    assertEquals(testIv3[2], (byte) 0xFF);
-
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    Assert.assertArrayEquals(testIv3, new byte[] {(byte)0x00, (byte)0xFF, (byte)0xFF});
+
     // 00000001 00000000 00000000
-    assertEquals(testIv3[0], (byte) 0x01);
-    assertEquals(testIv3[1], (byte) 0x00);
-    assertEquals(testIv3[2], (byte) 0x00);
-
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    // 00000001 00000000 00000001
-    assertEquals(testIv3[0], (byte) 0x01);
-    assertEquals(testIv3[1], (byte) 0x00);
-    assertEquals(testIv3[2], (byte) 0x01);
+    Assert.assertArrayEquals(testIv3, new byte[] {(byte)0x01, (byte)0x00, (byte)0x00});
 
+    // 00000001 00000000 00000001
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    Assert.assertArrayEquals(testIv3, new byte[] {(byte)0x01, (byte)0x00, (byte)0x01});
+
+    // 11111111 11111111 11111110
     testIv3[0] = (byte) 0xFF;
     testIv3[1] = (byte) 0xFF;
     testIv3[2] = (byte) 0xFE;
-    // 11111111 11111111 11111110
 
-    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
     // 11111111 11111111 11111111
-    assertEquals(testIv3[0], (byte) 0xFF);
-    assertEquals(testIv3[1], (byte) 0xFF);
-    assertEquals(testIv3[2], (byte) 0xFF);
-
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    Assert.assertArrayEquals(testIv3, new byte[] {(byte)0xFF, (byte)0xFF, (byte)0xFF});
+
     // 00000000 00000000 00000000
-    assertEquals(testIv3[0], (byte) 0x00);
-    assertEquals(testIv3[1], (byte) 0x00);
-    assertEquals(testIv3[2], (byte) 0x00);
-
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    Assert.assertArrayEquals(testIv3, new byte[] {(byte)0x00, (byte)0x00, (byte)0x00});
+
     // 00000000 00000000 00000001
-    assertEquals(testIv3[0], (byte) 0x00);
-    assertEquals(testIv3[1], (byte) 0x00);
-    assertEquals(testIv3[2], (byte) 0x01);
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    Assert.assertArrayEquals(testIv3, new byte[] {(byte)0x00, (byte)0x00, (byte)0x01});
 
   }
 
