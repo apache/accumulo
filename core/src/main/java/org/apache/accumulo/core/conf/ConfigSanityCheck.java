@@ -81,6 +81,8 @@ public class ConfigSanityCheck {
 
       if (key.equals(Property.CRYPTO_CIPHER_SUITE.getKey())) {
         cipherSuite = Objects.requireNonNull(value);
+        Preconditions.checkArgument(cipherSuite.equals("NullCipher") || cipherSuite.split("/").length == 3,
+            "Cipher suite must be NullCipher or in the form algorithm/mode/padding. Suite: " + cipherSuite + " is invalid.");
       }
 
       if (key.equals(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey())) {
