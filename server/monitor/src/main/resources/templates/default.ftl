@@ -20,25 +20,17 @@
     <meta http-equiv="Content-Type" content="test/html" />
     <meta http-equiv="Content-Script-Type" content="text/javascript" />
     <meta http-equiv="Content-Style-Type" content="text/css" />
-    <!-- script imports -->
+    <!-- monitor imports -->
     <!-- make sure jquery is included first - other scripts depend on it -->
-    <#if jsImports?has_content>
-      <#list jsImports as val>
-        <script src="${val}"></script>
+    <#if monitorImports?has_content>
+      <#list monitorImports as val>
+        ${val}
       </#list>
     <#else>
       <script src="/resources/external/jquery-2.2.4.min.js"></script>
       <script src="/resources/external/bootstrap.min.js"></script>
       <script src="/resources/external/jquery-ui.js"></script>
       <script src="/resources/external/select2.min.js"></script>
-    </#if>
-
-    <!-- css imports -->
-    <#if cssImports?has_content>
-      <#list cssImports as val>
-        <link rel="stylesheet" type="text/css" href="${val}" />
-      </#list>
-    <#else>
       <link rel="stylesheet" href="/resources/external/bootstrap.min.css" />
       <link rel="stylesheet" href="/resources/external/bootstrap-theme.min.css" />
       <link rel="stylesheet" href="/resources/external/jquery-ui.css" />

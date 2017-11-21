@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.monitor.view;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +31,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -38,6 +40,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.glassfish.jersey.server.mvc.Template;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  *
@@ -50,6 +56,8 @@ import org.glassfish.jersey.server.mvc.Template;
 @Produces(MediaType.TEXT_HTML)
 public class WebViews {
 
+  private static final Logger log = LoggerFactory.getLogger(WebViews.class);
+
   /**
    * Get urls for CSS and JS imports from configuration. See ACCUMULO-4739
    *
@@ -57,25 +65,23 @@ public class WebViews {
    */
   private void addImports(Map<String,Object> model) {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
-    String[] cssURLs = conf.get(Property.MONITOR_CSS_IMPORT_URLS).split(",");
-    String[] jsURLs = conf.get(Property.MONITOR_JS_IMPORT_URLS).split(",");
-    List<String> cssImports = new ArrayList<>();
-    List<String> jsImports = new ArrayList<>();
-    for (String cssURL : cssURLs) {
-      if (!cssURL.isEmpty()) {
-        cssImports.add(cssURL);
+    String imports = conf.get(Property.MONITOR_HEADER_IMPORTS);
+    List<String> monitorImports = new ArrayList<>();
+    ObjectMapper objectMapper = new ObjectMapper();
+    try {
+      for (MonitorImport monitorImport : objectMapper.readValue(imports, MonitorImport[].class)) {
+        monitorImports.add(monitorImport.generateHTML());
       }
+    } catch (IOException e) {
+      log.error("Error Monitor Imports config property {}: {}", Property.MONITOR_HEADER_IMPORTS, e);
+      return;
+    } catch (AccumuloException e) {
+      log.error("Problem with configured Monitor Imports, ignoring.", e);
+      return;
     }
-    for (String jsURL : jsURLs) {
-      if (!jsURL.isEmpty()) {
-        jsImports.add(jsURL);
-      }
-    }
-    if (!cssImports.isEmpty()) {
-      model.put("cssImports", cssImports);
-    }
-    if (!jsImports.isEmpty()) {
-      model.put("jsImports", jsImports);
+
+    if (!monitorImports.isEmpty()) {
+      model.put("monitorImports", monitorImports);
     }
   }
 
