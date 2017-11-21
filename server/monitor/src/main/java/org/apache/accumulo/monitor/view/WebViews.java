@@ -68,7 +68,7 @@ public class WebViews {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     String imports = conf.get(Property.MONITOR_HEADER_IMPORTS);
     if (StringUtils.isEmpty(imports))
-        return;
+      return;
     List<String> monitorImports = new ArrayList<>();
     ObjectMapper objectMapper = new ObjectMapper();
     try {
