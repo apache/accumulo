@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
+import org.apache.commons.lang.StringUtils;
 import org.glassfish.jersey.server.mvc.Template;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,13 +60,15 @@ public class WebViews {
   private static final Logger log = LoggerFactory.getLogger(WebViews.class);
 
   /**
-   * Get urls for CSS and JS imports from configuration. See ACCUMULO-4739
+   * Get HTML for CSS and JS imports from configuration. See ACCUMULO-4739
    *
    * @param model map of the MVC model
    */
   private void addImports(Map<String,Object> model) {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     String imports = conf.get(Property.MONITOR_HEADER_IMPORTS);
+    if (StringUtils.isEmpty(imports))
+        return;
     List<String> monitorImports = new ArrayList<>();
     ObjectMapper objectMapper = new ObjectMapper();
     try {
@@ -79,7 +82,6 @@ public class WebViews {
       log.error("Problem with configured Monitor Imports, ignoring.", e);
       return;
     }
-
     if (!monitorImports.isEmpty()) {
       model.put("monitorImports", monitorImports);
     }
