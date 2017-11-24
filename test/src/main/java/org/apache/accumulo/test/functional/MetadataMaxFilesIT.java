@@ -93,7 +93,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       Client client = null;
       try {
         ClientContext context = new ClientContext(c.getInstance(), creds, getClientConfig());
-        client = MasterClient.getConnectionWithRetry(context);
+        client = MasterClient.getConnectionWithRetry(context, 0);
         log.info("Fetching stats");
         stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } catch (ThriftNotActiveServiceException e) {

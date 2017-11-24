@@ -41,12 +41,17 @@ import org.slf4j.LoggerFactory;
 public class MasterClient {
   private static final Logger log = LoggerFactory.getLogger(MasterClient.class);
 
-  public static MasterClientService.Client getConnectionWithRetry(ClientContext context) {
+  public static MasterClientService.Client getConnectionWithRetry(ClientContext context, int numberOfRetries) {
+    int counter = 0;
     while (true) {
 
       MasterClientService.Client result = getConnection(context);
       if (result != null)
         return result;
+      if (numberOfRetries > 0 && numberOfRetries < counter) {
+        return null;
+      }
+      counter++;
       sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
     }
   }
@@ -94,7 +99,7 @@ public class MasterClient {
     MasterClientService.Client client = null;
     while (true) {
       try {
-        client = getConnectionWithRetry(context);
+        client = getConnectionWithRetry(context, 0);
         return exec.execute(client);
       } catch (TTransportException tte) {
         log.debug("MasterClient request failed, retrying ... ", tte);
@@ -125,12 +130,12 @@ public class MasterClient {
     }
   }
 
-  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException {
+  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec, int numberOfConnectionRetries)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     MasterClientService.Client client = null;
     while (true) {
       try {
-        client = getConnectionWithRetry(context);
+        client = getConnectionWithRetry(context, numberOfConnectionRetries);
         exec.execute(client);
         break;
       } catch (TTransportException tte) {
@@ -163,13 +168,13 @@ public class MasterClient {
 
   public static void executeTable(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    executeGeneric(context, exec);
+    executeGeneric(context, exec, 0);
   }
 
   public static void executeNamespace(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
       NamespaceNotFoundException {
     try {
-      executeGeneric(context, exec);
+      executeGeneric(context, exec, 0);
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException)
         throw (NamespaceNotFoundException) e.getCause();
@@ -178,9 +183,19 @@ public class MasterClient {
 
   public static void executeVoid(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
-      executeGeneric(context, exec);
+      executeGeneric(context, exec, 0);
     } catch (TableNotFoundException e) {
       throw new AssertionError(e);
     }
   }
+
+  public static void executeVoidWithConnRetry(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException,
+      AccumuloSecurityException {
+    try {
+      executeGeneric(context, exec, 10);
+    } catch (TableNotFoundException e) {
+      throw new AssertionError(e);
+    }
+  }
+
 }

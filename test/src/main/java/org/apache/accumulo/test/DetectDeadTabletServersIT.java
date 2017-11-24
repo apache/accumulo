@@ -89,7 +89,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
     Client client = null;
     while (true) {
       try {
-        client = MasterClient.getConnectionWithRetry(context);
+        client = MasterClient.getConnectionWithRetry(context, 0);
         log.info("Fetching master stats");
         return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } catch (ThriftNotActiveServiceException e) {

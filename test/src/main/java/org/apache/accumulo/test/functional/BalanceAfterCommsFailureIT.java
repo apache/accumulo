@@ -109,7 +109,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       MasterClientService.Iface client = null;
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(context);
+          client = MasterClient.getConnectionWithRetry(context, 0);
           stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
           break;
         } catch (ThriftNotActiveServiceException e) {

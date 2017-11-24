@@ -354,12 +354,8 @@ public class Admin implements KeywordExecutable {
   }
 
   private static void stopServer(final ClientContext context, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
-    MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
-      @Override
-      public void execute(MasterClientService.Client client) throws Exception {
-        client.shutdown(Tracer.traceInfo(), context.rpcCreds(), tabletServersToo);
-      }
-    });
+    MasterClient.executeVoidWithConnRetry(context,
+            client -> client.shutdown(Tracer.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
   private static void stopTabletServer(final ClientContext context, List<String> servers, final boolean force) throws AccumuloException,

@@ -158,7 +158,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       Instance instance = new ZooKeeperInstance(cluster.getClientConfig());
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(new ClientContext(instance, creds, cluster.getClientConfig()));
+          client = MasterClient.getConnectionWithRetry(new ClientContext(instance, creds, cluster.getClientConfig()), 0);
           stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(instance));
           break;
         } catch (ThriftSecurityException exception) {
