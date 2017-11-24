@@ -46,9 +46,11 @@ public class MasterClient {
     while (true) {
 
       MasterClientService.Client result = getConnection(context);
-      if (result != null)
+      if (result != null){
         return result;
-      if (numberOfRetries > 0 && numberOfRetries < counter) {
+      }
+      if (numberOfRetries != 0 && numberOfRetries > counter) {
+        log.error("Could not get a client on time.");
         return null;
       }
       counter++;
