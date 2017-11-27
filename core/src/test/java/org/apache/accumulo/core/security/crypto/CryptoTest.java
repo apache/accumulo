@@ -17,8 +17,11 @@
 
 package org.apache.accumulo.core.security.crypto;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -47,7 +50,6 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -199,7 +201,7 @@ public class CryptoTest {
     InputStream plaintextIn = params.getPlaintextInputStream();
 
     assertNotNull(plaintextIn);
-    assertTrue(plaintextIn != in);
+    assertNotSame(plaintextIn, in);
     DataInputStream dataIn = new DataInputStream(plaintextIn);
     String markerString = dataIn.readUTF();
     int markerInt = dataIn.readInt();
@@ -216,7 +218,7 @@ public class CryptoTest {
     params = cryptoModule.getEncryptingOutputStream(params);
 
     assertNotNull(params.getEncryptedOutputStream());
-    assertTrue(params.getEncryptedOutputStream() != out);
+    assertNotSame(params.getEncryptedOutputStream(), out);
 
     DataOutputStream dataOut = new DataOutputStream(params.getEncryptedOutputStream());
     dataOut.writeUTF(MARKER_STRING);
@@ -230,8 +232,8 @@ public class CryptoTest {
     String stringifiedOtherBytes = getStringifiedBytes(MARKER_INT);
 
     // OK, let's make sure it's encrypted
-    assertTrue(!stringifiedBytes.contains(stringifiedMarkerBytes));
-    assertTrue(!stringifiedBytes.contains(stringifiedOtherBytes));
+    assertFalse(stringifiedBytes.contains(stringifiedMarkerBytes));
+    assertFalse(stringifiedBytes.contains(stringifiedOtherBytes));
     return resultingBytes;
   }
 
@@ -362,16 +364,16 @@ public class CryptoTest {
 
     byte[] wrappedKey = keyWrapCipher.wrap(randKey);
 
-    Assert.assertTrue(wrappedKey != null);
+    assertNotNull(wrappedKey);
     // AESWrap will produce 24 bytes given 128 bits of key data with a 128-bit KEK
-    Assert.assertTrue(wrappedKey.length == randomKey.length + 8);
+    assertEquals(wrappedKey.length, randomKey.length + 8);
 
     Cipher keyUnwrapCipher = Cipher.getInstance("AESWrap/ECB/NoPadding");
     keyUnwrapCipher.init(Cipher.UNWRAP_MODE, new SecretKeySpec(kek, "AES"));
     Key unwrappedKey = keyUnwrapCipher.unwrap(wrappedKey, "AES", Cipher.SECRET_KEY);
 
     byte[] unwrappedKeyBytes = unwrappedKey.getEncoded();
-    Assert.assertTrue(Arrays.equals(unwrappedKeyBytes, randomKey));
+    assertArrayEquals(unwrappedKeyBytes, randomKey);
 
   }
 
@@ -380,7 +382,7 @@ public class CryptoTest {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
     byte[] encryptedBytes = testEncryption(conf, new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20});
     Integer result = testDecryption(conf, encryptedBytes);
-    Assert.assertTrue(result.equals(1));
+    assertEquals(result, Integer.valueOf(1));
   }
 
   @Test
@@ -406,11 +408,11 @@ public class CryptoTest {
 
     // 11111111
     CryptoModuleParameters.incrementIV(testIv1, testIv1.length - 1);
-    Assert.assertArrayEquals(testIv1, new byte[] {(byte) 0xff});
+    assertArrayEquals(testIv1, new byte[] {(byte) 0xff});
 
     // 00000000
     CryptoModuleParameters.incrementIV(testIv1, testIv1.length - 1);
-    Assert.assertArrayEquals(testIv1, new byte[] {(byte) 0x00});
+    assertArrayEquals(testIv1, new byte[] {(byte) 0x00});
 
     // Two bytes
     byte[] testIv2 = new byte[2];
@@ -420,15 +422,15 @@ public class CryptoTest {
 
     // 00000000 11111111
     CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
-    Assert.assertArrayEquals(testIv2, new byte[] {(byte) 0x00, (byte) 0xFF});
+    assertArrayEquals(testIv2, new byte[] {(byte) 0x00, (byte) 0xFF});
 
     // 00000001 00000000
     CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
-    Assert.assertArrayEquals(testIv2, new byte[] {(byte) 0x01, (byte) 0x00});
+    assertArrayEquals(testIv2, new byte[] {(byte) 0x01, (byte) 0x00});
 
     // 00000001 00000001
     CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
-    Assert.assertArrayEquals(testIv2, new byte[] {(byte) 0x01, (byte) 0x01});
+    assertArrayEquals(testIv2, new byte[] {(byte) 0x01, (byte) 0x01});
 
     // 11111111 11111111
     testIv2[0] = (byte) 0xFF;
@@ -436,7 +438,7 @@ public class CryptoTest {
 
     // 00000000 00000000
     CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
-    Assert.assertArrayEquals(testIv2, new byte[] {(byte) 0x00, (byte) 0x00});
+    assertArrayEquals(testIv2, new byte[] {(byte) 0x00, (byte) 0x00});
 
     // Three bytes
     byte[] testIv3 = new byte[3];
@@ -447,15 +449,15 @@ public class CryptoTest {
 
     // 00000000 00000000 11111111
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    Assert.assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0xFF});
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0xFF});
 
     // 00000000 00000001 00000000
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    Assert.assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x01, (byte) 0x00});
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x01, (byte) 0x00});
 
     // 00000000 00000001 00000001
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    Assert.assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x01, (byte) 0x01});
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x01, (byte) 0x01});
 
     // 00000000 11111111 11111110
     testIv3[0] = (byte) 0x00;
@@ -464,15 +466,15 @@ public class CryptoTest {
 
     // 00000000 11111111 11111111
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    Assert.assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0xFF, (byte) 0xFF});
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0xFF, (byte) 0xFF});
 
     // 00000001 00000000 00000000
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    Assert.assertArrayEquals(testIv3, new byte[] {(byte) 0x01, (byte) 0x00, (byte) 0x00});
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x01, (byte) 0x00, (byte) 0x00});
 
     // 00000001 00000000 00000001
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    Assert.assertArrayEquals(testIv3, new byte[] {(byte) 0x01, (byte) 0x00, (byte) 0x01});
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x01, (byte) 0x00, (byte) 0x01});
 
     // 11111111 11111111 11111110
     testIv3[0] = (byte) 0xFF;
@@ -481,15 +483,15 @@ public class CryptoTest {
 
     // 11111111 11111111 11111111
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    Assert.assertArrayEquals(testIv3, new byte[] {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF});
+    assertArrayEquals(testIv3, new byte[] {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF});
 
     // 00000000 00000000 00000000
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    Assert.assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0x00});
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0x00});
 
     // 00000000 00000000 00000001
     CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
-    Assert.assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0x01});
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0x01});
 
   }
 
