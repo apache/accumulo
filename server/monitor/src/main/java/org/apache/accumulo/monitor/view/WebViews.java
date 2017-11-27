@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.monitor.view;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,9 +34,16 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
+import org.apache.commons.lang.StringUtils;
 import org.glassfish.jersey.server.mvc.Template;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  *
@@ -47,12 +56,40 @@ import org.glassfish.jersey.server.mvc.Template;
 @Produces(MediaType.TEXT_HTML)
 public class WebViews {
 
+  private static final Logger log = LoggerFactory.getLogger(WebViews.class);
+
+  /**
+   * Get HTML for CSS and JS imports from configuration. See ACCUMULO-4739
+   *
+   * @param model map of the MVC model
+   */
+  private void addExternalResources(Map<String,Object> model) {
+    AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
+    String imports = conf.get(Property.MONITOR_RESOURCES_EXTERNAL);
+    if (StringUtils.isEmpty(imports))
+      return;
+    List<String> monitorResources = new ArrayList<>();
+    ObjectMapper objectMapper = new ObjectMapper();
+    try {
+      for (String monitorResource : objectMapper.readValue(imports, String[].class)) {
+        monitorResources.add(monitorResource);
+      }
+    } catch (IOException e) {
+      log.error("Error Monitor Resources config property {}: {}", Property.MONITOR_RESOURCES_EXTERNAL, e);
+      return;
+    }
+    if (!monitorResources.isEmpty()) {
+      model.put("externalResources", monitorResources);
+    }
+  }
+
   private Map<String,Object> getModel() {
 
     Map<String,Object> model = new HashMap<>();
     model.put("version", Constants.VERSION);
     model.put("instance_name", Monitor.cachedInstanceName.get());
     model.put("instance_id", Monitor.getContext().getInstance().getInstanceID());
+    addExternalResources(model);
     return model;
   }
 

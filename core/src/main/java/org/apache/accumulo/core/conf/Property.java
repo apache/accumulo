@@ -428,6 +428,11 @@ public enum Property {
       "The amount of time to sleep between checking for the Montior ZooKeeper lock"),
   MONITOR_LOG_DATE_FORMAT("monitor.log.date.format", "yyyy/MM/dd HH:mm:ss,SSS", PropertyType.STRING, "The SimpleDateFormat string used to configure "
       + "the date shown on the 'Recent Logs' monitor page"),
+  MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
+      "A JSON Map of Strings. Each String should be an HTML tag of an external resource (JS or CSS) to be imported by the Monitor. \n"
+          + "Be sure to wrap with CDATA tags. If this value is set, all of the external resources in the <head> tag of the Monitor will be replaced with \n"
+          + "the tags set here. Be sure the jquery tag is first since other scripts will depend on it. The resources that are used by default "
+          + "can be seen in accumulo/server/monitor/src/main/resources/templates/default.ftl"),
 
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient", PropertyType.CLASSNAMELIST,
