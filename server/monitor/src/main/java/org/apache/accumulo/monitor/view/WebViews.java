@@ -31,7 +31,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -66,20 +65,17 @@ public class WebViews {
    */
   private void addImports(Map<String,Object> model) {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
-    String imports = conf.get(Property.MONITOR_HEADER_IMPORTS);
+    String imports = conf.get(Property.MONITOR_RESOURCES_EXTERNAL);
     if (StringUtils.isEmpty(imports))
       return;
     List<String> monitorImports = new ArrayList<>();
     ObjectMapper objectMapper = new ObjectMapper();
     try {
-      for (MonitorImport monitorImport : objectMapper.readValue(imports, MonitorImport[].class)) {
-        monitorImports.add(monitorImport.generateHTML());
+      for (String monitorResource : objectMapper.readValue(imports, String[].class)) {
+        monitorImports.add(monitorResource);
       }
     } catch (IOException e) {
-      log.error("Error Monitor Imports config property {}: {}", Property.MONITOR_HEADER_IMPORTS, e);
-      return;
-    } catch (AccumuloException e) {
-      log.error("Problem with configured Monitor Imports, ignoring.", e);
+      log.error("Error Monitor Resources config property {}: {}", Property.MONITOR_RESOURCES_EXTERNAL, e);
       return;
     }
     if (!monitorImports.isEmpty()) {

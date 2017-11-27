@@ -417,7 +417,8 @@ public enum Property {
       "The amount of time to sleep between checking for the Montior ZooKeeper lock"),
   MONITOR_LOG_DATE_FORMAT("monitor.log.date.format", "yyyy/MM/dd HH:mm:ss,SSS", PropertyType.STRING, "The SimpleDateFormat string used to configure "
       + "the date shown on the 'Recent Logs' monitor page"),
-  MONITOR_HEADER_IMPORTS("monitor.header.imports", "", PropertyType.STRING, "JSON list of CSS and JS files to be imported."),
+  MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
+      "JSON list of HTML tags of external resources (JS and CSS) to be imported by the Monitor. Be sure to wrap with CDATA tags."),
 
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient", PropertyType.CLASSNAMELIST,
