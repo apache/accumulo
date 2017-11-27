@@ -63,23 +63,23 @@ public class WebViews {
    *
    * @param model map of the MVC model
    */
-  private void addImports(Map<String,Object> model) {
+  private void addExternalResources(Map<String,Object> model) {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     String imports = conf.get(Property.MONITOR_RESOURCES_EXTERNAL);
     if (StringUtils.isEmpty(imports))
       return;
-    List<String> monitorImports = new ArrayList<>();
+    List<String> monitorResources = new ArrayList<>();
     ObjectMapper objectMapper = new ObjectMapper();
     try {
       for (String monitorResource : objectMapper.readValue(imports, String[].class)) {
-        monitorImports.add(monitorResource);
+        monitorResources.add(monitorResource);
       }
     } catch (IOException e) {
       log.error("Error Monitor Resources config property {}: {}", Property.MONITOR_RESOURCES_EXTERNAL, e);
       return;
     }
-    if (!monitorImports.isEmpty()) {
-      model.put("monitorImports", monitorImports);
+    if (!monitorResources.isEmpty()) {
+      model.put("externalResources", monitorResources);
     }
   }
 
@@ -89,7 +89,7 @@ public class WebViews {
     model.put("version", Constants.VERSION);
     model.put("instance_name", Monitor.cachedInstanceName.get());
     model.put("instance_id", Monitor.getContext().getInstance().getInstanceID());
-    addImports(model);
+    addExternalResources(model);
     return model;
   }
 

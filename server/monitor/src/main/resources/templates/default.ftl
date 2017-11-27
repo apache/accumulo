@@ -20,10 +20,10 @@
     <meta http-equiv="Content-Type" content="test/html" />
     <meta http-equiv="Content-Script-Type" content="text/javascript" />
     <meta http-equiv="Content-Style-Type" content="text/css" />
-    <!-- monitor imports -->
+    <!-- external resources configurable by setting monitor.resources.external -->
     <!-- make sure jquery is included first - other scripts depend on it -->
-    <#if monitorImports?has_content>
-      <#list monitorImports as val>
+    <#if externalResources?has_content>
+      <#list externalResources as val>
         ${val}
       </#list>
     <#else>

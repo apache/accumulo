@@ -30,7 +30,6 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>${jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.auto.service</groupId>
@@ -142,8 +141,7 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/main/resources/resources/external/*</exclude>
-              <exclude>src/main/resources/resources/external/flot/*</exclude>
+              <exclude>src/main/resources/resources/external/**/*</exclude>
             </excludes>
           </configuration>
         </plugin>
