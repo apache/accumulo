@@ -184,7 +184,7 @@ function populateTable(ns) {
 
         var row = [];
         row.push(createFirstCell(val.tablename,
-            '<a href="/tables/' + val.tableId + '">' + val.tablename + '</a>'));
+            '<a href="/tables/' + atob(val.tableId.utf8) + '">' + val.tablename + '</a>'));
 
         row.push(createCenterCell(val.tableState,
             '<span>' + val.tableState + '</span>'));
