@@ -130,6 +130,7 @@ public class WebViewsTest extends JerseyTest {
   /**
    * Silly stub to handle MessageBodyWriter for Hashmap. Registered in configure method and auto-wired by Jersey.
    */
+  @SuppressWarnings("rawtypes")
   public static class HashMapWriter implements MessageBodyWriter<HashMap> {
     @Override
     public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
