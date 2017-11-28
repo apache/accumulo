@@ -175,9 +175,8 @@ public class TableManager {
               transition = false;
               break;
           }
-          if (!transition) {
+          if (!transition)
             throw new IllegalTableTransitionException(oldState, newState);
-          }
           log.debug("Transitioning state for table " + tableId + " from " + oldState + " to " + newState);
           return newState.name().getBytes(UTF_8);
         }
