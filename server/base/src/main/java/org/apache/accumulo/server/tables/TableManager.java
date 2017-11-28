@@ -115,10 +115,21 @@ public class TableManager {
 
     final TableState oldState;
     final TableState newState;
+    final String message;
 
     public IllegalTableTransitionException(TableState oldState, TableState newState) {
+      this(oldState, newState, "");
+    }
+
+    public IllegalTableTransitionException(TableState oldState, TableState newState, String message) {
       this.oldState = oldState;
       this.newState = newState;
+
+      String defaultMessage = "Error transitioning from " + oldState + " state to " + newState + " state";
+      if (message != null && !message.isEmpty())
+        this.message = message;
+      else
+        this.message = defaultMessage;
     }
 
     public TableState getOldState() {
@@ -127,6 +138,11 @@ public class TableManager {
 
     public TableState getNewState() {
       return newState;
+    }
+
+    @Override
+    public String getMessage() {
+      return message;
     }
 
   }
@@ -159,14 +175,15 @@ public class TableManager {
               transition = false;
               break;
           }
-          if (!transition)
+          if (!transition) {
             throw new IllegalTableTransitionException(oldState, newState);
+          }
           log.debug("Transitioning state for table " + tableId + " from " + oldState + " to " + newState);
           return newState.name().getBytes(UTF_8);
         }
       });
     } catch (Exception e) {
-      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compability
+      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       log.error("FATAL Failed to transition table to state " + newState);
       throw new RuntimeException(e);
     }
