@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor.view;
+package org.apache.accumulo.test.monitor;
 
 import static org.easymock.EasyMock.expect;
-import static org.powermock.api.easymock.PowerMock.mockStatic;
-import static org.powermock.api.easymock.PowerMock.replayAll;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -38,7 +36,9 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.monitor.Monitor;
+import org.apache.accumulo.monitor.view.WebViews;
 import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.easymock.EasyMock;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -46,30 +46,33 @@ import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 /**
- * Basic unit test for parameter validation constraints
+ * Basic tests for parameter validation constraints
  */
+@Category(SunnyDayTests.class)
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({Monitor.class, Tables.class})
-public class WebViewsTest extends JerseyTest {
+public class WebViewsIT extends JerseyTest {
 
   @Override
   public Application configure() {
     enable(TestProperties.LOG_TRAFFIC);
     enable(TestProperties.DUMP_ENTITY);
     ResourceConfig config = new ResourceConfig(WebViews.class);
-    config.register(org.apache.accumulo.monitor.view.WebViewsTest.HashMapWriter.class);
+    config.register(WebViewsIT.HashMapWriter.class);
     return config;
   }
 
   @Override
   protected void configureClient(ClientConfig config) {
     super.configureClient(config);
-    config.register(org.apache.accumulo.monitor.view.WebViewsTest.HashMapWriter.class);
+    config.register(WebViewsIT.HashMapWriter.class);
   }
 
   /**
@@ -99,12 +102,12 @@ public class WebViewsTest extends JerseyTest {
     expect(contextMock.getInstance()).andReturn(instanceMock).anyTimes();
     expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    mockStatic(Monitor.class);
+    PowerMock.mockStatic(Monitor.class);
     expect(Monitor.getContext()).andReturn(contextMock).anyTimes();
 
-    mockStatic(Tables.class);
+    PowerMock.mockStatic(Tables.class);
     expect(Tables.getTableName(instanceMock, Table.ID.of("foo"))).andReturn("bar");
-    replayAll();
+    PowerMock.replayAll();
     org.easymock.EasyMock.replay(instanceMock, contextMock);
 
     // Using the mocks we can verify that the getModel method gets called via debugger
@@ -133,20 +136,19 @@ public class WebViewsTest extends JerseyTest {
   /**
    * Silly stub to handle MessageBodyWriter for Hashmap. Registered in configure method and auto-wired by Jersey.
    */
-  @SuppressWarnings("rawtypes")
-  public static class HashMapWriter implements MessageBodyWriter<HashMap> {
+  public static class HashMapWriter implements MessageBodyWriter<HashMap<?,?>> {
     @Override
     public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
       return true;
     }
 
     @Override
-    public long getSize(HashMap hashMap, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
+    public long getSize(HashMap<?,?> hashMap, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
       return 0;
     }
 
     @Override
-    public void writeTo(HashMap hashMap, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType,
+    public void writeTo(HashMap<?,?> hashMap, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType,
         MultivaluedMap<String,Object> httpHeaders, OutputStream entityStream) throws IOException, WebApplicationException {
       String s = hashMap.toString();
       entityStream.write(s.getBytes());
