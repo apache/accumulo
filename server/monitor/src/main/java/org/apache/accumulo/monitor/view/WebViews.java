@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.monitor.view;
 
+import static org.apache.commons.lang.StringUtils.isEmpty;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +40,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.commons.lang.StringUtils;
 import org.glassfish.jersey.server.mvc.Template;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,19 +60,20 @@ public class WebViews {
   private static final Logger log = LoggerFactory.getLogger(WebViews.class);
 
   /**
-   * Get HTML for CSS and JS imports from configuration. See ACCUMULO-4739
+   * Get HTML for external CSS and JS resources from configuration. See ACCUMULO-4739
    *
-   * @param model map of the MVC model
+   * @param model
+   *          map of the MVC model
    */
   private void addExternalResources(Map<String,Object> model) {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
-    String imports = conf.get(Property.MONITOR_RESOURCES_EXTERNAL);
-    if (StringUtils.isEmpty(imports))
+    String resourcesProperty = conf.get(Property.MONITOR_RESOURCES_EXTERNAL);
+    if (isEmpty(resourcesProperty))
       return;
     List<String> monitorResources = new ArrayList<>();
     ObjectMapper objectMapper = new ObjectMapper();
     try {
-      for (String monitorResource : objectMapper.readValue(imports, String[].class)) {
+      for (String monitorResource : objectMapper.readValue(resourcesProperty, String[].class)) {
         monitorResources.add(monitorResource);
       }
     } catch (IOException e) {
