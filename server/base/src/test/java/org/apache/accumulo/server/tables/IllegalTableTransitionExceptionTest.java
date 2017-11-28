@@ -49,6 +49,15 @@ public class IllegalTableTransitionExceptionTest {
   }
 
   @Test
+  public void testIllegalTableTransitionExceptionWithNull() {
+    try {
+      throw new TableManager.IllegalTableTransitionException(oldState, newState, null);
+    } catch (IllegalTableTransitionException e) {
+      assertEquals(defaultMsg, e.getMessage());
+    }
+  }
+
+  @Test
   public void testIllegalTableTransitionExceptionEmptyMessage() {
     try {
       throw new TableManager.IllegalTableTransitionException(oldState, newState, "");
