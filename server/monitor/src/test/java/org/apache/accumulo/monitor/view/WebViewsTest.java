@@ -36,6 +36,7 @@ import javax.ws.rs.ext.MessageBodyWriter;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.easymock.EasyMock;
@@ -83,8 +84,9 @@ public class WebViewsTest extends JerseyTest {
 
   /**
    * Test path tables/{tableID} which passes constraints. On passing constraints underlying logic will be executed so we need to mock a certain amount of it.
-   * Note: to get the proper response code back, you need to make sure jersey has a registered MessageBodyWriter capable of serializing/writing the object
-   * returned from your endpoint. We're using a simple stubbed out inner class HashMapWriter for this.
+   * Note: If you get test failures here due to 500 server response, it's likely an underlying class or method call was added/modified and needs mocking. Note:
+   * To get the proper response code back, you need to make sure jersey has a registered MessageBodyWriter capable of serializing/writing the object returned
+   * from your endpoint. We're using a simple stubbed out inner class HashMapWriter for this.
    *
    * @throws Exception
    *           not expected
@@ -95,6 +97,7 @@ public class WebViewsTest extends JerseyTest {
     expect(instanceMock.getInstanceID()).andReturn("foo").anyTimes();
     AccumuloServerContext contextMock = EasyMock.createMock(AccumuloServerContext.class);
     expect(contextMock.getInstance()).andReturn(instanceMock).anyTimes();
+    expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
     mockStatic(Monitor.class);
     expect(Monitor.getContext()).andReturn(contextMock).anyTimes();
