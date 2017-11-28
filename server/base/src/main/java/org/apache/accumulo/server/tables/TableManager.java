@@ -125,11 +125,12 @@ public class TableManager {
       this.oldState = oldState;
       this.newState = newState;
 
-      String defaultMessage = "Error transitioning from " + oldState + " state to " + newState + " state";
       if (message != null && !message.isEmpty())
         this.message = message;
-      else
+      else {
+        String defaultMessage = "Error transitioning from " + oldState + " state to " + newState + " state";
         this.message = defaultMessage;
+      }
     }
 
     public TableState getOldState() {
