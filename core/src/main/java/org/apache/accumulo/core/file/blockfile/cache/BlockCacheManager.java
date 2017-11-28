@@ -30,7 +30,7 @@ public abstract class BlockCacheManager {
 
   private final Map<CacheType,BlockCache> caches = new HashMap<>();
 
-  public static final String CACHE_PROPERTY_BASE = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.";
+  public static final String CACHE_PROPERTY_BASE = Property.TSERV_PREFIX + "cache.";
 
   public static interface Configuration {
 
