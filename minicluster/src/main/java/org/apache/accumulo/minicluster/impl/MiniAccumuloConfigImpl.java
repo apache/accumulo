@@ -64,7 +64,7 @@ public class MiniAccumuloConfigImpl {
   private File zooKeeperDir;
   private File accumuloDir;
   private File logDir;
-  private File walogDir;
+  //private File walogDir;
 
   private int zooKeeperPort = 0;
   private int configuredZooKeeperPort = 0;
@@ -125,7 +125,7 @@ public class MiniAccumuloConfigImpl {
       accumuloDir = new File(dir, "accumulo");
       zooKeeperDir = new File(dir, "zookeeper");
       logDir = new File(dir, "logs");
-      walogDir = new File(dir, "walogs");
+      //walogDir = new File(dir, "walogs");
 
       // Never want to override these if an existing instance, which may be using the defaults
       if (existingInstance == null || !existingInstance) {
@@ -445,9 +445,9 @@ public class MiniAccumuloConfigImpl {
     return logDir;
   }
 
-  File getWalogDir() {
+  /*File getWalogDir() {
     return walogDir;
-  }
+  }*/
 
   /**
    * @param serverType
