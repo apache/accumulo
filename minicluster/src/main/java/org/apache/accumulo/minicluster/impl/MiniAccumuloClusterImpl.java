@@ -396,7 +396,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (!config.useExistingInstance()) {
       if (!config.useExistingZooKeepers())
         mkdirs(config.getZooKeeperDir());
-      //mkdirs(config.getWalogDir());
       mkdirs(config.getAccumuloDir());
     }
 
