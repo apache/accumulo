@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.monitor.rest.tables;
 
+import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 
 /**
@@ -72,9 +73,9 @@ public class TableInformation {
    * @param tableState
    *          State of the table
    */
-  public TableInformation(String tableName, String tableId, String tableState) {
+  public TableInformation(String tableName, Table.ID tableId, String tableState) {
     this.tablename = tableName;
-    this.tableId = tableId;
+    this.tableId = tableId.canonicalID();
     this.tableState = tableState;
   }
 
@@ -92,9 +93,9 @@ public class TableInformation {
    * @param tableState
    *          State of the table
    */
-  public TableInformation(String tableName, String tableId, TableInfo info, Double holdTime, String tableState) {
+  public TableInformation(String tableName, Table.ID tableId, TableInfo info, Double holdTime, String tableState) {
     this.tablename = tableName;
-    this.tableId = tableId;
+    this.tableId = tableId.canonicalID();
 
     this.tablets = info.tablets;
     this.offlineTablets = info.tablets - info.onlineTablets;

@@ -112,7 +112,6 @@ public class TablesResource {
     for (Entry<String,Table.ID> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
       String tableName = entry.getKey();
       Table.ID tableId = entry.getValue();
-      String canonicalTableId = tableId.canonicalID();
       TableInfo tableInfo = tableStats.get(tableName);
       if (null != tableInfo) {
         Double holdTime = compactingByTable.get(tableId.canonicalID());
@@ -122,21 +121,21 @@ public class TablesResource {
         for (TableNamespace name : tableNamespace.tables) {
           // Check if table has the default namespace
           if (!tableName.contains(".") && name.namespace.isEmpty()) {
-            name.addTable(new TableInformation(tableName, canonicalTableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
+            name.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
           } else if (tableName.startsWith(name.namespace + ".")) {
-            name.addTable(new TableInformation(tableName, canonicalTableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
+            name.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
           }
         }
-        tables.add(new TableInformation(tableName, canonicalTableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
+        tables.add(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
       } else {
         for (TableNamespace name : tableNamespace.tables) {
           if (!tableName.contains(".") && name.namespace.isEmpty()) {
-            name.addTable(new TableInformation(tableName, canonicalTableId, tableManager.getTableState(tableId).name()));
+            name.addTable(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
           } else if (tableName.startsWith(name.namespace + ".")) {
-            name.addTable(new TableInformation(tableName, canonicalTableId, tableManager.getTableState(tableId).name()));
+            name.addTable(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
           }
         }
-        tables.add(new TableInformation(tableName, canonicalTableId, tableManager.getTableState(tableId).name()));
+        tables.add(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
       }
     }
 
