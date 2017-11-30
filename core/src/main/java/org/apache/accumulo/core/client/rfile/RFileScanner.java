@@ -306,7 +306,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
       List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(sources.length);
       for (int i = 0; i < sources.length; i++) {
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        readers.add(new RFile.Reader(new CachableBlockFile.Reader(inputStream, sources[i].getLength(), opts.in.getConf(), dataCache, indexCache,
+        readers.add(new RFile.Reader(new CachableBlockFile.Reader("source-" + i, inputStream, sources[i].getLength(), opts.in.getConf(), dataCache, indexCache,
             DefaultConfiguration.getInstance())));
       }
 

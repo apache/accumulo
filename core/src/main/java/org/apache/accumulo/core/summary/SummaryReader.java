@@ -144,10 +144,10 @@ public class SummaryReader {
     return fileSummaries;
   }
 
-  public static SummaryReader load(Configuration conf, AccumuloConfiguration aConf, InputStream inputStream, long length,
+  public static SummaryReader load(String id, Configuration conf, AccumuloConfiguration aConf, InputStream inputStream, long length,
       Predicate<SummarizerConfiguration> summarySelector, SummarizerFactory factory) throws IOException {
-    org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.Reader bcReader = new CachableBlockFile.Reader((InputStream & Seekable) inputStream, length,
-        conf, aConf);
+    org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.Reader bcReader = new CachableBlockFile.Reader(id, (InputStream & Seekable) inputStream,
+        length, conf, aConf);
     return load(bcReader, summarySelector, factory);
   }
 

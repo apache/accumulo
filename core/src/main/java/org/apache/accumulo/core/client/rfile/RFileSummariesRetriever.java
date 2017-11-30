@@ -86,12 +86,12 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
     RFileSource[] sources = in.getSources();
     try {
       SummaryCollection all = new SummaryCollection();
-      for (RFileSource source : in.getSources()) {
-        SummaryReader fileSummary = SummaryReader.load(conf, acuconf, source.getInputStream(), source.getLength(), summarySelector, factory);
+      for (int i = 0; i < sources.length; i++) {
+        RFileSource source = sources[i];
+        SummaryReader fileSummary = SummaryReader.load("source-"+i, conf, acuconf, source.getInputStream(), source.getLength(), summarySelector, factory);
         SummaryCollection sc = fileSummary.getSummaries(Collections.singletonList(new Gatherer.RowRange(startRow, endRow)));
         all.merge(sc, factory);
       }
-
       return all.getSummaries();
     } finally {
       for (RFileSource source : sources) {

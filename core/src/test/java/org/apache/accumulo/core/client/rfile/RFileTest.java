@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -776,5 +777,28 @@ public class RFileTest {
     Reader reader = (Reader) FileOperations.getInstance().newReaderBuilder().forFile(testFile).inFileSystem(localFs, localFs.getConf())
         .withTableConfiguration(DefaultConfiguration.getInstance()).build();
     return reader;
+  }
+
+  @Test
+  public void testMultipleFilesAndCache() throws Exception {
+    SortedMap<Key,Value> testData = createTestData(100, 10, 10);
+    List<String> files = Arrays.asList(createTmpTestFile(), createTmpTestFile(), createTmpTestFile());
+
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    for (int i = 0; i < files.size(); i++) {
+      try (RFileWriter writer = RFile.newWriter().to(files.get(i)).withFileSystem(localFs).build()) {
+        for (Entry<Key,Value> entry : testData.entrySet()) {
+          if (entry.getKey().hashCode() % files.size() == i) {
+            writer.append(entry.getKey(), entry.getValue());
+          }
+        }
+      }
+    }
+
+    Scanner scanner = RFile.newScanner().from(files.toArray(new String[files.size()])).withFileSystem(localFs).withIndexCache(1000000).withDataCache(10000000)
+        .build();
+    Assert.assertEquals(testData, toMap(scanner));
+    scanner.close();
   }
 }
