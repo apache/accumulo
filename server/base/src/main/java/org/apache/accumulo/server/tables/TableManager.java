@@ -41,6 +41,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -115,10 +116,22 @@ public class TableManager {
 
     final TableState oldState;
     final TableState newState;
+    final String message;
 
     public IllegalTableTransitionException(TableState oldState, TableState newState) {
+      this(oldState, newState, "");
+    }
+
+    public IllegalTableTransitionException(TableState oldState, TableState newState, String message) {
       this.oldState = oldState;
       this.newState = newState;
+
+      if (StringUtils.isNotEmpty(message))
+        this.message = message;
+      else {
+        String defaultMessage = "Error transitioning from " + oldState + " state to " + newState + " state";
+        this.message = defaultMessage;
+      }
     }
 
     public TableState getOldState() {
@@ -127,6 +140,11 @@ public class TableManager {
 
     public TableState getNewState() {
       return newState;
+    }
+
+    @Override
+    public String getMessage() {
+      return message;
     }
 
   }
@@ -166,7 +184,7 @@ public class TableManager {
         }
       });
     } catch (Exception e) {
-      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compability
+      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       log.error("FATAL Failed to transition table to state " + newState);
       throw new RuntimeException(e);
     }
