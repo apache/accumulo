@@ -61,7 +61,8 @@ public class WebViews {
   /**
    * Get HTML for CSS and JS imports from configuration. See ACCUMULO-4739
    *
-   * @param model map of the MVC model
+   * @param model
+   *          map of the MVC model
    */
   private void addExternalResources(Map<String,Object> model) {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();

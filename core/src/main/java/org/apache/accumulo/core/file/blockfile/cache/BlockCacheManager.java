@@ -54,8 +54,8 @@ public abstract class BlockCacheManager {
      * This method provides a way for a cache implementation to access arbitrary configuration set by a user.
      *
      * <p>
-     * Returns all Accumulo properties that have a prefix of {@code tserver.cache.<prefix>.<type>.} or {@code tserver.cache.<prefix>.default.}
-     * with values for specific cache types overriding defaults.
+     * Returns all Accumulo properties that have a prefix of {@code tserver.cache.<prefix>.<type>.} or {@code tserver.cache.<prefix>.default.} with values for
+     * specific cache types overriding defaults.
      *
      * <p>
      * For example assume the following data is in Accumulo's system config.
@@ -123,8 +123,7 @@ public abstract class BlockCacheManager {
   protected abstract BlockCache createCache(Configuration conf, CacheType type);
 
   /**
-   * A convenience method that returns a string of the from {@code tserver.cache.<prefix>.default.} this method is useful for configuring a cache
-   * manager.
+   * A convenience method that returns a string of the from {@code tserver.cache.<prefix>.default.} this method is useful for configuring a cache manager.
    *
    * @param prefix
    *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
