@@ -63,10 +63,10 @@ public abstract class BlockCacheManager {
      * For example assume the following data is in Accumulo's system config.
      *
      * <pre>
-     * tserver.cache.lru.default.evictAfter=3600
-     * tserver.cache.lru.default.loadFactor=.75
-     * tserver.cache.lru.index.loadFactor=.55
-     * tserver.cache.lru.data.loadFactor=.65
+     * tserver.cache.config.lru.default.evictAfter=3600
+     * tserver.cache.config.lru.default.loadFactor=.75
+     * tserver.cache.config.lru.index.loadFactor=.55
+     * tserver.cache.config.lru.data.loadFactor=.65
      * </pre>
      *
      * <p>
