@@ -65,7 +65,6 @@ import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityG
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang.mutable.MutableLong;
-import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -310,7 +309,8 @@ public class RFile {
 
     private HashSet<ByteSequence> previousColumnFamilies;
 
-    private SummaryStatistics keyLenStats = new SummaryStatistics();
+    // Use windowed stats to fix ACCUMULO-4669
+    private RollingStats keyLenStats = new RollingStats(2017);
     private double avergageKeySize = 0;
 
     public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
@@ -370,8 +370,9 @@ public class RFile {
     }
 
     private boolean isGiantKey(Key k) {
-      // consider a key thats more than 3 standard deviations from previously seen key sizes as giant
-      return k.getSize() > keyLenStats.getMean() + keyLenStats.getStandardDeviation() * 3;
+      double mean = keyLenStats.getMean();
+      double stddev = keyLenStats.getStandardDeviation();
+      return k.getSize() > mean + Math.max(9 * mean, 4 * stddev);
     }
 
     @Override
