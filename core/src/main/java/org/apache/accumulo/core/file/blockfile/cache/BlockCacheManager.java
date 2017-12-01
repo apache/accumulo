@@ -30,14 +30,14 @@ public abstract class BlockCacheManager {
 
   private final Map<CacheType,BlockCache> caches = new HashMap<>();
 
-  public static final String CACHE_PROPERTY_BASE = Property.GENERAL_ARBITRARY_PROP_PREFIX + "cache.";
+  public static final String CACHE_PROPERTY_BASE = Property.TSERV_PREFIX + "cache.config.";
 
   public static interface Configuration {
 
     /**
      * Before Accumulo's cache implementation was configurable, its built in caches had a configurable size. These sizes were specified by the system properties
-     * {@code tserver.cache.data.size}, {@code tserver.cache.index.size}, and {code tserver.cache.summary.size}. This method returns the values of those
-     * settings. The settings are made available, but cache implementations are under no obligation to use them.
+     * {@code tserver.cache.config.data.size}, {@code tserver.cache.config.index.size}, and {code tserver.cache.config.summary.size}. This method returns the
+     * values of those settings. The settings are made available, but cache implementations are under no obligation to use them.
      *
      */
     long getMaxSize(CacheType type);
@@ -54,17 +54,19 @@ public abstract class BlockCacheManager {
      * This method provides a way for a cache implementation to access arbitrary configuration set by a user.
      *
      * <p>
-     * Returns all Accumulo properties that have a prefix of {@code general.custom.cache.<prefix>.<type>.} or {@code general.custom.cache.<prefix>.default.}
-     * with values for specific cache types overriding defaults.
+     * Returns all Accumulo properties that have a prefix of {@code tserver.cache.config.<prefix>.<type>.} or {@code tserver.cache.config.<prefix>.default.}
+     * with
+     * values for
+     * specific cache types overriding defaults.
      *
      * <p>
      * For example assume the following data is in Accumulo's system config.
      *
      * <pre>
-     * general.custom.cache.lru.default.evictAfter=3600
-     * general.custom.cache.lru.default.loadFactor=.75
-     * general.custom.cache.lru.index.loadFactor=.55
-     * general.custom.cache.lru.data.loadFactor=.65
+     * tserver.cache.config.lru.default.evictAfter=3600
+     * tserver.cache.config.lru.default.loadFactor=.75
+     * tserver.cache.config.lru.index.loadFactor=.55
+     * tserver.cache.config.lru.data.loadFactor=.65
      * </pre>
      *
      * <p>
@@ -123,7 +125,7 @@ public abstract class BlockCacheManager {
   protected abstract BlockCache createCache(Configuration conf, CacheType type);
 
   /**
-   * A convenience method that returns a string of the from {@code general.custom.cache.<prefix>.default.} this method is useful for configuring a cache
+   * A convenience method that returns a string of the from {@code tserver.cache.config.<prefix>.default.} this method is useful for configuring a cache
    * manager.
    *
    * @param prefix
@@ -135,7 +137,7 @@ public abstract class BlockCacheManager {
   }
 
   /**
-   * A convenience method that returns a string of the from {@code general.custom.cache.<prefix>.<type>.} this method is useful for configuring a cache manager.
+   * A convenience method that returns a string of the from {@code tserver.cache.config.<prefix>.<type>.} this method is useful for configuring a cache manager.
    *
    * @param prefix
    *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
