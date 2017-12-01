@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
@@ -65,7 +66,7 @@ import org.slf4j.LoggerFactory;
  * then while scanning determines the fewest least-recently-used blocks necessary from each of the three priorities (would be 3 times bytes to free). It then
  * uses the priority chunk sizes to evict fairly according to the relative sizes and usage.
  */
-public class LruBlockCache implements BlockCache, HeapSize {
+public class LruBlockCache extends SynchronousLoadingBlockCache implements BlockCache, HeapSize {
 
   private static final Logger log = LoggerFactory.getLogger(LruBlockCache.class);
 
@@ -114,6 +115,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    *          block cache configuration
    */
   public LruBlockCache(final LruBlockCacheConfiguration conf) {
+    super();
     this.conf = conf;
 
     int mapInitialSize = (int) Math.ceil(1.2 * conf.getMaxSize() / conf.getBlockSize());
@@ -145,6 +147,43 @@ public class LruBlockCache implements BlockCache, HeapSize {
     return overhead;
   }
 
+  /*
+   * This class exists so that every cache entry does not have a reference to the cache.
+   */
+  private class LruCacheEntry implements CacheEntry {
+    private final CachedBlock block;
+
+    LruCacheEntry(CachedBlock block) {
+      this.block = block;
+    }
+
+    @Override
+    public byte[] getBuffer() {
+      return block.getBuffer();
+    }
+
+    @Override
+    public <T extends Weighbable> T getIndex(Supplier<T> supplier) {
+      return block.getIndex(supplier);
+    }
+
+    @Override
+    public void indexWeightChanged() {
+      long newSize = block.recordSize(size);
+      if (newSize > acceptableSize() && !evictionInProgress) {
+        runEviction();
+      }
+    }
+  }
+
+  private CacheEntry wrap(CachedBlock cb) {
+    if (cb == null) {
+      return null;
+    }
+
+    return new LruCacheEntry(cb);
+  }
+
   // BlockCache implementation
 
   /**
@@ -160,7 +199,6 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * @param inMemory
    *          if block is in-memory
    */
-  @Override
   public CacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory) {
     CachedBlock cb = map.get(blockName);
     if (cb != null) {
@@ -175,7 +213,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
         cb.access(count.incrementAndGet());
       } else {
         // Actually added block to cache
-        long newSize = size.addAndGet(cb.heapSize());
+        long newSize = cb.recordSize(size);
         elements.incrementAndGet();
         if (newSize > acceptableSize() && !evictionInProgress) {
           runEviction();
@@ -183,7 +221,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
       }
     }
 
-    return cb;
+    return wrap(cb);
   }
 
   /**
@@ -210,7 +248,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * @return buffer of specified block name, or null if not in cache
    */
   @Override
-  public CachedBlock getBlock(String blockName) {
+  public CacheEntry getBlock(String blockName) {
     CachedBlock cb = map.get(blockName);
     if (cb == null) {
       stats.miss();
@@ -218,15 +256,25 @@ public class LruBlockCache implements BlockCache, HeapSize {
     }
     stats.hit();
     cb.access(count.incrementAndGet());
-    return cb;
+    return wrap(cb);
+  }
+
+  @Override
+  protected CacheEntry getBlockNoStats(String blockName) {
+    CachedBlock cb = map.get(blockName);
+    if (cb != null) {
+      cb.access(count.incrementAndGet());
+    }
+    return wrap(cb);
   }
 
   protected long evictBlock(CachedBlock block) {
-    map.remove(block.getName());
-    size.addAndGet(-1 * block.heapSize());
-    elements.decrementAndGet();
-    stats.evicted();
-    return block.heapSize();
+    if (map.remove(block.getName()) != null) {
+      elements.decrementAndGet();
+      stats.evicted();
+      return block.evicted(size);
+    }
+    return 0;
   }
 
   /**
@@ -386,6 +434,11 @@ public class LruBlockCache implements BlockCache, HeapSize {
     return this.conf.getMaxSize();
   }
 
+  @Override
+  public int getMaxEntrySize() {
+    return (int) Math.min(Integer.MAX_VALUE, getMaxSize());
+  }
+
   /**
    * Get the current size of this cache.
    *
@@ -507,6 +560,7 @@ public class LruBlockCache implements BlockCache, HeapSize {
    * <p>
    * Includes: total accesses, hits, misses, evicted blocks, and runs of the eviction processes.
    */
+  @Override
   public CacheStats getStats() {
     return this.stats;
   }

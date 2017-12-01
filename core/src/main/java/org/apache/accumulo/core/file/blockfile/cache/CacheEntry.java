@@ -16,11 +16,27 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import java.util.function.Supplier;
+
 public interface CacheEntry {
+
+  public static interface Weighbable {
+    int weight();
+  }
+
   byte[] getBuffer();
 
-  Object getIndex();
+  /**
+   * Optionally cache what is returned by the supplier along with this cache entry. If caching what is returned by the supplier is not supported, its ok to
+   * return null.
+   *
+   * <p>
+   * This method exists to support building indexes of frequently accessed cached data.
+   */
+  <T extends Weighbable> T getIndex(Supplier<T> supplier);
 
-  void setIndex(Object idx);
-
+  /**
+   * The object optionally stored by {@link #getIndex(Supplier)} is a mutable object. Accumulo will call this method whenever the weight of that object changes.
+   */
+  void indexWeightChanged();
 }

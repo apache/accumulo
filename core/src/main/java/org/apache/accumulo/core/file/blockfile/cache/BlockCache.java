@@ -17,6 +17,10 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import java.util.Map;
+
+import org.apache.accumulo.core.file.blockfile.cache.lru.SynchronousLoadingBlockCache;
+
 /**
  * Block cache interface.
  */
@@ -29,18 +33,6 @@ public interface BlockCache {
    *          Zero-based file block number.
    * @param buf
    *          The block contents wrapped in a ByteBuffer.
-   * @param inMemory
-   *          Whether block should be treated as in-memory
-   */
-  CacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory);
-
-  /**
-   * Add block to cache (defaults to not in-memory).
-   *
-   * @param blockName
-   *          Zero-based file block number.
-   * @param buf
-   *          The block contents wrapped in a ByteBuffer.
    */
   CacheEntry cacheBlock(String blockName, byte buf[]);
 
@@ -48,10 +40,40 @@ public interface BlockCache {
    * Fetch block from cache.
    *
    * @param blockName
-   *          Block number to fetch.
+   *          Block name to fetch.
    * @return Block or null if block is not in the cache.
    */
   CacheEntry getBlock(String blockName);
+
+  public static interface Loader {
+    /**
+     * The cache blocks that this loader depends on. If a loader has no dependencies, then it should return an empty map. All dependencies must be loaded before
+     * calling {@link #load(int, Map)}.
+     */
+    Map<String,Loader> getDependencies();
+
+    /**
+     * Loads a block. Anything returned by {@link #getDependencies()} should be loaded and passed.
+     *
+     * @param maxSize
+     *          This is the maximum block size that will be cached.
+     * @return The loaded block or null if loading the block would exceed maxSize.
+     */
+    byte[] load(int maxSize, Map<String,byte[]> dependencies);
+  }
+
+  /**
+   * This method allows a cache to prevent concurrent loads of the same block. However a cache implementation is not required to prevent concurrent loads.
+   * {@link SynchronousLoadingBlockCache} is an abstract class that a cache can extent which does prevent concurrent loading of the same block.
+   *
+   *
+   * @param blockName
+   *          Block name to fetch
+   * @param loader
+   *          If the block is not present in the cache, the loader can be called to load it.
+   * @return Block or null if block is not in the cache or didn't load.
+   */
+  CacheEntry getBlock(String blockName, Loader loader);
 
   /**
    * Get the maximum amount of on heap memory this cache will use.
