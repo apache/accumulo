@@ -133,6 +133,7 @@
     <httpclient.version>4.3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <jackson.version>2.9.0</jackson.version>
+    <javax.el.version>2.2.4</javax.el.version>
     <jersey.version>2.25.1</jersey.version>
     <jetty.version>9.3.21.v20170918</jetty.version>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -267,7 +268,7 @@
       <dependency>
         <groupId>javax.el</groupId>
         <artifactId>javax.el-api</artifactId>
-        <version>2.2.4</version>
+        <version>${javax.el.version}</version>
       </dependency>
       <dependency>
         <groupId>javax.servlet</groupId>
@@ -674,6 +675,11 @@
         <version>${jersey.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.glassfish.jersey.test-framework</groupId>
+        <artifactId>jersey-test-framework-core</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.glassfish.jersey.test-framework.providers</groupId>
         <artifactId>jersey-test-framework-provider-grizzly2</artifactId>
         <version>${jersey.version}</version>
@@ -1071,8 +1077,6 @@
                 <usedUndeclaredDependency>org.glassfish.jersey.ext:jersey-mvc:jar:${jersey.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-server:jar:${jersey.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-common:jar:${jersey.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-client:jar:${jersey.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.glassfish.jersey.test-framework:jersey-test-framework-core:jar:${jersey.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:${powermock.version}</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:${powermock.version}</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
@@ -1089,6 +1093,7 @@
                 <unusedDeclaredDependency>org.apache.httpcomponents:httpclient:jar:${httpclient.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>junit:junit:jar:4.12</unusedDeclaredDependency>
                 <unusedDeclaredDependency>javax.servlet:javax.servlet-api:jar:${servlet.api.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>javax.el:javax.el-api:jar:${javax.el.version}</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
