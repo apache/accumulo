@@ -47,7 +47,7 @@ public class GetMasterStats {
     AccumuloServerContext context = new AccumuloServerContext(instance, new ServerConfigurationFactory(instance));
     while (true) {
       try {
-        client = MasterClient.getConnectionWithRetry(context, 0);
+        client = MasterClient.getConnectionWithRetry(context);
         stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
         break;
       } catch (ThriftNotActiveServiceException e) {

@@ -354,7 +354,7 @@ public class Admin implements KeywordExecutable {
   }
 
   private static void stopServer(final ClientContext context, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
-    MasterClient.executeVoidWithConnRetry(context,
+    MasterClient.executeVoidAdmin(context,
             client -> client.shutdown(Tracer.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
@@ -372,12 +372,8 @@ public class Admin implements KeywordExecutable {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
         log.info("Stopping server {}", finalServer);
-        MasterClient.executeVoid(context, new ClientExec<MasterClientService.Client>() {
-          @Override
-          public void execute(MasterClientService.Client client) throws Exception {
-            client.shutdownTabletServer(Tracer.traceInfo(), context.rpcCreds(), finalServer, force);
-          }
-        });
+        MasterClient.executeVoidAdmin(context,
+                client -> client.shutdownTabletServer(Tracer.traceInfo(), context.rpcCreds(), finalServer, force));
       }
     }
   }

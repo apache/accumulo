@@ -796,7 +796,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       try {
         Instance instance = new ZooKeeperInstance(getClientConfig());
         ClientContext context = new ClientContext(instance, new Credentials("root", new PasswordToken("unchecked")), getClientConfig());
-        client = MasterClient.getConnectionWithRetry(context, 0);
+        client = MasterClient.getConnectionWithRetry(context);
         return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } catch (ThriftSecurityException exception) {
         throw new AccumuloSecurityException(exception);

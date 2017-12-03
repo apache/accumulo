@@ -41,24 +41,17 @@ import org.slf4j.LoggerFactory;
 public class MasterClient {
   private static final Logger log = LoggerFactory.getLogger(MasterClient.class);
 
-  public static MasterClientService.Client getConnectionWithRetry(ClientContext context, int numberOfRetries) {
-    int counter = 0;
+  public static MasterClientService.Client getConnectionWithRetry(ClientContext context) {
     while (true) {
 
-      MasterClientService.Client result = getConnection(context);
-      if (result != null){
+      MasterClientService.Client result = getConnection(context, false);
+      if (result != null)
         return result;
-      }
-      if (numberOfRetries != 0 && numberOfRetries > counter) {
-        log.error("Could not get a client on time.");
-        return null;
-      }
-      counter++;
       sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
     }
   }
 
-  public static MasterClientService.Client getConnection(ClientContext context) {
+  public static MasterClientService.Client getConnection(ClientContext context, boolean isAdminRequest) {
     checkArgument(context != null, "context is null");
 
     List<String> locations = context.getInstance().getMasterLocations();
@@ -73,9 +66,13 @@ public class MasterClient {
       return null;
 
     try {
-      // Master requests can take a long time: don't ever time out
-      MasterClientService.Client client = ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master, context);
-      return client;
+      if (isAdminRequest){
+          return ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, context, 10000);
+      }else{
+          // Master requests can take a long time: don't ever time out
+          return ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master, context);
+      }
+
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
       if (null != cause && cause instanceof UnknownHostException) {
@@ -101,7 +98,7 @@ public class MasterClient {
     MasterClientService.Client client = null;
     while (true) {
       try {
-        client = getConnectionWithRetry(context, 0);
+        client = getConnectionWithRetry(context);
         return exec.execute(client);
       } catch (TTransportException tte) {
         log.debug("MasterClient request failed, retrying ... ", tte);
@@ -132,12 +129,18 @@ public class MasterClient {
     }
   }
 
-  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec, int numberOfConnectionRetries)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec)
+            throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      executeGeneric(context, exec,false);
+
+  }
+
+  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec,
+          boolean isAdminRequest) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     MasterClientService.Client client = null;
     while (true) {
       try {
-        client = getConnectionWithRetry(context, numberOfConnectionRetries);
+        client = getConnectionWithRetry(context);
         exec.execute(client);
         break;
       } catch (TTransportException tte) {
@@ -170,13 +173,13 @@ public class MasterClient {
 
   public static void executeTable(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    executeGeneric(context, exec, 0);
+    executeGeneric(context, exec);
   }
 
   public static void executeNamespace(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
       NamespaceNotFoundException {
     try {
-      executeGeneric(context, exec, 0);
+      executeGeneric(context, exec);
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException)
         throw (NamespaceNotFoundException) e.getCause();
@@ -185,16 +188,16 @@ public class MasterClient {
 
   public static void executeVoid(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
-      executeGeneric(context, exec, 0);
+      executeGeneric(context, exec );
     } catch (TableNotFoundException e) {
       throw new AssertionError(e);
     }
   }
 
-  public static void executeVoidWithConnRetry(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException,
+  public static void executeVoidAdmin(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     try {
-      executeGeneric(context, exec, 10);
+      executeGeneric(context, exec, true);
     } catch (TableNotFoundException e) {
       throw new AssertionError(e);
     }

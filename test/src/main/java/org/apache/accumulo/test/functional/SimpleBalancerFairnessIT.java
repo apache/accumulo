@@ -85,7 +85,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       MasterClientService.Iface client = null;
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(context, 0);
+          client = MasterClient.getConnectionWithRetry(context);
           stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
           break;
         } catch (ThriftNotActiveServiceException e) {
