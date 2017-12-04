@@ -274,7 +274,7 @@ public class Monitor implements HighlyAvailableService {
       while (retry) {
         MasterClientService.Iface client = null;
         try {
-          client = MasterClient.getConnection(context);
+          client = MasterClient.getConnection(context, false);
           if (client != null) {
             mmi = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
             retry = false;

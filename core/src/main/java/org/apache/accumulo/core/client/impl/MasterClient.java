@@ -66,11 +66,11 @@ public class MasterClient {
       return null;
 
     try {
-      if (isAdminRequest){
-          return ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, context, 10000);
-      }else{
-          // Master requests can take a long time: don't ever time out
-          return ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master, context);
+      if (isAdminRequest) {
+        return ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, context, 10000);
+      } else {
+        // Master requests can take a long time: don't ever time out
+        return ThriftUtil.getClientNoTimeout(new MasterClientService.Client.Factory(), master, context);
       }
 
     } catch (TTransportException tte) {
@@ -129,14 +129,14 @@ public class MasterClient {
     }
   }
 
-  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec)
-            throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-      executeGeneric(context, exec,false);
+  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException {
+    executeGeneric(context, exec, false);
 
   }
 
-  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec,
-          boolean isAdminRequest) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public static void executeGeneric(ClientContext context, ClientExec<MasterClientService.Client> exec, boolean isAdminRequest) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
     MasterClientService.Client client = null;
     while (true) {
       try {
@@ -188,14 +188,13 @@ public class MasterClient {
 
   public static void executeVoid(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
-      executeGeneric(context, exec );
+      executeGeneric(context, exec);
     } catch (TableNotFoundException e) {
       throw new AssertionError(e);
     }
   }
 
-  public static void executeVoidAdmin(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException,
-      AccumuloSecurityException {
+  public static void executeVoidAdmin(ClientContext context, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       executeGeneric(context, exec, true);
     } catch (TableNotFoundException e) {

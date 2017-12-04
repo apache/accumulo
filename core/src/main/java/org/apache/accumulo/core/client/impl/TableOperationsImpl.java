@@ -246,8 +246,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       try {
         client = MasterClient.getConnection(context, true);
         if (client == null)
-              throw new TTransportException("Could not get connection");
-          return client.beginFateOperation(Tracer.traceInfo(), context.rpcCreds());
+          throw new TTransportException("Could not get connection");
+        return client.beginFateOperation(Tracer.traceInfo(), context.rpcCreds());
       } catch (TTransportException tte) {
         log.debug("Failed to call beginFateOperation(), retrying ... ", tte);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
@@ -269,7 +269,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       try {
         client = MasterClient.getConnection(context, true);
         if (client == null)
-              throw new TTransportException("Could not get connection");
+          throw new TTransportException("Could not get connection");
         client.executeFateOperation(Tracer.traceInfo(), context.rpcCreds(), opid, op, args, opts, autoCleanUp);
         return;
       } catch (TTransportException tte) {
@@ -291,7 +291,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       try {
         client = MasterClient.getConnection(context, true);
         if (client == null)
-              throw new TTransportException("Could not get connection");
+          throw new TTransportException("Could not get connection");
         return client.waitForFateOperation(Tracer.traceInfo(), context.rpcCreds(), opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForFateOperation(), retrying ... ", tte);
@@ -312,7 +312,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       try {
         client = MasterClient.getConnection(context, true);
         if (client == null)
-              throw new TTransportException("Could not get connection");
+          throw new TTransportException("Could not get connection");
         client.finishFateOperation(Tracer.traceInfo(), context.rpcCreds(), opid);
         break;
       } catch (TTransportException tte) {
@@ -850,7 +850,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         try {
           client = MasterClient.getConnection(context, true);
           if (client == null)
-                throw new TTransportException("Could not get connection");
+            throw new TTransportException("Could not get connection");
           flushID = client.initiateFlush(Tracer.traceInfo(), context.rpcCreds(), tableId.canonicalID());
           break;
         } catch (TTransportException tte) {
@@ -870,7 +870,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         try {
           client = MasterClient.getConnection(context, true);
           if (client == null)
-                throw new TTransportException("Could not get connection");
+            throw new TTransportException("Could not get connection");
           client.waitForFlush(Tracer.traceInfo(), context.rpcCreds(), tableId.canonicalID(), TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end),
               flushID, wait ? Long.MAX_VALUE : 1);
           break;
