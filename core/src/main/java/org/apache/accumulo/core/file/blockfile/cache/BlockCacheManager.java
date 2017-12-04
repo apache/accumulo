@@ -55,9 +55,7 @@ public abstract class BlockCacheManager {
      *
      * <p>
      * Returns all Accumulo properties that have a prefix of {@code tserver.cache.config.<prefix>.<type>.} or {@code tserver.cache.config.<prefix>.default.}
-     * with
-     * values for
-     * specific cache types overriding defaults.
+     * with values for specific cache types overriding defaults.
      *
      * <p>
      * For example assume the following data is in Accumulo's system config.
