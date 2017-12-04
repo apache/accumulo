@@ -29,7 +29,7 @@ public class ProblemDetailInformation {
 
   // Variable names become JSON keys
   public String tableName;
-  public Table.ID tableID;
+  public String tableID;
   public String type;
   public String server;
 
@@ -44,7 +44,7 @@ public class ProblemDetailInformation {
    *
    * @param tableName
    *          Table name of the problem
-   * @param tableID
+   * @param tableId
    *          Table ID of the problem
    * @param type
    *          Type of problem
@@ -57,9 +57,9 @@ public class ProblemDetailInformation {
    * @param exception
    *          Exception of the problem
    */
-  public ProblemDetailInformation(String tableName, Table.ID tableID, String type, String server, Long time, String resource, String exception) {
+  public ProblemDetailInformation(String tableName, Table.ID tableId, String type, String server, Long time, String resource, String exception) {
     this.tableName = tableName;
-    this.tableID = tableID;
+    this.tableID = tableId.canonicalID();
     this.type = type;
     this.server = server;
     this.time = time;

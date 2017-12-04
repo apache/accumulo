@@ -29,7 +29,7 @@ public class ProblemSummaryInformation {
 
   // Variable names become JSON keys
   public String tableName;
-  public Table.ID tableID;
+  public String tableID;
 
   public Integer fileRead;
   public Integer fileWrite;
@@ -42,7 +42,7 @@ public class ProblemSummaryInformation {
    *
    * @param tableName
    *          Name of the table with a problem
-   * @param tableID
+   * @param tableId
    *          ID of the table with a problem
    * @param fileRead
    *          Number of files read
@@ -51,9 +51,9 @@ public class ProblemSummaryInformation {
    * @param tableLoad
    *          Number of table loads
    */
-  public ProblemSummaryInformation(String tableName, Table.ID tableID, Integer fileRead, Integer fileWrite, Integer tableLoad) {
+  public ProblemSummaryInformation(String tableName, Table.ID tableId, Integer fileRead, Integer fileWrite, Integer tableLoad) {
     this.tableName = tableName;
-    this.tableID = tableID;
+    this.tableID = tableId.canonicalID();
     this.fileRead = fileRead;
     this.fileWrite = fileWrite;
     this.tableLoad = tableLoad;
