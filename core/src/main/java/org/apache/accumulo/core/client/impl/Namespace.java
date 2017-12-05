@@ -60,6 +60,5 @@ public class Namespace {
         throw new AssertionError("This should never happen: ID constructor should never return null.");
       }
     }
-
   }
 }

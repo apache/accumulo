@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.io.IOException;
@@ -330,7 +330,6 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private HostAndPort clientAddress;
 
   private volatile boolean serverStopRequested = false;
-  private volatile boolean majorCompactorDisabled = false;
   private volatile boolean shutdownComplete = false;
 
   private ZooLock tabletServerLock;
@@ -1925,18 +1924,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public void run() {
-      if (majorCompactorDisabled) {
-        // this will make split task that were queued when shutdown was
-        // initiated exit
-        return;
-      }
-
       splitTablet(tablet);
     }
-  }
-
-  public boolean isMajorCompactionDisabled() {
-    return majorCompactorDisabled;
   }
 
   public long updateTotalQueuedMutationSize(long additionalMutationSize) {
@@ -1963,7 +1952,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     @Override
     public void run() {
-      while (!majorCompactorDisabled) {
+      while (true) {
         try {
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY), TimeUnit.MILLISECONDS);
 
@@ -1980,7 +1969,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           Iterator<Entry<KeyExtent,Tablet>> iter = copyOnlineTablets.entrySet().iterator();
 
           // bail early now if we're shutting down
-          while (iter.hasNext() && !majorCompactorDisabled) {
+          while (iter.hasNext()) {
 
             Entry<KeyExtent,Tablet> entry = iter.next();
 
@@ -2015,7 +2004,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             // idle compactions
             iter = copyOnlineTablets.entrySet().iterator();
 
-            while (iter.hasNext() && !majorCompactorDisabled && numMajorCompactionsInProgress < idleCompactionsToStart) {
+            while (iter.hasNext() && numMajorCompactionsInProgress < idleCompactionsToStart) {
               Entry<KeyExtent,Tablet> entry = iter.next();
               Tablet tablet = entry.getValue();
 
@@ -2452,7 +2441,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     AccumuloConfiguration conf = getServerConfigurationFactory().getSystemConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(this, clientAddress.getHost(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
-        "ReplicationServicerHandler", "Replication Servicer", null, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
+        "ReplicationServicerHandler", "Replication Servicer", Property.TSERV_PORTSEARCH, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK,
+        maxMessageSizeProperty);
     this.replServer = sp.server;
     log.info("Started replication service on {}", sp.address);
 
@@ -3072,9 +3062,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public static void main(String[] args) throws IOException {
     try {
       final String app = "tserver";
-      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);
+      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
       String hostname = opts.getAddress();
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);

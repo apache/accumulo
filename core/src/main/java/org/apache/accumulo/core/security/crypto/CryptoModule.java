@@ -28,6 +28,7 @@ import javax.crypto.CipherOutputStream;
  * Classes that obey this interface may be used to provide encrypting and decrypting streams to the rest of Accumulo. Classes that obey this interface may be
  * configured as the crypto module by setting the property crypto.module.class in the accumulo-site.xml file.
  *
+ * When implementing CryptoModule, it is recommended that any {@link CipherOutputStream} uses {@link RFileCipherOutputStream} instead.
  *
  */
 public interface CryptoModule {

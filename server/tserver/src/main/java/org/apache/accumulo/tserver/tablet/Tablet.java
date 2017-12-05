@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -1686,7 +1686,7 @@ public class Tablet implements TabletCommitter {
   // BEGIN PRIVATE METHODS RELATED TO MAJOR COMPACTION
 
   private boolean isCompactionEnabled() {
-    return !isClosing() && !getTabletServer().isMajorCompactionDisabled();
+    return !isClosing();
   }
 
   private CompactionStats _majorCompact(MajorCompactionReason reason) throws IOException, CompactionCanceledException {

@@ -38,6 +38,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import com.google.common.base.Preconditions;
+
 public class RFileOperations extends FileOperations {
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
@@ -82,7 +84,11 @@ public class RFileOperations extends FileOperations {
     AccumuloConfiguration acuconf = options.getTableConfiguration();
 
     long blockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
+    Preconditions.checkArgument((blockSize < Integer.MAX_VALUE && blockSize > 0), "table.file.compress.blocksize must be greater than 0 and less than "
+        + Integer.MAX_VALUE);
     long indexBlockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
+    Preconditions.checkArgument((indexBlockSize < Integer.MAX_VALUE && indexBlockSize > 0),
+        "table.file.compress.blocksize.index must be greater than 0 and less than " + Integer.MAX_VALUE);
 
     SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl.newSamplerConfig(acuconf);
     Sampler sampler = null;

@@ -467,6 +467,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
       logFile.write(LOG_FILE_HEADER_V3.getBytes(UTF_8));
 
       CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
+      // Immediately update to the correct cipher. Doing this here keeps the CryptoModule independent of the writers using it
+      if (params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()) != null
+          && !params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()).equals("")) {
+        params.setCipherSuite(params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()));
+      }
 
       NoFlushOutputStream nfos = new NoFlushOutputStream(logFile);
       params.setPlaintextOutputStream(nfos);

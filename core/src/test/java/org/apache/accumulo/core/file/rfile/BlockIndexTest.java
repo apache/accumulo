@@ -19,6 +19,7 @@ package org.apache.accumulo.core.file.rfile;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -43,20 +44,22 @@ public class BlockIndexTest {
       this.data = d;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public void setIndex(Object idx) {
-      this.idx = idx;
-    }
-
-    @Override
-    public Object getIndex() {
-      return idx;
+    public <T extends Weighbable> T getIndex(Supplier<T> indexSupplier) {
+      if (idx == null) {
+        idx = indexSupplier.get();
+      }
+      return (T) idx;
     }
 
     @Override
     public byte[] getBuffer() {
       return data;
     }
+
+    @Override
+    public void indexWeightChanged() {}
   }
 
   @Test

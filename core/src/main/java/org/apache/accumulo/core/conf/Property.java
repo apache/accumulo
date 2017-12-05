@@ -48,16 +48,26 @@ public enum Property {
       "Fully qualified class name of the class that implements the CryptoModule interface, to be used in setting up encryption at rest for the WAL and "
           + "(future) other parts of the code."),
   @Experimental
-  CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING, "Describes the cipher suite to use for the write-ahead log"),
+  CRYPTO_CIPHER_SUITE("crypto.cipher.suite", "NullCipher", PropertyType.STRING,
+      "Describes the cipher suite to use for rfile encryption. The value must be either NullCipher or in the form of algorithm/mode/padding, "
+          + "e.g. AES/CBC/NoPadding"),
   @Experimental
-  CRYPTO_CIPHER_ALGORITHM_NAME("crypto.cipher.algorithm.name", "NullCipher", PropertyType.STRING,
-      "States the name of the algorithm used in the corresponding cipher suite. Do not make these different, unless you enjoy mysterious exceptions and bugs."),
+  CRYPTO_WAL_CIPHER_SUITE("crypto.wal.cipher.suite", "", PropertyType.STRING,
+      "Describes the cipher suite to use for the write-ahead log. Defaults to 'cyrpto.cipher.suite' "
+          + "and will use that value for WAL encryption unless otherwise specified. Valid suite values include: an empty string, NullCipher, or a string the "
+          + "form of algorithm/mode/padding, e.g. AES/CBC/NOPadding"),
+  @Experimental
+  CRYPTO_CIPHER_KEY_ALGORITHM_NAME("crypto.cipher.key.algorithm.name", "NullCipher", PropertyType.STRING,
+      "States the name of the algorithm used for the key for the corresponding cipher suite. The key type must be compatible with the cipher suite."),
   @Experimental
   CRYPTO_BLOCK_STREAM_SIZE("crypto.block.stream.size", "1K", PropertyType.BYTES,
       "The size of the buffer above the cipher stream. Used for reading files and padding walog entries."),
   @Experimental
   CRYPTO_CIPHER_KEY_LENGTH("crypto.cipher.key.length", "128", PropertyType.STRING,
       "Specifies the key length *in bits* to use for the symmetric key, should probably be 128 or 256 unless you really know what you're doing"),
+  @Experimental
+  CRYPTO_SECURITY_PROVIDER("crypto.security.provider", "", PropertyType.STRING,
+      "States the security provider to use, and defaults to the system configured provider"),
   @Experimental
   CRYPTO_SECURE_RNG("crypto.secure.rng", "SHA1PRNG", PropertyType.STRING,
       "States the secure random number generator to use, and defaults to the built-in Sun SHA1PRNG"),
@@ -417,6 +427,11 @@ public enum Property {
       "The amount of time to sleep between checking for the Montior ZooKeeper lock"),
   MONITOR_LOG_DATE_FORMAT("monitor.log.date.format", "yyyy/MM/dd HH:mm:ss,SSS", PropertyType.STRING, "The SimpleDateFormat string used to configure "
       + "the date shown on the 'Recent Logs' monitor page"),
+  MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
+      "A JSON Map of Strings. Each String should be an HTML tag of an external resource (JS or CSS) to be imported by the Monitor. \n"
+          + "Be sure to wrap with CDATA tags. If this value is set, all of the external resources in the <head> tag of the Monitor will be replaced with \n"
+          + "the tags set here. Be sure the jquery tag is first since other scripts will depend on it. The resources that are used by default "
+          + "can be seen in accumulo/server/monitor/src/main/resources/templates/default.ftl"),
 
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient", PropertyType.CLASSNAMELIST,

@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.tracer;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -379,9 +379,9 @@ public class TraceServer implements Watcher {
 
   public static void main(String[] args) throws Exception {
     final String app = "tracer";
-    loginTracer(SiteConfiguration.getInstance());
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
+    loginTracer(SiteConfiguration.getInstance());
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
     VolumeManager fs = VolumeManagerImpl.get();

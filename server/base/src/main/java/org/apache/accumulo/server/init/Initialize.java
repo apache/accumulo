@@ -29,6 +29,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
@@ -100,6 +101,7 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
+import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -393,6 +395,28 @@ public class Initialize implements KeywordExecutable {
       log.error("FATAL: Failed to initialize security", e);
       return false;
     }
+
+    if (opts.uploadAccumuloSite) {
+      try {
+        log.info("Uploading properties in accumulo-site.xml to Zookeeper. Properties that cannot be set in Zookeeper will be skipped:");
+        Map<String,String> entries = new TreeMap<>();
+        SiteConfiguration.getInstance().getProperties(entries, x -> true, false);
+        for (Map.Entry<String,String> entry : entries.entrySet()) {
+          String key = entry.getKey();
+          String value = entry.getValue();
+          if (Property.isValidZooPropertyKey(key)) {
+            SystemPropUtil.setSystemProperty(key, value);
+            log.info("Uploaded - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
+          } else {
+            log.info("Skipped - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
+          }
+        }
+      } catch (Exception e) {
+        log.error("FATAL: Failed to upload accumulo-site.xml to Zookeeper", e);
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -632,7 +656,7 @@ public class Initialize implements KeywordExecutable {
     String rootpass;
     String confirmpass;
     do {
-      rootpass = getConsoleReader().readLine("Enter initial password for " + rootUser + " (this may not be applicable for your security setup): ", '*');
+      rootpass = getConsoleReader().readLine("Enter initial password for " + rootUser + getInitialPasswordWarning(), '*');
       if (rootpass == null)
         System.exit(0);
       confirmpass = getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
@@ -642,6 +666,24 @@ public class Initialize implements KeywordExecutable {
         log.error("Passwords do not match");
     } while (!rootpass.equals(confirmpass));
     return rootpass.getBytes(UTF_8);
+  }
+
+  /**
+   * Create warning message related to initial password, if appropriate.
+   *
+   * ACCUMULO-2907 Remove unnecessary security warning from console message unless its actually appropriate. The warning message should only be displayed when
+   * the value of <code>instance.security.authenticator</code> differs between the SiteConfiguration and the DefaultConfiguration values.
+   *
+   * @return String containing warning portion of console message.
+   */
+  private String getInitialPasswordWarning() {
+    String optionalWarning;
+    Property authenticatorProperty = Property.INSTANCE_SECURITY_AUTHENTICATOR;
+    if (SiteConfiguration.getInstance().get(authenticatorProperty).equals(authenticatorProperty.getDefaultValue()))
+      optionalWarning = ": ";
+    else
+      optionalWarning = " (this may not be applicable for your security setup): ";
+    return optionalWarning;
   }
 
   private static void initSecurity(AccumuloServerContext context, Opts opts, String iid, String rootUser) throws AccumuloSecurityException,
@@ -742,6 +784,8 @@ public class Initialize implements KeywordExecutable {
     boolean forceResetSecurity = false;
     @Parameter(names = "--clear-instance-name", description = "delete any existing instance name without prompting")
     boolean clearInstanceName = false;
+    @Parameter(names = "--upload-accumulo-site", description = "Uploads properties in accumulo-site.xml to Zookeeper")
+    boolean uploadAccumuloSite = false;
     @Parameter(names = "--instance-name", description = "the instance name, if not provided, will prompt")
     String cliInstanceName;
     @Parameter(names = "--password", description = "set the password on the command line")

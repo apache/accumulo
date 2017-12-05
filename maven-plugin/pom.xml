@@ -26,6 +26,9 @@
   <packaging>maven-plugin</packaging>
   <name>Apache Accumulo Maven Plugin</name>
   <description>An Apache Maven plugin for testing software against a test Apache Accumulo instance.</description>
+  <prerequisites>
+    <maven>${maven.plugin-version}</maven>
+  </prerequisites>
   <dependencies>
     <dependency>
       <groupId>commons-io</groupId>

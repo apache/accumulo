@@ -76,11 +76,19 @@
       <value>org.apache.accumulo.core.security.crypto.DefaultCryptoModule</value>
     </property>
     <property>
-      <name>crypto.cipher.suite</name>
-      <value>AES/CFB/NoPadding</value>
+      <name>crypto.security.provider</name>
+      <value>SunJCE</value>
     </property>
     <property>
-      <name>crypto.cipher.algorithm.name</name>
+      <name>crypto.cipher.suite</name>
+      <value>AES/GCM/NoPadding</value>
+    </property>
+    <property>
+      <name>crypto.wal.cipher.suite</name>
+      <value>AES/CBC/NoPadding</value>
+    </property>
+    <property>
+      <name>crypto.cipher.key.algorithm.name</name>
       <value>AES</value>
     </property>
     <property>
@@ -94,6 +102,10 @@
     <property>
       <name>crypto.secure.rng.provider</name>
       <value>SUN</value>
+    </property>
+    <property>
+      <name>crypto.security.provider</name>
+      <value>SunJCE</value>
     </property>
     <property>
       <name>crypto.secret.key.encryption.strategy.class</name>
@@ -119,7 +131,7 @@
     
     <property>
     	<name>crypto.default.key.strategy.cipher.suite</name>
-    	<value>AES/ECB/NoPadding</value>
+    	<value>AESWrap/ECB/NoPadding</value>
     </property>
 
 </configuration>

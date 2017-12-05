@@ -18,8 +18,10 @@
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
-import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
+import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
 
@@ -30,10 +32,10 @@ import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
  * Makes the block memory-aware with {@link HeapSize} and Comparable to sort by access time for the LRU. It also takes care of priority by either instantiating
  * as in-memory or handling the transition from single to multiple access.
  */
-public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntry {
+public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
 
   public final static long PER_BLOCK_OVERHEAD = ClassSize.align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
-      + ClassSize.STRING + ClassSize.BYTE_BUFFER);
+      + ClassSize.STRING + ClassSize.BYTE_BUFFER + ClassSize.REFERENCE);
 
   public static enum BlockPriority {
     /**
@@ -50,18 +52,17 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
     MEMORY
   }
 
+  private byte[] buffer;
   private final String blockName;
-  private final byte buf[];
   private volatile long accessTime;
-  private long size;
+  private volatile long recordedSize;
   private BlockPriority priority;
-  private Object index;
+  private Weighbable index;
 
   public CachedBlock(String blockName, byte buf[], long accessTime, boolean inMemory) {
+    this.buffer = buf;
     this.blockName = blockName;
-    this.buf = buf;
     this.accessTime = accessTime;
-    this.size = ClassSize.align(blockName.length()) + ClassSize.align(buf.length) + PER_BLOCK_OVERHEAD;
     if (inMemory) {
       this.priority = BlockPriority.MEMORY;
     } else {
@@ -81,7 +82,10 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
 
   @Override
   public long heapSize() {
-    return size;
+    if (recordedSize < 0) {
+      throw new IllegalStateException("Block was evicted");
+    }
+    return recordedSize;
   }
 
   @Override
@@ -101,11 +105,6 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
     return this.accessTime < that.accessTime ? 1 : -1;
   }
 
-  @Override
-  public byte[] getBuffer() {
-    return this.buf;
-  }
-
   public String getName() {
     return this.blockName;
   }
@@ -114,13 +113,40 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
     return this.priority;
   }
 
-  @Override
-  public Object getIndex() {
-    return index;
+  public byte[] getBuffer() {
+    return buffer;
   }
 
-  @Override
-  public void setIndex(Object idx) {
-    this.index = idx;
+  @SuppressWarnings("unchecked")
+  public synchronized <T extends Weighbable> T getIndex(Supplier<T> supplier) {
+    if (index == null && recordedSize >= 0) {
+      index = supplier.get();
+    }
+
+    return (T) index;
+  }
+
+  public synchronized long recordSize(AtomicLong totalSize) {
+    if (recordedSize >= 0) {
+      long indexSize = (index == null) ? 0 : index.weight();
+      long newSize = ClassSize.align(blockName.length()) + ClassSize.align(buffer.length) + PER_BLOCK_OVERHEAD + indexSize;
+      long delta = newSize - recordedSize;
+      recordedSize = newSize;
+      return totalSize.addAndGet(delta);
+    }
+
+    throw new IllegalStateException("Block was evicted");
+  }
+
+  public synchronized long evicted(AtomicLong totalSize) {
+    if (recordedSize >= 0) {
+      totalSize.addAndGet(recordedSize * -1);
+      long tmp = recordedSize;
+      recordedSize = -1;
+      index = null;
+      return tmp;
+    }
+
+    throw new IllegalStateException("already evicted");
   }
 }

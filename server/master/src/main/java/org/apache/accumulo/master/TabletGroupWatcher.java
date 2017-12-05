@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.master;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Math.min;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;

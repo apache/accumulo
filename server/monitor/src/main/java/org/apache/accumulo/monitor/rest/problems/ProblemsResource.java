@@ -16,11 +16,16 @@
  */
 package org.apache.accumulo.monitor.rest.problems;
 
+import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX;
+import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -36,6 +41,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,12 +99,12 @@ public class ProblemsResource {
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
   @Path("summary")
-  public void clearTableProblems(@QueryParam("s") String tableID) {
+  public void clearTableProblems(@QueryParam("s") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
       ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(Table.ID.of(tableID));
     } catch (Exception e) {
-      log.error("Failed to delete problem reports for table " + tableID, e);
+      log.error("Failed to delete problem reports for table " + (StringUtils.isEmpty(tableID) ? StringUtils.EMPTY : tableID), e);
     }
   }
 
@@ -144,12 +150,13 @@ public class ProblemsResource {
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
   @Path("details")
-  public void clearDetailsProblems(@QueryParam("table") String tableID, @QueryParam("resource") String resource, @QueryParam("ptype") String ptype) {
+  public void clearDetailsProblems(@QueryParam("table") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID, @QueryParam("resource") @NotNull @Pattern(
+      regexp = RESOURCE_REGEX) String resource, @QueryParam("ptype") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String ptype) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
       ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(Table.ID.of(tableID), ProblemType.valueOf(ptype), resource);
     } catch (Exception e) {
-      log.error("Failed to delete problem reports for table " + tableID, e);
+      log.error("Failed to delete problem reports for table " + (StringUtils.isBlank(tableID) ? "" : tableID), e);
     }
   }
 

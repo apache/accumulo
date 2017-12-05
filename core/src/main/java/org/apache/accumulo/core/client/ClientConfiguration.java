@@ -184,12 +184,19 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * Attempts to load a configuration file from the system. Uses the "ACCUMULO_CLIENT_CONF_PATH" environment variable, split on File.pathSeparator, for a list
-   * of target files. If not set, uses the following in this order- ~/.accumulo/config $ACCUMULO_CONF_DIR/client.conf -OR- /etc/accumulo/client.conf -OR-
-   * /etc/accumulo/conf/client.conf
-   *
-   * A client configuration will then be read from each location using PropertiesConfiguration to construct a configuration. That means the latest item will be
-   * the one in the configuration.
+   * Attempts to load a configuration file from the system using the default search paths. Uses the <em>ACCUMULO_CLIENT_CONF_PATH</em> environment variable,
+   * split on <em>File.pathSeparator</em>, for a list of target files.
+   * <p>
+   * If <em>ACCUMULO_CLIENT_CONF_PATH</em> is not set, uses the following in this order:
+   * <ul>
+   * <li>~/.accumulo/config
+   * <li><em>$ACCUMULO_CONF_DIR</em>/client.conf, if <em>$ACCUMULO_CONF_DIR</em> is defined.
+   * <li>/etc/accumulo/client.conf
+   * <li>/etc/accumulo/conf/client.conf
+   * </ul>
+   * <p>
+   * A client configuration will then be read from each location using <em>PropertiesConfiguration</em> to construct a configuration. That means the latest item
+   * will be the one in the configuration.
    *
    * @see PropertiesConfiguration
    * @see File#pathSeparator

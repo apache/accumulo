@@ -37,17 +37,17 @@ import javax.crypto.CipherOutputStream;
 public class CryptoModuleParameters {
 
   /**
-   * Gets the name of the symmetric algorithm to use for encryption.
+   * Gets the name of the symmetric algorithm to use for the creation of encryption keys.
    *
-   * @see CryptoModuleParameters#setAlgorithmName(String)
+   * @see CryptoModuleParameters#setKeyAlgorithmName(String)
    */
 
-  public String getAlgorithmName() {
-    return algorithmName;
+  public String getKeyAlgorithmName() {
+    return keyAlgorithmName;
   }
 
   /**
-   * Sets the name of the symmetric algorithm to use for an encryption stream.
+   * Sets the name of the symmetric algorithm to use for the creation of encryption keys.
    * <p>
    * Valid names are names recognized by your cryptographic engine provider. For the default Java provider, valid names would include things like "AES", "RC4",
    * "DESede", etc.
@@ -56,73 +56,45 @@ public class CryptoModuleParameters {
    * decryption. <br>
    * For <b>decryption</b>, this value is often disregarded in favor of the value encoded with the ciphertext.
    *
-   * @param algorithmName
+   * @param keyAlgorithmName
    *          the name of the cryptographic algorithm to use.
    * @see <a href="http://docs.oracle.com/javase/1.5.0/docs/guide/security/jce/JCERefGuide.html#AppA">Standard Algorithm Names in JCE</a>
    *
    */
 
-  public void setAlgorithmName(String algorithmName) {
-    this.algorithmName = algorithmName;
+  public void setKeyAlgorithmName(String keyAlgorithmName) {
+    this.keyAlgorithmName = keyAlgorithmName;
   }
 
   /**
-   * Gets the name of the encryption mode to use for encryption.
+   * Gets the name of the cipher suite used for encryption
    *
-   * @see CryptoModuleParameters#setEncryptionMode(String)
+   * @see CryptoModuleParameters#setCipherSuite(String)
    */
 
-  public String getEncryptionMode() {
-    return encryptionMode;
+  public String getCipherSuite() {
+    return cipherSuite;
   }
 
   /**
-   * Sets the name of the encryption mode to use for an encryption stream.
+   * Sets the name of the crypto suite to use for an encryption stream.
    * <p>
-   * Valid names are names recognized by your cryptographic engine provider. For the default Java provider, valid names would include things like "EBC", "CBC",
-   * "CFB", etc.
-   * <p>
-   * For <b>encryption</b>, this value is <b>required</b> and is always used. Its value should be prepended or otherwise included with the ciphertext for future
-   * decryption. <br>
-   * For <b>decryption</b>, this value is often disregarded in favor of the value encoded with the ciphertext.
+   * Valid names are names recognized by your cryptographic engine provider.
    *
-   * @param encryptionMode
-   *          the name of the encryption mode to use.
-   * @see <a href="http://docs.oracle.com/javase/1.5.0/docs/guide/security/jce/JCERefGuide.html#AppA">Standard Mode Names in JCE</a>
+   * The format for input should be: algorithm/mode/padding
    *
-   */
-
-  public void setEncryptionMode(String encryptionMode) {
-    this.encryptionMode = encryptionMode;
-  }
-
-  /**
-   * Gets the name of the padding type to use for encryption.
-   *
-   * @see CryptoModuleParameters#setPadding(String)
-   */
-
-  public String getPadding() {
-    return padding;
-  }
-
-  /**
-   * Sets the name of the padding type to use for an encryption stream.
-   * <p>
-   * Valid names are names recognized by your cryptographic engine provider. For the default Java provider, valid names would include things like "NoPadding",
-   * "None", etc.
+   * For the default Java provider, valid names would include things like "AES/CBC/NoPadding".
    * <p>
    * For <b>encryption</b>, this value is <b>required</b> and is always used. Its value should be prepended or otherwise included with the ciphertext for future
    * decryption. <br>
    * For <b>decryption</b>, this value is often disregarded in favor of the value encoded with the ciphertext.
    *
-   * @param padding
-   *          the name of the padding type to use.
-   * @see <a href="http://docs.oracle.com/javase/1.5.0/docs/guide/security/jce/JCERefGuide.html#AppA">Standard Padding Names in JCE</a>
+   * @param cipherSuite
+   *          the cipher suite to use.
    *
    */
-  public void setPadding(String padding) {
-    this.padding = padding;
+  public void setCipherSuite(String cipherSuite) {
+    this.cipherSuite = cipherSuite;
   }
 
   /**
@@ -229,6 +201,26 @@ public class CryptoModuleParameters {
 
   public void setRandomNumberGeneratorProvider(String randomNumberGeneratorProvider) {
     this.randomNumberGeneratorProvider = randomNumberGeneratorProvider;
+  }
+
+  /**
+   * Gets the security provider name.
+   *
+   * @see #setSecurityProvider(String)
+   * @return the security provider name
+   */
+  public String getSecurityProvider() {
+    return securityProvider;
+  }
+
+  /**
+   * Sets the name of the security provider to use for crypto.
+   *
+   * @param securityProvider
+   *          the name of the provider to use
+   */
+  public void setSecurityProvider(String securityProvider) {
+    this.securityProvider = securityProvider;
   }
 
   /**
@@ -388,9 +380,9 @@ public class CryptoModuleParameters {
    *
    * So, why is this important? Say you started out with the default secret key encryption strategy. So, now you have a secret key in HDFS that encrypts all the
    * other secret keys. <i>Then</i> you deploy a key management solution. You want to move that secret key up to the key management server. Great! No problem.
-   * Except, all your encrypted files now contain a setting that says
-   * "hey I was encrypted by the default strategy, so find decrypt my key using that, not the key management server". This setting signals the
-   * {@link CryptoModule} that it should ignore the setting in the file and prefer the one from the configuration.
+   * Except, all your encrypted files now contain a setting that says "hey I was encrypted by the default strategy, so find decrypt my key using that, not the
+   * key management server". This setting signals the {@link CryptoModule} that it should ignore the setting in the file and prefer the one from the
+   * configuration.
    *
    * @param overrideStreamsSecretKeyEncryptionStrategy
    *          the flag that indicates if the underlying stream's key encryption strategy should be overridden by the currently configured key encryption
@@ -578,6 +570,52 @@ public class CryptoModuleParameters {
   }
 
   /**
+   * Returns the mode from the cipher suite. Assumes the suite is in the form of algorithm/mode/padding, returns null if the cipher suite is malformed or
+   * NullCipher.
+   *
+   * @return the encryption mode from the cipher suite
+   */
+  public String getCipherSuiteEncryptionMode() {
+    String[] parts = this.cipherSuite.split("/");
+    if (parts.length == 3) {
+      return parts[1];
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Updates the initialization vector for use when the encryption mode is GCM. If the IV is not currently null, and the encryption mode is GCM, it will
+   * increment the IV instead of letting the CryptoModule decide what to do.
+   */
+  public void updateInitializationVector() {
+    if (this.initializationVector != null && getCipherSuiteEncryptionMode().equals(DefaultCryptoModule.ALGORITHM_PARAMETER_SPEC_GCM)) {
+      incrementIV(this.initializationVector, this.initializationVector.length - 1);
+    } else {
+      this.initializationVector = null;
+    }
+  }
+
+  /**
+   * Because IVs can be longer than longs, this increments arbitrarily sized byte arrays by 1, with a roll over to 0 after the max value is reached.
+   *
+   * @param iv
+   *          The iv to be incremented
+   * @param i
+   *          The current byte being incremented
+   */
+  static void incrementIV(byte[] iv, int i) {
+    iv[i]++;
+    if (iv[i] == 0) {
+      if (i != 0) {
+        incrementIV(iv, i - 1);
+      } else
+        return;
+    }
+
+  }
+
+  /**
    * Gets the overall set of options for the {@link CryptoModule}.
    *
    * @see CryptoModuleParameters#setAllOptions(Map)
@@ -602,13 +640,13 @@ public class CryptoModuleParameters {
     this.allOptions = allOptions;
   }
 
-  private String algorithmName = null;
-  private String encryptionMode = null;
-  private String padding = null;
+  private String cipherSuite = null;
+  private String keyAlgorithmName = null;
   private byte[] plaintextKey;
   private int keyLength = 0;
   private String randomNumberGenerator = null;
   private String randomNumberGeneratorProvider = null;
+  private String securityProvider = null;
 
   private String keyEncryptionStrategyClass;
   private byte[] encryptedKey;
@@ -625,7 +663,7 @@ public class CryptoModuleParameters {
 
   private Cipher cipher;
   private SecureRandom secureRandom;
-  private byte[] initializationVector;
+  private byte[] initializationVector = null;
 
   private Map<String,String> allOptions;
   private int blockStreamSize;

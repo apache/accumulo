@@ -41,7 +41,7 @@ public class BlockCacheConfiguration implements Configuration {
   private final long summaryMaxSize;
 
   public BlockCacheConfiguration(AccumuloConfiguration conf) {
-    genProps = conf.getAllPropertiesWithPrefix(Property.GENERAL_ARBITRARY_PROP_PREFIX);
+    genProps = conf.getAllPropertiesWithPrefix(Property.TSERV_PREFIX);
 
     this.indexMaxSize = conf.getAsBytes(Property.TSERV_INDEXCACHE_SIZE);
     this.dataMaxSize = conf.getAsBytes(Property.TSERV_DATACACHE_SIZE);

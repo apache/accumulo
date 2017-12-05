@@ -28,13 +28,13 @@
   <description>A web server for monitoring Apache Accumulo.</description>
   <dependencies>
     <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.auto.service</groupId>
       <artifactId>auto-service</artifactId>
       <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-lang</groupId>
@@ -43,6 +43,10 @@
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>javax.validation</groupId>
+      <artifactId>validation-api</artifactId>
     </dependency>
     <dependency>
       <groupId>javax.ws.rs</groupId>
@@ -141,7 +145,7 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/main/resources/resources/js/flot/**/*.js</exclude>
+              <exclude>src/main/resources/resources/external/**/*</exclude>
             </excludes>
           </configuration>
         </plugin>

@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
@@ -256,5 +257,54 @@ public class VersioningIteratorTest {
 
     assertTrue(it2.hasTop());
     assertTrue(it2.getTopKey().getTimestamp() == 18);
+  }
+
+  @Test
+  public void test_maxLongExclusiveKey() throws IOException {
+    Text row = new Text("a");
+    Text colf = new Text("b");
+    Text colq = new Text("c");
+    Text cv = new Text();
+
+    TreeMap<Key,Value> tm = new TreeMap<>();
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00".getBytes()));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11".getBytes()));
+
+    VersioningIterator it = new VersioningIterator();
+    IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
+    VersioningIterator.setMaxVersions(is, 1);
+    it.init(new SortedMapIterator(tm), is.getOptions(), null);
+
+    Key startKey = new Key(row, colf, colq, cv, Long.MAX_VALUE);
+    Range testRange = new Range(startKey, false, startKey.followingKey(PartialKey.ROW), true);
+    it.seek(testRange, EMPTY_COL_FAMS, false);
+
+    assertFalse(it.hasTop());
+  }
+
+  @Test
+  public void test_maxLongInclusiveKey() throws IOException {
+    Text row = new Text("a");
+    Text colf = new Text("b");
+    Text colq = new Text("c");
+    Text cv = new Text();
+
+    TreeMap<Key,Value> tm = new TreeMap<>();
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE), new Value("00".getBytes()));
+    tm.put(new Key(row, colf, colq, cv, Long.MAX_VALUE - 1), new Value("11".getBytes()));
+
+    VersioningIterator it = new VersioningIterator();
+    IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
+    VersioningIterator.setMaxVersions(is, 1);
+    it.init(new SortedMapIterator(tm), is.getOptions(), null);
+
+    Key startKey = new Key(row, colf, colq, cv, Long.MAX_VALUE);
+    Range testRange = new Range(startKey, true, startKey.followingKey(PartialKey.ROW), true);
+    it.seek(testRange, EMPTY_COL_FAMS, false);
+
+    assertTrue(it.hasTop());
+    assertTrue(it.getTopValue().contentEquals("00".getBytes()));
+    it.next();
+    assertFalse(it.hasTop());
   }
 }
