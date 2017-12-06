@@ -22,6 +22,8 @@ package org.apache.accumulo.monitor.util;
 public interface ParameterValidator {
 
   String ALPHA_NUM_REGEX = "\\w+";
+  // Allow the special default table IDs
+  String ALPHA_NUM_REGEX_TABLE_ID = "[!+]?\\w+";
   String ALPHA_NUM_REGEX_BLANK_OK = "\\w*";
 
   String RESOURCE_REGEX = "(\\w|:)+";

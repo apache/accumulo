@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.view;
 
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK;
+import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.SERVER_REGEX_BLANK_OK;
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isEmpty;
@@ -289,7 +290,7 @@ public class WebViews {
   @GET
   @Path("tables/{tableID}")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTables(@PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID) throws TableNotFoundException,
+  public Map<String,Object> getTables(@PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID) throws TableNotFoundException,
       UnsupportedEncodingException {
 
     String tableName = Tables.getTableName(Monitor.getContext().getInstance(), Table.ID.of(tableID));
