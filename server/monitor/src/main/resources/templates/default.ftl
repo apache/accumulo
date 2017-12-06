@@ -27,14 +27,14 @@
         ${val}
       </#list>
     <#else>
-      <script src="/resources/external/jquery-2.2.4.min.js"></script>
-      <script src="/resources/external/bootstrap.min.js"></script>
+      <script src="/resources/external/jquery-2.2.4.js"></script>
+      <script src="/resources/external/bootstrap.js"></script>
       <script src="/resources/external/jquery-ui.js"></script>
-      <script src="/resources/external/select2.min.js"></script>
-      <link rel="stylesheet" href="/resources/external/bootstrap.min.css" />
-      <link rel="stylesheet" href="/resources/external/bootstrap-theme.min.css" />
+      <script src="/resources/external/select2.js"></script>
+      <link rel="stylesheet" href="/resources/external/bootstrap.css" />
+      <link rel="stylesheet" href="/resources/external/bootstrap-theme.css" />
       <link rel="stylesheet" href="/resources/external/jquery-ui.css" />
-      <link rel="stylesheet" href="/resources/external/select2.min.css" />
+      <link rel="stylesheet" href="/resources/external/select2.css" />
     </#if>
 
     <!-- accumulo resources -->
