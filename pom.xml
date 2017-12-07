@@ -128,7 +128,9 @@
     <findbugs.version>3.0.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
+    <hadoop.profile>2</hadoop.profile>
     <hadoop.version>2.6.4</hadoop.version>
+    <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
     <httpclient.version>3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
@@ -392,6 +394,21 @@
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client-api</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client-minicluster</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client-runtime</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-distcp</artifactId>
         <version>${hadoop.version}</version>
       </dependency>
@@ -419,6 +436,11 @@
         <groupId>org.apache.htrace</groupId>
         <artifactId>htrace-core</artifactId>
         <version>${htrace.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.htrace</groupId>
+        <artifactId>htrace-core4</artifactId>
+        <version>${htrace.hadoop.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
@@ -899,6 +921,10 @@
                     <artifactId>java17</artifactId>
                     <version>1.0</version>
                   </signature>
+                  <ignores>
+                    <ignore>org.apache.hadoop.conf.Configuration</ignore>
+                    <ignore>org.apache.hadoop.fs.FileSystem</ignore>
+                  </ignores>
                 </checkSignatureRule>
               </rules>
             </configuration>
@@ -1498,6 +1524,27 @@
       </activation>
       <properties>
         <findbugs.excludeFilterFile>src/main/findbugs/exclude-filter.xml</findbugs.excludeFilterFile>
+      </properties>
+    </profile>
+    <profile>
+      <id>hadoop2</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>2</value>
+        </property>
+      </activation>
+    </profile>
+    <profile>
+      <id>hadoop3</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>3</value>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.version>3.0.0</hadoop.version>
       </properties>
     </profile>
   </profiles>

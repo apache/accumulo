@@ -209,28 +209,6 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <!-- generate version listing for packaged dependencies -->
-            <id>generate-dependencies-raw</id>
-            <goals>
-              <goal>list</goal>
-            </goals>
-            <phase>compile</phase>
-            <configuration>
-              <outputFile>${project.build.directory}/dependencies.raw.txt</outputFile>
-              <outputScope>false</outputScope>
-              <sort>true</sort>
-              <!-- this list should match that in src/main/assemblies/component.xml -->
-              <includeArtifactIds>commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</includeArtifactIds>
-              <excludeTransitive>true</excludeTransitive>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <executions>
@@ -252,24 +230,6 @@
             <phase>generate-resources</phase>
             <configuration>
               <executable>${basedir}/src/main/scripts/generate-example-configs.sh</executable>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>binary-assembly</id>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <phase>package</phase>
-            <configuration>
-              <descriptors>
-                <descriptor>src/main/assemblies/binary-release.xml</descriptor>
-              </descriptors>
             </configuration>
           </execution>
         </executions>
@@ -322,6 +282,148 @@
           <optional>true</optional>
         </dependency>
       </dependencies>
+    </profile>
+    <profile>
+      <id>hadoop2</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>2</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <!-- generate version listing for packaged dependencies -->
+                <id>generate-dependencies-raw</id>
+                <goals>
+                  <goal>list</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <outputFile>${project.build.directory}/dependencies.raw.txt</outputFile>
+                  <outputScope>false</outputScope>
+                  <sort>true</sort>
+                  <!-- this list should match that in src/main/assemblies/component.xml -->
+                  <includeArtifactIds>commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</includeArtifactIds>
+                  <excludeTransitive>true</excludeTransitive>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>binary-assembly</id>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <descriptors>
+                    <descriptor>src/main/assemblies/binary-release.xml</descriptor>
+                  </descriptors>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>hadoop3</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>3</value>
+        </property>
+      </activation>
+      <!-- When using Hadoop 3 with the shaded jars, we need to provide
+ 					 the jars we need instead of relying on them externally. -->
+      <dependencies>
+        <dependency>
+          <groupId>commons-cli</groupId>
+          <artifactId>commons-cli</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-codec</groupId>
+          <artifactId>commons-codec</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-collections</groupId>
+          <artifactId>commons-collections</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-configuration</groupId>
+          <artifactId>commons-configuration</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-io</groupId>
+          <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-lang</groupId>
+          <artifactId>commons-lang</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.htrace</groupId>
+          <artifactId>htrace-core4</artifactId>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <!-- generate version listing for packaged dependencies -->
+                <id>generate-dependencies-raw</id>
+                <goals>
+                  <goal>list</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <outputFile>${project.build.directory}/dependencies.raw.txt</outputFile>
+                  <outputScope>false</outputScope>
+                  <sort>true</sort>
+                  <!-- this list should match that in src/main/assemblies/component.xml -->
+                  <includeArtifactIds>commons-cli,commons-codec,commons-collections,commons-configuration,commons-io,commons-lang,commons-logging,commons-math3,commons-vfs2,gson,guava,htrace-core,htrace-core4,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</includeArtifactIds>
+                  <excludeTransitive>true</excludeTransitive>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>binary-assembly</id>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <descriptors>
+                    <descriptor>src/main/assemblies/binary-release-hadoop3.xml</descriptor>
+                  </descriptors>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>
