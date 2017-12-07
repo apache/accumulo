@@ -92,6 +92,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.rpc.RpcWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -151,6 +152,7 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
     final VolumeManager fs = VolumeManagerImpl.get();
+    MetricsSystemHelper.configure(SimpleGarbageCollector.class.getSimpleName());
     Accumulo.init(fs, conf, app);
     Opts opts = new Opts();
     opts.parseArgs(app, args);
