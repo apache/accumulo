@@ -20,6 +20,7 @@ import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
 import org.apache.hadoop.metrics2.MetricsSystem;
+import org.apache.hadoop.metrics2.impl.MsInfo;
 import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 
@@ -39,6 +40,7 @@ public class Metrics2ThriftMetrics implements Metrics, MetricsSource, ThriftMetr
     this.name = THRIFT_NAME + ",sub=" + serverName;
     this.desc = "Thrift Server Metrics - " + serverName + " " + threadName;
     this.registry = new MetricsRegistry(Interns.info(name, desc));
+    this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
   }
 
   @Override

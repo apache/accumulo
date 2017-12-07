@@ -28,12 +28,14 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
 import org.apache.hadoop.metrics2.MetricsSystem;
+import org.apache.hadoop.metrics2.impl.MsInfo;
 import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableQuantiles;
@@ -66,7 +68,8 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
 
     pathModTimes = new HashMap<>();
 
-    registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
+    this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
+    this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
     replicationUtil = new ReplicationUtil(master);
     replicationQueueTimeQuantiles = registry.newQuantiles(REPLICATION_QUEUE_TIME_QUANTILES, "Replication queue time quantiles in milliseconds", "ops",
         "latency", 600);

@@ -196,6 +196,7 @@ import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
@@ -3069,6 +3070,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
       VolumeManager fs = VolumeManagerImpl.get();
+      MetricsSystemHelper.configure(TabletServer.class.getSimpleName());
       Accumulo.init(fs, instance, conf, app);
       final TabletServer server = new TabletServer(instance, conf, fs);
       server.config(hostname);

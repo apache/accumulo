@@ -58,6 +58,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -385,6 +386,7 @@ public class TraceServer implements Watcher {
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
     VolumeManager fs = VolumeManagerImpl.get();
+    MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
     Accumulo.init(fs, instance, conf, app);
     String hostname = opts.getAddress();
     TraceServer server = new TraceServer(instance, conf, hostname);

@@ -74,6 +74,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -430,6 +431,7 @@ public class Monitor implements HighlyAvailableService {
     context = new AccumuloServerContext(instance, config);
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
+    MetricsSystemHelper.configure(Monitor.class.getSimpleName());
     Accumulo.init(fs, instance, config, app);
     Monitor monitor = new Monitor();
     // Servlets need access to limit requests when the monitor is not active, but Servlets are instantiated
