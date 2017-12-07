@@ -87,6 +87,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -433,6 +434,7 @@ public class Monitor {
     context = new AccumuloServerContext(config);
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
+    MetricsSystemHelper.configure(app);
     Accumulo.init(fs, config, app);
     Monitor monitor = new Monitor();
     DistributedTrace.enable(hostname, app, config.getConfiguration());

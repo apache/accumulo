@@ -122,6 +122,7 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.RpcWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -1428,6 +1429,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
       String hostname = opts.getAddress();
       ServerConfigurationFactory conf = new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
+      MetricsSystemHelper.configure(app);
       Accumulo.init(fs, conf, app);
       Master master = new Master(conf, fs, hostname);
       DistributedTrace.enable(hostname, app, conf.getConfiguration());
