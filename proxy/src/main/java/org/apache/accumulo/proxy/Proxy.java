@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Properties;
 
 import org.apache.accumulo.core.cli.Help;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.server.metrics.MetricsFactory;
@@ -52,8 +54,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
-import com.google.common.io.Files;
-import com.google.common.net.HostAndPort;
 
 @AutoService(KeywordExecutable.class)
 public class Proxy implements KeywordExecutable {
@@ -139,7 +139,7 @@ public class Proxy implements KeywordExecutable {
 
     if (useMini) {
       log.info("Creating mini cluster");
-      final File folder = Files.createTempDir();
+      final File folder = Files.createTempDirectory(System.currentTimeMillis() + "").toFile();
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
       opts.prop.setProperty("instance", accumulo.getConfig().getInstanceName());

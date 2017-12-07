@@ -397,3 +397,54 @@ data into two instances. Given some existing bulk import process which creates f
 Accumulo instance, it is trivial to copy those files to a new HDFS instance and import them into another Accumulo
 instance using the same process. Hadoop's +distcp+ command provides an easy way to copy large amounts of data to another
 HDFS instance which makes the problem of duplicating bulk imports very easy to solve.
+
+=== Table Schema
+
+The following describes the kinds of keys, their format, and their general function for the purposes of individuals
+understanding what the replication table describes. Because the replication table is essentially a state machine,
+this data is often the source of truth for why Accumulo is doing what it is with respect to replication. There are
+three "sections" in this table: "repl", "work", and "order".
+
+==== Repl section
+
+This section is for the tracking of a WAL file that needs to be replicated to one or more Accumulo remote tables.
+This entry is tracking that replication needs to happen on the given WAL file, but also that the local Accumulo table,
+as specified by the column qualifier "local table ID", has information in this WAL file.
+
+The structure of the key-value is as follows:
+----
+<HDFS_uri_to_WAL> repl:<local_table_id> [] -> <protobuf>
+----
+
+This entry is created based on a replication entry from the Accumlo metadata table, and is deleted from the replication table
+when the WAL has been fully replicated to all remote Accumulo tables.
+
+==== Work section
+
+This section is for the tracking of a WAL file that needs to be replicated to a single Accumulo table in a remote
+Accumulo cluster. If a WAL must be replicated to multiple tables, there will be multiple entries. The Value for this
+Key is a serialized ProtocolBuffer message which encapsulates the portion of the WAL which was already sent for
+this file. The "replication target" is the unique location of where the file needs to be replicated: the identifier
+for the remote Accumulo cluster and the table ID in that remote Accumulo cluster. The protocol buffer in the value
+tracks the progress of replication to the remote cluster.
+
+----
+<HDFS_uri_to_WAL> work:<replication_target> [] -> <protobuf>
+----
+
+The "work" entry is created when a WAL has an "order" entry, and deleted after the WAL is replicated to all
+necessary remote clusters.
+
+==== Order section
+
+This section is used to order and schedule (create) replication work. In some cases, data with the same timestamp
+may be provided multiple times. In this case, it is important that WALs are replicated in the same order they were
+created/used. In this case (and in cases where this is not important), the order entry ensures that oldest WALs
+are processed most quickly and pushed through the replication framework.
+
+----
+<time_of_WAL_closing>\x00<HDFS_uri_to_WAL> order:<local_table_id> [] -> <protobuf>
+----
+
+The "order" entry is created when the WAL is closed (no longer being written to) and is removed when
+the WAL is fully replicated to all remote locations.

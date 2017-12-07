@@ -30,6 +30,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -37,8 +38,6 @@ import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-
-import com.google.common.net.HostAndPort;
 
 public class LocalityCheck {
 
@@ -95,7 +94,7 @@ public class LocalityCheck {
         allBlocks++;
         for (String location : blockLocation.getHosts()) {
           HostAndPort hap = HostAndPort.fromParts(location, 0);
-          if (hap.getHostText().equals(host)) {
+          if (hap.getHost().equals(host)) {
             matchingBlocks++;
             break;
           }

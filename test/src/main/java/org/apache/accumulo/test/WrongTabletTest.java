@@ -26,13 +26,13 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.net.HostAndPort;
 
 public class WrongTabletTest {
 

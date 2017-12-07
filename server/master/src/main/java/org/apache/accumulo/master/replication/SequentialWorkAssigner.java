@@ -104,7 +104,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       Map<String,String> replicationForPeer = queuedWorkByPeerName.get(peerName);
       if (null == replicationForPeer) {
         replicationForPeer = new HashMap<>();
-        queuedWorkByPeerName.put(sourceTableId, replicationForPeer);
+        queuedWorkByPeerName.put(peerName, replicationForPeer);
       }
 
       replicationForPeer.put(sourceTableId, work);

@@ -18,7 +18,7 @@ package org.apache.accumulo.core.util;
 
 import java.util.EnumMap;
 
-import com.google.common.net.HostAndPort;
+import org.apache.accumulo.core.util.HostAndPort;
 
 public class ServerServices implements Comparable<ServerServices> {
   public static enum Service {

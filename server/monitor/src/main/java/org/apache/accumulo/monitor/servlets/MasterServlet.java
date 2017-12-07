@@ -56,7 +56,7 @@ public class MasterServlet extends BasicServlet {
   @Override
   protected String getTitle(HttpServletRequest req) {
     List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
-    return "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), false).getHostText());
+    return "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), false).getHost());
   }
 
   @Override
@@ -150,7 +150,7 @@ public class MasterServlet extends BasicServlet {
       masterStatus.addSortableColumn("OS&nbsp;Load", new NumberType<>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
           "The one-minute load average on the computer that runs the monitor web server.");
       TableRow row = masterStatus.prepareRow();
-      row.add(masters.size() == 0 ? "<div class='error'>Down</div>" : AddressUtil.parseAddress(masters.get(0), false).getHostText());
+      row.add(masters.size() == 0 ? "<div class='error'>Down</div>" : AddressUtil.parseAddress(masters.get(0), false).getHost());
       row.add(Monitor.getMmi().tServerInfo.size());
       row.add(slaves.size());
       row.add("<a href='/gc'>" + gcStatus + "</a>");
@@ -183,7 +183,7 @@ public class MasterServlet extends BasicServlet {
         if (server.logSorts != null) {
           for (RecoveryStatus recovery : server.logSorts) {
             TableRow row = recoveryTable.prepareRow();
-            row.add(AddressUtil.parseAddress(server.name, false).getHostText());
+            row.add(AddressUtil.parseAddress(server.name, false).getHost());
             row.add(recovery.name);
             row.add((long) recovery.runtime);
             row.add(recovery.progress);

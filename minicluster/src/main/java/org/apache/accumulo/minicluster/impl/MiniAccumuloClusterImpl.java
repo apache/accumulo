@@ -17,6 +17,7 @@
 package org.apache.accumulo.minicluster.impl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -113,7 +114,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.Uninterruptibles;
 
 /**
  * This class provides the backing implementation for {@link MiniAccumuloCluster}, and may contain features for internal testing which have not yet been
@@ -631,7 +631,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString()).waitFor();
       if (ret == 0)
         break;
-      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
     if (ret != 0) {
       throw new RuntimeException("Could not set master goal state, process returned " + ret + ". Check the logs in " + config.getLogDir() + " for errors.");

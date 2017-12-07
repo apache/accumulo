@@ -20,14 +20,13 @@ import java.util.Collections;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.net.HostAndPort;
 
 /**
  *

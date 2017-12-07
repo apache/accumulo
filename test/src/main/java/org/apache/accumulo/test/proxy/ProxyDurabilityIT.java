@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.test.proxy;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.minicluster.impl.ProcessReference;
@@ -57,7 +58,6 @@ import org.apache.thrift.server.TServer;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
-import com.google.common.net.HostAndPort;
 
 public class ProxyDurabilityIT extends ConfigurableMacBase {
 

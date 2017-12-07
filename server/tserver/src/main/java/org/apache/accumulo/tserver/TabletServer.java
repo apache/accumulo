@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.io.IOException;
@@ -141,6 +141,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
@@ -261,8 +262,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 public class TabletServer extends AccumuloServerContext implements Runnable {
 
@@ -2319,7 +2318,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    HostAndPort address = startServer(getServerConfigurationFactory().getConfiguration(), clientAddress.getHostText(), Property.TSERV_CLIENTPORT, processor,
+    HostAndPort address = startServer(getServerConfigurationFactory().getConfiguration(), clientAddress.getHost(), Property.TSERV_CLIENTPORT, processor,
         "Thrift Client Server");
     log.info("address = " + address);
     return address;
@@ -2332,7 +2331,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     ReplicationServicer.Processor<ReplicationServicer.Iface> processor = new ReplicationServicer.Processor<>(repl);
     AccumuloConfiguration conf = getServerConfigurationFactory().getConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(this, clientAddress.getHostText(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
+    ServerAddress sp = TServerUtils.startServer(this, clientAddress.getHost(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
         "ReplicationServicerHandler", "Replication Servicer", null, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
     this.replServer = sp.server;
     log.info("Started replication service on " + sp.address);
@@ -2763,14 +2762,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public String getClientAddressString() {
     if (clientAddress == null)
       return null;
-    return clientAddress.getHostText() + ":" + clientAddress.getPort();
+    return clientAddress.getHost() + ":" + clientAddress.getPort();
   }
 
   public String getReplicationAddressSTring() {
     if (null == replicationAddress) {
       return null;
     }
-    return replicationAddress.getHostText() + ":" + replicationAddress.getPort();
+    return replicationAddress.getHost() + ":" + replicationAddress.getPort();
   }
 
   public TServerInstance getTabletSession() {

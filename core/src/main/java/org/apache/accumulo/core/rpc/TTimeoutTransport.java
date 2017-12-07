@@ -27,11 +27,10 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.spi.SelectorProvider;
 
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
-
-import com.google.common.net.HostAndPort;
 
 public class TTimeoutTransport {
 
@@ -62,7 +61,7 @@ public class TTimeoutTransport {
   }
 
   public static TTransport create(HostAndPort addr, long timeoutMillis) throws IOException {
-    return create(new InetSocketAddress(addr.getHostText(), addr.getPort()), timeoutMillis);
+    return create(new InetSocketAddress(addr.getHost(), addr.getPort()), timeoutMillis);
   }
 
   public static TTransport create(SocketAddress addr, long timeoutMillis) throws IOException {

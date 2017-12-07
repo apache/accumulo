@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -46,7 +47,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.net.HostAndPort;
 
 public class TableLoadBalancerTest {
 

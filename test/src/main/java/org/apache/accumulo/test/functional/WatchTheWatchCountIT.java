@@ -21,13 +21,12 @@ import static org.junit.Assert.assertTrue;
 import java.net.Socket;
 
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 // ACCUMULO-2757 - make sure we don't make too many more watchers
 public class WatchTheWatchCountIT extends ConfigurableMacBase {
@@ -56,7 +55,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
     long total = 0;
     final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
     for (int i = 0; i < 5; i++) {
-      Socket socket = new Socket(hostAndPort.getHostText(), hostAndPort.getPort());
+      Socket socket = new Socket(hostAndPort.getHost(), hostAndPort.getPort());
       try {
         socket.getOutputStream().write("wchs\n".getBytes(), 0, 5);
         byte[] buffer = new byte[1024];

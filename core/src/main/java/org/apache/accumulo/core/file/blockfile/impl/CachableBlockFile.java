@@ -147,7 +147,7 @@ public class CachableBlockFile {
   public static class Reader implements BlockFileReader {
     private final RateLimiter readLimiter;
     private BCFile.Reader _bc;
-    private String fileName = "not_available";
+    private final String fileName;
     private BlockCache _dCache = null;
     private BlockCache _iCache = null;
     private InputStream fin = null;
@@ -155,6 +155,10 @@ public class CachableBlockFile {
     private Configuration conf;
     private boolean closed = false;
     private AccumuloConfiguration accumuloConfiguration = null;
+
+    // ACCUMULO-4716 - Define MAX_ARRAY_SIZE smaller than Integer.MAX_VALUE to prevent possible OutOfMemory
+    // errors when allocating arrays - described in stackoverflow post: https://stackoverflow.com/a/8381338
+    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     private interface BlockLoader {
       BlockReader get() throws IOException;
@@ -247,16 +251,18 @@ public class CachableBlockFile {
       this.readLimiter = readLimiter;
     }
 
-    public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len, Configuration conf, BlockCache data, BlockCache index,
-        AccumuloConfiguration accumuloConfiguration) throws IOException {
+    public <InputStreamType extends InputStream & Seekable> Reader(String cacheId, InputStreamType fsin, long len, Configuration conf, BlockCache data,
+        BlockCache index, AccumuloConfiguration accumuloConfiguration) throws IOException {
+      this.fileName = cacheId;
       this._dCache = data;
       this._iCache = index;
       this.readLimiter = null;
       init(fsin, len, conf, accumuloConfiguration);
     }
 
-    public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len, Configuration conf,
+    public <InputStreamType extends InputStream & Seekable> Reader(String cacheId, InputStreamType fsin, long len, Configuration conf,
         AccumuloConfiguration accumuloConfiguration) throws IOException {
+      this.fileName = cacheId;
       this.readLimiter = null;
       init(fsin, len, conf, accumuloConfiguration);
     }
@@ -342,7 +348,7 @@ public class CachableBlockFile {
 
     private BlockRead cacheBlock(String _lookup, BlockCache cache, BlockReader _currBlock, String block) throws IOException {
 
-      if ((cache == null) || (_currBlock.getRawSize() > cache.getMaxSize())) {
+      if ((cache == null) || (_currBlock.getRawSize() > Math.min(cache.getMaxSize(), MAX_ARRAY_SIZE))) {
         return new BlockRead(_currBlock, _currBlock.getRawSize());
       } else {
 

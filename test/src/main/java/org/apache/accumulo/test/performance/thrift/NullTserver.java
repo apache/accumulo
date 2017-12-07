@@ -76,9 +76,9 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.net.HostAndPort;
+import org.apache.accumulo.core.util.HostAndPort;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 
 /**
