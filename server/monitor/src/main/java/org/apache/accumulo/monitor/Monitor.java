@@ -542,7 +542,7 @@ public class Monitor implements HighlyAvailableService {
 
       @Override
       public Resource getResource(String pathInContext) {
-        return Resource.newClassPathResource(pathInContext);
+        return Resource.newClassPathResource("/org/apache/accumulo/monitor" + pathInContext);
       }
     });
   }
@@ -550,7 +550,7 @@ public class Monitor implements HighlyAvailableService {
   private ServletHolder getViewServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.view")
         .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(FreemarkerMvcFeature.class)
-        .property(MvcFeature.TEMPLATE_BASE_PATH, "/templates").property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
+        .property(MvcFeature.TEMPLATE_BASE_PATH, "/org/apache/accumulo/monitor/templates").property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
     return new ServletHolder(new ServletContainer(rc));
   }
 

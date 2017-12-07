@@ -26,4 +26,4 @@
       </div>
       <br>
       <script src="/resources/js/${tablesJs}"></script>
-      <#include "/templates/${tablesTemplate}">
+      <#include "${tablesTemplate}">

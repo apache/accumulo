@@ -145,7 +145,7 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/main/resources/resources/external/**/*</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/monitor/resources/external/**/*</exclude>
             </excludes>
           </configuration>
         </plugin>
