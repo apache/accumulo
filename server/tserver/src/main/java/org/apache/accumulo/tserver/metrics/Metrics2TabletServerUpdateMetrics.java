@@ -17,10 +17,12 @@
 package org.apache.accumulo.tserver.metrics;
 
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
 import org.apache.hadoop.metrics2.MetricsSystem;
+import org.apache.hadoop.metrics2.impl.MsInfo;
 import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableCounterLong;
@@ -42,6 +44,7 @@ public class Metrics2TabletServerUpdateMetrics implements Metrics, MetricsSource
   Metrics2TabletServerUpdateMetrics(MetricsSystem system) {
     this.system = system;
     this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
+    this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
 
     permissionErrorsCounter = registry.newCounter(Interns.info(PERMISSION_ERRORS, "Permission Errors"), 0l);
     unknownTabletErrorsCounter = registry.newCounter(Interns.info(UNKNOWN_TABLET_ERRORS, "Unknown Tablet Errors"), 0l);
