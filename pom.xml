@@ -124,7 +124,7 @@
     <extraReleaseArgs />
     <failsafe.excludedGroups />
     <failsafe.groups />
-    <findbugs.version>3.0.3</findbugs.version>
+    <findbugs.version>3.0.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
     <hadoop.version>2.6.4</hadoop.version>
@@ -778,6 +778,14 @@
             <failOnError>true</failOnError>
             <includeTests>true</includeTests>
             <maxRank>16</maxRank>
+            <jvmArgs>-Dcom.overstock.findbugs.ignore=com.google.common.util.concurrent.RateLimiter,com.google.common.hash.Hasher,com.google.common.hash.HashCode,com.google.common.hash.HashFunction,com.google.common.hash.Hashing,com.google.common.cache.Cache,com.google.common.io.CountingOutputStream,com.google.common.io.ByteStreams,com.google.common.cache.LoadingCache,com.google.common.base.Stopwatch,com.google.common.cache.RemovalNotification,com.google.common.util.concurrent.Uninterruptibles,com.google.common.reflect.ClassPath,com.google.common.reflect.ClassPath$ClassInfo,com.google.common.base.Throwables</jvmArgs>
+            <plugins>
+              <plugin>
+                <groupId>com.overstock.findbugs</groupId>
+                <artifactId>library-detectors</artifactId>
+                <version>1.2.0</version>
+              </plugin>
+            </plugins>
           </configuration>
         </plugin>
         <plugin>
