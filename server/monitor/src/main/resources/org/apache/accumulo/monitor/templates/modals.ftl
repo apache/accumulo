@@ -21,14 +21,27 @@
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal">&times;</button>
-            <h4 class="modal-title">About ${instance_name}</h4>
+            <span class="modal-title"><a href="https://accumulo.apache.org" target="_blank"><img alt="Apache Accumulo" src="/resources/images/accumulo-logo.png" /></a></span>
           </div>
           <div class="modal-body">
-            <p><a href='https://accumulo.apache.org/' target='_blank'>Apache&nbsp;Accumulo</a>&nbsp;
-              ${version}
-            </p>
-            <p>${instance_id}</p>
-            <p id='currentDate'></p>
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-sm-4 text-right">Software</div>
+                <div class="col-sm-6 text-left"><a href="https://accumulo.apache.org" target="_blank">Apache&nbsp;Accumulo</a></div>
+              </div>
+              <div class="row">
+                <div class="col-sm-4 text-right">Version</div>
+                <div class="col-sm-6 text-left">${version}</div>
+              </div>
+              <div class="row">
+                <div class="col-sm-4 text-right">Instance&nbsp;Name</div>
+                <div class="col-sm-6 text-left">${instance_name}</div>
+              </div>
+              <div class="row">
+                <div class="col-sm-4 text-right">Instance&nbsp;Id</div>
+                <div class="col-sm-6 text-left">${instance_id}</div>
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

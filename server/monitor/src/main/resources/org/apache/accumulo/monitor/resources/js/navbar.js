@@ -48,8 +48,6 @@ function refreshNavBar() {
  */
 function refreshSideBarNotifications() {
 
-  $('#currentDate').html(Date());
-
   var data = sessionStorage.status === undefined ?
       undefined : JSON.parse(sessionStorage.status);
 

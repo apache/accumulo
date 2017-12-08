@@ -23,6 +23,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
+          <img id="accumulo-avatar" class="navbar-left pull-left" src="/resources/images/accumulo-avatar.png" />
           <a class="navbar-brand" id="headertitle" href="/">${instance_name}</a>
         </div>
         <!-- Nav links -->
@@ -79,7 +80,3 @@
           </ul>
         </div>
       </div>
-      <script>
-        // Obtain the current time
-        document.getElementById('currentDate').innerHTML = Date();
-      </script>

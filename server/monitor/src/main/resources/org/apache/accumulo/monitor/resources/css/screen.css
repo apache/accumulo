@@ -421,6 +421,13 @@ pre.logevent {
   /*float: left;*/
 }
 
+#accumulo-avatar {
+  margin: 8px;
+  border-radius: 5px;
+  width: 32px;
+  height: 32px;
+}
+
 .center-block {
   width: 100%;
 }
@@ -465,4 +472,9 @@ pre.logevent {
   font: 10px sans-serif;
   /*background: yellow;
   box-shadow: 2px 2px 1px #888;*/
+}
+
+/* gently lighten the bootstrap text color for the navbar */
+.navbar-inverse .navbar-brand, .navbar-inverse .navbar-nav > li > a {
+  color: #d3d3d3;
 }
