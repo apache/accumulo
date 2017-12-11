@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
@@ -25,6 +27,7 @@ import java.util.Objects;
 /**
  * An abstract identifier class for comparing equality of identifiers of the same type.
  */
+@JsonSerialize(using = AbstractIdSerializer.class)
 public abstract class AbstractId implements Comparable<AbstractId>, Serializable {
 
   private static final long serialVersionUID = -155513612834787244L;
