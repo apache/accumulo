@@ -25,6 +25,7 @@ public class JaxbAbstractIdSerializer extends XmlAdapter<String, AbstractId> {
   }
 
   @Override public AbstractId unmarshal(String id) {
-    return null;
+    // should not unmarshal from String
+    throw new AssertionError("Cannot unmarshal from String");
   }
 }
