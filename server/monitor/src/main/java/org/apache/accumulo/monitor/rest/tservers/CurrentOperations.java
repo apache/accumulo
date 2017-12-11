@@ -30,7 +30,7 @@ public class CurrentOperations {
   // Variable names become JSON keys
   public String name;
   public String tablet;
-  public String tableID;
+  public Table.ID tableID;
   public long entries;
   public double ingest;
   public double query;
@@ -74,7 +74,7 @@ public class CurrentOperations {
   public CurrentOperations(String name, Table.ID tableId, String tablet, long entries, double ingest, double query, Double minorAvg, Double minorStdDev,
       Double minorAvgES, Double majorAvg, Double majorStdDev, Double majorAvgES) {
     this.name = name;
-    this.tableID = tableId.canonicalID();
+    this.tableID = tableId;
     this.tablet = tablet;
     this.entries = entries;
     this.ingest = ingest;
