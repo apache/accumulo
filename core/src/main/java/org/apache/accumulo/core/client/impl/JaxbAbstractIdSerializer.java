@@ -16,21 +16,15 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.map.SerializerProvider;
-import org.codehaus.jackson.map.ser.std.SerializerBase;
+import javax.xml.bind.annotation.adapters.XmlAdapter;
 
-import java.io.IOException;
+public class JaxbAbstractIdSerializer extends XmlAdapter<String, AbstractId> {
 
-public class AbstractIdSerializer extends SerializerBase<AbstractId> {
-
-  public AbstractIdSerializer() {
-    super(AbstractId.class, true);
+  @Override public String marshal(AbstractId id) {
+    return id.canonicalID();
   }
 
-  @Override public void serialize(AbstractId id, JsonGenerator jgen, SerializerProvider provider) throws IOException {
-    jgen.writeStartObject();
-    jgen.writeString(id.canonicalID());
-    jgen.writeEndObject();
+  @Override public AbstractId unmarshal(String id) {
+    return null;
   }
 }
