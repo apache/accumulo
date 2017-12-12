@@ -18,12 +18,12 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.ExecutionException;
 
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
 import org.apache.accumulo.core.client.Instance;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 public class Table {
 
@@ -36,6 +36,7 @@ public class Table {
    */
   @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
   public static class ID extends AbstractId {
+    private static final long serialVersionUID = -155513612834787244L;
     static final Cache<String,ID> cache = CacheBuilder.newBuilder().weakValues().build();
 
     public static final ID METADATA = of("!0");

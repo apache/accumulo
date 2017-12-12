@@ -18,7 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
-public class JaxbAbstractIdSerializer extends XmlAdapter<String, AbstractId> {
+public class JaxbAbstractIdSerializer extends XmlAdapter<String,AbstractId> {
 
   @Override
   public String marshal(AbstractId id) {

@@ -19,13 +19,15 @@ package org.apache.accumulo.core.client.impl;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * An abstract identifier class for comparing equality of identifiers of the same type.
  */
-public abstract class AbstractId implements Comparable<AbstractId> {
+public abstract class AbstractId implements Comparable<AbstractId>, Serializable {
 
+  private static final long serialVersionUID = -155513612834787244L;
   private final String canonical;
   private Integer hashCode = null;
 
