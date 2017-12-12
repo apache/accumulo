@@ -20,11 +20,13 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 
 public class JaxbAbstractIdSerializer extends XmlAdapter<String, AbstractId> {
 
-  @Override public String marshal(AbstractId id) {
+  @Override
+  public String marshal(AbstractId id) {
     return id.canonicalID();
   }
 
-  @Override public AbstractId unmarshal(String id) {
+  @Override
+  public AbstractId unmarshal(String id) {
     // should not unmarshal from String
     throw new AssertionError("Cannot unmarshal from String");
   }
