@@ -21,16 +21,29 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.hadoop.io.Text;
 
 /**
  * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to include default iterators, and user-specified initial
@@ -48,6 +61,8 @@ public class NewTableConfiguration {
   private Map<String,String> properties = Collections.emptyMap();
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
+  private Map<String,String> localityProps = Collections.emptyMap();
+  private Map<String,String> iteratorProps = Collections.emptyMap();
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps, String kind) {
     checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()), "Properties and derived %s properties are not disjoint", kind);
@@ -88,7 +103,7 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Sets additional properties to be applied to tables created with this configuration. Additional calls to this method replaces properties set by previous
+   * Sets additional properties to be applied to tables created with this configuration. Additional calls to this method replace properties set by previous
    * calls.
    *
    * @param props
@@ -118,6 +133,8 @@ public class NewTableConfiguration {
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);
     propertyMap.putAll(properties);
+    propertyMap.putAll(iteratorProps);
+    propertyMap.putAll(localityProps);
     return Collections.unmodifiableMap(propertyMap);
   }
 
@@ -146,4 +163,116 @@ public class NewTableConfiguration {
     summarizerProps = tmp;
     return this;
   }
+
+  /**
+   * Configures a table's locality groups prior to initial table creation.
+   *
+   * Allows locality groups to be set prior to table creation. Additional calls to this method prior to table creation will overwrite previous locality group
+   * mappings.
+   *
+   * @param groups
+   *          mapping of locality group names to column families in the locality group
+   *
+   * @since 2.0.0
+   */
+  public void setLocalityGroups(Map<String,Set<Text>> groups) {
+    // ensure locality groups do not overlap
+    LocalityGroupUtil.ensureNonOverlappingGroups(groups);
+    localityProps = new HashMap<>();
+    for (Entry<String,Set<Text>> entry : groups.entrySet()) {
+      Set<Text> colFams = entry.getValue();
+      String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
+      localityProps.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
+    }
+    // localityProps.put(Property.TABLE_LOCALITY_GROUPS.getKey(), Joiner.on(",").join(groups.keySet()));
+    localityProps.put(Property.TABLE_LOCALITY_GROUPS.getKey(), groups.keySet().stream().collect(Collectors.joining(",")));
+    // localityProps.put(Property.TABLE_LOCALITY_GROUPS.getKey(), Stream.of(groups.keySet().collect(Collectors.joining(","));
+    // Stream.of(groups.keySet()).collect(joining(","));
+  }
+
+  /**
+   * Configure iterator settings for a table prior to its creation.
+   *
+   * Additional calls to this method before table creation will overwrite previous iterator settings.
+   *
+   * @param setting
+   *          object specifying the properties of the iterator
+   * @throws AccumuloSecurityException
+   *           thrown if the user does not have the ability to set properties on the table
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws TableNotFoundException
+   *           if the table does not exist
+   *
+   * @since 2.0.0
+   */
+  public void attachIterator(IteratorSetting setting) throws AccumuloException, TableNotFoundException {
+    attachIterator(setting, EnumSet.allOf(IteratorScope.class));
+  }
+
+  /**
+   * Configure iterator settings for a table prior to its creation.
+   *
+   * @param setting
+   *          object specifying the properties of the iterator
+   * @param scopes
+   *          enumerated set of iterator scopes
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           thrown if the user does not have the ability to set properties on the table
+   * @throws TableNotFoundException
+   *           if the table does not exist
+   *
+   * @since 2.0.0
+   */
+  public void attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
+    checkArgument(setting != null, "setting is null");
+    checkArgument(scopes != null, "scopes is null");
+    if (iteratorProps.isEmpty()) {
+      iteratorProps = new HashMap<>();
+    }
+    checkIteratorConflicts(setting, scopes);
+    for (IteratorScope scope : scopes) {
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
+      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+        iteratorProps.put(root + ".opt." + prop.getKey(), prop.getValue());
+      }
+      iteratorProps.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+    }
+  }
+
+  private void checkIteratorConflicts(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
+    checkArgument(setting != null, "setting is null");
+    checkArgument(scopes != null, "scopes is null");
+    for (IteratorScope scope : scopes) {
+      String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
+      String nameStr = String.format("%s.%s", scopeStr, setting.getName());
+      String optStr = String.format("%s.opt.", nameStr);
+      Map<String,String> optionConflicts = new TreeMap<>();
+      for (Entry<String,String> property : iteratorProps.entrySet()) {
+        if (property.getKey().startsWith(scopeStr)) {
+          if (property.getKey().equals(nameStr))
+            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for " + setting.getName() + ": " + property.getKey() + "="
+                + property.getValue()));
+          if (property.getKey().startsWith(optStr))
+            optionConflicts.put(property.getKey(), property.getValue());
+          if (property.getKey().contains(".opt."))
+            continue;
+          String parts[] = property.getValue().split(",");
+          if (parts.length != 2)
+            throw new AccumuloException("Bad value for existing iterator setting: " + property.getKey() + "=" + property.getValue());
+          try {
+            if (Integer.parseInt(parts[0]) == setting.getPriority())
+              throw new AccumuloException(new IllegalArgumentException("iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
+          } catch (NumberFormatException e) {
+            throw new AccumuloException("Bad value for existing iterator setting: " + property.getKey() + "=" + property.getValue());
+          }
+        }
+      }
+      if (optionConflicts.size() > 0)
+        throw new AccumuloException(new IllegalArgumentException("iterator options conflict for " + setting.getName() + ": " + optionConflicts));
+    }
+  }
+
 }
