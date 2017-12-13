@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -172,11 +173,26 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     ntc.setLocalityGroups(lgroups);
     conn.tableOperations().create(tableName, ntc);
     // verify
-    Map<String,String> ntcProps = ntc.getProperties();
-    assertEquals(ntcProps.get("prop1"), "val1");
-    assertEquals(ntcProps.get("prop2"), "val2");
-    assertEquals(ntcProps.get("table.group.lg1"), "dog");
-    assertEquals(ntcProps.get("table.groups.enabled"), "lg1");
+    int count = 0;
+    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+      if (property.getKey().equals("prop1")) {
+        assertEquals(property.getValue(), "val1");
+        count++;
+      }
+      if (property.getKey().equals("prop2")) {
+        assertEquals(property.getValue(), "val2");
+        count++;
+      }
+      if (property.getKey().equals("table.group.lg1")) {
+        assertEquals(property.getValue(), "dog");
+        count++;
+      }
+      if (property.getKey().equals("table.groups.enabled")) {
+        assertEquals(property.getValue(), "lg1");
+        count++;
+      }
+    }
+    assertEquals(4, count);
     Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
     assertEquals(1, createdLocalityGroups.size());
     assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("dog")));
