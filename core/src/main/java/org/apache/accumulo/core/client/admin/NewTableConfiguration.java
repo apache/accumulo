@@ -174,6 +174,8 @@ public class NewTableConfiguration {
    *          mapping of locality group names to column families in the locality group
    *
    * @since 2.0.0
+   *
+   * @see TableOperations#setLocalityGroups
    */
   public void setLocalityGroups(Map<String,Set<Text>> groups) {
     // ensure locality groups do not overlap
@@ -184,10 +186,7 @@ public class NewTableConfiguration {
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
       localityProps.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
-    // localityProps.put(Property.TABLE_LOCALITY_GROUPS.getKey(), Joiner.on(",").join(groups.keySet()));
     localityProps.put(Property.TABLE_LOCALITY_GROUPS.getKey(), groups.keySet().stream().collect(Collectors.joining(",")));
-    // localityProps.put(Property.TABLE_LOCALITY_GROUPS.getKey(), Stream.of(groups.keySet().collect(Collectors.joining(","));
-    // Stream.of(groups.keySet()).collect(joining(","));
   }
 
   /**
@@ -197,8 +196,6 @@ public class NewTableConfiguration {
    *
    * @param setting
    *          object specifying the properties of the iterator
-   * @throws AccumuloSecurityException
-   *           thrown if the user does not have the ability to set properties on the table
    * @throws AccumuloException
    *           if a general error occurs
    * @throws TableNotFoundException
@@ -219,8 +216,6 @@ public class NewTableConfiguration {
    *          enumerated set of iterator scopes
    * @throws AccumuloException
    *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           thrown if the user does not have the ability to set properties on the table
    * @throws TableNotFoundException
    *           if the table does not exist
    *
