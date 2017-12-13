@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
@@ -176,7 +175,7 @@ public class NewTableConfiguration {
    *
    * @see TableOperations#setLocalityGroups
    */
-  public void setLocalityGroups(Map<String,Set<Text>> groups) {
+  public NewTableConfiguration setLocalityGroups(Map<String,Set<Text>> groups) {
     // ensure locality groups do not overlap
     LocalityGroupUtil.ensureNonOverlappingGroups(groups);
     localityProps = new HashMap<>();
@@ -186,6 +185,7 @@ public class NewTableConfiguration {
       localityProps.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
     localityProps.put(Property.TABLE_LOCALITY_GROUPS.getKey(), groups.keySet().stream().collect(Collectors.joining(",")));
+    return this;
   }
 
   /**
@@ -200,8 +200,8 @@ public class NewTableConfiguration {
    *
    * @since 2.0.0
    */
-  public void attachIterator(IteratorSetting setting) throws AccumuloException {
-    attachIterator(setting, EnumSet.allOf(IteratorScope.class));
+  public NewTableConfiguration attachIterator(IteratorSetting setting) throws AccumuloException {
+    return attachIterator(setting, EnumSet.allOf(IteratorScope.class));
   }
 
   /**
@@ -216,12 +216,11 @@ public class NewTableConfiguration {
    *
    * @since 2.0.0
    */
-  public void attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {
+  public NewTableConfiguration attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {
     checkArgument(setting != null, "setting is null");
     checkArgument(scopes != null, "scopes is null");
-    if (iteratorProps.isEmpty()) {
+    if (iteratorProps.isEmpty())
       iteratorProps = new HashMap<>();
-    }
     checkIteratorConflicts(setting, scopes);
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
@@ -230,6 +229,7 @@ public class NewTableConfiguration {
       }
       iteratorProps.put(root, setting.getPriority() + "," + setting.getIteratorClass());
     }
+    return this;
   }
 
   private void checkIteratorConflicts(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {

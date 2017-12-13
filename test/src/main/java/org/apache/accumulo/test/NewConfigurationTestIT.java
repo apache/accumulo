@@ -19,11 +19,9 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -171,8 +169,6 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     ntc.setLocalityGroups(lgroups);
     conn.tableOperations().create(tableName, ntc);
     // verify
-    Iterable<Entry<String,String>> properties = conn.tableOperations().getProperties(tableName);
-    log.info("properties: " + properties.toString());
     int count = 0;
     for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals("table.group.lg1")) {
@@ -272,7 +268,7 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     check(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
     Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
     assertEquals(2, iteratorList.size());
-    assertEquals(iteratorList.get("someName"), "[scan]");
+    assertEquals(iteratorList.get("someName"), EnumSet.of(IteratorScope.scan));
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
     check(conn, tableName, new String[] {}, true);
     iteratorList = conn.tableOperations().listIterators(tableName);
@@ -444,6 +440,48 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     check(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
     check(conn, tableName, new String[] {}, true);
+  }
+
+  /**
+   * Test NewTableConfiguration chaining.
+   */
+  @Test
+  public void testNtcChaining() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+    Connector conn = getConnector();
+    String tableName = getUniqueNames(2)[0];
+
+    IteratorSetting setting = new IteratorSetting(10, "anIterator", "it.class", Collections.emptyMap());
+    Map<String,Set<Text>> lgroups = new HashMap<>();
+    lgroups.put("lgp", ImmutableSet.of(new Text("col")));
+
+    NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators().attachIterator(setting, EnumSet.of(IteratorScope.scan))
+        .setLocalityGroups(lgroups);
+
+    conn.tableOperations().create(tableName, ntc);
+
+    Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
+    assertEquals(1, iteratorList.size());
+    check(conn, tableName, new String[] {"table.iterator.scan.anIterator=10,it.class"}, false);
+    conn.tableOperations().removeIterator(tableName, "anIterator", EnumSet.of(IteratorScope.scan));
+    check(conn, tableName, new String[] {}, false);
+    iteratorList = conn.tableOperations().listIterators(tableName);
+    assertEquals(0, iteratorList.size());
+
+    int count = 0;
+    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+      if (property.getKey().equals("table.group.lgp")) {
+        assertEquals(property.getValue(), "col");
+        count++;
+      }
+      if (property.getKey().equals("table.groups.enabled")) {
+        assertEquals(property.getValue(), "lgp");
+        count++;
+      }
+    }
+    assertEquals(2, count);
+    Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
+    assertEquals(1, createdLocalityGroups.size());
+    assertEquals(createdLocalityGroups.get("lgp"), ImmutableSet.of(new Text("col")));
   }
 
   /**
