@@ -223,8 +223,8 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and migration decisions."),
   MASTER_RECOVERY_MAXAGE("master.recovery.max.age", "60m", PropertyType.TIMEDURATION, "Recovery files older than this age will be removed."),
   MASTER_RECOVERY_MAXTIME("master.recovery.time.max", "30m", PropertyType.TIMEDURATION, "The maximum time to attempt recovery before giving up"),
-  MASTER_BULK_RETRIES("master.bulk.retries", "3", PropertyType.COUNT, "The number of attempts to bulk-load a file before giving up."),
-  MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT, "The number of threads to use when coordinating a bulk-import."),
+  MASTER_BULK_RETRIES("master.bulk.retries", "3", PropertyType.COUNT, "The number of attempts to bulk import a RFile before giving up."),
+  MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT, "The number of threads to use when coordinating a bulk import."),
   MASTER_BULK_TIMEOUT("master.bulk.timeout", "5m", PropertyType.TIMEDURATION, "The time to wait for a tablet server to process a bulk import request"),
   MASTER_BULK_RENAME_THREADS("master.bulk.rename.threadpool.size", "20", PropertyType.COUNT,
       "The number of threads to use when moving user files to bulk ingest directories under accumulo control"),
@@ -235,11 +235,11 @@ public enum Property {
   MASTER_RECOVERY_DELAY("master.recovery.delay", "10s", PropertyType.TIMEDURATION,
       "When a tablet server's lock is deleted, it takes time for it to completely quit. This delay gives it time before log recoveries begin."),
   MASTER_LEASE_RECOVERY_WAITING_PERIOD("master.lease.recovery.interval", "5s", PropertyType.TIMEDURATION,
-      "The amount of time to wait after requesting a WAL file to be recovered"),
+      "The amount of time to wait after requesting a write-ahead log to be recovered"),
   MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation", "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
-      "A class that implements a mechansim to steal write access to a file"),
+      "A class that implements a mechanism to steal write access to a write-ahead log"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
-      "The number of threads used to run FAult-Tolerant Executions. These are primarily table operations like merge."),
+      "The number of threads used to run Fault-Tolerant Executions. These are primarily table operations like merge."),
   MASTER_REPLICATION_SCAN_INTERVAL("master.replication.status.scan.interval", "30s", PropertyType.TIMEDURATION,
       "Amount of time to sleep before scanning the status section of the replication table for new data"),
   MASTER_REPLICATION_COORDINATOR_PORT("master.replication.coordinator.port", "10001", PropertyType.PORT, "Port for the replication coordinator service"),
@@ -259,8 +259,8 @@ public enum Property {
   TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class", "org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager", PropertyType.STRING,
       "Specifies the class name of the block cache factory implementation. Alternative implementation is "
           + "org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager"),
-  TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY, "Specifies the size of the cache for file data blocks."),
-  TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "25%", PropertyType.MEMORY, "Specifies the size of the cache for file indices."),
+  TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY, "Specifies the size of the cache for RFile data blocks."),
+  TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "25%", PropertyType.MEMORY, "Specifies the size of the cache for RFile index blocks."),
   TSERV_SUMMARYCACHE_SIZE("tserver.cache.summary.size", "10%", PropertyType.MEMORY, "Specifies the size of the cache for summary data on each tablet server."),
   TSERV_PORTSEARCH("tserver.port.search", "false", PropertyType.BOOLEAN, "if the ports above are in use, search higher ports until one is available"),
   TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT, "The port used for handling client connections on the tablet servers"),
@@ -273,28 +273,28 @@ public enum Property {
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them."),
   TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN("tserver.tablet.split.midpoint.files.max", "300", PropertyType.COUNT,
-      "To find a tablets split points, all index files are opened. This setting determines how many index "
-          + "files can be opened at once. When there are more index files than this setting multiple passes "
-          + "must be made, which is slower. However opening too many files at once can cause problems."),
+      "To find a tablets split points, all RFiles are opened and their indexes are read. This setting determines how many "
+          + "RFiles can be opened at once. When there are more RFiles than this setting multiple passes "
+          + "must be made, which is slower. However opening too many RFiles at once can cause problems."),
   TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1g", PropertyType.BYTES,
       "The maximum size for each write-ahead log. See comment for property tserver.memory.maps.max"),
   TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION, "The maximum age for each write-ahead log."),
   TSERV_WALOG_TOLERATED_CREATION_FAILURES("tserver.walog.tolerated.creation.failures", "50", PropertyType.COUNT,
-      "The maximum number of failures tolerated when creating a new WAL file within the period specified by tserver.walog.failures.period."
+      "The maximum number of failures tolerated when creating a new write-ahead log within the period specified by tserver.walog.failures.period."
           + " Exceeding this number of failures in the period causes the TabletServer to exit."),
   TSERV_WALOG_TOLERATED_WAIT_INCREMENT("tserver.walog.tolerated.wait.increment", "1000ms", PropertyType.TIMEDURATION,
       "The amount of time to wait between failures to create a WALog."),
   // Never wait longer than 5 mins for a retry
   TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.walog.maximum.wait.duration", "5m", PropertyType.TIMEDURATION,
-      "The maximum amount of time to wait after a failure to create a WAL file."),
+      "The maximum amount of time to wait after a failure to create a write-ahead log."),
   TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
       "Time a tablet server will sleep between checking which tablets need compaction."),
   TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "10", PropertyType.COUNT,
-      "Max number of files a major compaction thread can open at once. "),
+      "Max number of RFiles a major compaction thread can open at once. "),
   TSERV_SCAN_MAX_OPENFILES("tserver.scan.files.open.max", "100", PropertyType.COUNT,
-      "Maximum total files that all tablets in a tablet server can open for scans. "),
-  TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION, "Tablet servers leave previously used files open for future queries. "
-      + "This setting determines how much time an unused file should be kept open until it is closed."),
+      "Maximum total RFiles that all tablets in a tablet server can open for scans. "),
+  TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION, "Tablet servers leave previously used RFiles open for future queries. "
+      + "This setting determines how much time an unused RFile should be kept open until it is closed."),
   TSERV_NATIVEMAP_ENABLED("tserver.memory.maps.native.enabled", "true", PropertyType.BOOLEAN,
       "An in-memory data store for accumulo implemented in c++ that increases the amount of data accumulo can hold in memory and avoids Java GC pauses."),
   TSERV_MAXMEM("tserver.memory.maps.max", "33%", PropertyType.MEMORY,
@@ -336,13 +336,13 @@ public enum Property {
           + "scan is switched to that local file. We can not switch to the minor compacted file because it may have been modified by iterators. The file "
           + "dumped to the local dir is an exact copy of what was in memory."),
   TSERV_BULK_PROCESS_THREADS("tserver.bulk.process.threads", "1", PropertyType.COUNT,
-      "The master will task a tablet server with pre-processing a bulk file prior to assigning it to the appropriate tablet servers. This configuration"
+      "The master will task a tablet server with pre-processing a bulk import file prior to assigning it to the appropriate tablet servers. This configuration"
           + " value controls the number of threads used to process the files."),
   TSERV_BULK_ASSIGNMENT_THREADS("tserver.bulk.assign.threads", "1", PropertyType.COUNT,
-      "The master delegates bulk file processing and assignment to tablet servers. After the bulk file has been processed, the tablet server will assign"
+      "The master delegates bulk import file processing and assignment to tablet servers. After file has been processed, the tablet server will assign"
           + " the file to the appropriate tablets on all servers. This property controls the number of threads used to communicate to the other servers."),
   TSERV_BULK_RETRY("tserver.bulk.retry.max", "5", PropertyType.COUNT,
-      "The number of times the tablet server will attempt to assign a file to a tablet as it migrates and splits."),
+      "The number of times the tablet server will attempt to assign a RFile to a tablet as it migrates and splits."),
   TSERV_BULK_TIMEOUT("tserver.bulk.timeout", "5m", PropertyType.TIMEDURATION, "The time to wait for a tablet server to process a bulk import request."),
   TSERV_MINTHREADS("tserver.server.threads.minimum", "20", PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests."),
   TSERV_THREADCHECK("tserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool."),
@@ -360,7 +360,7 @@ public enum Property {
   TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "10%", PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery."),
   TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN, "Keep copies of the WALOGs for debugging purposes"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
-      "The number of threads for the distributed work queue. These threads are used for copying failed bulk files."),
+      "The number of threads for the distributed work queue. These threads are used for copying failed bulk import files."),
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents problems recovering from sudden system resets."),
   @Deprecated
@@ -378,21 +378,21 @@ public enum Property {
   TSERV_SLOW_FLUSH_MILLIS("tserver.slow.flush.time", "100ms", PropertyType.TIMEDURATION,
       "If a flush to the write-ahead log takes longer than this period of time, debugging information will written, and may result in a log rollover."),
   TSERV_SUMMARY_PARTITION_THREADS("tserver.summary.partition.threads", "10", PropertyType.COUNT,
-      "Summary data must be retrieved from files.  For a large number of files, the files are broken into partitions of 100K files.  This setting determines "
-          + "how many of these groups of 100K files will be processed concurrently."),
+      "Summary data must be retrieved from RFiles.  For a large number of RFiles, the files are broken into partitions of 100K files.  This setting determines "
+          + "how many of these groups of 100K RFiles will be processed concurrently."),
   TSERV_SUMMARY_REMOTE_THREADS("tserver.summary.remote.threads", "128", PropertyType.COUNT,
-      "For a partitioned group of 100K files, those files are grouped by tablet server.  Then a remote tablet server is asked to gather summary data.  This "
+      "For a partitioned group of 100K RFiles, those files are grouped by tablet server.  Then a remote tablet server is asked to gather summary data.  This "
           + "setting determines how many concurrent request are made per partition."),
   TSERV_SUMMARY_RETRIEVAL_THREADS("tserver.summary.retrieval.threads", "10", PropertyType.COUNT,
       "The number of threads on each tablet server available to retrieve summary data, that is not currently in cache, from RFiles."),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the accumulo garbage collector."),
-  GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION, "Time to wait before attempting to garbage collect any old files."),
-  GC_CYCLE_DELAY("gc.cycle.delay", "5m", PropertyType.TIMEDURATION, "Time between garbage collection cycles. In each cycle, old files "
+  GC_CYCLE_START("gc.cycle.start", "30s", PropertyType.TIMEDURATION, "Time to wait before attempting to garbage collect any old RFiles or write-ahead logs."),
+  GC_CYCLE_DELAY("gc.cycle.delay", "5m", PropertyType.TIMEDURATION, "Time between garbage collection cycles. In each cycle, old RFiles or write-ahead logs "
       + "no longer in use are removed from the filesystem."),
   GC_PORT("gc.port.client", "9998", PropertyType.PORT, "The listening port for the garbage collector's monitor service"),
-  GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT, "The number of threads used to delete files"),
+  GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT, "The number of threads used to delete RFiles and write-ahead logs"),
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN, "Do not use the Trash, even if it is configured."),
   GC_FILE_ARCHIVE("gc.file.archive", "false", PropertyType.BOOLEAN, "Archive any files/directories instead of moving to the HDFS trash or deleting."),
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION, "Percent of gc cycles to trace"),
@@ -458,14 +458,14 @@ public enum Property {
       + "properties in zookeeper that are set on a table."),
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX, "Prefix to be used for user defined arbitrary properties."),
   TABLE_MAJC_RATIO("table.compaction.major.ratio", "3", PropertyType.FRACTION,
-      "minimum ratio of total input size to maximum input file size for running a major compactionWhen adjusting this property you may want to also "
+      "Minimum ratio of total input size to maximum input RFile size for running a major compaction. When adjusting this property you may want to also "
           + "adjust table.file.max. Want to avoid the situation where only merging minor compactions occur."),
   TABLE_MAJC_COMPACTALL_IDLETIME("table.compaction.major.everything.idle", "1h", PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may have all "
-          + "of its files compacted into one. There is no guarantee an idle tablet will be compacted. "
+          + "of its RFiles compacted into one. There is no guarantee an idle tablet will be compacted. "
           + "Compactions of idle tablets are only started when regular compactions are not running. Idle "
-          + "compactions only take place for tablets that have one or more files."),
-  TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.BYTES, "When combined size of files exceeds this amount a tablet is split."),
+          + "compactions only take place for tablets that have one or more RFiles."),
+  TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.BYTES, "A tablet is split when the combined size of RFiles exceeds this amount."),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.BYTES, "Maximum size of end row"),
   TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
       "When there are more than this many write-ahead logs against a tablet, it will be minor compacted. See comment for property tserver.memory.maps.max"),
@@ -473,37 +473,36 @@ public enum Property {
       "After a tablet has been idle (no mutations) for this time period it may have its "
           + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle " + "tablet will be compacted."),
   TABLE_MINC_MAX_MERGE_FILE_SIZE("table.compaction.minor.merge.file.size.max", "0", PropertyType.BYTES,
-      "The max file size used for a merging minor compaction. The default value of 0 disables a max file size."),
+      "The max RFile size used for a merging minor compaction. The default value of 0 disables a max file size."),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client."),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.STRING, "Change the type of file a table writes"),
   TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.server.master.balancer.DefaultLoadBalancer", PropertyType.STRING,
       "This property can be set to allow the LoadBalanceByTable load balancer to change the called Load Balancer for this table"),
-  TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING, "One of gz,snappy,lzo,none"),
+  TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,
+      "Compression algorithm used on index and data blocks before they are written. Possible values: gz, snappy, lzo, none"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.BYTES,
-      "Similar to the hadoop io.seqfile.compress.blocksize setting, so that files have better query performance. The maximum value for this is "
-          + Integer.MAX_VALUE + ". (This setting is the size threshold prior to compression, and applies even compression is disabled.)"),
+      "The maximum size of data blocks in RFiles before they are compressed and written."),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K", PropertyType.BYTES,
-      "Determines how large index blocks can be in files that support multilevel indexes. The maximum value for this is " + Integer.MAX_VALUE + "."
-          + " (This setting is the size threshold prior to compression, and applies even compression is disabled.)"),
+      "The maximum size of index blocks in RFiles before they are compressed and written."),
   TABLE_FILE_BLOCK_SIZE("table.file.blocksize", "0B", PropertyType.BYTES,
-      "Overrides the hadoop dfs.block.size setting so that files have better query performance. The maximum value for this is " + Integer.MAX_VALUE),
-  TABLE_FILE_REPLICATION("table.file.replication", "0", PropertyType.COUNT, "Determines how many replicas to keep of a tables' files in HDFS. "
-      + "When this value is LTE 0, HDFS defaults are used."),
+      "The HDFS block size used when writing RFiles. When set to 0B, the value/defaults of HDFS property 'dfs.block.size' will be used."),
+  TABLE_FILE_REPLICATION("table.file.replication", "0", PropertyType.COUNT,
+      "The number of replicas for a table's RFiles in HDFS. When set to 0, HDFS defaults are used."),
   TABLE_FILE_MAX("table.file.max", "15", PropertyType.COUNT,
-      "Determines the max # of files each tablet in a table can have. When adjusting this property you may want to consider adjusting"
+      "The maximum number of RFiles each tablet in a table can have. When adjusting this property you may want to consider adjusting"
           + " table.compaction.major.ratio also. Setting this property to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a"
-          + " tablet from having more files than can be opened. Setting this property low may throttle ingest and increase query performance."),
+          + " tablet from having more RFiles than can be opened. Setting this property low may throttle ingest and increase query performance."),
   TABLE_FILE_SUMMARY_MAX_SIZE("table.file.summary.maxSize", "256K", PropertyType.BYTES, "The maximum size summary that will be stored. The number of"
-      + " files that had summary data exceeding this threshold is reported by Summary.getFileStatistics().getLarge().  When adjusting this"
-      + " consider the expected number files with summaries on each tablet server and the summary cache size."),
+      + " RFiles that had summary data exceeding this threshold is reported by Summary.getFileStatistics().getLarge().  When adjusting this"
+      + " consider the expected number RFiles with summaries on each tablet server and the summary cache size."),
   @Deprecated
   TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN, "This setting is deprecated.  Use table.durability=none instead."),
   TABLE_BLOOM_ENABLED("table.bloom.enabled", "false", PropertyType.BOOLEAN, "Use bloom filters on this table."),
   TABLE_BLOOM_LOAD_THRESHOLD("table.bloom.load.threshold", "1", PropertyType.COUNT,
-      "This number of seeks that would actually use a bloom filter must occur before a file's bloom filter is loaded."
-          + " Set this to zero to initiate loading of bloom filters when a file is opened."),
+      "This number of seeks that would actually use a bloom filter must occur before a RFile's bloom filter is loaded."
+          + " Set this to zero to initiate loading of bloom filters when a RFile is opened."),
   TABLE_BLOOM_SIZE("table.bloom.size", "1048576", PropertyType.COUNT, "Bloom filter size, as number of keys."),
   TABLE_BLOOM_ERRORRATE("table.bloom.error.rate", "0.5%", PropertyType.FRACTION, "Bloom filter error rate."),
   TABLE_BLOOM_KEY_FUNCTOR("table.bloom.key.functor", "org.apache.accumulo.core.file.keyfunctor.RowFunctor", PropertyType.CLASSNAME,
@@ -533,8 +532,8 @@ public enum Property {
           + "correspond to a fully qualified Java class that implements the Constraint interface.\n"
           + "For example:\ntable.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint\n"
           + "and:\ntable.constraint.2 = my.package.constraints.MySecondConstraint"),
-  TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN, "Determines whether index cache is enabled."),
-  TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN, "Determines whether file block cache is enabled."),
+  TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN, "Determines whether index block cache is enabled for a table."),
+  TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN, "Determines whether data block cache is enabled for a table."),
   TABLE_ITERATOR_PREFIX("table.iterator.", null, PropertyType.PREFIX,
       "Properties in this category specify iterators that are applied at various stages (scopes) of interaction "
           + "with a table. These properties start with the category prefix, followed by a scope (minc, majc, scan, etc.), "
@@ -574,7 +573,7 @@ public enum Property {
       PropertyType.CLASSNAME,
       "The name of a class that implements org.apache.accumulo.core.Sampler.  Setting this option enables storing a sample of data which can be scanned."
           + "  Always having a current sample can useful for query optimization and data comprehension.   After enabling sampling for an existing table, a compaction "
-          + "is needed to compute the sample for existing data.  The compact command in the shell has an option to only compact files without sample data."),
+          + "is needed to compute the sample for existing data.  The compact command in the shell has an option to only compact RFiles without sample data."),
   TABLE_SAMPLER_OPTS("table.sampler.opt.", null, PropertyType.PREFIX,
       "The property is used to set options for a sampler.  If a sample had two options like hasher and modulous, then the two properties "
           + "table.sampler.opt.hasher=${hash algorithm} and table.sampler.opt.modulous=${mod} would be set."),
