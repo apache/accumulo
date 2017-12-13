@@ -30,7 +30,6 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -198,12 +197,10 @@ public class NewTableConfiguration {
    *          object specifying the properties of the iterator
    * @throws AccumuloException
    *           if a general error occurs
-   * @throws TableNotFoundException
-   *           if the table does not exist
    *
    * @since 2.0.0
    */
-  public void attachIterator(IteratorSetting setting) throws AccumuloException, TableNotFoundException {
+  public void attachIterator(IteratorSetting setting) throws AccumuloException {
     attachIterator(setting, EnumSet.allOf(IteratorScope.class));
   }
 
@@ -216,12 +213,10 @@ public class NewTableConfiguration {
    *          enumerated set of iterator scopes
    * @throws AccumuloException
    *           if a general error occurs
-   * @throws TableNotFoundException
-   *           if the table does not exist
    *
    * @since 2.0.0
    */
-  public void attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
+  public void attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {
     checkArgument(setting != null, "setting is null");
     checkArgument(scopes != null, "scopes is null");
     if (iteratorProps.isEmpty()) {
@@ -237,7 +232,7 @@ public class NewTableConfiguration {
     }
   }
 
-  private void checkIteratorConflicts(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
+  private void checkIteratorConflicts(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {
     checkArgument(setting != null, "setting is null");
     checkArgument(scopes != null, "scopes is null");
     for (IteratorScope scope : scopes) {
