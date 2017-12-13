@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.impl.TableOperationsHelper;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
@@ -221,7 +222,7 @@ public class NewTableConfiguration {
     checkArgument(scopes != null, "scopes is null");
     if (iteratorProps.isEmpty())
       iteratorProps = new HashMap<>();
-    checkIteratorConflicts(setting, scopes);
+    TableOperationsHelper.checkIteratorConflicts(iteratorProps, setting, scopes);
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
       for (Entry<String,String> prop : setting.getOptions().entrySet()) {
@@ -230,39 +231,6 @@ public class NewTableConfiguration {
       iteratorProps.put(root, setting.getPriority() + "," + setting.getIteratorClass());
     }
     return this;
-  }
-
-  private void checkIteratorConflicts(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {
-    checkArgument(setting != null, "setting is null");
-    checkArgument(scopes != null, "scopes is null");
-    for (IteratorScope scope : scopes) {
-      String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
-      String nameStr = String.format("%s.%s", scopeStr, setting.getName());
-      String optStr = String.format("%s.opt.", nameStr);
-      Map<String,String> optionConflicts = new TreeMap<>();
-      for (Entry<String,String> property : iteratorProps.entrySet()) {
-        if (property.getKey().startsWith(scopeStr)) {
-          if (property.getKey().equals(nameStr))
-            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for " + setting.getName() + ": " + property.getKey() + "="
-                + property.getValue()));
-          if (property.getKey().startsWith(optStr))
-            optionConflicts.put(property.getKey(), property.getValue());
-          if (property.getKey().contains(".opt."))
-            continue;
-          String parts[] = property.getValue().split(",");
-          if (parts.length != 2)
-            throw new AccumuloException("Bad value for existing iterator setting: " + property.getKey() + "=" + property.getValue());
-          try {
-            if (Integer.parseInt(parts[0]) == setting.getPriority())
-              throw new AccumuloException(new IllegalArgumentException("iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
-          } catch (NumberFormatException e) {
-            throw new AccumuloException("Bad value for existing iterator setting: " + property.getKey() + "=" + property.getValue());
-          }
-        }
-      }
-      if (optionConflicts.size() > 0)
-        throw new AccumuloException(new IllegalArgumentException("iterator options conflict for " + setting.getName() + ": " + optionConflicts));
-    }
   }
 
 }

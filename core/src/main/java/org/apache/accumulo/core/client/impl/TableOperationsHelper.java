@@ -120,9 +120,7 @@ public abstract class TableOperationsHelper implements TableOperations {
     return result;
   }
 
-  @Override
-  public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
+  public static void checkIteratorConflicts(Map<String,String> props, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {
     checkArgument(setting != null, "setting is null");
     checkArgument(scopes != null, "scopes is null");
     for (IteratorScope scope : scopes) {
@@ -130,7 +128,7 @@ public abstract class TableOperationsHelper implements TableOperations {
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
       String optStr = String.format("%s.opt.", nameStr);
       Map<String,String> optionConflicts = new TreeMap<>();
-      for (Entry<String,String> property : this.getProperties(tableName)) {
+      for (Entry<String,String> property : props.entrySet()) {
         if (property.getKey().startsWith(scopeStr)) {
           if (property.getKey().equals(nameStr))
             throw new AccumuloException(new IllegalArgumentException("iterator name conflict for " + setting.getName() + ": " + property.getKey() + "="
@@ -156,6 +154,14 @@ public abstract class TableOperationsHelper implements TableOperations {
   }
 
   @Override
+  public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+    Map<String,String> iteratorProps = new HashMap<>();
+    for (Entry<String,String> entry : this.getProperties(tableName))
+      iteratorProps.put(entry.getKey(), entry.getValue());
+    checkIteratorConflicts(iteratorProps, setting, scopes);
+  }
+
   public int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     TreeSet<Integer> constraintNumbers = new TreeSet<>();
     TreeMap<String,Integer> constraintClasses = new TreeMap<>();
