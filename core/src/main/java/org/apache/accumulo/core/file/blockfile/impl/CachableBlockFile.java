@@ -39,6 +39,7 @@ import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Writer.BlockAppender;
+import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
 import org.apache.accumulo.core.file.streams.PositionedOutput;
 import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
 import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
@@ -395,9 +396,18 @@ public class CachableBlockFile {
     public BlockRead getMetaBlock(String blockName) throws IOException {
       if (_iCache != null) {
         String _lookup = this.cacheId + "M" + blockName;
-        CacheEntry ce = _iCache.getBlock(_lookup, new MetaBlockLoader(blockName));
-        if (ce != null) {
-          return new CachedBlockRead(ce, ce.getBuffer());
+        try {
+          CacheEntry ce = _iCache.getBlock(_lookup, new MetaBlockLoader(blockName));
+          if (ce != null) {
+            return new CachedBlockRead(ce, ce.getBuffer());
+          }
+        } catch (UncheckedIOException uioe) {
+          if (uioe.getCause() instanceof MetaBlockDoesNotExist) {
+            // When a block does not exists, its expected that MetaBlockDoesNotExist is thrown. However do not want to throw cause, because stack trace info
+            // would be lost. So rewrap and throw ino rder to preserve full stack trace.
+            throw new MetaBlockDoesNotExist(uioe);
+          }
+          throw uioe;
         }
       }
 

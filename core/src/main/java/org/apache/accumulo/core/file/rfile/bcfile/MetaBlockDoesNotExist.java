@@ -18,6 +18,7 @@
 package org.apache.accumulo.core.file.rfile.bcfile;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 /**
  * Exception - No such Meta Block with the given name.
@@ -32,5 +33,9 @@ public class MetaBlockDoesNotExist extends IOException {
    */
   MetaBlockDoesNotExist(String s) {
     super(s);
+  }
+
+  public MetaBlockDoesNotExist(UncheckedIOException uioe) {
+    super(uioe);
   }
 }
