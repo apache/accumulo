@@ -55,7 +55,6 @@
     <dependency>
       <groupId>javax.xml.bind</groupId>
       <artifactId>jaxb-api</artifactId>
-      <version>2.2.12</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>

@@ -39,7 +39,7 @@ public abstract class AbstractId implements Comparable<AbstractId>, Serializable
   /**
    * The canonical ID
    */
-  public String canonicalID() {
+  public final String canonicalID() {
     return canonical;
   }
 

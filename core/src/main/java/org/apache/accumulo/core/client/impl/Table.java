@@ -36,7 +36,7 @@ public class Table {
    */
   @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
   public static class ID extends AbstractId {
-    private static final long serialVersionUID = -155513612834787244L;
+    private static final long serialVersionUID = 7399913185860577809L;
     static final Cache<String,ID> cache = CacheBuilder.newBuilder().weakValues().build();
 
     public static final ID METADATA = of("!0");

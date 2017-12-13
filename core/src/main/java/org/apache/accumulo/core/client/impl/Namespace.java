@@ -39,7 +39,7 @@ public class Namespace {
    */
   @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
   public static class ID extends AbstractId {
-    private static final long serialVersionUID = -155513612834787244L;
+    private static final long serialVersionUID = 8931104141709170293L;
     static final Cache<String,ID> cache = CacheBuilder.newBuilder().weakValues().build();
 
     public static final ID ACCUMULO = of("+accumulo");

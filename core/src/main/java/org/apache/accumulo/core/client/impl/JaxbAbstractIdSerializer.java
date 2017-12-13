@@ -18,16 +18,22 @@ package org.apache.accumulo.core.client.impl;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
+/**
+ * A class for marshaling @link{AbstractId} so REST calls can serialize AbstractId to its canonical value.
+ */
 public class JaxbAbstractIdSerializer extends XmlAdapter<String,AbstractId> {
 
   @Override
   public String marshal(AbstractId id) {
-    return id.canonicalID();
+    if (id != null)
+      return id.canonicalID();
+    else
+      return null;
   }
 
   @Override
   public AbstractId unmarshal(String id) {
     // should not unmarshal from String
-    throw new AssertionError("Cannot unmarshal from String");
+    throw new UnsupportedOperationException("Cannot unmarshal from String");
   }
 }
