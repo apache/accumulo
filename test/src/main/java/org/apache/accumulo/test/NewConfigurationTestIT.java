@@ -106,7 +106,6 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     lgroups.put("lg1", ImmutableSet.of(new Text("colFamA"), new Text("colFamB")));
     lgroups.put("lg2", ImmutableSet.of(new Text("colFamC"), new Text("colFamB")));
     ntc.setLocalityGroups(lgroups);
-    conn.tableOperations().create(tableName, ntc);
   }
 
   /**
