@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -99,9 +100,6 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
    */
   @Test(expected = IllegalArgumentException.class)
   public void testOverlappingGroupsFail() throws AccumuloSecurityException, AccumuloException, TableExistsException {
-    Connector conn = getConnector();
-    String tableName = getUniqueNames(2)[0];
-
     NewTableConfiguration ntc = new NewTableConfiguration();
     Map<String,Set<Text>> lgroups = new HashMap<>();
     lgroups.put("lg1", ImmutableSet.of(new Text("colFamA"), new Text("colFamB")));
@@ -173,16 +171,10 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     ntc.setLocalityGroups(lgroups);
     conn.tableOperations().create(tableName, ntc);
     // verify
+    Iterable<Entry<String,String>> properties = conn.tableOperations().getProperties(tableName);
+    log.info("properties: " + properties.toString());
     int count = 0;
     for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
-      if (property.getKey().equals("prop1")) {
-        assertEquals(property.getValue(), "val1");
-        count++;
-      }
-      if (property.getKey().equals("prop2")) {
-        assertEquals(property.getValue(), "val2");
-        count++;
-      }
       if (property.getKey().equals("table.group.lg1")) {
         assertEquals(property.getValue(), "dog");
         count++;
@@ -192,7 +184,7 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
         count++;
       }
     }
-    assertEquals(4, count);
+    assertEquals(2, count);
     Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
     assertEquals(1, createdLocalityGroups.size());
     assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("dog")));
@@ -280,6 +272,7 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     check(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
     Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
     assertEquals(2, iteratorList.size());
+    assertEquals(iteratorList.get("someName"), "[scan]");
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
     check(conn, tableName, new String[] {}, true);
     iteratorList = conn.tableOperations().listIterators(tableName);
