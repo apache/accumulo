@@ -163,6 +163,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
     conn.tableOperations().online(srcTable, true);
 
     verifyTableEquality(conn, srcTable, destTable);
+    s.close();
   }
 
   private void verifyTableEquality(Connector conn, String srcTable, String destTable) throws Exception {

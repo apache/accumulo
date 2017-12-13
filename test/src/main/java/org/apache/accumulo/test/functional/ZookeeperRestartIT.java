@@ -83,6 +83,7 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
     assertFalse(i.hasNext());
     // use the master
     c.tableOperations().delete("test_ingest");
+    s.close();
   }
 
 }

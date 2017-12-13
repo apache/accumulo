@@ -584,8 +584,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
           int i = 0;
           for (Entry<Key,Value> entry : scanner)
             i += 1 + entry.getKey().getRowData().length();
-          if (i != 0)
+          if (i != 0) {
             throw new IllegalStateException("Should NOT be able to read from the table");
+          }
+          scanner.close();
         } catch (RuntimeException e) {
           AccumuloSecurityException se = (AccumuloSecurityException) e.getCause();
           if (se.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
@@ -670,6 +672,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
         Iterator<Entry<Key,Value>> iter = scanner.iterator();
         while (iter.hasNext())
           iter.next();
+
+        scanner.close();
         break;
       case WRITE:
         writer = test_user_conn.createBatchWriter(tableName, new BatchWriterConfig());

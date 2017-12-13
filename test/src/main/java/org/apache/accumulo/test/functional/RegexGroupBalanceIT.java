@@ -188,6 +188,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
       count.increment();
     }
+    s.close();
     return groupLocationCounts;
   }
 }

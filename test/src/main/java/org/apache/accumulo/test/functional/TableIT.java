@@ -91,6 +91,7 @@ public class TableIT extends AccumuloClusterHarness {
     s.setRange(new KeyExtent(id, null, null).toMetadataRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
     assertTrue(Iterators.size(s.iterator()) > 0);
+    s.close();
 
     FileSystem fs = getCluster().getFileSystem();
     assertTrue(fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length > 0);

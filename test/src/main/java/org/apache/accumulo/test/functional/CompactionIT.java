@@ -180,6 +180,7 @@ public class CompactionIT extends AccumuloClusterHarness {
     Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.TabletColumnFamily.NAME));
     s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME));
+    s.close();
     return Iterators.size(s.iterator());
   }
 

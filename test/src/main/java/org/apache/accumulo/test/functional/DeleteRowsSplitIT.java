@@ -120,6 +120,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
 
       // delete the table
       conn.tableOperations().delete(tableName);
+      scanner.close();
     }
   }
 

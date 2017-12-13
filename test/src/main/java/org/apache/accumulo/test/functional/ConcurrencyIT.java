@@ -58,6 +58,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
       IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
       SlowIterator.setSleepTime(slow, time);
       scanner.addScanIterator(slow);
+      scanner.close();
     }
 
     @Override

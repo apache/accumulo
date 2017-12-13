@@ -227,7 +227,8 @@ public class ScannerContextIT extends AccumuloClusterHarness {
         Entry<Key,Value> next = iterator2.next();
         assertEquals("Test", next.getValue().toString());
       }
-
+      one.close();
+      two.close();
     } finally {
       // Delete file in tmp
       fs.delete(dstPath, true);
@@ -273,7 +274,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
         Entry<Key,Value> next = iterator.next();
         assertEquals("Test", next.getValue().toString());
       }
-
+      one.close();
     } finally {
       // Delete file in tmp
       fs.delete(dstPath, true);
@@ -295,6 +296,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       assertEquals(expected, next.getValue().toString());
     }
     assertFalse(iterator.hasNext());
+    bs.close();
   }
 
   private void batchCheck(Connector c, String tableName, IteratorSetting cfg, String context, String expected) throws Exception {

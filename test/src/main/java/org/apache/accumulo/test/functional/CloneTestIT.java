@@ -129,6 +129,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     for (Entry<Key,Value> entry : scanner)
       actual.put(entry.getKey().getRowData().toString() + ":" + entry.getKey().getColumnQualifierData().toString(), entry.getValue().toString());
 
+    scanner.close();
     Assert.assertEquals(expected, actual);
   }
 
@@ -168,7 +169,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
         throw new RuntimeException();
       }
     }
-
+    s.close();
     Assert.assertTrue("Expected to find metadata entries", itemsInspected > 0);
   }
 

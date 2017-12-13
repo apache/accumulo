@@ -104,6 +104,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
       keyCount++;
     }
+    scanner.close();
     Assert.assertEquals("Did not get the expected number of results", 10, keyCount);
   }
 
@@ -155,6 +156,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
       keyCount++;
     }
+    scanner.close();
     Assert.assertEquals("Did not get the expected number of results", 10, keyCount);
   }
 

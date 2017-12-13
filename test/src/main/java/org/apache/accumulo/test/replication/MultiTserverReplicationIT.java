@@ -79,6 +79,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
       }
     }
 
+    s.close();
     // Each tserver should also have equial replicaiton services running internally
     Assert.assertEquals("Expected an equal number of replication servicers and tservers", tserverHost.size(), replicationServices.size());
   }
@@ -111,5 +112,6 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
     // Neither should be zero as the port
     Assert.assertNotEquals(0, HostAndPort.fromString(masterAddr).getPort());
     Assert.assertNotEquals(0, HostAndPort.fromString(replCoordAddr).getPort());
+    s.close();
   }
 }

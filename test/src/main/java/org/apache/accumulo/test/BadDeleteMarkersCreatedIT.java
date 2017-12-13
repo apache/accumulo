@@ -173,6 +173,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       }
       Assert.fail("Delete entry should have been deleted by the garbage collector: " + entry.getKey().getRow().toString());
     }
+    scanner.close();
   }
 
 }

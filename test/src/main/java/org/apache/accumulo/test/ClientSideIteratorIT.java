@@ -140,5 +140,6 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     csis.clearColumns();
     csis.fetchColumnFamily(new Text("none"));
     assertFalse(csis.iterator().hasNext());
+    scanner.close();
   }
 }

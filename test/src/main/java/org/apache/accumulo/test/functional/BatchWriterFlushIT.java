@@ -158,6 +158,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
     }
 
+    scanner.close();
     bw.close();
 
     // test adding a mutation to a closed batch writer

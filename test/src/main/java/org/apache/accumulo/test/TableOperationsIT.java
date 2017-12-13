@@ -233,6 +233,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       Assert.assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit, expectedSplits.remove(clonedSplit));
     }
 
+    s.close();
     Assert.assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits, expectedSplits.isEmpty());
   }
 
@@ -259,6 +260,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       actual.put(entry.getKey(), entry.getValue());
     assertEquals(HardListIterator.allEntriesToInject, actual);
     connector.tableOperations().delete(tableName);
+    scanner.close();
   }
 
   /** Compare only the row, column family and column qualifier. */
@@ -290,6 +292,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       actual.put(entry.getKey(), entry.getValue());
     assertEquals(HardListIterator.allEntriesToInject, actual);
     connector.tableOperations().delete(tableName);
+    scanner.close();
   }
 
   @Test
@@ -332,6 +335,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         break;
     }
     connector.tableOperations().delete(tableName);
+    scanner.close();
   }
 
   @Test
@@ -356,6 +360,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     // only expect the entries in the second tablet
     assertEquals(HardListIterator.allEntriesToInject.tailMap(new Key(splitRow)), actual);
     connector.tableOperations().delete(tableName);
+    scanner.close();
   }
 
   /** Test recovery from bad majc iterator via compaction cancel. */
@@ -377,6 +382,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       actual.put(entry.getKey(), entry.getValue());
     assertTrue("Should be empty. Actual is " + actual, actual.isEmpty());
     connector.tableOperations().delete(tableName);
+    scanner.close();
   }
 
 }

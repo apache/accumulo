@@ -101,6 +101,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     for (Entry<Key,Value> entry : s) {
       tablets.add(entry.getKey().getRow());
     }
+    s.close();
     assertTrue("Expected at least 8 tablets, saw " + tablets.size(), tablets.size() > 7);
   }
 

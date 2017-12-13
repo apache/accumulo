@@ -161,6 +161,7 @@ public class SplitIT extends AccumuloClusterHarness {
         shortened++;
       count++;
     }
+    s.close();
 
     assertTrue("Shortened should be greater than zero: " + shortened, shortened > 0);
     assertTrue("Count should be cgreater than 10: " + count, count > 10);

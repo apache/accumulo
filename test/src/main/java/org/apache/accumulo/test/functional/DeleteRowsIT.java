@@ -76,6 +76,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       c.tableOperations().deleteRows(tableName, null, null);
       Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
       assertEquals(0, Iterators.size(scanner.iterator()));
+      scanner.close();
     }
   }
 
@@ -148,6 +149,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       count++;
     }
     log.info("Finished table {}", table);
+    scanner.close();
     assertEquals(entries, count);
   }
 

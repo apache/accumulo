@@ -424,7 +424,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
         if (count != NUM_ROWS) {
           throw new IllegalStateException(String.format("After compaction, number of rows %1$d does not match expected %2$d", count, NUM_ROWS));
         }
-
+        scanner.close();
       } catch (TableNotFoundException ex) {
         throw new IllegalStateException("test failed, table " + tableName + " does not exist", ex);
       } catch (AccumuloSecurityException ex) {

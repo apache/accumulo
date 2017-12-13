@@ -119,6 +119,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
       assertTrue(e.getCause() instanceof AccumuloSecurityException);
       assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
     }
+    scanner.close();
   }
 
 }

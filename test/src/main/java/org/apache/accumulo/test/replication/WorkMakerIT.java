@@ -121,6 +121,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     Assert.assertEquals(WorkSection.NAME, workKey.getColumnFamily());
     Assert.assertEquals(expected, actual);
     Assert.assertEquals(workEntry.getValue(), StatusUtil.fileCreatedValue(timeCreated));
+    s.close();
   }
 
   @Test
@@ -170,6 +171,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
       actualTargets.remove(expected);
     }
 
+    s.close();
     Assert.assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
   }
 
@@ -205,6 +207,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     WorkSection.limit(s);
 
     Assert.assertEquals(0, Iterables.size(s));
+    s.close();
   }
 
 }

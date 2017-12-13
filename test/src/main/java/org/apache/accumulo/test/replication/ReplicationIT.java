@@ -163,6 +163,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         }
       }
     }
+    scanner.close();
     return logs;
   }
 
@@ -184,6 +185,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
         logs.put(file, tableId);
       }
+      scanner.close();
     } catch (TableOfflineException e) {
       log.debug("Replication table isn't online yet");
     }
@@ -320,6 +322,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
         replRows.add(fileUri);
       }
+      scanner.close();
     }
 
     Set<String> wals = new HashSet<>();
@@ -474,6 +477,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     entry = iter.next();
     Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnQualifier().toString()));
     Assert.assertFalse("Expected to only find two elements in replication table", iter.hasNext());
+    s.close();
   }
 
   private void writeSomeData(Connector conn, String table, int rows, int cols) throws Exception {
@@ -589,6 +593,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     for (Entry<Key,Value> entry : s) {
       replFiles.add(entry.getKey().getRow().toString());
     }
+    s.close();
     return replFiles;
   }
 
@@ -627,6 +632,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     actual = Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
     Status expected = Status.newBuilder().setBegin(0).setEnd(0).setClosed(true).setInfiniteEnd(true).setCreatedTime(100).build();
 
+    s.close();
     Assert.assertEquals(expected, actual);
   }
 
@@ -776,6 +782,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
     }
 
+    s.close();
     Assert.fail("We had a file that was referenced but didn't get closed");
   }
 
@@ -940,6 +947,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
       Assert.assertFalse("Did not find the work entries for the status entries", notFound);
     }
+    s.close();
   }
 
   @Test
@@ -1007,6 +1015,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         Assert.fail("Found more than one work section entry");
       }
 
+      s.close();
       Thread.sleep(500);
     }
 
@@ -1016,6 +1025,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
       }
       Assert.assertFalse("Did not find the work entry for the status entry", notFound);
+      s.close();
     }
   }
 
@@ -1130,7 +1140,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         if (allClosed) {
           break;
         }
-
+        s.close();
         sleepUninterruptibly(2, TimeUnit.SECONDS);
       }
 
@@ -1140,6 +1150,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         for (Entry<Key,Value> entry : s) {
           log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
         }
+        s.close();
         Assert.fail("Expected all replication records in the metadata table to be closed");
       }
 
@@ -1166,6 +1177,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           break;
         }
 
+        s.close();
         sleepUninterruptibly(3, TimeUnit.SECONDS);
       }
 
@@ -1175,6 +1187,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         for (Entry<Key,Value> entry : s) {
           log.info("{} {}", entry.getKey().toStringNoTruncate(), TextFormat.shortDebugString(Status.parseFrom(entry.getValue().get())));
         }
+        s.close();
         Assert.fail("Expected all replication records in the replication table to be closed");
       }
 
@@ -1252,6 +1265,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         log.info("Replication entries {}", entries);
         break;
       }
+      s.close();
       Thread.sleep(1000);
     }
 
@@ -1268,6 +1282,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
         Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
         notFound = false;
+        s.close();
       } catch (NoSuchElementException e) {
 
       } catch (IllegalArgumentException e) {
@@ -1303,6 +1318,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       for (Entry<Key,Value> content : s) {
         log.info("{} => {}", content.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(content.getValue().get())));
       }
+      s.close();
       Assert.assertFalse("Did not find the work entry for the status entry", notFound);
     }
 
@@ -1393,6 +1409,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
     }
 
+    s.close();
     Assert.assertTrue("Found unexpected replication records in the replication table", recordsFound <= 2);
   }
 }

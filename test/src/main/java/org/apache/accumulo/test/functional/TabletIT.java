@@ -95,6 +95,7 @@ public class TabletIT extends AccumuloClusterHarness {
       assert (elt.getKey().getRow().toString().equals(expected));
       count++;
     }
+    scanner.close();
     assertEquals(N, count);
   }
 

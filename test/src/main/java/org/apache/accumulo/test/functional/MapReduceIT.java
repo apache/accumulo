@@ -87,6 +87,6 @@ public class MapReduceIT extends ConfigurableMacBase {
       assertEquals(entry.getValue().toString(), new String(check));
       i++;
     }
-
+    s.close();
   }
 }

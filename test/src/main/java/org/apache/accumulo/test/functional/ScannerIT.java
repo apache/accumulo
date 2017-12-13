@@ -112,6 +112,7 @@ public class ScannerIT extends AccumuloClusterHarness {
     sw.stop();
 
     long millisWithNoWait = sw.elapsed(TimeUnit.MILLISECONDS);
+    s.close();
 
     // The "no-wait" time should be much less than the "wait-time"
     Assert.assertTrue("Expected less time to be taken with immediate readahead (" + millisWithNoWait + ") than without immediate readahead (" + millisWithWait

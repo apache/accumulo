@@ -216,5 +216,6 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
       Assert.assertFalse("Status record was closed and it should not be", status.getClosed());
     }
+    s.close();
   }
 }

@@ -182,6 +182,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     // did it recover?
     Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     Iterators.size(scanner.iterator());
+    scanner.close();
   }
 
   private Mutation createDelMutation(String path, String cf, String cq, String val) {
@@ -239,6 +240,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     Assert.assertEquals("cq1", entry.getKey().getColumnQualifier().toString());
     Assert.assertEquals("v1", entry.getValue().toString());
     Assert.assertFalse(iter.hasNext());
+    scanner.close();
   }
 
   @Test

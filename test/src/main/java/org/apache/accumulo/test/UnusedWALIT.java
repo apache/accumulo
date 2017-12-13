@@ -125,6 +125,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
       }
     }
     assertEquals(row, startRow + rowCount);
+    s.close();
   }
 
   private int getWALCount(Instance i, ZooReaderWriter zk) throws Exception {

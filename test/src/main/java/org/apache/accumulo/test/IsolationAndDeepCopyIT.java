@@ -72,6 +72,7 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
       Assert.assertEquals("000A", iter.next().getKey().getColumnQualifierData().toString());
       Assert.assertFalse(iter.hasNext());
     }
+    scanner.close();
   }
 
   private void addDocument(BatchWriter bw, String docId, String... terms) throws MutationsRejectedException {

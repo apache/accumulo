@@ -117,7 +117,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
     sleepUninterruptibly(9, TimeUnit.SECONDS);
 
     verify(iter, 200, 100000);
-
+    scanner.close();
   }
 
   protected void verify(Iterator<Entry<Key,Value>> iter, int start, int stop) throws Exception {

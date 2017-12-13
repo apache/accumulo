@@ -136,11 +136,13 @@ public class CleanWalIT extends AccumuloClusterHarness {
       log.debug("Saw {}={}", entry.getKey(), entry.getValue());
       count++;
     }
+    scanner.close();
     return count;
   }
 
   int count(String tableName, Connector conn) throws Exception {
     Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
+    s.close();
     return Iterators.size(s.iterator());
   }
 

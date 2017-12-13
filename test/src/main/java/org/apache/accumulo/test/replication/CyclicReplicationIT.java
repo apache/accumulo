@@ -324,6 +324,7 @@ public class CyclicReplicationIT {
       s = connMaster1.createScanner(master1Table, Authorizations.EMPTY);
       entry = Iterables.getOnlyElement(s);
       Assert.assertEquals("1", entry.getValue().toString());
+      s.close();
     } finally {
       master1Cluster.stop();
       master2Cluster.stop();

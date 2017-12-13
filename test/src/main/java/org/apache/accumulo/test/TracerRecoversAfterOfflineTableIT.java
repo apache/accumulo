@@ -124,6 +124,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
     if (tracer != null) {
       tracer.destroy();
     }
+    scanner.close();
   }
 
 }

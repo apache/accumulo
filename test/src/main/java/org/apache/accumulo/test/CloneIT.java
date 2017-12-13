@@ -121,9 +121,9 @@ public class CloneIT extends AccumuloClusterHarness {
         files.add(entry.getKey().getColumnQualifier().toString());
     }
 
+    scanner.close();
     assertEquals(1, files.size());
     assertTrue(files.contains("../0/default_tablet/1_0.rf"));
-
   }
 
   // test split where files of children are the same
@@ -165,6 +165,7 @@ public class CloneIT extends AccumuloClusterHarness {
       }
     }
 
+    scanner.close();
     assertEquals(1, count);
     assertEquals(1, files.size());
     assertTrue(files.contains("../0/default_tablet/0_0.rf"));
@@ -216,6 +217,7 @@ public class CloneIT extends AccumuloClusterHarness {
       }
     }
 
+    scanner.close();
     assertEquals(1, files.size());
     assertEquals(2, count);
     assertTrue(files.contains("../0/default_tablet/1_0.rf"));
@@ -285,6 +287,7 @@ public class CloneIT extends AccumuloClusterHarness {
       }
     }
 
+    scanner.close();
     assertEquals(2, count);
     assertEquals(2, files.size());
     assertTrue(files.contains("../0/d1/file1"));
@@ -350,6 +353,7 @@ public class CloneIT extends AccumuloClusterHarness {
       }
     }
 
+    scanner.close();
     assertEquals(3, count);
     assertEquals(3, files.size());
     assertTrue(files.contains("../0/d1/file1"));

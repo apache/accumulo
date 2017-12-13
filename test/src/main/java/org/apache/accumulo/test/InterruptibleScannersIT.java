@@ -97,6 +97,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
     } catch (Exception ex) {} finally {
       thread.join();
     }
+    scanner.close();
   }
 
 }

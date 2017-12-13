@@ -93,6 +93,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
           location = null;
         }
       }
+      s.close();
     }
     // the replication table is expected to be offline for this test, so ignore it
     if (offline > 1) {

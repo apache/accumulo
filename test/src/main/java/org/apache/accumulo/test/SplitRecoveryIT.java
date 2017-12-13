@@ -57,6 +57,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
     Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+    scanner.close();
     return Iterators.size(scanner.iterator()) == 0;
   }
 
@@ -115,6 +116,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         }
 
         bw.addMutation(m);
+        scanner.close();
       }
 
       bw.close();
@@ -132,7 +134,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
       assertEquals(3, i);
 
       connector.tableOperations().delete(tableName);
-
+      scanner.close();
     }
   }
 

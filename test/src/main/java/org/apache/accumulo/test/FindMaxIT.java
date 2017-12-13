@@ -109,5 +109,6 @@ public class FindMaxIT extends AccumuloClusterHarness {
 
     max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, new Text(new byte[] {0}), true);
     assertEquals(rows.get(0), max);
+    scanner.close();
   }
 }

@@ -94,6 +94,7 @@ public class MetadataIT extends AccumuloClusterHarness {
 
     // compaction of metadata table should change file set in root table
     Assert.assertNotEquals(files2, files3);
+    rootScanner.close();
   }
 
   @Test
@@ -115,6 +116,7 @@ public class MetadataIT extends AccumuloClusterHarness {
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     }
     assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
+    s.close();
   }
 
   @Test

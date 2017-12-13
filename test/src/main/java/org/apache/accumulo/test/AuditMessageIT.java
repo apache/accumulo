@@ -428,6 +428,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     try {
       Scanner scanner = auditConnector.createScanner(OLD_TEST_TABLE_NAME, auths);
       scanner.iterator().next().getKey();
+      scanner.close();
     } catch (RuntimeException ex) {}
     try {
       auditConnector.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"), new Text("myRow~"));

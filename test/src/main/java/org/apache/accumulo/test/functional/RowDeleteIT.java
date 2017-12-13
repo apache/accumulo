@@ -103,7 +103,7 @@ public class RowDeleteIT extends AccumuloClusterHarness {
     count = Iterators.size(scanner.iterator());
     assertEquals("count == " + count, 0, count);
     bw.close();
-
+    scanner.close();
   }
 
 }

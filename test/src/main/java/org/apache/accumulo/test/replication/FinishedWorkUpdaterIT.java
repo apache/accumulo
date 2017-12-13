@@ -88,6 +88,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     // We should only rely on the correct begin attribute being returned
     Status actual = Status.parseFrom(entry.getValue().get());
     Assert.assertEquals(stat.getBegin(), actual.getBegin());
+    s.close();
   }
 
   @Test
@@ -128,6 +129,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     // We should only rely on the correct begin attribute being returned
     Status actual = Status.parseFrom(entry.getValue().get());
     Assert.assertEquals(1, actual.getBegin());
+    s.close();
   }
 
   @Test
@@ -168,6 +170,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     // We should only rely on the correct begin attribute being returned
     Status actual = Status.parseFrom(entry.getValue().get());
     Assert.assertEquals(1, actual.getBegin());
+    s.close();
   }
 
 }

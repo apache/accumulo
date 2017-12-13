@@ -68,6 +68,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
             while (iterator.hasNext() && stop.get() == false) {
               iterator.next();
             }
+            s.close();
           }
         } catch (Exception ex) {
           log.trace("{}", ex.getMessage(), ex);
@@ -112,6 +113,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     t2.interrupt();
     t1.join();
     t2.join();
+    m.close();
   }
 
 }

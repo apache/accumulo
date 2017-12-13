@@ -354,6 +354,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
     s = c.createScanner(t1, Authorizations.EMPTY);
     assertTrue(s.iterator().hasNext());
+    s.close();
   }
 
   @Test

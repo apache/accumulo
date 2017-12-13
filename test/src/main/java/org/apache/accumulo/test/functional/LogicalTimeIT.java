@@ -102,8 +102,10 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
     bw.close();
 
     long time = scanner.iterator().next().getKey().getTimestamp();
-    if (time != expected)
+    if (time != expected) {
       throw new RuntimeException("unexpected time " + time + " " + expected);
+    }
+    scanner.close();
   }
 
 }

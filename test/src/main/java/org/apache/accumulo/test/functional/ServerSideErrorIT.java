@@ -74,6 +74,8 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
       }
     } catch (Exception e) {
       caught = true;
+    } finally {
+      scanner.close();
     }
 
     if (!caught)
@@ -122,6 +124,8 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
       }
     } catch (Exception e) {
       caught = true;
+    } finally {
+      scanner.close();
     }
 
     if (!caught)

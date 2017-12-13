@@ -131,6 +131,8 @@ public class CleanUpIT extends SharedMiniClusterBase {
       printThreadNames();
       Assert.fail("Threads did not go away. Saw " + threadCount);
     }
+
+    scanner.close();
   }
 
   private void printThreadNames() {

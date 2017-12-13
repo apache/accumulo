@@ -204,6 +204,8 @@ public class ScanRangeIT extends AccumuloClusterHarness {
     if (!expectedIntKey.createKey().equals(expectedEndIntKey.createKey())) {
       throw new Exception(" " + expectedIntKey.createKey() + " != " + expectedEndIntKey.createKey());
     }
+
+    scanner.close();
   }
 
   private static Text createCF(int cf) {

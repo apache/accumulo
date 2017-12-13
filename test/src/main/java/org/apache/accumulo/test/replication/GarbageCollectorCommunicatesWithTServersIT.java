@@ -141,7 +141,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
       log.debug("Normalize path to rfile: {}", path);
       rfiles.add(path);
     }
-
+    s.close();
     return rfiles;
   }
 
@@ -167,7 +167,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
       log.info("Got status for {}: {}", file, ProtobufUtil.toString(status));
       fileToStatus.put(file.toString(), status);
     }
-
+    s.close();
     return fileToStatus;
   }
 

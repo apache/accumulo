@@ -198,7 +198,7 @@ public class MergeIT extends AccumuloClusterHarness {
     if (!currentSplits.equals(ess)) {
       throw new Exception("split inconsistency " + table + " " + currentSplits + " != " + ess);
     }
-
+    scanner.close();
   }
 
   @Rule
@@ -233,7 +233,7 @@ public class MergeIT extends AccumuloClusterHarness {
         bw.addMutation(m);
 
         bw.close();
-
+        ds.close();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

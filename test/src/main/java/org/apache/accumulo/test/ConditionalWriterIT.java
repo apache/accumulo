@@ -223,6 +223,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       Assert.assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
 
       entry = Iterables.getOnlyElement(scanner);
+      scanner.close();
       Assert.assertEquals("doe", entry.getValue().toString());
     }
   }
@@ -321,6 +322,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       Assert.assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
       entry = Iterables.getOnlyElement(scanner);
+      scanner.close();
       Assert.assertEquals("2", entry.getValue().toString());
     }
   }
@@ -450,6 +452,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       Assert.assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
       Assert.assertTrue("Accepted result should be returned when reading table", scanner.iterator().hasNext());
     }
+    scanner.close();
   }
 
   @Test
@@ -548,6 +551,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       Assert.assertEquals(expected, actual);
     }
+    scanner.close();
   }
 
   public static class AddingIterator extends WrappingIterator {
@@ -673,6 +677,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       expected.put("ACCUMULO-1001", Status.ACCEPTED);
       expected.put("ACCUMULO-1002", Status.REJECTED);
 
+      scanner.close();
       Assert.assertEquals(expected, actual);
     }
   }
@@ -781,6 +786,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       scanner.clearColumns();
       scanner.fetchColumn(new Text("name"), new Text("last"));
       entry = Iterables.getOnlyElement(scanner);
+      scanner.close();
       Assert.assertEquals("Doe", entry.getValue().toString());
     }
   }
@@ -931,6 +937,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       scanner.fetchColumn(new Text("tx"), new Text("seq"));
 
       Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
+      scanner.close();
       Assert.assertEquals("1", entry.getValue().toString());
     }
   }
@@ -1303,6 +1310,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       cm3.put("tx", "seq", "2");
       cm3.put("data", "x", "b");
 
+      scanner.close();
       Assert.assertEquals(cw.write(cm3).getStatus(), Status.ACCEPTED);
     }
   }
@@ -1484,5 +1492,6 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     if (tracer != null) {
       tracer.destroy();
     }
+    scanner.close();
   }
 }

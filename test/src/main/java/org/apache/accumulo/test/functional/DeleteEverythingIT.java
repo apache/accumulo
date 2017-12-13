@@ -112,7 +112,10 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
     count = Iterables.size(scanner);
 
-    if (count != 0)
+    if (count != 0) {
       throw new Exception("count == " + count);
+    }
+
+    scanner.close();
   }
 }

@@ -163,6 +163,7 @@ public class VolumeIT extends ConfigurableMacBase {
     long usage = diskUsage.get(0).getUsage().longValue();
     log.debug("usage {}", usage);
     assertTrue(usage > 700 && usage < 800);
+    scanner.close();
   }
 
   private void verifyData(List<String> expected, Scanner createScanner) {
@@ -262,7 +263,7 @@ public class VolumeIT extends ConfigurableMacBase {
       Path path = new Path(cq);
       Assert.assertTrue("relative path not deleted " + path.toString(), path.depth() > 2);
     }
-
+    metaScanner.close();
   }
 
   @Test
@@ -468,7 +469,7 @@ public class VolumeIT extends ConfigurableMacBase {
     }
 
     Assert.assertEquals(200, sum);
-
+    metaScanner.close();
   }
 
   @Test

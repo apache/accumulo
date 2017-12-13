@@ -110,6 +110,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
       Assert.assertNotNull(timeCreated);
       Assert.assertEquals(StatusUtil.fileCreated(timeCreated), Status.parseFrom(entry.getValue().get()));
     }
+    s.close();
   }
 
   @Test
@@ -146,6 +147,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
     s.setRange(ReplicationSection.getRange());
     s.fetchColumnFamily(ReplicationSection.COLF);
     Assert.assertEquals(files.size(), Iterables.size(s));
+    s.close();
   }
 
   @Test
@@ -188,7 +190,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
     s.setRange(ReplicationSection.getRange());
     s.fetchColumnFamily(ReplicationSection.COLF);
     Assert.assertEquals(0, Iterables.size(s));
-
+    s.close();
   }
 
   @Test
@@ -243,7 +245,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
       OrderSection.getTableId(entry.getKey(), buff);
       Assert.assertEquals(fileToTableId.get(file).intValue(), Integer.parseInt(buff.toString()));
     }
-
+    s.close();
     Assert.assertFalse("Found more files unexpectedly", expectedFiles.hasNext());
     Assert.assertFalse("Found more entries in replication table unexpectedly", iter.hasNext());
   }

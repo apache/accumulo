@@ -101,6 +101,8 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
     // make sure the flush has time to start
     sleepUninterruptibly(1, TimeUnit.SECONDS);
 
+    scanner.close();
+
     // this should not hang
     c.tableOperations().delete(tableName);
   }

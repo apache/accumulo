@@ -102,6 +102,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       Assert.assertEquals("value", entry.getValue().toString());
 
     }
+    scanner.close();
     // Make sure there is only one line in the table
     Assert.assertEquals(1, counter);
   }
@@ -153,6 +154,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       Assert.assertEquals("value", entry.getValue().toString());
       count++;
     }
+    scanner.close();
     Assert.assertEquals(250, count);
 
     // Make sure no splits occurred in the table
@@ -275,6 +277,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       Assert.assertEquals("value", entry.getValue().toString());
       extra++;
     }
+    scanner.close();
     Assert.assertEquals(10, extra);
     Assert.assertEquals(max, count);
 

@@ -299,8 +299,9 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
     for (Entry<Key,Value> entry : scanner)
       rows.add(entry.getKey().getRowData().toString());
-    return rows;
 
+    scanner.close();
+    return rows;
   }
 
   private void writeFlush(Connector conn, String tablename, String row) throws Exception {

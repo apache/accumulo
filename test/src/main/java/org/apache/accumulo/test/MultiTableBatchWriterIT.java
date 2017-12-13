@@ -123,7 +123,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       }
 
       Assert.assertEquals("Differing results for " + table2, table2Expectations, actual);
-
+      s.close();
     } finally {
       if (null != mtbw) {
         mtbw.close();
@@ -179,6 +179,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
         }
 
         Assert.assertEquals("Differing results for " + table, expectations, actual);
+        s.close();
       }
     } finally {
       if (null != mtbw) {
@@ -255,6 +256,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
         }
 
         Assert.assertEquals("Differing results for " + table, expectations, actual);
+        s.close();
       }
     } finally {
       if (null != mtbw) {

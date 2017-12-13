@@ -146,6 +146,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
     Assert.assertEquals(6569, sum);
 
     accumulo2.stop();
+    scanner.close();
   }
 
   @Test

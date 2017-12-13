@@ -263,6 +263,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
     // should return all three records
     scanner = getConnector().createScanner(tableName, new Authorizations("BASE", "DEFLABEL"));
     verifyDefault(scanner, 3);
+    scanner.close();
   }
 
   private void verifyDefault(Scanner scanner, int expectedCount) throws Exception {
@@ -292,6 +293,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
   private void verify(Connector c, String tableName, ByteArraySet nss, String... expected) throws Exception {
     Scanner scanner = c.createScanner(tableName, new Authorizations(nss));
     verify(scanner.iterator(), expected);
+    scanner.close();
 
     BatchScanner bs = getConnector().createBatchScanner(tableName, new Authorizations(nss), 3);
     bs.setRanges(Collections.singleton(new Range()));

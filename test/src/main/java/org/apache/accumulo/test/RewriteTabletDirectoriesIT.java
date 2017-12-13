@@ -164,6 +164,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
       assertTrue("Found unexpected entry in table: " + entry, splits.contains(entry.getKey().getRow()));
       count++;
     }
+    scanner.close();
     assertEquals(splits.size(), count);
   }
 }

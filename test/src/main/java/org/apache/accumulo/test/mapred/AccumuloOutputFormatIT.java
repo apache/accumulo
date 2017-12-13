@@ -223,6 +223,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
     Entry<Key,Value> entry = iter.next();
     assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
     assertFalse(iter.hasNext());
+    scanner.close();
   }
 
 }

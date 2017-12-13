@@ -239,6 +239,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       entry = iter.next();
       throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
     }
+    scanner.close();
   }
 
   private Mutation newMut(String row, String cf, String cq, String val) {
@@ -330,7 +331,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       entry = iter.next();
       throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
     }
-
+    scanner.close();
   }
 
 }

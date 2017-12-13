@@ -163,7 +163,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     }
 
     bscanner.close();
-
+    scanner.close();
   }
 
   private void verify(Iterable<Entry<Key,Value>> scanner, int start, int finish) throws Exception {

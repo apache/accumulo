@@ -138,6 +138,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     for (Entry<Key,Value> entry : scanner) {
       assertEquals("Data read is not data written", rows[i++], entry.getKey().getRow().toString());
     }
+    scanner.close();
   }
 
   public static void writeDataToTable(Connector connector, String tableName) throws Exception {
@@ -173,6 +174,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       assertTrue("Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier().toString(), inVolume);
       fileCount++;
     }
+    scanner.close();
     assertEquals("Did not see all the volumes. volumes: " + volumes.toString() + " volumes seen: " + volumesSeen.toString(), volumes.size(), volumesSeen.size());
     assertEquals("Wrong number of files", 26, fileCount);
   }
@@ -184,6 +186,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     for (Entry<Key,Value> entry : scanner) {
       fail("Data incorrectly written to " + entry.getKey().getColumnQualifier().toString());
     }
+    scanner.close();
   }
 
   private void configureNamespace(Connector connector, String volumeChooserClassName, String configuredVolumes, String namespace) throws Exception {
@@ -226,6 +229,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       }
       assertTrue("Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier().toString(), inVolume);
     }
+    scanner.close();
   }
 
   // Test that uses two tables with 10 split points each. They each use the PreferredVolumeChooser to choose volumes.

@@ -104,6 +104,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
     Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     s.setRange(MetadataSchema.TabletsSection.getRange());
     s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    s.close();
     return Iterators.size(s.iterator());
   }
 

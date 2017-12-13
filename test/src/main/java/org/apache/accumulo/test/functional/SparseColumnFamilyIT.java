@@ -88,6 +88,7 @@ public class SparseColumnFamilyIT extends AccumuloClusterHarness {
         }
       }
     }
+    scanner.close();
   }
 
   private Mutation nm(int row, int cf, int val) {

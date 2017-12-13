@@ -187,5 +187,6 @@ public class KerberosRenewalIT extends AccumuloITBase {
     assertEquals("Did not find the expected key", 0, new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL));
     assertEquals("d", entry.getValue().toString());
     conn.tableOperations().delete(table);
+    s.close();
   }
 }

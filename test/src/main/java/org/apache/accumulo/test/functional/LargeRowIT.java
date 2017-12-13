@@ -214,7 +214,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
       }
 
     }
-
+    scanner.close();
   }
 
 }

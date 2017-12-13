@@ -96,6 +96,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       String parts[] = filename.split("/");
       Assert.assertFalse(parts[parts.length - 1].startsWith("M"));
     }
+    s.close();
   }
 
 }

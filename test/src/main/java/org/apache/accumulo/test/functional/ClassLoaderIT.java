@@ -118,6 +118,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     Entry<Key,Value> next = iterator.next();
     assertFalse(iterator.hasNext());
     assertEquals(expected, next.getValue().toString());
+    bs.close();
   }
 
 }

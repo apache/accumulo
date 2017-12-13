@@ -153,6 +153,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
       if (!scanner.iterator().next().getValue().toString().equals("foo1")) {
         throw new Exception("Did not see foo1");
       }
+
+      scanner.close();
     } finally {
       c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), readAhead);
     }

@@ -196,6 +196,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
       for (Entry<Key,Value> e : scan) {
         e.hashCode();
       }
+      scan.close();
     } catch (RuntimeException e) {
       // catch the runtime exception from the scanner iterator
       if (e.getCause() instanceof AccumuloSecurityException

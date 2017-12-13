@@ -124,6 +124,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
       throw new Exception("found more than expected " + iter.next());
     }
 
+    scanner.close();
   }
 
   private void insertData(String tableName, long ts) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {

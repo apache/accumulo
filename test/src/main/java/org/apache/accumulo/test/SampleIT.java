@@ -195,6 +195,10 @@ public class SampleIT extends AccumuloClusterHarness {
     check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
 
     bScanner.close();
+    scanner.close();
+    isoScanner.close();
+    csiScanner.close();
+    oScanner.close();
   }
 
   private Scanner newOfflineScanner(Connector conn, String tableName, String clone, SamplerConfiguration sc) throws Exception {
@@ -210,6 +214,7 @@ public class SampleIT extends AccumuloClusterHarness {
     if (sc != null) {
       oScanner.setSamplerConfiguration(sc);
     }
+    oScanner.close();
     return oScanner;
   }
 
@@ -371,6 +376,11 @@ public class SampleIT extends AccumuloClusterHarness {
 
       }
     }
+    scanner.close();
+    isoScanner.close();
+    csiScanner.close();
+    bScanner.close();
+    oScanner.close();
   }
 
   private void setSamplerConfig(SamplerConfiguration sc, ScannerBase... scanners) {
@@ -444,6 +454,10 @@ public class SampleIT extends AccumuloClusterHarness {
     check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
     bScanner.close();
+    scanner.close();
+    isoScanner.close();
+    csiScanner.close();
+    oScanner.close();
   }
 
   private void updateSamplingConfig(Connector conn, String tableName, SamplerConfiguration sc) throws TableNotFoundException, AccumuloException,

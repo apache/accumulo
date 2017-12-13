@@ -52,6 +52,7 @@ public class CombinerIT extends AccumuloClusterHarness {
     Entry<Key,Value> entry = i.next();
     assertEquals("45", entry.getValue().toString());
     assertFalse(i.hasNext());
+    s.close();
   }
 
   @Test

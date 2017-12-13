@@ -92,6 +92,7 @@ public class BalanceFasterIT extends ConfigurableMacBase {
       if (total > 1000)
         break;
     }
+    s.close();
     // should be on all three servers
     assertTrue(counts.size() == 3);
     // and distributed evenly

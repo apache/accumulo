@@ -140,7 +140,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
       Iterator<Entry<Key,Value>> iter = scanner2.iterator();
       // call super's verify mechanism
       verify(iter, 0, 1000);
-
+      scanner2.close();
     }
 
     int sessionsFound = 0;
@@ -170,6 +170,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
     for (Future<Boolean> callable : callables) {
       callable.cancel(true);
     }
+    scanner.close();
     service.shutdown();
   }
 

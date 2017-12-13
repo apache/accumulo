@@ -113,6 +113,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
     Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
 
+    s.close();
     Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
   }
 
@@ -170,6 +171,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
     Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
 
+    s.close();
     Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
   }
 
@@ -266,6 +268,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
     Path finalArchivedFile = new Path(fileArchiveDir, finalFilePath.substring(1));
 
+    s.close();
     Assert.assertTrue("File doesn't exists in archive directory: " + finalArchivedFile, fs.exists(finalArchivedFile));
   }
 

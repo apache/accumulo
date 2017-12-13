@@ -152,6 +152,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     // otherwise the tablet will never come online and we won't be able to read it.
     Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
     Assert.assertEquals(0, Iterables.size(s));
+    s.close();
   }
 
   @Test
@@ -207,6 +208,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     // otherwise the tablet will never come online and we won't be able to read it.
     Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
     Assert.assertEquals(0, Iterables.size(s));
+    s.close();
   }
 
 }

@@ -213,6 +213,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
         logs = new ArrayList<>();
       }
     }
+    root.close();
+    meta.close();
     return result;
   }
 

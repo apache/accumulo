@@ -88,6 +88,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
       ei++;
     }
 
+    scanner1.close();
     Assert.assertEquals("Did not see expected number of rows", 257, ei);
   }
 
@@ -106,6 +107,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
     if (count != 0) {
       throw new Exception("Did not see expected number of entries, count = " + count);
     }
+    scanner2.close();
   }
 
   @Test

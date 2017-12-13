@@ -99,6 +99,7 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
           return true;
       }
     }
+    scanner.close();
     return false;
   }
 

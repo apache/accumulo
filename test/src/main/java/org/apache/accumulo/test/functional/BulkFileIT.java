@@ -122,6 +122,8 @@ public class BulkFileIT extends AccumuloClusterHarness {
 
     if (iter.hasNext())
       throw new Exception("found more than expected " + iter.next());
+
+    scanner.close();
   }
 
   private void writeData(FileSKVWriter w, int s, int e) throws Exception {

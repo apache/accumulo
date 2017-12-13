@@ -169,6 +169,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       if (e != null)
         results++;
     }
+    scanner.close();
     return results;
   }
 

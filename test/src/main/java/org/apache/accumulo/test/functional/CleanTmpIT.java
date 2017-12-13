@@ -108,5 +108,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
     assertEquals(2, Iterators.size(scanner.iterator()));
     // If we performed log recovery, we should have cleaned up any stray files
     assertFalse("File still exists: " + tmp, fs.exists(tmp));
+    s.close();
+    scanner.close();
   }
 }
