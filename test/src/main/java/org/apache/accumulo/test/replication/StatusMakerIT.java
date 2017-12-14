@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.replication;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -41,11 +42,15 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.master.replication.StatusMaker;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,6 +61,7 @@ import com.google.common.collect.Sets;
 public class StatusMakerIT extends ConfigurableMacBase {
 
   private Connector conn;
+  private VolumeManager fs;
 
   @Before
   public void setupInstance() throws Exception {
@@ -63,6 +69,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
     ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.WRITE);
     conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME, TablePermission.READ);
+    fs = EasyMock.mock(VolumeManager.class);
   }
 
   @Test
@@ -92,7 +99,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     bw.close();
 
-    StatusMaker statusMaker = new StatusMaker(conn);
+    StatusMaker statusMaker = new StatusMaker(conn, fs);
     statusMaker.setSourceTableName(sourceTable);
 
     statusMaker.run();
@@ -137,7 +144,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     bw.close();
 
-    StatusMaker statusMaker = new StatusMaker(conn);
+    StatusMaker statusMaker = new StatusMaker(conn, fs);
     statusMaker.setSourceTableName(sourceTable);
 
     statusMaker.run();
@@ -173,7 +180,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     bw.close();
 
-    StatusMaker statusMaker = new StatusMaker(conn);
+    StatusMaker statusMaker = new StatusMaker(conn, fs);
     statusMaker.setSourceTableName(sourceTable);
 
     statusMaker.run();
@@ -218,7 +225,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     bw.close();
 
-    StatusMaker statusMaker = new StatusMaker(conn);
+    StatusMaker statusMaker = new StatusMaker(conn, fs);
     statusMaker.setSourceTableName(sourceTable);
 
     statusMaker.run();
@@ -242,6 +249,99 @@ public class StatusMakerIT extends ConfigurableMacBase {
       Assert.assertEquals(file, OrderSection.getFile(entry.getKey(), buff));
       OrderSection.getTableId(entry.getKey(), buff);
       Assert.assertEquals(fileToTableId.get(file).intValue(), Integer.parseInt(buff.toString()));
+    }
+
+    Assert.assertFalse("Found more files unexpectedly", expectedFiles.hasNext());
+    Assert.assertFalse("Found more entries in replication table unexpectedly", iter.hasNext());
+  }
+
+  @Test
+  public void orderRecordsCreatedWithNoCreatedTime() throws Exception {
+    String sourceTable = testName.getMethodName();
+    conn.tableOperations().create(sourceTable);
+    ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
+
+    BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
+    String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
+    List<String> files = Arrays.asList(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
+        walPrefix + UUID.randomUUID());
+    Map<String,Long> fileToTableId = new HashMap<>();
+
+    Status.Builder statBuilder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true);
+
+    Map<String,Long> statuses = new HashMap<>();
+    long index = 1;
+    for (String file : files) {
+      Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
+      m.put(ReplicationSection.COLF, new Text(Long.toString(index)), ProtobufUtil.toValue(statBuilder.build()));
+      bw.addMutation(m);
+      fileToTableId.put(file, index);
+
+      FileStatus status = EasyMock.mock(FileStatus.class);
+      EasyMock.expect(status.getModificationTime()).andReturn(index);
+      EasyMock.replay(status);
+      statuses.put(file, index);
+
+      EasyMock.expect(fs.exists(new Path(file))).andReturn(true);
+      EasyMock.expect(fs.getFileStatus(new Path(file))).andReturn(status);
+
+      index++;
+    }
+
+    EasyMock.replay(fs);
+
+    bw.close();
+
+    StatusMaker statusMaker = new StatusMaker(conn, fs);
+    statusMaker.setSourceTableName(sourceTable);
+
+    statusMaker.run();
+
+    Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY);
+    s.setRange(ReplicationSection.getRange());
+    s.fetchColumnFamily(ReplicationSection.COLF);
+    Assert.assertEquals(0, Iterables.size(s));
+
+    s = ReplicationTable.getScanner(conn);
+    OrderSection.limit(s);
+    Iterator<Entry<Key,Value>> iter = s.iterator();
+    Assert.assertTrue("Found no order records in replication table", iter.hasNext());
+
+    Iterator<String> expectedFiles = files.iterator();
+    Text buff = new Text();
+    while (expectedFiles.hasNext() && iter.hasNext()) {
+      String file = expectedFiles.next();
+      Entry<Key,Value> entry = iter.next();
+
+      Assert.assertEquals(file, OrderSection.getFile(entry.getKey(), buff));
+      OrderSection.getTableId(entry.getKey(), buff);
+      Assert.assertEquals(fileToTableId.get(file).intValue(), Integer.parseInt(buff.toString()));
+      Status status = Status.parseFrom(entry.getValue().get());
+      Assert.assertTrue(status.hasCreatedTime());
+      Assert.assertEquals((long) statuses.get(file), status.getCreatedTime());
+    }
+
+    Assert.assertFalse("Found more files unexpectedly", expectedFiles.hasNext());
+    Assert.assertFalse("Found more entries in replication table unexpectedly", iter.hasNext());
+
+    s = conn.createScanner(sourceTable, Authorizations.EMPTY);
+    s.setRange(ReplicationSection.getRange());
+    s.fetchColumnFamily(ReplicationSection.COLF);
+    Assert.assertEquals(0, Iterables.size(s));
+
+    s = ReplicationTable.getScanner(conn);
+    s.setRange(ReplicationSection.getRange());
+    iter = s.iterator();
+    Assert.assertTrue("Found no stat records in replication table", iter.hasNext());
+
+    Collections.sort(files);
+    expectedFiles = files.iterator();
+    while (expectedFiles.hasNext() && iter.hasNext()) {
+      String file = expectedFiles.next();
+      Entry<Key,Value> entry = iter.next();
+      Status status = Status.parseFrom(entry.getValue().get());
+      Assert.assertTrue(status.hasCreatedTime());
+      Assert.assertEquals((long) statuses.get(file), status.getCreatedTime());
     }
 
     Assert.assertFalse("Found more files unexpectedly", expectedFiles.hasNext());
