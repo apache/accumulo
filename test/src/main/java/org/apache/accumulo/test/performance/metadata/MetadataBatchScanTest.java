@@ -192,7 +192,6 @@ public class MetadataBatchScanTest {
       stats.merge(ss);
     }
 
-    scanner.close();
     bs.close();
     return stats;
   }
