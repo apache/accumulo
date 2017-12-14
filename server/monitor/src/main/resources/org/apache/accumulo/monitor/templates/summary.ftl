@@ -19,7 +19,7 @@
          * Creates trace summary initial table, passes the minutes from the template
          */
         $(document).ready(function() {
-          createHeader('${minutes}');
+          minutes = '${minutes}';
           refreshSummary();
 
           // Create tooltip for table column information
@@ -30,6 +30,14 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="traceSummary" class="table table-bordered table-striped table-condensed">
-
+            <caption><span class="table-caption">All Traces</span><br/></caption>
+            <tbody><tr><th class="firstcell" title="Trace Type">Type&nbsp;</th>
+                <th title="Number of spans of this type">Total&nbsp;</th>
+                <th title="Shortest span duration">min&nbsp;</th>
+                <th title="Longest span duration">max&nbsp;</th>
+                <th title="Average span duration">avg&nbsp;</th>
+                <th title="Counts of spans of different duration. Columns start at milliseconds, and each column is ten times longer: tens of milliseconds, seconds, tens of seconds, etc.">Histogram&nbsp;</th>
+            </tr>
+            </tbody>
         </table>
       </div>

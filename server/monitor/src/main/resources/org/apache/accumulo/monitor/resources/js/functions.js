@@ -553,8 +553,8 @@ function getRecoveryList() {
  *
  * @param {string} table Table ID
  */
-function getTableServers(table) {
-  var call = '/rest/tables/' + table;
+function getTableServers(tableID) {
+  var call = '/rest/tables/' + tableID;
   $.getJSON(call, function(data) {
     sessionStorage.tableServers = JSON.stringify(data);
   });
@@ -676,21 +676,6 @@ function getReplication() {
   $.getJSON('/rest/replication', function(data) {
     sessionStorage.replication = JSON.stringify(data);
   });
-}
-
-/**
- * Creates a banner
- *
- * @param {string} id Banner ID
- * @param {string} bannerClass Class for the banner
- * @param {string} text Text to display on the banner
- */
-function doBanner(id, bannerClass, text) {
-  $('<div/>', {
-   html: text,
-   class: 'alert alert-' + bannerClass,
-   role: 'alert'
-  }).appendTo('#' + id);
 }
 
 //// Overview Plots Rest Calls

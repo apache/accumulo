@@ -19,8 +19,31 @@
       <div class="center-block">
         <div class="container">
           <div class="row">
-            <div class="col-md-6" id="master"></div>
-            <div class="col-md-6" id="zookeeper"></div>
+            <div class="col-md-6" id="master">
+              <table class="table table-bordered table-striped table-condensed">
+                <tbody>
+                <tr><th colspan="2"><a href="/master">Accumulo Master</a></th></tr>
+                <tr><td colspan="2" class="center" style="display: none;"><span class="label label-danger">Master&nbsp;is&nbsp;Down</span></td></tr>
+                <tr><td class="left" style="display: table-cell;"><a href="/tables">Tables</a></td><td class="right" style="display: table-cell;"></td></tr>
+                <tr><td class="left" style="display: table-cell;"><a href="/tservers">Tablet&nbsp;Servers</a></td><td class="right" style="display: table-cell;"></td></tr>
+                <tr><td class="left" style="display: table-cell;"><a href="/tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td><td class="right" style="display: table-cell;"></td></tr>
+                <tr><td class="left" style="display: table-cell;">Tablets</td><td class="right" style="display: table-cell;"></td></tr>
+                <tr><td class="left" style="display: table-cell;">Entries</td><td class="right" style="display: table-cell;"></td></tr>
+                <tr><td class="left" style="display: table-cell;">Lookups</td><td class="right" style="display: table-cell;"></td></tr>
+                <tr><td class="left" style="display: table-cell;">Uptime</td><td class="right" style="display: table-cell;"></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="col-md-6" id="zookeeper">
+                <table class="table table-bordered table-striped table-condensed">
+                  <tbody>
+                  <tr><th colspan="3">Zookeeper</th></tr>
+                  <tr><th>Server</th><th>Mode</th><th>Clients</th></tr>
+                  <tr><td class="center" colspan="3" style="display: none;"><i>No Zookeepers</i></td></tr>
+                  <tr><td class="left">localhost:2181</td><td class="left"> standalone</td><td class="right"></td></tr>
+                  </tbody>
+                </table>
+            </div>
           </div>
         </div>
       </div>

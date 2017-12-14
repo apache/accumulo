@@ -19,8 +19,6 @@
  * Creates garbage collector initial table
  */
 $(document).ready(function() {
-  createHeader();
-  doBanner('gcBanner', 'danger', 'Collector is Unavailable');
   refreshGC();
 });
 
@@ -136,36 +134,4 @@ function sortTable(n) {
   }
   sessionStorage.tableColumnSort = n;
   sortTables('gcActivity', direction, n);
-}
-
-/**
- * Creates the garbage collector header
- */
-function createHeader() {
-  var caption = [];
-
-  caption.push('<span class="table-caption">Collection&nbsp;' +
-      'Activity</span><br>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#gcActivity');
-
-  var items = [];
-
-  var columns = ['Activity&nbsp;', 'Finished&nbsp;', 'Candidates&nbsp;',
-      'Deleted&nbsp;', 'In&nbsp;Use&nbsp;', 'Errors&nbsp;', 'Duration&nbsp;'];
-
-  /*
-   * Adds the columns, add sortTable function on click,
-   * if the column has a description, add title taken from the global.js
-   */
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, 'sortTable(' + i + ')', '', columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#gcActivity');
 }

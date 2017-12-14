@@ -300,34 +300,3 @@ function sortTable(n) {
   sortTables('tableList', direction, n);
   sessionStorage.namespaceChanged = false;
 }
-
-/**
- * Creates the tables header
- */
-function createTablesHeader() {
-  var items = [];
-
-  var columns = ['Table&nbsp;Name&nbsp;', 'State&nbsp;', '#&nbsp;Tablets&nbsp;',
-      '#&nbsp;Offline<br>Tablets&nbsp;', 'Entries&nbsp;',
-      'Entries<br>In&nbsp;Memory&nbsp;', 'Ingest&nbsp;',
-      'Entries<br>Read&nbsp;', 'Entries<br>Returned&nbsp;',
-      'Hold&nbsp;Time&nbsp;', 'Running<br>Scans&nbsp;',
-      'Minor<br>Compactions&nbsp;', 'Major<br>Compactions&nbsp;'];
-
-  var titles = ['', '', descriptions['# Tablets'],
-      descriptions['# Offline Tablets'], descriptions['Entries'],
-      descriptions['Entries in Memory'], descriptions['Ingest'],
-      descriptions['Entries Read'], descriptions['Entries Returned'],
-      descriptions['Hold Time'], descriptions['Running Scans'],
-      descriptions['Minor Compactions'], descriptions['Major Compactions']];
-
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, 'sortTable(' + i + ')',
-        titles[i], columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#tableList');
-}

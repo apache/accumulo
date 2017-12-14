@@ -19,7 +19,6 @@
  * Creates scans initial table
  */
 $(document).ready(function() {
-  createHeader();
   refreshScans();
 
   // Create tooltip for table column information
@@ -97,33 +96,4 @@ function sortTable(n) {
   }
   sessionStorage.tableColumnSort = n;
   sortTables('scanStatus', direction, n);
-}
-
-/**
- * Creates the scans header
- */
-function createHeader() {
-  var caption = [];
-
-  caption.push('<span class="table-caption">Scan&nbsp;Status</span><br>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#scanStatus');
-
-  var items = [];
-
-  var columns = ['Server&nbsp;', '#&nbsp;', 'Oldest&nbsp;Age&nbsp;'];
-
-  var titles = ['', descriptions['# Scans'], descriptions['Oldest Scan']];
-
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, 'sortTable(' + i + ')',
-      titles[i], columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#scanStatus');
 }

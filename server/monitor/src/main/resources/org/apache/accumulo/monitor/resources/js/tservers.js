@@ -19,7 +19,6 @@
  * Creates tservers initial table
  */
 $(document).ready(function() {
-  createHeader();
   refreshTServers();
 
   // Create tooltip for table column information
@@ -273,45 +272,4 @@ function sortTable(table, n) {
   sessionStorage.tableColumn = tableIDs[table];
   sessionStorage.tableColumnSort = n;
   sortTables(tableIDs[table], direction, n);
-}
-
-/**
- * Creates the tservers header
- */
-function createHeader() {
-  var caption = [];
-
-  caption.push('<span class="table-caption">Tablet&nbsp;Servers</span><br>');
-  caption.push('<span class="table-subcaption">Click on the ' +
-      '<span style="color: #0000ff;">server address</span> to ' +
-      'view detailed performance statistics for that server.</span><br>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#tservers');
-
-  var items = [];
-
-  var columns = ['Server&nbsp;', 'Hosted&nbsp;Tablets&nbsp;',
-      'Last&nbsp;Contact&nbsp;', 'Response&nbsp;Time&nbsp;', 'Entries&nbsp;', 'Ingest&nbsp;',
-      'Query&nbsp;', 'Hold&nbsp;Time&nbsp;', 'Running<br>Scans&nbsp;',
-      'Minor<br>Compactions&nbsp;', 'Major<br>Compactions&nbsp;',
-      'Index Cache<br>Hit Rate&nbsp;', 'Data Cache<br>Hit Rate&nbsp;',
-      'OS&nbsp;Load&nbsp;'];
-
-  var titles = ['', '', '', descriptions['Response Time'], descriptions['Entries'], descriptions['Ingest'],
-      descriptions['Query'], descriptions['Hold Time'],
-      descriptions['Running Scans'], descriptions['Minor Compactions'],
-      descriptions['Major Compactions'], descriptions['Index Cache Hit Rate'],
-      descriptions['Data Cache Hit Rate'], descriptions['OS Load']];
-
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, 'sortTable(2,' + i + ')',
-        titles[i], columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#tservers');
 }
