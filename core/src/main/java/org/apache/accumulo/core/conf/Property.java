@@ -239,7 +239,7 @@ public enum Property {
   MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation", "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
-      "The number of threads used to run Fault-Tolerant Executions. These are primarily table operations like merge."),
+      "The number of threads used to run fault-tolerant executions (FATE). These are primarily table operations like merge."),
   MASTER_REPLICATION_SCAN_INTERVAL("master.replication.status.scan.interval", "30s", PropertyType.TIMEDURATION,
       "Amount of time to sleep before scanning the status section of the replication table for new data"),
   MASTER_REPLICATION_COORDINATOR_PORT("master.replication.coordinator.port", "10001", PropertyType.PORT, "Port for the replication coordinator service"),
@@ -336,10 +336,10 @@ public enum Property {
           + "scan is switched to that local file. We can not switch to the minor compacted file because it may have been modified by iterators. The file "
           + "dumped to the local dir is an exact copy of what was in memory."),
   TSERV_BULK_PROCESS_THREADS("tserver.bulk.process.threads", "1", PropertyType.COUNT,
-      "The master will task a tablet server with pre-processing a bulk import file prior to assigning it to the appropriate tablet servers. This configuration"
+      "The master will task a tablet server with pre-processing a bulk import RFile prior to assigning it to the appropriate tablet servers. This configuration"
           + " value controls the number of threads used to process the files."),
   TSERV_BULK_ASSIGNMENT_THREADS("tserver.bulk.assign.threads", "1", PropertyType.COUNT,
-      "The master delegates bulk import file processing and assignment to tablet servers. After file has been processed, the tablet server will assign"
+      "The master delegates bulk import RFile processing and assignment to tablet servers. After file has been processed, the tablet server will assign"
           + " the file to the appropriate tablets on all servers. This property controls the number of threads used to communicate to the other servers."),
   TSERV_BULK_RETRY("tserver.bulk.retry.max", "5", PropertyType.COUNT,
       "The number of times the tablet server will attempt to assign a RFile to a tablet as it migrates and splits."),
@@ -360,7 +360,7 @@ public enum Property {
   TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "10%", PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery."),
   TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN, "Keep copies of the WALOGs for debugging purposes"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
-      "The number of threads for the distributed work queue. These threads are used for copying failed bulk import files."),
+      "The number of threads for the distributed work queue. These threads are used for copying failed bulk import RFiles."),
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents problems recovering from sudden system resets."),
   @Deprecated
