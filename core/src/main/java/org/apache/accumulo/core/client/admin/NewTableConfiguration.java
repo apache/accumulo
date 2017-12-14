@@ -25,6 +25,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -217,8 +218,8 @@ public class NewTableConfiguration {
    * @since 2.0.0
    */
   public NewTableConfiguration attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {
-    checkArgument(setting != null, "setting is null");
-    checkArgument(scopes != null, "scopes is null");
+    Objects.requireNonNull(setting, "setting cannot be null!");
+    Objects.requireNonNull(scopes, "scopes cannot be null!");
     if (iteratorProps.isEmpty())
       iteratorProps = new HashMap<>();
     TableOperationsHelper.checkIteratorConflicts(iteratorProps, setting, scopes);
