@@ -160,6 +160,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     s.fetchColumnFamily(ReplicationSection.COLF);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
+    s.close();
     Assert.assertTrue(status.getClosed());
   }
 
@@ -178,6 +179,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     Scanner s = ReplicationTable.getScanner(conn);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
     Status status = Status.parseFrom(entry.getValue().get());
+    s.close();
     Assert.assertFalse(status.getClosed());
   }
 

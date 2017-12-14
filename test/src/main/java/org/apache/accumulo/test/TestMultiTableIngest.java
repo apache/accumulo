@@ -68,6 +68,7 @@ public class TestMultiTableIngest {
         count += tableNames.size();
       }
       i++;
+      scanner.close();
     }
   }
 

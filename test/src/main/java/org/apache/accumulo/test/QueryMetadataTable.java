@@ -77,6 +77,7 @@ public class QueryMetadataTable {
             break;
         }
 
+        mdScanner.close();
       } catch (TableNotFoundException e) {
         log.error("Table '" + MetadataTable.NAME + "' not found.", e);
         throw new RuntimeException(e);
@@ -153,6 +154,7 @@ public class QueryMetadataTable {
 
     long t2 = System.currentTimeMillis();
     double delta = (t2 - t1) / 1000.0;
+    scanner.close();
     System.out.println("time : " + delta + "  queries per sec : " + (opts.numQueries / delta));
   }
 }

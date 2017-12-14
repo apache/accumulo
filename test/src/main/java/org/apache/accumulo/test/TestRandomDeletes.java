@@ -89,6 +89,7 @@ public class TestRandomDeletes {
           .getColumnVisibility()));
       result.add(new RowColumn(key.getRow(), column, key.getTimestamp()));
     }
+    scanner.close();
     return result;
   }
 

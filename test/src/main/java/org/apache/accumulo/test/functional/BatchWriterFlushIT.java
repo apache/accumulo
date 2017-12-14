@@ -98,6 +98,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       if (count != 1) {
         throw new Exception("Did not flush");
       }
+
+      scanner.close();
     }
   }
 
@@ -249,7 +251,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     for (int m = 0; m < NUM_THREADS; m++) {
       Assert.assertEquals(0, allMuts.get(m).size());
     }
-
+    scanner.close();
   }
 
   private void verifyEntry(int row, Entry<Key,Value> entry) throws Exception {

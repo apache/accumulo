@@ -133,7 +133,6 @@ public class MetadataIT extends AccumuloClusterHarness {
       if (e != null)
         count++;
     }
-    s.close();
     assertTrue(count > 0);
 
     // batch scan root metadata table

@@ -114,6 +114,7 @@ public class TestBinaryRows {
       for (Entry<Key,Value> entry : s) {
         throw new Exception("ERROR : saw entries in range that should be deleted ( first value : " + entry.getValue().toString() + ")");
       }
+      s.close();
 
     } else if (opts.mode.equals("verify")) {
       long t1 = System.currentTimeMillis();
@@ -140,6 +141,7 @@ public class TestBinaryRows {
       }
 
       long t2 = System.currentTimeMillis();
+      s.close();
 
       System.out.printf("time : %9.2f secs%n", ((t2 - t1) / 1000.0));
       System.out.printf("rate : %9.2f entries/sec%n", opts.num / ((t2 - t1) / 1000.0));
@@ -176,6 +178,7 @@ public class TestBinaryRows {
         } else {
           throw new Exception("ERROR : lookup on " + row + " failed ");
         }
+        s.close();
       }
 
       long t2 = System.currentTimeMillis();

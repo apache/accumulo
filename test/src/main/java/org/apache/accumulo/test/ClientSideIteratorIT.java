@@ -104,6 +104,7 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     IntersectingIterator.setColumnFamilies(si, new Text[] {new Text("bar"), new Text("foo")});
     csis.addScanIterator(si);
 
+    csis.close();
     checkResults(csis, resultSet3, PartialKey.ROW_COLFAM_COLQUAL);
   }
 

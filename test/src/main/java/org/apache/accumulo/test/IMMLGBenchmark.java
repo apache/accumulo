@@ -130,8 +130,8 @@ public class IMMLGBenchmark {
 
     long t2 = System.currentTimeMillis();
 
+    scanner.close();
     return t2 - t1;
-
   }
 
   private static long write(Connector conn, ArrayList<byte[]> cfset, String table) throws TableNotFoundException, MutationsRejectedException {

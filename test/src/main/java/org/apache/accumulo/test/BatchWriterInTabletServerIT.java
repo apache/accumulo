@@ -110,7 +110,6 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
     actual = Iterators.getOnlyElement(scanner.iterator());
     Assert.assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
     Assert.assertEquals(BatchWriterIterator.SUCCESS_VALUE, actual.getValue());
-    scanner.close();
 
     // ensure entries correctly wrote to table t2
     scanner = c.createScanner(t2, Authorizations.EMPTY);

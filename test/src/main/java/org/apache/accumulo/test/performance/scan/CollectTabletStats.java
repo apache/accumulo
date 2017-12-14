@@ -521,6 +521,7 @@ public class CollectTabletStats {
         count++;
     }
 
+    scanner.close();
     return count;
   }
 
@@ -581,7 +582,7 @@ public class CollectTabletStats {
       printStat("Columns per row", colsPerRow);
       System.out.println("");
     }
-
+    scanner.close();
   }
 
   private static void printStat(String desc, Stat s) {

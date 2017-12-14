@@ -145,6 +145,7 @@ public class VerifyIngest {
           expectedRow++;
         }
 
+        scanner.close();
       } else {
 
         Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
@@ -216,7 +217,7 @@ public class VerifyIngest {
           log.warn("Scan returned nothing, breaking...");
           break;
         }
-
+        scanner.close();
       }
     }
 

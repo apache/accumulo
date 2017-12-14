@@ -178,6 +178,7 @@ public class VolumeIT extends ConfigurableMacBase {
     Collections.sort(expected);
     Collections.sort(actual);
 
+    createScanner.close();
     Assert.assertEquals(expected, actual);
   }
 

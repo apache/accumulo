@@ -394,6 +394,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     Iterators.size(scanner.iterator());
     bw.close();
     long diff2 = System.currentTimeMillis() - now;
+    scanner.close();
     assertTrue(diff2 < diff);
   }
 

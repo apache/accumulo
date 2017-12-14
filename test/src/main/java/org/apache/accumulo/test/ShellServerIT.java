@@ -1564,6 +1564,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       Long.parseLong(parts[11].trim());
     }
 
+    s.close();
     ts.exec("deletetable -f " + table, true);
   }
 
