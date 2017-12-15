@@ -61,7 +61,7 @@ public class NewTableConfiguration {
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
-  private Map<String,String> iteratorProps = Collections.emptyMap();
+  private Map<String,String> iteratorProps = new HashMap();
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps, String kind) {
     checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()), "Properties and derived %s properties are not disjoint", kind);
@@ -179,13 +179,14 @@ public class NewTableConfiguration {
   public NewTableConfiguration setLocalityGroups(Map<String,Set<Text>> groups) {
     // ensure locality groups do not overlap
     LocalityGroupUtil.ensureNonOverlappingGroups(groups);
-    localityProps = new HashMap<>();
+    Map<String,String> tmp = new HashMap<>();
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
       Set<Text> colFams = entry.getValue();
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
-      localityProps.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
+      tmp.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
-    localityProps.put(Property.TABLE_LOCALITY_GROUPS.getKey(), groups.keySet().stream().collect(Collectors.joining(",")));
+    tmp.put(Property.TABLE_LOCALITY_GROUPS.getKey(), groups.keySet().stream().collect(Collectors.joining(",")));
+    localityProps = tmp;
     return this;
   }
 
@@ -200,6 +201,8 @@ public class NewTableConfiguration {
    *           if a general error occurs
    *
    * @since 2.0.0
+   *
+   * @see TableOperations#attachIterator(String, IteratorSetting)
    */
   public NewTableConfiguration attachIterator(IteratorSetting setting) throws AccumuloException {
     return attachIterator(setting, EnumSet.allOf(IteratorScope.class));
@@ -216,18 +219,17 @@ public class NewTableConfiguration {
    *           if a general error occurs
    *
    * @since 2.0.0
+   *
+   * @see TableOperations#attachIterator(String, IteratorSetting, EnumSet)
    */
   public NewTableConfiguration attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {
     Objects.requireNonNull(setting, "setting cannot be null!");
     Objects.requireNonNull(scopes, "scopes cannot be null!");
-    if (iteratorProps.isEmpty())
-      iteratorProps = new HashMap<>();
     TableOperationsHelper.checkIteratorConflicts(iteratorProps, setting, scopes);
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
+      for (Entry<String,String> prop : setting.getOptions().entrySet())
         iteratorProps.put(root + ".opt." + prop.getKey(), prop.getValue());
-      }
       iteratorProps.put(root, setting.getPriority() + "," + setting.getIteratorClass());
     }
     return this;
