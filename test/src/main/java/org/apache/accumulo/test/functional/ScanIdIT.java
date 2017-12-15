@@ -242,7 +242,6 @@ public class ScanIdIT extends AccumuloClusterHarness {
         if (!testInProgress.get()) {
           scanner.clearScanIterators();
           scanner.close();
-
           return;
         }
 
@@ -267,9 +266,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
         }
 
       }
-
+      scanner.close();
       log.debug("Scanner ran out of data. (info only, not an error) ");
-
     }
   }
 

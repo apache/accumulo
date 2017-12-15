@@ -76,8 +76,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   private void runLatencyTest(String tableName) throws Exception {
     // should automatically flush after 2 seconds
-    try (BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS))) {
-      Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
+    try (BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS));
+        Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
 
       Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
       m.put(new Text("cf"), new Text("cq"), new Value("1".getBytes(UTF_8)));
@@ -98,8 +98,6 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       if (count != 1) {
         throw new Exception("Did not flush");
       }
-
-      scanner.close();
     }
   }
 

@@ -71,7 +71,7 @@ public class FunctionalTestUtils {
     Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
     scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-
+    scanner.close();
     return Iterators.size(scanner.iterator());
   }
 
@@ -108,6 +108,7 @@ public class FunctionalTestUtils {
         throw new Exception("tablet " + entry.getKey() + " has " + entry.getValue() + " map files");
       }
     }
+    scanner.close();
   }
 
   static public void bulkImport(Connector c, FileSystem fs, String table, String dir) throws Exception {

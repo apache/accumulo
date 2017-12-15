@@ -191,12 +191,10 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
       System.exit(BAD_PASSWD_FAIL_CODE);
       return;
     }
-    try {
-      Scanner scan = conn.createScanner(RootTable.NAME, Authorizations.EMPTY);
+    try (Scanner scan = conn.createScanner(RootTable.NAME, Authorizations.EMPTY)){
       for (Entry<Key,Value> e : scan) {
         e.hashCode();
       }
-      scan.close();
     } catch (RuntimeException e) {
       // catch the runtime exception from the scanner iterator
       if (e.getCause() instanceof AccumuloSecurityException

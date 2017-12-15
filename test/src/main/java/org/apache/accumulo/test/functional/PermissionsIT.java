@@ -571,7 +571,6 @@ public class PermissionsIT extends AccumuloClusterHarness {
   }
 
   private void testMissingTablePermission(Connector test_user_conn, ClusterUser testUser, TablePermission perm, String tableName) throws Exception {
-    Scanner scanner;
     BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
@@ -579,15 +578,13 @@ public class PermissionsIT extends AccumuloClusterHarness {
     // test permission prior to granting it
     switch (perm) {
       case READ:
-        try {
-          scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY);
+        try (Scanner scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY)) {
           int i = 0;
           for (Entry<Key,Value> entry : scanner)
             i += 1 + entry.getKey().getRowData().length();
           if (i != 0) {
             throw new IllegalStateException("Should NOT be able to read from the table");
           }
-          scanner.close();
         } catch (RuntimeException e) {
           AccumuloSecurityException se = (AccumuloSecurityException) e.getCause();
           if (se.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)

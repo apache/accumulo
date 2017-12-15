@@ -169,8 +169,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   private Multimap<String,Table.ID> getAllLogs(Connector conn) throws Exception {
     Multimap<String,Table.ID> logs = getLogs(conn);
-    try {
-      Scanner scanner = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY);
+    try (Scanner scanner = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
       StatusSection.limit(scanner);
       Text buff = new Text();
       for (Entry<Key,Value> entry : scanner) {

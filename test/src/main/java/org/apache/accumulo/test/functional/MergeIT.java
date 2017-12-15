@@ -217,8 +217,8 @@ public class MergeIT extends AccumuloClusterHarness {
 
     @Override
     protected void resetScanner() {
-      try {
-        Scanner ds = conn.createScanner(metadataTableName, Authorizations.EMPTY);
+      try (Scanner ds = conn.createScanner(metadataTableName, Authorizations.EMPTY)) {
+
         Text tablet = new KeyExtent(Table.ID.of("0"), new Text("m"), null).getMetadataEntry();
         ds.setRange(new Range(tablet, true, tablet, true));
 
@@ -229,11 +229,8 @@ public class MergeIT extends AccumuloClusterHarness {
           Key k = entry.getKey();
           m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
         }
-
         bw.addMutation(m);
-
         bw.close();
-        ds.close();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
