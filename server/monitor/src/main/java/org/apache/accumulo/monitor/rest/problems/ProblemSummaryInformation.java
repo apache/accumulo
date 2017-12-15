@@ -29,7 +29,7 @@ public class ProblemSummaryInformation {
 
   // Variable names become JSON keys
   public String tableName;
-  public String tableID;
+  public Table.ID tableID;
 
   public Integer fileRead;
   public Integer fileWrite;
@@ -53,7 +53,7 @@ public class ProblemSummaryInformation {
    */
   public ProblemSummaryInformation(String tableName, Table.ID tableId, Integer fileRead, Integer fileWrite, Integer tableLoad) {
     this.tableName = tableName;
-    this.tableID = tableId.canonicalID();
+    this.tableID = tableId;
     this.fileRead = fileRead;
     this.fileWrite = fileWrite;
     this.tableLoad = tableLoad;

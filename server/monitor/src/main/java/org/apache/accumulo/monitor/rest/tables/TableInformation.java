@@ -30,7 +30,7 @@ public class TableInformation {
 
   // Variable names become JSON keys
   public String tablename;
-  public String tableId;
+  public Table.ID tableId;
   public String tableState;
 
   public int tablets;
@@ -75,7 +75,7 @@ public class TableInformation {
    */
   public TableInformation(String tableName, Table.ID tableId, String tableState) {
     this.tablename = tableName;
-    this.tableId = tableId.canonicalID();
+    this.tableId = tableId;
     this.tableState = tableState;
   }
 
@@ -95,7 +95,7 @@ public class TableInformation {
    */
   public TableInformation(String tableName, Table.ID tableId, TableInfo info, Double holdTime, String tableState) {
     this.tablename = tableName;
-    this.tableId = tableId.canonicalID();
+    this.tableId = tableId;
 
     this.tablets = info.tablets;
     this.offlineTablets = info.tablets - info.onlineTablets;
