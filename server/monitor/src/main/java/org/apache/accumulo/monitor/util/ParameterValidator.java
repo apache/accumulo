@@ -28,9 +28,13 @@ public interface ParameterValidator {
 
   String RESOURCE_REGEX = "(\\w|:)+";
 
-  String NAMESPACE_REGEX = "[*-]?|(\\w)+";
-  String NAMESPACE_LIST_REGEX = "[*-]?|(\\w+,?\\w*)+";
+  // asterisk or - or blank or a namespace name
+  String NAMESPACE_REGEX = "[*-]?|\\w+";
 
-  String SERVER_REGEX = "(\\w+([.-])*\\w*)+(:[0-9]+)*";
-  String SERVER_REGEX_BLANK_OK = "((\\w+([.-])*\\w*)+(:[0-9]+)*)*";
+  // asterisk or blank or a comma-separated list of - or namespace names (optional trailing comma)
+  String NAMESPACE_LIST_REGEX = "[*]?|([-]|\\w+)(,([-]|\\w+))*,?";
+
+  // host name and port
+  String SERVER_REGEX = "(\\w+[.-]*\\w*)+(:[0-9]{1,5})*";
+  String SERVER_REGEX_BLANK_OK = "(" + SERVER_REGEX + ")*";
 }

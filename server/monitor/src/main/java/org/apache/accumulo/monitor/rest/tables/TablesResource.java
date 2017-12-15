@@ -213,7 +213,8 @@ public class TablesResource {
    */
   @Path("{tableId}")
   @GET
-  public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) throws Exception {
+  public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr)
+      throws Exception {
     Instance instance = Monitor.getContext().getInstance();
     Table.ID tableId = Table.ID.of(tableIdStr);
 
