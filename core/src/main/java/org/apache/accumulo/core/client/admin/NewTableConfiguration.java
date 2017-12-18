@@ -61,7 +61,7 @@ public class NewTableConfiguration {
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
-  private Map<String,String> iteratorProps = new HashMap();
+  private Map<String,String> iteratorProps = new HashMap<>();
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps, String kind) {
     checkArgument(Collections.disjoint(props.keySet(), derivedProps.keySet()), "Properties and derived %s properties are not disjoint", kind);
@@ -76,7 +76,6 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration setTimeType(TimeType tt) {
     checkArgument(tt != null, "TimeType is null");
-
     this.timeType = tt;
     return this;
   }
@@ -113,6 +112,7 @@ public class NewTableConfiguration {
     checkArgument(props != null, "properties is null");
     checkDisjoint(props, samplerProps, "sampler");
     checkDisjoint(props, summarizerProps, "summarizer");
+    checkUserTableProperties(props);
     this.properties = new HashMap<>(props);
     return this;
   }
@@ -125,9 +125,8 @@ public class NewTableConfiguration {
   public Map<String,String> getProperties() {
     Map<String,String> propertyMap = new HashMap<>();
 
-    if (limitVersion) {
+    if (limitVersion)
       propertyMap.putAll(IteratorUtil.generateInitialTableProperties(limitVersion));
-    }
 
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);
@@ -235,4 +234,14 @@ public class NewTableConfiguration {
     return this;
   }
 
+  /**
+   * Verify the provided properties are valid user defined table properties.
+   */
+  private void checkUserTableProperties(Map<String,String> props) {
+    props.keySet().forEach((key) -> {
+      if (!key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.toString())) {
+        throw new IllegalArgumentException("'" + key + "' is not a valid user-supplied table property");
+      }
+    });
+  }
 }

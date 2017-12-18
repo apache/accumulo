@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
@@ -74,21 +75,21 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
     Map<String,String> initialProps = new HashMap<>();
-    initialProps.put("prop1", "val1");
-    initialProps.put("prop2", "val2");
+    initialProps.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1", "val1");
+    initialProps.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2", "val2");
     ntc.setProperties(initialProps);
     // Create a new set of properties and set them with setProperties
     Map<String,String> updatedProps = new HashMap<>();
-    updatedProps.put("newerprop1", "newerval1");
-    updatedProps.put("newerprop2", "newerval2");
+    updatedProps.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop1", "newerval1");
+    updatedProps.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop2", "newerval2");
     ntc.setProperties(updatedProps);
     conn.tableOperations().create(tableName, ntc);
     // verify
     Map<String,String> props = ntc.getProperties();
-    assertEquals(props.get("newerprop1"), "newerval1");
-    assertEquals(props.get("newerprop2"), "newerval2");
-    assertFalse(props.keySet().contains("prop1"));
-    assertFalse(props.keySet().contains("prop2"));
+    assertEquals(props.get(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop1"), "newerval1");
+    assertEquals(props.get(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "newerprop2"), "newerval2");
+    assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1"));
+    assertFalse(props.keySet().contains(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2"));
   }
 
   /**
@@ -160,8 +161,8 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     NewTableConfiguration ntc = new NewTableConfiguration();
 
     Map<String,String> props = new HashMap<>();
-    props.put("prop1", "val1");
-    props.put("prop2", "val2");
+    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1", "val1");
+    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2", "val2");
     ntc.setProperties(props);
 
     Map<String,Set<Text>> lgroups = new HashMap<>();
@@ -179,21 +180,38 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
         assertEquals(property.getValue(), "lg1");
         count++;
       }
-      // Did not expect these two assertions to cause test failure, but they currently do.
-      //if (property.getKey().contains("prop1")) {
-      //  assertEquals(property.getValue(), "val1");
-      //  count++;
-      //}
-      //if (property.getKey().contains("prop2")) {
-      //  assertEquals(property.getValue(), "val2");
-      //  count++;
-      //}
+      if (property.getKey().equals(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1")) {
+        assertEquals(property.getValue(), "val1");
+        count++;
+      }
+      if (property.getKey().equals(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2")) {
+        assertEquals(property.getValue(), "val2");
+        count++;
+      }
     }
-    //assertEquals(4, count);
-    assertEquals(2, count);
+    assertEquals(4, count);
     Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
     assertEquals(1, createdLocalityGroups.size());
     assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("dog")));
+  }
+
+  /**
+   * Verify that properties set using NewTableConfiguration must be table properties.
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidTablePropertiesSet() throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    Map<String,String> props = new HashMap<>();
+
+    // These properties should work just with no issue
+    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1", "val1");
+    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2", "val2");
+    ntc.setProperties(props);
+
+    // These properties should result in an illegalArgumentException
+    props.put("invalidProp1", "value1");
+    props.put("invalidProp2", "value2");
+    ntc.setProperties(props);
   }
 
   /**
@@ -232,9 +250,9 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
     // should count the created iterator plus the default iterator
     assertEquals(2, iteratorList.size());
-    check(conn, tableName, new String[] {"table.iterator.scan.anIterator=10,it.class"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.anIterator=10,it.class"}, true);
     conn.tableOperations().removeIterator(tableName, "anIterator", EnumSet.of(IteratorScope.scan));
-    check(conn, tableName, new String[] {}, true);
+    verifyIterators(conn, tableName, new String[] {}, true);
     iteratorList = conn.tableOperations().listIterators(tableName);
     assertEquals(1, iteratorList.size());
   }
@@ -255,9 +273,9 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
     // should count the created iterator plus the default iterator
     assertEquals(2, iteratorList.size());
-    check(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.allOf((IteratorScope.class)));
-    check(conn, tableName, new String[] {}, true);
+    verifyIterators(conn, tableName, new String[] {}, true);
     Map<String,EnumSet<IteratorScope>> iteratorList2 = conn.tableOperations().listIterators(tableName);
     assertEquals(1, iteratorList2.size());
   }
@@ -275,12 +293,12 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
     conn.tableOperations().create(tableName, ntc);
 
-    check(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
     Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
     assertEquals(2, iteratorList.size());
     assertEquals(iteratorList.get("someName"), EnumSet.of(IteratorScope.scan));
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
-    check(conn, tableName, new String[] {}, true);
+    verifyIterators(conn, tableName, new String[] {}, true);
     iteratorList = conn.tableOperations().listIterators(tableName);
     assertEquals(1, iteratorList.size());
   }
@@ -300,9 +318,9 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     ntc.attachIterator(setting);
 
     conn.tableOperations().create(tableName, ntc);
-    check(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar", "table.iterator.scan.someName.opt.key=value"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar", "table.iterator.scan.someName.opt.key=value"}, true);
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
-    check(conn, tableName, new String[] {}, true);
+    verifyIterators(conn, tableName, new String[] {}, true);
   }
 
   /**
@@ -320,9 +338,9 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
 
     Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
     assertEquals(1, iteratorList.size());
-    check(conn, tableName, new String[] {"table.iterator.scan.myIterator=10,my.class"}, false);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.myIterator=10,my.class"}, false);
     conn.tableOperations().removeIterator(tableName, "myIterator", EnumSet.allOf(IteratorScope.class));
-    check(conn, tableName, new String[] {}, false);
+    verifyIterators(conn, tableName, new String[] {}, false);
     Map<String,EnumSet<IteratorScope>> iteratorList2 = conn.tableOperations().listIterators(tableName);
     assertEquals(0, iteratorList2.size());
   }
@@ -340,18 +358,27 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     ntc.attachIterator(setting);
 
     Map<String,String> props = new HashMap<>();
-    props.put("prop1", "val1");
-    props.put("prop2", "val2");
+    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1", "val1");
+    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2", "val2");
     ntc.setProperties(props);
 
     conn.tableOperations().create(tableName, ntc);
 
-    Map<String,String> ntcProps = ntc.getProperties();
-    assertEquals(ntcProps.get("prop1"), "val1");
-    assertEquals(ntcProps.get("prop2"), "val2");
-    check(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
+    int count = 0;
+    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+      if (property.getKey().equals(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1")) {
+        assertEquals(property.getValue(), "val1");
+        count++;
+      }
+      if (property.getKey().equals(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2")) {
+        assertEquals(property.getValue(), "val2");
+        count++;
+      }
+    }
+    assertEquals(2, count);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
-    check(conn, tableName, new String[] {}, true);
+    verifyIterators(conn, tableName, new String[] {}, true);
   }
 
   /**
@@ -411,11 +438,12 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
 
     conn.tableOperations().create(tableName, ntc);
-    check(conn, tableName, new String[] {"table.iterator.scan.firstIterator=10,first.class", "table.iterator.scan.secondIterator=11,second.class"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.firstIterator=10,first.class", "table.iterator.scan.secondIterator=11,second.class"},
+        true);
     conn.tableOperations().removeIterator(tableName, "firstIterator", EnumSet.of(IteratorScope.scan));
-    check(conn, tableName, new String[] {"table.iterator.scan.secondIterator=11,second.class"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.secondIterator=11,second.class"}, true);
     conn.tableOperations().removeIterator(tableName, "secondIterator", EnumSet.of(IteratorScope.scan));
-    check(conn, tableName, new String[] {}, true);
+    verifyIterators(conn, tableName, new String[] {}, true);
   }
 
   /**
@@ -430,26 +458,29 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
     ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
     Map<String,String> props = new HashMap<>();
-    props.put("prop1", "val1");
+    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1", "val1");
     ntc.setProperties(props);
     Map<String,Set<Text>> lgroups = new HashMap<>();
     lgroups.put("lg1", ImmutableSet.of(new Text("colF")));
     ntc.setLocalityGroups(lgroups);
     conn.tableOperations().create(tableName, ntc);
-    // verify properties
-    Map<String,String> ntcProps = ntc.getProperties();
-    assertEquals(ntcProps.get("prop1"), "val1");
-    assertEquals(ntcProps.get("table.group.lg1"), "colF");
-    assertEquals(ntcProps.get("table.groups.enabled"), "lg1");
-    assertEquals(ntcProps.get("table.iterator.scan.someName"), "10,foo.bar");
+    // verify user table properties
+    int count = 0;
+    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+      if (property.getKey().equals(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1")) {
+        assertEquals(property.getValue(), "val1");
+        count++;
+      }
+    }
+    assertEquals(1, count);
     // verify locality groups
     Map<String,Set<Text>> createdLocalityGroups = conn.tableOperations().getLocalityGroups(tableName);
     assertEquals(1, createdLocalityGroups.size());
     assertEquals(createdLocalityGroups.get("lg1"), ImmutableSet.of(new Text("colF")));
     // verify iterators
-    check(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"}, true);
     conn.tableOperations().removeIterator(tableName, "someName", EnumSet.of(IteratorScope.scan));
-    check(conn, tableName, new String[] {}, true);
+    verifyIterators(conn, tableName, new String[] {}, true);
   }
 
   /**
@@ -471,9 +502,9 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
 
     Map<String,EnumSet<IteratorScope>> iteratorList = conn.tableOperations().listIterators(tableName);
     assertEquals(1, iteratorList.size());
-    check(conn, tableName, new String[] {"table.iterator.scan.anIterator=10,it.class"}, false);
+    verifyIterators(conn, tableName, new String[] {"table.iterator.scan.anIterator=10,it.class"}, false);
     conn.tableOperations().removeIterator(tableName, "anIterator", EnumSet.of(IteratorScope.scan));
-    check(conn, tableName, new String[] {}, false);
+    verifyIterators(conn, tableName, new String[] {}, false);
     iteratorList = conn.tableOperations().listIterators(tableName);
     assertEquals(0, iteratorList.size());
 
@@ -497,7 +528,7 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
   /**
    * Verify the expected iterator properties exist.
    */
-  private void check(Connector conn, String tablename, String[] values, boolean withDefaultIts) throws AccumuloException, TableNotFoundException {
+  private void verifyIterators(Connector conn, String tablename, String[] values, boolean withDefaultIts) throws AccumuloException, TableNotFoundException {
     Map<String,String> expected = new TreeMap<>();
     if (withDefaultIts) {
       expected.put("table.iterator.scan.vers", "20,org.apache.accumulo.core.iterators.user.VersioningIterator");
