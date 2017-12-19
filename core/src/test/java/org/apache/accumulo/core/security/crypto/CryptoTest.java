@@ -389,20 +389,20 @@ public class CryptoTest {
 
   @Test
   public void testKeyEncryptionKeyCatchCorrectlyUsesValidKEKFile() throws IOException {
-    kekWorks = createKekFile("kekWorks.kek", 32);
+    kekWorks = createKekFile("kekWorks.kek", 16);
     testKekFile(kekWorks);
   }
 
   @Test
   public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidLongKEKFile() throws IOException {
-    kekTooLong = createKekFile("kekTooLong.kek", 16);
+    kekTooLong = createKekFile("kekTooLong.kek", 8);
     exception.expect(IOException.class);
     testKekFile(kekTooLong);
   }
 
   @Test
   public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidShortKEKFile() throws IOException {
-    kekTooShort = createKekFile("kekTooShort.kek", 64);
+    kekTooShort = createKekFile("kekTooShort.kek", 32);
     exception.expect(IOException.class);
     testKekFile(kekTooShort);
   }
@@ -435,7 +435,7 @@ public class CryptoTest {
 
     File testFile = File.createTempFile(filename, ".kek", dir);
     DataOutputStream os = new DataOutputStream(new FileOutputStream(testFile));
-    Integer kl = 32;
+    Integer kl = 16;
     byte[] key = new byte[kl];
     Random rand = new Random();
     rand.nextBytes(key);
