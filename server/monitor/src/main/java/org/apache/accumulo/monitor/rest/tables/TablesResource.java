@@ -109,12 +109,12 @@ public class TablesResource {
    * @return Table list
    */
   private static TablesList generateTables(TablesList tableNamespace) {
-    Instance inst = Monitor.getContext().getInstance();
-    SortedMap<String,TableInfo> tableStats = new TreeMap<>();
+    SortedMap<Table.ID,TableInfo> tableStats = new TreeMap<>();
 
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
       for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
-        tableStats.put(Tables.getPrintableTableInfoFromId(inst, Table.ID.of(te.getKey())), te.getValue());
+        tableStats.put(Table.ID.of(te.getKey()), te.getValue());
+
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
     List<TableInformation> tables = new ArrayList<>();
@@ -123,7 +123,8 @@ public class TablesResource {
     for (Entry<String,Table.ID> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
       String tableName = entry.getKey();
       Table.ID tableId = entry.getValue();
-      TableInfo tableInfo = tableStats.get(tableName);
+      TableInfo tableInfo = tableStats.get(tableId);
+
       if (null != tableInfo) {
         Double holdTime = compactingByTable.get(tableId.canonicalID());
         if (holdTime == null)
