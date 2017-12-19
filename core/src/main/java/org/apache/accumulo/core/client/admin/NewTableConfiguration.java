@@ -112,7 +112,7 @@ public class NewTableConfiguration {
     checkArgument(props != null, "properties is null");
     checkDisjoint(props, samplerProps, "sampler");
     checkDisjoint(props, summarizerProps, "summarizer");
-    checkUserTableProperties(props);
+    checkTableProperties(props);
     this.properties = new HashMap<>(props);
     return this;
   }
@@ -235,11 +235,11 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Verify the provided properties are valid user defined table properties.
+   * Verify the provided properties are valid table properties.
    */
-  private void checkUserTableProperties(Map<String,String> props) {
+  private void checkTableProperties(Map<String,String> props) {
     props.keySet().forEach((key) -> {
-      if (!key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.toString())) {
+      if (!key.startsWith(Property.TABLE_PREFIX.toString())) {
         throw new IllegalArgumentException("'" + key + "' is not a valid user-supplied table property");
       }
     });
