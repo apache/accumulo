@@ -45,6 +45,9 @@ public class BlockedOutputStream extends OutputStream {
 
   @Override
   public synchronized void flush() throws IOException {
+    if (!bb.hasArray()) {
+      throw new RuntimeException("BlockedOutputStream has no backing array.");
+    }
     int size = bb.position();
     if (size == 0)
       return;
