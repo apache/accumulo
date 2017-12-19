@@ -68,6 +68,11 @@ public class CryptoTest {
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
   public static final String CRYPTO_ON_KEK_OFF_CONF = "crypto-on-no-key-encryption-accumulo-site.xml";
+  
+  //Used for kek file testing
+  private static File kekWorks;
+  private static File kekTooLong;
+  private static File kekTooShort;
 
   @Rule
   public ExpectedException exception = ExpectedException.none();
@@ -384,55 +389,52 @@ public class CryptoTest {
 
   @Test
   public void testKeyEncryptionKeyCatchCorrectlyUsesValidKEKFile() throws IOException {
-    createKekFile("kekWorks.kek", 32);
-    testKekFile("kekWorks.kek");
+    kekWorks = createKekFile("kekWorks.kek", 32);
+    testKekFile(kekWorks);
   }
 
   @Test
   public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidLongKEKFile() throws IOException {
-    createKekFile("kekTooLong.kek", 16);
+    kekTooLong = createKekFile("kekTooLong.kek", 16);
     exception.expect(IOException.class);
-    testKekFile("kekTooLong.kek");
+    testKekFile(kekTooLong);
   }
 
   @Test
   public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidShortKEKFile() throws IOException {
-    createKekFile("kekTooShort.kek", 64);
+    kekTooShort = createKekFile("kekTooShort.kek", 64);
     exception.expect(IOException.class);
-    testKekFile("kekTooShort.kek");
+    testKekFile(kekTooShort);
   }
 
   @AfterClass
   public static void removeAllTestKekFiles() throws IOException {
-    deleteKekFile("kekTooLong.kek");
-    deleteKekFile("kekTooShort.kek");
-    deleteKekFile("kekWorks.kek");
+	Files.deleteIfExists(kekWorks.toPath());
+    Files.deleteIfExists(kekTooShort.toPath());
+    Files.deleteIfExists(kekTooLong.toPath());
   }
 
   // Used to check reading of KEK files
   @SuppressWarnings("deprecation")
-  private void testKekFile(String filename) throws IOException {
+  private void testKekFile(File testFile) throws IOException {
+	  System.out.println("Parent: " + testFile.getParent());
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
     // TODO ACCUMULO-2530 this will need to be fixed when CachingHDFSSecretKeyEncryptionStrategy is fixed
-    params.getAllOptions().put(Property.INSTANCE_DFS_DIR.getKey(), System.getProperty("user.dir") + "/target/cryptoTest/");
+    params.getAllOptions().put(Property.INSTANCE_DFS_DIR.getKey(), testFile.getParent());
     byte[] ptk = new byte[16];
     params.setPlaintextKey(ptk);
     CachingHDFSSecretKeyEncryptionStrategy skc = new CachingHDFSSecretKeyEncryptionStrategy();
-    params.getAllOptions().put(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey(), filename);
+    params.getAllOptions().put(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey(), testFile.getName());
     skc.encryptSecretKey(params);
   }
 
-  private void createKekFile(String filename, Integer size) throws IOException {
+  private File createKekFile(String filename, Integer size) throws IOException {
     File dir = new File(System.getProperty("user.dir") + "/target/cryptoTest");
     boolean unused = dir.mkdirs(); // if the directories don't already exist, it'll return 1. If they do, 0. Both cases can be fine.
 
-    File testFile = new File(System.getProperty("user.dir") + "/target/cryptoTest/" + filename);
-    System.out.println(testFile.toPath());
-    if (!testFile.createNewFile()) {
-      throw new IOException();
-    }
-    DataOutputStream os = new DataOutputStream(new FileOutputStream(System.getProperty("user.dir") + "/target/cryptoTest/" + filename));
+    File testFile = File.createTempFile(filename, ".kek", dir);
+    DataOutputStream os = new DataOutputStream(new FileOutputStream(testFile));
     Integer kl = 32;
     byte[] key = new byte[kl];
     Random rand = new Random();
@@ -441,11 +443,9 @@ public class CryptoTest {
     os.write(key);
     os.flush();
     os.close();
-  }
-
-  private static void deleteKekFile(String filename) throws IOException {
-    File file = new File(System.getProperty("user.dir") + "/target/cryptoTest/" + filename);
-    Files.deleteIfExists(file.toPath());
+    
+    return testFile;
+    
   }
 
   public void AESGCM_Encryption_Test_Correct_Encryption_And_Decryption() throws IOException, AEADBadTagException {
