@@ -211,13 +211,8 @@ public class DefaultCryptoModule implements CryptoModule {
     }
 
     // Get the secret key
-
-    SecureRandom secureRandom = DefaultCryptoModuleUtils.getSecureRandom(params.getRandomNumberGenerator(), params.getRandomNumberGeneratorProvider());
-
     if (params.getPlaintextKey() == null) {
-      byte[] randomKey = new byte[params.getKeyLength() / 8];
-      secureRandom.nextBytes(randomKey);
-      params.setPlaintextKey(randomKey);
+      params = generateNewRandomSessionKey(params);
     }
 
     // Encrypt the secret key
