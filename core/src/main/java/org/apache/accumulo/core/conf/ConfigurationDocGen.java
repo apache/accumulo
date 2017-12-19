@@ -90,14 +90,14 @@ class ConfigurationDocGen {
     @Override
     void prefixSection(Property prefix) {
       boolean depr = prefix.isDeprecated();
-      doc.print("| <a name=\"" + prefix.getKey().replace(".", "_") + "prefix\"></a> **" + prefix.getKey() + "*** | ");
+      doc.print("| <a name=\"" + prefix.getKey().replace(".", "_") + "prefix\" class=\"prop\"></a> **" + prefix.getKey() + "*** | ");
       doc.println((depr ? "**Deprecated.** " : "") + strike(sanitize(prefix.getDescription()), depr) + " |");
     }
 
     @Override
     void property(Property prop) {
       boolean depr = prop.isDeprecated();
-      doc.print("| <a name=\"" + prop.getKey().replace(".", "_") + "\"></a> " + prop.getKey() + " | ");
+      doc.print("| <a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> " + prop.getKey() + " | ");
       doc.print((depr ? "**Deprecated.** " : "") + strike(sanitize(prop.getDescription()), depr) + "<br>");
       doc.print(strike("**type:** " + prop.getType().name(), depr) + ", ");
       doc.print(strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ");

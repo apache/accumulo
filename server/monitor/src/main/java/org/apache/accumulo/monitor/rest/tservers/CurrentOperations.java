@@ -48,7 +48,7 @@ public class CurrentOperations {
    *
    * @param name
    *          Table name
-   * @param ID
+   * @param tableId
    *          Table ID
    * @param tablet
    *          Tablet string
@@ -71,10 +71,10 @@ public class CurrentOperations {
    * @param majorAvgES
    *          Major compaction average ES
    */
-  public CurrentOperations(String name, Table.ID ID, String tablet, long entries, double ingest, double query, Double minorAvg, Double minorStdDev,
+  public CurrentOperations(String name, Table.ID tableId, String tablet, long entries, double ingest, double query, Double minorAvg, Double minorStdDev,
       Double minorAvgES, Double majorAvg, Double majorStdDev, Double majorAvgES) {
     this.name = name;
-    this.tableID = ID;
+    this.tableID = tableId;
     this.tablet = tablet;
     this.entries = entries;
     this.ingest = ingest;

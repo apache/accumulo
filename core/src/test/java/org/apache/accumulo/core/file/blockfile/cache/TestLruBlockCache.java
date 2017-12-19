@@ -51,8 +51,8 @@ public class TestLruBlockCache extends TestCase {
     cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(1000027));
     cc.set(Property.TSERV_SUMMARYCACHE_SIZE, Long.toString(1000029));
 
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.93f).acceptableFactor(0.97f).singleFactor(0.20f)
-        .multiFactor(0.30f).memoryFactor(0.50f).mapConcurrencyLevel(5).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.93f).acceptableFactor(0.97f).singleFactor(0.20f).multiFactor(0.30f)
+        .memoryFactor(0.50f).mapConcurrencyLevel(5).buildMap().forEach(cc::set);
 
     String defaultPrefix = BlockCacheManager.CACHE_PROPERTY_BASE + LruBlockCacheConfiguration.PROPERTY_PREFIX + ".default.";
 
@@ -225,8 +225,8 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.25f)
-        .multiFactor(0.50f).memoryFactor(0.25f).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.25f).multiFactor(0.50f)
+        .memoryFactor(0.25f).buildMap().forEach(cc::set);
     manager.start(new BlockCacheConfiguration(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
@@ -289,8 +289,8 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.33f)
-        .multiFactor(0.33f).memoryFactor(0.34f).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.98f).acceptableFactor(0.99f).singleFactor(0.33f).multiFactor(0.33f)
+        .memoryFactor(0.34f).buildMap().forEach(cc::set);
     manager.start(new BlockCacheConfiguration(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 
@@ -412,8 +412,8 @@ public class TestLruBlockCache extends TestCase {
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(cc);
     cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(blockSize));
     cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(maxSize));
-    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.66f).acceptableFactor(0.99f).singleFactor(0.33f)
-        .multiFactor(0.33f).memoryFactor(0.34f).buildMap().forEach(cc::set);
+    LruBlockCacheConfiguration.builder(CacheType.INDEX).useEvictionThread(false).minFactor(0.66f).acceptableFactor(0.99f).singleFactor(0.33f).multiFactor(0.33f)
+        .memoryFactor(0.34f).buildMap().forEach(cc::set);
     manager.start(new BlockCacheConfiguration(cc));
     LruBlockCache cache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
 

@@ -242,14 +242,20 @@ public class Value implements WritableComparable<Object> {
 
   @Override
   public boolean equals(Object right_obj) {
-    // compare with byte[] for backwards compatibility, but this is generally a pretty bad practice
-    if (right_obj instanceof byte[]) {
-      return compareTo((byte[]) right_obj) == 0;
-    }
     if (right_obj instanceof Value) {
       return compareTo(right_obj) == 0;
     }
     return false;
+  }
+
+  /**
+   * Compares the bytes in this object to the specified byte array
+   *
+   * @return true if the contents of this Value is equivalent to the supplied byte array
+   * @since 2.0.0
+   */
+  public boolean contentEquals(byte[] right_obj) {
+    return compareTo(right_obj) == 0;
   }
 
   @Override

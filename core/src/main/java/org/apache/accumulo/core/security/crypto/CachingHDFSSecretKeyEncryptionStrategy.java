@@ -70,10 +70,11 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
   }
 
   private void doKeyEncryptionOperation(int encryptionMode, CryptoModuleParameters params) throws IOException {
-    Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()));
+    Cipher cipher = DefaultCryptoModuleUtils.getCipher(params.getAllOptions().get(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey()),
+        params.getSecurityProvider());
 
     try {
-      cipher.init(encryptionMode, new SecretKeySpec(secretKeyCache.getKeyEncryptionKey(), params.getAlgorithmName()));
+      cipher.init(encryptionMode, new SecretKeySpec(secretKeyCache.getKeyEncryptionKey(), params.getKeyAlgorithmName()));
     } catch (InvalidKeyException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
@@ -81,7 +82,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
 
     if (Cipher.UNWRAP_MODE == encryptionMode) {
       try {
-        Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getAlgorithmName(), Cipher.SECRET_KEY);
+        Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getKeyAlgorithmName(), Cipher.SECRET_KEY);
         params.setPlaintextKey(plaintextKey.getEncoded());
       } catch (InvalidKeyException e) {
         log.error("{}", e.getMessage(), e);
@@ -91,7 +92,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         throw new RuntimeException(e);
       }
     } else {
-      Key plaintextKey = new SecretKeySpec(params.getPlaintextKey(), params.getAlgorithmName());
+      Key plaintextKey = new SecretKeySpec(params.getPlaintextKey(), params.getKeyAlgorithmName());
       try {
         byte[] encryptedSecretKey = cipher.wrap(plaintextKey);
         params.setEncryptedKey(encryptedSecretKey);

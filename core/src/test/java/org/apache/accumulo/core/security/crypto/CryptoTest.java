@@ -17,9 +17,11 @@
 
 package org.apache.accumulo.core.security.crypto;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -40,6 +42,7 @@ import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -76,9 +79,7 @@ public class CryptoTest {
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertNotNull(params);
-    assertEquals("NullCipher", params.getAlgorithmName());
-    assertNull(params.getEncryptionMode());
-    assertNull(params.getPadding());
+    assertEquals("NullCipher", params.getCipherSuite());
 
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
     assertNotNull(cryptoModule);
@@ -100,12 +101,14 @@ public class CryptoTest {
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertNotNull(params);
-    assertEquals("AES", params.getAlgorithmName());
-    assertEquals("CFB", params.getEncryptionMode());
-    assertEquals("NoPadding", params.getPadding());
+    assertEquals("AES/GCM/NoPadding", params.getCipherSuite());
+    assertEquals("AES/CBC/NoPadding", params.getAllOptions().get(Property.CRYPTO_WAL_CIPHER_SUITE.getKey()));
+    assertEquals("GCM", params.getCipherSuiteEncryptionMode());
+    assertEquals("AES", params.getKeyAlgorithmName());
     assertEquals(128, params.getKeyLength());
     assertEquals("SHA1PRNG", params.getRandomNumberGenerator());
     assertEquals("SUN", params.getRandomNumberGeneratorProvider());
+    assertEquals("SunJCE", params.getSecurityProvider());
     assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
   }
 
@@ -203,7 +206,7 @@ public class CryptoTest {
     InputStream plaintextIn = params.getPlaintextInputStream();
 
     assertNotNull(plaintextIn);
-    assertTrue(plaintextIn != in);
+    assertNotSame(plaintextIn, in);
     DataInputStream dataIn = new DataInputStream(plaintextIn);
     String markerString = dataIn.readUTF();
     int markerInt = dataIn.readInt();
@@ -220,7 +223,7 @@ public class CryptoTest {
     params = cryptoModule.getEncryptingOutputStream(params);
 
     assertNotNull(params.getEncryptedOutputStream());
-    assertTrue(params.getEncryptedOutputStream() != out);
+    assertNotSame(params.getEncryptedOutputStream(), out);
 
     DataOutputStream dataOut = new DataOutputStream(params.getEncryptedOutputStream());
     dataOut.writeUTF(MARKER_STRING);
@@ -234,8 +237,8 @@ public class CryptoTest {
     String stringifiedOtherBytes = getStringifiedBytes(MARKER_INT);
 
     // OK, let's make sure it's encrypted
-    assertTrue(!stringifiedBytes.contains(stringifiedMarkerBytes));
-    assertTrue(!stringifiedBytes.contains(stringifiedOtherBytes));
+    assertFalse(stringifiedBytes.contains(stringifiedMarkerBytes));
+    assertFalse(stringifiedBytes.contains(stringifiedOtherBytes));
     return resultingBytes;
   }
 
@@ -246,6 +249,9 @@ public class CryptoTest {
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
+    // CRYPTO_ON_CONF uses AESWrap which produces wrapped keys that are too large and require a change to
+    // JCE Unlimited Strength Jurisdiction. Using AES/ECB/NoPadding should avoid this problem.
+    params.getAllOptions().put(Property.CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE.getKey(), "AES/ECB/NoPadding");
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
     assertNotNull(params.getKeyEncryptionStrategyClass());
     assertEquals("org.apache.accumulo.core.security.crypto.CachingHDFSSecretKeyEncryptionStrategy", params.getKeyEncryptionStrategyClass());
@@ -319,7 +325,7 @@ public class CryptoTest {
     // from those configured within the site configuration. After doing this, we should
     // still be able to read the file that was created with a different set of parameters.
     params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
-    params.setAlgorithmName("DESede");
+    params.setKeyAlgorithmName("DESede");
     params.setKeyLength(24 * 8);
 
     ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
@@ -349,7 +355,7 @@ public class CryptoTest {
   @Test
   public void testKeyWrapAndUnwrap() throws NoSuchAlgorithmException, NoSuchPaddingException, NoSuchProviderException, InvalidKeyException,
       IllegalBlockSizeException, BadPaddingException {
-    Cipher keyWrapCipher = Cipher.getInstance("AES/ECB/NoPadding");
+    Cipher keyWrapCipher = Cipher.getInstance("AESWrap/ECB/NoPadding");
     SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
 
     byte[] kek = new byte[16];
@@ -363,15 +369,16 @@ public class CryptoTest {
 
     byte[] wrappedKey = keyWrapCipher.wrap(randKey);
 
-    assert (wrappedKey != null);
-    assert (wrappedKey.length == randomKey.length);
+    assertNotNull(wrappedKey);
+    // AESWrap will produce 24 bytes given 128 bits of key data with a 128-bit KEK
+    assertEquals(wrappedKey.length, randomKey.length + 8);
 
-    Cipher keyUnwrapCipher = Cipher.getInstance("AES/ECB/NoPadding");
+    Cipher keyUnwrapCipher = Cipher.getInstance("AESWrap/ECB/NoPadding");
     keyUnwrapCipher.init(Cipher.UNWRAP_MODE, new SecretKeySpec(kek, "AES"));
     Key unwrappedKey = keyUnwrapCipher.unwrap(wrappedKey, "AES", Cipher.SECRET_KEY);
 
     byte[] unwrappedKeyBytes = unwrappedKey.getEncoded();
-    assert (Arrays.equals(unwrappedKeyBytes, randomKey));
+    assertArrayEquals(unwrappedKeyBytes, randomKey);
 
   }
 
@@ -439,5 +446,195 @@ public class CryptoTest {
   private static void deleteKekFile(String filename) throws IOException {
     File file = new File(System.getProperty("user.dir") + "/target/cryptoTest/" + filename);
     Files.deleteIfExists(file.toPath());
+  }
+
+  public void AESGCM_Encryption_Test_Correct_Encryption_And_Decryption() throws IOException, AEADBadTagException {
+    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+    byte[] encryptedBytes = testEncryption(conf, new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20});
+    Integer result = testDecryption(conf, encryptedBytes);
+    assertEquals(result, Integer.valueOf(1));
+  }
+
+  @Test
+  public void AESGCM_Encryption_Test_Tag_Integrity_Compromised() throws IOException, AEADBadTagException {
+    AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
+    byte[] encryptedBytes = testEncryption(conf, new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20});
+
+    encryptedBytes[encryptedBytes.length - 1]++; // modify the tag
+    exception.expect(AEADBadTagException.class);
+    testDecryption(conf, encryptedBytes);
+    encryptedBytes[encryptedBytes.length - 1]--;
+    encryptedBytes[1486]++; // modify the data
+    exception.expect(AEADBadTagException.class);
+    testDecryption(conf, encryptedBytes);
+  }
+
+  @Test
+  public void testIVIncrements() {
+    // One byte
+    byte[] testIv1 = new byte[1];
+    // 11111110
+    testIv1[0] = (byte) 0xFE;
+
+    // 11111111
+    CryptoModuleParameters.incrementIV(testIv1, testIv1.length - 1);
+    assertArrayEquals(testIv1, new byte[] {(byte) 0xff});
+
+    // 00000000
+    CryptoModuleParameters.incrementIV(testIv1, testIv1.length - 1);
+    assertArrayEquals(testIv1, new byte[] {(byte) 0x00});
+
+    // Two bytes
+    byte[] testIv2 = new byte[2];
+    // 00000000 11111110
+    testIv2[0] = (byte) 0x00;
+    testIv2[1] = (byte) 0xFE;
+
+    // 00000000 11111111
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    assertArrayEquals(testIv2, new byte[] {(byte) 0x00, (byte) 0xFF});
+
+    // 00000001 00000000
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    assertArrayEquals(testIv2, new byte[] {(byte) 0x01, (byte) 0x00});
+
+    // 00000001 00000001
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    assertArrayEquals(testIv2, new byte[] {(byte) 0x01, (byte) 0x01});
+
+    // 11111111 11111111
+    testIv2[0] = (byte) 0xFF;
+    testIv2[1] = (byte) 0xFF;
+
+    // 00000000 00000000
+    CryptoModuleParameters.incrementIV(testIv2, testIv2.length - 1);
+    assertArrayEquals(testIv2, new byte[] {(byte) 0x00, (byte) 0x00});
+
+    // Three bytes
+    byte[] testIv3 = new byte[3];
+    // 00000000 00000000 11111110
+    testIv3[0] = (byte) 0x00;
+    testIv3[1] = (byte) 0x00;
+    testIv3[2] = (byte) 0xFE;
+
+    // 00000000 00000000 11111111
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0xFF});
+
+    // 00000000 00000001 00000000
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x01, (byte) 0x00});
+
+    // 00000000 00000001 00000001
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x01, (byte) 0x01});
+
+    // 00000000 11111111 11111110
+    testIv3[0] = (byte) 0x00;
+    testIv3[1] = (byte) 0xFF;
+    testIv3[2] = (byte) 0xFE;
+
+    // 00000000 11111111 11111111
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0xFF, (byte) 0xFF});
+
+    // 00000001 00000000 00000000
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x01, (byte) 0x00, (byte) 0x00});
+
+    // 00000001 00000000 00000001
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x01, (byte) 0x00, (byte) 0x01});
+
+    // 11111111 11111111 11111110
+    testIv3[0] = (byte) 0xFF;
+    testIv3[1] = (byte) 0xFF;
+    testIv3[2] = (byte) 0xFE;
+
+    // 11111111 11111111 11111111
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    assertArrayEquals(testIv3, new byte[] {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF});
+
+    // 00000000 00000000 00000000
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0x00});
+
+    // 00000000 00000000 00000001
+    CryptoModuleParameters.incrementIV(testIv3, testIv3.length - 1);
+    assertArrayEquals(testIv3, new byte[] {(byte) 0x00, (byte) 0x00, (byte) 0x01});
+
+  }
+
+  /**
+   * Used in AESGCM unit tests to encrypt data. Uses MARKER_STRING and MARKER_INT
+   *
+   * @param conf
+   *          The accumulo configuration
+   * @param initVector
+   *          The IV to be used in encryption
+   * @return the encrypted string
+   * @throws IOException
+   *           if DataOutputStream fails
+   */
+  private static byte[] testEncryption(AccumuloConfiguration conf, byte[] initVector) throws IOException {
+    CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
+    params.getAllOptions().put(Property.CRYPTO_WAL_CIPHER_SUITE.getKey(), "AES/GCM/NoPadding");
+    params.setInitializationVector(initVector);
+
+    /*
+     * Now lets encrypt this data!
+     */
+    ByteArrayOutputStream encryptedByteStream = new ByteArrayOutputStream();
+    params.setPlaintextOutputStream(new NoFlushOutputStream(encryptedByteStream));
+    params = cryptoModule.getEncryptingOutputStream(params);
+    DataOutputStream encryptedDataStream = new DataOutputStream(params.getEncryptedOutputStream());
+    encryptedDataStream.writeUTF(MARKER_STRING);
+    encryptedDataStream.writeInt(MARKER_INT);
+    encryptedDataStream.close();
+    byte[] encryptedBytes = encryptedByteStream.toByteArray();
+    return (encryptedBytes);
+  }
+
+  /**
+   * Used in AESGCM unit tests to decrypt data. Uses MARKER_STRING and MARKER_INT
+   *
+   * @param conf
+   *          The accumulo configuration
+   * @param encryptedBytes
+   *          The encrypted bytes
+   * @return 0 if data is incorrectly decrypted, 1 if decrypted data matches input
+   * @throws IOException
+   *           if DataInputStream fails
+   * @throws AEADBadTagException
+   *           if the encrypted stream has been modified
+   */
+  private static Integer testDecryption(AccumuloConfiguration conf, byte[] encryptedBytes) throws IOException, AEADBadTagException {
+    CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
+    ByteArrayInputStream decryptedByteStream = new ByteArrayInputStream(encryptedBytes);
+    params.setEncryptedInputStream(decryptedByteStream);
+    params = cryptoModule.getDecryptingInputStream(params);
+    DataInputStream decryptedDataStream = new DataInputStream(params.getPlaintextInputStream());
+
+    String utf;
+    Integer in;
+    try {
+      utf = decryptedDataStream.readUTF();
+      in = decryptedDataStream.readInt();
+    } catch (IOException e) {
+      if (e.getCause().getClass().equals(AEADBadTagException.class)) {
+        throw new AEADBadTagException();
+      } else {
+        throw e;
+      }
+    }
+
+    decryptedDataStream.close();
+    if (utf.equals(MARKER_STRING) && in.equals(MARKER_INT)) {
+      return 1;
+    } else {
+      return 0;
+    }
   }
 }

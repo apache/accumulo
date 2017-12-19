@@ -73,7 +73,6 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang.mutable.MutableLong;
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -403,8 +402,9 @@ public class RFile {
 
     private SampleLocalityGroupWriter sample;
 
-    private SummaryStatistics keyLenStats = new SummaryStatistics();
-    private double avergageKeySize = 0;
+    // Use windowed stats to fix ACCUMULO-4669
+    private RollingStats keyLenStats = new RollingStats(2017);
+    private double averageKeySize = 0;
 
     LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, long maxBlockSize, LocalityGroupMetadata currentLocalityGroup,
         SampleLocalityGroupWriter sample) {
@@ -416,8 +416,9 @@ public class RFile {
     }
 
     private boolean isGiantKey(Key k) {
-      // consider a key thats more than 3 standard deviations from previously seen key sizes as giant
-      return k.getSize() > keyLenStats.getMean() + keyLenStats.getStandardDeviation() * 3;
+      double mean = keyLenStats.getMean();
+      double stddev = keyLenStats.getStandardDeviation();
+      return k.getSize() > mean + Math.max(9 * mean, 4 * stddev);
     }
 
     public void append(Key key, Value value) throws IOException {
@@ -441,19 +442,27 @@ public class RFile {
       } else if (blockWriter.getRawSize() > blockSize) {
 
         // Look for a key thats short to put in the index, defining short as average or below.
-        if (avergageKeySize == 0) {
+        if (averageKeySize == 0) {
           // use the same average for the search for a below average key for a block
-          avergageKeySize = keyLenStats.getMean();
+          averageKeySize = keyLenStats.getMean();
         }
 
         // Possibly produce a shorter key that does not exist in data. Even if a key can be shortened, it may not be below average.
         Key closeKey = KeyShortener.shorten(prevKey, key);
 
-        if ((closeKey.getSize() <= avergageKeySize || blockWriter.getRawSize() > maxBlockSize) && !isGiantKey(closeKey)) {
+        if ((closeKey.getSize() <= averageKeySize || blockWriter.getRawSize() > maxBlockSize) && !isGiantKey(closeKey)) {
           closeBlock(closeKey, false);
           blockWriter = fileWriter.prepareDataBlock();
           // set average to zero so its recomputed for the next block
-          avergageKeySize = 0;
+          averageKeySize = 0;
+          // To constrain the growth of data blocks, we limit our worst case scenarios to closing
+          // blocks if they reach the maximum configurable block size of Integer.MAX_VALUE.
+          // 128 bytes added for metadata overhead
+        } else if (((long) key.getSize() + (long) value.getSize() + blockWriter.getRawSize() + 128L) >= Integer.MAX_VALUE) {
+          closeBlock(closeKey, false);
+          blockWriter = fileWriter.prepareDataBlock();
+          averageKeySize = 0;
+
         }
       }
 

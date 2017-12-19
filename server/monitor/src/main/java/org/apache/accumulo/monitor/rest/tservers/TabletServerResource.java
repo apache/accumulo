@@ -16,12 +16,16 @@
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
+import static org.apache.accumulo.monitor.util.ParameterValidator.SERVER_REGEX;
+
 import java.lang.management.ManagementFactory;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -101,7 +105,7 @@ public class TabletServerResource {
    */
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
-  public void clearDeadServer(@QueryParam("server") String server) throws Exception {
+  public void clearDeadServer(@QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) throws Exception {
     DeadServerList obit = new DeadServerList(ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
     obit.delete(server);
   }
@@ -140,28 +144,23 @@ public class TabletServerResource {
   /**
    * Generates details for the selected tserver
    *
-   * @param tserverAddr
+   * @param tserverAddress
    *          TServer name
    * @return TServer details
    */
   @Path("{address}")
   @GET
-  public TabletServerSummary getTserverDetails(@PathParam("address") String tserverAddr) throws Exception {
-
-    String tserverAddress = tserverAddr;
+  public TabletServerSummary getTserverDetails(@PathParam("address") @NotNull @Pattern(regexp = SERVER_REGEX) String tserverAddress) throws Exception {
 
     boolean tserverExists = false;
-    if (tserverAddress != null && tserverAddress.isEmpty() == false) {
-      for (TabletServerStatus ts : Monitor.getMmi().getTServerInfo()) {
-        if (tserverAddress.equals(ts.getName())) {
-          tserverExists = true;
-          break;
-        }
+    for (TabletServerStatus ts : Monitor.getMmi().getTServerInfo()) {
+      if (tserverAddress.equals(ts.getName())) {
+        tserverExists = true;
+        break;
       }
     }
 
-    if (tserverAddress == null || tserverAddress.isEmpty() || tserverExists == false) {
-
+    if (!tserverExists) {
       return null;
     }
 

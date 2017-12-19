@@ -29,6 +29,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
@@ -100,6 +101,7 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
+import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -393,6 +395,28 @@ public class Initialize implements KeywordExecutable {
       log.error("FATAL: Failed to initialize security", e);
       return false;
     }
+
+    if (opts.uploadAccumuloSite) {
+      try {
+        log.info("Uploading properties in accumulo-site.xml to Zookeeper. Properties that cannot be set in Zookeeper will be skipped:");
+        Map<String,String> entries = new TreeMap<>();
+        SiteConfiguration.getInstance().getProperties(entries, x -> true, false);
+        for (Map.Entry<String,String> entry : entries.entrySet()) {
+          String key = entry.getKey();
+          String value = entry.getValue();
+          if (Property.isValidZooPropertyKey(key)) {
+            SystemPropUtil.setSystemProperty(key, value);
+            log.info("Uploaded - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
+          } else {
+            log.info("Skipped - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
+          }
+        }
+      } catch (Exception e) {
+        log.error("FATAL: Failed to upload accumulo-site.xml to Zookeeper", e);
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -760,6 +784,8 @@ public class Initialize implements KeywordExecutable {
     boolean forceResetSecurity = false;
     @Parameter(names = "--clear-instance-name", description = "delete any existing instance name without prompting")
     boolean clearInstanceName = false;
+    @Parameter(names = "--upload-accumulo-site", description = "Uploads properties in accumulo-site.xml to Zookeeper")
+    boolean uploadAccumuloSite = false;
     @Parameter(names = "--instance-name", description = "the instance name, if not provided, will prompt")
     String cliInstanceName;
     @Parameter(names = "--password", description = "set the password on the command line")

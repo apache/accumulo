@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.core.file.rfile.bcfile;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.DataInput;
@@ -26,6 +27,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,8 +38,6 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.BlockRead;
 import org.apache.accumulo.core.file.rfile.bcfile.CompareUtils.Scalar;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
@@ -160,9 +160,8 @@ public final class BCFile {
         // *This* is also very important. We don't want the underlying stream messed with.
         cryptoParams.setRecordParametersToStream(false);
 
-        // It is also important to make sure we get a new initialization vector on every call in here,
-        // so set any existing one to null, in case we're reusing a parameters object for its RNG or other bits
-        cryptoParams.setInitializationVector(null);
+        // Create a new IV for the block or update an existing one in the case of GCM
+        cryptoParams.updateInitializationVector();
 
         // Initialize the cipher including generating a new IV
         cryptoParams = cryptoModule.initializeCipher(cryptoParams);
@@ -283,12 +282,13 @@ public final class BCFile {
       /**
        * Get the raw size of the block.
        *
+       * Caution: size() comes from DataOutputStream which returns Integer.MAX_VALUE on an overflow. This results in a value of 2GiB meaning that an unknown
+       * amount of data, at least 2GiB large, has been written. RFiles handle this issue by keeping track of the position of blocks instead of relying on blocks
+       * to provide this information.
+       *
        * @return the number of uncompressed bytes written through the BlockAppender so far.
        */
       public long getRawSize() throws IOException {
-        /**
-         * Expecting the size() of a block not exceeding 4GB. Assuming the size() will wrap to negative integer if it exceeds 2GB.
-         */
         return size() & 0x00000000ffffffffL;
       }
 
@@ -394,7 +394,7 @@ public final class BCFile {
           long offsetIndexMeta = out.position();
           metaIndex.write(out);
 
-          if (cryptoParams.getAlgorithmName() == null || cryptoParams.getAlgorithmName().equals(Property.CRYPTO_CIPHER_SUITE.getDefaultValue())) {
+          if (cryptoParams.getCipherSuite() == null || cryptoParams.getCipherSuite().equals(Property.CRYPTO_CIPHER_SUITE.getDefaultValue())) {
             out.writeLong(offsetIndexMeta);
             API_VERSION_1.write(out);
           } else {
@@ -595,8 +595,6 @@ public final class BCFile {
    * BCFile Reader, interface to read the file's data and meta blocks.
    */
   static public class Reader implements Closeable {
-    private static final String META_NAME = "BCFile.metaindex";
-    private static final String CRYPTO_BLOCK_NAME = "BCFile.cryptoparams";
     private final SeekableDataInputStream in;
     private final Configuration conf;
     final DataIndex dataIndex;
@@ -759,6 +757,37 @@ public final class BCFile {
       }
     }
 
+    public byte[] serializeMetadata(int maxSize) {
+      try {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(baos);
+
+        metaIndex.write(out);
+        if (out.size() > maxSize) {
+          return null;
+        }
+        dataIndex.write(out);
+        if (out.size() > maxSize) {
+          return null;
+        }
+        if (cryptoParams == null) {
+          out.writeBoolean(false);
+        } else {
+          out.writeBoolean(true);
+          cryptoParams.write(out);
+        }
+
+        if (out.size() > maxSize) {
+          return null;
+        }
+
+        out.close();
+        return baos.toByteArray();
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
     /**
      * Constructor
      *
@@ -847,131 +876,24 @@ public final class BCFile {
       }
     }
 
-    public <InputStreamType extends InputStream & Seekable> Reader(CachableBlockFile.Reader cache, InputStreamType fin, long fileLength, Configuration conf,
+    public <InputStreamType extends InputStream & Seekable> Reader(byte[] serializedMetadata, InputStreamType fin, Configuration conf,
         AccumuloConfiguration accumuloConfiguration) throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
-      BlockRead cachedMetaIndex = cache.getCachedMetaBlock(META_NAME);
-      BlockRead cachedDataIndex = cache.getCachedMetaBlock(DataIndex.BLOCK_NAME);
-      BlockRead cachedCryptoParams = cache.getCachedMetaBlock(CRYPTO_BLOCK_NAME);
+      ByteArrayInputStream bais = new ByteArrayInputStream(serializedMetadata);
+      DataInputStream dis = new DataInputStream(bais);
 
-      if (cachedMetaIndex == null || cachedDataIndex == null || cachedCryptoParams == null) {
-        // move the cursor to the beginning of the tail, containing: offset to the
-        // meta block index, version and magic
-        // Move the cursor to grab the version and the magic first
-        this.in.seek(fileLength - Magic.size() - Version.size());
-        version = new Version(this.in);
-        Magic.readAndVerify(this.in);
+      version = null;
 
-        // Do a version check
-        if (!version.compatibleWith(BCFile.API_VERSION) && !version.equals(BCFile.API_VERSION_1)) {
-          throw new RuntimeException("Incompatible BCFile fileBCFileVersion.");
-        }
-
-        // Read the right number offsets based on version
-        long offsetIndexMeta = 0;
-        long offsetCryptoParameters = 0;
-
-        if (version.equals(API_VERSION_1)) {
-          this.in.seek(fileLength - Magic.size() - Version.size() - (Long.SIZE / Byte.SIZE));
-          offsetIndexMeta = this.in.readLong();
-
-        } else {
-          this.in.seek(fileLength - Magic.size() - Version.size() - (2 * (Long.SIZE / Byte.SIZE)));
-          offsetIndexMeta = this.in.readLong();
-          offsetCryptoParameters = this.in.readLong();
-        }
-
-        // read meta index
-        this.in.seek(offsetIndexMeta);
-        metaIndex = new MetaIndex(this.in);
-
-        // If they exist, read the crypto parameters
-        if (!version.equals(BCFile.API_VERSION_1) && cachedCryptoParams == null) {
-
-          // read crypto parameters
-          this.in.seek(offsetCryptoParameters);
-          cryptoParams = new BCFileCryptoModuleParameters();
-          cryptoParams.read(this.in);
-
-          if (accumuloConfiguration.getBoolean(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY)) {
-            Map<String,String> cryptoConfFromAccumuloConf = accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
-            Map<String,String> instanceConf = accumuloConfiguration.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX);
-
-            cryptoConfFromAccumuloConf.putAll(instanceConf);
-
-            for (String name : cryptoParams.getAllOptions().keySet()) {
-              if (!name.equals(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey())) {
-                cryptoConfFromAccumuloConf.put(name, cryptoParams.getAllOptions().get(name));
-              } else {
-                cryptoParams.setKeyEncryptionStrategyClass(cryptoConfFromAccumuloConf.get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()));
-              }
-            }
-
-            cryptoParams.setAllOptions(cryptoConfFromAccumuloConf);
-          }
-
-          ByteArrayOutputStream baos = new ByteArrayOutputStream();
-          DataOutputStream dos = new DataOutputStream(baos);
-          cryptoParams.write(dos);
-          dos.close();
-          cache.cacheMetaBlock(CRYPTO_BLOCK_NAME, baos.toByteArray());
-
-          this.cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoParams.getAllOptions().get(Property.CRYPTO_MODULE_CLASS.getKey()));
-          this.secretKeyEncryptionStrategy = CryptoModuleFactory.getSecretKeyEncryptionStrategy(cryptoParams.getKeyEncryptionStrategyClass());
-
-          // This call should put the decrypted session key within the cryptoParameters object
-          // secretKeyEncryptionStrategy.decryptSecretKey(cryptoParameters);
-
-          cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy.decryptSecretKey(cryptoParams);
-
-        } else if (cachedCryptoParams != null) {
-          setupCryptoFromCachedData(cachedCryptoParams);
-        } else {
-          // Place something in cache that indicates this file has no crypto metadata. See ACCUMULO-4141
-          ByteArrayOutputStream baos = new ByteArrayOutputStream();
-          DataOutputStream dos = new DataOutputStream(baos);
-          NO_CRYPTO.write(dos);
-          dos.close();
-          cache.cacheMetaBlock(CRYPTO_BLOCK_NAME, baos.toByteArray());
-        }
-
-        if (cachedMetaIndex == null) {
-          ByteArrayOutputStream baos = new ByteArrayOutputStream();
-          DataOutputStream dos = new DataOutputStream(baos);
-          metaIndex.write(dos);
-          dos.close();
-          cache.cacheMetaBlock(META_NAME, baos.toByteArray());
-        }
-
-        // read data:BCFile.index, the data block index
-        if (cachedDataIndex == null) {
-          BlockReader blockR = getMetaBlock(DataIndex.BLOCK_NAME);
-          cachedDataIndex = cache.cacheMetaBlock(DataIndex.BLOCK_NAME, blockR);
-        }
-
-        try {
-          dataIndex = new DataIndex(cachedDataIndex);
-        } catch (IOException e) {
-          LOG.error("Got IOException when trying to create DataIndex block");
-          throw e;
-        } finally {
-          cachedDataIndex.close();
-        }
-
-      } else {
-        // We have cached versions of the metaIndex, dataIndex and cryptoParams objects.
-        // Use them to fill out this reader's members.
-        version = null;
-
-        metaIndex = new MetaIndex(cachedMetaIndex);
-        dataIndex = new DataIndex(cachedDataIndex);
-        setupCryptoFromCachedData(cachedCryptoParams);
+      metaIndex = new MetaIndex(dis);
+      dataIndex = new DataIndex(dis);
+      if (dis.readBoolean()) {
+        setupCryptoFromCachedData(dis);
       }
     }
 
-    private void setupCryptoFromCachedData(BlockRead cachedCryptoParams) throws IOException {
+    private void setupCryptoFromCachedData(DataInput cachedCryptoParams) throws IOException {
       BCFileCryptoModuleParameters params = new BCFileCryptoModuleParameters();
       params.read(cachedCryptoParams);
 
@@ -1052,6 +974,15 @@ public final class BCFile {
       return createReader(imeBCIndex.getCompressionAlgorithm(), region);
     }
 
+    public long getMetaBlockRawSize(String name) throws IOException, MetaBlockDoesNotExist {
+      MetaIndexEntry imeBCIndex = metaIndex.getMetaByName(name);
+      if (imeBCIndex == null) {
+        throw new MetaBlockDoesNotExist("name=" + name);
+      }
+
+      return imeBCIndex.getRegion().getRawSize();
+    }
+
     /**
      * Stream access to a Data Block.
      *
@@ -1073,11 +1004,18 @@ public final class BCFile {
       return createReader(dataIndex.getDefaultCompressionAlgorithm(), region);
     }
 
+    public long getDataBlockRawSize(int blockIndex) {
+      if (blockIndex < 0 || blockIndex >= getBlockCount()) {
+        throw new IndexOutOfBoundsException(String.format("blockIndex=%d, numBlocks=%d", blockIndex, getBlockCount()));
+      }
+
+      return dataIndex.getBlockRegionList().get(blockIndex).getRawSize();
+    }
+
     private BlockReader createReader(Algorithm compressAlgo, BlockRegion region) throws IOException {
       RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, cryptoModule, version, cryptoParams);
       return new BlockReader(rbs);
     }
-
   }
 
   /**

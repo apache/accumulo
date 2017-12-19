@@ -74,6 +74,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -90,6 +91,7 @@ import org.eclipse.jetty.util.resource.Resource;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.mvc.MvcFeature;
 import org.glassfish.jersey.server.mvc.freemarker.FreemarkerMvcFeature;
 import org.glassfish.jersey.servlet.ServletContainer;
@@ -418,11 +420,10 @@ public class Monitor implements HighlyAvailableService {
 
   public static void main(String[] args) throws Exception {
     final String app = "monitor";
-    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-
     ServerOpts opts = new ServerOpts();
     opts.parseArgs(app, args);
     String hostname = opts.getAddress();
+    SecurityUtil.serverLogin(SiteConfiguration.getInstance());
 
     VolumeManager fs = VolumeManagerImpl.get();
     instance = HdfsZooInstance.getInstance();
@@ -430,6 +431,7 @@ public class Monitor implements HighlyAvailableService {
     context = new AccumuloServerContext(instance, config);
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
+    MetricsSystemHelper.configure(Monitor.class.getSimpleName());
     Accumulo.init(fs, instance, config, app);
     Monitor monitor = new Monitor();
     // Servlets need access to limit requests when the monitor is not active, but Servlets are instantiated
@@ -540,7 +542,7 @@ public class Monitor implements HighlyAvailableService {
 
       @Override
       public Resource getResource(String pathInContext) {
-        return Resource.newClassPathResource(pathInContext);
+        return Resource.newClassPathResource("/org/apache/accumulo/monitor" + pathInContext);
       }
     });
   }
@@ -548,13 +550,14 @@ public class Monitor implements HighlyAvailableService {
   private ServletHolder getViewServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.view")
         .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(FreemarkerMvcFeature.class)
-        .property(MvcFeature.TEMPLATE_BASE_PATH, "/templates");
+        .property(MvcFeature.TEMPLATE_BASE_PATH, "/org/apache/accumulo/monitor/templates").property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
     return new ServletHolder(new ServletContainer(rc));
   }
 
   private ServletHolder getRestServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest")
-        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class);
+        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getSimpleName()))).register(JacksonFeature.class)
+        .property(ServerProperties.BV_SEND_ERROR_IN_RESPONSE, true);
     return new ServletHolder(new ServletContainer(rc));
   }
 

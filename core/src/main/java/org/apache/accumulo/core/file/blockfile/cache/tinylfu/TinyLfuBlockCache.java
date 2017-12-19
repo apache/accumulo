@@ -17,15 +17,19 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
-import static java.util.Objects.requireNonNull;
-
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
+import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 import org.apache.accumulo.core.file.blockfile.cache.CacheType;
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
 import org.apache.accumulo.core.file.blockfile.cache.impl.SizeConstants;
@@ -62,10 +66,9 @@ public final class TinyLfuBlockCache implements BlockCache {
           return keyWeight + block.weight();
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
-    statsExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("TinyLfuBlockCacheStatsExecutor").setDaemon(true)
-        .build());
+    statsExecutor = Executors
+        .newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("TinyLfuBlockCacheStatsExecutor").setDaemon(true).build());
     statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC, TimeUnit.SECONDS);
-
   }
 
   @Override
@@ -80,23 +83,14 @@ public final class TinyLfuBlockCache implements BlockCache {
 
   @Override
   public CacheEntry getBlock(String blockName) {
-    return cache.getIfPresent(blockName);
+    return wrap(blockName, cache.getIfPresent(blockName));
   }
 
   @Override
   public CacheEntry cacheBlock(String blockName, byte[] buffer) {
-    return cache.asMap().compute(blockName, (key, block) -> {
-      if (block == null) {
-        return new Block(buffer);
-      }
-      block.buffer = buffer;
-      return block;
-    });
-  }
-
-  @Override
-  public CacheEntry cacheBlock(String blockName, byte[] buffer, /* ignored */boolean inMemory) {
-    return cacheBlock(blockName, buffer);
+    return wrap(blockName, cache.asMap().compute(blockName, (key, block) -> {
+      return new Block(buffer);
+    }));
   }
 
   @Override
@@ -123,31 +117,139 @@ public final class TinyLfuBlockCache implements BlockCache {
     log.debug(cache.stats().toString());
   }
 
-  private static final class Block implements CacheEntry {
-    private volatile byte[] buffer;
-    private volatile Object index;
+  private static final class Block {
+
+    private final byte[] buffer;
+    private Weighbable index;
+    private volatile int lastIndexWeight;
 
     Block(byte[] buffer) {
-      this.buffer = requireNonNull(buffer);
+      this.buffer = buffer;
+      this.lastIndexWeight = buffer.length / 100;
     }
 
-    @Override
+    int weight() {
+      int indexWeight = lastIndexWeight + SizeConstants.SIZEOF_INT + ClassSize.REFERENCE;
+      return indexWeight + ClassSize.align(getBuffer().length) + SizeConstants.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.OBJECT + ClassSize.ARRAY;
+    }
+
     public byte[] getBuffer() {
       return buffer;
     }
 
-    @Override
-    public Object getIndex() {
-      return index;
+    @SuppressWarnings("unchecked")
+    public synchronized <T extends Weighbable> T getIndex(Supplier<T> supplier) {
+      if (index == null) {
+        index = supplier.get();
+      }
+
+      return (T) index;
+    }
+
+    public synchronized boolean indexWeightChanged() {
+      if (index != null) {
+        int indexWeight = index.weight();
+        if (indexWeight > lastIndexWeight) {
+          lastIndexWeight = indexWeight;
+          return true;
+        }
+      }
+
+      return false;
+    }
+  }
+
+  private CacheEntry wrap(String cacheKey, Block block) {
+    if (block != null) {
+      return new TlfuCacheEntry(cacheKey, block);
+    }
+
+    return null;
+  }
+
+  private class TlfuCacheEntry implements CacheEntry {
+
+    private final String cacheKey;
+    private final Block block;
+
+    TlfuCacheEntry(String k, Block b) {
+      this.cacheKey = k;
+      this.block = b;
     }
 
     @Override
-    public void setIndex(Object index) {
-      this.index = index;
+    public byte[] getBuffer() {
+      return block.getBuffer();
     }
 
-    int weight() {
-      return ClassSize.align(buffer.length) + SizeConstants.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.OBJECT + ClassSize.ARRAY;
+    @Override
+    public <T extends Weighbable> T getIndex(Supplier<T> supplier) {
+      return block.getIndex(supplier);
     }
+
+    @Override
+    public void indexWeightChanged() {
+      if (block.indexWeightChanged()) {
+        // update weight
+        cache.put(cacheKey, block);
+      }
+    }
+  }
+
+  private Block load(String key, Loader loader, Map<String,byte[]> resolvedDeps) {
+    byte[] data = loader.load((int) Math.min(Integer.MAX_VALUE, policy.getMaximum()), resolvedDeps);
+    if (data == null) {
+      return null;
+    }
+
+    return new Block(data);
+  }
+
+  private Map<String,byte[]> resolveDependencies(Map<String,Loader> deps) {
+    if (deps.size() == 1) {
+      Entry<String,Loader> entry = deps.entrySet().iterator().next();
+      CacheEntry ce = getBlock(entry.getKey(), entry.getValue());
+      if (ce == null) {
+        return null;
+      }
+      return Collections.singletonMap(entry.getKey(), ce.getBuffer());
+    } else {
+      HashMap<String,byte[]> resolvedDeps = new HashMap<>();
+      for (Entry<String,Loader> entry : deps.entrySet()) {
+        CacheEntry ce = getBlock(entry.getKey(), entry.getValue());
+        if (ce == null) {
+          return null;
+        }
+        resolvedDeps.put(entry.getKey(), ce.getBuffer());
+      }
+      return resolvedDeps;
+    }
+  }
+
+  @Override
+  public CacheEntry getBlock(String blockName, Loader loader) {
+    Map<String,Loader> deps = loader.getDependencies();
+    Block block;
+    if (deps.size() == 0) {
+      block = cache.get(blockName, k -> load(blockName, loader, Collections.emptyMap()));
+    } else {
+      // This code path exist to handle the case where dependencies may need to be loaded. Loading dependencies will access the cache. Cache load functions
+      // should not access the cache.
+      block = cache.getIfPresent(blockName);
+
+      if (block == null) {
+        // Load dependencies outside of cache load function.
+        Map<String,byte[]> resolvedDeps = resolveDependencies(deps);
+        if (resolvedDeps == null) {
+          return null;
+        }
+
+        // Use asMap because it will not increment stats, getIfPresent recorded a miss above. Use computeIfAbsent because it is possible another thread loaded
+        // the data since this thread called getIfPresent.
+        block = cache.asMap().computeIfAbsent(blockName, k -> load(blockName, loader, resolvedDeps));
+      }
+    }
+
+    return wrap(blockName, block);
   }
 }

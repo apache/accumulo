@@ -28,6 +28,8 @@ public class ConfigSanityCheckTest {
   @Before
   public void setUp() {
     m = new java.util.HashMap<>();
+    m.put(Property.CRYPTO_CIPHER_SUITE.getKey(), "NullCipher");
+    m.put(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey(), "NullCipher");
   }
 
   @Test
@@ -75,6 +77,20 @@ public class ConfigSanityCheckTest {
   @Test(expected = SanityCheckException.class)
   public void testFail_InstanceZkTimeoutOutOfRange() {
     m.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10ms");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test(expected = SanityCheckException.class)
+  public void testFail_cipherSuiteSetKeyAlgorithmNotSet() {
+    m.put(Property.CRYPTO_CIPHER_SUITE.getKey(), "AES/CBC/NoPadding");
+    m.put(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey(), "NullCipher");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test(expected = SanityCheckException.class)
+  public void testFail_cipherSuiteNotSetKeyAlgorithmSet() {
+    m.put(Property.CRYPTO_CIPHER_SUITE.getKey(), "NullCipher");
+    m.put(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey(), "AES");
     ConfigSanityCheck.validate(m.entrySet());
   }
 }

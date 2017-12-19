@@ -196,6 +196,7 @@ import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
@@ -2441,7 +2442,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     AccumuloConfiguration conf = getServerConfigurationFactory().getSystemConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(this, clientAddress.getHost(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
-        "ReplicationServicerHandler", "Replication Servicer", null, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
+        "ReplicationServicerHandler", "Replication Servicer", Property.TSERV_PORTSEARCH, Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK,
+        maxMessageSizeProperty);
     this.replServer = sp.server;
     log.info("Started replication service on {}", sp.address);
 
@@ -3061,13 +3063,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   public static void main(String[] args) throws IOException {
     try {
       final String app = "tserver";
-      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);
+      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
       String hostname = opts.getAddress();
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
       VolumeManager fs = VolumeManagerImpl.get();
+      MetricsSystemHelper.configure(TabletServer.class.getSimpleName());
       Accumulo.init(fs, instance, conf, app);
       final TabletServer server = new TabletServer(instance, conf, fs);
       server.config(hostname);

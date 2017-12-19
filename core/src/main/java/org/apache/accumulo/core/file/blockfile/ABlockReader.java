@@ -19,6 +19,9 @@ package org.apache.accumulo.core.file.blockfile;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.util.function.Supplier;
+
+import org.apache.accumulo.core.file.blockfile.cache.CacheEntry.Weighbable;
 
 /*
  * Minimal interface to read a block from a
@@ -48,7 +51,9 @@ public interface ABlockReader extends DataInput {
    */
   int getPosition();
 
-  <T> T getIndex(Class<T> clazz);
+  <T extends Weighbable> T getIndex(Supplier<T> supplier);
+
+  void indexWeightChanged();
 
   byte[] getBuffer();
 }

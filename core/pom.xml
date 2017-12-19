@@ -68,6 +68,10 @@
       <artifactId>commons-logging</artifactId>
     </dependency>
     <dependency>
+      <groupId>javax.xml.bind</groupId>
+      <artifactId>jaxb-api</artifactId>
+    </dependency>
+    <dependency>
       <groupId>jline</groupId>
       <artifactId>jline</artifactId>
     </dependency>
@@ -288,7 +292,7 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/configuration-properties.md</argument>
+                <argument>${project.build.directory}/generated-docs/properties.md</argument>
               </arguments>
             </configuration>
           </execution>

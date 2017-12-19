@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.monitor.rest.tables;
 
+import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
+import static org.apache.accumulo.monitor.util.ParameterValidator.NAMESPACE_LIST_REGEX;
+import static org.apache.accumulo.monitor.util.ParameterValidator.NAMESPACE_REGEX;
+
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +31,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -51,6 +58,7 @@ import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -65,6 +73,7 @@ import org.apache.hadoop.io.Text;
 public class TablesResource {
 
   private static final TabletServerStatus NO_STATUS = new TabletServerStatus();
+  private static final java.util.regex.Pattern COMMA = java.util.regex.Pattern.compile(",");
 
   /**
    * Generates a table list based on the namespace
@@ -81,9 +90,11 @@ public class TablesResource {
     /*
      * Add the tables that have the selected namespace Asterisk = All namespaces Hyphen = Default namespace
      */
-    for (String key : namespaces.keySet()) {
-      if (namespace.equals("*") || namespace.equals(key) || (key.isEmpty() && namespace.equals("-"))) {
-        tableNamespace.addTable(new TableNamespace(key));
+    if (null != namespace) {
+      for (String key : namespaces.keySet()) {
+        if (namespace.equals("*") || namespace.equals(key) || (key.isEmpty() && namespace.equals("-"))) {
+          tableNamespace.addTable(new TableNamespace(key));
+        }
       }
     }
 
@@ -161,7 +172,7 @@ public class TablesResource {
    */
   @GET
   @Path("namespace/{namespace}")
-  public TablesList getTable(@PathParam("namespace") String namespace) {
+  public TablesList getTable(@PathParam("namespace") @NotNull @Pattern(regexp = NAMESPACE_REGEX) String namespace) throws UnsupportedEncodingException {
     return generateTables(namespace);
   }
 
@@ -174,14 +185,15 @@ public class TablesResource {
    */
   @GET
   @Path("namespaces/{namespaces}")
-  public TablesList getTableWithNamespace(@PathParam("namespaces") String namespaceList) {
+  public TablesList getTableWithNamespace(@PathParam("namespaces") @NotNull @Pattern(regexp = NAMESPACE_LIST_REGEX) String namespaceList)
+      throws UnsupportedEncodingException {
     SortedMap<String,Namespace.ID> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
 
     TablesList tableNamespace = new TablesList();
     /*
      * Add the tables that have the selected namespace Asterisk = All namespaces Hyphen = Default namespace
      */
-    for (String namespace : namespaceList.split(",")) {
+    for (String namespace : COMMA.split(namespaceList)) {
       for (String key : namespaces.keySet()) {
         if (namespace.equals("*") || namespace.equals(key) || (key.isEmpty() && namespace.equals("-"))) {
           tableNamespace.addTable(new TableNamespace(key));
@@ -201,11 +213,16 @@ public class TablesResource {
    */
   @Path("{tableId}")
   @GET
-  public TabletServers getParticipatingTabletServers(@PathParam("tableId") String tableIdStr) throws Exception {
+  public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr)
+      throws Exception {
     Instance instance = Monitor.getContext().getInstance();
     Table.ID tableId = Table.ID.of(tableIdStr);
 
     TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
+
+    if (StringUtils.isBlank(tableIdStr)) {
+      return tabletServers;
+    }
 
     TreeSet<String> locs = new TreeSet<>();
     if (RootTable.ID.equals(tableId)) {

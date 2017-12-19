@@ -127,6 +127,7 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.RpcWrapper;
@@ -1438,14 +1439,14 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
   public static void main(String[] args) throws Exception {
     try {
       final String app = "master";
-      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
-
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);
+      SecurityUtil.serverLogin(SiteConfiguration.getInstance());
       String hostname = opts.getAddress();
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfigurationFactory conf = new ServerConfigurationFactory(instance);
       VolumeManager fs = VolumeManagerImpl.get();
+      MetricsSystemHelper.configure(Master.class.getSimpleName());
       Accumulo.init(fs, instance, conf, app);
       Master master = new Master(instance, conf, fs, hostname);
       DistributedTrace.enable(hostname, app, conf.getSystemConfiguration());

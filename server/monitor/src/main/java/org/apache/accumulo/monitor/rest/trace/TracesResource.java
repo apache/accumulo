@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.rest.trace;
 
 import static java.lang.Math.min;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
@@ -28,6 +29,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -59,6 +64,7 @@ import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceFormatter;
 import org.apache.accumulo.tracer.thrift.Annotation;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -77,12 +83,12 @@ public class TracesResource {
    * Generates a trace summary
    *
    * @param minutes
-   *          Range of minutes to filter traces
+   *          Range of minutes to filter traces Min of 0 minutes, Max of 30 days
    * @return Trace summary in specified range
    */
   @Path("summary/{minutes}")
   @GET
-  public RecentTracesList getTraces(@DefaultValue("10") @PathParam("minutes") int minutes) throws Exception {
+  public RecentTracesList getTraces(@DefaultValue("10") @PathParam("minutes") @NotNull @Min(0) @Max(2592000) int minutes) throws Exception {
 
     RecentTracesList recentTraces = new RecentTracesList();
 
@@ -122,12 +128,13 @@ public class TracesResource {
    * @param type
    *          Type of the trace
    * @param minutes
-   *          Range of minutes
+   *          Range of minutes, Min of 0 and Max 0f 30 days
    * @return List of traces filtered by type and range
    */
   @Path("listType/{type}/{minutes}")
   @GET
-  public TraceType getTracesType(@PathParam("type") String type, @PathParam("minutes") int minutes) throws Exception {
+  public TraceType getTracesType(@PathParam("type") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) final String type,
+      @PathParam("minutes") @Min(0) @Max(2592000) int minutes) throws Exception {
 
     TraceType typeTraces = new TraceType(type);
 
@@ -175,12 +182,9 @@ public class TracesResource {
    */
   @Path("show/{id}")
   @GET
-  public TraceList getTracesType(@PathParam("id") String id) throws Exception {
-    TraceList traces = new TraceList(id);
+  public TraceList getTracesType(@PathParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) throws Exception {
 
-    if (id == null) {
-      return null;
-    }
+    TraceList traces = new TraceList(id);
 
     Pair<Scanner,UserGroupInformation> entry = getScanner();
     final Scanner scanner = entry.getFirst();
@@ -258,8 +262,8 @@ public class TracesResource {
     long startTime = endTime - millisSince;
 
     String startHexTime = Long.toHexString(startTime), endHexTime = Long.toHexString(endTime);
-    while (startHexTime.length() < endHexTime.length()) {
-      startHexTime = "0" + startHexTime;
+    if (startHexTime.length() < endHexTime.length()) {
+      StringUtils.leftPad(startHexTime, endHexTime.length(), '0');
     }
 
     return new Range(new Text("start:" + startHexTime), new Text("start:" + endHexTime));

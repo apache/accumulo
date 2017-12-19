@@ -17,9 +17,12 @@
 package org.apache.accumulo.core.conf;
 
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A utility class for validating {@link AccumuloConfiguration} instances.
@@ -46,6 +49,8 @@ public class ConfigSanityCheck {
   public static void validate(Iterable<Entry<String,String>> entries) {
     String instanceZkTimeoutValue = null;
     boolean usingVolumes = false;
+    String cipherSuite = null;
+    String keyAlgorithm = null;
     for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
       String value = entry.getValue();
@@ -66,6 +71,23 @@ public class ConfigSanityCheck {
       if (key.equals(Property.INSTANCE_VOLUMES.getKey())) {
         usingVolumes = value != null && !value.isEmpty();
       }
+
+      // If the block size or block size index is configured to be too large, we throw an exception to avoid potentially corrupting RFiles later
+      if (key.equals(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()) || key.equals(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey())) {
+        long bsize = ConfigurationTypeHelper.getFixedMemoryAsBytes(value);
+        Preconditions.checkArgument(bsize > 0 && bsize < Integer.MAX_VALUE, key + " must be greater than 0 and less than " + Integer.MAX_VALUE + " but was: "
+            + bsize);
+      }
+
+      if (key.equals(Property.CRYPTO_CIPHER_SUITE.getKey())) {
+        cipherSuite = Objects.requireNonNull(value);
+        Preconditions.checkArgument(cipherSuite.equals("NullCipher") || cipherSuite.split("/").length == 3,
+            "Cipher suite must be NullCipher or in the form algorithm/mode/padding. Suite: " + cipherSuite + " is invalid.");
+      }
+
+      if (key.equals(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey())) {
+        keyAlgorithm = Objects.requireNonNull(value);
+      }
     }
 
     if (instanceZkTimeoutValue != null) {
@@ -74,6 +96,14 @@ public class ConfigSanityCheck {
 
     if (!usingVolumes) {
       log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI, INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
+    }
+
+    if (cipherSuite.equals("NullCipher") && !keyAlgorithm.equals("NullCipher")) {
+      fatal(Property.CRYPTO_CIPHER_SUITE.getKey() + " should be configured when " + Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey() + " is set.");
+    }
+
+    if (!cipherSuite.equals("NullCipher") && keyAlgorithm.equals("NullCipher")) {
+      fatal(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey() + " should be configured when " + Property.CRYPTO_CIPHER_SUITE.getKey() + " is set.");
     }
   }
 
