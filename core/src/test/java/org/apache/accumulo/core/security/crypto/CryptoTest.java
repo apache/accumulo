@@ -417,7 +417,9 @@ public class CryptoTest {
   // Used to check reading of KEK files
   @SuppressWarnings("deprecation")
   private void testKekFile(File testFile) throws IOException {
-	  System.out.println("Parent: " + testFile.getParent());
+	assertTrue(testFile.exists());
+	assertFalse(testFile.isDirectory());
+		
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
     // TODO ACCUMULO-2530 this will need to be fixed when CachingHDFSSecretKeyEncryptionStrategy is fixed
