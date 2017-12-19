@@ -112,6 +112,8 @@ public class NewTableConfiguration {
     checkArgument(props != null, "properties is null");
     checkDisjoint(props, samplerProps, "sampler");
     checkDisjoint(props, summarizerProps, "summarizer");
+    checkDisjoint(props, localityProps, "locality group");
+    checkDisjoint(props, iteratorProps, "iterator");
     checkTableProperties(props);
     this.properties = new HashMap<>(props);
     return this;
@@ -184,6 +186,7 @@ public class NewTableConfiguration {
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
       tmp.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
+    checkDisjoint(properties, tmp, "locality groups");
     tmp.put(Property.TABLE_LOCALITY_GROUPS.getKey(), groups.keySet().stream().collect(Collectors.joining(",")));
     localityProps = tmp;
     return this;
@@ -227,9 +230,12 @@ public class NewTableConfiguration {
     TableOperationsHelper.checkIteratorConflicts(iteratorProps, setting, scopes);
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getOptions().entrySet())
+      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
         iteratorProps.put(root + ".opt." + prop.getKey(), prop.getValue());
+      }
       iteratorProps.put(root, setting.getPriority() + "," + setting.getIteratorClass());
+      // verify that the iteratorProps assigned and the properties do not share any keys.
+      checkDisjoint(properties, iteratorProps, "iterator");
     }
     return this;
   }
@@ -240,7 +246,7 @@ public class NewTableConfiguration {
   private void checkTableProperties(Map<String,String> props) {
     props.keySet().forEach((key) -> {
       if (!key.startsWith(Property.TABLE_PREFIX.toString())) {
-        throw new IllegalArgumentException("'" + key + "' is not a valid user-supplied table property");
+        throw new IllegalArgumentException("'" + key + "' is not a valid table property");
       }
     });
   }

@@ -526,6 +526,54 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
   }
 
   /**
+   * Verify that disjoint check works as expected with setProperties
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testSetPropertiesDisjointCheck() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+
+    Map<String,Set<Text>> lgroups = new HashMap<>();
+    lgroups.put("lg1", ImmutableSet.of(new Text("dog")));
+    ntc.setLocalityGroups(lgroups);
+
+    Map<String,String> props = new HashMap<>();
+    props.put("table.key1", "val1");
+    props.put("table.group.lg1", "cat");
+    ntc.setProperties(props);
+  }
+
+  /**
+   * Verify checkDisjoint works with locality groups.
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testSetLocalityGroupsDisjointCheck() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+
+    Map<String,String> props = new HashMap<>();
+    props.put("table.group.lg1", "cat");
+    ntc.setProperties(props);
+
+    Map<String,Set<Text>> lgroups = new HashMap<>();
+    lgroups.put("lg1", ImmutableSet.of(new Text("dog")));
+    ntc.setLocalityGroups(lgroups);
+  }
+
+  /**
+   * Verify checkDisjoint works with iterators groups.
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testAttachIteratorDisjointCheck() throws AccumuloException {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+
+    Map<String,String> props = new HashMap<>();
+    props.put("table.iterator.scan.someName", "10");
+    ntc.setProperties(props);
+
+    IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
+    ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
+  }
+
+  /**
    * Verify the expected iterator properties exist.
    */
   private void verifyIterators(Connector conn, String tablename, String[] values, boolean withDefaultIts) throws AccumuloException, TableNotFoundException {
