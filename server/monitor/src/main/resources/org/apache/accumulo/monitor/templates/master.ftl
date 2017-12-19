@@ -17,7 +17,7 @@
       <div><h3>${title}</h3></div>
       <div id="masterBanner" style="display: none;"><div class="alert alert-danger" role="alert">Master Server Not Running</div></div>
       <div class="center-block">
-        <table id="masterStatus" class="table table-bordered table-striped table-condensed" style="display: table;">
+        <table id="masterStatus" class="table table-bordered table-striped table-condensed">
           <caption><span class="table-caption">Master&nbsp;Status</span><br/></caption>
           <tbody>
             <tr><th class="firstcell" onclick="sortMasterTable(0)" title="The hostname of the master server">Master&nbsp;</th>
@@ -25,7 +25,7 @@
                 <th onclick="sortMasterTable(2)" title="The total number of tablet servers configured">#&nbsp;Total<br/>Tablet&nbsp;Servers&nbsp;</th>
                 <th onclick="sortMasterTable(3)" title="The last time files were cleaned-up from HDFS.">Last&nbsp;GC&nbsp;</th>
                 <th onclick="sortMasterTable(4)" title="Tables are broken down into ranges of rows called tablets.">#&nbsp;Tablets&nbsp;</th>
-                <th onclick="sortMasterTable(5)" >#&nbsp;Unassigned<br>Tablets&nbsp;</th>
+                <th onclick="sortMasterTable(5)" >#&nbsp;Unassigned<br/>Tablets&nbsp;</th>
                 <th onclick="sortMasterTable(6)" title="The total number of key/value pairs in Accumulo">Entries&nbsp;</th>
                 <th onclick="sortMasterTable(7)" title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)">Ingest&nbsp;</th>
                 <th onclick="sortMasterTable(8)" title="The total number of Key/Value pairs read on the server side.  Not all may be returned because of filtering.">Entries<br/>Read&nbsp;</th>

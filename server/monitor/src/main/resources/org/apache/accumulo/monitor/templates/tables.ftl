@@ -42,9 +42,9 @@
             <tr><th class="firstcell sortable" onclick="sortTable(0)">Table&nbsp;Name&nbsp;<span class="glyphicon glyphicon-chevron-up"></span></th>
                 <th onclick="sortTable(1)" class="sortable">State&nbsp;</th>
                 <th onclick="sortTable(2)" title="Tables are broken down into ranges of rows called tablets." class="sortable">#&nbsp;Tablets&nbsp;</th>
-                <th onclick="sortTable(3)" title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing." class="sortable">#&nbsp;Offline<br>Tablets&nbsp;</th>
+                <th onclick="sortTable(3)" title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing." class="sortable">#&nbsp;Offline<br/>Tablets&nbsp;</th>
                 <th onclick="sortTable(4)" title="Key/value pairs over each instance, table or tablet." class="sortable">Entries&nbsp;</th>
-                <th onclick="sortTable(5)" title="The total number of key/value pairs stored in memory and not yet written to disk." class="sortable">Entries<br>In&nbsp;Memory&nbsp;</th>
+                <th onclick="sortTable(5)" title="The total number of key/value pairs stored in memory and not yet written to disk." class="sortable">Entries<br/>In&nbsp;Memory&nbsp;</th>
                 <th onclick="sortTable(6)" title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="sortable">Ingest&nbsp;</th>
                 <th onclick="sortTable(7)" title="The number of Key/Value pairs read on the server side.Not all key values read may be returned to client because of filtering." class="sortable">Entries<br/>Read&nbsp;</th>
                 <th onclick="sortTable(8)" title="The number of Key/Value pairs returned to clients during queries. This is not the number of scans." class="sortable">Entries<br/>Returned&nbsp;</th>

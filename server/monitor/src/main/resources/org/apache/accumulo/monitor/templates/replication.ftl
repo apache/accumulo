@@ -17,6 +17,13 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="replicationStats" class="table table-bordered table-striped table-condensed">
-
+            <caption><span class="table-caption">Replication Status</span><br/></caption>
+            <tbody>
+            <tr><th class="firstcell" onclick="sortTable(0)">Table&nbsp;</th>
+                <th onclick="sortTable(1)">Peer&nbsp;</th>
+                <th onclick="sortTable(2)">Remote&nbsp;Identifier&nbsp;</th>
+                <th onclick="sortTable(3)">Replica&nbsp;System&nbsp;Type&nbsp;</th>
+                <th onclick="sortTable(4)">Files&nbsp;needing&nbsp;replication&nbsp;</th></tr>
+            </tbody>
         </table>
       </div>
