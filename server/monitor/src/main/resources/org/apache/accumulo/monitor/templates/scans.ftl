@@ -17,6 +17,11 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="scanStatus" class="table table-bordered table-striped table-condensed">
-
+            <caption><span class="table-caption">Scan&nbsp;Status</span><br/></caption>
+            <tbody><tr><th class="firstcell" onclick="sortTable(0)">Server&nbsp;</th>
+                <th onclick="sortTable(1)" title="Number of scans presently running">#&nbsp;</th>
+                <th onclick="sortTable(2)" title="The age of the oldest scan on this server.">Oldest&nbsp;Age&nbsp;</th>
+            </tr>
+            </tbody>
         </table>
       </div>

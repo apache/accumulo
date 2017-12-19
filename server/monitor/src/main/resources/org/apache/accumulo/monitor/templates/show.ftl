@@ -24,7 +24,8 @@
          * Creates trace id initial table, passes id from template
          */
         $(document).ready(function() {
-          createHeader('${id}');
+
+          id = '${id}';
           refreshTraceShow();
 
           // Create tooltip for table column information
@@ -62,6 +63,9 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="trace" class="table table-bordered table-striped table-condensed">
-
+            <caption><span id="caption" class="table-caption">Trace ${id} started at<br/></span></caption>
+            <tbody>
+            <tr><th>Time&nbsp;</th><th>Start&nbsp;</th><th>Service@Location&nbsp;</th><th>Name&nbsp;</th><th>Addl&nbsp;Data&nbsp;</th></tr>
+            </tbody>
         </table>
       </div>

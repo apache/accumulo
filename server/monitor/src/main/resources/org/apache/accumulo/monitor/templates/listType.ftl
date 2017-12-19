@@ -19,7 +19,8 @@
          * Creates initial trace list type table, and passes type and minutes values from template
          */
         $(document).ready(function() {
-          createHeader('${type}', '${minutes}');
+          type = '${type}';
+          minutes = '${minutes}';
           refreshListType();
         });
       </script>
@@ -27,6 +28,11 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="trace" class="table table-bordered table-striped table-condensed">
-
+            <caption><span class="table-caption">Traces for masterReplicationDriver</span><br/></caption>
+            <tbody><tr><th class="firstcell" title="Start Time of selected trace type">Start&nbsp;</th>
+                <th title="Span Time of selected trace type">ms&nbsp;</th>
+                <th title="Service and Location of selected trace type">Source&nbsp;</th>
+            </tr>
+            </tbody>
         </table>
       </div>

@@ -19,8 +19,6 @@
  * Creates bulk import initial table
  */
 $(document).ready(function() {
-  createBulkImportHeader();
-  createServerBulkHeader();
   refreshBulkImport();
 
   // Create tooltip for table column information
@@ -136,70 +134,4 @@ function sortTable(table, n) {
   sessionStorage.tableColumn = tableIDs[table];
   sessionStorage.tableColumnSort = n;
   sortTables(tableIDs[table], direction, n);
-}
-
-/**
- * Creates the bulk import header
- */
-function createBulkImportHeader() {
-  var caption = '<span class="table-caption">Bulk&nbsp;Import' +
-      '&nbsp;Status</span><br>';
-
-  $('<caption/>', {
-    html: caption
-  }).appendTo('#masterBulkImportStatus');
-
-  var items = [];
-
-  var columns = ['Directory&nbsp;', 'Age&nbsp;', 'State&nbsp;'];
-
-  var titles = ['', descriptions['Import Age'], descriptions['Import State']];
-
-  /*
-   * Adds the columns, add sortTable function on click,
-   * if the column has a description, add title taken from the global.js
-   */
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, 'sortTable(1,' + i + ')',
-        titles[i], columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#masterBulkImportStatus');
-}
-
-/**
- * Creates the bulk import header
- */
-function createServerBulkHeader() {
-  var caption = [];
-
-  caption.push('<span class="table-caption">TabletServer&nbsp;Bulk&nbsp;' +
-      'Import&nbsp;Status</span><br>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#bulkImportStatus');
-
-  var items = [];
-
-  var columns = ['Server&nbsp;', '#&nbsp;', 'Oldest&nbsp;Age&nbsp;'];
-
-  var titles = ['', descriptions['# Imports'], descriptions['Oldest Age']];
-
-  /*
-   * Adds the columns, add sortTable function on click,
-   * if the column has a description, add title taken from the global.js
-   */
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, 'sortTable(0,' + i + ')',
-        titles[i], columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#bulkImportStatus');
 }

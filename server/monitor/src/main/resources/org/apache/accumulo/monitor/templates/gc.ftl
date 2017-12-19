@@ -15,9 +15,18 @@
   limitations under the License.
 -->
       <div><h3>${title}</h3></div>
-      <div id="gcBanner"></div>
+      <div id="gcBanner"><div class="alert alert-danger" role="alert">Collector is Unavailable</div></div>
       <div class="center-block">
-        <table id="gcActivity" class="table table-bordered table-striped table-condensed">
-
-        </table>
+          <table id="gcActivity" class="table table-bordered table-striped table-condensed">
+              <caption><span class="table-caption">Collection&nbsp;Activity</span><br/></caption>
+              <tbody><tr><th class="firstcell" onclick="sortTable(0)">Activity&nbsp;</th>
+                  <th onclick="sortTable(1)">Finished&nbsp;</th>
+                  <th onclick="sortTable(2)">Candidates&nbsp;</th>
+                  <th onclick="sortTable(3)">Deleted&nbsp;</th>
+                  <th onclick="sortTable(4)">In&nbsp;Use&nbsp;</th>
+                  <th onclick="sortTable(5)">Errors&nbsp;</th>
+                  <th onclick="sortTable(6)">Duration&nbsp;</th>
+              </tr>
+              </tbody>
+          </table>
       </div>

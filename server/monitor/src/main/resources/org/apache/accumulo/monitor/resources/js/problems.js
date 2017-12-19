@@ -14,6 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+var tableID;
 
 /**
  * Makes the REST calls, generates the tables with the new information
@@ -162,66 +163,4 @@ function sortTable(n) {
   sessionStorage.tableColumnSort = n;
 
   sortTables('problemDetails', direction, n);
-}
-
-/**
- * Creates the problem summary header
- */
-function createSummaryHeader() {
-  var caption = [];
-
-  caption.push('<span class="table-caption">Problem&nbsp;Summary</span><br>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#problemSummary');
-
-  var items = [];
-
-  columns = ['Table&nbsp;', 'FILE_READ&nbsp;', 'FILE_WRITE&nbsp;',
-      'TABLET_LOAD&nbsp;', 'Operations&nbsp;']
-
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, '', '', columns[i]));
-  }
-
-  $('<tr/>', {
-      html: items.join('')
-  }).appendTo('#problemSummary');
-}
-
-var tableID;
-/**
- * Creates the problem detail header
- *
- * @param {string} table Table ID of problem
- */
-function createDetailsHeader(table) {
-  tableID = table;
-  var caption = [];
-
-  caption.push('<span class="table-caption">Problem&nbsp;Details</span><br>');
-  caption.push('<span class="table-subcaption">Problems' +
-      '&nbsp;identified&nbsp;with&nbsp;tables.</span><br>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#problemDetails');
-
-  var items = [];
-
-  var columns = ['Table&nbsp;', 'Problem&nbsp;Type&nbsp;', 'Server&nbsp;',
-      'Time&nbsp;', 'Resource&nbsp;', 'Exception&nbsp;', 'Operations&nbsp;'];
-
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    var sort = i == columns.length - 1 ? '' : 'sortTable(' + i + ')';
-
-    items.push(createHeaderCell(first, sort, '', columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#problemDetails');
 }

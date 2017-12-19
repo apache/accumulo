@@ -126,33 +126,3 @@ function sortTable(n) {
   sessionStorage.tableColumnSort = n;
   sortTables('trace', direction, n);
 }
-
-/**
- * Creates the trace show header
- *
- * @param {string} ID ID of the trace
- */
-function createHeader(ID) {
-  id = ID;
-  var caption = [];
-
-  caption.push('<span id="caption" class="table-caption">Trace ' + id +
-      ' started at<br></span>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#trace');
-
-  var items = [];
-
-  var columns = ['Time&nbsp;', 'Start&nbsp;', 'Service@Location&nbsp;',
-      'Name&nbsp;', 'Addl&nbsp;Data&nbsp;'];
-
-  for (i = 0; i < columns.length; i++) {
-    items.push(createHeaderCell(false, '', '', columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#trace');
-}

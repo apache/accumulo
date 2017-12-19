@@ -19,8 +19,6 @@
  * Creates master initial table
  */
 $(document).ready(function() {
-  createHeader();
-  doBanner('masterBanner', 'danger', 'Master Server Not Running');
   refreshMaster();
 
   // Create tooltip for table column information
@@ -73,17 +71,6 @@ function recoveryList() {
     $('#recoveryList').hide();
   } else {
     $('#recoveryList').show();
-
-    var caption = [];
-
-    caption.push('<span class="table-caption">Log&nbsp;Recovery</span><br>');
-    caption.push('<span class="table-subcaption">Some tablets were unloaded' +
-        ' in an unsafe manner. Write-ahead logs are being' +
-        ' recovered.</span><br>');
-
-    $('<caption/>', {
-      html: caption.join('')
-    }).appendTo('#recoveryList');
 
     var items = [];
 
@@ -196,47 +183,4 @@ function sortMasterTable(n) {
   }
   sessionStorage.tableColumnSort = n;
   sortTables('masterStatus', direction, n);
-}
-
-/**
- * Creates the master header
- */
-function createHeader() {
-  var caption = [];
-
-  caption.push('<span class="table-caption">Master&nbsp;Status</span><br>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#masterStatus');
-
-  var items = [];
-
-  var columns = ['Master&nbsp;', '#&nbsp;Online<br>Tablet&nbsp;Servers&nbsp;',
-      '#&nbsp;Total<br>Tablet&nbsp;Servers&nbsp;', 'Last&nbsp;GC&nbsp;',
-      '#&nbsp;Tablets&nbsp;', '#&nbsp;Unassigned<br>Tablets&nbsp;',
-      'Entries&nbsp;', 'Ingest&nbsp;', 'Entries<br>Read&nbsp;',
-      'Entries<br>Returned&nbsp;', 'Hold&nbsp;Time&nbsp;',
-      'OS&nbsp;Load&nbsp;'];
-
-  var titles = [descriptions['Master'], descriptions['# Online Tablet Servers'],
-      descriptions['# Total Tablet Servers'], descriptions['Last GC'],
-      descriptions['# Tablets'], '', descriptions['Total Entries'],
-      descriptions['Total Ingest'], descriptions['Total Entries Read'],
-      descriptions['Total Entries Returned'], descriptions['Max Hold Time'],
-      descriptions['OS Load']];
-
-  /*
-   * Adds the columns, add sortTable function on click,
-   * if the column has a description, add title taken from the global.js
-   */
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, 'sortMasterTable(' + i + ')',
-        titles[i], columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#masterStatus');
 }

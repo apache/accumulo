@@ -19,7 +19,6 @@
  * Creates replication initial table
  */
 $(document).ready(function() {
-  createHeader();
   refreshReplication();
 });
 
@@ -98,34 +97,4 @@ function sortTable(n) {
   }
   sessionStorage.tableColumnSort = n;
   sortTables('replicationStats', direction, n);
-}
-
-/**
- * Creates the replication header
- */
-function createHeader() {
-  var caption = [];
-
-  caption.push('<span class="table-caption">Replication Status</span><br>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#replicationStats');
-
-  var items = [];
-
-  var columns = ['Table&nbsp;', 'Peer&nbsp;', 'Remote&nbsp;Identifier&nbsp;',
-      'Replica&nbsp;System&nbsp;Type&nbsp;',
-      'Files&nbsp;needing&nbsp;replication&nbsp;'];
-  /*
-   * Adds the columns, add sortTable function on click
-   */
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, 'sortTable(' + i + ')', '', columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#replicationStats');
 }

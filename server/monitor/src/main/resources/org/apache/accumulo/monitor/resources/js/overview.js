@@ -19,8 +19,6 @@
  * Creates overview initial tables
  */
 $(document).ready(function() {
-  createMasterTable();
-  createZKTable();
   refreshOverview();
 });
 
@@ -86,37 +84,6 @@ function refreshMasterTable() {
 }
 
 /**
- * Generates the master table
- */
-function createMasterTable() {
-  var items = [];
-  items.push('<tr><th colspan="2"><a href="/master">Accumulo' +
-      '&nbsp;Master</a></th></tr>');
-
-  items.push('<tr><td colspan="2" class="center">' +
-      '<span class="label label-danger">Master is Down</span></td></tr>');
-
-  items.push('<tr><td class="left"><a href="/tables">Tables</a></td>' +
-      '<td class="right"></td></tr>');
-
-  items.push('<tr><td class="left"><a href="/tservers">Tablet' +
-      '&nbsp;Servers</a></td><td class="right"></td></tr>');
-
-  items.push('<tr><td class="left"><a href="/tservers">Dead&nbsp;' +
-      'Tablet&nbsp;Servers</a></td><td class="right"></td></tr>');
-
-  items.push('<tr><td class="left">Tablets</td><td class="right"></td></tr>');
-  items.push('<tr><td class="left">Entries</td><td class="right"></td></tr>');
-  items.push('<tr><td class="left">Lookups</td><td class="right"></td></tr>');
-  items.push('<tr><td class="left">Uptime</td><td class="right"></td></tr>');
-
-  $('<table/>', {
-    html: items.join(''),
-    class: 'table table-bordered table-striped table-condensed'
-  }).appendTo('#master');
-}
-
-/**
  * Refresh the zookeeper table
  */
 function refreshZKTable() {
@@ -145,20 +112,6 @@ function refreshZKTable() {
       html: items.join('')
     }).appendTo('#zookeeper table');
   }
-}
-
-/**
- * Generates the zookeeper table
- */
-function createZKTable() {
-  var items = [];
-  items.push('<tr><th colspan="3">Zookeeper</th></tr>');
-  items.push('<tr><th>Server</th><th>Mode</th><th>Clients</th></tr>');
-  items.push(createEmptyRow(3, 'No Zookeepers'));
-  $('<table/>', {
-    html: items.join(''),
-    class: 'table table-bordered table-striped table-condensed'
-  }).appendTo('#zookeeper');
 }
 
 //// Overview plot creation

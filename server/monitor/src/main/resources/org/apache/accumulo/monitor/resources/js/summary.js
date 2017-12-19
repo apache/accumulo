@@ -102,37 +102,3 @@ function sortTable(n) {
   sessionStorage.tableColumnSort = n;
   sortTables('traceSummary', direction, n);
 }
-
-/**
- * Creates the trace summary header
- *
- * @param {string} min Minutes to display trace
- */
-function createHeader(min) {
-  minutes = min;
-  var caption = [];
-
-  caption.push('<span class="table-caption">All Traces</span><br>');
-
-  $('<caption/>', {
-    html: caption.join('')
-  }).appendTo('#traceSummary');
-
-  var items = [];
-
-  var columns = ['Type&nbsp;', 'Total&nbsp;', 'min&nbsp;', 'max&nbsp;',
-      'avg&nbsp;', 'Histogram&nbsp;'];
-
-  var titles = [descriptions['Trace Type'], descriptions['Total Spans'],
-      descriptions['Short Span'], descriptions['Long Span'],
-      descriptions['Avg Span'], descriptions['Histogram']];
-
-  for (i = 0; i < columns.length; i++) {
-    var first = i == 0 ? true : false;
-    items.push(createHeaderCell(first, '', titles[i], columns[i]));
-  }
-
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#traceSummary');
-}
