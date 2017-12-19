@@ -26,8 +26,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
@@ -35,6 +38,7 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -47,6 +51,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -372,19 +377,29 @@ public class CryptoTest {
 
   @Test
   public void testKeyEncryptionKeyCatchCorrectlyUsesValidKEKFile() throws IOException {
+    createKekFile("kekWorks.kek", 32);
     testKekFile("kekWorks.kek");
   }
 
   @Test
   public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidLongKEKFile() throws IOException {
+    createKekFile("kekTooLong.kek", 16);
     exception.expect(IOException.class);
     testKekFile("kekTooLong.kek");
   }
 
   @Test
   public void testKeyEncryptionKeyCacheCorrectlyFailsWithInvalidShortKEKFile() throws IOException {
+    createKekFile("kekTooShort.kek", 64);
     exception.expect(IOException.class);
     testKekFile("kekTooShort.kek");
+  }
+
+  @AfterClass
+  public static void removeAllTestKekFiles() throws IOException {
+    deleteKekFile("kekTooLong.kek");
+    deleteKekFile("kekTooShort.kek");
+    deleteKekFile("kekWorks.kek");
   }
 
   // Used to check reading of KEK files
@@ -393,11 +408,36 @@ public class CryptoTest {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
     // TODO ACCUMULO-2530 this will need to be fixed when CachingHDFSSecretKeyEncryptionStrategy is fixed
-    params.getAllOptions().put(Property.INSTANCE_DFS_DIR.getKey(), "src/test/resources/org/apache/accumulo/core/security/crypto");
+    params.getAllOptions().put(Property.INSTANCE_DFS_DIR.getKey(), System.getProperty("user.dir") + "/target/cryptoTest/");
     byte[] ptk = new byte[16];
     params.setPlaintextKey(ptk);
     CachingHDFSSecretKeyEncryptionStrategy skc = new CachingHDFSSecretKeyEncryptionStrategy();
     params.getAllOptions().put(Property.CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION.getKey(), filename);
     skc.encryptSecretKey(params);
+  }
+
+  private void createKekFile(String filename, Integer size) throws IOException {
+    File dir = new File(System.getProperty("user.dir") + "/target/cryptoTest");
+    boolean unused = dir.mkdirs(); // if the directories don't already exist, it'll return 1. If they do, 0. Both cases can be fine.
+
+    File testFile = new File(System.getProperty("user.dir") + "/target/cryptoTest/" + filename);
+    System.out.println(testFile.toPath());
+    if (!testFile.createNewFile()) {
+      throw new IOException();
+    }
+    DataOutputStream os = new DataOutputStream(new FileOutputStream(System.getProperty("user.dir") + "/target/cryptoTest/" + filename));
+    Integer kl = 32;
+    byte[] key = new byte[kl];
+    Random rand = new Random();
+    rand.nextBytes(key);
+    os.writeInt(size);
+    os.write(key);
+    os.flush();
+    os.close();
+  }
+
+  private static void deleteKekFile(String filename) throws IOException {
+    File file = new File(System.getProperty("user.dir") + "/target/cryptoTest/" + filename);
+    Files.deleteIfExists(file.toPath());
   }
 }
