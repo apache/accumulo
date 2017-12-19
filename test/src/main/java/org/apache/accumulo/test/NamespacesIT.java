@@ -325,36 +325,43 @@ public class NamespacesIT extends AccumuloClusterHarness {
     IteratorSetting setting = new IteratorSetting(250, iterName, SimpleFilter.class.getName());
 
     // verify can see inserted entry
-    Scanner s = c.createScanner(t1, Authorizations.EMPTY);
-    assertTrue(s.iterator().hasNext());
-    assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
-    assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
-
-    // verify entry is filtered out (also, verify conflict checking API)
-    c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
-    c.namespaceOperations().attachIterator(namespace, setting);
-    sleepUninterruptibly(2, TimeUnit.SECONDS);
+    Scanner s = null;
     try {
-      c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
-      fail();
-    } catch (AccumuloException e) {
-      assertEquals(IllegalArgumentException.class.getName(), e.getCause().getClass().getName());
-    }
-    IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace, setting.getName(), IteratorScope.scan);
-    assertEquals(setting, setting2);
-    assertTrue(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
-    assertTrue(c.tableOperations().listIterators(t1).containsKey(iterName));
-    s = c.createScanner(t1, Authorizations.EMPTY);
-    assertFalse(s.iterator().hasNext());
+      s = c.createScanner(t1, Authorizations.EMPTY);
+      assertTrue(s.iterator().hasNext());
+      assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
+      assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
 
-    // verify can see inserted entry again
-    c.namespaceOperations().removeIterator(namespace, setting.getName(), EnumSet.allOf(IteratorScope.class));
-    sleepUninterruptibly(2, TimeUnit.SECONDS);
-    assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
-    assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
-    s = c.createScanner(t1, Authorizations.EMPTY);
-    assertTrue(s.iterator().hasNext());
-    s.close();
+      // verify entry is filtered out (also, verify conflict checking API)
+      c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
+      c.namespaceOperations().attachIterator(namespace, setting);
+      sleepUninterruptibly(2, TimeUnit.SECONDS);
+      try {
+        c.namespaceOperations().checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class));
+        fail();
+      } catch (AccumuloException e) {
+        assertEquals(IllegalArgumentException.class.getName(), e.getCause().getClass().getName());
+      }
+      IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace, setting.getName(), IteratorScope.scan);
+      assertEquals(setting, setting2);
+      assertTrue(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
+      assertTrue(c.tableOperations().listIterators(t1).containsKey(iterName));
+      s = c.createScanner(t1, Authorizations.EMPTY);
+      assertFalse(s.iterator().hasNext());
+
+      // verify can see inserted entry again
+      c.namespaceOperations().removeIterator(namespace, setting.getName(), EnumSet.allOf(IteratorScope.class));
+      sleepUninterruptibly(2, TimeUnit.SECONDS);
+      assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
+      assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
+      s = c.createScanner(t1, Authorizations.EMPTY);
+      assertTrue(s.iterator().hasNext());
+      s.close();
+    } finally {
+      if (s != null) {
+        s.close();
+      }
+    }
   }
 
   @Test

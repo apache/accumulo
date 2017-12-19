@@ -87,19 +87,19 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
   }
 
   public boolean checkTimeType(Connector connector, String tableName, TimeType expectedTimeType) throws TableNotFoundException {
-    final Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    String tableID = connector.tableOperations().tableIdMap().get(tableName) + "<";
-    for (Entry<Key,Value> entry : scanner) {
-      Key k = entry.getKey();
+    try (Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      String tableID = connector.tableOperations().tableIdMap().get(tableName) + "<";
+      for (Entry<Key,Value> entry : scanner) {
+        Key k = entry.getKey();
 
-      if (k.getRow().toString().equals(tableID) && k.getColumnQualifier().toString().equals(ServerColumnFamily.TIME_COLUMN.getColumnQualifier().toString())) {
-        if (expectedTimeType == TimeType.MILLIS && entry.getValue().toString().charAt(0) == 'M')
-          return true;
-        if (expectedTimeType == TimeType.LOGICAL && entry.getValue().toString().charAt(0) == 'L')
-          return true;
+        if (k.getRow().toString().equals(tableID) && k.getColumnQualifier().toString().equals(ServerColumnFamily.TIME_COLUMN.getColumnQualifier().toString())) {
+          if (expectedTimeType == TimeType.MILLIS && entry.getValue().toString().charAt(0) == 'M')
+            return true;
+          if (expectedTimeType == TimeType.LOGICAL && entry.getValue().toString().charAt(0) == 'L')
+            return true;
+        }
       }
     }
-    scanner.close();
     return false;
   }
 

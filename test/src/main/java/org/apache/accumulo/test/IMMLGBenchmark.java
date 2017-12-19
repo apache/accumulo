@@ -117,21 +117,21 @@ public class IMMLGBenchmark {
   }
 
   private static long scan(Connector conn, ArrayList<byte[]> cfset, String table, boolean cq) throws TableNotFoundException {
-    Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
+    try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
 
-    if (!cq)
-      scanner.fetchColumnFamily(new Text(cfset.get(15)));
-    else
-      scanner.fetchColumn(new Text(cfset.get(15)), new Text(cfset.get(15)));
+      if (!cq)
+        scanner.fetchColumnFamily(new Text(cfset.get(15)));
+      else
+        scanner.fetchColumn(new Text(cfset.get(15)), new Text(cfset.get(15)));
 
-    long t1 = System.currentTimeMillis();
+      long t1 = System.currentTimeMillis();
 
-    Iterators.size(scanner.iterator());
+      Iterators.size(scanner.iterator());
 
-    long t2 = System.currentTimeMillis();
+      long t2 = System.currentTimeMillis();
 
-    scanner.close();
-    return t2 - t1;
+      return t2 - t1;
+    }
   }
 
   private static long write(Connector conn, ArrayList<byte[]> cfset, String table) throws TableNotFoundException, MutationsRejectedException {

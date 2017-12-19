@@ -104,23 +104,32 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
     c.tableOperations().attachIterator(t2, summer);
 
     Map.Entry<Key,Value> actual;
-    // Scan t1 with an iterator that writes to table t2
-    Scanner scanner = c.createScanner(t1, Authorizations.EMPTY);
-    scanner.addScanIterator(itset);
-    actual = Iterators.getOnlyElement(scanner.iterator());
-    Assert.assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
-    Assert.assertEquals(BatchWriterIterator.SUCCESS_VALUE, actual.getValue());
+    Scanner scanner = null;
+    try {
+      // Scan t1 with an iterator that writes to table t2
+      scanner = c.createScanner(t1, Authorizations.EMPTY);
+      scanner.addScanIterator(itset);
+      actual = Iterators.getOnlyElement(scanner.iterator());
+      Assert.assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
+      Assert.assertEquals(BatchWriterIterator.SUCCESS_VALUE, actual.getValue());
+    } finally {
+      if (scanner != null) {scanner.close();}
+    }
 
-    // ensure entries correctly wrote to table t2
-    scanner = c.createScanner(t2, Authorizations.EMPTY);
-    actual = Iterators.getOnlyElement(scanner.iterator());
-    log.debug("t2 entry is " + actual.getKey().toStringNoTime() + " -> " + actual.getValue());
-    Assert.assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
-    Assert.assertEquals(numEntriesToWritePerEntry, Integer.parseInt(actual.getValue().toString()));
-    scanner.close();
+    try {
+      // ensure entries correctly wrote to table t2
+      scanner = c.createScanner(t2, Authorizations.EMPTY);
+      actual = Iterators.getOnlyElement(scanner.iterator());
+      log.debug("t2 entry is " + actual.getKey().toStringNoTime() + " -> " + actual.getValue());
+      Assert.assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
+      Assert.assertEquals(numEntriesToWritePerEntry, Integer.parseInt(actual.getValue().toString()));
+    } finally {
+      if (scanner != null) {
+        scanner.close();
+      }
+    }
 
     c.tableOperations().delete(t1);
     c.tableOperations().delete(t2);
   }
-
 }

@@ -105,104 +105,38 @@ public class VerifyIngest {
         Text colf = new Text(opts.columnFamily);
         Text colq = new Text("col_" + String.format("%07d", expectedCol));
 
-        Scanner scanner = connector.createScanner("test_ingest", labelAuths);
-        scanner.setBatchSize(1);
-        Key startKey = new Key(rowKey, colf, colq);
-        Range range = new Range(startKey, startKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL));
-        scanner.setRange(range);
+        try (Scanner scanner = connector.createScanner("test_ingest", labelAuths)) {
+          scanner.setBatchSize(1);
+          Key startKey = new Key(rowKey, colf, colq);
+          Range range = new Range(startKey, startKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL));
+          scanner.setRange(range);
 
-        byte[] val = null; // t.get(rowKey, column);
+          byte[] val = null; // t.get(rowKey, column);
 
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+          Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
-        if (iter.hasNext()) {
-          val = iter.next().getValue().get();
-        }
-
-        byte ev[];
-        if (opts.random != null) {
-          ev = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, expectedCol);
-        } else {
-          ev = bytevals[expectedCol % bytevals.length];
-        }
-
-        if (val == null) {
-          log.error("Did not find {} {} {}", rowKey, colf, colq);
-          errors++;
-        } else {
-          recsRead++;
-          bytesRead += val.length;
-          Value value = new Value(val);
-          if (value.compareTo(ev) != 0) {
-            log.error("unexpected value  ({} {} {} : saw {} expected {}", rowKey, colf, colq, value, new Value(ev));
-            errors++;
-          }
-        }
-
-        expectedCol++;
-        if (expectedCol >= opts.cols) {
-          expectedCol = 0;
-          expectedRow++;
-        }
-
-        scanner.close();
-      } else {
-
-        Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
-
-        Scanner scanner = connector.createScanner(opts.getTableName(), labelAuths);
-        scanner.setBatchSize(scanOpts.scanBatchSize);
-        scanner.setRange(new Range(startKey, endKey));
-        for (int j = 0; j < opts.cols; j++) {
-          scanner.fetchColumn(new Text(opts.columnFamily), new Text("col_" + String.format("%07d", j)));
-        }
-
-        int recsReadBefore = recsRead;
-
-        for (Entry<Key,Value> entry : scanner) {
-
-          recsRead++;
-
-          bytesRead += entry.getKey().getLength();
-          bytesRead += entry.getValue().getSize();
-
-          int rowNum = getRow(entry.getKey());
-          int colNum = getCol(entry.getKey());
-
-          if (rowNum != expectedRow) {
-            log.error("rowNum != expectedRow   {} != {}", rowNum, expectedRow);
-            errors++;
-            expectedRow = rowNum;
+          if (iter.hasNext()) {
+            val = iter.next().getValue().get();
           }
 
-          if (colNum != expectedCol) {
-            log.error("colNum != expectedCol  {} != {}  rowNum : {}", colNum, expectedCol, rowNum);
-            errors++;
-          }
-
-          if (expectedRow >= (opts.rows + opts.startRow)) {
-            log.error("expectedRow ({}) >= (ingestArgs.rows + ingestArgs.startRow)  ({}), get batch returned data passed end key", expectedRow,
-                (opts.rows + opts.startRow));
-            errors++;
-            break;
-          }
-
-          byte value[];
+          byte ev[];
           if (opts.random != null) {
-            value = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, colNum);
+            ev = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, expectedCol);
           } else {
-            value = bytevals[colNum % bytevals.length];
+            ev = bytevals[expectedCol % bytevals.length];
           }
 
-          if (entry.getValue().compareTo(value) != 0) {
-            log.error("unexpected value, rowNum : {} colNum : {}", rowNum, colNum);
-            log.error(" saw = {} expected = {}", new String(entry.getValue().get()), new String(value));
+          if (val == null) {
+            log.error("Did not find {} {} {}", rowKey, colf, colq);
             errors++;
-          }
-
-          if (opts.timestamp >= 0 && entry.getKey().getTimestamp() != opts.timestamp) {
-            log.error("unexpected timestamp {}, rowNum : {} colNum : {}", entry.getKey().getTimestamp(), rowNum, colNum);
-            errors++;
+          } else {
+            recsRead++;
+            bytesRead += val.length;
+            Value value = new Value(val);
+            if (value.compareTo(ev) != 0) {
+              log.error("unexpected value  ({} {} {} : saw {} expected {}", rowKey, colf, colq, value, new Value(ev));
+              errors++;
+            }
           }
 
           expectedCol++;
@@ -210,14 +144,78 @@ public class VerifyIngest {
             expectedCol = 0;
             expectedRow++;
           }
-
         }
+      } else {
 
-        if (recsRead == recsReadBefore) {
-          log.warn("Scan returned nothing, breaking...");
-          break;
+        Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
+
+        try (Scanner scanner = connector.createScanner(opts.getTableName(), labelAuths)) {
+          scanner.setBatchSize(scanOpts.scanBatchSize);
+          scanner.setRange(new Range(startKey, endKey));
+          for (int j = 0; j < opts.cols; j++) {
+            scanner.fetchColumn(new Text(opts.columnFamily), new Text("col_" + String.format("%07d", j)));
+          }
+
+          int recsReadBefore = recsRead;
+
+          for (Entry<Key,Value> entry : scanner) {
+
+            recsRead++;
+
+            bytesRead += entry.getKey().getLength();
+            bytesRead += entry.getValue().getSize();
+
+            int rowNum = getRow(entry.getKey());
+            int colNum = getCol(entry.getKey());
+
+            if (rowNum != expectedRow) {
+              log.error("rowNum != expectedRow   {} != {}", rowNum, expectedRow);
+              errors++;
+              expectedRow = rowNum;
+            }
+
+            if (colNum != expectedCol) {
+              log.error("colNum != expectedCol  {} != {}  rowNum : {}", colNum, expectedCol, rowNum);
+              errors++;
+            }
+
+            if (expectedRow >= (opts.rows + opts.startRow)) {
+              log.error("expectedRow ({}) >= (ingestArgs.rows + ingestArgs.startRow)  ({}), get batch returned data passed end key", expectedRow, (opts.rows + opts.startRow));
+              errors++;
+              break;
+            }
+
+            byte value[];
+            if (opts.random != null) {
+              value = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, colNum);
+            } else {
+              value = bytevals[colNum % bytevals.length];
+            }
+
+            if (entry.getValue().compareTo(value) != 0) {
+              log.error("unexpected value, rowNum : {} colNum : {}", rowNum, colNum);
+              log.error(" saw = {} expected = {}", new String(entry.getValue().get()), new String(value));
+              errors++;
+            }
+
+            if (opts.timestamp >= 0 && entry.getKey().getTimestamp() != opts.timestamp) {
+              log.error("unexpected timestamp {}, rowNum : {} colNum : {}", entry.getKey().getTimestamp(), rowNum, colNum);
+              errors++;
+            }
+
+            expectedCol++;
+            if (expectedCol >= opts.cols) {
+              expectedCol = 0;
+              expectedRow++;
+            }
+
+          }
+
+          if (recsRead == recsReadBefore) {
+            log.warn("Scan returned nothing, breaking...");
+            break;
+          }
         }
-        scanner.close();
       }
     }
 

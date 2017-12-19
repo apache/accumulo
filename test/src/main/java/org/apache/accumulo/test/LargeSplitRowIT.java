@@ -92,17 +92,17 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // Make sure that the information that was written to the table before we tried to add the split point is still correct
     int counter = 0;
-    final Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    for (Entry<Key,Value> entry : scanner) {
-      counter++;
-      Key k = entry.getKey();
-      Assert.assertEquals("Row", k.getRow().toString());
-      Assert.assertEquals("cf", k.getColumnFamily().toString());
-      Assert.assertEquals("cq", k.getColumnQualifier().toString());
-      Assert.assertEquals("value", entry.getValue().toString());
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> entry : scanner) {
+        counter++;
+        Key k = entry.getKey();
+        Assert.assertEquals("Row", k.getRow().toString());
+        Assert.assertEquals("cf", k.getColumnFamily().toString());
+        Assert.assertEquals("cq", k.getColumnQualifier().toString());
+        Assert.assertEquals("value", entry.getValue().toString());
 
+      }
     }
-    scanner.close();
     // Make sure there is only one line in the table
     Assert.assertEquals(1, counter);
   }
@@ -143,18 +143,18 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // Make sure all the data that was put in the table is still correct
     int count = 0;
-    final Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    for (Entry<Key,Value> entry : scanner) {
-      Key k = entry.getKey();
-      data[data.length - 1] = (byte) count;
-      String expected = new String(data, UTF_8);
-      Assert.assertEquals(expected, k.getRow().toString());
-      Assert.assertEquals("cf", k.getColumnFamily().toString());
-      Assert.assertEquals("cq", k.getColumnQualifier().toString());
-      Assert.assertEquals("value", entry.getValue().toString());
-      count++;
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> entry : scanner) {
+        Key k = entry.getKey();
+        data[data.length - 1] = (byte) count;
+        String expected = new String(data, UTF_8);
+        Assert.assertEquals(expected, k.getRow().toString());
+        Assert.assertEquals("cf", k.getColumnFamily().toString());
+        Assert.assertEquals("cq", k.getColumnQualifier().toString());
+        Assert.assertEquals("value", entry.getValue().toString());
+        count++;
+      }
     }
-    scanner.close();
     Assert.assertEquals(250, count);
 
     // Make sure no splits occurred in the table
@@ -258,32 +258,31 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     // Make sure all the data that was put in the table is still correct
     int count = 0;
     int extra = 10;
-    final Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    for (Entry<Key,Value> entry : scanner) {
-      if (extra == 10) {
-        extra = 0;
-        for (int i = 0; i < data.length - 1; i++) {
-          data[i] = (byte) count;
-        }
-        count += spacing;
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> entry : scanner) {
+        if (extra == 10) {
+          extra = 0;
+          for (int i = 0; i < data.length - 1; i++) {
+            data[i] = (byte) count;
+          }
+          count += spacing;
 
+        }
+        Key k = entry.getKey();
+        data[data.length - 1] = (byte) extra;
+        String expected = new String(data, UTF_8);
+        Assert.assertEquals(expected, k.getRow().toString());
+        Assert.assertEquals("cf", k.getColumnFamily().toString());
+        Assert.assertEquals("cq", k.getColumnQualifier().toString());
+        Assert.assertEquals("value", entry.getValue().toString());
+        extra++;
       }
-      Key k = entry.getKey();
-      data[data.length - 1] = (byte) extra;
-      String expected = new String(data, UTF_8);
-      Assert.assertEquals(expected, k.getRow().toString());
-      Assert.assertEquals("cf", k.getColumnFamily().toString());
-      Assert.assertEquals("cq", k.getColumnQualifier().toString());
-      Assert.assertEquals("value", entry.getValue().toString());
-      extra++;
     }
-    scanner.close();
     Assert.assertEquals(10, extra);
     Assert.assertEquals(max, count);
 
     // Make sure no splits occured in the table
     Assert.assertEquals(0, conn.tableOperations().listSplits(tableName).size());
-
   }
 
 }

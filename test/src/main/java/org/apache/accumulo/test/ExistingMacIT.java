@@ -136,17 +136,15 @@ public class ExistingMacIT extends ConfigurableMacBase {
 
     conn = accumulo2.getConnector("root", new PasswordToken(ROOT_PASSWORD));
 
-    Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY);
-
-    int sum = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      sum += Integer.parseInt(entry.getValue().toString());
+    try (Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY)) {
+      int sum = 0;
+      for (Entry<Key,Value> entry : scanner) {
+        sum += Integer.parseInt(entry.getValue().toString());
+      }
+      Assert.assertEquals(6569, sum);
     }
 
-    Assert.assertEquals(6569, sum);
-
     accumulo2.stop();
-    scanner.close();
   }
 
   @Test

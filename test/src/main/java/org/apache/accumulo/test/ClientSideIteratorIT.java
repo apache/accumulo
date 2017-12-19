@@ -99,13 +99,12 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    final ClientSideIteratorScanner csis = new ClientSideIteratorScanner(conn.createScanner(tableName, new Authorizations()));
     final IteratorSetting si = new IteratorSetting(10, tableName, IntersectingIterator.class);
-    IntersectingIterator.setColumnFamilies(si, new Text[] {new Text("bar"), new Text("foo")});
-    csis.addScanIterator(si);
-
-    csis.close();
-    checkResults(csis, resultSet3, PartialKey.ROW_COLFAM_COLQUAL);
+    try (ClientSideIteratorScanner csis = new ClientSideIteratorScanner(conn.createScanner(tableName, new Authorizations()))) {
+      IntersectingIterator.setColumnFamilies(si, new Text[] {new Text("bar"), new Text("foo")});
+      csis.addScanIterator(si);
+      checkResults(csis, resultSet3, PartialKey.ROW_COLFAM_COLQUAL);
+    }
   }
 
   @Test
@@ -126,21 +125,25 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    final Scanner scanner = conn.createScanner(tableName, new Authorizations());
+    ClientSideIteratorScanner csis = null;
+    try (Scanner scanner = conn.createScanner(tableName, new Authorizations())) {
+      csis = new ClientSideIteratorScanner(scanner);
+      final IteratorSetting si = new IteratorSetting(10, "localvers", VersioningIterator.class);
+      si.addOption("maxVersions", "2");
+      csis.addScanIterator(si);
 
-    final ClientSideIteratorScanner csis = new ClientSideIteratorScanner(scanner);
-    final IteratorSetting si = new IteratorSetting(10, "localvers", VersioningIterator.class);
-    si.addOption("maxVersions", "2");
-    csis.addScanIterator(si);
+      checkResults(csis, resultSet1, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
+      checkResults(scanner, resultSet2, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
 
-    checkResults(csis, resultSet1, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
-    checkResults(scanner, resultSet2, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
-
-    csis.fetchColumnFamily(new Text("colf"));
-    checkResults(csis, resultSet1, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
-    csis.clearColumns();
-    csis.fetchColumnFamily(new Text("none"));
-    assertFalse(csis.iterator().hasNext());
-    scanner.close();
+      csis.fetchColumnFamily(new Text("colf"));
+      checkResults(csis, resultSet1, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
+      csis.clearColumns();
+      csis.fetchColumnFamily(new Text("none"));
+      assertFalse(csis.iterator().hasNext());
+    } finally {
+      if (csis != null) {
+        csis.close();
+      }
+    }
   }
 }

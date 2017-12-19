@@ -90,41 +90,40 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
 
     log.info("Trace table is online, should be able to find trace");
 
-    final Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY);
-    scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
-    while (true) {
-      final StringBuilder finalBuffer = new StringBuilder();
-      int traceCount = TraceDump.printTrace(scanner, new Printer() {
-        @Override
-        public void print(final String line) {
-          try {
-            finalBuffer.append(line).append("\n");
-          } catch (Exception ex) {
-            throw new RuntimeException(ex);
+    try (Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY)) {
+      scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
+      while (true) {
+        final StringBuilder finalBuffer = new StringBuilder();
+        int traceCount = TraceDump.printTrace(scanner, new Printer() {
+          @Override public void print(final String line) {
+            try {
+              finalBuffer.append(line).append("\n");
+            } catch (Exception ex) {
+              throw new RuntimeException(ex);
+            }
           }
+        });
+        String traceOutput = finalBuffer.toString();
+        log.info("Trace output:{}", traceOutput);
+        if (traceCount > 0) {
+          int lastPos = 0;
+          for (String part : "traceTest,close,binMutations".split(",")) {
+            log.info("Looking in trace output for '{}'", part);
+            int pos = traceOutput.indexOf(part);
+            assertTrue("Did not find '" + part + "' in output", pos > 0);
+            assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly", pos > lastPos);
+            lastPos = pos;
+          }
+          break;
+        } else {
+          log.info("Ignoring trace output as traceCount not greater than zero: {}", traceCount);
+          Thread.sleep(1000);
         }
-      });
-      String traceOutput = finalBuffer.toString();
-      log.info("Trace output:{}", traceOutput);
-      if (traceCount > 0) {
-        int lastPos = 0;
-        for (String part : "traceTest,close,binMutations".split(",")) {
-          log.info("Looking in trace output for '{}'", part);
-          int pos = traceOutput.indexOf(part);
-          assertTrue("Did not find '" + part + "' in output", pos > 0);
-          assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly", pos > lastPos);
-          lastPos = pos;
-        }
-        break;
-      } else {
-        log.info("Ignoring trace output as traceCount not greater than zero: {}", traceCount);
-        Thread.sleep(1000);
+      }
+      if (tracer != null) {
+        tracer.destroy();
       }
     }
-    if (tracer != null) {
-      tracer.destroy();
-    }
-    scanner.close();
   }
 
 }

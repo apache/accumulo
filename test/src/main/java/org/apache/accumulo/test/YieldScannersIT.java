@@ -75,37 +75,37 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
     log.info("Creating scanner");
     // make a scanner for a table with 10 keys
-    final Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
-    scanner.addScanIterator(cfg);
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
+      scanner.addScanIterator(cfg);
 
-    log.info("iterating");
-    Iterator<Map.Entry<Key,Value>> it = scanner.iterator();
-    int keyCount = 0;
-    int yieldNextCount = 0;
-    int yieldSeekCount = 0;
-    while (it.hasNext()) {
-      Map.Entry<Key,Value> next = it.next();
-      log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value " + next.getValue());
+      log.info("iterating");
+      Iterator<Map.Entry<Key,Value>> it = scanner.iterator();
+      int keyCount = 0;
+      int yieldNextCount = 0;
+      int yieldSeekCount = 0;
+      while (it.hasNext()) {
+        Map.Entry<Key,Value> next = it.next();
+        log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value " + next.getValue());
 
-      // verify we got the expected key
-      char expected = (char) (START_ROW + keyCount);
-      Assert.assertEquals("Unexpected row", Character.toString(expected), next.getKey().getRow().toString());
+        // verify we got the expected key
+        char expected = (char) (START_ROW + keyCount);
+        Assert.assertEquals("Unexpected row", Character.toString(expected), next.getKey().getRow().toString());
 
-      // determine whether we yielded on a next and seek
-      if ((keyCount & 1) != 0) {
-        yieldNextCount++;
-        yieldSeekCount++;
+        // determine whether we yielded on a next and seek
+        if ((keyCount & 1) != 0) {
+          yieldNextCount++;
+          yieldSeekCount++;
+        }
+        String[] value = StringUtils.split(next.getValue().toString(), ',');
+        Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
+        Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
+        Assert.assertEquals("Unexpected rebuild count", Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
+
+        keyCount++;
       }
-      String[] value = StringUtils.split(next.getValue().toString(), ',');
-      Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
-      Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
-      Assert.assertEquals("Unexpected rebuild count", Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
-
-      keyCount++;
+      Assert.assertEquals("Did not get the expected number of results", 10, keyCount);
     }
-    scanner.close();
-    Assert.assertEquals("Did not get the expected number of results", 10, keyCount);
   }
 
   @Test
@@ -126,38 +126,38 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
     log.info("Creating batch scanner");
     // make a scanner for a table with 10 keys
-    final BatchScanner scanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 1);
-    final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
-    scanner.addScanIterator(cfg);
-    scanner.setRanges(Collections.singleton(new Range()));
+    try (BatchScanner scanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+      final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
+      scanner.addScanIterator(cfg);
+      scanner.setRanges(Collections.singleton(new Range()));
 
-    log.info("iterating");
-    Iterator<Map.Entry<Key,Value>> it = scanner.iterator();
-    int keyCount = 0;
-    int yieldNextCount = 0;
-    int yieldSeekCount = 0;
-    while (it.hasNext()) {
-      Map.Entry<Key,Value> next = it.next();
-      log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value " + next.getValue());
+      log.info("iterating");
+      Iterator<Map.Entry<Key,Value>> it = scanner.iterator();
+      int keyCount = 0;
+      int yieldNextCount = 0;
+      int yieldSeekCount = 0;
+      while (it.hasNext()) {
+        Map.Entry<Key,Value> next = it.next();
+        log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value " + next.getValue());
 
-      // verify we got the expected key
-      char expected = (char) (START_ROW + keyCount);
-      Assert.assertEquals("Unexpected row", Character.toString(expected), next.getKey().getRow().toString());
+        // verify we got the expected key
+        char expected = (char) (START_ROW + keyCount);
+        Assert.assertEquals("Unexpected row", Character.toString(expected), next.getKey().getRow().toString());
 
-      // determine whether we yielded on a next and seek
-      if ((keyCount & 1) != 0) {
-        yieldNextCount++;
-        yieldSeekCount++;
+        // determine whether we yielded on a next and seek
+        if ((keyCount & 1) != 0) {
+          yieldNextCount++;
+          yieldSeekCount++;
+        }
+        String[] value = StringUtils.split(next.getValue().toString(), ',');
+        Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
+        Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
+        Assert.assertEquals("Unexpected rebuild count", Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
+
+        keyCount++;
       }
-      String[] value = StringUtils.split(next.getValue().toString(), ',');
-      Assert.assertEquals("Unexpected yield next count", Integer.toString(yieldNextCount), value[0]);
-      Assert.assertEquals("Unexpected yield seek count", Integer.toString(yieldSeekCount), value[1]);
-      Assert.assertEquals("Unexpected rebuild count", Integer.toString(yieldNextCount + yieldSeekCount), value[2]);
-
-      keyCount++;
+      Assert.assertEquals("Did not get the expected number of results", 10, keyCount);
     }
-    scanner.close();
-    Assert.assertEquals("Did not get the expected number of results", 10, keyCount);
   }
 
 }

@@ -99,13 +99,13 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
     System.out.println("checking the data");
     long count = 0;
     for (int w = 0; w < N; w++) {
-      Scanner scanner = c.createScanner(tables[w], Authorizations.EMPTY);
-      for (Entry<Key,Value> entry : scanner) {
-        int value = Integer.parseInt(entry.getValue().toString());
-        assertEquals(w, value);
-        count++;
+      try (Scanner scanner = c.createScanner(tables[w], Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : scanner) {
+          int value = Integer.parseInt(entry.getValue().toString());
+          assertEquals(w, value);
+          count++;
+        }
       }
-      scanner.close();
     }
     assertEquals(1_000_000, count);
   }

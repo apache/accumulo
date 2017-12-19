@@ -52,52 +52,52 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
     final String tableName = getUniqueNames(1)[0];
     final Connector conn = getConnector();
     conn.tableOperations().create(tableName);
+
     // make the world's slowest scanner
-    final Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    final IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
-    // Wait long enough to be sure we can catch it, but not indefinitely.
-    SlowIterator.setSeekSleepTime(cfg, 60 * 1000);
-    scanner.addScanIterator(cfg);
-    // create a thread to interrupt the slow scan
-    final Thread scanThread = Thread.currentThread();
-    Thread thread = new Thread() {
-      @Override
-      public void run() {
-        try {
-          // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
-          String tserver = conn.instanceOperations().getTabletServers().iterator().next();
-          do {
-            ArrayList<ActiveScan> scans = new ArrayList<>(conn.instanceOperations().getActiveScans(tserver));
-            Iterator<ActiveScan> iter = scans.iterator();
-            while (iter.hasNext()) {
-              ActiveScan scan = iter.next();
-              // Remove scans not against our table and not owned by us
-              if (!getAdminPrincipal().equals(scan.getUser()) || !tableName.equals(scan.getTable())) {
-                iter.remove();
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      final IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
+      // Wait long enough to be sure we can catch it, but not indefinitely.
+      SlowIterator.setSeekSleepTime(cfg, 60 * 1000);
+      scanner.addScanIterator(cfg);
+      // create a thread to interrupt the slow scan
+      final Thread scanThread = Thread.currentThread();
+      Thread thread = new Thread() {
+        @Override public void run() {
+          try {
+            // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
+            String tserver = conn.instanceOperations().getTabletServers().iterator().next();
+            do {
+              ArrayList<ActiveScan> scans = new ArrayList<>(conn.instanceOperations().getActiveScans(tserver));
+              Iterator<ActiveScan> iter = scans.iterator();
+              while (iter.hasNext()) {
+                ActiveScan scan = iter.next();
+                // Remove scans not against our table and not owned by us
+                if (!getAdminPrincipal().equals(scan.getUser()) || !tableName.equals(scan.getTable())) {
+                  iter.remove();
+                }
               }
-            }
 
-            if (!scans.isEmpty()) {
-              // We found our scan
-              break;
-            }
-          } while (true);
-        } catch (Exception e) {
-          e.printStackTrace();
+              if (!scans.isEmpty()) {
+                // We found our scan
+                break;
+              }
+            } while (true);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+          // BAM!
+          scanThread.interrupt();
         }
-        // BAM!
-        scanThread.interrupt();
+      };
+      thread.start();
+      try {
+        // Use the scanner, expect problems
+        Iterators.size(scanner.iterator());
+        Assert.fail("Scan should not succeed");
+      } catch (Exception ex) {
+      } finally {
+        thread.join();
       }
-    };
-    thread.start();
-    try {
-      // Use the scanner, expect problems
-      Iterators.size(scanner.iterator());
-      Assert.fail("Scan should not succeed");
-    } catch (Exception ex) {} finally {
-      thread.join();
     }
-    scanner.close();
   }
-
 }

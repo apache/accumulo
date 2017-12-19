@@ -111,17 +111,15 @@ public class CloneIT extends AccumuloClusterHarness {
 
     assertEquals(0, rc);
 
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-
     HashSet<String> files = new HashSet<>();
 
-    for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
-        files.add(entry.getKey().getColumnQualifier().toString());
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+      for (Entry<Key,Value> entry : scanner) {
+        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
+          files.add(entry.getKey().getColumnQualifier().toString());
+      }
     }
-
-    scanner.close();
     assertEquals(1, files.size());
     assertTrue(files.contains("../0/default_tablet/1_0.rf"));
   }
@@ -152,20 +150,18 @@ public class CloneIT extends AccumuloClusterHarness {
 
     assertEquals(0, rc);
 
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-
     HashSet<String> files = new HashSet<>();
-
     int count = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        files.add(entry.getKey().getColumnQualifier().toString());
-        count++;
+
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+      for (Entry<Key,Value> entry : scanner) {
+        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+          files.add(entry.getKey().getColumnQualifier().toString());
+          count++;
+        }
       }
     }
-
-    scanner.close();
     assertEquals(1, count);
     assertEquals(1, files.size());
     assertTrue(files.contains("../0/default_tablet/0_0.rf"));
@@ -203,21 +199,18 @@ public class CloneIT extends AccumuloClusterHarness {
 
     assertEquals(0, rc);
 
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-
     HashSet<String> files = new HashSet<>();
-
     int count = 0;
 
-    for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        files.add(entry.getKey().getColumnQualifier().toString());
-        count++;
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+      for (Entry<Key,Value> entry : scanner) {
+        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+          files.add(entry.getKey().getColumnQualifier().toString());
+          count++;
+        }
       }
     }
-
-    scanner.close();
     assertEquals(1, files.size());
     assertEquals(2, count);
     assertTrue(files.contains("../0/default_tablet/1_0.rf"));
@@ -274,20 +267,18 @@ public class CloneIT extends AccumuloClusterHarness {
 
     assertEquals(0, rc);
 
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-
     HashSet<String> files = new HashSet<>();
-
     int count = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        files.add(entry.getKey().getColumnQualifier().toString());
-        count++;
+
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+      for (Entry<Key,Value> entry : scanner) {
+        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+          files.add(entry.getKey().getColumnQualifier().toString());
+          count++;
+        }
       }
     }
-
-    scanner.close();
     assertEquals(2, count);
     assertEquals(2, files.size());
     assertTrue(files.contains("../0/d1/file1"));
@@ -340,20 +331,18 @@ public class CloneIT extends AccumuloClusterHarness {
 
     assertEquals(0, rc);
 
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-
     HashSet<String> files = new HashSet<>();
-
     int count = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        files.add(entry.getKey().getColumnQualifier().toString());
-        count++;
+
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+      for (Entry<Key,Value> entry : scanner) {
+        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+          files.add(entry.getKey().getColumnQualifier().toString());
+          count++;
+        }
       }
     }
-
-    scanner.close();
     assertEquals(3, count);
     assertEquals(3, files.size());
     assertTrue(files.contains("../0/d1/file1"));

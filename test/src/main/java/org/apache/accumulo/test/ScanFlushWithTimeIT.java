@@ -87,9 +87,6 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
     bs.setBatchTimeout(500, TimeUnit.MILLISECONDS);
     bs.setRanges(Collections.singletonList(new Range()));
     testScanner(bs, 1200);
-    s.close();
-    is.close();
-    bs.close();
   }
 
   private void testScanner(ScannerBase s, long expected) {

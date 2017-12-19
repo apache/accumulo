@@ -211,20 +211,21 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     tops.merge(clonedTable, null, new Text("b"));
 
     Map<String,Integer> rowCounts = new HashMap<>();
-    Scanner s = connector.createScanner(clonedTable, new Authorizations());
-    for (Entry<Key,Value> entry : s) {
-      final Key key = entry.getKey();
-      String row = key.getRow().toString();
-      String cf = key.getColumnFamily().toString(), cq = key.getColumnQualifier().toString();
-      String value = entry.getValue().toString();
+    try (Scanner s = connector.createScanner(clonedTable, new Authorizations())) {
+      for (Entry<Key,Value> entry : s) {
+        final Key key = entry.getKey();
+        String row = key.getRow().toString();
+        String cf = key.getColumnFamily().toString(), cq = key.getColumnQualifier().toString();
+        String value = entry.getValue().toString();
 
-      if (rowCounts.containsKey(row)) {
-        rowCounts.put(row, rowCounts.get(row) + 1);
-      } else {
-        rowCounts.put(row, 1);
+        if (rowCounts.containsKey(row)) {
+          rowCounts.put(row, rowCounts.get(row) + 1);
+        } else {
+          rowCounts.put(row, 1);
+        }
+
+        Assert.assertEquals(Integer.parseInt(cf) + Integer.parseInt(cq), Integer.parseInt(value));
       }
-
-      Assert.assertEquals(Integer.parseInt(cf) + Integer.parseInt(cq), Integer.parseInt(value));
     }
 
     Collection<Text> clonedSplits = tops.listSplits(clonedTable);
@@ -232,8 +233,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     for (Text clonedSplit : clonedSplits) {
       Assert.assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit, expectedSplits.remove(clonedSplit));
     }
-
-    s.close();
     Assert.assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits, expectedSplits.isEmpty());
   }
 
@@ -254,13 +253,13 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     list.add(new IteratorSetting(15, HardListIterator.class));
     connector.tableOperations().compact(tableName, null, null, list, true, true);
 
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
-    for (Map.Entry<Key,Value> entry : scanner)
-      actual.put(entry.getKey(), entry.getValue());
-    assertEquals(HardListIterator.allEntriesToInject, actual);
-    connector.tableOperations().delete(tableName);
-    scanner.close();
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key,Value> entry : scanner)
+        actual.put(entry.getKey(), entry.getValue());
+      assertEquals(HardListIterator.allEntriesToInject, actual);
+      connector.tableOperations().delete(tableName);
+    }
   }
 
   /** Compare only the row, column family and column qualifier. */
@@ -286,13 +285,13 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     list.add(new IteratorSetting(15, HardListIterator.class));
     connector.tableOperations().compact(tableName, null, null, list, true, true);
 
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
-    for (Map.Entry<Key,Value> entry : scanner)
-      actual.put(entry.getKey(), entry.getValue());
-    assertEquals(HardListIterator.allEntriesToInject, actual);
-    connector.tableOperations().delete(tableName);
-    scanner.close();
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key,Value> entry : scanner)
+        actual.put(entry.getKey(), entry.getValue());
+      assertEquals(HardListIterator.allEntriesToInject, actual);
+      connector.tableOperations().delete(tableName);
+    }
   }
 
   @Test
@@ -310,32 +309,32 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     connector.tableOperations().cancelCompaction(tableName);
     // depending on timing, compaction will finish or be canceled
 
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
-    for (Map.Entry<Key,Value> entry : scanner)
-      actual.put(entry.getKey(), entry.getValue());
-    switch (actual.size()) {
-      case 3:
-        // Compaction cancel didn't happen in time
-        assertTrue(HardListIterator.allEntriesToInject.equals(actual));
-        break;
-      case 2:
-        // Compacted the first tablet (-inf, f)
-        assertEquals(HardListIterator.allEntriesToInject.headMap(new Key("f")), actual);
-        break;
-      case 1:
-        // Compacted the second tablet [f, +inf)
-        assertEquals(HardListIterator.allEntriesToInject.tailMap(new Key("f")), actual);
-        break;
-      case 0:
-        // Cancelled the compaction before it ran. No generated entries.
-        break;
-      default:
-        Assert.fail("Unexpected number of entries");
-        break;
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key,Value> entry : scanner)
+        actual.put(entry.getKey(), entry.getValue());
+      switch (actual.size()) {
+        case 3:
+          // Compaction cancel didn't happen in time
+          assertTrue(HardListIterator.allEntriesToInject.equals(actual));
+          break;
+        case 2:
+          // Compacted the first tablet (-inf, f)
+          assertEquals(HardListIterator.allEntriesToInject.headMap(new Key("f")), actual);
+          break;
+        case 1:
+          // Compacted the second tablet [f, +inf)
+          assertEquals(HardListIterator.allEntriesToInject.tailMap(new Key("f")), actual);
+          break;
+        case 0:
+          // Cancelled the compaction before it ran. No generated entries.
+          break;
+        default:
+          Assert.fail("Unexpected number of entries");
+          break;
+      }
+      connector.tableOperations().delete(tableName);
     }
-    connector.tableOperations().delete(tableName);
-    scanner.close();
   }
 
   @Test
@@ -353,14 +352,14 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     // compact the second tablet, not the first
     connector.tableOperations().compact(tableName, splitRow, null, list, true, true);
 
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
-    for (Map.Entry<Key,Value> entry : scanner)
-      actual.put(entry.getKey(), entry.getValue());
-    // only expect the entries in the second tablet
-    assertEquals(HardListIterator.allEntriesToInject.tailMap(new Key(splitRow)), actual);
-    connector.tableOperations().delete(tableName);
-    scanner.close();
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      Map<Key,Value> actual = new TreeMap<>(COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key,Value> entry : scanner)
+        actual.put(entry.getKey(), entry.getValue());
+      // only expect the entries in the second tablet
+      assertEquals(HardListIterator.allEntriesToInject.tailMap(new Key(splitRow)), actual);
+      connector.tableOperations().delete(tableName);
+    }
   }
 
   /** Test recovery from bad majc iterator via compaction cancel. */
@@ -376,13 +375,13 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     sleepUninterruptibly(2, TimeUnit.SECONDS); // start compaction
     connector.tableOperations().cancelCompaction(tableName);
 
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    Map<Key,Value> actual = new TreeMap<>();
-    for (Map.Entry<Key,Value> entry : scanner)
-      actual.put(entry.getKey(), entry.getValue());
-    assertTrue("Should be empty. Actual is " + actual, actual.isEmpty());
-    connector.tableOperations().delete(tableName);
-    scanner.close();
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      Map<Key,Value> actual = new TreeMap<>();
+      for (Map.Entry<Key,Value> entry : scanner)
+        actual.put(entry.getKey(), entry.getValue());
+      assertTrue("Should be empty. Actual is " + actual, actual.isEmpty());
+      connector.tableOperations().delete(tableName);
+    }
   }
 
 }

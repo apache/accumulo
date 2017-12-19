@@ -101,11 +101,12 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
   }
 
   private int countFiles(Connector conn) throws Exception {
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange());
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    s.close();
-    return Iterators.size(s.iterator());
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(MetadataSchema.TabletsSection.getRange());
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      s.close();
+      return Iterators.size(s.iterator());
+    }
   }
 
   private void writeFile(Connector conn, String tableName) throws Exception {

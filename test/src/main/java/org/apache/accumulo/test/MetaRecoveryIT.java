@@ -86,10 +86,10 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
     getCluster().start();
     log.info("Verifying");
     for (String table : tables) {
-      BatchScanner scanner = c.createBatchScanner(table, Authorizations.EMPTY, 5);
-      scanner.setRanges(Collections.singletonList(new Range()));
-      assertEquals(1000, Iterators.size(scanner.iterator()));
-      scanner.close();
+      try (BatchScanner scanner = c.createBatchScanner(table, Authorizations.EMPTY, 5)) {
+        scanner.setRanges(Collections.singletonList(new Range()));
+        assertEquals(1000, Iterators.size(scanner.iterator()));
+      }
     }
   }
 

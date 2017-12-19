@@ -89,14 +89,14 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
     Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
 
     // ensure that the recovery was not a merging minor compaction
-    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    for (Entry<Key,Value> entry : s) {
-      String filename = entry.getKey().getColumnQualifier().toString();
-      String parts[] = filename.split("/");
-      Assert.assertFalse(parts[parts.length - 1].startsWith("M"));
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      for (Entry<Key,Value> entry : s) {
+        String filename = entry.getKey().getColumnQualifier().toString();
+        String parts[] = filename.split("/");
+        Assert.assertFalse(parts[parts.length - 1].startsWith("M"));
+      }
     }
-    s.close();
   }
 
 }

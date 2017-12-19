@@ -106,24 +106,35 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       table2Expectations.put(Maps.immutableEntry("foo", "col1"), "val1");
       table2Expectations.put(Maps.immutableEntry("bar", "col1"), "val1");
 
-      Scanner s = connector.createScanner(table1, new Authorizations());
-      s.setRange(new Range());
+      Scanner s = null;
       Map<Entry<String,String>,String> actual = new HashMap<>();
-      for (Entry<Key,Value> entry : s) {
-        actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+
+      try {
+        s = connector.createScanner(table1, new Authorizations());
+        s.setRange(new Range());
+        for (Entry<Key,Value> entry : s) {
+          actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+        }
+        Assert.assertEquals("Differing results for " + table1, table1Expectations, actual);
+      } finally {
+        if (s != null) {
+          s.close();
+        }
       }
 
-      Assert.assertEquals("Differing results for " + table1, table1Expectations, actual);
-
-      s = connector.createScanner(table2, new Authorizations());
-      s.setRange(new Range());
-      actual = new HashMap<>();
-      for (Entry<Key,Value> entry : s) {
-        actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+      try {
+        s = connector.createScanner(table2, new Authorizations());
+        s.setRange(new Range());
+        actual = new HashMap<>();
+        for (Entry<Key,Value> entry : s) {
+          actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+        }
+        Assert.assertEquals("Differing results for " + table2, table2Expectations, actual);
+      } finally {
+        if (s != null) {
+          s.close();
+        }
       }
-
-      Assert.assertEquals("Differing results for " + table2, table2Expectations, actual);
-      s.close();
     } finally {
       if (null != mtbw) {
         mtbw.close();
@@ -171,15 +182,14 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       expectations.put(Maps.immutableEntry("bar", "col2"), "val2");
 
       for (String table : Arrays.asList(newTable1, newTable2)) {
-        Scanner s = connector.createScanner(table, new Authorizations());
-        s.setRange(new Range());
-        Map<Entry<String,String>,String> actual = new HashMap<>();
-        for (Entry<Key,Value> entry : s) {
-          actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+        try (Scanner s = connector.createScanner(table, new Authorizations())) {
+          s.setRange(new Range());
+          Map<Entry<String,String>,String> actual = new HashMap<>();
+          for (Entry<Key,Value> entry : s) {
+            actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+          }
+          Assert.assertEquals("Differing results for " + table, expectations, actual);
         }
-
-        Assert.assertEquals("Differing results for " + table, expectations, actual);
-        s.close();
       }
     } finally {
       if (null != mtbw) {
@@ -248,15 +258,14 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       expectations.put(Maps.immutableEntry("bar", "col2"), "val2");
 
       for (String table : Arrays.asList(newTable1, newTable2)) {
-        Scanner s = connector.createScanner(table, new Authorizations());
-        s.setRange(new Range());
-        Map<Entry<String,String>,String> actual = new HashMap<>();
-        for (Entry<Key,Value> entry : s) {
-          actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+        try (Scanner s = connector.createScanner(table, new Authorizations())) {
+          s.setRange(new Range());
+          Map<Entry<String,String>,String> actual = new HashMap<>();
+          for (Entry<Key,Value> entry : s) {
+            actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
+          }
+          Assert.assertEquals("Differing results for " + table, expectations, actual);
         }
-
-        Assert.assertEquals("Differing results for " + table, expectations, actual);
-        s.close();
       }
     } finally {
       if (null != mtbw) {

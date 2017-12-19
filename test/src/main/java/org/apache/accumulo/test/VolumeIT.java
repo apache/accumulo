@@ -140,30 +140,30 @@ public class VolumeIT extends ConfigurableMacBase {
     bw.close();
     // write the data to disk, read it back
     connector.tableOperations().flush(tableName, null, null, true);
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    int i = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      assertEquals(rows[i++], entry.getKey().getRow().toString());
-    }
-    // verify the new files are written to the different volumes
-    scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(new Range("1", "1<"));
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    int fileCount = 0;
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      int i = 0;
+      for (Entry<Key,Value> entry : scanner) {
+        assertEquals(rows[i++], entry.getKey().getRow().toString());
+      }
+      // verify the new files are written to the different volumes
+      scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      scanner.setRange(new Range("1", "1<"));
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      int fileCount = 0;
 
-    for (Entry<Key,Value> entry : scanner) {
-      boolean inV1 = entry.getKey().getColumnQualifier().toString().contains(v1.toString());
-      boolean inV2 = entry.getKey().getColumnQualifier().toString().contains(v2.toString());
-      assertTrue(inV1 || inV2);
-      fileCount++;
+      for (Entry<Key,Value> entry : scanner) {
+        boolean inV1 = entry.getKey().getColumnQualifier().toString().contains(v1.toString());
+        boolean inV2 = entry.getKey().getColumnQualifier().toString().contains(v2.toString());
+        assertTrue(inV1 || inV2);
+        fileCount++;
+      }
+      assertEquals(4, fileCount);
+      List<DiskUsage> diskUsage = connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
+      assertEquals(1, diskUsage.size());
+      long usage = diskUsage.get(0).getUsage().longValue();
+      log.debug("usage {}", usage);
+      assertTrue(usage > 700 && usage < 800);
     }
-    assertEquals(4, fileCount);
-    List<DiskUsage> diskUsage = connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
-    assertEquals(1, diskUsage.size());
-    long usage = diskUsage.get(0).getUsage().longValue();
-    log.debug("usage {}", usage);
-    assertTrue(usage > 700 && usage < 800);
-    scanner.close();
   }
 
   private void verifyData(List<String> expected, Scanner createScanner) {
@@ -231,40 +231,40 @@ public class VolumeIT extends ConfigurableMacBase {
 
     connector.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
 
-    Scanner metaScanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+    try (Scanner metaScanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
-    BatchWriter mbw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      BatchWriter mbw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
-    for (Entry<Key,Value> entry : metaScanner) {
-      String cq = entry.getKey().getColumnQualifier().toString();
-      if (cq.startsWith(v1.toString())) {
+      for (Entry<Key,Value> entry : metaScanner) {
+        String cq = entry.getKey().getColumnQualifier().toString();
+        if (cq.startsWith(v1.toString())) {
+          Path path = new Path(cq);
+          String relPath = "/" + path.getParent().getName() + "/" + path.getName();
+          Mutation fileMut = new Mutation(entry.getKey().getRow());
+          fileMut.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
+          fileMut.put(entry.getKey().getColumnFamily().toString(), relPath, entry.getValue().toString());
+          mbw.addMutation(fileMut);
+        }
+      }
+
+      mbw.close();
+
+      connector.tableOperations().online(tableName, true);
+
+      verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
+
+      connector.tableOperations().compact(tableName, null, null, true, true);
+
+      verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
+
+      for (Entry<Key,Value> entry : metaScanner) {
+        String cq = entry.getKey().getColumnQualifier().toString();
         Path path = new Path(cq);
-        String relPath = "/" + path.getParent().getName() + "/" + path.getName();
-        Mutation fileMut = new Mutation(entry.getKey().getRow());
-        fileMut.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
-        fileMut.put(entry.getKey().getColumnFamily().toString(), relPath, entry.getValue().toString());
-        mbw.addMutation(fileMut);
+        Assert.assertTrue("relative path not deleted " + path.toString(), path.depth() > 2);
       }
     }
-
-    mbw.close();
-
-    connector.tableOperations().online(tableName, true);
-
-    verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
-
-    connector.tableOperations().compact(tableName, null, null, true, true);
-
-    verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
-
-    for (Entry<Key,Value> entry : metaScanner) {
-      String cq = entry.getKey().getColumnQualifier().toString();
-      Path path = new Path(cq);
-      Assert.assertTrue("relative path not deleted " + path.toString(), path.depth() > 2);
-    }
-    metaScanner.close();
   }
 
   @Test
@@ -407,70 +407,73 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
 
     Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
-    Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
-    metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+    try (Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
+      metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
-    int counts[] = new int[paths.length];
+      int counts[] = new int[paths.length];
 
-    outer: for (Entry<Key,Value> entry : metaScanner) {
-      String cf = entry.getKey().getColumnFamily().toString();
-      String cq = entry.getKey().getColumnQualifier().toString();
+      outer:
+      for (Entry<Key,Value> entry : metaScanner) {
+        String cf = entry.getKey().getColumnFamily().toString();
+        String cq = entry.getKey().getColumnQualifier().toString();
 
-      String path;
-      if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString()))
-        path = cq;
-      else
-        path = entry.getValue().toString();
+        String path;
+        if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString()))
+          path = cq;
+        else
+          path = entry.getValue().toString();
 
-      for (int i = 0; i < paths.length; i++) {
-        if (path.startsWith(paths[i].toString())) {
-          counts[i]++;
-          continue outer;
-        }
-      }
-
-      Assert.fail("Unexpected volume " + path);
-    }
-
-    // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
-    retry: while (true) {
-      Instance i = conn.getInstance();
-      ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
-      WalStateManager wals = new WalStateManager(i, zk);
-      try {
-        outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
-          for (Path path : paths) {
-            if (entry.getKey().toString().startsWith(path.toString())) {
-              continue outer;
-            }
+        for (int i = 0; i < paths.length; i++) {
+          if (path.startsWith(paths[i].toString())) {
+            counts[i]++;
+            continue outer;
           }
-          log.warn("Unexpected volume " + entry.getKey() + " (" + entry.getValue() + ")");
-          continue retry;
         }
-      } catch (WalMarkerException e) {
-        Throwable cause = e.getCause();
-        if (cause instanceof NoNodeException) {
-          // ignore WALs being cleaned up
-          continue retry;
-        }
-        throw e;
+
+        Assert.fail("Unexpected volume " + path);
       }
-      break;
+
+      // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
+      retry:
+      while (true) {
+        Instance i = conn.getInstance();
+        ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
+        WalStateManager wals = new WalStateManager(i, zk);
+        try {
+          outer:
+          for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
+            for (Path path : paths) {
+              if (entry.getKey().toString().startsWith(path.toString())) {
+                continue outer;
+              }
+            }
+            log.warn("Unexpected volume " + entry.getKey() + " (" + entry.getValue() + ")");
+            continue retry;
+          }
+        } catch (WalMarkerException e) {
+          Throwable cause = e.getCause();
+          if (cause instanceof NoNodeException) {
+            // ignore WALs being cleaned up
+            continue retry;
+          }
+          throw e;
+        }
+        break;
+      }
+
+      // if a volume is chosen randomly for each tablet, then the probability that a volume will not be chosen for any tablet is ((num_volumes -
+      // 1)/num_volumes)^num_tablets. For 100 tablets and 3 volumes the probability that only 2 volumes would be chosen is 2.46e-18
+
+      int sum = 0;
+      for (int count : counts) {
+        Assert.assertTrue(count > 0);
+        sum += count;
+      }
+
+      Assert.assertEquals(200, sum);
     }
-
-    // if a volume is chosen randomly for each tablet, then the probability that a volume will not be chosen for any tablet is ((num_volumes -
-    // 1)/num_volumes)^num_tablets. For 100 tablets and 3 volumes the probability that only 2 volumes would be chosen is 2.46e-18
-
-    int sum = 0;
-    for (int count : counts) {
-      Assert.assertTrue(count > 0);
-      sum += count;
-    }
-
-    Assert.assertEquals(200, sum);
-    metaScanner.close();
   }
 
   @Test

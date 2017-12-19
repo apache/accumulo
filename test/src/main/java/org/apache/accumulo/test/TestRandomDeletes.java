@@ -81,15 +81,14 @@ public class TestRandomDeletes {
   private static TreeSet<RowColumn> scanAll(ClientOnDefaultTable opts, ScannerOpts scanOpts, String tableName) throws Exception {
     TreeSet<RowColumn> result = new TreeSet<>();
     Connector conn = opts.getConnector();
-    Scanner scanner = conn.createScanner(tableName, auths);
-    scanner.setBatchSize(scanOpts.scanBatchSize);
-    for (Entry<Key,Value> entry : scanner) {
-      Key key = entry.getKey();
-      Column column = new Column(TextUtil.getBytes(key.getColumnFamily()), TextUtil.getBytes(key.getColumnQualifier()), TextUtil.getBytes(key
-          .getColumnVisibility()));
-      result.add(new RowColumn(key.getRow(), column, key.getTimestamp()));
+    try (Scanner scanner = conn.createScanner(tableName, auths)) {
+      scanner.setBatchSize(scanOpts.scanBatchSize);
+      for (Entry<Key,Value> entry : scanner) {
+        Key key = entry.getKey();
+        Column column = new Column(TextUtil.getBytes(key.getColumnFamily()), TextUtil.getBytes(key.getColumnQualifier()), TextUtil.getBytes(key.getColumnVisibility()));
+        result.add(new RowColumn(key.getRow(), column, key.getTimestamp()));
+      }
     }
-    scanner.close();
     return result;
   }
 

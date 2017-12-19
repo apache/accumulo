@@ -62,17 +62,17 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     IteratorSetting iterCfg = new IteratorSetting(30, "ayeaye", IntersectingIterator.class.getName());
     IntersectingIterator.setColumnFamilies(iterCfg, new Text[] {new Text("the"), new Text("hamster")});
 
-    Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
-    scanner.enableIsolation();
-    scanner.addScanIterator(iterCfg);
+    try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
+      scanner.enableIsolation();
+      scanner.addScanIterator(iterCfg);
 
-    for (int i = 0; i < 100; i++) {
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      Assert.assertTrue(iter.hasNext());
-      Assert.assertEquals("000A", iter.next().getKey().getColumnQualifierData().toString());
-      Assert.assertFalse(iter.hasNext());
+      for (int i = 0; i < 100; i++) {
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        Assert.assertTrue(iter.hasNext());
+        Assert.assertEquals("000A", iter.next().getKey().getColumnQualifierData().toString());
+        Assert.assertFalse(iter.hasNext());
+      }
     }
-    scanner.close();
   }
 
   private void addDocument(BatchWriter bw, String docId, String... terms) throws MutationsRejectedException {

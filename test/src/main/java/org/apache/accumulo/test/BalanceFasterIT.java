@@ -74,29 +74,32 @@ public class BalanceFasterIT extends ConfigurableMacBase {
     // give a short wait for balancing
     sleepUninterruptibly(10, TimeUnit.SECONDS);
     // find out where the tabets are
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-    s.setRange(MetadataSchema.TabletsSection.getRange());
-    Map<String,Integer> counts = new HashMap<>();
-    while (true) {
-      int total = 0;
-      counts.clear();
-      for (Entry<Key,Value> kv : s) {
-        String host = kv.getValue().toString();
-        if (!counts.containsKey(host))
-          counts.put(host, 0);
-        counts.put(host, counts.get(host) + 1);
-        total++;
+    Iterator<Integer> i;
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+      s.setRange(MetadataSchema.TabletsSection.getRange());
+      Map<String,Integer> counts = new HashMap<>();
+      while (true) {
+        int total = 0;
+        counts.clear();
+        for (Entry<Key,Value> kv : s) {
+          String host = kv.getValue().toString();
+          if (!counts.containsKey(host))
+            counts.put(host, 0);
+          counts.put(host, counts.get(host) + 1);
+          total++;
+        }
+        // are enough tablets online?
+        if (total > 1000)
+          break;
       }
-      // are enough tablets online?
-      if (total > 1000)
-        break;
+
+      // should be on all three servers
+      assertTrue(counts.size() == 3);
+      // and distributed evenly
+      i = counts.values().iterator();
     }
-    s.close();
-    // should be on all three servers
-    assertTrue(counts.size() == 3);
-    // and distributed evenly
-    Iterator<Integer> i = counts.values().iterator();
+
     int a = i.next();
     int b = i.next();
     int c = i.next();
@@ -104,5 +107,4 @@ public class BalanceFasterIT extends ConfigurableMacBase {
     assertTrue(Math.abs(a - c) < 3);
     assertTrue(a > 330);
   }
-
 }

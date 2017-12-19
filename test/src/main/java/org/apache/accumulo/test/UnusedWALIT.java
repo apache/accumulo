@@ -109,23 +109,23 @@ public class UnusedWALIT extends ConfigurableMacBase {
   }
 
   private void scanSomeData(Connector c, String table, int startRow, int rowCount, int startCol, int colCount) throws Exception {
-    Scanner s = c.createScanner(table, Authorizations.EMPTY);
-    s.setRange(new Range(Integer.toHexString(startRow), Integer.toHexString(startRow + rowCount)));
-    int row = startRow;
-    int col = startCol;
-    for (Entry<Key,Value> entry : s) {
-      assertEquals(row, Integer.parseInt(entry.getKey().getRow().toString(), 16));
-      assertEquals(col++, Integer.parseInt(entry.getKey().getColumnQualifier().toString(), 16));
-      if (col == startCol + colCount) {
-        col = startCol;
-        row++;
-        if (row == startRow + rowCount) {
-          break;
+    try (Scanner s = c.createScanner(table, Authorizations.EMPTY)) {
+      s.setRange(new Range(Integer.toHexString(startRow), Integer.toHexString(startRow + rowCount)));
+      int row = startRow;
+      int col = startCol;
+      for (Entry<Key,Value> entry : s) {
+        assertEquals(row, Integer.parseInt(entry.getKey().getRow().toString(), 16));
+        assertEquals(col++, Integer.parseInt(entry.getKey().getColumnQualifier().toString(), 16));
+        if (col == startCol + colCount) {
+          col = startCol;
+          row++;
+          if (row == startRow + rowCount) {
+            break;
+          }
         }
       }
+      assertEquals(row, startRow + rowCount);
     }
-    assertEquals(row, startRow + rowCount);
-    s.close();
   }
 
   private int getWALCount(Instance i, ZooReaderWriter zk) throws Exception {

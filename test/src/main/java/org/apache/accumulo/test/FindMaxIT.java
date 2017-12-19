@@ -72,43 +72,43 @@ public class FindMaxIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
+    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
 
-    ArrayList<Text> rows = new ArrayList<>();
+      ArrayList<Text> rows = new ArrayList<>();
 
-    for (Entry<Key,Value> entry : scanner) {
-      rows.add(entry.getKey().getRow());
-    }
+      for (Entry<Key,Value> entry : scanner) {
+        rows.add(entry.getKey().getRow());
+      }
 
-    for (int i = rows.size() - 1; i > 0; i--) {
-      Text max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, rows.get(i), false);
-      assertEquals(rows.get(i - 1), max);
+      for (int i = rows.size() - 1; i > 0; i--) {
+        Text max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, rows.get(i), false);
+        assertEquals(rows.get(i - 1), max);
 
-      max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i - 1), true, rows.get(i), false);
-      assertEquals(rows.get(i - 1), max);
+        max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i - 1), true, rows.get(i), false);
+        assertEquals(rows.get(i - 1), max);
 
-      max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i - 1), false, rows.get(i), false);
+        max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i - 1), false, rows.get(i), false);
+        assertNull(max);
+
+        max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, rows.get(i), true);
+        assertEquals(rows.get(i), max);
+
+        max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i), true, rows.get(i), true);
+        assertEquals(rows.get(i), max);
+
+        max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i - 1), false, rows.get(i), true);
+        assertEquals(rows.get(i), max);
+
+      }
+
+      Text max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, null, true);
+      assertEquals(rows.get(rows.size() - 1), max);
+
+      max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, new Text(new byte[] {0}), false);
       assertNull(max);
 
-      max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, rows.get(i), true);
-      assertEquals(rows.get(i), max);
-
-      max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i), true, rows.get(i), true);
-      assertEquals(rows.get(i), max);
-
-      max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i - 1), false, rows.get(i), true);
-      assertEquals(rows.get(i), max);
-
+      max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, new Text(new byte[] {0}), true);
+      assertEquals(rows.get(0), max);
     }
-
-    Text max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, null, true);
-    assertEquals(rows.get(rows.size() - 1), max);
-
-    max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, new Text(new byte[] {0}), false);
-    assertNull(max);
-
-    max = conn.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true, new Text(new byte[] {0}), true);
-    assertEquals(rows.get(0), max);
-    scanner.close();
   }
 }
