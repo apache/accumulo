@@ -67,48 +67,48 @@ import com.google.common.collect.Iterators;
 public class FunctionalTestUtils {
 
   public static int countRFiles(Connector c, String tableName) throws Exception {
-    Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
-    scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    scanner.close();
-    return Iterators.size(scanner.iterator());
+    try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
+      scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      return Iterators.size(scanner.iterator());
+    }
   }
 
   static void checkRFiles(Connector c, String tableName, int minTablets, int maxTablets, int minRFiles, int maxRFiles) throws Exception {
-    Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    String tableId = c.tableOperations().tableIdMap().get(tableName);
-    scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
-    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+    try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
 
-    HashMap<Text,Integer> tabletFileCounts = new HashMap<>();
+      HashMap<Text,Integer> tabletFileCounts = new HashMap<>();
 
-    for (Entry<Key,Value> entry : scanner) {
+      for (Entry<Key,Value> entry : scanner) {
 
-      Text row = entry.getKey().getRow();
+        Text row = entry.getKey().getRow();
 
-      Integer count = tabletFileCounts.get(row);
-      if (count == null)
-        count = 0;
-      if (entry.getKey().getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
-        count = count + 1;
+        Integer count = tabletFileCounts.get(row);
+        if (count == null)
+          count = 0;
+        if (entry.getKey().getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+          count = count + 1;
+        }
+
+        tabletFileCounts.put(row, count);
       }
 
-      tabletFileCounts.put(row, count);
-    }
+      if (tabletFileCounts.size() < minTablets || tabletFileCounts.size() > maxTablets) {
+        throw new Exception("Did not find expected number of tablets " + tabletFileCounts.size());
+      }
 
-    if (tabletFileCounts.size() < minTablets || tabletFileCounts.size() > maxTablets) {
-      throw new Exception("Did not find expected number of tablets " + tabletFileCounts.size());
-    }
-
-    Set<Entry<Text,Integer>> es = tabletFileCounts.entrySet();
-    for (Entry<Text,Integer> entry : es) {
-      if (entry.getValue() > maxRFiles || entry.getValue() < minRFiles) {
-        throw new Exception("tablet " + entry.getKey() + " has " + entry.getValue() + " map files");
+      Set<Entry<Text,Integer>> es = tabletFileCounts.entrySet();
+      for (Entry<Text,Integer> entry : es) {
+        if (entry.getValue() > maxRFiles || entry.getValue() < minRFiles) {
+          throw new Exception("tablet " + entry.getKey() + " has " + entry.getValue() + " map files");
+        }
       }
     }
-    scanner.close();
   }
 
   static public void bulkImport(Connector c, FileSystem fs, String table, String dir) throws Exception {

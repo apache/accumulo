@@ -75,64 +75,63 @@ public class CleanUpIT extends SharedMiniClusterBase {
 
     bw.flush();
 
-    Scanner scanner = getConnector().createScanner(tableName, new Authorizations());
+    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations())) {
 
-    int count = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      count++;
-      if (!entry.getValue().toString().equals("5")) {
-        Assert.fail("Unexpected value " + entry.getValue());
-      }
-    }
-
-    Assert.assertEquals("Unexpected count", 1, count);
-
-    int threadCount = countThreads();
-    if (threadCount < 2) {
-      printThreadNames();
-      Assert.fail("Not seeing expected threads. Saw " + threadCount);
-    }
-
-    CleanUp.shutdownNow();
-
-    Mutation m2 = new Mutation("r2");
-    m2.put("cf1", "cq1", 1, "6");
-
-    try {
-      bw.addMutation(m1);
-      bw.flush();
-      Assert.fail("batch writer did not fail");
-    } catch (Exception e) {
-
-    }
-
-    try {
-      // expect this to fail also, want to clean up batch writer threads
-      bw.close();
-      Assert.fail("batch writer close not fail");
-    } catch (Exception e) {
-
-    }
-
-    try {
-      count = 0;
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      while (iter.hasNext()) {
-        iter.next();
+      int count = 0;
+      for (Entry<Key,Value> entry : scanner) {
         count++;
+        if (!entry.getValue().toString().equals("5")) {
+          Assert.fail("Unexpected value " + entry.getValue());
+        }
       }
-      Assert.fail("scanner did not fail");
-    } catch (Exception e) {
 
+      Assert.assertEquals("Unexpected count", 1, count);
+
+      int threadCount = countThreads();
+      if (threadCount < 2) {
+        printThreadNames();
+        Assert.fail("Not seeing expected threads. Saw " + threadCount);
+      }
+
+      CleanUp.shutdownNow();
+
+      Mutation m2 = new Mutation("r2");
+      m2.put("cf1", "cq1", 1, "6");
+
+      try {
+        bw.addMutation(m1);
+        bw.flush();
+        Assert.fail("batch writer did not fail");
+      } catch (Exception e) {
+
+      }
+
+      try {
+        // expect this to fail also, want to clean up batch writer threads
+        bw.close();
+        Assert.fail("batch writer close not fail");
+      } catch (Exception e) {
+
+      }
+
+      try {
+        count = 0;
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        while (iter.hasNext()) {
+          iter.next();
+          count++;
+        }
+        Assert.fail("scanner did not fail");
+      } catch (Exception e) {
+
+      }
+
+      threadCount = countThreads();
+      if (threadCount > 0) {
+        printThreadNames();
+        Assert.fail("Threads did not go away. Saw " + threadCount);
+      }
     }
-
-    threadCount = countThreads();
-    if (threadCount > 0) {
-      printThreadNames();
-      Assert.fail("Threads did not go away. Saw " + threadCount);
-    }
-
-    scanner.close();
   }
 
   private void printThreadNames() {

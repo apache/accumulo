@@ -104,73 +104,73 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private void runFlushTest(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException,
       Exception {
     BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
-    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
-    Random r = new Random();
+    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+      Random r = new Random();
 
-    for (int i = 0; i < 4; i++) {
-      for (int j = 0; j < NUM_TO_FLUSH; j++) {
-        int row = i * NUM_TO_FLUSH + j;
+      for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < NUM_TO_FLUSH; j++) {
+          int row = i * NUM_TO_FLUSH + j;
 
-        Mutation m = new Mutation(new Text(String.format("r_%10d", row)));
-        m.put(new Text("cf"), new Text("cq"), new Value(("" + row).getBytes()));
-        bw.addMutation(m);
-      }
+          Mutation m = new Mutation(new Text(String.format("r_%10d", row)));
+          m.put(new Text("cf"), new Text("cq"), new Value(("" + row).getBytes()));
+          bw.addMutation(m);
+        }
 
-      bw.flush();
+        bw.flush();
 
-      // do a few random lookups into the data just flushed
+        // do a few random lookups into the data just flushed
 
-      for (int k = 0; k < 10; k++) {
-        int rowToLookup = r.nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
+        for (int k = 0; k < 10; k++) {
+          int rowToLookup = r.nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
 
-        scanner.setRange(new Range(new Text(String.format("r_%10d", rowToLookup))));
+          scanner.setRange(new Range(new Text(String.format("r_%10d", rowToLookup))));
 
+          Iterator<Entry<Key,Value>> iter = scanner.iterator();
+
+          if (!iter.hasNext())
+            throw new Exception(" row " + rowToLookup + " not found after flush");
+
+          Entry<Key,Value> entry = iter.next();
+
+          if (iter.hasNext())
+            throw new Exception("Scanner returned too much");
+
+          verifyEntry(rowToLookup, entry);
+        }
+
+        // scan all data just flushed
+        scanner.setRange(new Range(new Text(String.format("r_%10d", i * NUM_TO_FLUSH)), true, new Text(String.format("r_%10d", (i + 1) * NUM_TO_FLUSH)), false));
         Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
-        if (!iter.hasNext())
-          throw new Exception(" row " + rowToLookup + " not found after flush");
+        for (int j = 0; j < NUM_TO_FLUSH; j++) {
+          int row = i * NUM_TO_FLUSH + j;
 
-        Entry<Key,Value> entry = iter.next();
+          if (!iter.hasNext())
+            throw new Exception("Scan stopped permaturely at " + row);
+
+          Entry<Key,Value> entry = iter.next();
+
+          verifyEntry(row, entry);
+        }
 
         if (iter.hasNext())
           throw new Exception("Scanner returned too much");
 
-        verifyEntry(rowToLookup, entry);
       }
 
-      // scan all data just flushed
-      scanner.setRange(new Range(new Text(String.format("r_%10d", i * NUM_TO_FLUSH)), true, new Text(String.format("r_%10d", (i + 1) * NUM_TO_FLUSH)), false));
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
+      bw.close();
 
-      for (int j = 0; j < NUM_TO_FLUSH; j++) {
-        int row = i * NUM_TO_FLUSH + j;
-
-        if (!iter.hasNext())
-          throw new Exception("Scan stopped permaturely at " + row);
-
-        Entry<Key,Value> entry = iter.next();
-
-        verifyEntry(row, entry);
+      // test adding a mutation to a closed batch writer
+      boolean caught = false;
+      try {
+        bw.addMutation(new Mutation(new Text("foobar")));
+      } catch (IllegalStateException ise) {
+        caught = true;
       }
 
-      if (iter.hasNext())
-        throw new Exception("Scanner returned too much");
-
-    }
-
-    scanner.close();
-    bw.close();
-
-    // test adding a mutation to a closed batch writer
-    boolean caught = false;
-    try {
-      bw.addMutation(new Mutation(new Text("foobar")));
-    } catch (IllegalStateException ise) {
-      caught = true;
-    }
-
-    if (!caught) {
-      throw new Exception("Adding to closed batch writer did not fail");
+      if (!caught) {
+        throw new Exception("Adding to closed batch writer did not fail");
+      }
     }
   }
 
@@ -231,25 +231,25 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     threads.shutdown();
     threads.awaitTermination(3, TimeUnit.MINUTES);
     bw.close();
-    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
-    for (Entry<Key,Value> e : scanner) {
-      Mutation m = new Mutation(e.getKey().getRow());
-      m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(), e.getValue());
-      boolean found = false;
-      for (int l = 0; l < NUM_THREADS; l++) {
-        if (allMuts.get(l).contains(m)) {
-          found = true;
-          allMuts.get(l).remove(m);
-          break;
+    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> e : scanner) {
+        Mutation m = new Mutation(e.getKey().getRow());
+        m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(), e.getValue());
+        boolean found = false;
+        for (int l = 0; l < NUM_THREADS; l++) {
+          if (allMuts.get(l).contains(m)) {
+            found = true;
+            allMuts.get(l).remove(m);
+            break;
+          }
         }
+        Assert.assertTrue("Mutation not found: " + m.toString(), found);
       }
-      Assert.assertTrue("Mutation not found: " + m.toString(), found);
-    }
 
-    for (int m = 0; m < NUM_THREADS; m++) {
-      Assert.assertEquals(0, allMuts.get(m).size());
+      for (int m = 0; m < NUM_THREADS; m++) {
+        Assert.assertEquals(0, allMuts.get(m).size());
+      }
     }
-    scanner.close();
   }
 
   private void verifyEntry(int row, Entry<Key,Value> entry) throws Exception {

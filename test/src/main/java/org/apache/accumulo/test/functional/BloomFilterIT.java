@@ -147,14 +147,13 @@ public class BloomFilterIT extends AccumuloClusterHarness {
       timeCheck(t1 + t2 + t3, tb1 + tb2 + tb3);
 
       // test querying for empty key
-      Scanner scanner = c.createScanner(tables[3], Authorizations.EMPTY);
-      scanner.setRange(new Range(new Text("")));
+      try (Scanner scanner = c.createScanner(tables[3], Authorizations.EMPTY)) {
+        scanner.setRange(new Range(new Text("")));
 
-      if (!scanner.iterator().next().getValue().toString().equals("foo1")) {
-        throw new Exception("Did not see foo1");
+        if (!scanner.iterator().next().getValue().toString().equals("foo1")) {
+          throw new Exception("Did not see foo1");
+        }
       }
-
-      scanner.close();
     } finally {
       c.instanceOperations().setProperty(Property.TSERV_READ_AHEAD_MAXCONCURRENT.getKey(), readAhead);
     }
@@ -203,25 +202,24 @@ public class BloomFilterIT extends AccumuloClusterHarness {
       ranges.add(range);
     }
 
-    BatchScanner bs = c.createBatchScanner(table, Authorizations.EMPTY, 1);
-    bs.setRanges(ranges);
+    try (BatchScanner bs = c.createBatchScanner(table, Authorizations.EMPTY, 1)) {
+      bs.setRanges(ranges);
 
-    long t1 = System.currentTimeMillis();
-    for (Entry<Key,Value> entry : bs) {
-      long v = Long.parseLong(entry.getValue().toString());
-      if (!expected.remove(v)) {
-        throw new Exception("Got unexpected return " + entry.getKey() + " " + entry.getValue());
+      long t1 = System.currentTimeMillis();
+      for (Entry<Key,Value> entry : bs) {
+        long v = Long.parseLong(entry.getValue().toString());
+        if (!expected.remove(v)) {
+          throw new Exception("Got unexpected return " + entry.getKey() + " " + entry.getValue());
+        }
       }
+      long t2 = System.currentTimeMillis();
+
+      if (expected.size() > 0) {
+        throw new Exception("Did not get all expected values " + expected.size());
+      }
+
+      return t2 - t1;
     }
-    long t2 = System.currentTimeMillis();
-
-    if (expected.size() > 0) {
-      throw new Exception("Did not get all expected values " + expected.size());
-    }
-
-    bs.close();
-
-    return t2 - t1;
   }
 
   private void write(Connector c, String table, int depth, long start, long end, int step) throws Exception {

@@ -299,15 +299,16 @@ public class NullTserver {
 
     // read the locations for the table
     Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
-    MetaDataTableScanner s = new MetaDataTableScanner(context, tableRange);
-    long randomSessionID = opts.port;
-    TServerInstance instance = new TServerInstance(addr, randomSessionID);
     List<Assignment> assignments = new ArrayList<>();
-    while (s.hasNext()) {
-      TabletLocationState next = s.next();
-      assignments.add(new Assignment(next.extent, instance));
+    try (MetaDataTableScanner s = new MetaDataTableScanner(context, tableRange)) {
+      long randomSessionID = opts.port;
+      TServerInstance instance = new TServerInstance(addr, randomSessionID);
+
+      while (s.hasNext()) {
+        TabletLocationState next = s.next();
+        assignments.add(new Assignment(next.extent, instance));
+      }
     }
-    s.close();
     // point them to this server
     MetaDataStateStore store = new MetaDataStateStore(context);
     store.setLocations(assignments);

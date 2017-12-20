@@ -105,21 +105,21 @@ public class CredentialsIT extends AccumuloClusterHarness {
   public void testDestroyTokenBeforeRPC() throws Exception {
     AuthenticationToken token = getUser(0).getToken();
     Connector userConnector = inst.getConnector(username, token);
-    Scanner scanner = userConnector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    assertFalse(token.isDestroyed());
-    token.destroy();
-    assertTrue(token.isDestroyed());
-    try {
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      while (iter.hasNext())
+    try (Scanner scanner = userConnector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      assertFalse(token.isDestroyed());
+      token.destroy();
+      assertTrue(token.isDestroyed());
+      try {
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        while (iter.hasNext())
+          fail();
         fail();
-      fail();
-    } catch (Exception e) {
-      assertTrue(e instanceof RuntimeException);
-      assertTrue(e.getCause() instanceof AccumuloSecurityException);
-      assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
+      } catch (Exception e) {
+        assertTrue(e instanceof RuntimeException);
+        assertTrue(e.getCause() instanceof AccumuloSecurityException);
+        assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
+      }
     }
-    scanner.close();
   }
 
 }

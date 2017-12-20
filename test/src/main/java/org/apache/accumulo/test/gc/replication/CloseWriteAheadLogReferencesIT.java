@@ -136,12 +136,12 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     refs.updateReplicationEntries(conn, wals);
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.fetchColumnFamily(ReplicationSection.COLF);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    Status status = Status.parseFrom(entry.getValue().get());
-    s.close();
-    Assert.assertFalse(status.getClosed());
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.fetchColumnFamily(ReplicationSection.COLF);
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Status status = Status.parseFrom(entry.getValue().get());
+      Assert.assertFalse(status.getClosed());
+    }
   }
 
   @Test
@@ -156,12 +156,12 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     refs.updateReplicationEntries(conn, wals);
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.fetchColumnFamily(ReplicationSection.COLF);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    Status status = Status.parseFrom(entry.getValue().get());
-    s.close();
-    Assert.assertTrue(status.getClosed());
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.fetchColumnFamily(ReplicationSection.COLF);
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Status status = Status.parseFrom(entry.getValue().get());
+      Assert.assertTrue(status.getClosed());
+    }
   }
 
   @Test
@@ -176,11 +176,11 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     refs.updateReplicationEntries(conn, wals);
 
-    Scanner s = ReplicationTable.getScanner(conn);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    Status status = Status.parseFrom(entry.getValue().get());
-    s.close();
-    Assert.assertFalse(status.getClosed());
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Status status = Status.parseFrom(entry.getValue().get());
+      Assert.assertFalse(status.getClosed());
+    }
   }
 
 }

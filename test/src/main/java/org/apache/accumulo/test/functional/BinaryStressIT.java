@@ -96,12 +96,12 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     BinaryIT.runTest(c, tableName);
     String id = c.tableOperations().tableIdMap().get(tableName);
     Set<Text> tablets = new HashSet<>();
-    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(Range.prefix(id));
-    for (Entry<Key,Value> entry : s) {
-      tablets.add(entry.getKey().getRow());
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(Range.prefix(id));
+      for (Entry<Key,Value> entry : s) {
+        tablets.add(entry.getKey().getRow());
+      }
     }
-    s.close();
     assertTrue("Expected at least 8 tablets, saw " + tablets.size(), tablets.size() > 7);
   }
 

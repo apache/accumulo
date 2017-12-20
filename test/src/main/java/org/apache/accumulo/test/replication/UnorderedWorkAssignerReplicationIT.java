@@ -680,15 +680,15 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       for (int i = 0; i < 10 && !fullyReplicated; i++) {
         sleepUninterruptibly(timeoutFactor * 2, TimeUnit.SECONDS);
 
-        Scanner s = ReplicationTable.getScanner(connMaster);
-        WorkSection.limit(s);
-        for (Entry<Key,Value> entry : s) {
-          Status status = Status.parseFrom(entry.getValue().get());
-          if (StatusUtil.isFullyReplicated(status)) {
-            fullyReplicated |= true;
+        try (Scanner s = ReplicationTable.getScanner(connMaster)) {
+          WorkSection.limit(s);
+          for (Entry<Key,Value> entry : s) {
+            Status status = Status.parseFrom(entry.getValue().get());
+            if (StatusUtil.isFullyReplicated(status)) {
+              fullyReplicated |= true;
+            }
           }
         }
-        s.close();
       }
 
       Assert.assertNotEquals(0, fullyReplicated);

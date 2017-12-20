@@ -105,8 +105,6 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     EasyMock.replay(bw);
 
     rcrr.removeCompleteRecords(conn, bs, bw);
-    bs.close();
-
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
   }
 
@@ -139,8 +137,6 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
     // We don't remove any records, so we can just pass in a fake BW for both
     rcrr.removeCompleteRecords(conn, bs, bw);
-    bs.close();
-
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
   }
 
@@ -191,7 +187,6 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     try {
       Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
     } finally {
-      bs.close();
       replBw.close();
     }
   }
@@ -274,7 +269,6 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     try {
       Assert.assertEquals(4l, rcrr.removeCompleteRecords(conn, bs, replBw));
     } finally {
-      bs.close();
       replBw.close();
     }
 
@@ -334,7 +328,6 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     try {
       Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
     } finally {
-      bs.close();
       replBw.close();
     }
   }

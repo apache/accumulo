@@ -127,21 +127,21 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    Range r = MetadataSchema.TabletsSection.getRange(tableId);
-    s.setRange(r);
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-
     Set<String> rfiles = new HashSet<>();
-    for (Entry<Key,Value> entry : s) {
-      log.debug("Reading RFiles: {}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
-      // uri://path/to/wal
-      String cq = entry.getKey().getColumnQualifier().toString();
-      String path = new Path(cq).toString();
-      log.debug("Normalize path to rfile: {}", path);
-      rfiles.add(path);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      Range r = MetadataSchema.TabletsSection.getRange(tableId);
+      s.setRange(r);
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+
+      for (Entry<Key,Value> entry : s) {
+        log.debug("Reading RFiles: {}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
+        // uri://path/to/wal
+        String cq = entry.getKey().getColumnQualifier().toString();
+        String path = new Path(cq).toString();
+        log.debug("Normalize path to rfile: {}", path);
+        rfiles.add(path);
+      }
     }
-    s.close();
     return rfiles;
   }
 
@@ -154,20 +154,20 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    Range r = MetadataSchema.ReplicationSection.getRange();
-    s.setRange(r);
-    s.fetchColumn(MetadataSchema.ReplicationSection.COLF, new Text(tableId));
-
     Map<String,Status> fileToStatus = new HashMap<>();
-    for (Entry<Key,Value> entry : s) {
-      Text file = new Text();
-      MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
-      Status status = Status.parseFrom(entry.getValue().get());
-      log.info("Got status for {}: {}", file, ProtobufUtil.toString(status));
-      fileToStatus.put(file.toString(), status);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      Range r = MetadataSchema.ReplicationSection.getRange();
+      s.setRange(r);
+      s.fetchColumn(MetadataSchema.ReplicationSection.COLF, new Text(tableId));
+
+      for (Entry<Key,Value> entry : s) {
+        Text file = new Text();
+        MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
+        Status status = Status.parseFrom(entry.getValue().get());
+        log.info("Got status for {}: {}", file, ProtobufUtil.toString(status));
+        fileToStatus.put(file.toString(), status);
+      }
     }
-    s.close();
     return fileToStatus;
   }
 

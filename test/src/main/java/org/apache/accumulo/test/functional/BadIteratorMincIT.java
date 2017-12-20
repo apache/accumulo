@@ -68,43 +68,42 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
     FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
 
     // try to scan table
-    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    int count = Iterators.size(scanner.iterator());
-    assertEquals("Did not see expected # entries " + count, 1, count);
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+      int count = Iterators.size(scanner.iterator());
+      assertEquals("Did not see expected # entries " + count, 1, count);
 
-    // remove the bad iterator
-    c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(), EnumSet.of(IteratorScope.minc));
+      // remove the bad iterator
+      c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(), EnumSet.of(IteratorScope.minc));
 
-    sleepUninterruptibly(5, TimeUnit.SECONDS);
+      sleepUninterruptibly(5, TimeUnit.SECONDS);
 
-    // minc should complete
-    FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
+      // minc should complete
+      FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
 
-    count = Iterators.size(scanner.iterator());
+      count = Iterators.size(scanner.iterator());
 
-    if (count != 1)
-      throw new Exception("Did not see expected # entries " + count);
+      if (count != 1)
+        throw new Exception("Did not see expected # entries " + count);
 
-    // now try putting bad iterator back and deleting the table
-    c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
-    bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    m = new Mutation(new Text("r2"));
-    m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
-    bw.addMutation(m);
-    bw.close();
+      // now try putting bad iterator back and deleting the table
+      c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
+      bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      m = new Mutation(new Text("r2"));
+      m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
+      bw.addMutation(m);
+      bw.close();
 
-    // make sure property is given time to propagate
-    sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      // make sure property is given time to propagate
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
-    c.tableOperations().flush(tableName, null, null, false);
+      c.tableOperations().flush(tableName, null, null, false);
 
-    // make sure the flush has time to start
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // make sure the flush has time to start
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
 
-    // this should not hang
-    c.tableOperations().delete(tableName);
-
-    scanner.close();
+      // this should not hang
+      c.tableOperations().delete(tableName);
+    }
   }
 
 }

@@ -77,19 +77,18 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
     }
 
     bw.close();
-    Scanner scanner1 = getConnector().createScanner(tableName, Authorizations.EMPTY);
+    try (Scanner scanner1 = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
 
-    int ei = 1;
+      int ei = 1;
 
-    for (Entry<Key,Value> entry : scanner1) {
-      Assert.assertEquals(String.format("%08x", (ei << 8) - 16), entry.getKey().getRow().toString());
-      Assert.assertEquals(Integer.toString(ei), entry.getValue().toString());
+      for (Entry<Key,Value> entry : scanner1) {
+        Assert.assertEquals(String.format("%08x", (ei << 8) - 16), entry.getKey().getRow().toString());
+        Assert.assertEquals(Integer.toString(ei), entry.getValue().toString());
 
-      ei++;
+        ei++;
+      }
+      Assert.assertEquals("Did not see expected number of rows", 257, ei);
     }
-
-    scanner1.close();
-    Assert.assertEquals("Did not see expected number of rows", 257, ei);
   }
 
   @Test
@@ -97,17 +96,17 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
     String table2 = getUniqueNames(1)[0];
     getConnector().tableOperations().create(table2);
     getConnector().tableOperations().addSplits(table2, splits);
-    Scanner scanner2 = getConnector().createScanner(table2, Authorizations.EMPTY);
-    int count = 0;
-    for (Entry<Key,Value> entry : scanner2) {
-      if (entry != null)
-        count++;
-    }
+    try (Scanner scanner2 = getConnector().createScanner(table2, Authorizations.EMPTY)) {
+      int count = 0;
+      for (Entry<Key,Value> entry : scanner2) {
+        if (entry != null)
+          count++;
+      }
 
-    if (count != 0) {
-      throw new Exception("Did not see expected number of entries, count = " + count);
+      if (count != 0) {
+        throw new Exception("Did not see expected number of entries, count = " + count);
+      }
     }
-    scanner2.close();
   }
 
   @Test
@@ -120,13 +119,13 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
     String table3 = getUniqueNames(1)[0];
     getConnector().tableOperations().create(table3);
     getConnector().tableOperations().addSplits(table3, splits);
-    BatchScanner bs = getConnector().createBatchScanner(table3, Authorizations.EMPTY, 3);
-    bs.setRanges(ranges);
-    Iterator<Entry<Key,Value>> iter = bs.iterator();
-    int count = Iterators.size(iter);
-    bs.close();
+    try (BatchScanner bs = getConnector().createBatchScanner(table3, Authorizations.EMPTY, 3)) {
+      bs.setRanges(ranges);
+      Iterator<Entry<Key,Value>> iter = bs.iterator();
+      int count = Iterators.size(iter);
 
-    Assert.assertEquals("Did not expect to find any entries", 0, count);
+      Assert.assertEquals("Did not expect to find any entries", 0, count);
+    }
   }
 
 }

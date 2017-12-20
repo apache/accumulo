@@ -98,30 +98,37 @@ public class WorkMakerIT extends ConfigurableMacBase {
     bw.flush();
 
     // Assert that we have one record in the status section
-    Scanner s = ReplicationTable.getScanner(conn);
-    StatusSection.limit(s);
-    Assert.assertEquals(1, Iterables.size(s));
+    Scanner s = null;
+    try {
+      s = ReplicationTable.getScanner(conn);
+      StatusSection.limit(s);
+      Assert.assertEquals(1, Iterables.size(s));
 
-    MockWorkMaker workMaker = new MockWorkMaker(conn);
+      MockWorkMaker workMaker = new MockWorkMaker(conn);
 
-    // Invoke the addWorkRecord method to create a Work record from the Status record earlier
-    ReplicationTarget expected = new ReplicationTarget("remote_cluster_1", "4", tableId);
-    workMaker.setBatchWriter(bw);
-    workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(timeCreated), ImmutableMap.of("remote_cluster_1", "4"), tableId);
+      // Invoke the addWorkRecord method to create a Work record from the Status record earlier
+      ReplicationTarget expected = new ReplicationTarget("remote_cluster_1", "4", tableId);
+      workMaker.setBatchWriter(bw);
+      workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(timeCreated), ImmutableMap.of("remote_cluster_1", "4"), tableId);
 
-    // Scan over just the WorkSection
-    s = ReplicationTable.getScanner(conn);
-    WorkSection.limit(s);
+      // Scan over just the WorkSection
+      s = ReplicationTable.getScanner(conn);
+      WorkSection.limit(s);
 
-    Entry<Key,Value> workEntry = Iterables.getOnlyElement(s);
-    Key workKey = workEntry.getKey();
-    ReplicationTarget actual = ReplicationTarget.from(workKey.getColumnQualifier());
+      Entry<Key,Value> workEntry = Iterables.getOnlyElement(s);
+      Key workKey = workEntry.getKey();
+      ReplicationTarget actual = ReplicationTarget.from(workKey.getColumnQualifier());
 
-    Assert.assertEquals(file, workKey.getRow().toString());
-    Assert.assertEquals(WorkSection.NAME, workKey.getColumnFamily());
-    Assert.assertEquals(expected, actual);
-    Assert.assertEquals(workEntry.getValue(), StatusUtil.fileCreatedValue(timeCreated));
-    s.close();
+      Assert.assertEquals(file, workKey.getRow().toString());
+      Assert.assertEquals(WorkSection.NAME, workKey.getColumnFamily());
+      Assert.assertEquals(expected, actual);
+      Assert.assertEquals(workEntry.getValue(), StatusUtil.fileCreatedValue(timeCreated));
+      s.close();
+    } finally {
+      if (s != null) {
+        s.close();
+      }
+    }
   }
 
   @Test
@@ -140,39 +147,45 @@ public class WorkMakerIT extends ConfigurableMacBase {
     bw.flush();
 
     // Assert that we have one record in the status section
-    Scanner s = ReplicationTable.getScanner(conn);
-    StatusSection.limit(s);
-    Assert.assertEquals(1, Iterables.size(s));
+    Scanner s = null;
+    try {
+      s = ReplicationTable.getScanner(conn);
+      StatusSection.limit(s);
+      Assert.assertEquals(1, Iterables.size(s));
 
-    MockWorkMaker workMaker = new MockWorkMaker(conn);
+      MockWorkMaker workMaker = new MockWorkMaker(conn);
 
-    Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4", "remote_cluster_2", "6", "remote_cluster_3", "8");
-    Set<ReplicationTarget> expectedTargets = new HashSet<>();
-    for (Entry<String,String> cluster : targetClusters.entrySet()) {
-      expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue(), tableId));
+      Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4", "remote_cluster_2", "6", "remote_cluster_3", "8");
+      Set<ReplicationTarget> expectedTargets = new HashSet<>();
+      for (Entry<String,String> cluster : targetClusters.entrySet()) {
+        expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue(), tableId));
+      }
+      workMaker.setBatchWriter(bw);
+      workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(System.currentTimeMillis()), targetClusters, tableId);
+
+      s = ReplicationTable.getScanner(conn);
+      WorkSection.limit(s);
+
+      Set<ReplicationTarget> actualTargets = new HashSet<>();
+      for (Entry<Key,Value> entry : s) {
+        Assert.assertEquals(file, entry.getKey().getRow().toString());
+        Assert.assertEquals(WorkSection.NAME, entry.getKey().getColumnFamily());
+
+        ReplicationTarget target = ReplicationTarget.from(entry.getKey().getColumnQualifier());
+        actualTargets.add(target);
+      }
+
+      for (ReplicationTarget expected : expectedTargets) {
+        Assert.assertTrue("Did not find expected target: " + expected, actualTargets.contains(expected));
+        actualTargets.remove(expected);
+      }
+
+      Assert.assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
+    } finally {
+      if (s != null) {
+        s.close();
+      }
     }
-    workMaker.setBatchWriter(bw);
-    workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(System.currentTimeMillis()), targetClusters, tableId);
-
-    s = ReplicationTable.getScanner(conn);
-    WorkSection.limit(s);
-
-    Set<ReplicationTarget> actualTargets = new HashSet<>();
-    for (Entry<Key,Value> entry : s) {
-      Assert.assertEquals(file, entry.getKey().getRow().toString());
-      Assert.assertEquals(WorkSection.NAME, entry.getKey().getColumnFamily());
-
-      ReplicationTarget target = ReplicationTarget.from(entry.getKey().getColumnQualifier());
-      actualTargets.add(target);
-    }
-
-    for (ReplicationTarget expected : expectedTargets) {
-      Assert.assertTrue("Did not find expected target: " + expected, actualTargets.contains(expected));
-      actualTargets.remove(expected);
-    }
-
-    s.close();
-    Assert.assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
   }
 
   @Test
@@ -189,25 +202,27 @@ public class WorkMakerIT extends ConfigurableMacBase {
     bw.flush();
 
     // Assert that we have one record in the status section
-    Scanner s = ReplicationTable.getScanner(conn);
-    StatusSection.limit(s);
-    Assert.assertEquals(1, Iterables.size(s));
+    Scanner s = null;
+    try {
+      s = ReplicationTable.getScanner(conn);
+      StatusSection.limit(s);
+      Assert.assertEquals(1, Iterables.size(s));
 
-    MockWorkMaker workMaker = new MockWorkMaker(conn);
+      MockWorkMaker workMaker = new MockWorkMaker(conn);
 
-    conn.tableOperations().setProperty(ReplicationTable.NAME, Property.TABLE_REPLICATION_TARGET.getKey() + "remote_cluster_1", "4");
+      conn.tableOperations().setProperty(ReplicationTable.NAME, Property.TABLE_REPLICATION_TARGET.getKey() + "remote_cluster_1", "4");
 
-    workMaker.setBatchWriter(bw);
+      workMaker.setBatchWriter(bw);
 
-    // If we don't shortcircuit out, we should get an exception because ServerConfiguration.getTableConfiguration
-    // won't work with MockAccumulo
-    workMaker.run();
+      // If we don't shortcircuit out, we should get an exception because ServerConfiguration.getTableConfiguration
+      // won't work with MockAccumulo
+      workMaker.run();
 
-    s = ReplicationTable.getScanner(conn);
-    WorkSection.limit(s);
+      s = ReplicationTable.getScanner(conn);
+      WorkSection.limit(s);
 
-    Assert.assertEquals(0, Iterables.size(s));
-    s.close();
+      Assert.assertEquals(0, Iterables.size(s));
+    }
   }
 
 }

@@ -506,83 +506,82 @@ public class CollectTabletStats {
   private static int scanTablet(Connector conn, String table, Authorizations auths, int batchSize, Text prevEndRow, Text endRow, String[] columns)
       throws Exception {
 
-    Scanner scanner = conn.createScanner(table, auths);
-    scanner.setBatchSize(batchSize);
-    scanner.setRange(new Range(prevEndRow, false, endRow, true));
+    try (Scanner scanner = conn.createScanner(table, auths)) {
+      scanner.setBatchSize(batchSize);
+      scanner.setRange(new Range(prevEndRow, false, endRow, true));
 
-    for (String c : columns) {
-      scanner.fetchColumnFamily(new Text(c));
+      for (String c : columns) {
+        scanner.fetchColumnFamily(new Text(c));
+      }
+
+      int count = 0;
+
+      for (Entry<Key,Value> entry : scanner) {
+        if (entry != null)
+          count++;
+      }
+      return count;
     }
-
-    int count = 0;
-
-    for (Entry<Key,Value> entry : scanner) {
-      if (entry != null)
-        count++;
-    }
-
-    scanner.close();
-    return count;
   }
 
   private static void calcTabletStats(Connector conn, String table, Authorizations auths, int batchSize, KeyExtent ke, String[] columns) throws Exception {
 
     // long t1 = System.currentTimeMillis();
 
-    Scanner scanner = conn.createScanner(table, auths);
-    scanner.setBatchSize(batchSize);
-    scanner.setRange(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true));
+    try (Scanner scanner = conn.createScanner(table, auths)) {
+      scanner.setBatchSize(batchSize);
+      scanner.setRange(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true));
 
-    for (String c : columns) {
-      scanner.fetchColumnFamily(new Text(c));
-    }
-
-    Stat rowLen = new Stat();
-    Stat cfLen = new Stat();
-    Stat cqLen = new Stat();
-    Stat cvLen = new Stat();
-    Stat valLen = new Stat();
-    Stat colsPerRow = new Stat();
-
-    Text lastRow = null;
-    int colsPerRowCount = 0;
-
-    for (Entry<Key,Value> entry : scanner) {
-
-      Key key = entry.getKey();
-      Text row = key.getRow();
-
-      if (lastRow == null) {
-        lastRow = row;
+      for (String c : columns) {
+        scanner.fetchColumnFamily(new Text(c));
       }
 
-      if (!lastRow.equals(row)) {
-        colsPerRow.addStat(colsPerRowCount);
-        lastRow = row;
-        colsPerRowCount = 0;
+      Stat rowLen = new Stat();
+      Stat cfLen = new Stat();
+      Stat cqLen = new Stat();
+      Stat cvLen = new Stat();
+      Stat valLen = new Stat();
+      Stat colsPerRow = new Stat();
+
+      Text lastRow = null;
+      int colsPerRowCount = 0;
+
+      for (Entry<Key,Value> entry : scanner) {
+
+        Key key = entry.getKey();
+        Text row = key.getRow();
+
+        if (lastRow == null) {
+          lastRow = row;
+        }
+
+        if (!lastRow.equals(row)) {
+          colsPerRow.addStat(colsPerRowCount);
+          lastRow = row;
+          colsPerRowCount = 0;
+        }
+
+        colsPerRowCount++;
+
+        rowLen.addStat(row.getLength());
+        cfLen.addStat(key.getColumnFamilyData().length());
+        cqLen.addStat(key.getColumnQualifierData().length());
+        cvLen.addStat(key.getColumnVisibilityData().length());
+        valLen.addStat(entry.getValue().get().length);
       }
 
-      colsPerRowCount++;
-
-      rowLen.addStat(row.getLength());
-      cfLen.addStat(key.getColumnFamilyData().length());
-      cqLen.addStat(key.getColumnQualifierData().length());
-      cvLen.addStat(key.getColumnVisibilityData().length());
-      valLen.addStat(entry.getValue().get().length);
+      synchronized (System.out) {
+        System.out.println("");
+        System.out.println("\tTablet " + ke.getUUID() + " statistics : ");
+        printStat("Row length", rowLen);
+        printStat("Column family length", cfLen);
+        printStat("Column qualifier length", cqLen);
+        printStat("Column visibility length", cvLen);
+        printStat("Value length", valLen);
+        printStat("Columns per row", colsPerRow);
+        System.out.println("");
+      }
     }
-
-    synchronized (System.out) {
-      System.out.println("");
-      System.out.println("\tTablet " + ke.getUUID() + " statistics : ");
-      printStat("Row length", rowLen);
-      printStat("Column family length", cfLen);
-      printStat("Column qualifier length", cqLen);
-      printStat("Column visibility length", cvLen);
-      printStat("Value length", valLen);
-      printStat("Columns per row", colsPerRow);
-      System.out.println("");
-    }
-    scanner.close();
   }
 
   private static void printStat(String desc, Stat s) {

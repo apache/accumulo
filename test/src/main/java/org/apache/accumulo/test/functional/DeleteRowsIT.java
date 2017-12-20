@@ -74,9 +74,9 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     for (String tableName : tableNames) {
       c.tableOperations().create(tableName);
       c.tableOperations().deleteRows(tableName, null, null);
-      Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-      assertEquals(0, Iterators.size(scanner.iterator()));
-      scanner.close();
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        assertEquals(0, Iterators.size(scanner.iterator()));
+      }
     }
   }
 
@@ -140,17 +140,17 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       sb.append(split.toString());
     assertEquals(result, sb.toString());
     // See that the rows are really deleted
-    Scanner scanner = c.createScanner(table, Authorizations.EMPTY);
-    int count = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      Text row = entry.getKey().getRow();
-      assertTrue((startText == null || row.compareTo(startText) <= 0) || (endText == null || row.compareTo(endText) > 0));
-      assertTrue(startText != null || endText != null);
-      count++;
+    try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
+      int count = 0;
+      for (Entry<Key,Value> entry : scanner) {
+        Text row = entry.getKey().getRow();
+        assertTrue((startText == null || row.compareTo(startText) <= 0) || (endText == null || row.compareTo(endText) > 0));
+        assertTrue(startText != null || endText != null);
+        count++;
+      }
+      log.info("Finished table {}", table);
+      assertEquals(entries, count);
     }
-    log.info("Finished table {}", table);
-    scanner.close();
-    assertEquals(entries, count);
   }
 
 }

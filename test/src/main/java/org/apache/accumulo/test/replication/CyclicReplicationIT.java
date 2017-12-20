@@ -203,6 +203,7 @@ public class CyclicReplicationIT {
       }
     }
 
+    Scanner s = null;
     try {
       Connector connMaster1 = master1Cluster.getConnector("root", new PasswordToken(password)), connMaster2 = master2Cluster.getConnector("root",
           new PasswordToken(password));
@@ -284,7 +285,7 @@ public class CyclicReplicationIT {
       Thread.sleep(1000);
 
       // Sanity check that the element is there on master1
-      Scanner s = connMaster1.createScanner(master1Table, Authorizations.EMPTY);
+      s = connMaster1.createScanner(master1Table, Authorizations.EMPTY);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Assert.assertEquals("1", entry.getValue().toString());
 
@@ -328,6 +329,9 @@ public class CyclicReplicationIT {
     } finally {
       master1Cluster.stop();
       master2Cluster.stop();
+      if (s != null) {
+        s.close();
+      }
     }
   }
 

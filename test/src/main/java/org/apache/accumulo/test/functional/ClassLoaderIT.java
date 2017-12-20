@@ -112,13 +112,13 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
   }
 
   private void scanCheck(Connector c, String tableName, String expected) throws Exception {
-    Scanner bs = c.createScanner(tableName, Authorizations.EMPTY);
-    Iterator<Entry<Key,Value>> iterator = bs.iterator();
-    assertTrue(iterator.hasNext());
-    Entry<Key,Value> next = iterator.next();
-    assertFalse(iterator.hasNext());
-    assertEquals(expected, next.getValue().toString());
-    bs.close();
+    try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
+      Iterator<Entry<Key,Value>> iterator = bs.iterator();
+      assertTrue(iterator.hasNext());
+      Entry<Key,Value> next = iterator.next();
+      assertFalse(iterator.hasNext());
+      assertEquals(expected, next.getValue().toString());
+    }
   }
 
 }
