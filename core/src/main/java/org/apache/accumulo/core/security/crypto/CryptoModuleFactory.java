@@ -80,8 +80,7 @@ public class CryptoModuleFactory {
     try {
       cryptoModuleClazz = AccumuloVFSClassLoader.loadClass(cryptoModuleClassname);
     } catch (ClassNotFoundException e1) {
-      log.warn("Could not find configured crypto module \"{}\".  No encryption will be used.", cryptoModuleClassname);
-      return new NullCryptoModule();
+      throw new RuntimeException("Could not find configured crypto module " + cryptoModuleClassname);
     }
 
     // Check if the given class implements the CryptoModule interface
@@ -96,8 +95,7 @@ public class CryptoModuleFactory {
     }
 
     if (!implementsCryptoModule) {
-      log.warn("Configured Accumulo crypto module \"{}\" does not implement the CryptoModule interface. No encryption will be used.", cryptoModuleClassname);
-      return new NullCryptoModule();
+      throw new RuntimeException("Configured Accumulo crypto module " + cryptoModuleClassname + " does not implement the CryptoModule interface.");
     } else {
       try {
         cryptoModule = (CryptoModule) cryptoModuleClazz.newInstance();
@@ -105,14 +103,9 @@ public class CryptoModuleFactory {
         log.debug("Successfully instantiated crypto module {}", cryptoModuleClassname);
 
       } catch (InstantiationException e) {
-        log.warn("Got instantiation exception {} when instantiating crypto module \"{}\".  No encryption will be used.", e.getCause().getClass().getName(),
-            cryptoModuleClassname);
-        log.warn("InstantiationException {}", e.getCause());
-        return new NullCryptoModule();
+        throw new RuntimeException("Got instantiation exception when instantiating crypto module " + cryptoModuleClassname);
       } catch (IllegalAccessException e) {
-        log.warn("Got illegal access exception when trying to instantiate crypto module \"{}\".  No encryption will be used.", cryptoModuleClassname);
-        log.warn("IllegalAccessException", e);
-        return new NullCryptoModule();
+        throw new RuntimeException("Got illegal access exception when trying to instantiate crypto module " + cryptoModuleClassname);
       }
     }
     return cryptoModule;
@@ -156,8 +149,7 @@ public class CryptoModuleFactory {
     try {
       keyEncryptionStrategyClazz = AccumuloVFSClassLoader.loadClass(className);
     } catch (ClassNotFoundException e1) {
-      log.warn("Could not find configured secret key encryption strategy \"{}\".  No encryption will be used.", className);
-      return new NullSecretKeyEncryptionStrategy();
+      throw new RuntimeException("Could not find configured secret key encryption strategy: " + className);
     }
 
     // Check if the given class implements the CryptoModule interface
@@ -172,8 +164,7 @@ public class CryptoModuleFactory {
     }
 
     if (!implementsSecretKeyStrategy) {
-      log.warn("Configured Accumulo secret key encryption strategy \"%s\" does not implement the SecretKeyEncryptionStrategy interface. No encryption will be used.");
-      return new NullSecretKeyEncryptionStrategy();
+      throw new RuntimeException("Configured Accumulo secret key encryption strategy \"%s\" does not implement the SecretKeyEncryptionStrategy interface.");
     } else {
       try {
         strategy = (SecretKeyEncryptionStrategy) keyEncryptionStrategyClazz.newInstance();
@@ -181,14 +172,9 @@ public class CryptoModuleFactory {
         log.debug("Successfully instantiated secret key encryption strategy {}", className);
 
       } catch (InstantiationException e) {
-        log.warn("Got instantiation exception {} when instantiating secret key encryption strategy \"{}\".  No encryption will be used.", e.getCause()
-            .getClass().getName(), className);
-        log.warn("InstantiationException {}", e.getCause());
-        return new NullSecretKeyEncryptionStrategy();
+        throw new RuntimeException("Got instantiation exception {} when instantiating secret key encryption strategy " + className);
       } catch (IllegalAccessException e) {
-        log.warn("Got illegal access exception when trying to instantiate secret key encryption strategy \"{}\".  No encryption will be used.", className);
-        log.warn("IllegalAccessException", e);
-        return new NullSecretKeyEncryptionStrategy();
+        throw new RuntimeException("Got illegal access exception when trying to instantiate secret key encryption strategy " + className);
       }
     }
     return strategy;

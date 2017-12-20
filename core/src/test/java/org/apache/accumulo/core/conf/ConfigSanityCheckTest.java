@@ -93,4 +93,59 @@ public class ConfigSanityCheckTest {
     m.put(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey(), "AES");
     ConfigSanityCheck.validate(m.entrySet());
   }
+
+  @Test(expected = SanityCheckException.class)
+  public void testFail_cryptoModuleInvalidClass() {
+    // a random hex dump is unlikely to be a real class name
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "e0218734bcd1e4d239203f970806786b");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test(expected = SanityCheckException.class)
+  public void testFail_cryptoModuleValidClassNotValidInterface() {
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "java.lang.String");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test
+  public void testPass_cryptoModuleValidClass() {
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "org.apache.accumulo.core.security.crypto.DefaultCryptoModule");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test
+  public void testPass_cryptoModuleValidNullModule() {
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "NullCryptoModule");
+    ConfigSanityCheck.validate(m.entrySet());
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), null);
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test(expected = SanityCheckException.class)
+  public void testFail_secretKeyEncryptionStrategyInvalidClass() {
+    // a random hex dump is unlikely to be a real class name
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "e0218734bcd1e4d239203f970806786b");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test(expected = SanityCheckException.class)
+  public void testFail_secretKeyEncryptionStrategyValidClassNotValidInterface() {
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "java.lang.String");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test
+  public void testPass_secretKeyEncryptionStrategyValidClass() {
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "org.apache.accumulo.core.security.crypto.NonCachingSecretKeyEncryptionStrategy");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test
+  public void testPass_secretKeyEncryptionStrategyValidNullStrategy() {
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "NullSecretKeyEncryptionStrategy");
+    ConfigSanityCheck.validate(m.entrySet());
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), null);
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
 }

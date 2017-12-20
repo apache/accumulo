@@ -19,6 +19,8 @@ package org.apache.accumulo.core.conf;
 import java.util.Map.Entry;
 import java.util.Objects;
 
+import org.apache.accumulo.core.security.crypto.CryptoModule;
+import org.apache.accumulo.core.security.crypto.SecretKeyEncryptionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,6 +89,33 @@ public class ConfigSanityCheck {
 
       if (key.equals(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey())) {
         keyAlgorithm = Objects.requireNonNull(value);
+      }
+      if (key.equals(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()) && !(value == null || value.equals("NullSecretKeyEncryptionStrategy"))) {
+        @SuppressWarnings("rawtypes")
+        Class strat = null;
+        try {
+          strat = Class.forName(value);
+        } catch (ClassNotFoundException e) {
+          fatal(key + " has invalid class name " + value);
+        }
+
+        if (!SecretKeyEncryptionStrategy.class.isAssignableFrom(strat)) {
+          fatal(key + " must be a class that implements SecretKeyEncryptionStrategy, instead received: " + value);
+        }
+
+      }
+      if (key.equals(Property.CRYPTO_MODULE_CLASS.getKey()) && !(value == null || value.equals("NullCryptoModule"))) {
+        @SuppressWarnings("rawtypes")
+        Class mod = null;
+        try {
+          mod = Class.forName(value);
+        } catch (ClassNotFoundException e) {
+          fatal(key + " has invalid class name " + value);
+        }
+
+        if (!CryptoModule.class.isAssignableFrom(mod)) {
+          fatal(key + " must be a class that implements CryptoModule, instead received: " + value);
+        }
       }
     }
 
