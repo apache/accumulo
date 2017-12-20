@@ -772,6 +772,236 @@ public class Mutation implements Writable {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
   }
 
+  /**
+   * Fluent API for Mutation
+   *
+   * <p>
+   * Each step of the Mutation is represented by an interface. Inheritance order ensures that chained methods follow prescribed order of:
+   *
+   * <p>
+   * row, family, qualifier, visibility, timestamp
+   *
+   * <p>
+   * set and delete methods end the chain and finalize the mutation
+   */
+  public interface RowStep extends FamilyStep {
+    FamilyStep row(byte[] r);
+
+    FamilyStep row(CharSequence r);
+
+    FamilyStep row(ByteBuffer r);
+
+    FamilyStep row(Text t);
+  }
+
+  public interface FamilyStep extends QualifierStep {
+    QualifierStep family(byte[] f);
+
+    QualifierStep family(CharSequence f);
+
+    QualifierStep family(ByteBuffer f);
+
+    QualifierStep family(Text t);
+  }
+
+  public interface QualifierStep extends VisibilityStep {
+    VisibilityStep qualifier(byte[] q);
+
+    VisibilityStep qualifier(CharSequence q);
+
+    VisibilityStep qualifier(ByteBuffer q);
+
+    VisibilityStep qualifier(Text t);
+  }
+
+  public interface VisibilityStep extends TimestampStep {
+    TimestampStep visibility(byte[] cv);
+
+    TimestampStep visibility(ColumnVisibility cv);
+  }
+
+  public interface TimestampStep extends MutationStep {
+    MutationStep timestamp(long t);
+  }
+
+  public interface MutationStep {
+    void set(byte[] v, boolean delete);
+
+    void set(ByteBuffer v);
+
+    void set(Value v);
+
+    void delete();
+  }
+
+  public RowStep at() {
+    return new Step();
+  }
+
+  // private inner class implementing all interfaces
+  private class Step implements RowStep {
+    byte[] cf;
+    int cfLength;
+
+    byte[] cq;
+    int cqLength;
+
+    byte[] cv = null;
+    int cvLength;
+
+    // default to false, set to true if a timestamp is provided
+    boolean hasTs = false;
+    long timestamp;
+
+    private Step() {}
+
+    // row
+    public FamilyStep row(byte[] r) {
+      put(r);
+      return this;
+    }
+
+    public FamilyStep row(CharSequence r) {
+      return this;
+    }
+
+    public FamilyStep row(ByteBuffer r) {
+      return this;
+    }
+
+    public FamilyStep row(Text t) {
+      return this;
+    }
+
+    // family
+    public QualifierStep family(byte[] f, int fLength) {
+      cf = f;
+      cfLength = fLength;
+      return this;
+    }
+
+    public QualifierStep family(byte[] f) {
+      return family(f, f.length);
+    }
+
+    public QualifierStep family(Text f) {
+      return family(f.getBytes(), f.getLength());
+    }
+
+    public QualifierStep family(CharSequence f) {
+      return family(new Text(f.toString()));
+    }
+
+    public QualifierStep family(ByteBuffer f) {
+      return family(ByteBufferUtil.toBytes(f));
+    }
+
+    public VisibilityStep qualifier(byte[] q, int qLength) {
+      cq = q;
+      cqLength = qLength;
+      return this;
+    }
+
+    public VisibilityStep qualifier(byte[] q) {
+      return qualifier(q, q.length);
+    }
+
+    public VisibilityStep qualifier(Text q) {
+      return qualifier(q.getBytes(), q.getLength());
+    }
+
+    public VisibilityStep qualifier(CharSequence q) {
+      return qualifier(new Text(q.toString()));
+    }
+
+    public VisibilityStep qualifier(ByteBuffer q) {
+      return qualifier(ByteBufferUtil.toBytes(q));
+    }
+
+    public TimestampStep visibility(byte[] v) {
+      cv = v;
+      return this;
+    }
+
+    public TimestampStep visibility(ColumnVisibility v) {
+      return visibility(v.getExpression());
+    }
+
+    public MutationStep timestamp(long t) {
+      hasTs = true;
+      timestamp = t;
+      return this;
+    }
+
+    public void set(byte[] val, boolean delete) {
+      if (buffer == null) {
+        throw new IllegalStateException("Can not add to mutation after serializing it");
+      }
+
+      // fill buffer with column family location
+      buffer.writeVLong(cfLength);
+      buffer.add(cf, 0, cfLength);
+
+      // fill buffer with qualifier location
+      buffer.writeVLong(cqLength);
+      buffer.add(cq, 0, cqLength);
+
+      // fill buffer with visibility location
+      // if none given, fill with EMPTY_BYTES
+      if (cv == null) {
+        buffer.writeVLong(EMPTY_BYTES.length);
+        buffer.add(EMPTY_BYTES, 0, EMPTY_BYTES.length);
+      } else {
+        buffer.writeVLong(cvLength);
+        buffer.add(cv, 0, cvLength);
+      }
+
+      // fill buffer with timestamp location
+      // if none given, skip
+      buffer.add(hasTs);
+      if (hasTs) {
+        buffer.writeVLong(timestamp);
+      }
+
+      // indicate if this is a deletion
+      buffer.add(delete);
+
+      // fill buffer with value
+      if (val.length < VALUE_SIZE_COPY_CUTOFF) {
+        buffer.writeVLong(val.length);
+        buffer.add(val, 0, val.length);
+      } else {
+        if (values == null) {
+          values = new ArrayList<>();
+        }
+        byte copy[] = new byte[val.length];
+        System.arraycopy(val, 0, copy, 0, val.length);
+        values.add(copy);
+        put(-1 * values.size());
+      }
+
+      entries++;
+    }
+
+    // set finalizes the method chain by filling the buffer with the gathered Mutation configuration
+    public void set(byte[] v) {
+      set(v, false);
+    }
+
+    public void set(Value v) {
+      set(v.get(), false);
+    }
+
+    public void set(ByteBuffer v) {
+      set(ByteBufferUtil.toBytes(v), false);
+    }
+
+    public void delete() {
+      // call set() with a true delete flag and empty bytes for value
+      set(EMPTY_BYTES, true);
+    }
+  }
+
   private byte[] oldReadBytes(UnsynchronizedBuffer.Reader in) {
     int len = in.readInt();
     if (len == 0)

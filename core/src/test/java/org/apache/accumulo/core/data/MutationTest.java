@@ -187,7 +187,8 @@ public class MutationTest {
   public void testPuts() {
     Mutation m = new Mutation(new Text("r1"));
 
-    m.put(nt("cf1"), nt("cq1"), nv("v1"));
+    m.at().family(nt("cf1")).qualifier(nt("cq1")).set(nv("v1"));
+    // m.put(nt("cf1"), nt("cq1"), nv("v1"));
     m.put(nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), nv("v2"));
     m.put(nt("cf3"), nt("cq3"), 3l, nv("v3"));
     m.put(nt("cf4"), nt("cq4"), new ColumnVisibility("cv4"), 4l, nv("v4"));
