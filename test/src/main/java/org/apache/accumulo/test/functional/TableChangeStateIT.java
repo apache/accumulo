@@ -417,7 +417,8 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
             count++;
           }
 
-          log.trace("After compaction, scan time for {} rows {} ms", NUM_ROWS, TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
+          log.trace("After compaction, scan time for {} rows {} ms", NUM_ROWS,
+              TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
 
           if (count != NUM_ROWS) {
             throw new IllegalStateException(String.format("After compaction, number of rows %1$d does not match expected %2$d", count, NUM_ROWS));

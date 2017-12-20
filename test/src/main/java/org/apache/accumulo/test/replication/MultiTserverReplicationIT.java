@@ -59,29 +59,29 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
 
     // Wait for a tserver to come up to fulfill this request
     conn.tableOperations().create("foo");
-    Scanner s = conn.createScanner("foo", Authorizations.EMPTY);
-    Assert.assertEquals(0, Iterables.size(s));
+    try (Scanner s = conn.createScanner("foo", Authorizations.EMPTY)) {
+      Assert.assertEquals(0, Iterables.size(s));
 
-    ZooReader zreader = new ZooReader(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
-    Set<String> tserverHost = new HashSet<>();
-    tserverHost.addAll(zreader.getChildren(ZooUtil.getRoot(inst) + Constants.ZTSERVERS));
+      ZooReader zreader = new ZooReader(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
+      Set<String> tserverHost = new HashSet<>();
+      tserverHost.addAll(zreader.getChildren(ZooUtil.getRoot(inst) + Constants.ZTSERVERS));
 
-    Set<HostAndPort> replicationServices = new HashSet<>();
+      Set<HostAndPort> replicationServices = new HashSet<>();
 
-    for (String tserver : tserverHost) {
-      try {
-        byte[] portData = zreader.getData(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
-        HostAndPort replAddress = HostAndPort.fromString(new String(portData, UTF_8));
-        replicationServices.add(replAddress);
-      } catch (Exception e) {
-        log.error("Could not find port for {}", tserver, e);
-        Assert.fail("Did not find replication port advertisement for " + tserver);
+      for (String tserver : tserverHost) {
+        try {
+          byte[] portData = zreader.getData(ZooUtil.getRoot(inst) + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
+          HostAndPort replAddress = HostAndPort.fromString(new String(portData, UTF_8));
+          replicationServices.add(replAddress);
+        } catch (Exception e) {
+          log.error("Could not find port for {}", tserver, e);
+          Assert.fail("Did not find replication port advertisement for " + tserver);
+        }
       }
-    }
 
-    s.close();
-    // Each tserver should also have equial replicaiton services running internally
-    Assert.assertEquals("Expected an equal number of replication servicers and tservers", tserverHost.size(), replicationServices.size());
+      // Each tserver should also have equial replicaiton services running internally
+      Assert.assertEquals("Expected an equal number of replication servicers and tservers", tserverHost.size(), replicationServices.size());
+    }
   }
 
   @Test
@@ -92,26 +92,26 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
 
     // Wait for a tserver to come up to fulfill this request
     conn.tableOperations().create("foo");
-    Scanner s = conn.createScanner("foo", Authorizations.EMPTY);
-    Assert.assertEquals(0, Iterables.size(s));
+    try (Scanner s = conn.createScanner("foo", Authorizations.EMPTY)) {
+      Assert.assertEquals(0, Iterables.size(s));
 
-    ZooReader zreader = new ZooReader(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
+      ZooReader zreader = new ZooReader(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut());
 
-    // Should have one master instance
-    Assert.assertEquals(1, inst.getMasterLocations().size());
+      // Should have one master instance
+      Assert.assertEquals(1, inst.getMasterLocations().size());
 
-    // Get the master thrift service addr
-    String masterAddr = Iterables.getOnlyElement(inst.getMasterLocations());
+      // Get the master thrift service addr
+      String masterAddr = Iterables.getOnlyElement(inst.getMasterLocations());
 
-    // Get the master replication coordinator addr
-    String replCoordAddr = new String(zreader.getData(ZooUtil.getRoot(inst) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR, null), UTF_8);
+      // Get the master replication coordinator addr
+      String replCoordAddr = new String(zreader.getData(ZooUtil.getRoot(inst) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR, null), UTF_8);
 
-    // They shouldn't be the same
-    Assert.assertNotEquals(masterAddr, replCoordAddr);
+      // They shouldn't be the same
+      Assert.assertNotEquals(masterAddr, replCoordAddr);
 
-    // Neither should be zero as the port
-    Assert.assertNotEquals(0, HostAndPort.fromString(masterAddr).getPort());
-    Assert.assertNotEquals(0, HostAndPort.fromString(replCoordAddr).getPort());
-    s.close();
+      // Neither should be zero as the port
+      Assert.assertNotEquals(0, HostAndPort.fromString(masterAddr).getPort());
+      Assert.assertNotEquals(0, HostAndPort.fromString(replCoordAddr).getPort());
+    }
   }
 }

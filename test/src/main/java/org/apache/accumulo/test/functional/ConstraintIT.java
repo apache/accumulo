@@ -144,7 +144,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
       Entry<Key,Value> entry = iter.next();
 
-      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1")) || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -166,7 +167,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
       iter = scanner.iterator();
       entry = iter.next();
 
-      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1")) || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -205,7 +207,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
       iter = scanner.iterator();
       entry = iter.next();
 
-      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1")) || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -227,7 +230,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
       iter = scanner.iterator();
       entry = iter.next();
 
-      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1")) || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
@@ -311,13 +315,15 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
       Entry<Key,Value> entry = iter.next();
 
-      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1")) || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 
       entry = iter.next();
 
-      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1")) || !entry.getKey().getColumnQualifier().equals(new Text("cq4")) || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq4")) || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
         throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
       }
 

@@ -152,70 +152,76 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     log.info("State of metadata table after inserting a record");
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-    for (Entry<Key,Value> entry : s) {
-      System.out.println(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
+    Scanner s = null;
+    try {
+      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      for (Entry<Key,Value> entry : s) {
+        System.out.println(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
+      }
+
+      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      s.setRange(MetadataSchema.ReplicationSection.getRange());
+      for (Entry<Key,Value> entry : s) {
+        System.out.println(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+      }
+
+      log.info("Offline'ing table");
+
+      conn.tableOperations().offline(tableName, true);
+
+      // Add our fake WAL to the log column for this table
+      String walUri = tserverWal.toURI().toString();
+      KeyExtent extent = new KeyExtent(tableId, null, null);
+      bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      m = new Mutation(extent.getMetadataEntry());
+      m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME, new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
+      bw.addMutation(m);
+
+      // Add a replication entry for our fake WAL
+      m = new Mutation(MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri).toString());
+      m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.getUtf8()), new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
+      bw.addMutation(m);
+      bw.close();
+
+      log.info("State of metadata after injecting WAL manually");
+
+      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      for (Entry<Key,Value> entry : s) {
+        log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
+      }
+
+      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      s.setRange(MetadataSchema.ReplicationSection.getRange());
+      for (Entry<Key,Value> entry : s) {
+        log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
+      }
+
+      log.info("Bringing table online");
+      conn.tableOperations().online(tableName, true);
+
+      Assert.assertEquals(1, Iterables.size(conn.createScanner(tableName, Authorizations.EMPTY)));
+
+      log.info("Table has performed recovery, state of metadata:");
+
+      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      for (Entry<Key,Value> entry : s) {
+        log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
+      }
+
+      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      s.setRange(MetadataSchema.ReplicationSection.getRange());
+      for (Entry<Key,Value> entry : s) {
+        Status status = Status.parseFrom(entry.getValue().get());
+        log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
+        Assert.assertFalse("Status record was closed and it should not be", status.getClosed());
+      }
+    } finally {
+      if (s != null) {
+        s.close();
+      }
     }
-
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.ReplicationSection.getRange());
-    for (Entry<Key,Value> entry : s) {
-      System.out.println(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
-    }
-
-    log.info("Offline'ing table");
-
-    conn.tableOperations().offline(tableName, true);
-
-    // Add our fake WAL to the log column for this table
-    String walUri = tserverWal.toURI().toString();
-    KeyExtent extent = new KeyExtent(tableId, null, null);
-    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    m = new Mutation(extent.getMetadataEntry());
-    m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME, new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
-    bw.addMutation(m);
-
-    // Add a replication entry for our fake WAL
-    m = new Mutation(MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri).toString());
-    m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.getUtf8()), new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
-    bw.addMutation(m);
-    bw.close();
-
-    log.info("State of metadata after injecting WAL manually");
-
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-    for (Entry<Key,Value> entry : s) {
-      log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
-    }
-
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.ReplicationSection.getRange());
-    for (Entry<Key,Value> entry : s) {
-      log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
-    }
-
-    log.info("Bringing table online");
-    conn.tableOperations().online(tableName, true);
-
-    Assert.assertEquals(1, Iterables.size(conn.createScanner(tableName, Authorizations.EMPTY)));
-
-    log.info("Table has performed recovery, state of metadata:");
-
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-    for (Entry<Key,Value> entry : s) {
-      log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
-    }
-
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.ReplicationSection.getRange());
-    for (Entry<Key,Value> entry : s) {
-      Status status = Status.parseFrom(entry.getValue().get());
-      log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
-      Assert.assertFalse("Status record was closed and it should not be", status.getClosed());
-    }
-    s.close();
   }
 }

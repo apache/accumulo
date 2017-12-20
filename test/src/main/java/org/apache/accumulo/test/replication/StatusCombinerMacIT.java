@@ -127,7 +127,6 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       entry = Iterables.getOnlyElement(s);
       Status stat = Status.parseFrom(entry.getValue().get());
       Assert.assertEquals(Long.MAX_VALUE, stat.getBegin());
-      s.close();
     } finally {
       if (s != null) {
         s.close();

@@ -128,7 +128,6 @@ public class SampleIT extends AccumuloClusterHarness {
     String someRow = writeData(bw, SC1, expected);
     Assert.assertEquals(20, expected.size());
 
-
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     Scanner csiScanner = new ClientSideIteratorScanner(conn.createScanner(tableName, Authorizations.EMPTY));
@@ -376,7 +375,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
         }
       }
-    }  finally {
+    } finally {
       if (scanner != null) {
         scanner.close();
       }

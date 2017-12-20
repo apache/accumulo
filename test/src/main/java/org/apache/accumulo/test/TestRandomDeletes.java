@@ -85,7 +85,8 @@ public class TestRandomDeletes {
       scanner.setBatchSize(scanOpts.scanBatchSize);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
-        Column column = new Column(TextUtil.getBytes(key.getColumnFamily()), TextUtil.getBytes(key.getColumnQualifier()), TextUtil.getBytes(key.getColumnVisibility()));
+        Column column = new Column(TextUtil.getBytes(key.getColumnFamily()), TextUtil.getBytes(key.getColumnQualifier()), TextUtil.getBytes(key
+            .getColumnVisibility()));
         result.add(new RowColumn(key.getRow(), column, key.getTimestamp()));
       }
     }

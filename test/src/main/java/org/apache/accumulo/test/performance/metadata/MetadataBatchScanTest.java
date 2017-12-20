@@ -176,7 +176,6 @@ public class MetadataBatchScanTest {
   }
 
   private static ScanStats runScanTest(Connector connector, int numLoop, List<Range> ranges) throws Exception {
-    Scanner scanner = null;
     ScanStats stats = new ScanStats();
 
     try (BatchScanner bs = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
@@ -187,7 +186,7 @@ public class MetadataBatchScanTest {
 
       // System.out.println(ranges);
       for (int i = 0; i < numLoop; i++) {
-        ScanStat ss = scan(bs, ranges, scanner);
+        ScanStat ss = scan(bs, ranges, null);
         stats.merge(ss);
       }
     }

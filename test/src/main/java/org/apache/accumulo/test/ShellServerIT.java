@@ -1514,7 +1514,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       s.addScanIterator(cfg);
 
       Thread thread = new Thread() {
-        @Override public void run() {
+        @Override
+        public void run() {
           try {
             Iterators.size(s.iterator());
           } catch (Exception ex) {

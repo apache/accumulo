@@ -113,7 +113,9 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
       Assert.assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
       Assert.assertEquals(BatchWriterIterator.SUCCESS_VALUE, actual.getValue());
     } finally {
-      if (scanner != null) {scanner.close();}
+      if (scanner != null) {
+        scanner.close();
+      }
     }
 
     try {

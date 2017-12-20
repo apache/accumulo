@@ -206,8 +206,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       }
       bw.close();
 
-      try (Scanner one = c.createScanner(tableName, Authorizations.EMPTY);
-          Scanner two = c.createScanner(tableName, Authorizations.EMPTY)) {
+      try (Scanner one = c.createScanner(tableName, Authorizations.EMPTY); Scanner two = c.createScanner(tableName, Authorizations.EMPTY)) {
 
         IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
         one.addScanIterator(cfg);

@@ -189,12 +189,10 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
   private Map<KeyExtent,List<String>> getRecoveryMarkers(Connector c) throws Exception {
     Map<KeyExtent,List<String>> result = new HashMap<>();
-    try (Scanner root = c.createScanner(RootTable.NAME, EMPTY);
-        Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY)) {
+    try (Scanner root = c.createScanner(RootTable.NAME, EMPTY); Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY)) {
       root.setRange(TabletsSection.getRange());
       root.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(root);
-
 
       meta.setRange(TabletsSection.getRange());
       meta.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
@@ -214,8 +212,6 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
           logs = new ArrayList<>();
         }
       }
-      root.close();
-      meta.close();
     }
     return result;
   }

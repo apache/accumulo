@@ -123,7 +123,6 @@ public class WorkMakerIT extends ConfigurableMacBase {
       Assert.assertEquals(WorkSection.NAME, workKey.getColumnFamily());
       Assert.assertEquals(expected, actual);
       Assert.assertEquals(workEntry.getValue(), StatusUtil.fileCreatedValue(timeCreated));
-      s.close();
     } finally {
       if (s != null) {
         s.close();
@@ -222,6 +221,10 @@ public class WorkMakerIT extends ConfigurableMacBase {
       WorkSection.limit(s);
 
       Assert.assertEquals(0, Iterables.size(s));
+    } finally {
+      if (s != null) {
+        s.close();
+      }
     }
   }
 

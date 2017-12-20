@@ -95,7 +95,8 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
       while (true) {
         final StringBuilder finalBuffer = new StringBuilder();
         int traceCount = TraceDump.printTrace(scanner, new Printer() {
-          @Override public void print(final String line) {
+          @Override
+          public void print(final String line) {
             try {
               finalBuffer.append(line).append("\n");
             } catch (Exception ex) {

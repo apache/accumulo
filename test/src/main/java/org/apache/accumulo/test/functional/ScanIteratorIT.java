@@ -124,8 +124,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    try (Scanner scanner = c.createScanner(tableName, new Authorizations());
-        BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations()); BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
 
       setupIter(scanner);
       verify(scanner, 1, 999);
@@ -223,8 +222,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
     IteratorSetting setting = new IteratorSetting(10, AuthsIterator.class);
 
-    try (Scanner scanner = userC.createScanner(tableName, auths);
-        BatchScanner batchScanner = userC.createBatchScanner(tableName, auths, 1)){
+    try (Scanner scanner = userC.createScanner(tableName, auths); BatchScanner batchScanner = userC.createBatchScanner(tableName, auths, 1)) {
       scanner.addScanIterator(setting);
 
       batchScanner.setRanges(Collections.singleton(new Range("1")));

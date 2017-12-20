@@ -64,7 +64,6 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
     bw.close();
 
-
     Scanner scanner = null;
     BatchScanner bs = null;
     boolean caught = false;

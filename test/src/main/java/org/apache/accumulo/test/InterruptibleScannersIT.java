@@ -62,7 +62,8 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
       // create a thread to interrupt the slow scan
       final Thread scanThread = Thread.currentThread();
       Thread thread = new Thread() {
-        @Override public void run() {
+        @Override
+        public void run() {
           try {
             // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
             String tserver = conn.instanceOperations().getTabletServers().iterator().next();
@@ -94,8 +95,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
         // Use the scanner, expect problems
         Iterators.size(scanner.iterator());
         Assert.fail("Scan should not succeed");
-      } catch (Exception ex) {
-      } finally {
+      } catch (Exception ex) {} finally {
         thread.join();
       }
     }
