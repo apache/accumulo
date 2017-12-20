@@ -186,8 +186,8 @@ public class NewTableConfiguration {
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
       tmp.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
-    checkDisjoint(properties, tmp, "locality groups");
     tmp.put(Property.TABLE_LOCALITY_GROUPS.getKey(), groups.keySet().stream().collect(Collectors.joining(",")));
+    checkDisjoint(properties, tmp, "locality groups");
     localityProps = tmp;
     return this;
   }
