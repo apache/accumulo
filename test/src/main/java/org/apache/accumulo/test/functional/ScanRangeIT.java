@@ -157,55 +157,54 @@ public class ScanRangeIT extends AccumuloClusterHarness {
   }
 
   private void scanRange(Connector c, String table, IntKey ik1, boolean inclusive1, IntKey ik2, boolean inclusive2) throws Exception {
-    Scanner scanner = c.createScanner(table, Authorizations.EMPTY);
+    try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
 
-    Key key1 = null;
-    Key key2 = null;
+      Key key1 = null;
+      Key key2 = null;
 
-    IntKey expectedIntKey;
-    IntKey expectedEndIntKey;
+      IntKey expectedIntKey;
+      IntKey expectedEndIntKey;
 
-    if (ik1 != null) {
-      key1 = ik1.createKey();
-      expectedIntKey = ik1;
+      if (ik1 != null) {
+        key1 = ik1.createKey();
+        expectedIntKey = ik1;
 
-      if (!inclusive1) {
+        if (!inclusive1) {
+          expectedIntKey = expectedIntKey.increment();
+        }
+      } else {
+        expectedIntKey = new IntKey(0, 0, 0, 0);
+      }
+
+      if (ik2 != null) {
+        key2 = ik2.createKey();
+        expectedEndIntKey = ik2;
+
+        if (inclusive2) {
+          expectedEndIntKey = expectedEndIntKey.increment();
+        }
+      } else {
+        expectedEndIntKey = new IntKey(ROW_LIMIT, 0, 0, 0);
+      }
+
+      Range range = new Range(key1, inclusive1, key2, inclusive2);
+
+      scanner.setRange(range);
+
+      for (Entry<Key,Value> entry : scanner) {
+
+        Key expectedKey = expectedIntKey.createKey();
+        if (!expectedKey.equals(entry.getKey())) {
+          throw new Exception(" " + expectedKey + " != " + entry.getKey());
+        }
+
         expectedIntKey = expectedIntKey.increment();
       }
-    } else {
-      expectedIntKey = new IntKey(0, 0, 0, 0);
-    }
 
-    if (ik2 != null) {
-      key2 = ik2.createKey();
-      expectedEndIntKey = ik2;
-
-      if (inclusive2) {
-        expectedEndIntKey = expectedEndIntKey.increment();
+      if (!expectedIntKey.createKey().equals(expectedEndIntKey.createKey())) {
+        throw new Exception(" " + expectedIntKey.createKey() + " != " + expectedEndIntKey.createKey());
       }
-    } else {
-      expectedEndIntKey = new IntKey(ROW_LIMIT, 0, 0, 0);
     }
-
-    Range range = new Range(key1, inclusive1, key2, inclusive2);
-
-    scanner.setRange(range);
-
-    for (Entry<Key,Value> entry : scanner) {
-
-      Key expectedKey = expectedIntKey.createKey();
-      if (!expectedKey.equals(entry.getKey())) {
-        throw new Exception(" " + expectedKey + " != " + entry.getKey());
-      }
-
-      expectedIntKey = expectedIntKey.increment();
-    }
-
-    if (!expectedIntKey.createKey().equals(expectedEndIntKey.createKey())) {
-      throw new Exception(" " + expectedIntKey.createKey() + " != " + expectedEndIntKey.createKey());
-    }
-
-    scanner.close();
   }
 
   private static Text createCF(int cf) {

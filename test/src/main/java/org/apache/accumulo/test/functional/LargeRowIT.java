@@ -188,33 +188,33 @@ public class LargeRowIT extends AccumuloClusterHarness {
 
     r.setSeed(SEED);
 
-    Scanner scanner = c.createScanner(table, Authorizations.EMPTY);
+    try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
 
-    for (int i = 0; i < NUM_ROWS; i++) {
+      for (int i = 0; i < NUM_ROWS; i++) {
 
-      r.nextBytes(rowData);
-      TestIngest.toPrintableChars(rowData);
+        r.nextBytes(rowData);
+        TestIngest.toPrintableChars(rowData);
 
-      scanner.setRange(new Range(new Text(rowData)));
+        scanner.setRange(new Range(new Text(rowData)));
 
-      int count = 0;
+        int count = 0;
 
-      for (Entry<Key,Value> entry : scanner) {
-        if (!entry.getKey().getRow().equals(new Text(rowData))) {
-          throw new Exception("verification failed, unexpected row i =" + i);
+        for (Entry<Key,Value> entry : scanner) {
+          if (!entry.getKey().getRow().equals(new Text(rowData))) {
+            throw new Exception("verification failed, unexpected row i =" + i);
+          }
+          if (!entry.getValue().equals(new Value(Integer.toString(i).getBytes(UTF_8)))) {
+            throw new Exception("verification failed, unexpected value i =" + i + " value = " + entry.getValue());
+          }
+          count++;
         }
-        if (!entry.getValue().equals(new Value(Integer.toString(i).getBytes(UTF_8)))) {
-          throw new Exception("verification failed, unexpected value i =" + i + " value = " + entry.getValue());
+
+        if (count != 1) {
+          throw new Exception("verification failed, unexpected count i =" + i + " count=" + count);
         }
-        count++;
-      }
 
-      if (count != 1) {
-        throw new Exception("verification failed, unexpected count i =" + i + " count=" + count);
       }
-
     }
-    scanner.close();
   }
 
 }

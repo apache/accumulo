@@ -657,7 +657,6 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   private void testGrantedTablePermission(Connector test_user_conn, ClusterUser normalUser, TablePermission perm, String tableName) throws AccumuloException,
       TableExistsException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
-    Scanner scanner;
     BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the presence of the {} permission properly permits the user", perm);
@@ -665,12 +664,11 @@ public class PermissionsIT extends AccumuloClusterHarness {
     // test permission after granting it
     switch (perm) {
       case READ:
-        scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY);
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        while (iter.hasNext())
-          iter.next();
-
-        scanner.close();
+        try (Scanner scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY)) {
+          Iterator<Entry<Key,Value>> iter = scanner.iterator();
+          while (iter.hasNext())
+            iter.next();
+        }
         break;
       case WRITE:
         writer = test_user_conn.createBatchWriter(tableName, new BatchWriterConfig());

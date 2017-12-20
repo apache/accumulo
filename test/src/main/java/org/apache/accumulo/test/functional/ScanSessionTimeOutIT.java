@@ -106,18 +106,18 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    Scanner scanner = c.createScanner(tableName, new Authorizations());
-    scanner.setBatchSize(1000);
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations())) {
+      scanner.setBatchSize(1000);
 
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
+      Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
-    verify(iter, 0, 200);
+      verify(iter, 0, 200);
 
-    // sleep three times the session timeout
-    sleepUninterruptibly(9, TimeUnit.SECONDS);
+      // sleep three times the session timeout
+      sleepUninterruptibly(9, TimeUnit.SECONDS);
 
-    verify(iter, 200, 100000);
-    scanner.close();
+      verify(iter, 200, 100000);
+    }
   }
 
   protected void verify(Iterator<Entry<Key,Value>> iter, int start, int stop) throws Exception {

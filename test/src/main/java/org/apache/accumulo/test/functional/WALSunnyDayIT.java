@@ -158,10 +158,10 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   }
 
   private void verifySomeData(Connector c, String tableName, int expected) throws Exception {
-    Scanner scan = c.createScanner(tableName, EMPTY);
-    int result = Iterators.size(scan.iterator());
-    scan.close();
-    Assert.assertEquals(expected, result);
+    try (Scanner scan = c.createScanner(tableName, EMPTY)) {
+      int result = Iterators.size(scan.iterator());
+      Assert.assertEquals(expected, result);
+    }
   }
 
   private void writeSomeData(Connector conn, String tableName, int row, int col) throws Exception {
@@ -189,32 +189,34 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
   private Map<KeyExtent,List<String>> getRecoveryMarkers(Connector c) throws Exception {
     Map<KeyExtent,List<String>> result = new HashMap<>();
-    Scanner root = c.createScanner(RootTable.NAME, EMPTY);
-    root.setRange(TabletsSection.getRange());
-    root.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
-    TabletColumnFamily.PREV_ROW_COLUMN.fetch(root);
+    try (Scanner root = c.createScanner(RootTable.NAME, EMPTY);
+        Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY)) {
+      root.setRange(TabletsSection.getRange());
+      root.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(root);
 
-    Scanner meta = c.createScanner(MetadataTable.NAME, EMPTY);
-    meta.setRange(TabletsSection.getRange());
-    meta.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
-    TabletColumnFamily.PREV_ROW_COLUMN.fetch(meta);
 
-    List<String> logs = new ArrayList<>();
-    Iterator<Entry<Key,Value>> both = Iterators.concat(root.iterator(), meta.iterator());
-    while (both.hasNext()) {
-      Entry<Key,Value> entry = both.next();
-      Key key = entry.getKey();
-      if (key.getColumnFamily().equals(TabletsSection.LogColumnFamily.NAME)) {
-        logs.add(key.getColumnQualifier().toString());
+      meta.setRange(TabletsSection.getRange());
+      meta.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(meta);
+
+      List<String> logs = new ArrayList<>();
+      Iterator<Entry<Key,Value>> both = Iterators.concat(root.iterator(), meta.iterator());
+      while (both.hasNext()) {
+        Entry<Key,Value> entry = both.next();
+        Key key = entry.getKey();
+        if (key.getColumnFamily().equals(TabletsSection.LogColumnFamily.NAME)) {
+          logs.add(key.getColumnQualifier().toString());
+        }
+        if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key) && !logs.isEmpty()) {
+          KeyExtent extent = new KeyExtent(key.getRow(), entry.getValue());
+          result.put(extent, logs);
+          logs = new ArrayList<>();
+        }
       }
-      if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key) && !logs.isEmpty()) {
-        KeyExtent extent = new KeyExtent(key.getRow(), entry.getValue());
-        result.put(extent, logs);
-        logs = new ArrayList<>();
-      }
+      root.close();
+      meta.close();
     }
-    root.close();
-    meta.close();
     return result;
   }
 

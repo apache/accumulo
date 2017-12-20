@@ -76,14 +76,14 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
     cluster.start();
 
     // use the tservers
-    Scanner s = c.createScanner("test_ingest", Authorizations.EMPTY);
-    Iterator<Entry<Key,Value>> i = s.iterator();
-    assertTrue(i.hasNext());
-    assertEquals("row", i.next().getKey().getRow().toString());
-    assertFalse(i.hasNext());
-    // use the master
-    c.tableOperations().delete("test_ingest");
-    s.close();
+    try (Scanner s = c.createScanner("test_ingest", Authorizations.EMPTY)) {
+      Iterator<Entry<Key,Value>> i = s.iterator();
+      assertTrue(i.hasNext());
+      assertEquals("row", i.next().getKey().getRow().toString());
+      assertFalse(i.hasNext());
+      // use the master
+      c.tableOperations().delete("test_ingest");
+    }
   }
 
 }

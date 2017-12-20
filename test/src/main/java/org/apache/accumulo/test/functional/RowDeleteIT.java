@@ -80,30 +80,36 @@ public class RowDeleteIT extends AccumuloClusterHarness {
 
     checkRFiles(c, tableName, 1, 1, 1, 1);
 
-    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    int count = Iterators.size(scanner.iterator());
-    assertEquals("count == " + count, 2, count);
+    Scanner scanner = null;
+    try {
+      scanner = c.createScanner(tableName, Authorizations.EMPTY);
+      int count = Iterators.size(scanner.iterator());
+      assertEquals("count == " + count, 2, count);
 
-    bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
+      bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
 
-    bw.flush();
-    c.tableOperations().flush(tableName, null, null, true);
+      bw.flush();
+      c.tableOperations().flush(tableName, null, null, true);
 
-    checkRFiles(c, tableName, 1, 1, 2, 2);
+      checkRFiles(c, tableName, 1, 1, 2, 2);
 
-    scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    count = Iterators.size(scanner.iterator());
-    assertEquals("count == " + count, 3, count);
+      scanner = c.createScanner(tableName, Authorizations.EMPTY);
+      count = Iterators.size(scanner.iterator());
+      assertEquals("count == " + count, 3, count);
 
-    c.tableOperations().compact(tableName, null, null, false, true);
+      c.tableOperations().compact(tableName, null, null, false, true);
 
-    checkRFiles(c, tableName, 1, 1, 0, 0);
+      checkRFiles(c, tableName, 1, 1, 0, 0);
 
-    scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    count = Iterators.size(scanner.iterator());
-    assertEquals("count == " + count, 0, count);
-    bw.close();
-    scanner.close();
+      scanner = c.createScanner(tableName, Authorizations.EMPTY);
+      count = Iterators.size(scanner.iterator());
+      assertEquals("count == " + count, 0, count);
+      bw.close();
+    } finally {
+      if (scanner != null) {
+        scanner.close();
+      }
+    }
   }
 
 }

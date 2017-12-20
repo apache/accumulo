@@ -163,32 +163,31 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
   }
 
   private Table<String,String,MutableInt> getCounts(Connector conn, String tablename) throws TableNotFoundException {
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-    org.apache.accumulo.core.client.impl.Table.ID tableId = org.apache.accumulo.core.client.impl.Table.ID
-        .of(conn.tableOperations().tableIdMap().get(tablename));
-    s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+      org.apache.accumulo.core.client.impl.Table.ID tableId = org.apache.accumulo.core.client.impl.Table.ID.of(conn.tableOperations().tableIdMap().get(tablename));
+      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
 
-    Table<String,String,MutableInt> groupLocationCounts = HashBasedTable.create();
+      Table<String,String,MutableInt> groupLocationCounts = HashBasedTable.create();
 
-    for (Entry<Key,Value> entry : s) {
-      String group = entry.getKey().getRow().toString();
-      if (group.endsWith("<")) {
-        group = "03";
-      } else {
-        group = group.substring(tableId.canonicalID().length() + 1).substring(0, 2);
+      for (Entry<Key,Value> entry : s) {
+        String group = entry.getKey().getRow().toString();
+        if (group.endsWith("<")) {
+          group = "03";
+        } else {
+          group = group.substring(tableId.canonicalID().length() + 1).substring(0, 2);
+        }
+        String loc = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()).toString();
+
+        MutableInt count = groupLocationCounts.get(group, loc);
+        if (count == null) {
+          count = new MutableInt(0);
+          groupLocationCounts.put(group, loc, count);
+        }
+
+        count.increment();
       }
-      String loc = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()).toString();
-
-      MutableInt count = groupLocationCounts.get(group, loc);
-      if (count == null) {
-        count = new MutableInt(0);
-        groupLocationCounts.put(group, loc, count);
-      }
-
-      count.increment();
+      return groupLocationCounts;
     }
-    s.close();
-    return groupLocationCounts;
   }
 }
