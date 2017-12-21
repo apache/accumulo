@@ -74,23 +74,6 @@ function recoveryList() {
 
     var items = [];
 
-    var columns = ['Server&nbsp;', 'Log&nbsp;', 'Time&nbsp;', 'Copy/Sort&nbsp;'];
-
-    /*
-     * Create the header for the recovery list table
-     * Adds the columns, add sortTable function on click,
-     * if the column has a description, add title taken from the global.js
-     */
-    for (i = 0; i < columns.length; i++) {
-      var first = i == 0 ? true : false;
-      items.push(createHeaderCell(first, 'sortTable(' + i + ')',
-          '', columns[i]));
-    }
-
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#recoveryList');
-
     // Creates the table for the recovery list
     $.each(data.recoveryList, function(key, val) {
       var items = [];
@@ -99,7 +82,7 @@ function recoveryList() {
       var date = new Date(parseInt(val.time));
       date = date.toLocaleString().split(' ').join('&nbsp;');
       items.push(createRightCell(val.time, date));
-      items.push(createRightCell(val.copySort, val.copySort));
+      items.push(createRightCell(val.progress, val.progress));
 
       $('<tr/>', {
         html: items.join('')
@@ -165,22 +148,4 @@ function refreshMasterTable() {
      html: items.join('')
     }).appendTo('#masterStatus');
   }
-}
-
-/**
- * Sorts the masterStatus table on the selected column
- *
- * @param {number} n Column number to sort by
- */
-function sortMasterTable(n) {
-  if (sessionStorage.tableColumnSort !== undefined &&
-      sessionStorage.tableColumnSort == n &&
-      sessionStorage.direction !== undefined) {
-    direction = sessionStorage.direction === 'asc' ? 'desc' : 'asc';
-  } else {
-    direction = sessionStorage.direction === undefined ?
-        'asc' : sessionStorage.direction;
-  }
-  sessionStorage.tableColumnSort = n;
-  sortTables('masterStatus', direction, n);
 }

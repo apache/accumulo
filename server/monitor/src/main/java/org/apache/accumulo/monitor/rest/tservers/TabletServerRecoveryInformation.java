@@ -29,7 +29,7 @@ public class TabletServerRecoveryInformation {
   public String server = "";
   public String log = "";
   public int time = 0;
-  public double copySort = 0d;
+  public double progress = 0d;
 
   public TabletServerRecoveryInformation() {}
 
@@ -42,13 +42,13 @@ public class TabletServerRecoveryInformation {
    *          Log of the tserver
    * @param time
    *          Recovery runtime
-   * @param copySort
+   * @param progress
    *          Recovery progress
    */
-  public TabletServerRecoveryInformation(String server, String log, int time, double copySort) {
+  public TabletServerRecoveryInformation(String server, String log, int time, double progress) {
     this.server = server;
     this.log = log;
     this.time = time;
-    this.copySort = copySort;
+    this.progress = progress;
   }
 }

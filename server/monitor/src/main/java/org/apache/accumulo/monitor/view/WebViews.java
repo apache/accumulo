@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.glassfish.jersey.server.mvc.Template;
 import org.slf4j.Logger;
@@ -136,13 +135,12 @@ public class WebViews {
     List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
 
     Map<String,Object> model = getModel();
-    model.put("title", "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), false).getHost()));
+    model.put("title", "Master Server");
     model.put("template", "master.ftl");
     model.put("js", "master.js");
 
     model.put("tablesTitle", "Table Status");
     model.put("tablesTemplate", "tables.ftl");
-    model.put("tablesJs", "tables.js");
     return model;
   }
 
@@ -275,7 +273,6 @@ public class WebViews {
     model.put("title", "Table Status"); // Need this for the browser tab title
     model.put("tablesTitle", "Table Status");
     model.put("template", "tables.ftl");
-    model.put("js", "tables.js");
 
     return model;
   }
@@ -386,9 +383,7 @@ public class WebViews {
 
     Map<String,Object> model = getModel();
     model.put("title", "Recent Logs");
-
     model.put("template", "log.ftl");
-    model.put("js", "log.js");
 
     return model;
   }

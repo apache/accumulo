@@ -22,7 +22,6 @@ html,body {
   color: #333333;
   font-size: 10pt;
   font-family: verdana, arial, sans-serif;
-  text-align: center;
 }
 
 #banner {
@@ -292,6 +291,10 @@ pre.logevent {
 .right {
   text-align: right;
   margin-right: 0;
+}
+
+.align-left {
+  float: left;
 }
 
 .error, .error a {

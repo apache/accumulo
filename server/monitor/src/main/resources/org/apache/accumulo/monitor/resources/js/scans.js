@@ -79,21 +79,3 @@ function refreshScansTable() {
     });
   }
 }
-
-/**
- * Sorts the scanStatus table on the selected column
- *
- * @param {number} n Column number to sort by
- */
-function sortTable(n) {
-  if (sessionStorage.tableColumnSort !== undefined &&
-      sessionStorage.tableColumnSort == n &&
-      sessionStorage.direction !== undefined) {
-    direction = sessionStorage.direction === 'asc' ? 'desc' : 'asc';
-  } else {
-    direction = sessionStorage.direction === undefined ?
-        'asc' : sessionStorage.direction;
-  }
-  sessionStorage.tableColumnSort = n;
-  sortTables('scanStatus', direction, n);
-}

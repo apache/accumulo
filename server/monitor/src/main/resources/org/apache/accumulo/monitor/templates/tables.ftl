@@ -15,43 +15,84 @@
   limitations under the License.
 -->
       <script type="text/javascript">
+      var tableList;
         /**
-         * Creates tables initial table
+         * Creates DataTables table
+         *   - uses ajax call for data source and saves sort state in session
+         *   - defines custom number formats
          */
         $(document).ready(function() {
-          refreshTables();
-          <#if tablesJs??>
-            toggleMaster(true);
+          $(document).tooltip();
+          tableList = $('#tableList').DataTable( {
+                "ajax": {
+                  "url": "/rest/tables",
+                  "dataSrc": "table"
+                },
+                "stateSave": true,
+                "columnDefs": [
+                    { "type": "num",
+                      "targets": "big-num",
+                      "render": function ( data, type, row ) {
+                        if(type === 'display')
+                          data = bigNumberForQuantity(data);
+                        return data;
+                      }
+                    }
+                  ],
+                "columns": [
+                    { "data": "tablename",
+                      "type": "html",
+                      "render": function ( data, type, row, meta ) {
+                        if(type === 'display'){
+                            data = '<a href="/tables/' + row.tableId + '">' + row.tablename + '</a>';
+                        }
+                        return data;
+                      }
+                    },
+                    { "data": "tableState" },
+                    { "data": "tablets" },
+                    { "data": "offlineTablets" },
+                    { "data": "recs" },
+                    { "data": "recsInMemory" },
+                    { "data": "ingestRate" },
+                    { "data": "entriesRead" },
+                    { "data": "entriesReturned" },
+                    { "data": "holdTime" },
+                    { "data": "scansCombo" },
+                    { "data": "minorCombo" },
+                    { "data": "majorCombo" }
+                  ]
+            } );
+        });
+
+        /**
+         * Used to refresh the table
+         */
+        function refresh() {
+          <#if js??>
+            refreshMaster();
           </#if>
 
-          // Create tooltip for table column information
-          $(document).tooltip();
-        });
+          tableList.ajax.reload();
+        }
       </script>
       <div><h3>${tablesTitle}</h3></div>
-      <div id="tablesBanner"></div>
-      <div class="center-block">
-        <div>
-          <select id="namespaces" data-placeholder="Select a namespace" multiple="multiple" style="width: 100%;">
-          </select>
-        </div>
-      </div>
-      <div class="center-block">
-        <table id="tableList" class="table table-bordered table-striped table-condensed">
-          <tbody>
-            <tr><th class="firstcell sortable" onclick="sortTable(0)">Table&nbsp;Name&nbsp;<span class="glyphicon glyphicon-chevron-up"></span></th>
-                <th onclick="sortTable(1)" class="sortable">State&nbsp;</th>
-                <th onclick="sortTable(2)" title="Tables are broken down into ranges of rows called tablets." class="sortable">#&nbsp;Tablets&nbsp;</th>
-                <th onclick="sortTable(3)" title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing." class="sortable">#&nbsp;Offline<br/>Tablets&nbsp;</th>
-                <th onclick="sortTable(4)" title="Key/value pairs over each instance, table or tablet." class="sortable">Entries&nbsp;</th>
-                <th onclick="sortTable(5)" title="The total number of key/value pairs stored in memory and not yet written to disk." class="sortable">Entries<br/>In&nbsp;Memory&nbsp;</th>
-                <th onclick="sortTable(6)" title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="sortable">Ingest&nbsp;</th>
-                <th onclick="sortTable(7)" title="The number of Key/Value pairs read on the server side.Not all key values read may be returned to client because of filtering." class="sortable">Entries<br/>Read&nbsp;</th>
-                <th onclick="sortTable(8)" title="The number of Key/Value pairs returned to clients during queries. This is not the number of scans." class="sortable">Entries<br/>Returned&nbsp;</th>
-                <th onclick="sortTable(9)" title="The amount of time that ingest operations are suspended while waiting for data to be written to disk." class="sortable">Hold&nbsp;Time&nbsp;</th>
-                <th onclick="sortTable(10)" title="Information about the scans threads. Shows how many threads are running and how much work is queued for the threads." class="sortable">Running<br/>Scans&nbsp;</th>
-                <th onclick="sortTable(11)" title="The action of flushing memory to disk. Multiple tablets can be compacted simultaneously, but sometimes they must wait for resources to be available. The number of tablets waiting for compaction are in parentheses." class="sortable">Minor<br/>Compactions&nbsp;</th>
-                <th onclick="sortTable(12)" title="The action of gathering up many small files and rewriting them as one larger file. The number of tablets waiting for compaction are in parentheses." class="sortable">Major<br/>Compactions&nbsp;</th></tr>
-          </tbody>
+      <div>
+          <table id="tableList" class="table table-bordered table-striped table-condensed">
+          <thead>
+            <tr><th>Table&nbsp;Name</th>
+                <th>State</th>
+                <th title="Tables are broken down into ranges of rows called tablets." class="big-num">Tablets</th>
+                <th title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing." class="big-num">Offline</th>
+                <th title="Key/value pairs over each instance, table or tablet." class="big-num">Entries&nbsp</th>
+                <th title="The total number of key/value pairs stored in memory and not yet written to disk." class="big-num">In&nbsp;Mem</th>
+                <th title="The rate of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="big-num">Ingest</th>
+                <th title="The rate of Key/Value pairs read on the server side. Not all key values read may be returned to client because of filtering." class="big-num">Read</th>
+                <th title="The rate of Key/Value pairs returned to clients during queries. This is not the number of scans." class="big-num">Returned</th>
+                <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk." class="big-num">Hold&nbsp;Time</th>
+                <th title="Running scans. The number queued waiting are in parentheses.">Scans</th>
+                <th title="Minor Compactions. The number of tablets waiting for compaction are in parentheses.">MinC</th>
+                <th title="Major Compactions. The number of tablets waiting for compaction are in parentheses.">MajC</th></tr>
+          </thead>
         </table>
       </div>

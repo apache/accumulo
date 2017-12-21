@@ -16,6 +16,7 @@
 */
 
 var serv;
+var tabletResults;
 /**
  * Makes the REST calls, generates the tables with the new information
  */
@@ -193,92 +194,5 @@ function refreshCurrentTable() {
  * Generates the server results table
  */
 function refreshResultsTable() {
-
-  $('#perTabletResults tr:gt(0)').remove();
-
-  var data = sessionStorage.server === undefined ?
-      [] : JSON.parse(sessionStorage.server);
-
-  if (data.length === 0 || data.currentOperations === undefined) {
-    var row = [];
-
-    row.push(createEmptyRow(11, 'Empty'));
-
-    $('<tr/>', {
-      html: row.join('')
-    }).appendTo('#perTabletResults');
-  } else {
-    $.each(data.currentOperations, function(key, val) {
-      var row = [];
-
-      row.push(createFirstCell(val.name,
-          '<a href="/tables/' + val.tableID + '">' + val.name + '</a>'));
-
-      row.push(createLeftCell(val.tablet, '<code>' + val.tablet + '</code>'));
-
-      row.push(createRightCell((val.entries == null ? 0 : val.entries),
-          bigNumberForQuantity(val.entries)));
-
-      row.push(createRightCell((val.ingest == null ? 0 : val.ingest),
-          bigNumberForQuantity(Math.floor(val.ingest))));
-
-      row.push(createRightCell((val.query == null ? 0 : val.query),
-          bigNumberForQuantity(Math.floor(val.query))));
-
-      row.push(createRightCell((val.minorAvg == null ?
-          '-' : val.minorAvg * 1000.0),
-          (val.minorAvg == null ?
-          '&mdash;' : timeDuration(val.minorAvg * 1000.0))));
-
-      row.push(createRightCell((val.minorStdDev == null ?
-          '-' : val.minorStdDev * 1000.0),
-          (val.minorStdDev == null ?
-          '&mdash;' : timeDuration(val.minorStdDev * 1000.0))));
-
-      row.push(createRightCell((val.minorAvgES == null ? 0 : val.minorAvgES),
-          bigNumberForQuantity(Math.floor(val.minorAvgES))));
-
-      row.push(createRightCell((val.majorAvg == null ?
-          '-' : val.majorAvg * 1000.0),
-          (val.majorAvg == null ?
-          '&mdash;' : timeDuration(val.majorAvg * 1000.0))));
-
-      row.push(createRightCell((val.majorStdDev == null ?
-          '-' : val.majorStdDev * 1000.0),
-          (val.majorStdDev == null ?
-          '&mdash;' : timeDuration(val.majorStdDev * 1000.0))));
-
-      row.push(createRightCell((val.majorAvgES == null ?
-          0 : val.majorAvgES),
-          bigNumberForQuantity(Math.floor(val.majorAvgES))));
-
-      $('<tr/>', {
-        html: row.join('')
-      }).appendTo('#perTabletResults');
-    });
-  }
-}
-
-/**
- * Sorts the different server status tables on the selected column
- *
- * @param {string} table Table ID to sort
- * @param {number} n Column number to sort by
- */
-function sortTable(table, n) {
-  var tableIDs = ['tServerDetail', 'opHistoryDetails',
-      'currentTabletOps', 'perTabletResults'];
-
-  if (sessionStorage.tableColumnSort !== undefined &&
-      sessionStorage.tableColumnSort == n &&
-      sessionStorage.direction !== undefined) {
-    direction = sessionStorage.direction === 'asc' ? 'desc' : 'asc';
-  } else {
-    direction = sessionStorage.direction === undefined ?
-        'asc' : sessionStorage.direction;
-  }
-  sessionStorage.tableColumn = tableIDs[table];
-  sessionStorage.tableColumnSort = n;
-
-  sortTables(tableIDs[table], direction, n);
+  tabletResults.ajax.reload();
 }

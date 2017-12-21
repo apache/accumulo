@@ -23,10 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.apache.accumulo.monitor.rest.logs.DeadLoggerList;
 import org.apache.accumulo.monitor.rest.master.MasterInformation;
-import org.apache.accumulo.monitor.rest.tables.TableInformation;
 import org.apache.accumulo.monitor.rest.tables.TableInformationList;
-import org.apache.accumulo.monitor.rest.tables.TableNamespace;
-import org.apache.accumulo.monitor.rest.tables.TablesList;
 import org.apache.accumulo.monitor.rest.tservers.BadTabletServers;
 import org.apache.accumulo.monitor.rest.tservers.DeadServerList;
 import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
@@ -70,7 +67,7 @@ public class XMLInformation {
    * @param tablesList
    *          Table list
    */
-  public XMLInformation(int size, MasterInformation info, TablesList tablesList) {
+  public XMLInformation(int size, MasterInformation info, TableInformationList tablesList) {
     this.servers = new ArrayList<>(size);
 
     this.masterGoalState = info.masterGoalState;
@@ -82,7 +79,7 @@ public class XMLInformation {
     this.deadTabletServers = info.deadTabletServers;
     this.deadLoggers = info.deadLoggers;
 
-    getTableInformationList(tablesList.tables);
+    this.tables = tablesList;
 
     this.totals = new Totals(info.ingestrate, info.queryrate, info.numentries);
   }
@@ -95,19 +92,5 @@ public class XMLInformation {
    */
   public void addTabletServer(TabletServer tablet) {
     servers.add(tablet);
-  }
-
-  /**
-   * For backwards compatibility, gets all the tables without namespace information
-   */
-  private void getTableInformationList(List<TableNamespace> namespaces) {
-
-    this.tables = new TableInformationList();
-
-    for (TableNamespace namespace : namespaces) {
-      for (TableInformation info : namespace.table) {
-        tables.addTable(info);
-      }
-    }
   }
 }

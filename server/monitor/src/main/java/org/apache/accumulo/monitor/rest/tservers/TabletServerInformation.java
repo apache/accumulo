@@ -38,6 +38,7 @@ import org.apache.accumulo.server.util.TableInfoUtil;
  *
  */
 public class TabletServerInformation {
+  private final String ZERO_COMBO = "0(0)";
 
   // Variable names become JSON keys
   @XmlAttribute(name = "id")
@@ -66,10 +67,16 @@ public class TabletServerInformation {
   public String ip;
   private Integer scansRunning;
   private Integer scansQueued;
+  // combo string with running value and number queued in parenthesis
+  public String minorCombo;
+  public String majorCombo;
+  public String scansCombo;
   private Integer minorRunning;
   private Integer minorQueued;
+
   private Integer majorRunning;
   private Integer majorQueued;
+
   private CompactionsList scansCompacting; // if scans is removed, change scansCompacting to scans
   private CompactionsList major;
   private CompactionsList minor;
@@ -113,25 +120,28 @@ public class TabletServerInformation {
     this.lastContact = now - thriftStatus.lastContact;
     this.responseTime = thriftStatus.responseTime;
     this.entries = summary.recs;
-    this.ingest = summary.ingestRate;
-    this.query = summary.queryRate;
+    this.ingest = cleanNumber(summary.ingestRate);
+    this.query = cleanNumber(summary.queryRate);
 
     this.holdtime = thriftStatus.holdTime;
 
-    this.scansRunning = summary.scans != null ? summary.scans.running : null;
-    this.scansQueued = summary.scans != null ? summary.scans.queued : null;
+    this.scansRunning = summary.scans != null ? summary.scans.running : 0;
+    this.scansQueued = summary.scans != null ? summary.scans.queued : 0;
+    this.scansCombo = scansRunning + "(" + scansQueued + ")";
 
     this.scans = this.scansRunning;
 
     this.scansCompacting = new CompactionsList(this.scansRunning, this.scansQueued);
 
-    this.minorRunning = summary.minors != null ? summary.minors.running : null;
-    this.minorQueued = summary.minors != null ? summary.minors.queued : null;
+    this.minorRunning = summary.minors != null ? summary.minors.running : 0;
+    this.minorQueued = summary.minors != null ? summary.minors.queued : 0;
+    this.minorCombo = minorRunning + "(" + minorQueued + ")";
 
     this.minor = new CompactionsList(this.minorRunning, this.minorQueued);
 
-    this.majorRunning = summary.majors != null ? summary.majors.running : null;
-    this.majorQueued = summary.majors != null ? summary.majors.queued : null;
+    this.majorRunning = summary.majors != null ? summary.majors.running : 0;
+    this.majorQueued = summary.majors != null ? summary.majors.queued : 0;
+    this.majorCombo = majorRunning + "(" + majorQueued + ")";
 
     this.major = new CompactionsList(this.majorRunning, this.majorQueued);
 
@@ -149,8 +159,8 @@ public class TabletServerInformation {
     this.indexCacheHitRate = this.indexCacheHits / (double) Math.max(this.indexCacheRequests, 1);
     this.dataCacheHitRate = this.dataCacheHits / (double) Math.max(this.dataCacheRequests, 1);
 
-    this.ingestMB = summary.ingestByteRate;
-    this.queryMB = summary.queryByteRate;
+    this.ingestMB = cleanNumber(summary.ingestByteRate);
+    this.queryMB = cleanNumber(summary.queryByteRate);
 
     this.scansessions = Monitor.getLookupRate();
     this.scanssessions = this.scansessions; // For backwards compatibility
@@ -159,5 +169,12 @@ public class TabletServerInformation {
     for (RecoveryStatus recovery : thriftStatus.logSorts) {
       logRecoveries.add(new RecoveryStatusInformation(recovery));
     }
+  }
+
+  /**
+   * Return zero for fractions. Partial numbers don't make sense in metrics.
+   */
+  private double cleanNumber(double dirtyNumber) {
+    return dirtyNumber < 1 ? 0 : dirtyNumber;
   }
 }

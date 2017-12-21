@@ -111,23 +111,3 @@ function refreshTableServersTable() {
     });
   }
 }
-
-/**
- * Sorts the participatingTServers table on the selected column
- *
- * @param {number} n Column number to sort by
- */
-function sortTable(n) {
-  if (!JSON.parse(sessionStorage.namespaceChanged)) {
-    if (sessionStorage.tableColumnSort !== undefined &&
-        sessionStorage.tableColumnSort == n &&
-        sessionStorage.direction !== undefined) {
-      direction = sessionStorage.direction === 'asc' ? 'desc' : 'asc';
-    }
-  } else {
-    direction = sessionStorage.direction === undefined ?
-        'asc' : sessionStorage.direction;
-  }
-  sessionStorage.tableColumnSort = n;
-  sortTables('participatingTServers', direction, n);
-}

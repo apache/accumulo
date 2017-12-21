@@ -131,9 +131,9 @@ public class TabletServerResource {
           String serv = AddressUtil.parseAddress(server.name, false).getHost();
           String log = recovery.name;
           int time = recovery.runtime;
-          double copySort = recovery.progress;
+          double progress = recovery.progress;
 
-          recoveryList.addRecovery(new TabletServerRecoveryInformation(serv, log, time, copySort));
+          recoveryList.addRecovery(new TabletServerRecoveryInformation(serv, log, time, progress));
         }
       }
     }
