@@ -226,7 +226,7 @@ public class NewTableConfiguration {
     try {
       TableOperationsHelper.checkIteratorConflicts(iteratorProps, setting, scopes);
     } catch (AccumuloException e) {
-      throw new IllegalArgumentException(e.getMessage());
+      throw new IllegalArgumentException("The specified IteratorSetting conflicts with an iterator already defined on this NewTableConfiguration", e);
     }
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
