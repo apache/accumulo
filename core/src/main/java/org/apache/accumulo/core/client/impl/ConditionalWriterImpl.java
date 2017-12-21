@@ -36,6 +36,7 @@ import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -96,7 +97,18 @@ import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+  private static class CleanupThreadFactory implements ThreadFactory {
+
+    @Override
+    public Thread newThread(Runnable r) {
+      Thread t = new Thread(r, "Conditional Writer Cleanup Thread ");
+      t.setDaemon(true);
+      return t;
+    }
+  }
+
+  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
+      new CleanupThreadFactory());
 
   static {
     cleanupThreadPool.allowCoreThreadTimeOut(true);
