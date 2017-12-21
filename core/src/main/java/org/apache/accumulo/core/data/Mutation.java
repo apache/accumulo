@@ -776,8 +776,8 @@ public class Mutation implements Writable {
    * Fluent API for Mutation
    *
    * <p>
-   * Each step of the Mutation is represented by an interface. Inheritance hierarchy ensures that chained methods follow prescribed order of:
-   * family, qualifier, visibility, timestamp.
+   * Each step of the Mutation is represented by an interface. Inheritance hierarchy ensures that chained methods follow prescribed order of: family, qualifier,
+   * visibility, timestamp.
    *
    * <p>
    * Methods are optional, meaning that one or may be omitted within a chain.
@@ -787,8 +787,8 @@ public class Mutation implements Writable {
    */
 
   /**
-   * Provides methods for setting the column family of a Mutation. The user can provide the family name as a
-   * byte array, CharSequence, ByteBuffer, or Text object instance and the backend will do the necessary transformation.
+   * Provides methods for setting the column family of a Mutation. The user can provide the family name as a byte array, CharSequence, ByteBuffer, or Text
+   * object instance and the backend will do the necessary transformation.
    *
    * All FamilyStep methods return an instance derived from the QualifierStep interface, allowing the methods to be semantically chained.
    *
@@ -805,8 +805,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Provides methods for setting the column qualifier of a Mutation. The user can provide the qualifier name as a
-   * byte array, CharSequence, ByteBuffer, or Text object instance and the backend will do the necessary transformation.
+   * Provides methods for setting the column qualifier of a Mutation. The user can provide the qualifier name as a byte array, CharSequence, ByteBuffer, or Text
+   * object instance and the backend will do the necessary transformation.
    *
    * All QualifierStep methods return an instance derived from the VisibilityStep interface, allowing the methods to be semantically chained.
    *
@@ -823,8 +823,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Provides methods for setting the column visibility of a Mutation. The user can provide the visibility as a
-   * byte array or {@link org.apache.accumulo.core.security.ColumnVisibility} object instance and the backend will do the necessary transformation.
+   * Provides methods for setting the column visibility of a Mutation. The user can provide the visibility as a byte array or
+   * {@link org.apache.accumulo.core.security.ColumnVisibility} object instance and the backend will do the necessary transformation.
    *
    * All QualifierStep methods return an instance derived from the VisibilityStep interface, allowing the methods to be semantically chained.
    *
@@ -848,8 +848,8 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Provides methods for setting the value of a Mutation. The user can provide the value as a
-   * byte array, Value, or ByteBuffer object instance and the backend will do the necessary transformation.
+   * Provides methods for setting the value of a Mutation. The user can provide the value as a byte array, Value, or ByteBuffer object instance and the backend
+   * will do the necessary transformation.
    *
    * All MutationStep methods complete a fluent Mutation API method chain.
    *
@@ -894,6 +894,7 @@ public class Mutation implements Writable {
     // methods for changing the column family of a Mutation
     /**
      * Modifies the column family of a mutation.
+     *
      * @param colFam
      *          column family
      * @param colFamLength
@@ -908,6 +909,7 @@ public class Mutation implements Writable {
 
     /**
      * Modifies the column family of a mutation.
+     *
      * @param colFam
      *          column family
      * @return a QualifierStep object, advancing the method chain
@@ -918,6 +920,7 @@ public class Mutation implements Writable {
 
     /**
      * Modifies the column family of a mutation.
+     *
      * @param colFam
      *          column family
      * @return a QualifierStep object, advancing the method chain
@@ -928,6 +931,7 @@ public class Mutation implements Writable {
 
     /**
      * Modifies the column family of a mutation.
+     *
      * @param colFam
      *          column family
      * @return a QualifierStep object, advancing the method chain
@@ -938,6 +942,7 @@ public class Mutation implements Writable {
 
     /**
      * Modifies the column family of a mutation.
+     *
      * @param colFam
      *          column family
      * @return a QualifierStep object, advancing the method chain
@@ -949,6 +954,7 @@ public class Mutation implements Writable {
     // methods for changing the column qualifier of a Mutation
     /**
      * Modifies the column qualifier of a mutation.
+     *
      * @param colQual
      *          column qualifier
      * @param colQualLength
@@ -963,6 +969,7 @@ public class Mutation implements Writable {
 
     /**
      * Modifies the column qualifier of a mutation.
+     *
      * @param colQual
      *          column qualifier
      * @return a VisibilityStep object, advancing the method chain
@@ -973,6 +980,7 @@ public class Mutation implements Writable {
 
     /**
      * Modifies the column qualifier of a mutation.
+     *
      * @param colQual
      *          column qualifier
      * @return a VisibilityStep object, advancing the method chain
@@ -983,6 +991,7 @@ public class Mutation implements Writable {
 
     /**
      * Modifies the column qualifier of a mutation.
+     *
      * @param colQual
      *          column qualifier
      * @return a VisibilityStep object, advancing the method chain
@@ -993,6 +1002,7 @@ public class Mutation implements Writable {
 
     /**
      * Modifies the column qualifier of a mutation.
+     *
      * @param colQual
      *          column qualifier
      * @return a VisibilityStep object, advancing the method chain
@@ -1004,6 +1014,7 @@ public class Mutation implements Writable {
     // methods for changing the column visibility of a Mutation
     /**
      * Modifies the column visibility of a mutation.
+     *
      * @param colVis
      *          column visibility
      * @return a TimestampStep object, advancing the method chain
@@ -1015,6 +1026,7 @@ public class Mutation implements Writable {
 
     /**
      * Modifies the column visibility of a mutation.
+     *
      * @param colVis
      *          column visibility
      * @return a TimestampStep object, advancing the method chain
@@ -1026,6 +1038,7 @@ public class Mutation implements Writable {
     // methods for changing the timestamp of a Mutation
     /**
      * Modifies the timestamp of a mutation.
+     *
      * @param ts
      *          timestamp
      * @return a MutationStep object, advancing the method chain
@@ -1038,6 +1051,7 @@ public class Mutation implements Writable {
 
     /**
      * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     *
      * @param val
      *          value
      * @param delete
@@ -1095,6 +1109,7 @@ public class Mutation implements Writable {
 
     /**
      * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     *
      * @param val
      *          value
      */
@@ -1104,6 +1119,7 @@ public class Mutation implements Writable {
 
     /**
      * Sets the value of a mutation.
+     *
      * @param val
      *          value
      */
@@ -1113,6 +1129,7 @@ public class Mutation implements Writable {
 
     /**
      * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     *
      * @param val
      *          value
      */
@@ -1121,9 +1138,8 @@ public class Mutation implements Writable {
     }
 
     /**
-     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration.
-     * Sets a deletion flag in the UnsynchronizedBuffer.
-     * A deletion does not require a value and has same behavior as set() with empty bytes for value and a true deletion flag.
+     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration. Sets a deletion flag in the UnsynchronizedBuffer. A deletion
+     * does not require a value and has same behavior as set() with empty bytes for value and a true deletion flag.
      */
     public void delete() {
       set(EMPTY_BYTES, true);
