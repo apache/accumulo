@@ -490,9 +490,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     IteratorSetting iterConfig3 = new IteratorSetting(5, VersioningIterator.class);
     VersioningIterator.setMaxVersions(iterConfig3, 1);
 
-    Scanner scanner = null;
-    try {
-      scanner = conn.createScanner(tableName, new Authorizations());
+    try (Scanner scanner = conn.createScanner(tableName, new Authorizations())) {
       scanner.addScanIterator(iterConfig);
       scanner.setRange(new Range("ACCUMULO-1000"));
       scanner.fetchColumn(new Text("count"), new Text("comments"));
@@ -548,10 +546,6 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         expected.put("ACCUMULO-1002", Status.REJECTED);
 
         Assert.assertEquals(expected, actual);
-      }
-    } finally {
-      if (scanner != null) {
-        scanner.close();
       }
     }
   }

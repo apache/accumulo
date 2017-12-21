@@ -108,10 +108,9 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       bw.close();
     }
 
-    Scanner s = null;
-    try {
-      s = ReplicationTable.getScanner(conn);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+    Entry<Key,Value> entry;
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      entry = Iterables.getOnlyElement(s);
       Assert.assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
 
       bw = ReplicationTable.getBatchWriter(conn);
@@ -122,15 +121,12 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       } finally {
         bw.close();
       }
+    }
 
-      s = ReplicationTable.getScanner(conn);
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
       entry = Iterables.getOnlyElement(s);
       Status stat = Status.parseFrom(entry.getValue().get());
       Assert.assertEquals(Long.MAX_VALUE, stat.getBegin());
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
   }
 

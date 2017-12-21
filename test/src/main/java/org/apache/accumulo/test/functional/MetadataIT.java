@@ -126,19 +126,20 @@ public class MetadataIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
 
     // batch scan regular metadata table
-    BatchScanner s = null;
-    try {
-      s = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
+    int count = 0;
+    try (BatchScanner s = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
+
       s.setRanges(Collections.singleton(new Range()));
-      int count = 0;
       for (Entry<Key,Value> e : s) {
         if (e != null)
           count++;
       }
-      assertTrue(count > 0);
+    }
+
+    assertTrue(count > 0);
 
       // batch scan root metadata table
-      s = c.createBatchScanner(RootTable.NAME, Authorizations.EMPTY, 1);
+    try (BatchScanner s = c.createBatchScanner(RootTable.NAME, Authorizations.EMPTY, 1)) {
       s.setRanges(Collections.singleton(new Range()));
       count = 0;
       for (Entry<Key,Value> e : s) {
@@ -146,10 +147,6 @@ public class MetadataIT extends AccumuloClusterHarness {
           count++;
       }
       assertTrue(count > 0);
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
   }
 

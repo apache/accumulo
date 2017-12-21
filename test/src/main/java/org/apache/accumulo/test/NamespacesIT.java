@@ -325,9 +325,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     IteratorSetting setting = new IteratorSetting(250, iterName, SimpleFilter.class.getName());
 
     // verify can see inserted entry
-    Scanner s = null;
-    try {
-      s = c.createScanner(t1, Authorizations.EMPTY);
+    try (Scanner s = c.createScanner(t1, Authorizations.EMPTY)) {
       assertTrue(s.iterator().hasNext());
       assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
       assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
@@ -346,7 +344,9 @@ public class NamespacesIT extends AccumuloClusterHarness {
       assertEquals(setting, setting2);
       assertTrue(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
       assertTrue(c.tableOperations().listIterators(t1).containsKey(iterName));
-      s = c.createScanner(t1, Authorizations.EMPTY);
+    }
+
+    try (Scanner s = c.createScanner(t1, Authorizations.EMPTY)) {
       assertFalse(s.iterator().hasNext());
 
       // verify can see inserted entry again
@@ -354,13 +354,10 @@ public class NamespacesIT extends AccumuloClusterHarness {
       sleepUninterruptibly(2, TimeUnit.SECONDS);
       assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
       assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
-      s = c.createScanner(t1, Authorizations.EMPTY);
+    }
+
+    try (Scanner s = c.createScanner(t1, Authorizations.EMPTY)) {
       assertTrue(s.iterator().hasNext());
-      s.close();
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
   }
 

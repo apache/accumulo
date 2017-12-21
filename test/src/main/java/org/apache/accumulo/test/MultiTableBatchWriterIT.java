@@ -106,35 +106,25 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       table2Expectations.put(Maps.immutableEntry("foo", "col1"), "val1");
       table2Expectations.put(Maps.immutableEntry("bar", "col1"), "val1");
 
-      Scanner s = null;
       Map<Entry<String,String>,String> actual = new HashMap<>();
 
-      try {
-        s = connector.createScanner(table1, new Authorizations());
+      try (Scanner s = connector.createScanner(table1, new Authorizations())) {
         s.setRange(new Range());
         for (Entry<Key,Value> entry : s) {
           actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }
         Assert.assertEquals("Differing results for " + table1, table1Expectations, actual);
-      } finally {
-        if (s != null) {
-          s.close();
-        }
       }
 
-      try {
-        s = connector.createScanner(table2, new Authorizations());
+      try (Scanner s = connector.createScanner(table2, new Authorizations())) {
         s.setRange(new Range());
         actual = new HashMap<>();
         for (Entry<Key,Value> entry : s) {
           actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(), entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }
         Assert.assertEquals("Differing results for " + table2, table2Expectations, actual);
-      } finally {
-        if (s != null) {
-          s.close();
-        }
       }
+
     } finally {
       if (null != mtbw) {
         mtbw.close();

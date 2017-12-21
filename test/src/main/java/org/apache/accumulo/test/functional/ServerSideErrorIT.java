@@ -64,12 +64,9 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    Scanner scanner = null;
-    BatchScanner bs = null;
     boolean caught = false;
     // try to scan table
-    try {
-      scanner = c.createScanner(tableName, Authorizations.EMPTY);
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
 
       try {
         for (Entry<Key,Value> entry : scanner) {
@@ -83,16 +80,17 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
         throw new Exception("Scan did not fail");
 
       // try to batch scan the table
-      bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2);
-      bs.setRanges(Collections.singleton(new Range()));
+      try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+        bs.setRanges(Collections.singleton(new Range()));
 
-      caught = false;
-      try {
-        for (Entry<Key,Value> entry : bs) {
-          entry.getKey();
+        caught = false;
+        try {
+          for (Entry<Key,Value> entry : bs) {
+            entry.getKey();
+          }
+        } catch (Exception e) {
+          caught = true;
         }
-      } catch (Exception e) {
-        caught = true;
       }
 
       if (!caught)
@@ -105,9 +103,10 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
       }
 
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+    }
 
       // should be able to scan now
-      scanner = c.createScanner(tableName, Authorizations.EMPTY);
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
       for (Entry<Key,Value> entry : scanner) {
         entry.getKey();
       }
@@ -127,14 +126,6 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
       if (!caught)
         throw new Exception("Scan did not fail");
-    } finally {
-      if (scanner != null) {
-        scanner.close();
-      }
-
-      if (bs != null) {
-        bs.close();
-      }
     }
   }
 }

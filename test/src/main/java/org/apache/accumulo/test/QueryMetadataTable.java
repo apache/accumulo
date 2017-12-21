@@ -78,7 +78,6 @@ public class QueryMetadataTable {
             break;
         }
 
-        mdScanner.close();
       } catch (TableNotFoundException e) {
         log.error("Table '" + MetadataTable.NAME + "' not found.", e);
         throw new RuntimeException(e);

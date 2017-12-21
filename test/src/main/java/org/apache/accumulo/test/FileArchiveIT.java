@@ -194,13 +194,15 @@ public class FileArchiveIT extends ConfigurableMacBase {
     // Compact memory to disk
     conn.tableOperations().compact(tableName, null, null, true, true);
 
-    Scanner s = null;
-    try {
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Entry<Key,Value> entry;
+    Path fileArchiveDir;
+    FileSystem fs;
+    int i = 0;
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      entry = Iterables.getOnlyElement(s);
       final String file = entry.getKey().getColumnQualifier().toString();
       final Path p = new Path(file);
 
@@ -209,8 +211,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
       log.info("File for table: {}", file);
 
-      FileSystem fs = getCluster().getFileSystem();
-      int i = 0;
+      fs = getCluster().getFileSystem();
       while (fs.exists(p)) {
         i++;
         Thread.sleep(1000);
@@ -225,7 +226,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
       log.info("File relative to accumulo dir: {}", filePath);
 
-      Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
+      fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
 
       Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
@@ -236,9 +237,10 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
       // Offline the table so we can be sure there is a single file
       conn.tableOperations().offline(tableName, true);
+    }
 
       // See that the file in metadata currently is
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
@@ -270,12 +272,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
       // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
       Path finalArchivedFile = new Path(fileArchiveDir, finalFilePath.substring(1));
 
-      s.close();
       Assert.assertTrue("File doesn't exists in archive directory: " + finalArchivedFile, fs.exists(finalArchivedFile));
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
   }
 }

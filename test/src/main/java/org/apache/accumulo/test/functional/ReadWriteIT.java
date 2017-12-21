@@ -384,17 +384,19 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
     bw.close();
     long now = System.currentTimeMillis();
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    scanner.fetchColumnFamily(new Text("colf"));
-    Iterators.size(scanner.iterator());
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.fetchColumnFamily(new Text("colf"));
+      Iterators.size(scanner.iterator());
+    }
     long diff = System.currentTimeMillis() - now;
     now = System.currentTimeMillis();
-    scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    scanner.fetchColumnFamily(new Text("colf2"));
-    Iterators.size(scanner.iterator());
+
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.fetchColumnFamily(new Text("colf2"));
+      Iterators.size(scanner.iterator());
+    }
     bw.close();
     long diff2 = System.currentTimeMillis() - now;
-    scanner.close();
     assertTrue(diff2 < diff);
   }
 

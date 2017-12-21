@@ -125,9 +125,9 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    ClientSideIteratorScanner csis = null;
-    try (Scanner scanner = conn.createScanner(tableName, new Authorizations())) {
-      csis = new ClientSideIteratorScanner(scanner);
+    try (Scanner scanner = conn.createScanner(tableName, new Authorizations());
+        ClientSideIteratorScanner csis = new ClientSideIteratorScanner(scanner)) {
+
       final IteratorSetting si = new IteratorSetting(10, "localvers", VersioningIterator.class);
       si.addOption("maxVersions", "2");
       csis.addScanIterator(si);
@@ -140,10 +140,6 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
       csis.clearColumns();
       csis.fetchColumnFamily(new Text("none"));
       assertFalse(csis.iterator().hasNext());
-    } finally {
-      if (csis != null) {
-        csis.close();
-      }
     }
   }
 }

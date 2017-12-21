@@ -180,22 +180,18 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     statusMaker.run();
 
-    Scanner s = null;
-    try {
-      s = conn.createScanner(sourceTable, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
       s.setRange(ReplicationSection.getRange());
       s.fetchColumnFamily(ReplicationSection.COLF);
       for (Entry<Key,Value> e : s) {
         System.out.println(e.getKey().toStringNoTruncate() + " " + e.getValue());
       }
-      s = conn.createScanner(sourceTable, Authorizations.EMPTY);
+    }
+
+    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
       s.setRange(ReplicationSection.getRange());
       s.fetchColumnFamily(ReplicationSection.COLF);
       Assert.assertEquals(0, Iterables.size(s));
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
   }
 
@@ -231,16 +227,15 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     statusMaker.run();
 
-    Scanner s = null;
     Iterator<Entry<Key,Value>> iter;
     Iterator<String> expectedFiles;
-    try {
-      s = conn.createScanner(sourceTable, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
       s.setRange(ReplicationSection.getRange());
       s.fetchColumnFamily(ReplicationSection.COLF);
       Assert.assertEquals(0, Iterables.size(s));
+    }
 
-      s = ReplicationTable.getScanner(conn);
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
       OrderSection.limit(s);
       iter = s.iterator();
       Assert.assertTrue("Found no order records in replication table", iter.hasNext());
@@ -254,10 +249,6 @@ public class StatusMakerIT extends ConfigurableMacBase {
         Assert.assertEquals(file, OrderSection.getFile(entry.getKey(), buff));
         OrderSection.getTableId(entry.getKey(), buff);
         Assert.assertEquals(fileToTableId.get(file).intValue(), Integer.parseInt(buff.toString()));
-      }
-    } finally {
-      if (s != null) {
-        s.close();
       }
     }
     Assert.assertFalse("Found more files unexpectedly", expectedFiles.hasNext());

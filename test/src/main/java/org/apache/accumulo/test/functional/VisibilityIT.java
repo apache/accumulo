@@ -249,26 +249,20 @@ public class VisibilityIT extends AccumuloClusterHarness {
   }
 
   private void queryDefaultData(Connector c, String tableName) throws Exception {
-    Scanner scanner = null;
-
-    try {
-      // should return no records
-      c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("BASE", "DEFLABEL"));
-      scanner = getConnector().createScanner(tableName, new Authorizations());
+    // should return no records
+    c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("BASE", "DEFLABEL"));
+    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations())) {
       verifyDefault(scanner, 0);
+    }
 
-      // should return one record
-      scanner = getConnector().createScanner(tableName, new Authorizations("BASE"));
+    // should return one record
+    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations("BASE"))) {
       verifyDefault(scanner, 1);
+    }
 
-      // should return all three records
-      scanner = getConnector().createScanner(tableName, new Authorizations("BASE", "DEFLABEL"));
+    // should return all three records
+    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations("BASE", "DEFLABEL"))) {
       verifyDefault(scanner, 3);
-      scanner.close();
-    } finally {
-      if (scanner != null) {
-        scanner.close();
-      }
     }
   }
 

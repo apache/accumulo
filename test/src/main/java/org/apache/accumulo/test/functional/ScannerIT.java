@@ -63,11 +63,12 @@ public class ScannerIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.close();
 
-    Scanner s = null;
-    try {
-      s = c.createScanner(table, new Authorizations());
+    IteratorSetting cfg;
+    Stopwatch sw;
+    Iterator<Entry<Key,Value>> iterator;
+    try (Scanner s = c.createScanner(table, new Authorizations())) {
 
-      IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
+      cfg = new IteratorSetting(100, SlowIterator.class);
       // A batch size of one will end up calling seek() for each element with no calls to next()
       SlowIterator.setSeekSleepTime(cfg, 100l);
 
@@ -77,8 +78,8 @@ public class ScannerIT extends AccumuloClusterHarness {
       s.setBatchSize(1);
       s.setRange(new Range());
 
-      Stopwatch sw = new Stopwatch();
-      Iterator<Entry<Key,Value>> iterator = s.iterator();
+      sw = new Stopwatch();
+      iterator = s.iterator();
 
       sw.start();
       while (iterator.hasNext()) {
@@ -90,10 +91,11 @@ public class ScannerIT extends AccumuloClusterHarness {
         sw.start();
       }
       sw.stop();
+    }
 
-      long millisWithWait = sw.elapsed(TimeUnit.MILLISECONDS);
+    long millisWithWait = sw.elapsed(TimeUnit.MILLISECONDS);
 
-      s = c.createScanner(table, new Authorizations());
+    try (Scanner s = c.createScanner(table, new Authorizations())) {
       s.addScanIterator(cfg);
       s.setRange(new Range());
       s.setBatchSize(1);
@@ -114,15 +116,10 @@ public class ScannerIT extends AccumuloClusterHarness {
       sw.stop();
 
       long millisWithNoWait = sw.elapsed(TimeUnit.MILLISECONDS);
-      s.close();
 
       // The "no-wait" time should be much less than the "wait-time"
       Assert.assertTrue("Expected less time to be taken with immediate readahead (" + millisWithNoWait + ") than without immediate readahead ("
           + millisWithWait + ")", millisWithNoWait < millisWithWait);
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
   }
 

@@ -72,21 +72,23 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
     log.info("Fetching some entries: should timeout and return something");
 
     log.info("Scanner");
-    Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
-    s.setBatchTimeout(500, TimeUnit.MILLISECONDS);
-    testScanner(s, 1200);
+    try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
+      s.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+      testScanner(s, 1200);
 
-    log.info("IsolatedScanner");
-    IsolatedScanner is = new IsolatedScanner(s);
-    is.setReadaheadThreshold(1);
-    // buffers an entire row
-    testScanner(is, 2200);
+      log.info("IsolatedScanner");
+      IsolatedScanner is = new IsolatedScanner(s);
+      is.setReadaheadThreshold(1);
+      // buffers an entire row
+      testScanner(is, 2200);
+    }
 
     log.info("BatchScanner");
-    BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 5);
-    bs.setBatchTimeout(500, TimeUnit.MILLISECONDS);
-    bs.setRanges(Collections.singletonList(new Range()));
-    testScanner(bs, 1200);
+    try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 5)) {
+      bs.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+      bs.setRanges(Collections.singletonList(new Range()));
+      testScanner(bs, 1200);
+    }
   }
 
   private void testScanner(ScannerBase s, long expected) {

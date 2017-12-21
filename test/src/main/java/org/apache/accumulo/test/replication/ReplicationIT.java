@@ -303,11 +303,9 @@ public class ReplicationIT extends ConfigurableMacBase {
         conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ));
 
     Set<String> replRows = new HashSet<>();
-    Scanner scanner = null;
     int attempts = 5;
-    try {
-      while (replRows.isEmpty() && attempts > 0) {
-        scanner = ReplicationTable.getScanner(conn);
+    while (replRows.isEmpty() && attempts > 0) {
+      try (Scanner scanner = ReplicationTable.getScanner(conn)) {
         StatusSection.limit(scanner);
         for (Entry<Key,Value> entry : scanner) {
           Key k = entry.getKey();
@@ -321,11 +319,6 @@ public class ReplicationIT extends ConfigurableMacBase {
 
           replRows.add(fileUri);
         }
-        scanner.close();
-      }
-    } finally {
-      if (scanner != null) {
-        scanner.close();
       }
     }
 
@@ -424,9 +417,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     Assert.assertTrue(ReplicationTable.isOnline(conn));
 
     // Verify that we found a single replication record that's for table1
-    Scanner s = null;
-    try {
-      s = ReplicationTable.getScanner(conn);
+    Entry<Key,Value> entry;
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
       StatusSection.limit(s);
       for (int i = 0; i < 5; i++) {
         if (Iterators.size(s.iterator()) == 1) {
@@ -434,26 +426,27 @@ public class ReplicationIT extends ConfigurableMacBase {
         }
         Thread.sleep(1000);
       }
-      Entry<Key,Value> entry = Iterators.getOnlyElement(s.iterator());
-      // We should at least find one status record for this table, we might find a second if another log was started from ingesting the data
-      Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey()
-          .getColumnQualifier().toString());
-      s.close();
+      entry = Iterators.getOnlyElement(s.iterator());
+    }
+    // We should at least find one status record for this table, we might find a second if another log was started from ingesting the data
+    Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1),
+        entry.getKey().getColumnQualifier().toString());
 
-      // Enable replication on table2
-      conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
+    // Enable replication on table2
+    conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
 
-      // Write some data to table2
-      writeSomeData(conn, table2, 50, 50);
+    // Write some data to table2
+    writeSomeData(conn, table2, 50, 50);
 
-      // After the commit on these mutations, we'll get a replication entry in accumulo.metadata for table2
-      // Don't want to compact table2 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
+    // After the commit on these mutations, we'll get a replication entry in accumulo.metadata for table2
+    // Don't want to compact table2 as it ultimately cause the entry in accumulo.metadata to be removed before we can verify it's there
 
-      Set<String> tableIds = Sets.newHashSet(conn.tableOperations().tableIdMap().get(table1), conn.tableOperations().tableIdMap().get(table2));
-      Set<String> tableIdsForMetadata = Sets.newHashSet(tableIds);
+    Set<String> tableIds = Sets.newHashSet(conn.tableOperations().tableIdMap().get(table1), conn.tableOperations().tableIdMap().get(table2));
+    Set<String> tableIdsForMetadata = Sets.newHashSet(tableIds);
 
-      List<Entry<Key,Value>> records = new ArrayList<>();
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    List<Entry<Key,Value>> records = new ArrayList<>();
+
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> metadata : s) {
         records.add(metadata);
@@ -463,17 +456,18 @@ public class ReplicationIT extends ConfigurableMacBase {
       Assert.assertEquals("Expected to find 2 records, but actually found " + records, 2, records.size());
 
       for (Entry<Key,Value> metadata : records) {
-        Assert.assertTrue("Expected record to be in metadata but wasn't " + metadata.getKey().toStringNoTruncate() + ", tableIds remaining "
-            + tableIdsForMetadata, tableIdsForMetadata.remove(metadata.getKey().getColumnQualifier().toString()));
+        Assert.assertTrue("Expected record to be in metadata but wasn't " + metadata.getKey().toStringNoTruncate() + ", tableIds remaining " + tableIdsForMetadata,
+            tableIdsForMetadata.remove(metadata.getKey().getColumnQualifier().toString()));
       }
 
       Assert.assertTrue("Expected that we had removed all metadata entries " + tableIdsForMetadata, tableIdsForMetadata.isEmpty());
 
       // Should be creating these records in replication table from metadata table every second
       Thread.sleep(5000);
+    }
 
       // Verify that we found two replication records: one for table1 and one for table2
-      s = ReplicationTable.getScanner(conn);
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
       StatusSection.limit(s);
       Iterator<Entry<Key,Value>> iter = s.iterator();
       Assert.assertTrue("Found no records in replication table", iter.hasNext());
@@ -483,10 +477,6 @@ public class ReplicationIT extends ConfigurableMacBase {
       entry = iter.next();
       Assert.assertTrue("Expected to find element in replication table", tableIds.remove(entry.getKey().getColumnQualifier().toString()));
       Assert.assertFalse("Expected to only find two elements in replication table", iter.hasNext());
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
   }
 
@@ -624,12 +614,11 @@ public class ReplicationIT extends ConfigurableMacBase {
     bw.addMutation(m);
     bw.close();
 
-    Scanner s = null;
-    try {
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Status actual;
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(ReplicationSection.getRange());
 
-      Status actual = Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
+      actual = Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
       Assert.assertEquals(stat1, actual);
 
       bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
@@ -637,18 +626,15 @@ public class ReplicationIT extends ConfigurableMacBase {
       m.put(ReplicationSection.COLF, new Text("1"), ProtobufUtil.toValue(stat2));
       bw.addMutation(m);
       bw.close();
+    }
 
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(ReplicationSection.getRange());
 
       actual = Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
       Status expected = Status.newBuilder().setBegin(0).setEnd(0).setClosed(true).setInfiniteEnd(true).setCreatedTime(100).build();
 
       Assert.assertEquals(expected, actual);
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
   }
 

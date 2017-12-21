@@ -140,15 +140,14 @@ public class VolumeIT extends ConfigurableMacBase {
     bw.close();
     // write the data to disk, read it back
     connector.tableOperations().flush(tableName, null, null, true);
-    Scanner scanner = null;
-    try {
-      scanner = connector.createScanner(tableName, Authorizations.EMPTY);
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
       int i = 0;
       for (Entry<Key,Value> entry : scanner) {
         assertEquals(rows[i++], entry.getKey().getRow().toString());
       }
+    }
       // verify the new files are written to the different volumes
-      scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(new Range("1", "1<"));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       int fileCount = 0;
@@ -165,10 +164,6 @@ public class VolumeIT extends ConfigurableMacBase {
       long usage = diskUsage.get(0).getUsage().longValue();
       log.debug("usage {}", usage);
       assertTrue(usage > 700 && usage < 800);
-    } finally {
-      if (scanner != null) {
-        scanner.close();
-      }
     }
   }
 

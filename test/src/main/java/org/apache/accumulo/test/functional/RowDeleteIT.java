@@ -80,10 +80,9 @@ public class RowDeleteIT extends AccumuloClusterHarness {
 
     checkRFiles(c, tableName, 1, 1, 1, 1);
 
-    Scanner scanner = null;
-    try {
-      scanner = c.createScanner(tableName, Authorizations.EMPTY);
-      int count = Iterators.size(scanner.iterator());
+    int count;
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+      count = Iterators.size(scanner.iterator());
       assertEquals("count == " + count, 2, count);
 
       bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
@@ -92,23 +91,21 @@ public class RowDeleteIT extends AccumuloClusterHarness {
       c.tableOperations().flush(tableName, null, null, true);
 
       checkRFiles(c, tableName, 1, 1, 2, 2);
+    }
 
-      scanner = c.createScanner(tableName, Authorizations.EMPTY);
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
       count = Iterators.size(scanner.iterator());
       assertEquals("count == " + count, 3, count);
 
       c.tableOperations().compact(tableName, null, null, false, true);
 
       checkRFiles(c, tableName, 1, 1, 0, 0);
+    }
 
-      scanner = c.createScanner(tableName, Authorizations.EMPTY);
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
       count = Iterators.size(scanner.iterator());
       assertEquals("count == " + count, 0, count);
       bw.close();
-    } finally {
-      if (scanner != null) {
-        scanner.close();
-      }
     }
   }
 

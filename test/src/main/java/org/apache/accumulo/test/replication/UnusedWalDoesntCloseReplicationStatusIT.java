@@ -152,15 +152,15 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     log.info("State of metadata table after inserting a record");
 
-    Scanner s = null;
-    try {
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         System.out.println(entry.getKey().toStringNoTruncate() + " " + entry.getValue());
       }
+    }
 
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         System.out.println(entry.getKey().toStringNoTruncate() + " " + ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
@@ -185,14 +185,16 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       bw.close();
 
       log.info("State of metadata after injecting WAL manually");
+    }
 
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
+    }
 
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(entry.getValue().get())));
@@ -204,23 +206,21 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       Assert.assertEquals(1, Iterables.size(conn.createScanner(tableName, Authorizations.EMPTY)));
 
       log.info("Table has performed recovery, state of metadata:");
+    }
 
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
+    }
 
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         Status status = Status.parseFrom(entry.getValue().get());
         log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
         Assert.assertFalse("Status record was closed and it should not be", status.getClosed());
-      }
-    } finally {
-      if (s != null) {
-        s.close();
       }
     }
   }
