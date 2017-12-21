@@ -199,14 +199,12 @@ public class NewTableConfiguration {
    *
    * @param setting
    *          object specifying the properties of the iterator
-   * @throws AccumuloException
-   *           if a general error occurs
    *
    * @since 2.0.0
    *
    * @see TableOperations#attachIterator(String, IteratorSetting)
    */
-  public NewTableConfiguration attachIterator(IteratorSetting setting) throws AccumuloException {
+  public NewTableConfiguration attachIterator(IteratorSetting setting) {
     return attachIterator(setting, EnumSet.allOf(IteratorScope.class));
   }
 
@@ -217,17 +215,19 @@ public class NewTableConfiguration {
    *          object specifying the properties of the iterator
    * @param scopes
    *          enumerated set of iterator scopes
-   * @throws AccumuloException
-   *           if a general error occurs
    *
    * @since 2.0.0
    *
    * @see TableOperations#attachIterator(String, IteratorSetting, EnumSet)
    */
-  public NewTableConfiguration attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException {
+  public NewTableConfiguration attachIterator(IteratorSetting setting, EnumSet<IteratorScope> scopes) {
     Objects.requireNonNull(setting, "setting cannot be null!");
     Objects.requireNonNull(scopes, "scopes cannot be null!");
-    TableOperationsHelper.checkIteratorConflicts(iteratorProps, setting, scopes);
+    try {
+      TableOperationsHelper.checkIteratorConflicts(iteratorProps, setting, scopes);
+    } catch (AccumuloException e) {
+      throw new IllegalArgumentException(e.getMessage());
+    }
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
       for (Entry<String,String> prop : setting.getOptions().entrySet()) {

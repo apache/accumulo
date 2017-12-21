@@ -384,7 +384,7 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
   /**
    * Verify iterator conflicts are discovered
    */
-  @Test(expected = AccumuloException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testIteratorConflictFound1() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
@@ -397,7 +397,7 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     conn.tableOperations().create(tableName, ntc);
   }
 
-  @Test(expected = AccumuloException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testIteratorConflictFound2() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
@@ -410,7 +410,7 @@ public class NewConfigurationTestIT extends SharedMiniClusterBase {
     conn.tableOperations().create(tableName, ntc);
   }
 
-  @Test(expected = AccumuloException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testIteratorConflictFound3() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
