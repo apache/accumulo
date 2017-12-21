@@ -776,184 +776,294 @@ public class Mutation implements Writable {
    * Fluent API for Mutation
    *
    * <p>
-   * Each step of the Mutation is represented by an interface. Inheritance order ensures that chained methods follow prescribed order of:
+   * Each step of the Mutation is represented by an interface. Inheritance hierarchy ensures that chained methods follow prescribed order of:
+   * family, qualifier, visibility, timestamp.
    *
    * <p>
-   * row, family, qualifier, visibility, timestamp
+   * Methods are optional, meaning that one or may be omitted within a chain.
    *
    * <p>
-   * set and delete methods end the chain and finalize the mutation
+   * Set and delete methods end the chain and finalize the mutation by filling Mutation's UnsynchronizedBuffer.
    */
-  public interface RowStep extends FamilyStep {
-    FamilyStep row(byte[] r);
 
-    FamilyStep row(CharSequence r);
-
-    FamilyStep row(ByteBuffer r);
-
-    FamilyStep row(Text t);
-  }
-
+  /**
+   * Provides methods for setting the column family of a Mutation. The user can provide the family name as a
+   * byte array, CharSequence, ByteBuffer, or Text object instance and the backend will do the necessary transformation.
+   *
+   * All FamilyStep methods return an instance derived from the QualifierStep interface, allowing the methods to be semantically chained.
+   *
+   * @since 2.0
+   */
   public interface FamilyStep extends QualifierStep {
-    QualifierStep family(byte[] f);
+    QualifierStep family(byte[] colFam);
 
-    QualifierStep family(CharSequence f);
+    QualifierStep family(CharSequence colFam);
 
-    QualifierStep family(ByteBuffer f);
+    QualifierStep family(ByteBuffer colFam);
 
-    QualifierStep family(Text t);
+    QualifierStep family(Text colFam);
   }
 
+  /**
+   * Provides methods for setting the column qualifier of a Mutation. The user can provide the qualifier name as a
+   * byte array, CharSequence, ByteBuffer, or Text object instance and the backend will do the necessary transformation.
+   *
+   * All QualifierStep methods return an instance derived from the VisibilityStep interface, allowing the methods to be semantically chained.
+   *
+   * @since 2.0
+   */
   public interface QualifierStep extends VisibilityStep {
-    VisibilityStep qualifier(byte[] q);
+    VisibilityStep qualifier(byte[] colQual);
 
-    VisibilityStep qualifier(CharSequence q);
+    VisibilityStep qualifier(CharSequence colQual);
 
-    VisibilityStep qualifier(ByteBuffer q);
+    VisibilityStep qualifier(ByteBuffer colQual);
 
-    VisibilityStep qualifier(Text t);
+    VisibilityStep qualifier(Text colQual);
   }
 
+  /**
+   * Provides methods for setting the column visibility of a Mutation. The user can provide the visibility as a
+   * byte array or {@link org.apache.accumulo.core.security.ColumnVisibility} object instance and the backend will do the necessary transformation.
+   *
+   * All QualifierStep methods return an instance derived from the VisibilityStep interface, allowing the methods to be semantically chained.
+   *
+   * @since 2.0
+   */
   public interface VisibilityStep extends TimestampStep {
-    TimestampStep visibility(byte[] cv);
+    TimestampStep visibility(byte[] colVis);
 
-    TimestampStep visibility(ColumnVisibility cv);
+    TimestampStep visibility(ColumnVisibility colVis);
   }
 
+  /**
+   * Provides methods for setting the timestamp of a Mutation. The user must provide the timestamp as a long.
+   *
+   * All TimestampStep methods return an instance derived from the MutationStep interface, allowing the methods to be semantically chained.
+   *
+   * @since 2.0
+   */
   public interface TimestampStep extends MutationStep {
-    MutationStep timestamp(long t);
+    MutationStep timestamp(long ts);
   }
 
+  /**
+   * Provides methods for setting the value of a Mutation. The user can provide the value as a
+   * byte array, Value, or ByteBuffer object instance and the backend will do the necessary transformation.
+   *
+   * All MutationStep methods complete a fluent Mutation API method chain.
+   *
+   * @since 2.0
+   */
   public interface MutationStep {
-    void set(byte[] v, boolean delete);
+    void set(byte[] val, boolean delete);
 
-    void set(ByteBuffer v);
+    void set(ByteBuffer val);
 
-    void set(Value v);
+    void set(Value val);
 
     void delete();
   }
 
-  public RowStep at() {
+  /**
+   * Returns a new FamilyStep object allowing the user to define changes to the Mutation.
+   *
+   * @return a new FamilyStep object, advancing the method chain
+   * @since 2.0
+   */
+  public FamilyStep at() {
     return new Step();
   }
 
-  // private inner class implementing all interfaces
-  private class Step implements RowStep {
-    byte[] cf;
-    int cfLength;
+  // private inner class implementing all Step interfaces
+  private class Step implements FamilyStep {
+    byte[] columnFamily;
+    int columnFamilyLength;
 
-    byte[] cq;
-    int cqLength;
+    byte[] columnQualifier;
+    int columnQualifierLength;
 
-    byte[] cv = null;
-    int cvLength;
+    byte[] columnVisibility = null;
+    int columnVisibilityLength;
 
-    // default to false, set to true if a timestamp is provided
     boolean hasTs = false;
     long timestamp;
 
     private Step() {}
 
-    // row
-    public FamilyStep row(byte[] r) {
-      put(r);
+    // methods for changing the column family of a Mutation
+    /**
+     * Modifies the column family of a mutation.
+     * @param colFam
+     *          column family
+     * @param colFamLength
+     *          column family length
+     * @return a QualifierStep object, advancing the method chain
+     */
+    public QualifierStep family(byte[] colFam, int colFamLength) {
+      columnFamily = colFam;
+      columnFamilyLength = colFamLength;
       return this;
     }
 
-    public FamilyStep row(CharSequence r) {
+    /**
+     * Modifies the column family of a mutation.
+     * @param colFam
+     *          column family
+     * @return a QualifierStep object, advancing the method chain
+     */
+    public QualifierStep family(byte[] colFam) {
+      return family(colFam, colFam.length);
+    }
+
+    /**
+     * Modifies the column family of a mutation.
+     * @param colFam
+     *          column family
+     * @return a QualifierStep object, advancing the method chain
+     */
+    public QualifierStep family(Text colFam) {
+      return family(colFam.getBytes(), colFam.getLength());
+    }
+
+    /**
+     * Modifies the column family of a mutation.
+     * @param colFam
+     *          column family
+     * @return a QualifierStep object, advancing the method chain
+     */
+    public QualifierStep family(CharSequence colFam) {
+      return family(new Text(colFam.toString()));
+    }
+
+    /**
+     * Modifies the column family of a mutation.
+     * @param colFam
+     *          column family
+     * @return a QualifierStep object, advancing the method chain
+     */
+    public QualifierStep family(ByteBuffer colFam) {
+      return family(ByteBufferUtil.toBytes(colFam));
+    }
+
+    // methods for changing the column qualifier of a Mutation
+    /**
+     * Modifies the column qualifier of a mutation.
+     * @param colQual
+     *          column qualifier
+     * @param colQualLength
+     *          column qualifier
+     * @return a VisibilityStep object, advancing the method chain
+     */
+    public VisibilityStep qualifier(byte[] colQual, int colQualLength) {
+      columnQualifier = colQual;
+      columnQualifierLength = colQualLength;
       return this;
     }
 
-    public FamilyStep row(ByteBuffer r) {
+    /**
+     * Modifies the column qualifier of a mutation.
+     * @param colQual
+     *          column qualifier
+     * @return a VisibilityStep object, advancing the method chain
+     */
+    public VisibilityStep qualifier(byte[] colQual) {
+      return qualifier(colQual, colQual.length);
+    }
+
+    /**
+     * Modifies the column qualifier of a mutation.
+     * @param colQual
+     *          column qualifier
+     * @return a VisibilityStep object, advancing the method chain
+     */
+    public VisibilityStep qualifier(Text colQual) {
+      return qualifier(colQual.getBytes(), colQual.getLength());
+    }
+
+    /**
+     * Modifies the column qualifier of a mutation.
+     * @param colQual
+     *          column qualifier
+     * @return a VisibilityStep object, advancing the method chain
+     */
+    public VisibilityStep qualifier(CharSequence colQual) {
+      return qualifier(new Text(colQual.toString()));
+    }
+
+    /**
+     * Modifies the column qualifier of a mutation.
+     * @param colQual
+     *          column qualifier
+     * @return a VisibilityStep object, advancing the method chain
+     */
+    public VisibilityStep qualifier(ByteBuffer colQual) {
+      return qualifier(ByteBufferUtil.toBytes(colQual));
+    }
+
+    // methods for changing the column visibility of a Mutation
+    /**
+     * Modifies the column visibility of a mutation.
+     * @param colVis
+     *          column visibility
+     * @return a TimestampStep object, advancing the method chain
+     */
+    public TimestampStep visibility(byte[] colVis) {
+      columnVisibility = colVis;
       return this;
     }
 
-    public FamilyStep row(Text t) {
-      return this;
+    /**
+     * Modifies the column visibility of a mutation.
+     * @param colVis
+     *          column visibility
+     * @return a TimestampStep object, advancing the method chain
+     */
+    public TimestampStep visibility(ColumnVisibility colVis) {
+      return visibility(colVis.getExpression());
     }
 
-    // family
-    public QualifierStep family(byte[] f, int fLength) {
-      cf = f;
-      cfLength = fLength;
-      return this;
-    }
-
-    public QualifierStep family(byte[] f) {
-      return family(f, f.length);
-    }
-
-    public QualifierStep family(Text f) {
-      return family(f.getBytes(), f.getLength());
-    }
-
-    public QualifierStep family(CharSequence f) {
-      return family(new Text(f.toString()));
-    }
-
-    public QualifierStep family(ByteBuffer f) {
-      return family(ByteBufferUtil.toBytes(f));
-    }
-
-    public VisibilityStep qualifier(byte[] q, int qLength) {
-      cq = q;
-      cqLength = qLength;
-      return this;
-    }
-
-    public VisibilityStep qualifier(byte[] q) {
-      return qualifier(q, q.length);
-    }
-
-    public VisibilityStep qualifier(Text q) {
-      return qualifier(q.getBytes(), q.getLength());
-    }
-
-    public VisibilityStep qualifier(CharSequence q) {
-      return qualifier(new Text(q.toString()));
-    }
-
-    public VisibilityStep qualifier(ByteBuffer q) {
-      return qualifier(ByteBufferUtil.toBytes(q));
-    }
-
-    public TimestampStep visibility(byte[] v) {
-      cv = v;
-      return this;
-    }
-
-    public TimestampStep visibility(ColumnVisibility v) {
-      return visibility(v.getExpression());
-    }
-
-    public MutationStep timestamp(long t) {
+    // methods for changing the timestamp of a Mutation
+    /**
+     * Modifies the timestamp of a mutation.
+     * @param ts
+     *          timestamp
+     * @return a MutationStep object, advancing the method chain
+     */
+    public MutationStep timestamp(long ts) {
       hasTs = true;
-      timestamp = t;
+      timestamp = ts;
       return this;
     }
 
+    /**
+     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     * @param val
+     *          value
+     * @param delete
+     *          deletion flag
+     */
     public void set(byte[] val, boolean delete) {
       if (buffer == null) {
         throw new IllegalStateException("Can not add to mutation after serializing it");
       }
 
       // fill buffer with column family location
-      buffer.writeVLong(cfLength);
-      buffer.add(cf, 0, cfLength);
+      buffer.writeVLong(columnFamilyLength);
+      buffer.add(columnFamily, 0, columnFamilyLength);
 
       // fill buffer with qualifier location
-      buffer.writeVLong(cqLength);
-      buffer.add(cq, 0, cqLength);
+      buffer.writeVLong(columnQualifierLength);
+      buffer.add(columnQualifier, 0, columnQualifierLength);
 
       // fill buffer with visibility location
       // if none given, fill with EMPTY_BYTES
-      if (cv == null) {
+      if (columnVisibility == null) {
         buffer.writeVLong(EMPTY_BYTES.length);
         buffer.add(EMPTY_BYTES, 0, EMPTY_BYTES.length);
       } else {
-        buffer.writeVLong(cvLength);
-        buffer.add(cv, 0, cvLength);
+        buffer.writeVLong(columnVisibilityLength);
+        buffer.add(columnVisibility, 0, columnVisibilityLength);
       }
 
       // fill buffer with timestamp location
@@ -983,21 +1093,39 @@ public class Mutation implements Writable {
       entries++;
     }
 
-    // set finalizes the method chain by filling the buffer with the gathered Mutation configuration
-    public void set(byte[] v) {
-      set(v, false);
+    /**
+     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     * @param val
+     *          value
+     */
+    public void set(byte[] val) {
+      set(val, false);
     }
 
-    public void set(Value v) {
-      set(v.get(), false);
+    /**
+     * Sets the value of a mutation.
+     * @param val
+     *          value
+     */
+    public void set(Value val) {
+      set(val.get(), false);
     }
 
-    public void set(ByteBuffer v) {
-      set(ByteBufferUtil.toBytes(v), false);
+    /**
+     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     * @param val
+     *          value
+     */
+    public void set(ByteBuffer val) {
+      set(ByteBufferUtil.toBytes(val), false);
     }
 
+    /**
+     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration.
+     * Sets a deletion flag in the UnsynchronizedBuffer.
+     * A deletion does not require a value and has same behavior as set() with empty bytes for value and a true deletion flag.
+     */
     public void delete() {
-      // call set() with a true delete flag and empty bytes for value
       set(EMPTY_BYTES, true);
     }
   }
