@@ -275,7 +275,6 @@ public class WebViews {
     model.put("title", "Table Status"); // Need this for the browser tab title
     model.put("tablesTitle", "Table Status");
     model.put("template", "tables.ftl");
-    model.put("js", "tables.js");
 
     return model;
   }

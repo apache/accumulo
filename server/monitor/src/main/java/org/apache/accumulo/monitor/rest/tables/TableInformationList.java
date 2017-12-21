@@ -21,7 +21,8 @@ import java.util.List;
 
 /**
  *
- * Generates a list with table information
+ * Generates a list with table information.
+ * This is mainly used to populate DataTables
  *
  * @since 2.0.0
  *
@@ -29,7 +30,7 @@ import java.util.List;
 public class TableInformationList {
 
   // Variable names become JSON keys
-  public List<TableInformation> table = new ArrayList<>();
+  public List<TableInformation> data = new ArrayList<>();
 
   /**
    * Initializes the array list
@@ -43,6 +44,6 @@ public class TableInformationList {
    *          Table information to add
    */
   public void addTable(TableInformation table) {
-    this.table.add(table);
+    this.data.add(table);
   }
 }

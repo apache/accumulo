@@ -27,6 +27,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
  *
  */
 public class TableInformation {
+  private final String ZERO_COMBO = "0(0)";
 
   // Variable names become JSON keys
   public String tablename;
@@ -44,8 +45,14 @@ public class TableInformation {
   public double queryByteRate;
 
   public CompactionsList majorCompactions;
+  // running compactions with queued in parenthesis
+  public String majorCombo;
   public CompactionsList minorCompactions;
+  // running compactions with queued in parenthesis
+  public String minorCombo;
   public CompactionsList scans;
+  // running scans with queued in parenthesis
+  public String scansCombo;
 
   private int queuedMajorCompactions;
   private int runningMajorCompactions;
@@ -77,6 +84,24 @@ public class TableInformation {
     this.tablename = tableName;
     this.tableId = tableId;
     this.tableState = tableState;
+    this.tablets = 0;
+    this.offlineTablets = 0;
+    this.onlineTablets = 0;
+    this.recs = 0;
+    this.recsInMemory =0;
+    this.ingest = 0;
+    this.ingestByteRate = 0;
+    this.query = 0;
+    this.queryByteRate = 0;
+    this.entriesRead = 0;
+    this.entriesReturned = 0;
+    this.holdTime = 0.0;
+    this.majorCompactions = new CompactionsList(0, 0);
+    this.majorCombo = ZERO_COMBO;
+    this.minorCompactions = new CompactionsList(0, 0);
+    this.minorCombo = ZERO_COMBO;
+    this.scans = new CompactionsList(0, 0);
+    this.scansCombo = ZERO_COMBO;
   }
 
   /**
@@ -118,25 +143,31 @@ public class TableInformation {
     if (null != info.scans) {
       this.queuedScans = info.scans.queued;
       this.runningScans = info.scans.running;
+      this.scansCombo = info.scans.running + "(" + info.scans.queued + ")";
     } else {
       this.queuedScans = 0;
       this.runningScans = 0;
+      this.scansCombo = ZERO_COMBO;
     }
 
     if (null != info.minors) {
       this.queuedMinorCompactions = info.minors.queued;
       this.runningMinorCompactions = info.minors.running;
+      this.minorCombo = info.minors.running + "(" + info.minors.queued + ")";
     } else {
       this.queuedMinorCompactions = 0;
       this.runningMinorCompactions = 0;
+      this.minorCombo = ZERO_COMBO;
     }
 
     if (null != info.majors) {
       this.queuedMajorCompactions = info.majors.queued;
       this.runningMajorCompactions = info.majors.running;
+      this.majorCombo = info.majors.running + "(" + info.majors.queued + ")";
     } else {
       this.queuedMajorCompactions = 0;
       this.runningMajorCompactions = 0;
+      this.majorCombo = ZERO_COMBO;
     }
 
     this.majorCompactions = new CompactionsList(runningMajorCompactions, queuedMajorCompactions);
