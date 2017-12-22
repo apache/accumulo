@@ -268,8 +268,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Test pre-configuring iterator with default iterator. Configure IteratorSetting values into method call.
    */
   @Test
-  public void testPreconfiguredIteratorWithDefaultIterator2()
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testPreconfiguredIteratorWithDefaultIterator2() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -292,8 +291,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Test pre-configuring iterator with default iterator. Pass in IteratorScope value in method arguments.
    */
   @Test
-  public void testPreconfiguredIteratorWithDefaultIterator3()
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testPreconfiguredIteratorWithDefaultIterator3() throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -316,8 +314,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
    * Test pre-configuring iterator with additional options.
    */
   @Test
-  public void testSettingInitialIteratorWithAdditionalIteratorOptions()
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException, TableExistsException {
+  public void testSettingInitialIteratorWithAdditionalIteratorOptions() throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      TableExistsException {
     Connector conn = getConnector();
     String tableName = getUniqueNames(2)[0];
 
@@ -618,8 +616,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     return Iterators.size(connector.tableOperations().getProperties(tableName).iterator());
   }
 
-  public int compareProperties(Connector connector, String tableNameOrig, String tableName, String changedProp)
-      throws AccumuloException, TableNotFoundException {
+  public int compareProperties(Connector connector, String tableNameOrig, String tableName, String changedProp) throws AccumuloException,
+      TableNotFoundException {
     boolean inNew = false;
     int countOrig = 0;
     for (Entry<String,String> orig : connector.tableOperations().getProperties(tableNameOrig)) {
