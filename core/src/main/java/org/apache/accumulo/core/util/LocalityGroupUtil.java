@@ -340,4 +340,14 @@ public class LocalityGroupUtil {
 
     reader.seek(range, families, inclusive);
   }
+
+  static public void ensureNonOverlappingGroups(Map<String,Set<Text>> groups) {
+    HashSet<Text> all = new HashSet<>();
+    for (Entry<String,Set<Text>> entry : groups.entrySet()) {
+      if (!Collections.disjoint(all, entry.getValue())) {
+        throw new IllegalArgumentException("Group " + entry.getKey() + " overlaps with another group");
+      }
+      all.addAll(entry.getValue());
+    }
+  }
 }

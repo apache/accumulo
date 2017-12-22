@@ -956,15 +956,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // ensure locality groups do not overlap
-    HashSet<Text> all = new HashSet<>();
-    for (Entry<String,Set<Text>> entry : groups.entrySet()) {
-
-      if (!Collections.disjoint(all, entry.getValue())) {
-        throw new IllegalArgumentException("Group " + entry.getKey() + " overlaps with another group");
-      }
-
-      all.addAll(entry.getValue());
-    }
+    LocalityGroupUtil.ensureNonOverlappingGroups(groups);
 
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
       Set<Text> colFams = entry.getValue();
