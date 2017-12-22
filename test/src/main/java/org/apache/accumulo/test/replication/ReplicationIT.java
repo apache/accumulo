@@ -785,8 +785,6 @@ public class ReplicationIT extends ConfigurableMacBase {
           }
         }
       }
-
-      s.close();
       Assert.fail("We had a file that was referenced but didn't get closed");
     } finally {
       if (s != null) {
