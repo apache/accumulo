@@ -846,7 +846,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     conn.tableOperations().flush(table1, null, null, true);
 
     // Make sure that we have one status element, should be a new file
-    try (Scanner s = ReplicationTable.getScanner(conn)){
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
       StatusSection.limit(s);
       Entry<Key,Value> entry = null;
       Status expectedStatus = StatusUtil.openWithUnknownLength();
@@ -1013,8 +1013,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
           Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
           notFound = false;
-        } catch (NoSuchElementException e) {
-        } catch (IllegalArgumentException e) {
+        } catch (NoSuchElementException e) {} catch (IllegalArgumentException e) {
           try (Scanner s2 = ReplicationTable.getScanner(conn)) {
             for (Entry<Key,Value> content : s2) {
               log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
@@ -1257,11 +1256,9 @@ public class ReplicationIT extends ConfigurableMacBase {
 
     log.info("Checking for replication entries in replication");
     // Then we need to get those records over to the replication table
-    Scanner s = null;
-    try {
-      Set<String> entries = new HashSet<>();
-      for (int i = 0; i < 5; i++) {
-        s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Set<String> entries = new HashSet<>();
+    for (int i = 0; i < 5; i++) {
+      try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(ReplicationSection.getRange());
         entries.clear();
         for (Entry<Key,Value> entry : s) {
@@ -1274,107 +1271,110 @@ public class ReplicationIT extends ConfigurableMacBase {
         }
         Thread.sleep(1000);
       }
+    }
 
-      Assert.assertFalse("Did not find any replication entries in the replication table", entries.isEmpty());
+    Assert.assertFalse("Did not find any replication entries in the replication table", entries.isEmpty());
 
-      // Find the WorkSection record that will be created for that data we ingested
-      boolean notFound = true;
-      for (int i = 0; i < 10 && notFound; i++) {
-        try {
-          s = ReplicationTable.getScanner(conn);
-          WorkSection.limit(s);
-          Entry<Key,Value> e = Iterables.getOnlyElement(s);
-          log.info("Found entry: {}", e.getKey().toStringNoTruncate());
-          Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
-          Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
-          notFound = false;
-        } catch (NoSuchElementException e) {
+    // Find the WorkSection record that will be created for that data we ingested
+    boolean notFound = true;
+    for (int i = 0; i < 10 && notFound; i++) {
+      try (Scanner s = ReplicationTable.getScanner(conn)) {
+        WorkSection.limit(s);
+        Entry<Key,Value> e = Iterables.getOnlyElement(s);
+        log.info("Found entry: {}", e.getKey().toStringNoTruncate());
+        Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
+        Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
+        notFound = false;
+      } catch (NoSuchElementException e) {
 
-        } catch (IllegalArgumentException e) {
-          // Somehow we got more than one element. Log what they were
-          s = ReplicationTable.getScanner(conn);
+      } catch (IllegalArgumentException e) {
+        // Somehow we got more than one element. Log what they were
+        try (Scanner s = ReplicationTable.getScanner(conn)) {
           for (Entry<Key,Value> content : s) {
             log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
           }
           Assert.fail("Found more than one work section entry");
-        } catch (RuntimeException e) {
-          // Catch a propagation issue, fail if it's not what we expect
-          Throwable cause = e.getCause();
-          if (cause instanceof AccumuloSecurityException) {
-            AccumuloSecurityException sec = (AccumuloSecurityException) cause;
-            switch (sec.getSecurityErrorCode()) {
-              case PERMISSION_DENIED:
-                // retry -- the grant didn't happen yet
-                log.warn("Sleeping because permission was denied");
-                break;
-              default:
-                throw e;
-            }
-          } else {
-            throw e;
-          }
         }
-
-        Thread.sleep(2000);
+      } catch (RuntimeException e) {
+        // Catch a propagation issue, fail if it's not what we expect
+        Throwable cause = e.getCause();
+        if (cause instanceof AccumuloSecurityException) {
+          AccumuloSecurityException sec = (AccumuloSecurityException) cause;
+          switch (sec.getSecurityErrorCode()) {
+            case PERMISSION_DENIED:
+              // retry -- the grant didn't happen yet
+              log.warn("Sleeping because permission was denied");
+              break;
+            default:
+              throw e;
+          }
+        } else {
+          throw e;
+        }
       }
+      Thread.sleep(2000);
+    }
 
-      if (notFound) {
-        s = ReplicationTable.getScanner(conn);
+    if (notFound) {
+      try (Scanner s = ReplicationTable.getScanner(conn)) {
         for (Entry<Key,Value> content : s) {
           log.info("{} => {}", content.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(content.getValue().get())));
         }
         Assert.assertFalse("Did not find the work entry for the status entry", notFound);
       }
+    }
 
-      /**
-       * By this point, we should have data ingested into a table, with at least one WAL as a candidate for replication. Compacting the table should close all
-       * open WALs, which should ensure all records we're going to replicate have entries in the replication table, and nothing will exist in the metadata table
-       * anymore
-       */
+    /**
+     * By this point, we should have data ingested into a table, with at least one WAL as a candidate for replication. Compacting the table should close all
+     * open WALs, which should ensure all records we're going to replicate have entries in the replication table, and nothing will exist in the metadata table
+     * anymore
+     */
 
-      log.info("Killing tserver");
-      // Kill the tserver(s) and restart them
-      // to ensure that the WALs we previously observed all move to closed.
-      cluster.getClusterControl().stop(ServerType.TABLET_SERVER);
+    log.info("Killing tserver");
+    // Kill the tserver(s) and restart them
+    // to ensure that the WALs we previously observed all move to closed.
+    cluster.getClusterControl().stop(ServerType.TABLET_SERVER);
 
-      log.info("Starting tserver");
-      cluster.getClusterControl().start(ServerType.TABLET_SERVER);
+    log.info("Starting tserver");
+    cluster.getClusterControl().start(ServerType.TABLET_SERVER);
 
-      log.info("Waiting to read tables");
-      sleepUninterruptibly(2 * 3, TimeUnit.SECONDS);
+    log.info("Waiting to read tables");
+    sleepUninterruptibly(2 * 3, TimeUnit.SECONDS);
 
-      // Make sure we can read all the tables (recovery complete)
-      for (String table : new String[] {MetadataTable.NAME, table1}) {
-        Iterators.size(conn.createScanner(table, Authorizations.EMPTY).iterator());
-      }
+    // Make sure we can read all the tables (recovery complete)
+    for (String table : new String[] {MetadataTable.NAME, table1}) {
+      Iterators.size(conn.createScanner(table, Authorizations.EMPTY).iterator());
+    }
 
-      log.info("Recovered metadata:");
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    log.info("Recovered metadata:");
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       for (Entry<Key,Value> entry : s) {
         log.info("{}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
+    }
 
-      cluster.getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
+    cluster.getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
 
-      // Wait for a bit since the GC has to run (should be running after a one second delay)
-      waitForGCLock(conn);
+    // Wait for a bit since the GC has to run (should be running after a one second delay)
+    waitForGCLock(conn);
 
-      Thread.sleep(1000);
+    Thread.sleep(1000);
 
-      log.info("After GC");
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    log.info("After GC");
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       for (Entry<Key,Value> entry : s) {
         log.info("{}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
+    }
 
-      // We expect no records in the metadata table after compaction. We have to poll
-      // because we have to wait for the StatusMaker's next iteration which will clean
-      // up the dangling *closed* records after we create the record in the replication table.
-      // We need the GC to close the file (CloseWriteAheadLogReferences) before we can remove the record
-      log.info("Checking metadata table for replication entries");
-      Set<String> remaining = new HashSet<>();
-      for (int i = 0; i < 10; i++) {
-        s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    // We expect no records in the metadata table after compaction. We have to poll
+    // because we have to wait for the StatusMaker's next iteration which will clean
+    // up the dangling *closed* records after we create the record in the replication table.
+    // We need the GC to close the file (CloseWriteAheadLogReferences) before we can remove the record
+    log.info("Checking metadata table for replication entries");
+    Set<String> remaining = new HashSet<>();
+    for (int i = 0; i < 10; i++) {
+      try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(ReplicationSection.getRange());
         remaining.clear();
         for (Entry<Key,Value> e : s) {
@@ -1388,17 +1388,18 @@ public class ReplicationIT extends ConfigurableMacBase {
         Thread.sleep(2000);
         log.info("");
       }
+    }
 
-      Assert.assertTrue("Replication status messages were not cleaned up from metadata table", remaining.isEmpty());
+    Assert.assertTrue("Replication status messages were not cleaned up from metadata table", remaining.isEmpty());
 
-      /**
-       * After we close out and subsequently delete the metadata record, this will propagate to the replication table, which will cause those records to be
-       * deleted after replication occurs
-       */
+    /**
+     * After we close out and subsequently delete the metadata record, this will propagate to the replication table, which will cause those records to be
+     * deleted after replication occurs
+     */
 
-      int recordsFound = 0;
-      for (int i = 0; i < 30; i++) {
-        s = ReplicationTable.getScanner(conn);
+    int recordsFound = 0;
+    for (int i = 0; i < 30; i++) {
+      try (Scanner s = ReplicationTable.getScanner(conn)) {
         recordsFound = 0;
         for (Entry<Key,Value> entry : s) {
           recordsFound++;
@@ -1412,11 +1413,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           log.info("");
         }
       }
-      Assert.assertTrue("Found unexpected replication records in the replication table", recordsFound <= 2);
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
+    Assert.assertTrue("Found unexpected replication records in the replication table", recordsFound <= 2);
   }
 }
