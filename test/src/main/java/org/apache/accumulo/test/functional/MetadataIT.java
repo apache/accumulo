@@ -138,7 +138,7 @@ public class MetadataIT extends AccumuloClusterHarness {
 
     assertTrue(count > 0);
 
-      // batch scan root metadata table
+    // batch scan root metadata table
     try (BatchScanner s = c.createBatchScanner(RootTable.NAME, Authorizations.EMPTY, 1)) {
       s.setRanges(Collections.singleton(new Range()));
       count = 0;

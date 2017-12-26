@@ -429,8 +429,8 @@ public class ReplicationIT extends ConfigurableMacBase {
       entry = Iterators.getOnlyElement(s.iterator());
     }
     // We should at least find one status record for this table, we might find a second if another log was started from ingesting the data
-    Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1),
-        entry.getKey().getColumnQualifier().toString());
+    Assert.assertEquals("Expected to find replication entry for " + table1, conn.tableOperations().tableIdMap().get(table1), entry.getKey()
+        .getColumnQualifier().toString());
 
     // Enable replication on table2
     conn.tableOperations().setProperty(table2, Property.TABLE_REPLICATION.getKey(), "true");
@@ -456,8 +456,8 @@ public class ReplicationIT extends ConfigurableMacBase {
       Assert.assertEquals("Expected to find 2 records, but actually found " + records, 2, records.size());
 
       for (Entry<Key,Value> metadata : records) {
-        Assert.assertTrue("Expected record to be in metadata but wasn't " + metadata.getKey().toStringNoTruncate() + ", tableIds remaining " + tableIdsForMetadata,
-            tableIdsForMetadata.remove(metadata.getKey().getColumnQualifier().toString()));
+        Assert.assertTrue("Expected record to be in metadata but wasn't " + metadata.getKey().toStringNoTruncate() + ", tableIds remaining "
+            + tableIdsForMetadata, tableIdsForMetadata.remove(metadata.getKey().getColumnQualifier().toString()));
       }
 
       Assert.assertTrue("Expected that we had removed all metadata entries " + tableIdsForMetadata, tableIdsForMetadata.isEmpty());
@@ -466,7 +466,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       Thread.sleep(5000);
     }
 
-      // Verify that we found two replication records: one for table1 and one for table2
+    // Verify that we found two replication records: one for table1 and one for table2
     try (Scanner s = ReplicationTable.getScanner(conn)) {
       StatusSection.limit(s);
       Iterator<Entry<Key,Value>> iter = s.iterator();
@@ -708,9 +708,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     bw.addMutation(m);
     bw.close();
 
-    Scanner s = null;
-    try {
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
       s.setRange(TabletsSection.getRange(tableId));
       Set<String> wals = new HashSet<>();
@@ -739,20 +737,20 @@ public class ReplicationIT extends ConfigurableMacBase {
       }
 
       for (int i = 0; i < 10; i++) {
-        s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-        s.fetchColumnFamily(LogColumnFamily.NAME);
-        s.setRange(TabletsSection.getRange(tableId));
-        for (Entry<Key,Value> entry : s) {
-          log.info("{}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
+        try (Scanner s2 = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+          s2.fetchColumnFamily(LogColumnFamily.NAME);
+          s2.setRange(TabletsSection.getRange(tableId));
+          for (Entry<Key,Value> entry : s2) {
+            log.info("{}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
+          }
         }
 
-        try {
-          s = ReplicationTable.getScanner(conn);
-          StatusSection.limit(s);
+        try (Scanner s3 = ReplicationTable.getScanner(conn)) {
+          StatusSection.limit(s3);
           Text buff = new Text();
           boolean allReferencedLogsClosed = true;
           int recordsFound = 0;
-          for (Entry<Key,Value> e : s) {
+          for (Entry<Key,Value> e : s3) {
             recordsFound++;
             allReferencedLogsClosed = true;
             StatusSection.getFile(e.getKey(), buff);
@@ -786,10 +784,6 @@ public class ReplicationIT extends ConfigurableMacBase {
         }
       }
       Assert.fail("We had a file that was referenced but didn't get closed");
-    } finally {
-      if (s != null) {
-        s.close();
-      }
     }
   }
 
@@ -852,9 +846,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     conn.tableOperations().flush(table1, null, null, true);
 
     // Make sure that we have one status element, should be a new file
-    Scanner s = null;
-    try {
-      s = ReplicationTable.getScanner(conn);
+    try (Scanner s = ReplicationTable.getScanner(conn)){
       StatusSection.limit(s);
       Entry<Key,Value> entry = null;
       Status expectedStatus = StatusUtil.openWithUnknownLength();
@@ -875,12 +867,13 @@ public class ReplicationIT extends ConfigurableMacBase {
           Thread.sleep(500);
         } catch (IllegalArgumentException e) {
           // saw this contain 2 elements once
-          s = ReplicationTable.getScanner(conn);
-          StatusSection.limit(s);
-          for (Entry<Key,Value> content : s) {
-            log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
+          try (Scanner s2 = ReplicationTable.getScanner(conn)) {
+            StatusSection.limit(s2);
+            for (Entry<Key,Value> content : s2) {
+              log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
+            }
+            throw e;
           }
-          throw e;
         } finally {
           attempts--;
         }
@@ -894,23 +887,25 @@ public class ReplicationIT extends ConfigurableMacBase {
       // Try a couple of times to watch for the work record to be created
       boolean notFound = true;
       for (int i = 0; i < 10 && notFound; i++) {
-        s = ReplicationTable.getScanner(conn);
-        WorkSection.limit(s);
-        int elementsFound = Iterables.size(s);
-        if (0 < elementsFound) {
-          Assert.assertEquals(1, elementsFound);
-          notFound = false;
+        try (Scanner s2 = ReplicationTable.getScanner(conn)) {
+          WorkSection.limit(s2);
+          int elementsFound = Iterables.size(s2);
+          if (0 < elementsFound) {
+            Assert.assertEquals(1, elementsFound);
+            notFound = false;
+          }
+          Thread.sleep(500);
         }
-        Thread.sleep(500);
       }
 
       // If we didn't find the work record, print the contents of the table
       if (notFound) {
-        s = ReplicationTable.getScanner(conn);
-        for (Entry<Key,Value> content : s) {
-          log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
+        try (Scanner s2 = ReplicationTable.getScanner(conn)) {
+          for (Entry<Key,Value> content : s2) {
+            log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
+          }
+          Assert.assertFalse("Did not find the work entry for the status entry", notFound);
         }
-        Assert.assertFalse("Did not find the work entry for the status entry", notFound);
       }
 
       // Write some more data so that we over-run the single WAL
@@ -925,40 +920,39 @@ public class ReplicationIT extends ConfigurableMacBase {
       // that the master has time to work.
       Thread.sleep(5000);
 
-      s = ReplicationTable.getScanner(conn);
-      StatusSection.limit(s);
-      int numRecords = 0;
-      for (Entry<Key,Value> e : s) {
-        numRecords++;
-        log.info("Found status record {}\t{}", e.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(e.getValue().get())));
-      }
+      try (Scanner s2 = ReplicationTable.getScanner(conn)) {
+        StatusSection.limit(s2);
+        int numRecords = 0;
+        for (Entry<Key,Value> e : s2) {
+          numRecords++;
+          log.info("Found status record {}\t{}", e.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(e.getValue().get())));
+        }
 
-      Assert.assertEquals(2, numRecords);
+        Assert.assertEquals(2, numRecords);
+      }
 
       // We should eventually get 2 work records recorded, need to account for a potential delay though
       // might see: status1 -> work1 -> status2 -> (our scans) -> work2
       notFound = true;
       for (int i = 0; i < 10 && notFound; i++) {
-        s = ReplicationTable.getScanner(conn);
-        WorkSection.limit(s);
-        int elementsFound = Iterables.size(s);
-        if (2 == elementsFound) {
-          notFound = false;
+        try (Scanner s2 = ReplicationTable.getScanner(conn)) {
+          WorkSection.limit(s2);
+          int elementsFound = Iterables.size(s2);
+          if (2 == elementsFound) {
+            notFound = false;
+          }
+          Thread.sleep(500);
         }
-        Thread.sleep(500);
       }
 
       // If we didn't find the work record, print the contents of the table
       if (notFound) {
-        s = ReplicationTable.getScanner(conn);
-        for (Entry<Key,Value> content : s) {
-          log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
+        try (Scanner s2 = ReplicationTable.getScanner(conn)) {
+          for (Entry<Key,Value> content : s2) {
+            log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
+          }
+          Assert.assertFalse("Did not find the work entries for the status entries", notFound);
         }
-        Assert.assertFalse("Did not find the work entries for the status entries", notFound);
-      }
-    } finally {
-      if (s != null) {
-        s.close();
       }
     }
   }
@@ -1011,36 +1005,33 @@ public class ReplicationIT extends ConfigurableMacBase {
     Assert.assertTrue(conn.securityOperations().hasTablePermission("root", ReplicationTable.NAME, TablePermission.READ));
 
     boolean notFound = true;
-    Scanner s = null;
-    try {
-      for (int i = 0; i < 10 && notFound; i++) {
-        s = ReplicationTable.getScanner(conn);
+    for (int i = 0; i < 10 && notFound; i++) {
+      try (Scanner s = ReplicationTable.getScanner(conn)) {
         WorkSection.limit(s);
         try {
           Entry<Key,Value> e = Iterables.getOnlyElement(s);
           Text expectedColqual = new ReplicationTarget("cluster1", "4", tableId).toText();
           Assert.assertEquals(expectedColqual, e.getKey().getColumnQualifier());
           notFound = false;
-        } catch (NoSuchElementException e) {} catch (IllegalArgumentException e) {
-          s = ReplicationTable.getScanner(conn);
-          for (Entry<Key,Value> content : s) {
-            log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
+        } catch (NoSuchElementException e) {
+        } catch (IllegalArgumentException e) {
+          try (Scanner s2 = ReplicationTable.getScanner(conn)) {
+            for (Entry<Key,Value> content : s2) {
+              log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
+            }
+            Assert.fail("Found more than one work section entry");
           }
-          Assert.fail("Found more than one work section entry");
         }
         Thread.sleep(500);
       }
+    }
 
-      if (notFound) {
-        s = ReplicationTable.getScanner(conn);
+    if (notFound) {
+      try (Scanner s = ReplicationTable.getScanner(conn)) {
         for (Entry<Key,Value> content : s) {
           log.info("{} => {}", content.getKey().toStringNoTruncate(), content.getValue());
         }
         Assert.assertFalse("Did not find the work entry for the status entry", notFound);
-      }
-    } finally {
-      if (s != null) {
-        s.close();
       }
     }
   }

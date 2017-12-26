@@ -239,7 +239,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
       conn.tableOperations().offline(tableName, true);
     }
 
-      // See that the file in metadata currently is
+    // See that the file in metadata currently is
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);

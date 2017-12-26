@@ -111,7 +111,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
       workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(timeCreated), ImmutableMap.of("remote_cluster_1", "4"), tableId);
     }
 
-      // Scan over just the WorkSection
+    // Scan over just the WorkSection
     try (Scanner s = ReplicationTable.getScanner(conn)) {
       WorkSection.limit(s);
 

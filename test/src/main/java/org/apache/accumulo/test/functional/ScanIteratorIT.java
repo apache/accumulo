@@ -124,13 +124,11 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    try (Scanner scanner = c.createScanner(tableName, new Authorizations());
-        BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations()); BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
 
       setupIter(scanner);
       verify(scanner, 1, 999);
 
-      ;
       bscanner.setRanges(Collections.singleton(new Range((Key) null, null)));
 
       setupIter(bscanner);

@@ -105,7 +105,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
 
-      // should be able to scan now
+    // should be able to scan now
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
       for (Entry<Key,Value> entry : scanner) {
         entry.getKey();

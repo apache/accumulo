@@ -139,8 +139,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         }
 
         // scan all data just flushed
-        scanner.setRange(new Range(new Text(String.format("r_%10d", i * NUM_TO_FLUSH)), true,
-                new Text(String.format("r_%10d", (i + 1) * NUM_TO_FLUSH)), false));
+        scanner
+            .setRange(new Range(new Text(String.format("r_%10d", i * NUM_TO_FLUSH)), true, new Text(String.format("r_%10d", (i + 1) * NUM_TO_FLUSH)), false));
         Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
         for (int j = 0; j < NUM_TO_FLUSH; j++) {

@@ -146,7 +146,7 @@ public class VolumeIT extends ConfigurableMacBase {
         assertEquals(rows[i++], entry.getKey().getRow().toString());
       }
     }
-      // verify the new files are written to the different volumes
+    // verify the new files are written to the different volumes
     try (Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(new Range("1", "1<"));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
