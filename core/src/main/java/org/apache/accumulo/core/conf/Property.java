@@ -942,25 +942,6 @@ public enum Property {
   }
 
   /**
-   * Creates a new instance of a class specified in a configuration property.
-   *
-   * @param conf
-   *          configuration containing property
-   * @param property
-   *          property specifying class name
-   * @param base
-   *          base class of type
-   * @param defaultInstance
-   *          instance to use if creation fails
-   * @return new class instance, or default instance if creation failed
-   * @see AccumuloVFSClassLoader
-   */
-  public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
-    String clazzName = conf.get(property);
-    return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
-  }
-
-  /**
    * Collects together properties from the given configuration pertaining to compaction strategies. The relevant properties all begin with the prefix in
    * {@link #TABLE_COMPACTION_STRATEGY_PREFIX}. In the returned map, the prefix is removed from each property's key.
    *
