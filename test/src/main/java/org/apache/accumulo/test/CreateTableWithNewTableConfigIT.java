@@ -87,9 +87,9 @@ public class CreateTableWithNewTableConfigIT extends SharedMiniClusterBase {
   }
 
   public boolean checkTimeType(Connector connector, String tableName, TimeType expectedTimeType) throws TableNotFoundException {
-    try (Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       String tableID = connector.tableOperations().tableIdMap().get(tableName) + "<";
-      for (Entry<Key,Value> entry : scanner) {
+      for (Entry<Key,Value> entry : s) {
         Key k = entry.getKey();
 
         if (k.getRow().toString().equals(tableID) && k.getColumnQualifier().toString().equals(ServerColumnFamily.TIME_COLUMN.getColumnQualifier().toString())) {
