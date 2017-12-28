@@ -244,7 +244,7 @@ public class TabletServerResourceManager {
 
     fileManager = new FileManager(tserver, fs, maxOpenFiles, _dCache, _iCache);
 
-    memoryManager = acuConf.instantiateClassProperty(Property.TSERV_MEM_MGMT, MemoryManager.class, new LargestFirstMemoryManager());
+    memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT, MemoryManager.class, new LargestFirstMemoryManager());
     memoryManager.init(tserver.getServerConfigurationFactory());
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();

@@ -27,7 +27,6 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -283,36 +282,5 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this configuration.
    */
   public void invalidateCache() {}
-
-  /**
-   * Creates a new instance of a class specified in a configuration property.
-   *
-   * @param property
-   *          property specifying class name
-   * @param base
-   *          base class of type
-   * @param defaultInstance
-   *          instance to use if creation fails
-   * @return new class instance, or default instance if creation failed
-   * @see AccumuloVFSClassLoader
-   */
-  public <T> T instantiateClassProperty(Property property, Class<T> base, T defaultInstance) {
-    String clazzName = get(property);
-    T instance = null;
-
-    try {
-      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
-      instance = clazz.newInstance();
-      log.info("Loaded class : {}", clazzName);
-    } catch (Exception e) {
-      log.warn("Failed to load class ", e);
-    }
-
-    if (instance == null) {
-      log.info("Using {}", defaultInstance.getClass().getName());
-      instance = defaultInstance;
-    }
-    return instance;
-  }
 
 }

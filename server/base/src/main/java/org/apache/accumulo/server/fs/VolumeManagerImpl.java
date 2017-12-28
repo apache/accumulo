@@ -83,7 +83,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // if they supplied a property and we cannot load it, then fail hard
     VolumeChooser chooser1;
     try {
-      chooser1 = conf.instantiateClassProperty(Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, null);
+      chooser1 = Property.createInstanceFromPropertyName(conf, Property.GENERAL_VOLUME_CHOOSER, VolumeChooser.class, null);
     } catch (NullPointerException npe) {
       chooser1 = null;
       // null chooser handled below

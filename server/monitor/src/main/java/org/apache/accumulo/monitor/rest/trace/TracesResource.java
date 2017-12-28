@@ -315,7 +315,7 @@ public class TracesResource {
           props.put(entry.getKey().substring(prefixLength), entry.getValue());
         }
 
-        AuthenticationToken token = conf.instantiateClassProperty(Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
+        AuthenticationToken token = Property.createInstanceFromPropertyName(conf, Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
         token.init(props);
         at = token;
       }
