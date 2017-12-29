@@ -39,7 +39,7 @@ public class TableInformation {
   public long recs;
   public long recsInMemory;
 
-  public double ingest;
+  public double ingestRate;
   public double ingestByteRate;
   public double query;
   public double queryByteRate;
@@ -89,7 +89,7 @@ public class TableInformation {
     this.onlineTablets = 0;
     this.recs = 0;
     this.recsInMemory =0;
-    this.ingest = 0;
+    this.ingestRate = 0;
     this.ingestByteRate = 0;
     this.query = 0;
     this.queryByteRate = 0;
@@ -129,14 +129,14 @@ public class TableInformation {
     this.recs = info.recs;
     this.recsInMemory = info.recsInMemory;
 
-    this.ingest = info.getIngestRate();
-    this.ingestByteRate = info.getIngestByteRate();
+    this.ingestRate = cleanNumber(info.getIngestRate());
+    this.ingestByteRate = cleanNumber(info.getIngestByteRate());
 
-    this.query = info.getQueryRate();
-    this.queryByteRate = info.getQueryByteRate();
+    this.query = cleanNumber(info.getQueryRate());
+    this.queryByteRate = cleanNumber(info.getQueryByteRate());
 
-    this.entriesRead = info.scanRate;
-    this.entriesReturned = info.queryRate;
+    this.entriesRead = cleanNumber(info.scanRate);
+    this.entriesReturned = cleanNumber(info.queryRate);
 
     this.holdTime = holdTime;
 
@@ -175,5 +175,14 @@ public class TableInformation {
     this.scans = new CompactionsList(runningScans, queuedScans);
 
     this.tableState = tableState;
+  }
+
+  private double cleanNumber(double dirtyNumber) {
+    double clean;
+    if (dirtyNumber < 1)
+      clean = 0;
+    else
+      clean = dirtyNumber;
+    return clean;
   }
 }

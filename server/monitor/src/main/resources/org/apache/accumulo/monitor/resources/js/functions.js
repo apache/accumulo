@@ -99,13 +99,16 @@ function bigNumberForQuantity(quantity) {
  * @return {string} The new value with the suffix
  */
 function bigNumber(big, suffixes, base) {
-  // If the number is smaller than the base, return thee number with no suffix
+  // if the number is a fraction keep to 2 decimal places
+  if ((big - Math.floor(big)) !== 0)
+    big = big.toFixed(2);
+  // If the number is smaller than the base, return the number with no suffix
   if (big < base) {
-    return big + suffixes[0];
+    return big;
   }
   // Finds which suffix to use
   var exp = Math.floor(Math.log(big) / Math.log(base));
-  // Divides the bumber by the equivalent suffix number
+  // Divides the number by the equivalent suffix number
   var val = big / Math.pow(base, exp);
   // Keeps the number to 2 decimal places and adds the suffix
   return val.toFixed(2) + suffixes[exp];

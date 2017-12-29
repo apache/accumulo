@@ -19,7 +19,7 @@
         /**
          * Creates DataTables table
          *   - uses ajax call for data source and saves sort state in session
-         *   - uses scientific notation plugin for sorting and ellipsis plugin to shorten numbers
+         *   - defines custom number formats
          */
         $(document).ready(function() {
           $(document).tooltip();
@@ -27,9 +27,13 @@
                 "ajaxSource": "/rest/dataTables",
                 "stateSave": true,
                 "columnDefs": [
-                    { "type": "scientific",
-                      "targets": "sci-notation",
-                      "render": $.fn.dataTable.render.ellipsis( 6, true )
+                    { "type": "num",
+                      "targets": "big-num",
+                      "render": function ( data, type, row ) {
+                        if(type === 'display')
+                          data = bigNumberForQuantity(data);
+                        return data;
+                      }
                     }
                   ],
                 "columns": [
@@ -40,13 +44,14 @@
                             data = '<a href="/tables/' + row.tableId + '">' + row.tablename + '</a>';
                         }
                         return data;
-                      }},
+                      }
+                    },
                     { "data": "tableState" },
-                    { "data": "tablets", "type": "num" },
-                    { "data": "offlineTablets", "type": "num" },
-                    { "data": "recs", "type": "num" },
-                    { "data": "recsInMemory", "type": "num" },
-                    { "data": "ingest" },
+                    { "data": "tablets" },
+                    { "data": "offlineTablets" },
+                    { "data": "recs" },
+                    { "data": "recsInMemory" },
+                    { "data": "ingestRate" },
                     { "data": "entriesRead" },
                     { "data": "entriesReturned" },
                     { "data": "holdTime" },
@@ -71,14 +76,14 @@
           <thead>
             <tr><th>Table&nbsp;Name&nbsp;</th>
                 <th>State&nbsp;</th>
-                <th title="Tables are broken down into ranges of rows called tablets.">#&nbsp;Tablets</th>
-                <th title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing.">Offline</th>
-                <th title="Key/value pairs over each instance, table or tablet.">Entries&nbsp;</th>
-                <th title="The total number of key/value pairs stored in memory and not yet written to disk."><br/>In&nbsp;Mem</th>
-                <th title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="sci-notation">Ingest&nbsp;</th>
-                <th title="The number of Key/Value pairs read on the server side. Not all key values read may be returned to client because of filtering." class="sci-notation">Read</th>
-                <th title="The number of Key/Value pairs returned to clients during queries. This is not the number of scans." class="sci-notation">Returned</th>
-                <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk." class="sci-notation">Hold&nbsp;Time</th>
+                <th title="Tables are broken down into ranges of rows called tablets." class="big-num">#&nbsp;Tablets</th>
+                <th title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing." class="big-num">Offline</th>
+                <th title="Key/value pairs over each instance, table or tablet." class="big-num">Entries&nbsp;</th>
+                <th title="The total number of key/value pairs stored in memory and not yet written to disk." class="big-num"><br/>In&nbsp;Mem</th>
+                <th title="The rate of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="big-num">Ingest&nbsp;</th>
+                <th title="The rate of Key/Value pairs read on the server side. Not all key values read may be returned to client because of filtering." class="big-num">Read</th>
+                <th title="The rate of Key/Value pairs returned to clients during queries. This is not the number of scans." class="big-num">Returned</th>
+                <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk." class="big-num">Hold&nbsp;Time</th>
                 <th title="Running scans. The number queued waiting are in parentheses.">Scans</th>
                 <th title="Minor Compactions. The number of tablets waiting for compaction are in parentheses.">MinC</th>
                 <th title="Major Compactions. The number of tablets waiting for compaction are in parentheses.">MajC</th></tr>
