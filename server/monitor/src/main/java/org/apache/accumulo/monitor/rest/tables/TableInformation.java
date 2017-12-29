@@ -88,7 +88,7 @@ public class TableInformation {
     this.offlineTablets = 0;
     this.onlineTablets = 0;
     this.recs = 0;
-    this.recsInMemory =0;
+    this.recsInMemory = 0;
     this.ingestRate = 0;
     this.ingestByteRate = 0;
     this.query = 0;

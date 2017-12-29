@@ -21,8 +21,7 @@ import java.util.List;
 
 /**
  *
- * Generates a list with table information.
- * This is mainly used to populate DataTables
+ * Generates a list with table information. This is mainly used to populate DataTables
  *
  * @since 2.0.0
  *
