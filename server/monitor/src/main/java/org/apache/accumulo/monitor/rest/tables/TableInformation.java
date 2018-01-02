@@ -177,12 +177,10 @@ public class TableInformation {
     this.tableState = tableState;
   }
 
+  /**
+   * Return zero for fractions. Partial numbers don't make sense in metrics.
+   */
   private double cleanNumber(double dirtyNumber) {
-    double clean;
-    if (dirtyNumber < 1)
-      clean = 0;
-    else
-      clean = dirtyNumber;
-    return clean;
+    return dirtyNumber < 1 ? 0 : dirtyNumber;
   }
 }
