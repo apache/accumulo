@@ -91,8 +91,7 @@ public class ConfigSanityCheck {
         keyAlgorithm = Objects.requireNonNull(value);
       }
       if (key.equals(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()) && !(value == null || value.equals("NullSecretKeyEncryptionStrategy"))) {
-        @SuppressWarnings("rawtypes")
-        Class strat = null;
+        Class<?> strat = null;
         try {
           strat = Class.forName(value);
         } catch (ClassNotFoundException e) {
@@ -105,8 +104,7 @@ public class ConfigSanityCheck {
 
       }
       if (key.equals(Property.CRYPTO_MODULE_CLASS.getKey()) && !(value == null || value.equals("NullCryptoModule"))) {
-        @SuppressWarnings("rawtypes")
-        Class mod = null;
+        Class<?> mod = null;
         try {
           mod = Class.forName(value);
         } catch (ClassNotFoundException e) {

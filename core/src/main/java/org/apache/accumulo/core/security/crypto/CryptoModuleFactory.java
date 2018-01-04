@@ -95,17 +95,15 @@ public class CryptoModuleFactory {
     }
 
     if (!implementsCryptoModule) {
-      throw new RuntimeException("Configured Accumulo crypto module " + cryptoModuleClassname + " does not implement the CryptoModule interface.");
+      throw new IllegalArgumentException("Configured Accumulo crypto module " + cryptoModuleClassname + " does not implement the CryptoModule interface.");
     } else {
       try {
         cryptoModule = (CryptoModule) cryptoModuleClazz.newInstance();
 
         log.debug("Successfully instantiated crypto module {}", cryptoModuleClassname);
 
-      } catch (InstantiationException e) {
-        throw new RuntimeException("Got instantiation exception when instantiating crypto module " + cryptoModuleClassname);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException("Got illegal access exception when trying to instantiate crypto module " + cryptoModuleClassname);
+      } catch (InstantiationException | IllegalAccessException e) {
+        throw new IllegalArgumentException("Unable to instantiate the crypto module: " + cryptoModuleClassname, e);
       }
     }
     return cryptoModule;
@@ -164,17 +162,16 @@ public class CryptoModuleFactory {
     }
 
     if (!implementsSecretKeyStrategy) {
-      throw new RuntimeException("Configured Accumulo secret key encryption strategy \"%s\" does not implement the SecretKeyEncryptionStrategy interface.");
+      throw new IllegalArgumentException(
+          "Configured Accumulo secret key encryption strategy \"%s\" does not implement the SecretKeyEncryptionStrategy interface.");
     } else {
       try {
         strategy = (SecretKeyEncryptionStrategy) keyEncryptionStrategyClazz.newInstance();
 
         log.debug("Successfully instantiated secret key encryption strategy {}", className);
 
-      } catch (InstantiationException e) {
-        throw new RuntimeException("Got instantiation exception {} when instantiating secret key encryption strategy " + className);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException("Got illegal access exception when trying to instantiate secret key encryption strategy " + className);
+      } catch (InstantiationException | IllegalAccessException e) {
+        throw new IllegalArgumentException("Unable to instantiate the secret key encryption strategy: " + className, e);
       }
     }
     return strategy;
