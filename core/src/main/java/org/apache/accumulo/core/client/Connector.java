@@ -16,11 +16,15 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.util.Properties;
+
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.ConnectorImpl;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
@@ -237,4 +241,50 @@ public abstract class Connector {
    * @since 1.7.0
    */
   public abstract ReplicationOperations replicationOperations();
+
+  public interface ConnectorFactory {
+    Connector build() throws AccumuloException, AccumuloSecurityException;
+  }
+
+  public interface InstanceArgs {
+    AuthenticationArgs forInstance(String instanceName, String zookeepers);
+  }
+
+  public interface PropertyFileOptions extends InstanceArgs {
+    ConnectorFactory usingProperties(String propertiesFile);
+
+    ConnectorFactory usingProperties(Properties properties);
+  }
+
+  public interface AuthenticationArgs {
+    ConnectionOptions usingCredentials(String principal, AuthenticationToken token);
+  }
+
+  public interface SslOptions extends ConnectorFactory {
+    SslOptions withTruststore(String path);
+
+    SslOptions withTruststore(String path, String password, String type);
+
+    SslOptions withKeystore(String path);
+
+    SslOptions withKeystore(String path, String password, String type);
+  }
+
+  public interface SaslOptions extends ConnectorFactory {
+    SaslOptions withPrimary(String kerberosServerPrimary);
+
+    SaslOptions withQop(String qualityOfProection);
+  }
+
+  public interface ConnectionOptions extends ConnectorFactory {
+    ConnectionOptions withZkTimeout(int timeout);
+
+    SslOptions withSsl();
+
+    SaslOptions withSasl();
+  }
+
+  public static PropertyFileOptions builder() {
+    return new ConnectorImpl.ConnectorBuilderImpl();
+  }
 }

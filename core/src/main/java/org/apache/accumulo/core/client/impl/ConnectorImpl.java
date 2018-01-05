@@ -18,14 +18,18 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -34,6 +38,7 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
@@ -41,9 +46,13 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Tracer;
+import org.apache.commons.configuration.ConfigurationConverter;
+import org.apache.commons.configuration.ConfigurationException;
 
 public class ConnectorImpl extends Connector {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security.SystemCredentials$SystemToken";
@@ -54,7 +63,7 @@ public class ConnectorImpl extends Connector {
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
 
-  public ConnectorImpl(final ClientContext context) throws AccumuloException, AccumuloSecurityException {
+  public ConnectorImpl(final ClientContext context) throws AccumuloSecurityException, AccumuloException {
     checkArgument(context != null, "Context is null");
     checkArgument(context.getCredentials() != null, "Credentials are null");
     checkArgument(context.getCredentials().getToken() != null, "Authentication token is null");
@@ -192,5 +201,123 @@ public class ConnectorImpl extends Connector {
     }
 
     return replicationops;
+  }
+
+  public static class ConnectorBuilderImpl implements InstanceArgs, PropertyFileOptions, AuthenticationArgs, ConnectionOptions, SslOptions, SaslOptions, ConnectorFactory {
+
+    private String instanceName;
+    private String zookeepers;
+    private String principal;
+    private AuthenticationToken token;
+    private ClientConfiguration clientConf = new ClientConfiguration();
+
+    @Override
+    public Connector build() throws AccumuloException, AccumuloSecurityException {
+
+      return new ConnectorImpl(new ClientContext(new ZooKeeperInstance(instanceName, zookeepers),
+          new Credentials(principal, token), clientConf));
+    }
+
+    @Override
+    public AuthenticationArgs forInstance(String instanceName, String zookeepers) {
+      this.instanceName = instanceName;
+      this.zookeepers = zookeepers;
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions usingCredentials(String principal, AuthenticationToken token) {
+      this.principal = principal;
+      this.token = token;
+      return this;
+    }
+
+    @Override
+    public SslOptions withTruststore(String path) {
+      clientConf.setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PATH, path);
+      return this;
+    }
+
+    @Override
+    public SslOptions withTruststore(String path, String password, String type) {
+      clientConf.setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PATH, path);
+      clientConf.setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD, password);
+      clientConf.setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE, type);
+      return this;
+    }
+
+    @Override
+    public SslOptions withKeystore(String path) {
+      clientConf.setProperty(ClientProperty.RPC_SSL_KEYSTORE_PATH, path);
+      return this;
+    }
+
+    @Override
+    public SslOptions withKeystore(String path, String password, String type) {
+      clientConf.setProperty(ClientProperty.RPC_SSL_KEYSTORE_PATH, path);
+      clientConf.setProperty(ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, password);
+      clientConf.setProperty(ClientProperty.RPC_SSL_KEYSTORE_TYPE, type);
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions withZkTimeout(int timeout) {
+      clientConf.setProperty(ClientProperty.INSTANCE_ZK_TIMEOUT, Integer.toString(timeout));
+      return this;
+    }
+
+    @Override
+    public SslOptions withSsl() {
+      clientConf.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
+      return this;
+    }
+
+    @Override
+    public SaslOptions withSasl() {
+      clientConf.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
+      return this;
+    }
+
+    @Override
+    public SaslOptions withPrimary(String kerberosServerPrimary) {
+      clientConf.setProperty(ClientProperty.KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
+      return this;
+    }
+
+    @Override
+    public SaslOptions withQop(String qualityOfProection) {
+      clientConf.setProperty(ClientProperty.RPC_SASL_QOP, qualityOfProection);
+      return this;
+    }
+
+    @Override
+    public ConnectorFactory usingProperties(String configFile) {
+      try {
+        clientConf = new ClientConfiguration(configFile);
+      } catch (ConfigurationException e) {
+        throw new IllegalArgumentException(e);
+      }
+      propSetup();
+      return this;
+    }
+
+    @Override
+    public ConnectorFactory usingProperties(Properties properties) {
+      clientConf = new ClientConfiguration(ConfigurationConverter.getConfiguration(properties));
+      propSetup();
+      return this;
+    }
+
+    private void propSetup() {
+      instanceName = clientConf.get(ClientProperty.INSTANCE_NAME);
+      zookeepers = clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
+      principal = clientConf.get(ClientProperty.USER_NAME);
+      String password = clientConf.get(ClientProperty.USER_PASSWORD);
+      Preconditions.checkNotNull(instanceName, ClientProperty.INSTANCE_NAME + " must be set!");
+      Preconditions.checkNotNull(zookeepers, ClientProperty.INSTANCE_ZK_HOST + " must be set!");
+      Preconditions.checkNotNull(principal, ClientProperty.USER_NAME + " must be set!");
+      Preconditions.checkNotNull(password, ClientProperty.USER_PASSWORD + " must be set!");
+      token = new PasswordToken(password);
+    }
   }
 }
