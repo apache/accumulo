@@ -142,7 +142,6 @@ public class WebViews {
 
     model.put("tablesTitle", "Table Status");
     model.put("tablesTemplate", "tables.ftl");
-    model.put("tablesJs", "tables.js");
     return model;
   }
 
