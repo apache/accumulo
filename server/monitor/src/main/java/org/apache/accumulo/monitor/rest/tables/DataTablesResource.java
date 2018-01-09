@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.monitor.Monitor;
+import org.apache.accumulo.monitor.rest.DataTablesContainer;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
@@ -51,9 +52,9 @@ public class DataTablesResource {
    * @return list with all tables
    */
   @GET
-  public static TableInformationList getTables() {
+  public static DataTablesContainer<TableInformation> getTables() {
 
-    TableInformationList tableList = new TableInformationList();
+    DataTablesContainer<TableInformation> tableList = new DataTablesContainer<>();
     SortedMap<Table.ID,TableInfo> tableStats = new TreeMap<>();
 
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
@@ -75,9 +76,9 @@ public class DataTablesResource {
         if (holdTime == null)
           holdTime = Double.valueOf(0.);
 
-        tableList.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableState.name()));
+        tableList.add(new TableInformation(tableName, tableId, tableInfo, holdTime, tableState.name()));
       } else {
-        tableList.addTable(new TableInformation(tableName, tableId, tableState.name()));
+        tableList.add(new TableInformation(tableName, tableId, tableState.name()));
       }
     }
     return tableList;

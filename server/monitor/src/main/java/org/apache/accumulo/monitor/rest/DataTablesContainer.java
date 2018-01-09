@@ -14,35 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor.rest.tables;
+package org.apache.accumulo.monitor.rest;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- *
- * Generates a list with table information
- *
- * @since 2.0.0
- *
- */
-public class TableInformationList {
+public class DataTablesContainer<T> {
+    /**
+     * Generates a list with some type of JSON objects
+     *
+     * @since 2.0.0
+     */
 
-  // Variable names become JSON keys
-  public List<TableInformation> table = new ArrayList<>();
+    // Variable names become JSON keys
+    public List<T> data = new ArrayList<>();
 
-  /**
-   * Initializes the array list
-   */
-  public TableInformationList() {}
+    /**
+     * Initializes the array list
+     */
+    public DataTablesContainer() {
+    }
 
-  /**
-   * Adds a new table to the list
-   *
-   * @param table
-   *          Table information to add
-   */
-  public void addTable(TableInformation table) {
-    this.table.add(table);
-  }
+    /**
+     * Add object to JSON container
+     */
+    public void add(T object) {
+        this.data.add(object);
+    }
+
 }
