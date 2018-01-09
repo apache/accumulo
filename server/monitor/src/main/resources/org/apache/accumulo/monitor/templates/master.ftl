@@ -41,5 +41,4 @@
         </table>
       </div>
       <br/>
-      <script src="/resources/js/${tablesJs}"></script>
       <#include "${tablesTemplate}">
