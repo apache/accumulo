@@ -27,12 +27,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class MutationTest {
@@ -184,11 +186,194 @@ public class MutationTest {
   }
 
   @Test
+  public void testAtFamilyTypes() {
+    final String fam = "f16bc";
+    final String qual = "q1pm2";
+    final String val = "v8672194923750";
+
+    Mutation expected = new Mutation("row5");
+    expected.put(fam, qual, val);
+
+    // Test all family methods, keeping qual and val constant as Strings
+    // fam: byte[]
+    Mutation actual = new Mutation("row5");
+    actual.at().family(fam.getBytes(UTF_8)).qualifier(qual).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // fam: ByteBuffer
+    final ByteBuffer bbFam = ByteBuffer.wrap(fam.getBytes(UTF_8));
+    final int bbFamStartPos = bbFam.position();
+    actual = new Mutation("row5");
+    actual.at().family(bbFam).qualifier(qual).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // make sure the ByteBuffer last byte filled in the buffer (its position) is same as before the API call
+    Assert.assertEquals(bbFamStartPos, bbFam.position());
+
+    // fam: CharSequence (String implementation)
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // fam: Text
+    actual = new Mutation("row5");
+    actual.at().family(new Text(fam)).qualifier(qual).set(val);
+    Assert.assertEquals(expected, actual);
+  }
+
+  @Test
+  public void testAtQualifierTypes() {
+    final String fam = "f16bc";
+    final String qual = "q1pm2";
+    final String val = "v8672194923750";
+
+    Mutation expected = new Mutation("row5");
+    expected.put(fam, qual, val);
+
+    // Test all qualifier methods, keeping fam and val constant as Strings
+    // qual: byte[]
+    Mutation actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual.getBytes(UTF_8)).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // qual: ByteBuffer
+    final ByteBuffer bbQual = ByteBuffer.wrap(qual.getBytes(UTF_8));
+    final int bbQualStartPos = bbQual.position();
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(bbQual).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // make sure the ByteBuffer last byte filled in the buffer (its position) is same as before the API call
+    Assert.assertEquals(bbQualStartPos, bbQual.position());
+
+    // qual: CharSequence (String implementation)
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // qual: Text
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(new Text(qual)).set(val);
+    Assert.assertEquals(expected, actual);
+  }
+
+  @Test
+  public void testAtVisiblityTypes() {
+    final byte[] fam = "f16bc".getBytes(UTF_8);
+    final byte[] qual = "q1pm2".getBytes(UTF_8);
+    final ColumnVisibility vis = new ColumnVisibility("v35x2");
+    final byte[] val = "v8672194923750".getBytes(UTF_8);
+
+    Mutation expected = new Mutation("row5");
+    expected.put(fam, qual, vis, val);
+
+    // Test all visibility methods, keeping fam, qual, and val constant as byte arrays
+    // vis: byte[]
+    Mutation actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).visibility(vis.getExpression()).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // vis: ByteBuffer
+    final ByteBuffer bbVis = ByteBuffer.wrap(vis.getExpression());
+    final int bbVisStartPos = bbVis.position();
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).visibility(bbVis).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // make sure the ByteBuffer last byte filled in the buffer (its position) is same as before the API call
+    Assert.assertEquals(bbVisStartPos, bbVis.position());
+
+    // vis: CharSequence (String implementation)
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).visibility(new String(vis.getExpression())).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // vis: ColumnVisibility
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).visibility(vis).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // vis: Text
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).visibility(new Text(vis.getExpression())).set(val);
+    Assert.assertEquals(expected, actual);
+  }
+
+  @Test
+  public void testAtTimestampTypes() {
+    final String fam = "f16bc";
+    final String qual = "q1pm2";
+    final long ts = 324324L;
+    final String val = "v8672194923750";
+
+    Mutation expected = new Mutation("row5");
+    expected.put(fam, qual, ts, val);
+
+    // Test timestamp method, keeping fam and val constant as Strings
+    Mutation actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).timestamp(ts).set(val);
+    Assert.assertEquals(expected, actual);
+  }
+
+  @Test
+  public void testAtSetTypes() {
+    final String fam = "f16bc";
+    final String qual = "q1pm2";
+    final String val = "v8672194923750";
+
+    Mutation expected = new Mutation("row5");
+    expected.put(fam, qual, val);
+
+    // Test all set methods, keeping fam and qual,constant as Strings
+    // set: byte[]
+    Mutation actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).set(val.getBytes(UTF_8));
+    Assert.assertEquals(expected, actual);
+
+    // set: ByteBuffer
+    final ByteBuffer bbVal = ByteBuffer.wrap(val.getBytes(UTF_8));
+    final int bbValStartPos = bbVal.position();
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).set(bbVal);
+    Assert.assertEquals(expected, actual);
+
+    // make sure the ByteBuffer last byte filled in the buffer (its position) is same as before the API call
+    Assert.assertEquals(bbValStartPos, bbVal.position());
+
+    // set: CharSequence (String implementation)
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // set: Text
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).set(val);
+    Assert.assertEquals(expected, actual);
+
+    // set: Value
+    actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).set(new Value(val));
+    Assert.assertEquals(expected, actual);
+  }
+
+  @Test
+  public void testAtDelete() {
+    final String fam = "f16bc";
+    final String qual = "q1pm2";
+
+    Mutation expected = new Mutation("row5");
+    expected.putDelete(fam, qual);
+
+    Mutation actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).delete();
+    Assert.assertEquals(expected, actual);
+  }
+
+  @Test
   public void testPuts() {
     Mutation m = new Mutation(new Text("r1"));
 
-    m.at().family(nt("cf1")).qualifier(nt("cq1")).set(nv("v1"));
-    // m.put(nt("cf1"), nt("cq1"), nv("v1"));
+    m.put(nt("cf1"), nt("cq1"), nv("v1"));
     m.put(nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), nv("v2"));
     m.put(nt("cf3"), nt("cq3"), 3l, nv("v3"));
     m.put(nt("cf4"), nt("cq4"), new ColumnVisibility("cv4"), 4l, nv("v4"));

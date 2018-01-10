@@ -797,9 +797,9 @@ public class Mutation implements Writable {
   public interface FamilyStep extends QualifierStep {
     QualifierStep family(byte[] colFam);
 
-    QualifierStep family(CharSequence colFam);
-
     QualifierStep family(ByteBuffer colFam);
+
+    QualifierStep family(CharSequence colFam);
 
     QualifierStep family(Text colFam);
   }
@@ -815,9 +815,9 @@ public class Mutation implements Writable {
   public interface QualifierStep extends VisibilityStep {
     VisibilityStep qualifier(byte[] colQual);
 
-    VisibilityStep qualifier(CharSequence colQual);
-
     VisibilityStep qualifier(ByteBuffer colQual);
+
+    VisibilityStep qualifier(CharSequence colQual);
 
     VisibilityStep qualifier(Text colQual);
   }
@@ -833,7 +833,13 @@ public class Mutation implements Writable {
   public interface VisibilityStep extends TimestampStep {
     TimestampStep visibility(byte[] colVis);
 
+    TimestampStep visibility(ByteBuffer colVis);
+
+    TimestampStep visibility(CharSequence colVis);
+
     TimestampStep visibility(ColumnVisibility colVis);
+
+    TimestampStep visibility(Text colVis);
   }
 
   /**
@@ -856,13 +862,17 @@ public class Mutation implements Writable {
    * @since 2.0
    */
   public interface MutationStep {
-    void set(byte[] val, boolean delete);
+    Mutation set(byte[] val);
 
-    void set(ByteBuffer val);
+    Mutation set(ByteBuffer val);
 
-    void set(Value val);
+    Mutation set(CharSequence val);
 
-    void delete();
+    Mutation set(Text val);
+
+    Mutation set(Value val);
+
+    Mutation delete();
   }
 
   /**
@@ -901,7 +911,7 @@ public class Mutation implements Writable {
      *          column family length
      * @return a QualifierStep object, advancing the method chain
      */
-    public QualifierStep family(byte[] colFam, int colFamLength) {
+    private QualifierStep family(byte[] colFam, int colFamLength) {
       columnFamily = colFam;
       columnFamilyLength = colFamLength;
       return this;
@@ -914,6 +924,7 @@ public class Mutation implements Writable {
      *          column family
      * @return a QualifierStep object, advancing the method chain
      */
+    @Override
     public QualifierStep family(byte[] colFam) {
       return family(colFam, colFam.length);
     }
@@ -925,8 +936,9 @@ public class Mutation implements Writable {
      *          column family
      * @return a QualifierStep object, advancing the method chain
      */
-    public QualifierStep family(Text colFam) {
-      return family(colFam.getBytes(), colFam.getLength());
+    @Override
+    public QualifierStep family(ByteBuffer colFam) {
+      return family(ByteBufferUtil.toBytes(colFam));
     }
 
     /**
@@ -936,6 +948,7 @@ public class Mutation implements Writable {
      *          column family
      * @return a QualifierStep object, advancing the method chain
      */
+    @Override
     public QualifierStep family(CharSequence colFam) {
       return family(new Text(colFam.toString()));
     }
@@ -947,8 +960,9 @@ public class Mutation implements Writable {
      *          column family
      * @return a QualifierStep object, advancing the method chain
      */
-    public QualifierStep family(ByteBuffer colFam) {
-      return family(ByteBufferUtil.toBytes(colFam));
+    @Override
+    public QualifierStep family(Text colFam) {
+      return family(colFam.getBytes(), colFam.getLength());
     }
 
     // methods for changing the column qualifier of a Mutation
@@ -961,7 +975,7 @@ public class Mutation implements Writable {
      *          column qualifier
      * @return a VisibilityStep object, advancing the method chain
      */
-    public VisibilityStep qualifier(byte[] colQual, int colQualLength) {
+    private VisibilityStep qualifier(byte[] colQual, int colQualLength) {
       columnQualifier = colQual;
       columnQualifierLength = colQualLength;
       return this;
@@ -974,6 +988,7 @@ public class Mutation implements Writable {
      *          column qualifier
      * @return a VisibilityStep object, advancing the method chain
      */
+    @Override
     public VisibilityStep qualifier(byte[] colQual) {
       return qualifier(colQual, colQual.length);
     }
@@ -985,8 +1000,9 @@ public class Mutation implements Writable {
      *          column qualifier
      * @return a VisibilityStep object, advancing the method chain
      */
-    public VisibilityStep qualifier(Text colQual) {
-      return qualifier(colQual.getBytes(), colQual.getLength());
+    @Override
+    public VisibilityStep qualifier(ByteBuffer colQual) {
+      return qualifier(ByteBufferUtil.toBytes(colQual));
     }
 
     /**
@@ -996,6 +1012,7 @@ public class Mutation implements Writable {
      *          column qualifier
      * @return a VisibilityStep object, advancing the method chain
      */
+    @Override
     public VisibilityStep qualifier(CharSequence colQual) {
       return qualifier(new Text(colQual.toString()));
     }
@@ -1007,8 +1024,9 @@ public class Mutation implements Writable {
      *          column qualifier
      * @return a VisibilityStep object, advancing the method chain
      */
-    public VisibilityStep qualifier(ByteBuffer colQual) {
-      return qualifier(ByteBufferUtil.toBytes(colQual));
+    @Override
+    public VisibilityStep qualifier(Text colQual) {
+      return qualifier(colQual.getBytes(), colQual.getLength());
     }
 
     // methods for changing the column visibility of a Mutation
@@ -1017,10 +1035,13 @@ public class Mutation implements Writable {
      *
      * @param colVis
      *          column visibility
+     * @param colVisLen
+     *          column visibility length
      * @return a TimestampStep object, advancing the method chain
      */
-    public TimestampStep visibility(byte[] colVis) {
+    public TimestampStep visibility(byte[] colVis, int colVisLen) {
       columnVisibility = colVis;
+      columnVisibilityLength = colVisLen;
       return this;
     }
 
@@ -1031,8 +1052,57 @@ public class Mutation implements Writable {
      *          column visibility
      * @return a TimestampStep object, advancing the method chain
      */
+    @Override
+    public TimestampStep visibility(byte[] colVis) {
+      return visibility(colVis, colVis.length);
+    }
+
+    /**
+     * Modifies the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @return a TimestampStep object, advancing the method chain
+     */
+    @Override
+    public TimestampStep visibility(ByteBuffer colVis) {
+      return visibility(ByteBufferUtil.toBytes(colVis));
+    }
+
+    /**
+     * Modifies the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @return a TimestampStep object, advancing the method chain
+     */
+    @Override
+    public TimestampStep visibility(CharSequence colVis) {
+      return visibility(new Text(colVis.toString()));
+    }
+
+    /**
+     * Modifies the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @return a TimestampStep object, advancing the method chain
+     */
+    @Override
     public TimestampStep visibility(ColumnVisibility colVis) {
       return visibility(colVis.getExpression());
+    }
+
+    /**
+     * Modifies the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @return a TimestampStep object, advancing the method chain
+     */
+    @Override
+    public TimestampStep visibility(Text colVis) {
+      return visibility(colVis.toString().getBytes());
     }
 
     // methods for changing the timestamp of a Mutation
@@ -1043,6 +1113,7 @@ public class Mutation implements Writable {
      *          timestamp
      * @return a MutationStep object, advancing the method chain
      */
+    @Override
     public MutationStep timestamp(long ts) {
       hasTs = true;
       timestamp = ts;
@@ -1057,43 +1128,38 @@ public class Mutation implements Writable {
      * @param delete
      *          deletion flag
      */
-    public void set(byte[] val, boolean delete) {
+    private Mutation set(byte[] val, boolean delete) {
       if (buffer == null) {
         throw new IllegalStateException("Can not add to mutation after serializing it");
       }
 
       // fill buffer with column family location
-      buffer.writeVLong(columnFamilyLength);
-      buffer.add(columnFamily, 0, columnFamilyLength);
+      put(columnFamily, columnFamilyLength);
 
       // fill buffer with qualifier location
-      buffer.writeVLong(columnQualifierLength);
-      buffer.add(columnQualifier, 0, columnQualifierLength);
+      put(columnQualifier, columnQualifierLength);
 
       // fill buffer with visibility location
       // if none given, fill with EMPTY_BYTES
       if (columnVisibility == null) {
-        buffer.writeVLong(EMPTY_BYTES.length);
-        buffer.add(EMPTY_BYTES, 0, EMPTY_BYTES.length);
+        put(EMPTY_BYTES, EMPTY_BYTES.length);
       } else {
-        buffer.writeVLong(columnVisibilityLength);
-        buffer.add(columnVisibility, 0, columnVisibilityLength);
+        put(columnVisibility, columnVisibilityLength);
       }
 
       // fill buffer with timestamp location
       // if none given, skip
-      buffer.add(hasTs);
+      put(hasTs);
       if (hasTs) {
-        buffer.writeVLong(timestamp);
+        put(timestamp);
       }
 
       // indicate if this is a deletion
-      buffer.add(delete);
+      put(delete);
 
       // fill buffer with value
       if (val.length < VALUE_SIZE_COPY_CUTOFF) {
-        buffer.writeVLong(val.length);
-        buffer.add(val, 0, val.length);
+        put(val, val.length);
       } else {
         if (values == null) {
           values = new ArrayList<>();
@@ -1105,6 +1171,8 @@ public class Mutation implements Writable {
       }
 
       entries++;
+
+      return Mutation.this;
     }
 
     /**
@@ -1113,18 +1181,9 @@ public class Mutation implements Writable {
      * @param val
      *          value
      */
-    public void set(byte[] val) {
-      set(val, false);
-    }
-
-    /**
-     * Sets the value of a mutation.
-     *
-     * @param val
-     *          value
-     */
-    public void set(Value val) {
-      set(val.get(), false);
+    @Override
+    public Mutation set(byte[] val) {
+      return set(val, false);
     }
 
     /**
@@ -1133,16 +1192,51 @@ public class Mutation implements Writable {
      * @param val
      *          value
      */
-    public void set(ByteBuffer val) {
-      set(ByteBufferUtil.toBytes(val), false);
+    @Override
+    public Mutation set(ByteBuffer val) {
+      return set(ByteBufferUtil.toBytes(val), false);
+    }
+
+    /**
+     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     *
+     * @param val
+     *          value
+     */
+    @Override
+    public Mutation set(CharSequence val) {
+      return set(new Text(val.toString()));
+    }
+
+    /**
+     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     *
+     * @param val
+     *          value
+     */
+    @Override
+    public Mutation set(Text val) {
+      return set(val.toString().getBytes(), false);
+    }
+
+    /**
+     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     *
+     * @param val
+     *          value
+     */
+    @Override
+    public Mutation set(Value val) {
+      return set(val.get(), false);
     }
 
     /**
      * Finalizes the method chain by filling the buffer with the gathered Mutation configuration. Sets a deletion flag in the UnsynchronizedBuffer. A deletion
      * does not require a value and has same behavior as set() with empty bytes for value and a true deletion flag.
      */
-    public void delete() {
-      set(EMPTY_BYTES, true);
+    @Override
+    public Mutation delete() {
+      return set(EMPTY_BYTES, true);
     }
   }
 
