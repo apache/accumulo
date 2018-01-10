@@ -18,6 +18,8 @@ package org.apache.accumulo.monitor;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -480,20 +482,27 @@ public class Monitor {
       server.addServlet(ShellServlet.class, "/shell");
     server.start();
 
+    String advertiseHost = hostname;
+    if (advertiseHost.equals("0.0.0.0")) {
+      try {
+        advertiseHost = InetAddress.getLocalHost().getHostName();
+      } catch (UnknownHostException e) {
+        log.error("Unable to get hostname", e);
+      }
+    }
+    log.debug("Using {} to advertise monitor location in ZooKeeper", advertiseHost);
+
     try {
-      log.debug("Using " + hostname + " to advertise monitor location in ZooKeeper");
-
-      String monitorAddress = HostAndPort.fromParts(hostname, server.getPort()).toString();
-
+      String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
       ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMONITOR_HTTP_ADDR, monitorAddress.getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
-      log.info("Set monitor address in zookeeper to " + monitorAddress);
+      log.info("Set monitor address in zookeeper to {}", monitorAddress);
     } catch (Exception ex) {
       log.error("Unable to set monitor HTTP address in zookeeper", ex);
     }
 
-    if (null != hostname) {
-      LogService.startLogListener(Monitor.getContext().getConfiguration(), instance.getInstanceID(), hostname);
+    if (null != advertiseHost) {
+      LogService.startLogListener(Monitor.getContext().getConfiguration(), instance.getInstanceID(), advertiseHost);
     } else {
       log.warn("Not starting log4j listener as we could not determine address to use");
     }
