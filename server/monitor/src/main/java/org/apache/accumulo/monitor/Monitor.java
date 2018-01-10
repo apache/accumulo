@@ -482,7 +482,7 @@ public class Monitor implements HighlyAvailableService {
         log.error("Unable to get hostname", e);
       }
     }
-    log.debug("Using {} to advertise monitor location in ZooKeeper", hostname);
+    log.debug("Using {} to advertise monitor location in ZooKeeper", advertiseHost);
 
     try {
       String monitorAddress = HostAndPort.fromParts(advertiseHost, server.getPort()).toString();
