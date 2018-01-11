@@ -86,8 +86,6 @@ public class TabletServerLogger {
   // Use a ReadWriteLock to allow multiple threads to use the log set, but obtain a write lock to change them
   private final ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
 
-  private final AtomicInteger seqGen = new AtomicInteger();
-
   private final AtomicLong syncCounter;
   private final AtomicLong flushCounter;
 
@@ -262,19 +260,18 @@ public class TabletServerLogger {
   }
 
   interface Writer {
-    LoggerOperation write(DfsLogger logger, int seq) throws Exception;
+    LoggerOperation write(DfsLogger logger) throws Exception;
   }
 
-  private int write(CommitSession commitSession, boolean mincFinish, Writer writer) throws IOException {
+  private void write(CommitSession commitSession, boolean mincFinish, Writer writer) throws IOException {
     List<CommitSession> sessions = Collections.singletonList(commitSession);
-    return write(sessions, mincFinish, writer);
+    write(sessions, mincFinish, writer);
   }
 
-  private int write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
+  private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
     // Work very hard not to lock this during calls to the outside world
     int currentLogSet = logSetId.get();
 
-    int seq = -1;
     int attempt = 1;
     boolean success = false;
     while (!success) {
@@ -318,12 +315,9 @@ public class TabletServerLogger {
         if (currentLogSet == logSetId.get()) {
 
           // write the mutation to the logs
-          seq = seqGen.incrementAndGet();
-          if (seq < 0)
-            throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
           ArrayList<LoggerOperation> queuedOperations = new ArrayList<>(copy.size());
           for (DfsLogger wal : copy) {
-            queuedOperations.add(writer.write(wal, seq));
+            queuedOperations.add(writer.write(wal));
           }
 
           for (LoggerOperation lop : queuedOperations) {
@@ -377,42 +371,40 @@ public class TabletServerLogger {
         closeForReplication(sessions);
       }
     });
-    return seq;
   }
 
   protected void closeForReplication(Collection<CommitSession> sessions) {
     // TODO We can close the WAL here for replication purposes
   }
 
-  public int defineTablet(final CommitSession commitSession) throws IOException {
+  public void defineTablet(final CommitSession commitSession) throws IOException {
     // scribble this into the metadata tablet, too.
-    return write(commitSession, false, new Writer() {
+    write(commitSession, false, new Writer() {
       @Override
-      public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
+      public LoggerOperation write(DfsLogger logger) throws Exception {
         logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(), commitSession.getExtent());
         return DfsLogger.NO_WAIT_LOGGER_OP;
       }
     });
   }
 
-  public int log(final CommitSession commitSession, final long tabletSeq, final Mutation m, final Durability durability) throws IOException {
+  public void log(final CommitSession commitSession, final long tabletSeq, final Mutation m, final Durability durability) throws IOException {
     if (durability == Durability.NONE) {
-      return -1;
+      return;
     }
     if (durability == Durability.DEFAULT) {
       throw new IllegalArgumentException("Unexpected durability " + durability);
     }
-    int seq = write(commitSession, false, new Writer() {
+    write(commitSession, false, new Writer() {
       @Override
-      public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
+      public LoggerOperation write(DfsLogger logger) throws Exception {
         return logger.log(tabletSeq, commitSession.getLogId(), m, durability);
       }
     });
     logSizeEstimate.addAndGet(m.numBytes());
-    return seq;
   }
 
-  public int logManyTablets(Map<CommitSession,Mutations> mutations) throws IOException {
+  public void logManyTablets(Map<CommitSession,Mutations> mutations) throws IOException {
 
     final Map<CommitSession,Mutations> loggables = new HashMap<>(mutations);
     for (Entry<CommitSession,Mutations> entry : mutations.entrySet()) {
@@ -421,11 +413,11 @@ public class TabletServerLogger {
       }
     }
     if (loggables.size() == 0)
-      return -1;
+      return;
 
-    int seq = write(loggables.keySet(), false, new Writer() {
+    write(loggables.keySet(), false, new Writer() {
       @Override
-      public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
+      public LoggerOperation write(DfsLogger logger) throws Exception {
         List<TabletMutations> copy = new ArrayList<>(loggables.size());
         for (Entry<CommitSession,Mutations> entry : loggables.entrySet()) {
           CommitSession cs = entry.getKey();
@@ -443,7 +435,6 @@ public class TabletServerLogger {
         logSizeEstimate.addAndGet(m.numBytes());
       }
     }
-    return seq;
   }
 
   public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final long walogSeq, final Durability durability)
@@ -451,9 +442,9 @@ public class TabletServerLogger {
 
     long t1 = System.currentTimeMillis();
 
-    int seq = write(commitSession, true, new Writer() {
+    write(commitSession, true, new Writer() {
       @Override
-      public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
+      public LoggerOperation write(DfsLogger logger) throws Exception {
         logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName, durability).await();
         return DfsLogger.NO_WAIT_LOGGER_OP;
       }
@@ -461,14 +452,14 @@ public class TabletServerLogger {
 
     long t2 = System.currentTimeMillis();
 
-    log.debug(" wrote MinC finish  {}: writeTime:{}ms  durability:{}", seq, (t2 - t1), durability);
+    log.debug(" wrote MinC finish: writeTime:{}ms  durability:{}", (t2 - t1), durability);
   }
 
   public long minorCompactionStarted(final CommitSession commitSession, final long seq, final String fullyQualifiedFileName, final Durability durability)
       throws IOException {
     write(commitSession, false, new Writer() {
       @Override
-      public LoggerOperation write(DfsLogger logger, int ignored) throws Exception {
+      public LoggerOperation write(DfsLogger logger) throws Exception {
         logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName, durability).await();
         return DfsLogger.NO_WAIT_LOGGER_OP;
       }
