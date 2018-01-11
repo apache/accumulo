@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -467,8 +468,8 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
 
   private void updatePlugins(String property) {
     if (property.equals(Property.MASTER_TABLET_BALANCER.getKey())) {
-      TabletBalancer balancer = master.getConfiguration().instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class,
-          new DefaultLoadBalancer());
+      AccumuloConfiguration conf = master.getConfiguration();
+      TabletBalancer balancer = Property.createInstanceFromPropertyName(conf, Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
       balancer.init(master);
       master.tabletBalancer = balancer;
       log.info("tablet balancer changed to {}", master.tabletBalancer.getClass().getName());
