@@ -249,20 +249,21 @@ public class VisibilityIT extends AccumuloClusterHarness {
   }
 
   private void queryDefaultData(Connector c, String tableName) throws Exception {
-    Scanner scanner;
-
     // should return no records
     c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("BASE", "DEFLABEL"));
-    scanner = getConnector().createScanner(tableName, new Authorizations());
-    verifyDefault(scanner, 0);
+    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations())) {
+      verifyDefault(scanner, 0);
+    }
 
     // should return one record
-    scanner = getConnector().createScanner(tableName, new Authorizations("BASE"));
-    verifyDefault(scanner, 1);
+    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations("BASE"))) {
+      verifyDefault(scanner, 1);
+    }
 
     // should return all three records
-    scanner = getConnector().createScanner(tableName, new Authorizations("BASE", "DEFLABEL"));
-    verifyDefault(scanner, 3);
+    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations("BASE", "DEFLABEL"))) {
+      verifyDefault(scanner, 3);
+    }
   }
 
   private void verifyDefault(Scanner scanner, int expectedCount) throws Exception {
@@ -290,13 +291,14 @@ public class VisibilityIT extends AccumuloClusterHarness {
   }
 
   private void verify(Connector c, String tableName, ByteArraySet nss, String... expected) throws Exception {
-    Scanner scanner = c.createScanner(tableName, new Authorizations(nss));
-    verify(scanner.iterator(), expected);
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations(nss));
+        BatchScanner bs = getConnector().createBatchScanner(tableName, new Authorizations(nss), 3)) {
 
-    BatchScanner bs = getConnector().createBatchScanner(tableName, new Authorizations(nss), 3);
-    bs.setRanges(Collections.singleton(new Range()));
-    verify(bs.iterator(), expected);
-    bs.close();
+      verify(scanner.iterator(), expected);
+
+      bs.setRanges(Collections.singleton(new Range()));
+      verify(bs.iterator(), expected);
+    }
   }
 
   private void verify(Iterator<Entry<Key,Value>> iter, String... expected) throws Exception {

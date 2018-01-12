@@ -367,21 +367,20 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Start testing activities here
     // A regular scan
-    Scanner scanner = auditConnector.createScanner(OLD_TEST_TABLE_NAME, auths);
-    for (Map.Entry<Key,Value> entry : scanner) {
-      System.out.println("Scanner row: " + entry.getKey() + " " + entry.getValue());
+    try (Scanner scanner = auditConnector.createScanner(OLD_TEST_TABLE_NAME, auths)) {
+      for (Map.Entry<Key,Value> entry : scanner) {
+        System.out.println("Scanner row: " + entry.getKey() + " " + entry.getValue());
+      }
     }
-    scanner.close();
 
     // A batch scan
-    BatchScanner bs = auditConnector.createBatchScanner(OLD_TEST_TABLE_NAME, auths, 1);
-    bs.fetchColumn(new Text("cf1"), new Text("cq1"));
-    bs.setRanges(Arrays.asList(new Range("myRow", "myRow~")));
-
-    for (Map.Entry<Key,Value> entry : bs) {
-      System.out.println("BatchScanner row: " + entry.getKey() + " " + entry.getValue());
+    try (BatchScanner bs = auditConnector.createBatchScanner(OLD_TEST_TABLE_NAME, auths, 1)) {
+      bs.fetchColumn(new Text("cf1"), new Text("cq1"));
+      bs.setRanges(Arrays.asList(new Range("myRow", "myRow~")));
+      for (Map.Entry<Key,Value> entry : bs) {
+        System.out.println("BatchScanner row: " + entry.getKey() + " " + entry.getValue());
+      }
     }
-    bs.close();
 
     // Delete some data.
     auditConnector.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"), new Text("myRow~"));
@@ -425,8 +424,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     try {
       auditConnector.tableOperations().offline(OLD_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
-    try {
-      Scanner scanner = auditConnector.createScanner(OLD_TEST_TABLE_NAME, auths);
+    try (Scanner scanner = auditConnector.createScanner(OLD_TEST_TABLE_NAME, auths)) {
       scanner.iterator().next().getKey();
     } catch (RuntimeException ex) {}
     try {

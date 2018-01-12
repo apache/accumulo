@@ -144,11 +144,12 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
     MRTester.main(new String[] {table1, table2});
     assertNull(e1);
 
-    Scanner scanner = c.createScanner(table2, new Authorizations());
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    assertTrue(iter.hasNext());
-    Entry<Key,Value> entry = iter.next();
-    assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-    assertFalse(iter.hasNext());
+    try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
+      Iterator<Entry<Key,Value>> iter = scanner.iterator();
+      assertTrue(iter.hasNext());
+      Entry<Key,Value> entry = iter.next();
+      assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
+      assertFalse(iter.hasNext());
+    }
   }
 }

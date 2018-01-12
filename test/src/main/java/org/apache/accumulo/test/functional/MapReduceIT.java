@@ -78,15 +78,15 @@ public class MapReduceIT extends ConfigurableMacBase {
         .getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "-t", tablename, "--column", input_cfcq);
     assertEquals(0, hash.waitFor());
 
-    Scanner s = c.createScanner(tablename, Authorizations.EMPTY);
-    s.fetchColumn(new Text(input_cf), new Text(output_cq));
-    int i = 0;
-    for (Entry<Key,Value> entry : s) {
-      MessageDigest md = MessageDigest.getInstance("MD5");
-      byte[] check = Base64.getEncoder().encode(md.digest(("row" + i).getBytes()));
-      assertEquals(entry.getValue().toString(), new String(check));
-      i++;
+    try (Scanner s = c.createScanner(tablename, Authorizations.EMPTY)) {
+      s.fetchColumn(new Text(input_cf), new Text(output_cq));
+      int i = 0;
+      for (Entry<Key,Value> entry : s) {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        byte[] check = Base64.getEncoder().encode(md.digest(("row" + i).getBytes()));
+        assertEquals(entry.getValue().toString(), new String(check));
+        i++;
+      }
     }
-
   }
 }

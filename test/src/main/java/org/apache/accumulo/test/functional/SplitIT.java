@@ -149,21 +149,22 @@ public class SplitIT extends AccumuloClusterHarness {
       sleepUninterruptibly(15, TimeUnit.SECONDS);
     }
     Table.ID id = Table.ID.of(c.tableOperations().tableIdMap().get(table));
-    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    KeyExtent extent = new KeyExtent(id, null, null);
-    s.setRange(extent.toMetadataRange());
-    MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
-    int count = 0;
-    int shortened = 0;
-    for (Entry<Key,Value> entry : s) {
-      extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
-      if (extent.getEndRow() != null && extent.getEndRow().toString().length() < 14)
-        shortened++;
-      count++;
-    }
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      KeyExtent extent = new KeyExtent(id, null, null);
+      s.setRange(extent.toMetadataRange());
+      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
+      int count = 0;
+      int shortened = 0;
+      for (Entry<Key,Value> entry : s) {
+        extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
+        if (extent.getEndRow() != null && extent.getEndRow().toString().length() < 14)
+          shortened++;
+        count++;
+      }
 
-    assertTrue("Shortened should be greater than zero: " + shortened, shortened > 0);
-    assertTrue("Count should be cgreater than 10: " + count, count > 10);
+      assertTrue("Shortened should be greater than zero: " + shortened, shortened > 0);
+      assertTrue("Count should be cgreater than 10: " + count, count > 10);
+    }
 
     String[] args;
     if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {

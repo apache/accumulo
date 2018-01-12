@@ -54,10 +54,11 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
   boolean isOffline(String tablename, Connector connector) throws TableNotFoundException {
     String tableId = connector.tableOperations().tableIdMap().get(tablename);
-    Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
-    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    return Iterators.size(scanner.iterator()) == 0;
+    try (Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
+      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      return Iterators.size(scanner.iterator()) == 0;
+    }
   }
 
   @Override
@@ -101,20 +102,21 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
         bw.flush();
 
-        Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-        scanner.setRange(extent.toMetadataRange());
-        scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+        try (Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+          scanner.setRange(extent.toMetadataRange());
+          scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 
-        KeyExtent extent2 = new KeyExtent(tableId, new Text("b"), null);
-        m = extent2.getPrevRowUpdateMutation();
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t2".getBytes()));
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0".getBytes()));
+          KeyExtent extent2 = new KeyExtent(tableId, new Text("b"), null);
+          m = extent2.getPrevRowUpdateMutation();
+          TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t2".getBytes()));
+          TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0".getBytes()));
 
-        for (Entry<Key,Value> entry : scanner) {
-          m.put(DataFileColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());
+          for (Entry<Key,Value> entry : scanner) {
+            m.put(DataFileColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());
+          }
+
+          bw.addMutation(m);
         }
-
-        bw.addMutation(m);
       }
 
       bw.close();
@@ -122,17 +124,17 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
       connector.tableOperations().online(tableName);
 
       // verify the tablets went online
-      Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-      int i = 0;
-      String expected[] = {"a", "b", "c"};
-      for (Entry<Key,Value> entry : scanner) {
-        assertEquals(expected[i], entry.getKey().getRow().toString());
-        i++;
+      try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+        int i = 0;
+        String expected[] = {"a", "b", "c"};
+        for (Entry<Key,Value> entry : scanner) {
+          assertEquals(expected[i], entry.getKey().getRow().toString());
+          i++;
+        }
+        assertEquals(3, i);
+
+        connector.tableOperations().delete(tableName);
       }
-      assertEquals(3, i);
-
-      connector.tableOperations().delete(tableName);
-
     }
   }
 

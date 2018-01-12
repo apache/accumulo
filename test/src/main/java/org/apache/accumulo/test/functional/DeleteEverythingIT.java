@@ -97,22 +97,24 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
-    scanner.setRange(new Range());
-    int count = Iterators.size(scanner.iterator());
-    assertEquals("count == " + count, 0, count);
-    getConnector().tableOperations().flush(tableName, null, null, true);
+    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new Range());
+      int count = Iterators.size(scanner.iterator());
+      assertEquals("count == " + count, 0, count);
+      getConnector().tableOperations().flush(tableName, null, null, true);
 
-    getConnector().tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
-    sleepUninterruptibly(4, TimeUnit.SECONDS);
+      getConnector().tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
+      sleepUninterruptibly(4, TimeUnit.SECONDS);
 
-    FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
+      FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
 
-    bw.close();
+      bw.close();
 
-    count = Iterables.size(scanner);
+      count = Iterables.size(scanner);
 
-    if (count != 0)
-      throw new Exception("count == " + count);
+      if (count != 0) {
+        throw new Exception("count == " + count);
+      }
+    }
   }
 }

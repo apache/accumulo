@@ -153,7 +153,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     conn.tableOperations().create(tableName);
 
-    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
+        Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
 
       // mutation conditional on column tx:seq not existing
       ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq"));
@@ -194,7 +195,6 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       Assert.assertEquals(Status.REJECTED, cw.write(cm5).getStatus());
 
       // ensure rejected mutations did not write
-      Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
       scanner.fetchColumn(new Text("name"), new Text("last"));
       scanner.setRange(new Range("99006"));
       Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
@@ -255,7 +255,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     conn.tableOperations().create(tableName);
 
-    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(auths))) {
+    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(auths));
+        Scanner scanner = conn.createScanner(tableName, auths)) {
 
       ColumnVisibility cva = new ColumnVisibility("A");
       ColumnVisibility cvb = new ColumnVisibility("B");
@@ -266,7 +267,6 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       cm0.put("tx", "seq", cva, "1");
       Assert.assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
 
-      Scanner scanner = conn.createScanner(tableName, auths);
       scanner.setRange(new Range("99006"));
       // TODO verify all columns
       scanner.fetchColumn(new Text("tx"), new Text("seq"));
@@ -434,9 +434,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     conn.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
     conn.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<String,String>(), new HashSet<String>());
 
-    Scanner scanner = conn.createScanner(tableName + "_clone", new Authorizations());
-
-    try (ConditionalWriter cw = conn.createConditionalWriter(tableName + "_clone", new ConditionalWriterConfig())) {
+    try (ConditionalWriter cw = conn.createConditionalWriter(tableName + "_clone", new ConditionalWriterConfig());
+        Scanner scanner = conn.createScanner(tableName + "_clone", new Authorizations())) {
 
       ConditionalMutation cm0 = new ConditionalMutation("99006+", new Condition("tx", "seq"));
       cm0.put("tx", "seq", "1");
@@ -491,62 +490,63 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     IteratorSetting iterConfig3 = new IteratorSetting(5, VersioningIterator.class);
     VersioningIterator.setMaxVersions(iterConfig3, 1);
 
-    Scanner scanner = conn.createScanner(tableName, new Authorizations());
-    scanner.addScanIterator(iterConfig);
-    scanner.setRange(new Range("ACCUMULO-1000"));
-    scanner.fetchColumn(new Text("count"), new Text("comments"));
+    try (Scanner scanner = conn.createScanner(tableName, new Authorizations())) {
+      scanner.addScanIterator(iterConfig);
+      scanner.setRange(new Range("ACCUMULO-1000"));
+      scanner.fetchColumn(new Text("count"), new Text("comments"));
 
-    Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
-    Assert.assertEquals("3", entry.getValue().toString());
-
-    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
-
-      ConditionalMutation cm0 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setValue("3"));
-      cm0.put("count", "comments", "1");
-      Assert.assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
-      entry = Iterables.getOnlyElement(scanner);
+      Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
       Assert.assertEquals("3", entry.getValue().toString());
 
-      ConditionalMutation cm1 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setIterators(iterConfig).setValue("3"));
-      cm1.put("count", "comments", "1");
-      Assert.assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
-      entry = Iterables.getOnlyElement(scanner);
-      Assert.assertEquals("4", entry.getValue().toString());
+      try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
 
-      ConditionalMutation cm2 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setValue("4"));
-      cm2.put("count", "comments", "1");
-      Assert.assertEquals(Status.REJECTED, cw.write(cm1).getStatus());
-      entry = Iterables.getOnlyElement(scanner);
-      Assert.assertEquals("4", entry.getValue().toString());
+        ConditionalMutation cm0 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setValue("3"));
+        cm0.put("count", "comments", "1");
+        Assert.assertEquals(Status.REJECTED, cw.write(cm0).getStatus());
+        entry = Iterables.getOnlyElement(scanner);
+        Assert.assertEquals("3", entry.getValue().toString());
 
-      // run test with multiple iterators passed in same batch and condition with two iterators
+        ConditionalMutation cm1 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setIterators(iterConfig).setValue("3"));
+        cm1.put("count", "comments", "1");
+        Assert.assertEquals(Status.ACCEPTED, cw.write(cm1).getStatus());
+        entry = Iterables.getOnlyElement(scanner);
+        Assert.assertEquals("4", entry.getValue().toString());
 
-      ConditionalMutation cm3 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setIterators(iterConfig).setValue("4"));
-      cm3.put("count", "comments", "1");
+        ConditionalMutation cm2 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setValue("4"));
+        cm2.put("count", "comments", "1");
+        Assert.assertEquals(Status.REJECTED, cw.write(cm1).getStatus());
+        entry = Iterables.getOnlyElement(scanner);
+        Assert.assertEquals("4", entry.getValue().toString());
 
-      ConditionalMutation cm4 = new ConditionalMutation("ACCUMULO-1001", new Condition("count2", "comments").setIterators(iterConfig2).setValue("2"));
-      cm4.put("count2", "comments", "1");
+        // run test with multiple iterators passed in same batch and condition with two iterators
 
-      ConditionalMutation cm5 = new ConditionalMutation("ACCUMULO-1002", new Condition("count2", "comments").setIterators(iterConfig2, iterConfig3).setValue(
-          "2"));
-      cm5.put("count2", "comments", "1");
+        ConditionalMutation cm3 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setIterators(iterConfig).setValue("4"));
+        cm3.put("count", "comments", "1");
 
-      Iterator<Result> results = cw.write(Arrays.asList(cm3, cm4, cm5).iterator());
-      Map<String,Status> actual = new HashMap<>();
+        ConditionalMutation cm4 = new ConditionalMutation("ACCUMULO-1001", new Condition("count2", "comments").setIterators(iterConfig2).setValue("2"));
+        cm4.put("count2", "comments", "1");
 
-      while (results.hasNext()) {
-        Result result = results.next();
-        String k = new String(result.getMutation().getRow());
-        Assert.assertFalse("Did not expect to see multiple resultus for the row: " + k, actual.containsKey(k));
-        actual.put(k, result.getStatus());
+        ConditionalMutation cm5 = new ConditionalMutation("ACCUMULO-1002", new Condition("count2", "comments").setIterators(iterConfig2, iterConfig3).setValue(
+            "2"));
+        cm5.put("count2", "comments", "1");
+
+        Iterator<Result> results = cw.write(Arrays.asList(cm3, cm4, cm5).iterator());
+        Map<String,Status> actual = new HashMap<>();
+
+        while (results.hasNext()) {
+          Result result = results.next();
+          String k = new String(result.getMutation().getRow());
+          Assert.assertFalse("Did not expect to see multiple resultus for the row: " + k, actual.containsKey(k));
+          actual.put(k, result.getStatus());
+        }
+
+        Map<String,Status> expected = new HashMap<>();
+        expected.put("ACCUMULO-1000", Status.ACCEPTED);
+        expected.put("ACCUMULO-1001", Status.ACCEPTED);
+        expected.put("ACCUMULO-1002", Status.REJECTED);
+
+        Assert.assertEquals(expected, actual);
       }
-
-      Map<String,Status> expected = new HashMap<>();
-      expected.put("ACCUMULO-1000", Status.ACCEPTED);
-      expected.put("ACCUMULO-1001", Status.ACCEPTED);
-      expected.put("ACCUMULO-1002", Status.REJECTED);
-
-      Assert.assertEquals(expected, actual);
     }
   }
 
@@ -622,13 +622,13 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     conn.tableOperations().offline(tableName, true);
     conn.tableOperations().online(tableName, true);
 
-    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig());
+        Scanner scanner = conn.createScanner(tableName, new Authorizations())) {
 
       ConditionalMutation cm6 = new ConditionalMutation("ACCUMULO-1000", new Condition("count", "comments").setValue("8"));
       cm6.put("count", "comments", "7");
       Assert.assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
-      Scanner scanner = conn.createScanner(tableName, new Authorizations());
       scanner.setRange(new Range("ACCUMULO-1000"));
       scanner.fetchColumn(new Text("count"), new Text("comments"));
 
@@ -672,7 +672,6 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       expected.put("ACCUMULO-1000", Status.ACCEPTED);
       expected.put("ACCUMULO-1001", Status.ACCEPTED);
       expected.put("ACCUMULO-1002", Status.REJECTED);
-
       Assert.assertEquals(expected, actual);
     }
   }
@@ -709,7 +708,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     cm2.put("tx", "seq", cvab, "1");
     mutations.add(cm2);
 
-    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(new Authorizations("A")))) {
+    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(new Authorizations("A")));
+        Scanner scanner = conn.createScanner(tableName, new Authorizations("A"))) {
       Iterator<Result> results = cw.write(mutations.iterator());
       int count = 0;
       while (results.hasNext()) {
@@ -720,7 +720,6 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       Assert.assertEquals(3, count);
 
-      Scanner scanner = conn.createScanner(tableName, new Authorizations("A"));
       scanner.fetchColumn(new Text("tx"), new Text("seq"));
 
       for (String row : new String[] {"99006", "59056", "19059"}) {
@@ -907,7 +906,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     cm3.put("tx", "seq", cvaob, "2");
     mutations.add(cm3);
 
-    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(new Authorizations("A")))) {
+    try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig().setAuthorizations(new Authorizations("A")));
+        Scanner scanner = conn.createScanner(tableName, new Authorizations("A"))) {
       Iterator<Result> results = cw.write(mutations.iterator());
       HashSet<String> rows = new HashSet<>();
       while (results.hasNext()) {
@@ -927,9 +927,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       Assert.assertEquals(4, rows.size());
 
-      Scanner scanner = conn.createScanner(tableName, new Authorizations("A"));
       scanner.fetchColumn(new Text("tx"), new Text("seq"));
-
       Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
       Assert.assertEquals("1", entry.getValue().toString());
     }
@@ -1178,7 +1176,6 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     }
 
     try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
-
       RowIterator rowIter = new RowIterator(scanner);
 
       while (rowIter.hasNext()) {
@@ -1267,7 +1264,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     conn.tableOperations().create(table);
 
-    try (ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig().setTimeout(3, TimeUnit.SECONDS))) {
+    try (ConditionalWriter cw = conn.createConditionalWriter(table, new ConditionalWriterConfig().setTimeout(3, TimeUnit.SECONDS));
+        Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
 
       ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
       cm1.put("tx", "seq", "1");
@@ -1283,8 +1281,6 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       cm2.put("data", "x", "b");
 
       Assert.assertEquals(cw.write(cm2).getStatus(), Status.UNKNOWN);
-
-      Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
 
       for (Entry<Key,Value> entry : scanner) {
         String cf = entry.getKey().getColumnFamilyData().toString();
@@ -1445,44 +1441,45 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       root.stop();
     }
 
-    final Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY);
-    scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
-    loop: while (true) {
-      final StringBuilder finalBuffer = new StringBuilder();
-      int traceCount = TraceDump.printTrace(scanner, new Printer() {
-        @Override
-        public void print(final String line) {
-          try {
-            finalBuffer.append(line).append("\n");
-          } catch (Exception ex) {
-            throw new RuntimeException(ex);
+    try (Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY)) {
+      scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
+      loop: while (true) {
+        final StringBuilder finalBuffer = new StringBuilder();
+        int traceCount = TraceDump.printTrace(scanner, new Printer() {
+          @Override
+          public void print(final String line) {
+            try {
+              finalBuffer.append(line).append("\n");
+            } catch (Exception ex) {
+              throw new RuntimeException(ex);
+            }
           }
-        }
-      });
-      String traceOutput = finalBuffer.toString();
-      log.info("Trace output:" + traceOutput);
-      if (traceCount > 0) {
-        int lastPos = 0;
-        for (String part : "traceTest, startScan,startConditionalUpdate,conditionalUpdate,Check conditions,apply conditional mutations".split(",")) {
-          log.info("Looking in trace output for '" + part + "'");
-          int pos = traceOutput.indexOf(part);
-          if (-1 == pos) {
-            log.info("Trace output doesn't contain '" + part + "'");
-            Thread.sleep(1000);
-            break loop;
+        });
+        String traceOutput = finalBuffer.toString();
+        log.info("Trace output:" + traceOutput);
+        if (traceCount > 0) {
+          int lastPos = 0;
+          for (String part : "traceTest, startScan,startConditionalUpdate,conditionalUpdate,Check conditions,apply conditional mutations".split(",")) {
+            log.info("Looking in trace output for '" + part + "'");
+            int pos = traceOutput.indexOf(part);
+            if (-1 == pos) {
+              log.info("Trace output doesn't contain '" + part + "'");
+              Thread.sleep(1000);
+              break loop;
+            }
+            assertTrue("Did not find '" + part + "' in output", pos > 0);
+            assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly", pos > lastPos);
+            lastPos = pos;
           }
-          assertTrue("Did not find '" + part + "' in output", pos > 0);
-          assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly", pos > lastPos);
-          lastPos = pos;
+          break;
+        } else {
+          log.info("Ignoring trace output as traceCount not greater than zero: " + traceCount);
+          Thread.sleep(1000);
         }
-        break;
-      } else {
-        log.info("Ignoring trace output as traceCount not greater than zero: " + traceCount);
-        Thread.sleep(1000);
       }
-    }
-    if (tracer != null) {
-      tracer.destroy();
+      if (tracer != null) {
+        tracer.destroy();
+      }
     }
   }
 }

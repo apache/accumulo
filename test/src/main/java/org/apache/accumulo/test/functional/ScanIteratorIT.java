@@ -124,46 +124,43 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    Scanner scanner = c.createScanner(tableName, new Authorizations());
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations()); BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
 
-    setupIter(scanner);
-    verify(scanner, 1, 999);
+      setupIter(scanner);
+      verify(scanner, 1, 999);
 
-    BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3);
-    bscanner.setRanges(Collections.singleton(new Range((Key) null, null)));
+      bscanner.setRanges(Collections.singleton(new Range((Key) null, null)));
 
-    setupIter(bscanner);
-    verify(bscanner, 1, 999);
+      setupIter(bscanner);
+      verify(bscanner, 1, 999);
 
-    ArrayList<Range> ranges = new ArrayList<>();
-    ranges.add(new Range(new Text(String.format("%06d", 1))));
-    ranges.add(new Range(new Text(String.format("%06d", 6)), new Text(String.format("%06d", 16))));
-    ranges.add(new Range(new Text(String.format("%06d", 20))));
-    ranges.add(new Range(new Text(String.format("%06d", 23))));
-    ranges.add(new Range(new Text(String.format("%06d", 56)), new Text(String.format("%06d", 61))));
-    ranges.add(new Range(new Text(String.format("%06d", 501)), new Text(String.format("%06d", 504))));
-    ranges.add(new Range(new Text(String.format("%06d", 998)), new Text(String.format("%06d", 1000))));
+      ArrayList<Range> ranges = new ArrayList<>();
+      ranges.add(new Range(new Text(String.format("%06d", 1))));
+      ranges.add(new Range(new Text(String.format("%06d", 6)), new Text(String.format("%06d", 16))));
+      ranges.add(new Range(new Text(String.format("%06d", 20))));
+      ranges.add(new Range(new Text(String.format("%06d", 23))));
+      ranges.add(new Range(new Text(String.format("%06d", 56)), new Text(String.format("%06d", 61))));
+      ranges.add(new Range(new Text(String.format("%06d", 501)), new Text(String.format("%06d", 504))));
+      ranges.add(new Range(new Text(String.format("%06d", 998)), new Text(String.format("%06d", 1000))));
 
-    HashSet<Integer> got = new HashSet<>();
-    HashSet<Integer> expected = new HashSet<>();
-    for (int i : new int[] {1, 7, 9, 11, 13, 15, 23, 57, 59, 61, 501, 503, 999}) {
-      expected.add(i);
+      HashSet<Integer> got = new HashSet<>();
+      HashSet<Integer> expected = new HashSet<>();
+      for (int i : new int[] {1, 7, 9, 11, 13, 15, 23, 57, 59, 61, 501, 503, 999}) {
+        expected.add(i);
+      }
+
+      bscanner.setRanges(ranges);
+
+      for (Entry<Key,Value> entry : bscanner) {
+        got.add(Integer.parseInt(entry.getKey().getRow().toString()));
+      }
+
+      System.out.println("got : " + got);
+
+      if (!got.equals(expected)) {
+        throw new Exception(got + " != " + expected);
+      }
     }
-
-    bscanner.setRanges(ranges);
-
-    for (Entry<Key,Value> entry : bscanner) {
-      got.add(Integer.parseInt(entry.getKey().getRow().toString()));
-    }
-
-    System.out.println("got : " + got);
-
-    if (!got.equals(expected)) {
-      throw new Exception(got + " != " + expected);
-    }
-
-    bscanner.close();
-
   }
 
   private void verify(Iterable<Entry<Key,Value>> scanner, int start, int finish) throws Exception {
@@ -224,18 +221,15 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
     IteratorSetting setting = new IteratorSetting(10, AuthsIterator.class);
 
-    Scanner scanner = userC.createScanner(tableName, auths);
-    scanner.addScanIterator(setting);
+    try (Scanner scanner = userC.createScanner(tableName, auths); BatchScanner batchScanner = userC.createBatchScanner(tableName, auths, 1)) {
+      scanner.addScanIterator(setting);
 
-    BatchScanner batchScanner = userC.createBatchScanner(tableName, auths, 1);
-    batchScanner.setRanges(Collections.singleton(new Range("1")));
-    batchScanner.addScanIterator(setting);
+      batchScanner.setRanges(Collections.singleton(new Range("1")));
+      batchScanner.addScanIterator(setting);
 
-    runTest(scanner, auths, shouldFail);
-    runTest(batchScanner, auths, shouldFail);
-
-    scanner.close();
-    batchScanner.close();
+      runTest(scanner, auths, shouldFail);
+      runTest(batchScanner, auths, shouldFail);
+    }
   }
 
   private void writeTestMutation(Connector userC) throws TableNotFoundException, MutationsRejectedException {

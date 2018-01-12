@@ -71,26 +71,27 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
     int offline = 0;
     final Connector c = getConnector();
     for (String tableName : new String[] {MetadataTable.NAME, RootTable.NAME}) {
-      final Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
-      s.setRange(MetadataSchema.TabletsSection.getRange());
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
-      String location = null;
-      for (Entry<Key,Value> entry : s) {
-        Key key = entry.getKey();
-        if (key.getColumnFamily().equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)) {
-          location = key.getColumnQualifier().toString();
-        } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-          if (location == null) {
-            offline++;
-          } else {
-            Integer count = counts.get(location);
-            if (count == null)
-              count = Integer.valueOf(0);
-            count = Integer.valueOf(count.intValue() + 1);
-            counts.put(location, count);
+      try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
+        s.setRange(MetadataSchema.TabletsSection.getRange());
+        s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+        MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
+        String location = null;
+        for (Entry<Key,Value> entry : s) {
+          Key key = entry.getKey();
+          if (key.getColumnFamily().equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)) {
+            location = key.getColumnQualifier().toString();
+          } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+            if (location == null) {
+              offline++;
+            } else {
+              Integer count = counts.get(location);
+              if (count == null)
+                count = Integer.valueOf(0);
+              count = Integer.valueOf(count.intValue() + 1);
+              counts.put(location, count);
+            }
+            location = null;
           }
-          location = null;
         }
       }
     }

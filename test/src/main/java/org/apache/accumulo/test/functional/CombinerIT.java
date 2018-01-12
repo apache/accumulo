@@ -46,12 +46,13 @@ public class CombinerIT extends AccumuloClusterHarness {
   }
 
   private void checkSum(String tableName, Connector c) throws Exception {
-    Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
-    Iterator<Entry<Key,Value>> i = s.iterator();
-    assertTrue(i.hasNext());
-    Entry<Key,Value> entry = i.next();
-    assertEquals("45", entry.getValue().toString());
-    assertFalse(i.hasNext());
+    try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
+      Iterator<Entry<Key,Value>> i = s.iterator();
+      assertTrue(i.hasNext());
+      Entry<Key,Value> entry = i.next();
+      assertEquals("45", entry.getValue().toString());
+      assertFalse(i.hasNext());
+    }
   }
 
   @Test

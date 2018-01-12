@@ -289,22 +289,24 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         log.info("{} {}", kv.getKey().toStringNoTruncate(), ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
       }
 
-      Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY), peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
-      Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
-      Entry<Key,Value> masterEntry = null, peerEntry = null;
-      while (masterIter.hasNext() && peerIter.hasNext()) {
-        masterEntry = masterIter.next();
-        peerEntry = peerIter.next();
-        Assert.assertEquals(masterEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
-            masterEntry.getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-        Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
+      try (Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY); Scanner peer = connPeer.createScanner(peerTable, Authorizations.EMPTY)) {
+        Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
+        Entry<Key,Value> masterEntry = null, peerEntry = null;
+        while (masterIter.hasNext() && peerIter.hasNext()) {
+          masterEntry = masterIter.next();
+          peerEntry = peerIter.next();
+          Assert.assertEquals(masterEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+              masterEntry.getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+          Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
+        }
+
+        log.info("Last master entry: {}", masterEntry);
+        log.info("Last peer entry: {}", peerEntry);
+
+        Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
+        Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
+        master.close();
       }
-
-      log.info("Last master entry: {}", masterEntry);
-      log.info("Last peer entry: {}", peerEntry);
-
-      Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
-      Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
     } finally {
       peerCluster.stop();
     }
@@ -549,18 +551,18 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
     connMaster.replicationOperations().drain(masterTable, files);
 
-    Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY), peer = connPeer.createScanner(peerTable, Authorizations.EMPTY);
-    Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
-    while (masterIter.hasNext() && peerIter.hasNext()) {
-      Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
-      Assert.assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
-          masterEntry.getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-      Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
+    try (Scanner master = connMaster.createScanner(masterTable, Authorizations.EMPTY); Scanner peer = connPeer.createScanner(peerTable, Authorizations.EMPTY)) {
+      Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
+      while (masterIter.hasNext() && peerIter.hasNext()) {
+        Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
+        Assert.assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+            masterEntry.getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+        Assert.assertEquals(masterEntry.getValue(), peerEntry.getValue());
+      }
+
+      Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
+      Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
     }
-
-    Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
-    Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
-
     peerCluster.stop();
   }
 
@@ -673,12 +675,13 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       for (int i = 0; i < 10 && !fullyReplicated; i++) {
         sleepUninterruptibly(2, TimeUnit.SECONDS);
 
-        Scanner s = ReplicationTable.getScanner(connMaster);
-        WorkSection.limit(s);
-        for (Entry<Key,Value> entry : s) {
-          Status status = Status.parseFrom(entry.getValue().get());
-          if (StatusUtil.isFullyReplicated(status)) {
-            fullyReplicated |= true;
+        try (Scanner s = ReplicationTable.getScanner(connMaster)) {
+          WorkSection.limit(s);
+          for (Entry<Key,Value> entry : s) {
+            Status status = Status.parseFrom(entry.getValue().get());
+            if (StatusUtil.isFullyReplicated(status)) {
+              fullyReplicated |= true;
+            }
           }
         }
       }

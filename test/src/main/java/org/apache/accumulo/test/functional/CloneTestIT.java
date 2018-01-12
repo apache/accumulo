@@ -116,60 +116,61 @@ public class CloneTestIT extends AccumuloClusterHarness {
   }
 
   private void checkData(String table2, Connector c) throws TableNotFoundException {
-    Scanner scanner = c.createScanner(table2, Authorizations.EMPTY);
+    try (Scanner scanner = c.createScanner(table2, Authorizations.EMPTY)) {
 
-    HashMap<String,String> expected = new HashMap<>();
-    expected.put("001:x", "9");
-    expected.put("001:y", "7");
-    expected.put("008:x", "3");
-    expected.put("008:y", "4");
+      HashMap<String,String> expected = new HashMap<>();
+      expected.put("001:x", "9");
+      expected.put("001:y", "7");
+      expected.put("008:x", "3");
+      expected.put("008:y", "4");
 
-    HashMap<String,String> actual = new HashMap<>();
+      HashMap<String,String> actual = new HashMap<>();
 
-    for (Entry<Key,Value> entry : scanner)
-      actual.put(entry.getKey().getRowData().toString() + ":" + entry.getKey().getColumnQualifierData().toString(), entry.getValue().toString());
+      for (Entry<Key,Value> entry : scanner)
+        actual.put(entry.getKey().getRowData().toString() + ":" + entry.getKey().getColumnQualifierData().toString(), entry.getValue().toString());
 
-    Assert.assertEquals(expected, actual);
+      Assert.assertEquals(expected, actual);
+    }
   }
 
   private void checkMetadata(String table, Connector conn) throws Exception {
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
 
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
-    String tableId = conn.tableOperations().tableIdMap().get(table);
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
+      String tableId = conn.tableOperations().tableIdMap().get(table);
 
-    Assert.assertNotNull("Could not get table id for " + table, tableId);
+      Assert.assertNotNull("Could not get table id for " + table, tableId);
 
-    s.setRange(Range.prefix(tableId));
+      s.setRange(Range.prefix(tableId));
 
-    Key k;
-    Text cf = new Text(), cq = new Text();
-    int itemsInspected = 0;
-    for (Entry<Key,Value> entry : s) {
-      itemsInspected++;
-      k = entry.getKey();
-      k.getColumnFamily(cf);
-      k.getColumnQualifier(cq);
+      Key k;
+      Text cf = new Text(), cq = new Text();
+      int itemsInspected = 0;
+      for (Entry<Key,Value> entry : s) {
+        itemsInspected++;
+        k = entry.getKey();
+        k.getColumnFamily(cf);
+        k.getColumnQualifier(cq);
 
-      if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
-        Path p = new Path(cq.toString());
-        FileSystem fs = cluster.getFileSystem();
-        Assert.assertTrue("File does not exist: " + p, fs.exists(p));
-      } else if (cf.equals(MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
-        Assert.assertEquals("Saw unexpected cq", MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), cq);
-        Path tabletDir = new Path(entry.getValue().toString());
-        Path tableDir = tabletDir.getParent();
-        Path tablesDir = tableDir.getParent();
+        if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+          Path p = new Path(cq.toString());
+          FileSystem fs = cluster.getFileSystem();
+          Assert.assertTrue("File does not exist: " + p, fs.exists(p));
+        } else if (cf.equals(MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
+          Assert.assertEquals("Saw unexpected cq", MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), cq);
+          Path tabletDir = new Path(entry.getValue().toString());
+          Path tableDir = tabletDir.getParent();
+          Path tablesDir = tableDir.getParent();
 
-        Assert.assertEquals(ServerConstants.TABLE_DIR, tablesDir.getName());
-      } else {
-        Assert.fail("Got unexpected key-value: " + entry);
-        throw new RuntimeException();
+          Assert.assertEquals(ServerConstants.TABLE_DIR, tablesDir.getName());
+        } else {
+          Assert.fail("Got unexpected key-value: " + entry);
+          throw new RuntimeException();
+        }
       }
+      Assert.assertTrue("Expected to find metadata entries", itemsInspected > 0);
     }
-
-    Assert.assertTrue("Expected to find metadata entries", itemsInspected > 0);
   }
 
   private BatchWriter writeData(String table1, Connector c) throws TableNotFoundException, MutationsRejectedException {

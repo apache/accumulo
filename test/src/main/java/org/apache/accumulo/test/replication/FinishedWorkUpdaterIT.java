@@ -77,17 +77,18 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
     updater.run();
 
-    Scanner s = ReplicationTable.getScanner(conn);
-    s.setRange(Range.exact(file));
-    StatusSection.limit(s);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      s.setRange(Range.exact(file));
+      StatusSection.limit(s);
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
-    Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target.getSourceTableId().canonicalID());
+      Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target.getSourceTableId().canonicalID());
 
-    // We should only rely on the correct begin attribute being returned
-    Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(stat.getBegin(), actual.getBegin());
+      // We should only rely on the correct begin attribute being returned
+      Status actual = Status.parseFrom(entry.getValue().get());
+      Assert.assertEquals(stat.getBegin(), actual.getBegin());
+    }
   }
 
   @Test
@@ -117,17 +118,18 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
     updater.run();
 
-    Scanner s = ReplicationTable.getScanner(conn);
-    s.setRange(Range.exact(file));
-    StatusSection.limit(s);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      s.setRange(Range.exact(file));
+      StatusSection.limit(s);
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
-    Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId().canonicalID());
+      Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId().canonicalID());
 
-    // We should only rely on the correct begin attribute being returned
-    Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(1, actual.getBegin());
+      // We should only rely on the correct begin attribute being returned
+      Status actual = Status.parseFrom(entry.getValue().get());
+      Assert.assertEquals(1, actual.getBegin());
+    }
   }
 
   @Test
@@ -157,17 +159,18 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
     updater.run();
 
-    Scanner s = ReplicationTable.getScanner(conn);
-    s.setRange(Range.exact(file));
-    StatusSection.limit(s);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      s.setRange(Range.exact(file));
+      StatusSection.limit(s);
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
-    Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-    Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId().canonicalID());
+      Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(), target1.getSourceTableId().canonicalID());
 
-    // We should only rely on the correct begin attribute being returned
-    Status actual = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(1, actual.getBegin());
+      // We should only rely on the correct begin attribute being returned
+      Status actual = Status.parseFrom(entry.getValue().get());
+      Assert.assertEquals(1, actual.getBegin());
+    }
   }
 
 }

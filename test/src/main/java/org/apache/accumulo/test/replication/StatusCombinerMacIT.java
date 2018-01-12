@@ -108,23 +108,26 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       bw.close();
     }
 
-    Scanner s = ReplicationTable.getScanner(conn);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    Assert.assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
+    Entry<Key,Value> entry;
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      entry = Iterables.getOnlyElement(s);
+      Assert.assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
 
-    bw = ReplicationTable.getBatchWriter(conn);
-    try {
-      Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
-      StatusSection.add(m, Table.ID.of("1"), ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
-      bw.addMutation(m);
-    } finally {
-      bw.close();
+      bw = ReplicationTable.getBatchWriter(conn);
+      try {
+        Mutation m = new Mutation("file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
+        StatusSection.add(m, Table.ID.of("1"), ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
+        bw.addMutation(m);
+      } finally {
+        bw.close();
+      }
     }
 
-    s = ReplicationTable.getScanner(conn);
-    entry = Iterables.getOnlyElement(s);
-    Status stat = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(Long.MAX_VALUE, stat.getBegin());
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      entry = Iterables.getOnlyElement(s);
+      Status stat = Status.parseFrom(entry.getValue().get());
+      Assert.assertEquals(Long.MAX_VALUE, stat.getBegin());
+    }
   }
 
 }

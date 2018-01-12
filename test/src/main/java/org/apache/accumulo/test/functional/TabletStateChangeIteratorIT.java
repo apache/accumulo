@@ -138,17 +138,17 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private void reassignLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
     Table.ID tableIdToModify = Table.ID.of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
-    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
-    scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetadataRange());
-    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-    Entry<Key,Value> entry = scanner.iterator().next();
-    Mutation m = new Mutation(entry.getKey().getRow());
-    m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(), entry.getKey().getTimestamp());
-    m.put(entry.getKey().getColumnFamily(), new Text("1234567"), entry.getKey().getTimestamp() + 1, new Value("fake:9005".getBytes(UTF_8)));
-    scanner.close();
-    BatchWriter bw = getConnector().createBatchWriter(table, null);
-    bw.addMutation(m);
-    bw.close();
+    try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetadataRange());
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+      Entry<Key,Value> entry = scanner.iterator().next();
+      Mutation m = new Mutation(entry.getKey().getRow());
+      m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(), entry.getKey().getTimestamp());
+      m.put(entry.getKey().getColumnFamily(), new Text("1234567"), entry.getKey().getTimestamp() + 1, new Value("fake:9005".getBytes(UTF_8)));
+      BatchWriter bw = getConnector().createBatchWriter(table, null);
+      bw.addMutation(m);
+      bw.close();
+    }
   }
 
   private void removeLocation(String table, String tableNameToModify) throws TableNotFoundException, MutationsRejectedException {
@@ -162,12 +162,13 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private int findTabletsNeedingAttention(String table, State state) throws TableNotFoundException {
     int results = 0;
-    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
-    MetaDataTableScanner.configureScanner(scanner, state);
-    scanner.updateScanIteratorOption("tabletChange", "debug", "1");
-    for (Entry<Key,Value> e : scanner) {
-      if (e != null)
-        results++;
+    try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
+      MetaDataTableScanner.configureScanner(scanner, state);
+      scanner.updateScanIteratorOption("tabletChange", "debug", "1");
+      for (Entry<Key,Value> e : scanner) {
+        if (e != null)
+          results++;
+      }
     }
     return results;
   }

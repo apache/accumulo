@@ -87,11 +87,13 @@ public class CleanTmpIT extends ConfigurableMacBase {
 
     // create a fake _tmp file in its directory
     String id = c.tableOperations().tableIdMap().get(tableName);
-    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(Range.prefix(id));
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    Path file = new Path(entry.getKey().getColumnQualifier().toString());
+    Path file;
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(Range.prefix(id));
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      file = new Path(entry.getKey().getColumnQualifier().toString());
+    }
 
     FileSystem fs = getCluster().getFileSystem();
     assertTrue("Could not find file: " + file, fs.exists(file));
@@ -104,9 +106,10 @@ public class CleanTmpIT extends ConfigurableMacBase {
     getCluster().stop();
     getCluster().start();
 
-    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    assertEquals(2, Iterators.size(scanner.iterator()));
-    // If we performed log recovery, we should have cleaned up any stray files
-    assertFalse("File still exists: " + tmp, fs.exists(tmp));
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+      assertEquals(2, Iterators.size(scanner.iterator()));
+      // If we performed log recovery, we should have cleaned up any stray files
+      assertFalse("File still exists: " + tmp, fs.exists(tmp));
+    }
   }
 }

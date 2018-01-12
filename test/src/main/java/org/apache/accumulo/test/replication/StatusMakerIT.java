@@ -104,18 +104,19 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     statusMaker.run();
 
-    Scanner s = ReplicationTable.getScanner(conn);
-    StatusSection.limit(s);
-    Text file = new Text();
-    for (Entry<Key,Value> entry : s) {
-      StatusSection.getFile(entry.getKey(), file);
-      Table.ID tableId = StatusSection.getTableId(entry.getKey());
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      StatusSection.limit(s);
+      Text file = new Text();
+      for (Entry<Key,Value> entry : s) {
+        StatusSection.getFile(entry.getKey(), file);
+        Table.ID tableId = StatusSection.getTableId(entry.getKey());
 
-      Assert.assertTrue("Found unexpected file: " + file, files.contains(file.toString()));
-      Assert.assertEquals(fileToTableId.get(file.toString()), new Integer(tableId.canonicalID()));
-      timeCreated = fileToTimeCreated.get(file.toString());
-      Assert.assertNotNull(timeCreated);
-      Assert.assertEquals(StatusUtil.fileCreated(timeCreated), Status.parseFrom(entry.getValue().get()));
+        Assert.assertTrue("Found unexpected file: " + file, files.contains(file.toString()));
+        Assert.assertEquals(fileToTableId.get(file.toString()), new Integer(tableId.canonicalID()));
+        timeCreated = fileToTimeCreated.get(file.toString());
+        Assert.assertNotNull(timeCreated);
+        Assert.assertEquals(StatusUtil.fileCreated(timeCreated), Status.parseFrom(entry.getValue().get()));
+      }
     }
   }
 
@@ -149,10 +150,11 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     statusMaker.run();
 
-    Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY);
-    s.setRange(ReplicationSection.getRange());
-    s.fetchColumnFamily(ReplicationSection.COLF);
-    Assert.assertEquals(files.size(), Iterables.size(s));
+    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
+      s.setRange(ReplicationSection.getRange());
+      s.fetchColumnFamily(ReplicationSection.COLF);
+      Assert.assertEquals(files.size(), Iterables.size(s));
+    }
   }
 
   @Test
@@ -185,17 +187,19 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     statusMaker.run();
 
-    Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY);
-    s.setRange(ReplicationSection.getRange());
-    s.fetchColumnFamily(ReplicationSection.COLF);
-    for (Entry<Key,Value> e : s) {
-      System.out.println(e.getKey().toStringNoTruncate() + " " + e.getValue());
+    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
+      s.setRange(ReplicationSection.getRange());
+      s.fetchColumnFamily(ReplicationSection.COLF);
+      for (Entry<Key,Value> e : s) {
+        System.out.println(e.getKey().toStringNoTruncate() + " " + e.getValue());
+      }
     }
-    s = conn.createScanner(sourceTable, Authorizations.EMPTY);
-    s.setRange(ReplicationSection.getRange());
-    s.fetchColumnFamily(ReplicationSection.COLF);
-    Assert.assertEquals(0, Iterables.size(s));
 
+    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
+      s.setRange(ReplicationSection.getRange());
+      s.fetchColumnFamily(ReplicationSection.COLF);
+      Assert.assertEquals(0, Iterables.size(s));
+    }
   }
 
   @Test
@@ -230,27 +234,30 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     statusMaker.run();
 
-    Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY);
-    s.setRange(ReplicationSection.getRange());
-    s.fetchColumnFamily(ReplicationSection.COLF);
-    Assert.assertEquals(0, Iterables.size(s));
-
-    s = ReplicationTable.getScanner(conn);
-    OrderSection.limit(s);
-    Iterator<Entry<Key,Value>> iter = s.iterator();
-    Assert.assertTrue("Found no order records in replication table", iter.hasNext());
-
-    Iterator<String> expectedFiles = files.iterator();
-    Text buff = new Text();
-    while (expectedFiles.hasNext() && iter.hasNext()) {
-      String file = expectedFiles.next();
-      Entry<Key,Value> entry = iter.next();
-
-      Assert.assertEquals(file, OrderSection.getFile(entry.getKey(), buff));
-      OrderSection.getTableId(entry.getKey(), buff);
-      Assert.assertEquals(fileToTableId.get(file).intValue(), Integer.parseInt(buff.toString()));
+    Iterator<Entry<Key,Value>> iter;
+    Iterator<String> expectedFiles;
+    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
+      s.setRange(ReplicationSection.getRange());
+      s.fetchColumnFamily(ReplicationSection.COLF);
+      Assert.assertEquals(0, Iterables.size(s));
     }
 
+    try (Scanner s = ReplicationTable.getScanner(conn)) {
+      OrderSection.limit(s);
+      iter = s.iterator();
+      Assert.assertTrue("Found no order records in replication table", iter.hasNext());
+
+      expectedFiles = files.iterator();
+      Text buff = new Text();
+      while (expectedFiles.hasNext() && iter.hasNext()) {
+        String file = expectedFiles.next();
+        Entry<Key,Value> entry = iter.next();
+
+        Assert.assertEquals(file, OrderSection.getFile(entry.getKey(), buff));
+        OrderSection.getTableId(entry.getKey(), buff);
+        Assert.assertEquals(fileToTableId.get(file).intValue(), Integer.parseInt(buff.toString()));
+      }
+    }
     Assert.assertFalse("Found more files unexpectedly", expectedFiles.hasNext());
     Assert.assertFalse("Found more entries in replication table unexpectedly", iter.hasNext());
   }

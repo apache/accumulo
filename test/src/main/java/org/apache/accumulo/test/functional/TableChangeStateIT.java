@@ -282,20 +282,19 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
       long startTimestamp = System.nanoTime();
 
-      Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-      int count = 0;
-      for (Map.Entry<Key,Value> elt : scanner) {
-        String expected = String.format("%05d", count);
-        assert (elt.getKey().getRow().toString().equals(expected));
-        count++;
-      }
+      try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+        int count = 0;
+        for (Map.Entry<Key,Value> elt : scanner) {
+          String expected = String.format("%05d", count);
+          assert (elt.getKey().getRow().toString().equals(expected));
+          count++;
+        }
 
-      log.trace("Scan time for {} rows {} ms", NUM_ROWS, TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
+        log.trace("Scan time for {} rows {} ms", NUM_ROWS, TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
 
-      scanner.close();
-
-      if (count != NUM_ROWS) {
-        throw new IllegalStateException(String.format("Number of rows %1$d does not match expected %2$d", count, NUM_ROWS));
+        if (count != NUM_ROWS) {
+          throw new IllegalStateException(String.format("Number of rows %1$d does not match expected %2$d", count, NUM_ROWS));
+        }
       }
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException | TableExistsException ex) {
       throw new IllegalStateException("Create data failed with exception", ex);
@@ -409,22 +408,22 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
         // validate expected data created and exists in table.
 
-        Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
+        try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
 
-        int count = 0;
-        for (Map.Entry<Key,Value> elt : scanner) {
-          String expected = String.format("%05d", count);
-          assert (elt.getKey().getRow().toString().equals(expected));
-          count++;
+          int count = 0;
+          for (Map.Entry<Key,Value> elt : scanner) {
+            String expected = String.format("%05d", count);
+            assert (elt.getKey().getRow().toString().equals(expected));
+            count++;
+          }
+
+          log.trace("After compaction, scan time for {} rows {} ms", NUM_ROWS,
+              TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
+
+          if (count != NUM_ROWS) {
+            throw new IllegalStateException(String.format("After compaction, number of rows %1$d does not match expected %2$d", count, NUM_ROWS));
+          }
         }
-
-        log.trace("After compaction, scan time for {} rows {} ms", NUM_ROWS,
-            TimeUnit.MILLISECONDS.convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
-
-        if (count != NUM_ROWS) {
-          throw new IllegalStateException(String.format("After compaction, number of rows %1$d does not match expected %2$d", count, NUM_ROWS));
-        }
-
       } catch (TableNotFoundException ex) {
         throw new IllegalStateException("test failed, table " + tableName + " does not exist", ex);
       } catch (AccumuloSecurityException ex) {

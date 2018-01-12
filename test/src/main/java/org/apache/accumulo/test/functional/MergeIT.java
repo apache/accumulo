@@ -175,30 +175,30 @@ public class MergeIT extends AccumuloClusterHarness {
 
     conn.tableOperations().merge(table, start == null ? null : new Text(start), end == null ? null : new Text(end));
 
-    Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
+    try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
 
-    HashSet<String> observed = new HashSet<>();
-    for (Entry<Key,Value> entry : scanner) {
-      String row = entry.getKey().getRowData().toString();
-      if (!observed.add(row)) {
-        throw new Exception("Saw data twice " + table + " " + row);
+      HashSet<String> observed = new HashSet<>();
+      for (Entry<Key,Value> entry : scanner) {
+        String row = entry.getKey().getRowData().toString();
+        if (!observed.add(row)) {
+          throw new Exception("Saw data twice " + table + " " + row);
+        }
+      }
+
+      if (!observed.equals(expected)) {
+        throw new Exception("data inconsistency " + table + " " + observed + " != " + expected);
+      }
+
+      HashSet<Text> currentSplits = new HashSet<>(conn.tableOperations().listSplits(table));
+      HashSet<Text> ess = new HashSet<>();
+      for (String es : expectedSplits) {
+        ess.add(new Text(es));
+      }
+
+      if (!currentSplits.equals(ess)) {
+        throw new Exception("split inconsistency " + table + " " + currentSplits + " != " + ess);
       }
     }
-
-    if (!observed.equals(expected)) {
-      throw new Exception("data inconsistency " + table + " " + observed + " != " + expected);
-    }
-
-    HashSet<Text> currentSplits = new HashSet<>(conn.tableOperations().listSplits(table));
-    HashSet<Text> ess = new HashSet<>();
-    for (String es : expectedSplits) {
-      ess.add(new Text(es));
-    }
-
-    if (!currentSplits.equals(ess)) {
-      throw new Exception("split inconsistency " + table + " " + currentSplits + " != " + ess);
-    }
-
   }
 
   @Rule
@@ -217,8 +217,8 @@ public class MergeIT extends AccumuloClusterHarness {
 
     @Override
     protected void resetScanner() {
-      try {
-        Scanner ds = conn.createScanner(metadataTableName, Authorizations.EMPTY);
+      try (Scanner ds = conn.createScanner(metadataTableName, Authorizations.EMPTY)) {
+
         Text tablet = new KeyExtent(Table.ID.of("0"), new Text("m"), null).getMetadataEntry();
         ds.setRange(new Range(tablet, true, tablet, true));
 
@@ -229,11 +229,8 @@ public class MergeIT extends AccumuloClusterHarness {
           Key k = entry.getKey();
           m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
         }
-
         bw.addMutation(m);
-
         bw.close();
-
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

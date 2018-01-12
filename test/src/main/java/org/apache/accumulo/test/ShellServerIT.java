@@ -1508,62 +1508,62 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("insert " + i + " cf cq value", true);
     }
     Connector connector = getConnector();
-    final Scanner s = connector.createScanner(table, Authorizations.EMPTY);
-    IteratorSetting cfg = new IteratorSetting(30, SlowIterator.class);
-    SlowIterator.setSleepTime(cfg, 500);
-    s.addScanIterator(cfg);
+    try (Scanner s = connector.createScanner(table, Authorizations.EMPTY)) {
+      IteratorSetting cfg = new IteratorSetting(30, SlowIterator.class);
+      SlowIterator.setSleepTime(cfg, 500);
+      s.addScanIterator(cfg);
 
-    Thread thread = new Thread() {
-      @Override
-      public void run() {
-        try {
-          Iterators.size(s.iterator());
-        } catch (Exception ex) {
-          throw new RuntimeException(ex);
+      Thread thread = new Thread() {
+        @Override
+        public void run() {
+          try {
+            Iterators.size(s.iterator());
+          } catch (Exception ex) {
+            throw new RuntimeException(ex);
+          }
         }
-      }
-    };
-    thread.start();
+      };
+      thread.start();
 
-    List<String> scans = new ArrayList<>();
-    // Try to find the active scan for about 15seconds
-    for (int i = 0; i < 50 && scans.isEmpty(); i++) {
-      String currentScans = ts.exec("listscans", true);
-      log.info("Got output from listscans:\n{}", currentScans);
-      String[] lines = currentScans.split("\n");
-      for (int scanOffset = 2; scanOffset < lines.length; scanOffset++) {
-        String currentScan = lines[scanOffset];
-        if (currentScan.contains(table)) {
-          log.info("Retaining scan: {}", currentScan);
-          scans.add(currentScan);
-        } else {
-          log.info("Ignoring scan because of wrong table: {}", currentScan);
+      List<String> scans = new ArrayList<>();
+      // Try to find the active scan for about 15seconds
+      for (int i = 0; i < 50 && scans.isEmpty(); i++) {
+        String currentScans = ts.exec("listscans", true);
+        log.info("Got output from listscans:\n{}", currentScans);
+        String[] lines = currentScans.split("\n");
+        for (int scanOffset = 2; scanOffset < lines.length; scanOffset++) {
+          String currentScan = lines[scanOffset];
+          if (currentScan.contains(table)) {
+            log.info("Retaining scan: {}", currentScan);
+            scans.add(currentScan);
+          } else {
+            log.info("Ignoring scan because of wrong table: {}", currentScan);
+          }
         }
+        sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
       }
-      sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
-    }
-    thread.join();
+      thread.join();
 
-    assertFalse("Could not find any active scans over table " + table, scans.isEmpty());
+      assertFalse("Could not find any active scans over table " + table, scans.isEmpty());
 
-    for (String scan : scans) {
-      if (!scan.contains("RUNNING")) {
-        log.info("Ignoring scan because it doesn't contain 'RUNNING': {}", scan);
-        continue;
+      for (String scan : scans) {
+        if (!scan.contains("RUNNING")) {
+          log.info("Ignoring scan because it doesn't contain 'RUNNING': {}", scan);
+          continue;
+        }
+        String parts[] = scan.split("\\|");
+        assertEquals("Expected 14 colums, but found " + parts.length + " instead for '" + Arrays.toString(parts) + "'", 14, parts.length);
+        String tserver = parts[0].trim();
+        // TODO: any way to tell if the client address is accurate? could be local IP, host, loopback...?
+        String hostPortPattern = ".+:\\d+";
+        assertTrue(tserver.matches(hostPortPattern));
+        assertTrue(getConnector().instanceOperations().getTabletServers().contains(tserver));
+        String client = parts[1].trim();
+        assertTrue(client + " does not match " + hostPortPattern, client.matches(hostPortPattern));
+        // Scan ID should be a long (throwing an exception if it fails to parse)
+        Long.parseLong(parts[11].trim());
       }
-      String parts[] = scan.split("\\|");
-      assertEquals("Expected 14 colums, but found " + parts.length + " instead for '" + Arrays.toString(parts) + "'", 14, parts.length);
-      String tserver = parts[0].trim();
-      // TODO: any way to tell if the client address is accurate? could be local IP, host, loopback...?
-      String hostPortPattern = ".+:\\d+";
-      assertTrue(tserver.matches(hostPortPattern));
-      assertTrue(getConnector().instanceOperations().getTabletServers().contains(tserver));
-      String client = parts[1].trim();
-      assertTrue(client + " does not match " + hostPortPattern, client.matches(hostPortPattern));
-      // Scan ID should be a long (throwing an exception if it fails to parse)
-      Long.parseLong(parts[11].trim());
     }
-
     ts.exec("deletetable -f " + table, true);
   }
 

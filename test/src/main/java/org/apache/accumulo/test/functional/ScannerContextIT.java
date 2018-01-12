@@ -206,28 +206,26 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       }
       bw.close();
 
-      Scanner one = c.createScanner(tableName, Authorizations.EMPTY);
+      try (Scanner one = c.createScanner(tableName, Authorizations.EMPTY); Scanner two = c.createScanner(tableName, Authorizations.EMPTY)) {
 
-      Scanner two = c.createScanner(tableName, Authorizations.EMPTY);
+        IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
+        one.addScanIterator(cfg);
+        one.setClassLoaderContext(CONTEXT);
 
-      IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
-      one.addScanIterator(cfg);
-      one.setClassLoaderContext(CONTEXT);
+        Iterator<Entry<Key,Value>> iterator = one.iterator();
+        for (int i = 0; i < ITERATIONS; i++) {
+          assertTrue(iterator.hasNext());
+          Entry<Key,Value> next = iterator.next();
+          assertEquals("tseT", next.getValue().toString());
+        }
 
-      Iterator<Entry<Key,Value>> iterator = one.iterator();
-      for (int i = 0; i < ITERATIONS; i++) {
-        assertTrue(iterator.hasNext());
-        Entry<Key,Value> next = iterator.next();
-        assertEquals("tseT", next.getValue().toString());
+        Iterator<Entry<Key,Value>> iterator2 = two.iterator();
+        for (int i = 0; i < ITERATIONS; i++) {
+          assertTrue(iterator2.hasNext());
+          Entry<Key,Value> next = iterator2.next();
+          assertEquals("Test", next.getValue().toString());
+        }
       }
-
-      Iterator<Entry<Key,Value>> iterator2 = two.iterator();
-      for (int i = 0; i < ITERATIONS; i++) {
-        assertTrue(iterator2.hasNext());
-        Entry<Key,Value> next = iterator2.next();
-        assertEquals("Test", next.getValue().toString());
-      }
-
     } finally {
       // Delete file in tmp
       fs.delete(dstPath, true);
@@ -253,27 +251,27 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       }
       bw.close();
 
-      Scanner one = c.createScanner(tableName, Authorizations.EMPTY);
-      IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
-      one.addScanIterator(cfg);
-      one.setClassLoaderContext(CONTEXT);
+      try (Scanner one = c.createScanner(tableName, Authorizations.EMPTY)) {
+        IteratorSetting cfg = new IteratorSetting(21, "reverse", "org.apache.accumulo.test.functional.ValueReversingIterator");
+        one.addScanIterator(cfg);
+        one.setClassLoaderContext(CONTEXT);
 
-      Iterator<Entry<Key,Value>> iterator = one.iterator();
-      for (int i = 0; i < ITERATIONS; i++) {
-        assertTrue(iterator.hasNext());
-        Entry<Key,Value> next = iterator.next();
-        assertEquals("tseT", next.getValue().toString());
+        Iterator<Entry<Key,Value>> iterator = one.iterator();
+        for (int i = 0; i < ITERATIONS; i++) {
+          assertTrue(iterator.hasNext());
+          Entry<Key,Value> next = iterator.next();
+          assertEquals("tseT", next.getValue().toString());
+        }
+
+        one.removeScanIterator("reverse");
+        one.clearClassLoaderContext();
+        iterator = one.iterator();
+        for (int i = 0; i < ITERATIONS; i++) {
+          assertTrue(iterator.hasNext());
+          Entry<Key,Value> next = iterator.next();
+          assertEquals("Test", next.getValue().toString());
+        }
       }
-
-      one.removeScanIterator("reverse");
-      one.clearClassLoaderContext();
-      iterator = one.iterator();
-      for (int i = 0; i < ITERATIONS; i++) {
-        assertTrue(iterator.hasNext());
-        Entry<Key,Value> next = iterator.next();
-        assertEquals("Test", next.getValue().toString());
-      }
-
     } finally {
       // Delete file in tmp
       fs.delete(dstPath, true);
@@ -281,26 +279,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   }
 
   private void scanCheck(Connector c, String tableName, IteratorSetting cfg, String context, String expected) throws Exception {
-    Scanner bs = c.createScanner(tableName, Authorizations.EMPTY);
-    if (null != context) {
-      bs.setClassLoaderContext(context);
-    }
-    if (null != cfg) {
-      bs.addScanIterator(cfg);
-    }
-    Iterator<Entry<Key,Value>> iterator = bs.iterator();
-    for (int i = 0; i < ITERATIONS; i++) {
-      assertTrue(iterator.hasNext());
-      Entry<Key,Value> next = iterator.next();
-      assertEquals(expected, next.getValue().toString());
-    }
-    assertFalse(iterator.hasNext());
-  }
-
-  private void batchCheck(Connector c, String tableName, IteratorSetting cfg, String context, String expected) throws Exception {
-    BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 1);
-    bs.setRanges(Collections.singleton(new Range()));
-    try {
+    try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
       if (null != context) {
         bs.setClassLoaderContext(context);
       }
@@ -314,8 +293,25 @@ public class ScannerContextIT extends AccumuloClusterHarness {
         assertEquals(expected, next.getValue().toString());
       }
       assertFalse(iterator.hasNext());
-    } finally {
-      bs.close();
+    }
+  }
+
+  private void batchCheck(Connector c, String tableName, IteratorSetting cfg, String context, String expected) throws Exception {
+    try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+      bs.setRanges(Collections.singleton(new Range()));
+      if (null != context) {
+        bs.setClassLoaderContext(context);
+      }
+      if (null != cfg) {
+        bs.addScanIterator(cfg);
+      }
+      Iterator<Entry<Key,Value>> iterator = bs.iterator();
+      for (int i = 0; i < ITERATIONS; i++) {
+        assertTrue(iterator.hasNext());
+        Entry<Key,Value> next = iterator.next();
+        assertEquals(expected, next.getValue().toString());
+      }
+      assertFalse(iterator.hasNext());
     }
   }
 

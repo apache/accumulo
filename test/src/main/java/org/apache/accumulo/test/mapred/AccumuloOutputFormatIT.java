@@ -217,12 +217,13 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
     MRTester.main(new String[] {"root", ROOT_PASSWORD, table1, table2, instanceName, getCluster().getZooKeepers()});
     assertNull(e1);
 
-    Scanner scanner = c.createScanner(table2, new Authorizations());
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    assertTrue(iter.hasNext());
-    Entry<Key,Value> entry = iter.next();
-    assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-    assertFalse(iter.hasNext());
+    try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
+      Iterator<Entry<Key,Value>> iter = scanner.iterator();
+      assertTrue(iter.hasNext());
+      Entry<Key,Value> entry = iter.next();
+      assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
+      assertFalse(iter.hasNext());
+    }
   }
 
 }

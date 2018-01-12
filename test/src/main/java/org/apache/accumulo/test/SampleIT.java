@@ -193,8 +193,6 @@ public class SampleIT extends AccumuloClusterHarness {
     expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));
 
     check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
-
-    bScanner.close();
   }
 
   private Scanner newOfflineScanner(Connector conn, String tableName, String clone, SamplerConfiguration sc) throws Exception {
@@ -311,64 +309,87 @@ public class SampleIT extends AccumuloClusterHarness {
 
     Range range1 = new Range(keys.get(6), true, keys.get(11), true);
 
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
-    ClientSideIteratorScanner csiScanner = new ClientSideIteratorScanner(conn.createScanner(tableName, Authorizations.EMPTY));
-    BatchScanner bScanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+    Scanner scanner = null;
+    Scanner isoScanner = null;
+    ClientSideIteratorScanner csiScanner = null;
+    BatchScanner bScanner = null;
+    Scanner oScanner = null;
+    try {
+      scanner = conn.createScanner(tableName, Authorizations.EMPTY);
+      isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
+      csiScanner = new ClientSideIteratorScanner(conn.createScanner(tableName, Authorizations.EMPTY));
+      bScanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
 
-    csiScanner.setIteratorSamplerConfiguration(SC1);
+      csiScanner.setIteratorSamplerConfiguration(SC1);
 
-    List<? extends ScannerBase> scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner);
+      List<? extends ScannerBase> scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner);
 
-    for (ScannerBase s : scanners) {
-      s.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
-    }
+      for (ScannerBase s : scanners) {
+        s.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
+      }
 
-    // the iterator should see less than 10 entries in sample data, and return data
-    setRange(range1, scanners);
-    for (ScannerBase s : scanners) {
-      Assert.assertEquals(2954, countEntries(s));
-    }
+      // the iterator should see less than 10 entries in sample data, and return data
+      setRange(range1, scanners);
+      for (ScannerBase s : scanners) {
+        Assert.assertEquals(2954, countEntries(s));
+      }
 
-    Range range2 = new Range(keys.get(5), true, keys.get(18), true);
-    setRange(range2, scanners);
+      Range range2 = new Range(keys.get(5), true, keys.get(18), true);
+      setRange(range2, scanners);
 
-    // the iterator should see more than 10 entries in sample data, and return no data
-    for (ScannerBase s : scanners) {
-      Assert.assertEquals(0, countEntries(s));
-    }
+      // the iterator should see more than 10 entries in sample data, and return no data
+      for (ScannerBase s : scanners) {
+        Assert.assertEquals(0, countEntries(s));
+      }
 
-    // flush an rerun same test against files
-    conn.tableOperations().flush(tableName, null, null, true);
+      // flush an rerun same test against files
+      conn.tableOperations().flush(tableName, null, null, true);
 
-    Scanner oScanner = newOfflineScanner(conn, tableName, clone, null);
-    oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
-    scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
+      oScanner = newOfflineScanner(conn, tableName, clone, null);
+      oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
+      scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-    setRange(range1, scanners);
-    for (ScannerBase s : scanners) {
-      Assert.assertEquals(2954, countEntries(s));
-    }
+      setRange(range1, scanners);
+      for (ScannerBase s : scanners) {
+        Assert.assertEquals(2954, countEntries(s));
+      }
 
-    setRange(range2, scanners);
-    for (ScannerBase s : scanners) {
-      Assert.assertEquals(0, countEntries(s));
-    }
+      setRange(range2, scanners);
+      for (ScannerBase s : scanners) {
+        Assert.assertEquals(0, countEntries(s));
+      }
 
-    updateSamplingConfig(conn, tableName, SC2);
+      updateSamplingConfig(conn, tableName, SC2);
 
-    csiScanner.setIteratorSamplerConfiguration(SC2);
+      csiScanner.setIteratorSamplerConfiguration(SC2);
 
-    oScanner = newOfflineScanner(conn, tableName, clone, null);
-    oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
-    scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
+      oScanner = newOfflineScanner(conn, tableName, clone, null);
+      oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
+      scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-    for (ScannerBase s : scanners) {
-      try {
-        countEntries(s);
-        Assert.fail("Expected SampleNotPresentException, but it did not happen : " + s.getClass().getSimpleName());
-      } catch (SampleNotPresentException e) {
+      for (ScannerBase s : scanners) {
+        try {
+          countEntries(s);
+          Assert.fail("Expected SampleNotPresentException, but it did not happen : " + s.getClass().getSimpleName());
+        } catch (SampleNotPresentException e) {
 
+        }
+      }
+    } finally {
+      if (scanner != null) {
+        scanner.close();
+      }
+      if (bScanner != null) {
+        bScanner.close();
+      }
+      if (isoScanner != null) {
+        isoScanner.close();
+      }
+      if (csiScanner != null) {
+        csiScanner.close();
+      }
+      if (oScanner != null) {
+        oScanner.close();
       }
     }
   }
@@ -442,8 +463,6 @@ public class SampleIT extends AccumuloClusterHarness {
     oScanner = newOfflineScanner(conn, tableName, clone, SC2);
     setSamplerConfig(SC2, scanner, csiScanner, isoScanner, bScanner, oScanner);
     check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
-
-    bScanner.close();
   }
 
   private void updateSamplingConfig(Connector conn, String tableName, SamplerConfiguration sc) throws TableNotFoundException, AccumuloException,

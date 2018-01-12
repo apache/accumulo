@@ -163,16 +163,16 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     sleepUninterruptibly(timeoutFactor * 15, TimeUnit.SECONDS);
     log.info("Verifying that delete markers were deleted");
     // look for delete markers
-    Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(MetadataSchema.DeletesSection.getRange());
-    for (Entry<Key,Value> entry : scanner) {
-      String row = entry.getKey().getRow().toString();
-      if (!row.contains("/" + tableId + "/")) {
-        log.info("Ignoring delete entry for a table other than the one we deleted");
-        continue;
+    try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      scanner.setRange(MetadataSchema.DeletesSection.getRange());
+      for (Entry<Key,Value> entry : scanner) {
+        String row = entry.getKey().getRow().toString();
+        if (!row.contains("/" + tableId + "/")) {
+          log.info("Ignoring delete entry for a table other than the one we deleted");
+          continue;
+        }
+        Assert.fail("Delete entry should have been deleted by the garbage collector: " + entry.getKey().getRow().toString());
       }
-      Assert.fail("Delete entry should have been deleted by the garbage collector: " + entry.getKey().getRow().toString());
     }
   }
-
 }

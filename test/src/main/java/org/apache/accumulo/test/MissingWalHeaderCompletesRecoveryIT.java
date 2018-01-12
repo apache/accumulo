@@ -150,8 +150,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
     // Reading the table implies that recovery completed successfully (the empty file was ignored)
     // otherwise the tablet will never come online and we won't be able to read it.
-    Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
-    Assert.assertEquals(0, Iterables.size(s));
+    try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      Assert.assertEquals(0, Iterables.size(s));
+    }
   }
 
   @Test
@@ -205,8 +206,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
     // Reading the table implies that recovery completed successfully (the empty file was ignored)
     // otherwise the tablet will never come online and we won't be able to read it.
-    Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
-    Assert.assertEquals(0, Iterables.size(s));
+    try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      Assert.assertEquals(0, Iterables.size(s));
+    }
   }
 
 }

@@ -93,28 +93,28 @@ public class TimeoutIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.close();
 
-    BatchScanner bs = getConnector().createBatchScanner(tableName, Authorizations.EMPTY, 2);
-    bs.setRanges(Collections.singletonList(new Range()));
+    try (BatchScanner bs = getConnector().createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+      bs.setRanges(Collections.singletonList(new Range()));
 
-    // should not timeout
-    for (Entry<Key,Value> entry : bs) {
-      entry.getKey();
-    }
-
-    bs.setTimeout(5, TimeUnit.SECONDS);
-    IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
-    iterSetting.addOption("sleepTime", 2000 + "");
-    bs.addScanIterator(iterSetting);
-
-    try {
+      // should not timeout
       for (Entry<Key,Value> entry : bs) {
         entry.getKey();
       }
-      fail("batch scanner did not time out");
-    } catch (TimedOutException toe) {
-      // toe.printStackTrace();
+
+      bs.setTimeout(5, TimeUnit.SECONDS);
+      IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
+      iterSetting.addOption("sleepTime", 2000 + "");
+      bs.addScanIterator(iterSetting);
+
+      try {
+        for (Entry<Key,Value> entry : bs) {
+          entry.getKey();
+        }
+        fail("batch scanner did not time out");
+      } catch (TimedOutException toe) {
+        // toe.printStackTrace();
+      }
     }
-    bs.close();
   }
 
 }

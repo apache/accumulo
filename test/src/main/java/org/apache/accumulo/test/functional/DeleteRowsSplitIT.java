@@ -112,14 +112,15 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
       }
 
       // scan the table
-      Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-      for (Entry<Key,Value> entry : scanner) {
-        Text row = entry.getKey().getRow();
-        assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
-      }
+      try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : scanner) {
+          Text row = entry.getKey().getRow();
+          assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
+        }
 
-      // delete the table
-      conn.tableOperations().delete(tableName);
+        // delete the table
+        conn.tableOperations().delete(tableName);
+      }
     }
   }
 

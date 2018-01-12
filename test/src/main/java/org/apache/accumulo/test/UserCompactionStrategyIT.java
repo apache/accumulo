@@ -295,12 +295,11 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   private Set<String> getRows(Connector c, String tableName) throws TableNotFoundException {
     Set<String> rows = new HashSet<>();
-    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-
-    for (Entry<Key,Value> entry : scanner)
-      rows.add(entry.getKey().getRowData().toString());
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> entry : scanner)
+        rows.add(entry.getKey().getRowData().toString());
+    }
     return rows;
-
   }
 
   private void writeFlush(Connector conn, String tablename, String row) throws Exception {
