@@ -26,7 +26,6 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -72,7 +71,7 @@ public class TableIT extends AccumuloClusterHarness {
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     ClientConfiguration clientConfig = getCluster().getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
       vopts.updateKerberosCredentials(clientConfig);
     } else {

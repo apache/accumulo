@@ -69,8 +69,7 @@ public class ClientContextTest {
     }
 
     String absPath = getKeyStoreUrl(keystore);
-    ClientConfiguration clientConf = new ClientConfiguration();
-    clientConf.addProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
+    ClientConfiguration clientConf = ClientConfiguration.create().with(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Assert.assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
@@ -82,7 +81,7 @@ public class ClientContextTest {
       return;
     }
 
-    ClientConfiguration clientConf = new ClientConfiguration();
+    ClientConfiguration clientConf = ClientConfiguration.create();
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Assert.assertEquals(Property.INSTANCE_SECRET.getDefaultValue(), accClientConf.get(Property.INSTANCE_SECRET));
@@ -95,8 +94,7 @@ public class ClientContextTest {
     }
 
     String absPath = getKeyStoreUrl(keystore);
-    ClientConfiguration clientConf = new ClientConfiguration();
-    clientConf.addProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
+    ClientConfiguration clientConf = ClientConfiguration.create().with(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
 
     AccumuloConfiguration accClientConf = ClientContext.convertClientConfig(clientConf);
     Map<String,String> props = new HashMap<>();

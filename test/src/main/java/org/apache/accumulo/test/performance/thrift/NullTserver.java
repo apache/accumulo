@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.performance.thrift;
 
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -56,11 +58,13 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
+import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -76,10 +80,6 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
-import org.apache.accumulo.core.util.HostAndPort;
-
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 
 /**
  * The purpose of this class is to server as fake tserver that is a data sink like /dev/null. NullTserver modifies the metadata location entries for a table to
@@ -138,8 +138,8 @@ public class NullTserver {
 
     @Override
     public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials, Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns,
-        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration tsc, long batchTimeOut,
-        String context) {
+        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration tsc,
+        long batchTimeOut, String context) {
       return null;
     }
 
@@ -234,7 +234,7 @@ public class NullTserver {
     }
 
     @Override
-    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException { }
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) throws TException {}
   }
 
   static class Opts extends Help {
@@ -253,14 +253,14 @@ public class NullTserver {
     opts.parseArgs(NullTserver.class.getName(), args);
 
     // modify metadata
-    ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance(opts.iname).withZkHosts(opts.keepers));
+    ZooKeeperInstance zki = new ZooKeeperInstance(ClientConfiguration.create().withInstance(opts.iname).withZkHosts(opts.keepers));
     AccumuloServerContext context = new AccumuloServerContext(new ServerConfigurationFactory(zki));
 
     TransactionWatcher watcher = new TransactionWatcher();
     ThriftClientHandler tch = new ThriftClientHandler(new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())), watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
-    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
-        "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
+    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer", "null tserver", 2, 1, 1000,
+        10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 

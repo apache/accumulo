@@ -38,9 +38,14 @@ public class MiniAccumuloInstance extends ZooKeeperInstance {
    * Construct an {@link Instance} entry point to Accumulo using a {@link MiniAccumuloCluster} directory
    */
   public MiniAccumuloInstance(String instanceName, File directory) throws FileNotFoundException {
-    super(new ClientConfiguration(getConfigProperties(directory)).withInstance(instanceName).withZkHosts(getZooKeepersFromDir(directory)));
+    super(ClientConfiguration.fromFile(new File(new File(directory, "conf"), "client.conf")).withInstance(instanceName)
+        .withZkHosts(getZooKeepersFromDir(directory)));
   }
 
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
   public static PropertiesConfiguration getConfigProperties(File directory) {
     try {
       PropertiesConfiguration conf = new PropertiesConfiguration();

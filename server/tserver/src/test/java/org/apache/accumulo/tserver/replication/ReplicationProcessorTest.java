@@ -46,7 +46,7 @@ public class ReplicationProcessorTest {
     Instance inst = EasyMock.createMock(Instance.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     Credentials creds = new Credentials("foo", new PasswordToken("bar"));
-    ClientContext context = new ClientContext(inst, creds, new ClientConfiguration());
+    ClientContext context = new ClientContext(inst, creds, ClientConfiguration.create());
 
     Map<String,String> data = new HashMap<>();
 
@@ -65,7 +65,7 @@ public class ReplicationProcessorTest {
     Instance inst = EasyMock.createMock(Instance.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     Credentials creds = new Credentials("foo", new PasswordToken("bar"));
-    ClientContext context = new ClientContext(inst, creds, new ClientConfiguration());
+    ClientContext context = new ClientContext(inst, creds, ClientConfiguration.create());
 
     Map<String,String> data = new HashMap<>();
     ConfigurationCopy conf = new ConfigurationCopy(data);

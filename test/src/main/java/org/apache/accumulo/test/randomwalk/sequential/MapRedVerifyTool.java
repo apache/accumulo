@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
@@ -102,7 +101,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
     AccumuloOutputFormat.setZooKeeperInstance(job, clientConf);
 
     job.setInputFormatClass(AccumuloInputFormat.class);
-    if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConf.hasSasl()) {
       // Better be logged in
       KerberosToken token = new KerberosToken();
       try {

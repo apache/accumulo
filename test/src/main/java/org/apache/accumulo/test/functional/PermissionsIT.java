@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -321,7 +320,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         ClientConfiguration clientConf = cluster.getClientConfig();
-        if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+        if (clientConf.hasSasl()) {
           // TODO Try to obtain a delegation token without the permission
         }
         break;
@@ -464,7 +463,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         ClientConfiguration clientConf = cluster.getClientConfig();
-        if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+        if (clientConf.hasSasl()) {
           // TODO Try to obtain a delegation token with the permission
         }
         break;

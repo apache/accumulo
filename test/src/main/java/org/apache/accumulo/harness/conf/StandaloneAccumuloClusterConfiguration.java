@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
@@ -87,11 +86,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
     this.conf = getConfiguration(type);
     this.clientConfFile = clientConfFile;
-    try {
-      this.clientConf = new ClientConfiguration(clientConfFile);
-    } catch (ConfigurationException e) {
-      throw new RuntimeException("Failed to load client configuration from " + clientConfFile);
-    }
+    this.clientConf = ClientConfiguration.fromFile(clientConfFile);
     // Update instance name if not already set
     if (!clientConf.containsKey(ClientProperty.INSTANCE_NAME.getKey())) {
       clientConf.withInstance(getInstanceName());
@@ -160,7 +155,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   @Override
   public AuthenticationToken getAdminToken() {
-    if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConf.hasSasl()) {
       File keytab = getAdminKeytab();
       try {
         UserGroupInformation.loginUserFromKeytab(getAdminPrincipal(), keytab.getAbsolutePath());

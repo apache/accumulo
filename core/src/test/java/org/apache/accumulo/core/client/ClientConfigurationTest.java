@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -65,7 +64,9 @@ public class ClientConfigurationTest {
     third.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "thirdZkHosts");
     third.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "thirdInstanceName");
     third.addProperty(ClientProperty.INSTANCE_ZK_TIMEOUT.getKey(), "123s");
-    return new ClientConfiguration(Arrays.asList(first, second, third));
+    @SuppressWarnings("deprecation")
+    ClientConfiguration clientConf = new ClientConfiguration(Arrays.asList(first, second, third));
+    return clientConf;
   }
 
   @Test

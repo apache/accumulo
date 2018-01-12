@@ -20,7 +20,6 @@ import java.net.InetAddress;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
@@ -37,7 +36,7 @@ public class SecurityFixture extends Fixture {
     String secTableName, systemUserName, tableUserName, secNamespaceName;
     // A best-effort sanity check to guard against not password-based auth
     ClientConfiguration clientConf = ClientConfiguration.loadDefault();
-    if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConf.hasSasl()) {
       throw new IllegalStateException("Security module currently cannot support Kerberos/SASL instances");
     }
 

@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -72,7 +71,6 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceServer;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -158,17 +156,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile) throws IOException {
       ClientConfiguration clientConf;
-      try {
-        clientConf = new ClientConfiguration(configFile);
-      } catch (ConfigurationException e) {
-        throw new IOException(e);
-      }
+      clientConf = ClientConfiguration.fromFile(configFile);
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();
       shell = new Shell(new ConsoleReader(input, output));
       shell.setLogErrorsToConsole();
-      if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      if (clientConf.hasSasl()) {
         // Pull the kerberos principal out when we're using SASL
         shell.config("-u", user, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath());
       } else {
@@ -343,7 +337,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("exporttable -t " + table + " " + exportUri, true);
     DistCp cp = newDistCp(new Configuration(false));
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import").toString();
-    if (getCluster().getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (getCluster().getClientConfig().hasSasl()) {
       // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it ourselves by hand.
       FileSystem fs = getCluster().getFileSystem();
       FileSystem localFs = FileSystem.getLocal(new Configuration(false));

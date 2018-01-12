@@ -281,7 +281,7 @@ public class ARS {
       } else if (tokens[0].equals("quit") && tokens.length == 1) {
         break;
       } else if (tokens[0].equals("connect") && tokens.length == 6 && ars == null) {
-        ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance(tokens[1]).withZkHosts(tokens[2]));
+        ZooKeeperInstance zki = new ZooKeeperInstance(ClientConfiguration.create().withInstance(tokens[1]).withZkHosts(tokens[2]));
         Connector conn = zki.getConnector(tokens[3], new PasswordToken(tokens[4]));
         if (conn.tableOperations().exists(tokens[5])) {
           ars = new ARS(conn, tokens[5]);

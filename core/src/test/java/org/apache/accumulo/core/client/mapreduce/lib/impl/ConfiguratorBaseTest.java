@@ -80,7 +80,7 @@ public class ConfiguratorBaseTest {
   @Test
   public void testSetZooKeeperInstance() {
     Configuration conf = new Configuration();
-    ConfiguratorBase.setZooKeeperInstance(this.getClass(), conf, new ClientConfiguration().withInstance("testInstanceName").withZkHosts("testZooKeepers")
+    ConfiguratorBase.setZooKeeperInstance(this.getClass(), conf, ClientConfiguration.create().withInstance("testInstanceName").withZkHosts("testZooKeepers")
         .withSsl(true).withZkTimeout(1234));
     ClientConfiguration clientConf = ClientConfiguration.deserialize(conf.get(ConfiguratorBase.enumToConfKey(this.getClass(),
         ConfiguratorBase.InstanceOpts.CLIENT_CONFIG)));

@@ -171,7 +171,7 @@ public class TabletLocatorImplTest {
   @Before
   public void setUp() {
     testInstance = new TestInstance("instance1", "tserver1");
-    context = new ClientContext(testInstance, new Credentials("test", null), new ClientConfiguration());
+    context = new ClientContext(testInstance, new Credentials("test", null), ClientConfiguration.create());
   }
 
   private void runTest(Text tableName, List<Range> ranges, TabletLocatorImpl tab1TabletCache, Map<String,Map<KeyExtent,List<Range>>> expected) throws Exception {

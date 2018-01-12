@@ -234,7 +234,7 @@ public class ClientOpts extends Help {
       if (clientConfigFile == null)
         clientConfig = ClientConfiguration.loadDefault();
       else
-        clientConfig = new ClientConfiguration(clientConfigFile);
+        clientConfig = ClientConfiguration.fromFile(new File(clientConfigFile));
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }
@@ -347,7 +347,7 @@ public class ClientOpts extends Help {
       if (clientConfigFile == null)
         clientConfig = ClientConfiguration.loadDefault();
       else
-        clientConfig = new ClientConfiguration(clientConfigFile);
+        clientConfig = ClientConfiguration.fromFile(new File(clientConfigFile));
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }

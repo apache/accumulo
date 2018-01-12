@@ -19,7 +19,6 @@ package org.apache.accumulo.test.functional;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -60,7 +59,7 @@ public class WriteAheadLogIT extends AccumuloClusterHarness {
     opts.setTableName(tableName);
 
     ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
       vopts.updateKerberosCredentials(clientConfig);
     } else {

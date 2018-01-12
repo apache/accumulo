@@ -92,8 +92,6 @@ import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
-import org.apache.commons.configuration.AbstractConfiguration;
-import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
@@ -751,13 +749,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public ClientConfiguration getClientConfig() {
-    return new ClientConfiguration(getConfigs(config)).withInstance(this.getInstanceName()).withZkHosts(this.getZooKeepers());
-  }
-
-  private static List<AbstractConfiguration> getConfigs(MiniAccumuloConfigImpl config) {
-    MapConfiguration cfg = new MapConfiguration(config.getSiteConfig());
-    cfg.setListDelimiter('\0');
-    return Collections.<AbstractConfiguration> singletonList(cfg);
+    return ClientConfiguration.fromMap(config.getSiteConfig()).withInstance(this.getInstanceName()).withZkHosts(this.getZooKeepers());
   }
 
   @Override

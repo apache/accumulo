@@ -147,7 +147,6 @@
               </excludes>
               <allows>
                 <allow>org[.]apache[.]accumulo[.]core[.](client|data|security)[.](?!.*(impl|thrift|crypto).*).*</allow>
-                <allow>org.apache.commons.configuration.PropertiesConfiguration</allow>
               </allows>
             </configuration>
           </execution>

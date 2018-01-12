@@ -48,7 +48,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
@@ -235,7 +234,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     String user = null;
     ClientConfiguration clientConf = cluster.getClientConfig();
-    final boolean saslEnabled = clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false);
+    final boolean saslEnabled = clientConf.hasSasl();
 
     ClusterUser user1 = getUser(0);
     user = user1.getPrincipal();
@@ -1202,7 +1201,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     Connector conn = getConnector();
     String user = null;
     ClientConfiguration clientConf = cluster.getClientConfig();
-    final boolean saslEnabled = clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false);
+    final boolean saslEnabled = clientConf.hasSasl();
 
     // Create a new user
     ClusterUser user1 = getUser(0);

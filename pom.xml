@@ -797,7 +797,7 @@
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>apilyzer-maven-plugin</artifactId>
-          <version>1.0.1</version>
+          <version>1.2.0</version>
         </plugin>
         <plugin>
           <groupId>com.googlecode.maven-java-formatter-plugin</groupId>

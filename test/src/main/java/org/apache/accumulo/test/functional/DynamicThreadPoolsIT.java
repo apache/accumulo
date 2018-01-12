@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -88,7 +87,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
     opts.createTable = true;
     opts.setTableName(firstTable);
     ClientConfiguration clientConf = cluster.getClientConfig();
-    if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConf.hasSasl()) {
       opts.updateKerberosCredentials(clientConf);
     } else {
       opts.setPrincipal(getAdminPrincipal());

@@ -48,7 +48,8 @@ public abstract class ScaleTest {
     String password = this.scaleProps.getProperty("PASSWORD");
     System.out.println(password);
 
-    conn = new ZooKeeperInstance(new ClientConfiguration().withInstance(instanceName).withZkHosts(zookeepers)).getConnector(user, new PasswordToken(password));
+    conn = new ZooKeeperInstance(ClientConfiguration.create().withInstance(instanceName).withZkHosts(zookeepers)).getConnector(user,
+        new PasswordToken(password));
   }
 
   protected void startTimer() {
