@@ -350,14 +350,16 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           + minBlockSize + ". Either increase the " + Property.TSERV_WALOG_MAX_SIZE + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
 
     final long toleratedWalCreationFailures = aconf.getCount(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES);
-    final long walCreationFailureRetryIncrement = aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT);
-    final long walCreationFailureRetryMax = aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION);
-    // Tolerate `toleratedWalCreationFailures` failures, waiting `walCreationFailureRetryIncrement` milliseconds after the first failure,
-    // incrementing the next wait period by the same value, for a maximum of `walCreationFailureRetryMax` retries.
-    final RetryFactory walCreationRetryFactory = new RetryFactory(toleratedWalCreationFailures, walCreationFailureRetryIncrement,
-        walCreationFailureRetryIncrement, walCreationFailureRetryMax);
+    final long walFailureRetryIncrement = aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT);
+    final long walFailureRetryMax = aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION);
+    // Tolerate `toleratedWalCreationFailures` failures, waiting `walFailureRetryIncrement` milliseconds after the first failure,
+    // incrementing the next wait period by the same value, for a maximum of `walFailureRetryMax` retries.
+    final RetryFactory walCreationRetryFactory = new RetryFactory(toleratedWalCreationFailures, walFailureRetryIncrement, walFailureRetryIncrement,
+        walFailureRetryMax);
+    // Tolerate infinite failures for the write, however backing off the same as for creation failures.
+    final RetryFactory walWritingRetryFactory = new RetryFactory(walFailureRetryIncrement, walFailureRetryIncrement, walFailureRetryMax);
 
-    logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter, walCreationRetryFactory, walogMaxAge);
+    logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter, walCreationRetryFactory, walWritingRetryFactory, walogMaxAge);
     this.resourceManager = new TabletServerResourceManager(this, fs);
     this.security = AuditedSecurityOperation.getInstance(this);
 
