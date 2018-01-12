@@ -20,10 +20,15 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.rpc.TServerUtils;
 
 public class Session {
+
+  enum State {
+    UNRESERVED, RESERVED, REMOVED
+  }
+
   public final String client;
   long lastAccessTime;
   public long startTime;
-  boolean reserved;
+  State state;
   private final TCredentials credentials;
 
   Session(TCredentials credentials) {
