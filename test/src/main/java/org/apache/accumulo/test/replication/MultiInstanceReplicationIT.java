@@ -305,7 +305,6 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
         Assert.assertFalse("Had more data to read from the master", masterIter.hasNext());
         Assert.assertFalse("Had more data to read from the peer", peerIter.hasNext());
-        master.close();
       }
     } finally {
       peerCluster.stop();
