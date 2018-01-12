@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.tserver.log;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -100,8 +98,10 @@ public class TabletServerLogger {
 
   private long createTime = 0;
 
-  private final RetryFactory retryFactory;
-  private Retry retry = null;
+  private final RetryFactory createRetryFactory;
+  private Retry createRetry = null;
+
+  private final RetryFactory writeRetryFactory;
 
   static private abstract class TestCallWithWriteLock {
     abstract boolean test();
@@ -146,13 +146,15 @@ public class TabletServerLogger {
     }
   }
 
-  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, RetryFactory retryFactory, long maxAge) {
+  public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter, AtomicLong flushCounter, RetryFactory createRetryFactory,
+      RetryFactory writeRetryFactory, long maxAge) {
     this.tserver = tserver;
     this.maxSize = maxSize;
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
-    this.retryFactory = retryFactory;
-    this.retry = null;
+    this.createRetryFactory = createRetryFactory;
+    this.createRetry = null;
+    this.writeRetryFactory = writeRetryFactory;
     this.maxAge = maxAge;
   }
 
@@ -222,8 +224,8 @@ public class TabletServerLogger {
         log.info("Using next log " + currentLog.getFileName());
 
         // When we successfully create a WAL, make sure to reset the Retry.
-        if (null != retry) {
-          retry = null;
+        if (null != createRetry) {
+          createRetry = null;
         }
 
         this.createTime = System.currentTimeMillis();
@@ -232,18 +234,18 @@ public class TabletServerLogger {
         throw new RuntimeException("Error: unexpected type seen: " + next);
       }
     } catch (Exception t) {
-      if (null == retry) {
-        retry = retryFactory.create();
+      if (null == createRetry) {
+        createRetry = createRetryFactory.create();
       }
 
       // We have more retries or we exceeded the maximum number of accepted failures
-      if (retry.canRetry()) {
-        // Use the retry and record the time in which we did so
-        retry.useRetry();
+      if (createRetry.canRetry()) {
+        // Use the createRetry and record the time in which we did so
+        createRetry.useRetry();
 
         try {
           // Backoff
-          retry.waitForNextAttempt();
+          createRetry.waitForNextAttempt();
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);
@@ -350,15 +352,22 @@ public class TabletServerLogger {
   }
 
   private void write(CommitSession commitSession, boolean mincFinish, Writer writer) throws IOException {
+    write(commitSession, mincFinish, writer, writeRetryFactory.create());
+  }
+
+  private void write(CommitSession commitSession, boolean mincFinish, Writer writer, Retry writeRetry) throws IOException {
     List<CommitSession> sessions = Collections.singletonList(commitSession);
-    write(sessions, mincFinish, writer);
+    write(sessions, mincFinish, writer, writeRetry);
   }
 
   private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
+    write(sessions, mincFinish, writer, writeRetryFactory.create());
+  }
+
+  private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer, Retry writeRetry) throws IOException {
     // Work very hard not to lock this during calls to the outside world
     int currentLogId = logId.get();
 
-    int attempt = 1;
     boolean success = false;
     while (!success) {
       try {
@@ -376,7 +385,7 @@ public class TabletServerLogger {
             if (commitSession.beginUpdatingLogsUsed(copy, mincFinish)) {
               try {
                 // Scribble out a tablet definition and then write to the metadata table
-                defineTablet(commitSession);
+                defineTablet(commitSession, writeRetry);
               } finally {
                 commitSession.finishUpdatingLogsUsed();
               }
@@ -404,14 +413,19 @@ public class TabletServerLogger {
           success = (currentLogId == logId.get());
         }
       } catch (DfsLogger.LogClosedException ex) {
-        log.debug("Logs closed while writing, retrying " + attempt);
+        log.debug("Logs closed while writing, retrying attempt " + writeRetry.retriesCompleted());
       } catch (Exception t) {
-        if (attempt != 1) {
-          log.error("Unexpected error writing to log, retrying attempt " + attempt, t);
+        log.warn("Failed to write to WAL, retrying attempt " + writeRetry.retriesCompleted(), t);
+
+        try {
+          // Backoff
+          writeRetry.waitForNextAttempt();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException(e);
         }
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        attempt++;
+        writeRetry.useRetry();
       }
       // Some sort of write failure occurred. Grab the write lock and reset the logs.
       // But since multiple threads will attempt it, only attempt the reset when
@@ -453,7 +467,7 @@ public class TabletServerLogger {
     // TODO We can close the WAL here for replication purposes
   }
 
-  public void defineTablet(final CommitSession commitSession) throws IOException {
+  public void defineTablet(final CommitSession commitSession, final Retry writeRetry) throws IOException {
     // scribble this into the metadata tablet, too.
     write(commitSession, false, new Writer() {
       @Override
@@ -461,7 +475,7 @@ public class TabletServerLogger {
         logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(), commitSession.getExtent());
         return DfsLogger.NO_WAIT_LOGGER_OP;
       }
-    });
+    }, writeRetry);
   }
 
   public void log(final CommitSession commitSession, final long tabletSeq, final Mutation m, final Durability durability) throws IOException {

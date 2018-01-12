@@ -25,8 +25,37 @@ public class RetryFactory {
 
   private final long maxRetries, startWait, maxWait, waitIncrement;
 
+  /**
+   * Create a retry factor for retries with a limit
+   *
+   * @param maxRetries
+   *          The maximum number of retries
+   * @param startWait
+   *          The wait ms for the first retry
+   * @param waitIncrement
+   *          The amount of ms to increment the wait on subsequent retries
+   * @param maxWait
+   *          The max amount of wait time between retries
+   */
   public RetryFactory(long maxRetries, long startWait, long waitIncrement, long maxWait) {
     this.maxRetries = maxRetries;
+    this.startWait = startWait;
+    this.maxWait = maxWait;
+    this.waitIncrement = waitIncrement;
+  }
+
+  /**
+   * Create a retry factory for retries that have no limit
+   *
+   * @param startWait
+   *          The wait ms for the first retry
+   * @param waitIncrement
+   *          The amount of ms to increment the wait on subsequent retries
+   * @param maxWait
+   *          The max amount of wait time between retries
+   */
+  public RetryFactory(long startWait, long waitIncrement, long maxWait) {
+    this.maxRetries = Retry.MAX_RETRY_DISABLED;
     this.startWait = startWait;
     this.maxWait = maxWait;
     this.waitIncrement = waitIncrement;

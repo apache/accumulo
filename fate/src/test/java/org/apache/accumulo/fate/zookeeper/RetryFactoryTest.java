@@ -36,4 +36,16 @@ public class RetryFactoryTest {
     Assert.assertEquals(waitIncrement, retry.getWaitIncrement());
   }
 
+  @Test
+  public void properArgumentsInUnlimitedRetry() {
+    long startWait = 50l, maxWait = 5000l, waitIncrement = 500l;
+    RetryFactory factory = new RetryFactory(startWait, waitIncrement, maxWait);
+    Retry retry = factory.create();
+
+    Assert.assertEquals(Retry.MAX_RETRY_DISABLED, retry.getMaxRetries());
+    Assert.assertEquals(startWait, retry.getCurrentWait());
+    Assert.assertEquals(maxWait, retry.getMaxWait());
+    Assert.assertEquals(waitIncrement, retry.getWaitIncrement());
+  }
+
 }

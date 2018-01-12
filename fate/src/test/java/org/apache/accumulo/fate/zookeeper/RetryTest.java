@@ -28,10 +28,14 @@ public class RetryTest {
 
   private Retry retry;
   long initialWait = 1000l, waitIncrement = 1000l, maxRetries = 5;
+  private Retry unlimitedRetry1;
+  private Retry unlimitedRetry2;
 
   @Before
   public void setup() {
     retry = new Retry(maxRetries, initialWait, waitIncrement, maxRetries * 1000l);
+    unlimitedRetry1 = new Retry(initialWait, waitIncrement, maxRetries * 1000l);
+    unlimitedRetry2 = new Retry(-10, initialWait, waitIncrement, maxRetries * 1000l);
   }
 
   @Test
@@ -123,5 +127,24 @@ public class RetryTest {
     }
 
     EasyMock.verify(retry);
+  }
+
+  @Test
+  public void testIsMaxRetryDisabled() {
+    Assert.assertFalse(retry.isMaxRetryDisabled());
+    Assert.assertTrue(unlimitedRetry1.isMaxRetryDisabled());
+    Assert.assertTrue(unlimitedRetry2.isMaxRetryDisabled());
+    Assert.assertEquals(Retry.MAX_RETRY_DISABLED, unlimitedRetry1.getMaxRetries());
+    Assert.assertEquals(-10, unlimitedRetry2.getMaxRetries());
+  }
+
+  @Test
+  public void testUnlimitedRetry() {
+    for (int i = 0; i < Integer.MAX_VALUE; i++) {
+      Assert.assertTrue(unlimitedRetry1.canRetry());
+      unlimitedRetry1.useRetry();
+      Assert.assertTrue(unlimitedRetry2.canRetry());
+      unlimitedRetry2.useRetry();
+    }
   }
 }
