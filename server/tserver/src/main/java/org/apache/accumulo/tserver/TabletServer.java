@@ -3005,13 +3005,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     return durability;
   }
 
-  public void minorCompactionFinished(CommitSession tablet, String newDatafile, int walogSeq) throws IOException {
+  public void minorCompactionFinished(CommitSession tablet, String newDatafile, long walogSeq) throws IOException {
     Durability durability = getMincEventDurability(tablet.getExtent());
     totalMinorCompactions.incrementAndGet();
     logger.minorCompactionFinished(tablet, newDatafile, walogSeq, durability);
   }
 
-  public void minorCompactionStarted(CommitSession tablet, int lastUpdateSequence, String newMapfileLocation) throws IOException {
+  public void minorCompactionStarted(CommitSession tablet, long lastUpdateSequence, String newMapfileLocation) throws IOException {
     Durability durability = getMincEventDurability(tablet.getExtent());
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newMapfileLocation, durability);
   }

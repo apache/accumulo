@@ -395,7 +395,7 @@ public class TabletServerLogger {
     });
   }
 
-  public int log(final CommitSession commitSession, final int tabletSeq, final Mutation m, final Durability durability) throws IOException {
+  public int log(final CommitSession commitSession, final long tabletSeq, final Mutation m, final Durability durability) throws IOException {
     if (durability == Durability.NONE) {
       return -1;
     }
@@ -446,7 +446,7 @@ public class TabletServerLogger {
     return seq;
   }
 
-  public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq, final Durability durability)
+  public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final long walogSeq, final Durability durability)
       throws IOException {
 
     long t1 = System.currentTimeMillis();
@@ -464,7 +464,7 @@ public class TabletServerLogger {
     log.debug(" wrote MinC finish  {}: writeTime:{}ms  durability:{}", seq, (t2 - t1), durability);
   }
 
-  public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName, final Durability durability)
+  public long minorCompactionStarted(final CommitSession commitSession, final long seq, final String fullyQualifiedFileName, final Durability durability)
       throws IOException {
     write(commitSession, false, new Writer() {
       @Override

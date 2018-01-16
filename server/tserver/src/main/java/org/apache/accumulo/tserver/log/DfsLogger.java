@@ -518,7 +518,7 @@ public class DfsLogger {
       }
   }
 
-  public synchronized void defineTablet(int seq, int tid, KeyExtent tablet) throws IOException {
+  public synchronized void defineTablet(long seq, int tid, KeyExtent tablet) throws IOException {
     // write this log to the METADATA table
     final LogFileKey key = new LogFileKey();
     key.event = DEFINE_TABLET;
@@ -539,7 +539,7 @@ public class DfsLogger {
     encryptingLogFile.flush();
   }
 
-  public LoggerOperation log(int seq, int tid, Mutation mutation, Durability durability) throws IOException {
+  public LoggerOperation log(long seq, int tid, Mutation mutation, Durability durability) throws IOException {
     return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation), durability)));
   }
 
@@ -601,7 +601,7 @@ public class DfsLogger {
     return result;
   }
 
-  public LoggerOperation minorCompactionFinished(int seq, int tid, String fqfn, Durability durability) throws IOException {
+  public LoggerOperation minorCompactionFinished(long seq, int tid, String fqfn, Durability durability) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_FINISH;
     key.seq = seq;
@@ -609,7 +609,7 @@ public class DfsLogger {
     return logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), durability);
   }
 
-  public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn, Durability durability) throws IOException {
+  public LoggerOperation minorCompactionStarted(long seq, int tid, String fqfn, Durability durability) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_START;
     key.seq = seq;

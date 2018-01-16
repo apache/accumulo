@@ -23,11 +23,11 @@ import org.apache.accumulo.core.data.Mutation;
 
 public class TabletMutations {
   private final int tid;
-  private final int seq;
+  private final long seq;
   private final List<Mutation> mutations;
   private final Durability durability;
 
-  public TabletMutations(int tid, int seq, List<Mutation> mutations, Durability durability) {
+  public TabletMutations(int tid, long seq, List<Mutation> mutations, Durability durability) {
     this.tid = tid;
     this.seq = seq;
     this.mutations = mutations;
@@ -42,7 +42,7 @@ public class TabletMutations {
     return tid;
   }
 
-  public int getSeq() {
+  public long getSeq() {
     return seq;
   }
 
