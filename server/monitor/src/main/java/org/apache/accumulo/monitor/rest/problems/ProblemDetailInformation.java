@@ -16,7 +16,10 @@
  */
 package org.apache.accumulo.monitor.rest.problems;
 
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**
  *
@@ -29,7 +32,10 @@ public class ProblemDetailInformation {
 
   // Variable names become JSON keys
   public String tableName;
-  public String tableID;
+
+  @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
+  public Table.ID tableID;
+
   public String type;
   public String server;
 
@@ -59,7 +65,7 @@ public class ProblemDetailInformation {
    */
   public ProblemDetailInformation(String tableName, Table.ID tableId, String type, String server, Long time, String resource, String exception) {
     this.tableName = tableName;
-    this.tableID = tableId.canonicalID();
+    this.tableID = tableId;
     this.type = type;
     this.server = server;
     this.time = time;

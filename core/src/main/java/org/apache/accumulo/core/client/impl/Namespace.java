@@ -18,8 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.ExecutionException;
 
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
 import org.apache.accumulo.core.client.Instance;
 
 import com.google.common.cache.Cache;
@@ -37,7 +35,6 @@ public class Namespace {
    * Uses an internal cache and private constructor for storing a WeakReference of every Namespace.ID. Therefore, a Namespace.ID can't be instantiated outside
    * this class and is accessed by calling Namespace.ID.{@link #of(String)}.
    */
-  @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
   public static class ID extends AbstractId {
     private static final long serialVersionUID = 8931104141709170293L;
     static final Cache<String,ID> cache = CacheBuilder.newBuilder().weakValues().build();
