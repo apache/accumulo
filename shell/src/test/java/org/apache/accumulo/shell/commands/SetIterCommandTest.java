@@ -24,6 +24,7 @@ import java.util.EnumSet;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -108,7 +109,7 @@ public class SetIterCommandTest {
     // Attach iterator
     EasyMock.expect(shellState.getConnector()).andReturn(conn);
     EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
-    tableOperations.attachIterator(EasyMock.anyString(), EasyMock.anyObject(IteratorSetting.class), EasyMock.anyObject(EnumSet.class));
+    tableOperations.attachIterator(EasyMock.eq("foo"), EasyMock.anyObject(IteratorSetting.class), EasyMock.eq(EnumSet.allOf(IteratorScope.class)));
     EasyMock.expectLastCall().once();
 
     EasyMock.replay(conn, cli, shellState, reader, tableOperations);
