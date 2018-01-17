@@ -36,7 +36,7 @@ function setupAutoRefresh() {
     $('.auto-refresh').parent().addClass('active');
   }
   // Initializes the auto refresh on click listener
-  $('.auto-refresh').click(function(e) {
+  $('.auto-refresh').on("click", function(e) {
     if ($(this).parent().attr('class') == 'active') {
       $(this).parent().removeClass('active');
       sessionStorage.autoRefresh = 'false';

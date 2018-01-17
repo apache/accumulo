@@ -54,8 +54,6 @@ public class XMLResource {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
 
-    new MasterResource();
-    new TablesResource();
     // Add Monitor information
     XMLInformation xml = new XMLInformation(mmi.tServerInfo.size(), MasterResource.getTables(), TablesResource.getTables());
 

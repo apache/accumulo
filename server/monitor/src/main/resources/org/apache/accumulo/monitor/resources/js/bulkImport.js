@@ -20,9 +20,6 @@
  */
 $(document).ready(function() {
   refreshBulkImport();
-
-  // Create tooltip for table column information
-  $(document).tooltip();
 });
 
 /**

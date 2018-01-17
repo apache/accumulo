@@ -27,9 +27,6 @@
 
           id = '${id}';
           refreshTraceShow();
-
-          // Create tooltip for table column information
-          $(document).tooltip();
         });
 
         /**

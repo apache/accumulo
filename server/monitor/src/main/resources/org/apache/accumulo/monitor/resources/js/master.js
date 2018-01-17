@@ -20,9 +20,6 @@
  */
 $(document).ready(function() {
   refreshMaster();
-
-  // Create tooltip for table column information
-  $(document).tooltip();
 });
 
 /**

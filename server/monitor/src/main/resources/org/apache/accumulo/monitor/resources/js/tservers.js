@@ -70,9 +70,6 @@ $(document).ready(function() {
       ]
     });
     refreshTServers();
-
-    // Create tooltip for table column information
-    $(document).tooltip();
 });
 
 /**

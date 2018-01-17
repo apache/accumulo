@@ -28,9 +28,6 @@ function refreshListType() {
     async: true
   });
   refreshTypeTraceTable(minutes);
-
-  // Create tooltip for table column information
-  $(document).tooltip();
 }
 
 /**

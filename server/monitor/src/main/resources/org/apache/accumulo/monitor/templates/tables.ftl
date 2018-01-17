@@ -22,7 +22,7 @@
          *   - defines custom number formats
          */
         $(document).ready(function() {
-          $(document).tooltip();
+
           tableList = $('#tableList').DataTable( {
                 "ajax": {
                   "url": "/rest/tables",

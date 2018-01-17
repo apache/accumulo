@@ -14,6 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+<!DOCTYPE html>
 <html>
   <head>
     <title>${title} - Accumulo ${version}</title>
@@ -27,11 +28,10 @@
         ${val}
       </#list>
     <#else>
-      <script src="/resources/external/jquery-2.2.4.js"></script>
+      <script src="/resources/external/jquery-3.2.1.js"></script>
       <script src="/resources/external/bootstrap/js/bootstrap.js"></script>
       <script src="/resources/external/datatables/js/jquery.dataTables.js"></script>
       <script src="/resources/external/datatables/js/dataTables.bootstrap.js"></script>
-      <script src="/resources/external/jquery-ui.js"></script>
       <script src="/resources/external/select2.js"></script>
       <script src="/resources/external/flot/jquery.flot.js"></script>
       <script src="/resources/external/flot/jquery.flot.time.js"></script>
@@ -39,7 +39,6 @@
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap.css" />
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap-theme.css" />
       <link rel="stylesheet" href="/resources/external/datatables/css/dataTables.bootstrap.css" />
-      <link rel="stylesheet" href="/resources/external/jquery-ui.css" />
     </#if>
 
     <!-- accumulo resources -->

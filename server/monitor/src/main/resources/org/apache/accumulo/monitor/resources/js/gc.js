@@ -34,9 +34,6 @@ function refreshGC() {
     async: true
   });
   refreshGCTable();
-
-  // Create tooltip for table column information
-  $(document).tooltip();
 }
 
 /**
