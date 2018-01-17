@@ -38,7 +38,6 @@ import org.apache.accumulo.server.util.TableInfoUtil;
  *
  */
 public class TabletServerInformation {
-  private final String ZERO_COMBO = "0(0)";
 
   // Variable names become JSON keys
   @XmlAttribute(name = "id")

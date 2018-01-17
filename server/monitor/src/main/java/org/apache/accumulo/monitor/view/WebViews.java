@@ -132,8 +132,6 @@ public class WebViews {
   @Template(name = "/default.ftl")
   public Map<String,Object> getMaster() {
 
-    List<String> masters = Monitor.getContext().getInstance().getMasterLocations();
-
     Map<String,Object> model = getModel();
     model.put("title", "Master Server");
     model.put("template", "master.ftl");
