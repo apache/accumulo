@@ -203,7 +203,7 @@ public class ConnectorImpl extends Connector {
     return replicationops;
   }
 
-  public static class ConnectorBuilderImpl implements InstanceArgs, PropertyFileOptions, AuthenticationArgs, ConnectionOptions, SslOptions, SaslOptions, ConnectorFactory {
+  public static class ConnectorBuilderImpl implements InstanceArgs, PropertyOptions, AuthenticationArgs, ConnectionOptions, SslOptions, SaslOptions, ConnectorFactory {
 
     private String instanceName;
     private String zookeepers;

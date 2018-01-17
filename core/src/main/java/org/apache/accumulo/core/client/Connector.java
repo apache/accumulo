@@ -242,49 +242,168 @@ public abstract class Connector {
    */
   public abstract ReplicationOperations replicationOperations();
 
+  /**
+   * Builds Connector
+   *
+   * @since 2.0.0
+   */
   public interface ConnectorFactory {
+
+    /**
+     * Builds Connector after all options have been specified
+     *
+     * @return Connector
+     * @throws AccumuloException
+     * @throws AccumuloSecurityException
+     */
     Connector build() throws AccumuloException, AccumuloSecurityException;
   }
 
+  /**
+   * Builder method for setting Accumulo instance and zookeepers
+   *
+   * @since 2.0.0
+   */
   public interface InstanceArgs {
     AuthenticationArgs forInstance(String instanceName, String zookeepers);
   }
 
-  public interface PropertyFileOptions extends InstanceArgs {
+  /**
+   * Builder methods for creating Connector using properties
+   *
+   * @since 2.0.0
+   */
+  public interface PropertyOptions extends InstanceArgs {
+
+    /**
+     * Build using properties file
+     *
+     * @param propertiesFile  Path to properties file
+     * @return this builder
+     */
     ConnectorFactory usingProperties(String propertiesFile);
 
+    /**
+     * Build using Java properties object
+     *
+     * @param properties Properties object
+     * @return this builder
+     */
     ConnectorFactory usingProperties(Properties properties);
   }
 
+  /**
+   * Build methods for authentication
+   *
+   * @since 2.0.0
+   */
   public interface AuthenticationArgs {
+
+    /**
+     * Build using specified credentials
+     * @param principal Principal/username
+     * @param token Authentication token
+     * @return this builder
+     */
     ConnectionOptions usingCredentials(String principal, AuthenticationToken token);
   }
 
+  /**
+   * Build methods for SSL/TLS
+   *
+   * @since 2.0.0
+   */
   public interface SslOptions extends ConnectorFactory {
+
+    /**
+     * Build with SSL trust store
+     * @param path Path to trust store
+     * @return this builder
+     */
     SslOptions withTruststore(String path);
 
+    /**
+     * Build with SSL trust store
+     * @param path Path to trust store
+     * @param password Password used to encrypt trust store
+     * @param type Trust store type
+     * @return this builder
+     */
     SslOptions withTruststore(String path, String password, String type);
 
+    /**
+     * Build with SSL key store
+     * @param path Path to SSL key store
+     * @return this builder
+     */
     SslOptions withKeystore(String path);
 
+    /**
+     * Build with SSL key store
+     * @param path Path to keystore
+     * @param password Password used to encyrpt key store
+     * @param type Key store type
+     * @return this builder
+     */
     SslOptions withKeystore(String path, String password, String type);
   }
 
+  /**
+   * Build methods for SASL
+   *
+   * @since 2.0.0
+   */
   public interface SaslOptions extends ConnectorFactory {
+
+    /**
+     * Build with Kerberos Server Primary
+     * @param kerberosServerPrimary Kerberos server primary
+     * @return this builder
+     */
     SaslOptions withPrimary(String kerberosServerPrimary);
 
-    SaslOptions withQop(String qualityOfProection);
+    /**
+     * Build with SASL quality of protection
+     * @param qualityOfProtection Quality of protection
+     * @return this builder
+     */
+    SaslOptions withQop(String qualityOfProtection);
   }
 
+  /**
+   * Build methods for connection options
+   *
+   * @since 2.0.0
+   */
   public interface ConnectionOptions extends ConnectorFactory {
+
+    /**
+     * Build using Zookeeper timeout
+     * @param timeout Zookeeper timeout
+     * @return this builder
+     */
     ConnectionOptions withZkTimeout(int timeout);
 
+    /**
+     * Build with SSL/TLS options
+     * @return this builder
+     */
     SslOptions withSsl();
 
+    /**
+     * Build with SASL options
+     * @return this builder
+     */
     SaslOptions withSasl();
   }
 
-  public static PropertyFileOptions builder() {
+  /**
+   * Creates builder for Connector
+   *
+   * @return this builder
+   * @since 2.0.0
+   */
+  public static PropertyOptions builder() {
     return new ConnectorImpl.ConnectorBuilderImpl();
   }
 }
