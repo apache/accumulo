@@ -19,7 +19,7 @@
         table.indent { position: relative; left: 10% }
         td.left { text-align: left }
       </style>
-      <script type="text/javascript">
+      <script>
         /**
          * Creates trace id initial table, passes id from template
          */

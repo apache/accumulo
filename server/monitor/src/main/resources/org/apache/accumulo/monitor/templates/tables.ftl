@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <script type="text/javascript">
+      <script>
       var tableList;
         /**
          * Creates DataTables table
@@ -84,7 +84,7 @@
                 <th>State</th>
                 <th title="Tables are broken down into ranges of rows called tablets." class="big-num">Tablets</th>
                 <th title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing." class="big-num">Offline</th>
-                <th title="Key/value pairs over each instance, table or tablet." class="big-num">Entries&nbsp</th>
+                <th title="Key/value pairs over each instance, table or tablet." class="big-num">Entries</th>
                 <th title="The total number of key/value pairs stored in memory and not yet written to disk." class="big-num">In&nbsp;Mem</th>
                 <th title="The rate of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="big-num">Ingest</th>
                 <th title="The rate of Key/Value pairs read on the server side. Not all key values read may be returned to client because of filtering." class="big-num">Read</th>

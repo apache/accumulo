@@ -23,7 +23,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <img id="accumulo-avatar" class="navbar-left pull-left" src="/resources/images/accumulo-avatar.png" />
+          <img id="accumulo-avatar" alt="accumulo" class="navbar-left pull-left" src="/resources/images/accumulo-avatar.png" />
           <a class="navbar-brand" id="headertitle" href="/">${instance_name}</a>
         </div>
         <!-- Nav links -->

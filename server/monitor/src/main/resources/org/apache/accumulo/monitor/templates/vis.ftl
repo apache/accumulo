@@ -20,7 +20,7 @@
           <div id="parameters">
             <span class="viscontrol">Shape: <select id="shape" onchange="setShape(this)"><option>Circles</option><option>Squares</option></select></span>
             &nbsp;&nbsp;
-            <span class="viscontrol">Size: <select id="size" onchange="setSize(this)"><option>10</option><option>20</option><option selected="true">40</option><option>80</option></select></span>
+            <span class="viscontrol">Size: <select id="size" onchange="setSize(this)"><option>10</option><option>20</option><option selected>40</option><option>80</option></select></span>
             &nbsp;&nbsp;
             <span class="viscontrol">Motion: <select id="motion" onchange="setMotion(this)"></select></span>
             &nbsp;&nbsp;
@@ -36,7 +36,7 @@
         </div>
       </div>
 
-      <script type="text/javascript">
+      <script>
         /**
          * Creates initial visualization table, passes the shape, size, motion, and color from the template
          */
@@ -58,8 +58,6 @@
           refresh();
           drawDots();
         });
-      </script>
-      <script type="text/javascript">
         // Populates variables to be used in the visualization
         var numCores = 8;
         var jsonurl = '/rest/tservers';
