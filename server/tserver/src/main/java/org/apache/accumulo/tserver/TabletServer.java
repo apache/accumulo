@@ -616,8 +616,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (ss != null) {
         long t2 = System.currentTimeMillis();
 
-        log.debug(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ", TServerUtils.clientAddress.get(), ss.extent.getTableId(),
-            ss.entriesReturned, (t2 - ss.startTime) / 1000.0, ss.nbTimes.toString()));
+        if (log.isDebugEnabled()) {
+          log.debug(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ", TServerUtils.clientAddress.get(), ss.extent.getTableId(),
+              ss.entriesReturned, (t2 - ss.startTime) / 1000.0, ss.nbTimes.toString()));
+        }
+
         if (scanMetrics.isEnabled()) {
           scanMetrics.add(TabletServerScanMetrics.SCAN, t2 - ss.startTime);
           scanMetrics.add(TabletServerScanMetrics.RESULT_SIZE, ss.entriesReturned);
@@ -748,8 +751,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       long t2 = System.currentTimeMillis();
-      log.debug(String.format("MultiScanSess %s %,d entries in %.2f secs (lookup_time:%.2f secs tablets:%,d ranges:%,d) ", TServerUtils.clientAddress.get(),
-          session.numEntries, (t2 - session.startTime) / 1000.0, session.totalLookupTime / 1000.0, session.numTablets, session.numRanges));
+
+      if (log.isDebugEnabled()) {
+        log.debug(String.format("MultiScanSess %s %,d entries in %.2f secs (lookup_time:%.2f secs tablets:%,d ranges:%,d) ", TServerUtils.clientAddress.get(),
+            session.numEntries, (t2 - session.startTime) / 1000.0, session.totalLookupTime / 1000.0, session.numTablets, session.numRanges));
+      }
     }
 
     @Override
@@ -1042,9 +1048,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         writeTracker.finishWrite(opid);
       }
 
-      log.debug(String.format("UpSess %s %,d in %.3fs, at=[%s] ft=%.3fs(pt=%.3fs lt=%.3fs ct=%.3fs)", TServerUtils.clientAddress.get(), us.totalUpdates,
-          (System.currentTimeMillis() - us.startTime) / 1000.0, us.authTimes.toString(), us.flushTime / 1000.0, us.prepareTimes.getSum() / 1000.0,
-          us.walogTimes.getSum() / 1000.0, us.commitTimes.getSum() / 1000.0));
+      if (log.isDebugEnabled()) {
+        log.debug(String.format("UpSess %s %,d in %.3fs, at=[%s] ft=%.3fs(pt=%.3fs lt=%.3fs ct=%.3fs)", TServerUtils.clientAddress.get(), us.totalUpdates,
+            (System.currentTimeMillis() - us.startTime) / 1000.0, us.authTimes.toString(), us.flushTime / 1000.0, us.prepareTimes.getSum() / 1000.0,
+            us.walogTimes.getSum() / 1000.0, us.commitTimes.getSum() / 1000.0));
+      }
       if (us.failures.size() > 0) {
         Entry<KeyExtent,Long> first = us.failures.entrySet().iterator().next();
         log.debug(String.format("Failures: %d, first extent %s successful commits: %d", us.failures.size(), first.getKey().toString(), first.getValue()));
@@ -2793,12 +2801,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     clientAddress = HostAndPort.fromParts(hostname, 0);
     try {
-      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
+      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig() {
         @Override
-        public Iterator<Entry<String,String>> iterator() {
-          return getConfiguration().iterator();
+        public String getProperty(String key) {
+          return getConfiguration().get(key);
         }
-      }));
+      });
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -2994,14 +3002,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     return durability;
   }
 
-  public void minorCompactionFinished(CommitSession tablet, String newDatafile, int walogSeq) throws IOException {
+  public void minorCompactionFinished(CommitSession tablet, String newDatafile, long walogSeq) throws IOException {
     Durability durability = getMincEventDurability(tablet.getExtent());
     totalMinorCompactions.incrementAndGet();
     logger.minorCompactionFinished(tablet, newDatafile, walogSeq, durability);
     markUnusedWALs();
   }
 
-  public void minorCompactionStarted(CommitSession tablet, int lastUpdateSequence, String newMapfileLocation) throws IOException {
+  public void minorCompactionStarted(CommitSession tablet, long lastUpdateSequence, String newMapfileLocation) throws IOException {
     Durability durability = getMincEventDurability(tablet.getExtent());
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newMapfileLocation, durability);
   }
