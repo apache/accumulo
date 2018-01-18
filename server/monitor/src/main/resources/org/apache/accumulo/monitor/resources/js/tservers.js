@@ -167,5 +167,5 @@ function clearDeadTServers(server) {
  * Generates the tserver table
  */
 function refreshTServersTable() {
-  if(tserversList) tserversList.ajax.reload();
+  if(tserversList) tserversList.ajax.reload(null, false ); // user paging is not reset on reload
 }

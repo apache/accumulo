@@ -194,5 +194,5 @@ function refreshCurrentTable() {
  * Generates the server results table
  */
 function refreshResultsTable() {
-  tabletResults.ajax.reload();
+  tabletResults.ajax.reload(null, false ); // user paging is not reset on reload
 }

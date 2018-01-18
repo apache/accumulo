@@ -73,7 +73,7 @@
             refreshMaster();
           </#if>
 
-          tableList.ajax.reload();
+          tableList.ajax.reload(null, false ); // user paging is not reset on reload
         }
       </script>
       <div><h3>${tablesTitle}</h3></div>

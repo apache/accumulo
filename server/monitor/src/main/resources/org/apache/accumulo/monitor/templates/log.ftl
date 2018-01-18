@@ -54,7 +54,7 @@
          * Used to refresh the table
          */
         function refresh() {
-          logList.ajax.reload();
+          logList.ajax.reload(null, false ); // user paging is not reset on reload
         }
       </script>
       <div><h3>${title}</h3></div>
