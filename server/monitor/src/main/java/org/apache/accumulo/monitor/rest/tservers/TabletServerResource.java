@@ -105,7 +105,7 @@ public class TabletServerResource {
    */
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
-  public void clearDeadServer(@QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) throws Exception {
+  public void clearDeadServer(@QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) {
     DeadServerList obit = new DeadServerList(ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
     obit.delete(server);
   }

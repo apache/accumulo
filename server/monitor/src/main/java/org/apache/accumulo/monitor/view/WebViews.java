@@ -25,7 +25,6 @@ import static org.apache.commons.lang.StringUtils.isEmpty;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -265,7 +264,7 @@ public class WebViews {
   @GET
   @Path("tables")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTables() throws TableNotFoundException {
+  public Map<String,Object> getTables() {
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status"); // Need this for the browser tab title
@@ -285,8 +284,7 @@ public class WebViews {
   @GET
   @Path("tables/{tableID}")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTables(@PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID) throws TableNotFoundException,
-      UnsupportedEncodingException {
+  public Map<String,Object> getTables(@PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID) throws TableNotFoundException {
 
     String tableName = Tables.getTableName(Monitor.getContext().getInstance(), Table.ID.of(tableID));
 
@@ -357,7 +355,7 @@ public class WebViews {
   @GET
   @Path("trace/show")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTraceShow(@QueryParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) throws Exception {
+  public Map<String,Object> getTraceShow(@QueryParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Trace ID " + id);
