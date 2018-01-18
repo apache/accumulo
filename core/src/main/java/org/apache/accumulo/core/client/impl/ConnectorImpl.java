@@ -18,18 +18,18 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -48,11 +48,10 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.commons.configuration.ConfigurationConverter;
-import org.apache.commons.configuration.ConfigurationException;
 
 public class ConnectorImpl extends Connector {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security.SystemCredentials$SystemToken";
@@ -122,7 +121,7 @@ public class ConnectorImpl extends Connector {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, config);
+    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, config.merge(context.getBatchWriterConfig()));
   }
 
   @Override
@@ -141,7 +140,7 @@ public class ConnectorImpl extends Connector {
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    return new BatchWriterImpl(context, getTableId(tableName), config);
+    return new BatchWriterImpl(context, getTableId(tableName), config.merge(context.getBatchWriterConfig()));
   }
 
   @Override
@@ -158,7 +157,7 @@ public class ConnectorImpl extends Connector {
 
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
-    return new MultiTableBatchWriterImpl(context, config);
+    return new MultiTableBatchWriterImpl(context, config.merge(context.getBatchWriterConfig()));
   }
 
   @Override
@@ -218,26 +217,31 @@ public class ConnectorImpl extends Connector {
     return replicationops;
   }
 
-  public static class ConnectorBuilderImpl implements InstanceArgs, PropertyOptions, AuthenticationArgs, ConnectionOptions, SslOptions, SaslOptions, ConnectorFactory {
+  public static class ConnectorBuilderImpl implements InstanceArgs, PropertyOptions, AuthenticationArgs, ConnectionOptions, SslOptions, SaslOptions,
+      ConnectorFactory {
 
-    private String instanceName;
-    private String zookeepers;
-    private String principal;
-    private AuthenticationToken token;
-    private BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
-    private ClientConfiguration clientConf = new ClientConfiguration();
+    private String principal = null;
+    private AuthenticationToken token = null;
+    private Properties props = new Properties();
 
     @Override
     public Connector build() throws AccumuloException, AccumuloSecurityException {
-
-      return new ConnectorImpl(new ClientContext(new ZooKeeperInstance(instanceName, zookeepers),
-          new Credentials(principal, token), clientConf));
+      String instanceName = ClientProperty.INSTANCE_NAME.getValue(props);
+      String zookeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props);
+      if (principal == null) {
+        principal = ClientProperty.USER_NAME.getValue(props);
+      }
+      if (token == null) {
+        String password = ClientProperty.USER_PASSWORD.getValue(props);
+        token = new PasswordToken(password);
+      }
+      return new ConnectorImpl(new ClientContext(new ZooKeeperInstance(instanceName, zookeepers), new Credentials(principal, token), props));
     }
 
     @Override
     public AuthenticationArgs forInstance(String instanceName, String zookeepers) {
-      this.instanceName = instanceName;
-      this.zookeepers = zookeepers;
+      props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
+      props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
       return this;
     }
 
@@ -250,96 +254,83 @@ public class ConnectorImpl extends Connector {
 
     @Override
     public SslOptions withTruststore(String path) {
-      clientConf.setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PATH, path);
+      props.setProperty(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(), path);
       return this;
     }
 
     @Override
     public SslOptions withTruststore(String path, String password, String type) {
-      clientConf.setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PATH, path);
-      clientConf.setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD, password);
-      clientConf.setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE, type);
+      props.setProperty(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(), path);
+      props.setProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey(), password);
+      props.setProperty(ClientProperty.SSL_TRUSTSTORE_TYPE.getKey(), type);
       return this;
     }
 
     @Override
     public SslOptions withKeystore(String path) {
-      clientConf.setProperty(ClientProperty.RPC_SSL_KEYSTORE_PATH, path);
+      props.setProperty(ClientProperty.SSL_KEYSTORE_PATH.getKey(), path);
       return this;
     }
 
     @Override
     public SslOptions withKeystore(String path, String password, String type) {
-      clientConf.setProperty(ClientProperty.RPC_SSL_KEYSTORE_PATH, path);
-      clientConf.setProperty(ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, password);
-      clientConf.setProperty(ClientProperty.RPC_SSL_KEYSTORE_TYPE, type);
+      props.setProperty(ClientProperty.SSL_KEYSTORE_PATH.getKey(), path);
+      props.setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(), password);
+      props.setProperty(ClientProperty.SSL_KEYSTORE_TYPE.getKey(), type);
       return this;
     }
 
     @Override
     public ConnectionOptions withZkTimeout(int timeout) {
-      clientConf.setProperty(ClientProperty.INSTANCE_ZK_TIMEOUT, Integer.toString(timeout));
+      props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getKey(), Integer.toString(timeout));
       return this;
     }
 
     @Override
     public SslOptions withSsl() {
-      clientConf.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
+      props.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
       return this;
     }
 
     @Override
     public SaslOptions withSasl() {
-      clientConf.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
+      props.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
       return this;
     }
 
     @Override
     public ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig) {
-      this.batchWriterConfig = batchWriterConfig;
+      props.setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getKey(), Long.toString(batchWriterConfig.getMaxMemory()));
+      props.setProperty(ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC.getKey(), Long.toString(batchWriterConfig.getMaxLatency(TimeUnit.SECONDS)));
       return this;
     }
 
     @Override
     public SaslOptions withPrimary(String kerberosServerPrimary) {
-      clientConf.setProperty(ClientProperty.KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
+      props.setProperty(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey(), kerberosServerPrimary);
       return this;
     }
 
     @Override
-    public SaslOptions withQop(String qualityOfProection) {
-      clientConf.setProperty(ClientProperty.RPC_SASL_QOP, qualityOfProection);
+    public SaslOptions withQop(String qualityOfProtection) {
+      props.setProperty(ClientProperty.SASL_QOP.getKey(), qualityOfProtection);
       return this;
     }
 
     @Override
     public ConnectorFactory usingProperties(String configFile) {
-      try {
-        clientConf = new ClientConfiguration(configFile);
-      } catch (ConfigurationException e) {
+      try (InputStream is = new FileInputStream(configFile)) {
+        props.load(is);
+      } catch (IOException e) {
         throw new IllegalArgumentException(e);
       }
-      propSetup();
       return this;
     }
 
     @Override
     public ConnectorFactory usingProperties(Properties properties) {
-      clientConf = new ClientConfiguration(ConfigurationConverter.getConfiguration(properties));
-      propSetup();
+      props = properties;
       return this;
-    }
-
-    private void propSetup() {
-      instanceName = clientConf.get(ClientProperty.INSTANCE_NAME);
-      zookeepers = clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
-      principal = clientConf.get(ClientProperty.USER_NAME);
-      String password = clientConf.get(ClientProperty.USER_PASSWORD);
-      Preconditions.checkNotNull(instanceName, ClientProperty.INSTANCE_NAME + " must be set!");
-      Preconditions.checkNotNull(zookeepers, ClientProperty.INSTANCE_ZK_HOST + " must be set!");
-      Preconditions.checkNotNull(principal, ClientProperty.USER_NAME + " must be set!");
-      Preconditions.checkNotNull(password, ClientProperty.USER_PASSWORD + " must be set!");
-      token = new PasswordToken(password);
     }
   }
 }

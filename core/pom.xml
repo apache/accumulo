@@ -291,6 +291,21 @@
               </arguments>
             </configuration>
           </execution>
+          <execution>
+            <id>client-props-markdown</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <mainClass>org.apache.accumulo.core.conf.ClientConfigGenerate</mainClass>
+              <classpathScope>test</classpathScope>
+              <arguments>
+                <argument>--generate-markdown</argument>
+                <argument>${project.build.directory}/generated-docs/client-properties.md</argument>
+              </arguments>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>

@@ -384,6 +384,21 @@
               <executable>${basedir}/src/main/scripts/generate-versions-listing.sh</executable>
             </configuration>
           </execution>
+          <execution>
+            <id>client-props-file</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>prepare-package</phase>
+            <configuration>
+              <mainClass>org.apache.accumulo.core.conf.ClientConfigGenerate</mainClass>
+              <classpathScope>test</classpathScope>
+              <arguments>
+                <argument>--generate-config</argument>
+                <argument>${project.build.directory}/accumulo-client.properties</argument>
+              </arguments>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>

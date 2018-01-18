@@ -101,8 +101,8 @@ public abstract class Connector {
       throws TableNotFoundException;
 
   /**
-   * Factory method to create BatchDeleter. This method uses BatchWriterConfig set when Connector was created. If none was set, BatchWriterConfig
-   * defaults will be used.
+   * Factory method to create BatchDeleter. This method uses BatchWriterConfig set when Connector was created. If none was set, BatchWriterConfig defaults will
+   * be used.
    *
    * @param tableName
    *          the name of the table to query and delete from
@@ -114,6 +114,7 @@ public abstract class Connector {
    *          the number of concurrent threads to spawn for querying
    * @return BatchDeleter object
    * @throws TableNotFoundException
+   *           if table not found
    */
   public abstract BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException;
 
@@ -151,12 +152,14 @@ public abstract class Connector {
   public abstract BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException;
 
   /**
-   * Factory method to create a BatchWriter. This method uses BatchWriterConfig set when Connector was created. If none was set, BatchWriterConfig
-   * defaults will be used.
+   * Factory method to create a BatchWriter. This method uses BatchWriterConfig set when Connector was created. If none was set, BatchWriterConfig defaults will
+   * be used.
    *
-   * @param tableName the name of the table to insert data into
+   * @param tableName
+   *          the name of the table to insert data into
    * @return BatchWriter object
-   * @throws TableNotFoundException if table not found
+   * @throws TableNotFoundException
+   *           if table not found
    * @since 2.0.0
    */
   public abstract BatchWriter createBatchWriter(String tableName) throws TableNotFoundException;
@@ -291,8 +294,6 @@ public abstract class Connector {
      * Builds Connector after all options have been specified
      *
      * @return Connector
-     * @throws AccumuloException
-     * @throws AccumuloSecurityException
      */
     Connector build() throws AccumuloException, AccumuloSecurityException;
   }
@@ -316,7 +317,8 @@ public abstract class Connector {
     /**
      * Build using properties file
      *
-     * @param propertiesFile  Path to properties file
+     * @param propertiesFile
+     *          Path to properties file
      * @return this builder
      */
     ConnectorFactory usingProperties(String propertiesFile);
@@ -324,7 +326,8 @@ public abstract class Connector {
     /**
      * Build using Java properties object
      *
-     * @param properties Properties object
+     * @param properties
+     *          Properties object
      * @return this builder
      */
     ConnectorFactory usingProperties(Properties properties);
@@ -339,8 +342,11 @@ public abstract class Connector {
 
     /**
      * Build using specified credentials
-     * @param principal Principal/username
-     * @param token Authentication token
+     *
+     * @param principal
+     *          Principal/username
+     * @param token
+     *          Authentication token
      * @return this builder
      */
     ConnectionOptions usingCredentials(String principal, AuthenticationToken token);
@@ -355,32 +361,44 @@ public abstract class Connector {
 
     /**
      * Build with SSL trust store
-     * @param path Path to trust store
+     *
+     * @param path
+     *          Path to trust store
      * @return this builder
      */
     SslOptions withTruststore(String path);
 
     /**
      * Build with SSL trust store
-     * @param path Path to trust store
-     * @param password Password used to encrypt trust store
-     * @param type Trust store type
+     *
+     * @param path
+     *          Path to trust store
+     * @param password
+     *          Password used to encrypt trust store
+     * @param type
+     *          Trust store type
      * @return this builder
      */
     SslOptions withTruststore(String path, String password, String type);
 
     /**
      * Build with SSL key store
-     * @param path Path to SSL key store
+     *
+     * @param path
+     *          Path to SSL key store
      * @return this builder
      */
     SslOptions withKeystore(String path);
 
     /**
      * Build with SSL key store
-     * @param path Path to keystore
-     * @param password Password used to encyrpt key store
-     * @param type Key store type
+     *
+     * @param path
+     *          Path to keystore
+     * @param password
+     *          Password used to encyrpt key store
+     * @param type
+     *          Key store type
      * @return this builder
      */
     SslOptions withKeystore(String path, String password, String type);
@@ -395,14 +413,18 @@ public abstract class Connector {
 
     /**
      * Build with Kerberos Server Primary
-     * @param kerberosServerPrimary Kerberos server primary
+     *
+     * @param kerberosServerPrimary
+     *          Kerberos server primary
      * @return this builder
      */
     SaslOptions withPrimary(String kerberosServerPrimary);
 
     /**
      * Build with SASL quality of protection
-     * @param qualityOfProtection Quality of protection
+     *
+     * @param qualityOfProtection
+     *          Quality of protection
      * @return this builder
      */
     SaslOptions withQop(String qualityOfProtection);
@@ -417,26 +439,32 @@ public abstract class Connector {
 
     /**
      * Build using Zookeeper timeout
-     * @param timeout Zookeeper timeout
+     *
+     * @param timeout
+     *          Zookeeper timeout
      * @return this builder
      */
     ConnectionOptions withZkTimeout(int timeout);
 
     /**
      * Build with SSL/TLS options
+     *
      * @return this builder
      */
     SslOptions withSsl();
 
     /**
      * Build with SASL options
+     *
      * @return this builder
      */
     SaslOptions withSasl();
 
     /**
      * Build with BatchWriterConfig defaults for BatchWriter, MultiTableBatchWriter & BatchDeleter
-     * @param batchWriterConfig BatchWriterConfig
+     *
+     * @param batchWriterConfig
+     *          BatchWriterConfig
      * @return this builder
      */
     ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig);

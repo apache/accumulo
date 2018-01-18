@@ -311,28 +311,18 @@ public class BatchWriterConfig implements Writable {
     return false;
   }
 
+  private static <T> T merge(T o1, T o2) {
+    if (o1 != null)
+      return o1;
+    return o2;
+  }
+
   public BatchWriterConfig merge(BatchWriterConfig other) {
     BatchWriterConfig result = new BatchWriterConfig();
-    if (this.maxMemory != null) {
-      result.maxMemory = this.maxMemory;
-    } else if (other.maxMemory != null) {
-      result.maxMemory = other.maxMemory;
-    }
-    if (this.maxLatency != null) {
-      result.maxLatency = this.maxLatency;
-    } else if (other.maxLatency != null) {
-      result.maxLatency = other.maxLatency;
-    }
-    if (this.timeout != null) {
-      result.timeout = this.timeout;
-    } else if (other.timeout != null) {
-      result.timeout = other.timeout;
-    }
-    if (this.maxWriteThreads != null) {
-      result.maxWriteThreads = this.maxWriteThreads;
-    } else if (other.timeout != null) {
-      result.maxWriteThreads = other.maxWriteThreads;
-    }
+    result.maxMemory = merge(this.maxMemory, other.maxMemory);
+    result.maxLatency = merge(this.maxLatency, other.maxLatency);
+    result.timeout = merge(this.timeout, other.timeout);
+    result.maxWriteThreads = merge(this.maxWriteThreads, other.maxWriteThreads);
     if (this.isDurabilitySet) {
       result.durability = this.durability;
     } else if (other.isDurabilitySet) {
