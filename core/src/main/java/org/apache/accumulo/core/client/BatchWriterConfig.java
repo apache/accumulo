@@ -50,6 +50,7 @@ public class BatchWriterConfig implements Writable {
   private Integer maxWriteThreads = null;
 
   private Durability durability = Durability.DEFAULT;
+  private boolean isDurabilitySet = false;
 
   /**
    * Sets the maximum memory to batch before writing. The smaller this value, the more frequently the {@link BatchWriter} will write.<br>
@@ -190,6 +191,7 @@ public class BatchWriterConfig implements Writable {
    */
   public BatchWriterConfig setDurability(Durability durability) {
     this.durability = durability;
+    isDurabilitySet = true;
     return this;
   }
 
@@ -307,6 +309,36 @@ public class BatchWriterConfig implements Writable {
     }
 
     return false;
+  }
+
+  public BatchWriterConfig merge(BatchWriterConfig other) {
+    BatchWriterConfig result = new BatchWriterConfig();
+    if (this.maxMemory != null) {
+      result.maxMemory = this.maxMemory;
+    } else if (other.maxMemory != null) {
+      result.maxMemory = other.maxMemory;
+    }
+    if (this.maxLatency != null) {
+      result.maxLatency = this.maxLatency;
+    } else if (other.maxLatency != null) {
+      result.maxLatency = other.maxLatency;
+    }
+    if (this.timeout != null) {
+      result.timeout = this.timeout;
+    } else if (other.timeout != null) {
+      result.timeout = other.timeout;
+    }
+    if (this.maxWriteThreads != null) {
+      result.maxWriteThreads = this.maxWriteThreads;
+    } else if (other.timeout != null) {
+      result.maxWriteThreads = other.maxWriteThreads;
+    }
+    if (this.isDurabilitySet) {
+      result.durability = this.durability;
+    } else if (other.isDurabilitySet) {
+      result.durability = other.durability;
+    }
+    return result;
   }
 
   @Override
