@@ -81,6 +81,7 @@ public abstract class Connector {
       int maxWriteThreads) throws TableNotFoundException;
 
   /**
+   * Factory method to create BatchDeleter
    *
    * @param tableName
    *          the name of the table to query and delete from
@@ -98,6 +99,23 @@ public abstract class Connector {
 
   public abstract BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
       throws TableNotFoundException;
+
+  /**
+   * Factory method to create BatchDeleter. This method uses BatchWriterConfig set when Connector was created. If none was set, BatchWriterConfig
+   * defaults will be used.
+   *
+   * @param tableName
+   *          the name of the table to query and delete from
+   * @param authorizations
+   *          A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in
+   *          must be a subset of the accumulo user's set of authorizations. If the accumulo user has authorizations (A1, A2) and authorizations (A2, A3) are
+   *          passed, then an exception will be thrown.
+   * @param numQueryThreads
+   *          the number of concurrent threads to spawn for querying
+   * @return BatchDeleter object
+   * @throws TableNotFoundException
+   */
+  public abstract BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException;
 
   /**
    * Factory method to create a BatchWriter connected to Accumulo.
@@ -133,6 +151,17 @@ public abstract class Connector {
   public abstract BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException;
 
   /**
+   * Factory method to create a BatchWriter. This method uses BatchWriterConfig set when Connector was created. If none was set, BatchWriterConfig
+   * defaults will be used.
+   *
+   * @param tableName the name of the table to insert data into
+   * @return BatchWriter object
+   * @throws TableNotFoundException if table not found
+   * @since 2.0.0
+   */
+  public abstract BatchWriter createBatchWriter(String tableName) throws TableNotFoundException;
+
+  /**
    * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch writers can queue data for multiple tables, which is good for
    * ingesting data into multiple tables from the same source
    *
@@ -160,6 +189,15 @@ public abstract class Connector {
    */
 
   public abstract MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config);
+
+  /**
+   * Factory method to create a Multi-Table BatchWriter. This method uses BatchWriterConfig set when Connector was created. If none was set, BatchWriterConfig
+   * defaults will be used.
+   *
+   * @return MultiTableBatchWriter object
+   * @since 2.0.0
+   */
+  public abstract MultiTableBatchWriter createMultiTableBatchWriter();
 
   /**
    * Factory method to create a Scanner connected to Accumulo.
@@ -395,6 +433,13 @@ public abstract class Connector {
      * @return this builder
      */
     SaslOptions withSasl();
+
+    /**
+     * Build with BatchWriterConfig defaults for BatchWriter, MultiTableBatchWriter & BatchDeleter
+     * @param batchWriterConfig BatchWriterConfig
+     * @return this builder
+     */
+    ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig);
   }
 
   /**

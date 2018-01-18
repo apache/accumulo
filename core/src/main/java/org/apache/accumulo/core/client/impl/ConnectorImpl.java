@@ -125,6 +125,11 @@ public class ConnectorImpl extends Connector {
     return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, config);
   }
 
+  @Override
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
+    return createBatchDeleter(tableName, authorizations, numQueryThreads, new BatchWriterConfig());
+  }
+
   @Deprecated
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
@@ -139,6 +144,11 @@ public class ConnectorImpl extends Connector {
     return new BatchWriterImpl(context, getTableId(tableName), config);
   }
 
+  @Override
+  public BatchWriter createBatchWriter(String tableName) throws TableNotFoundException {
+    return createBatchWriter(tableName, new BatchWriterConfig());
+  }
+
   @Deprecated
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
@@ -149,6 +159,11 @@ public class ConnectorImpl extends Connector {
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
     return new MultiTableBatchWriterImpl(context, config);
+  }
+
+  @Override
+  public MultiTableBatchWriter createMultiTableBatchWriter() {
+    return createMultiTableBatchWriter(new BatchWriterConfig());
   }
 
   @Override
@@ -209,6 +224,7 @@ public class ConnectorImpl extends Connector {
     private String zookeepers;
     private String principal;
     private AuthenticationToken token;
+    private BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
     private ClientConfiguration clientConf = new ClientConfiguration();
 
     @Override
@@ -275,6 +291,12 @@ public class ConnectorImpl extends Connector {
     @Override
     public SaslOptions withSasl() {
       clientConf.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig) {
+      this.batchWriterConfig = batchWriterConfig;
       return this;
     }
 
