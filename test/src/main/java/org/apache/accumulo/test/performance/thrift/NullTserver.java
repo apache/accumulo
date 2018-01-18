@@ -283,7 +283,7 @@ public class NullTserver {
     opts.parseArgs(NullTserver.class.getName(), args);
 
     // modify metadata
-    ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance(opts.iname).withZkHosts(opts.keepers));
+    ZooKeeperInstance zki = new ZooKeeperInstance(ClientConfiguration.create().withInstance(opts.iname).withZkHosts(opts.keepers));
     Instance inst = HdfsZooInstance.getInstance();
     AccumuloServerContext context = new AccumuloServerContext(inst, new ServerConfigurationFactory(zki));
 

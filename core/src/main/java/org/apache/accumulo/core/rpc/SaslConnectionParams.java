@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.util.KerberosName;
@@ -130,13 +129,7 @@ public class SaslConnectionParams {
   protected final Map<String,String> saslProperties;
 
   public SaslConnectionParams(AccumuloConfiguration conf, AuthenticationToken token) {
-    this(new ClientConfiguration(createMapConfiguration(conf)), token);
-  }
-
-  private static MapConfiguration createMapConfiguration(AccumuloConfiguration conf) {
-    MapConfiguration mapConf = new MapConfiguration(getProperties(conf));
-    mapConf.setListDelimiter('\0');
-    return mapConf;
+    this(ClientConfiguration.fromMap(getProperties(conf)), token);
   }
 
   public SaslConnectionParams(ClientConfiguration conf, AuthenticationToken token) {

@@ -54,7 +54,7 @@ import com.google.common.collect.Iterators;
  */
 public class IMMLGBenchmark {
   public static void main(String[] args) throws Exception {
-    ZooKeeperInstance zki = new ZooKeeperInstance(new ClientConfiguration().withInstance("test16").withZkHosts("localhost"));
+    ZooKeeperInstance zki = new ZooKeeperInstance(ClientConfiguration.create().withInstance("test16").withZkHosts("localhost"));
     Connector conn = zki.getConnector("root", new PasswordToken("secret"));
 
     int numlg = Integer.parseInt(args[0]);

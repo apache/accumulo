@@ -65,7 +65,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -212,7 +211,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.columnFamily = colf;
     opts.createTable = true;
     opts.setTableName(tableName);
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
     } else {
       opts.setPrincipal(principal);
@@ -236,7 +235,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.startRow = offset;
     opts.columnFamily = colf;
     opts.setTableName(tableName);
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
     } else {
       opts.setPrincipal(principal);
@@ -264,7 +263,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           ClientConfiguration clientConf = cluster.getClientConfig();
           // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
           // Need to pass along the keytab because of that.
-          if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+          if (clientConf.hasSasl()) {
             String principal = getAdminPrincipal();
             AuthenticationToken token = getAdminToken();
             assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
@@ -293,7 +292,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           ClientConfiguration clientConf = cluster.getClientConfig();
           // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
           // Need to pass along the keytab because of that.
-          if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+          if (clientConf.hasSasl()) {
             String principal = getAdminPrincipal();
             AuthenticationToken token = getAdminToken();
             assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
@@ -454,7 +453,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           System.setOut(newOut);
           List<String> args = new ArrayList<>();
           args.add(entry.getKey().getColumnQualifier().toString());
-          if (ClusterType.STANDALONE == getClusterType() && cluster.getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+          if (ClusterType.STANDALONE == getClusterType() && cluster.getClientConfig().hasSasl()) {
             args.add("--config");
             StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
             String hadoopConfDir = sac.getHadoopConfDir();

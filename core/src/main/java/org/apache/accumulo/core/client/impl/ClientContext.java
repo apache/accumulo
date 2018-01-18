@@ -123,11 +123,9 @@ public class ClientContext {
    * Retrieve SASL configuration to initiate an RPC connection to a server
    */
   public SaslConnectionParams getSaslParams() {
-    final boolean defaultVal = Boolean.parseBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getDefaultValue());
-
     // Use the clientConf if we have it
     if (null != clientConf) {
-      if (!clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), defaultVal)) {
+      if (!clientConf.hasSasl()) {
         return null;
       }
       return new SaslConnectionParams(clientConf, getCredentials().getToken());

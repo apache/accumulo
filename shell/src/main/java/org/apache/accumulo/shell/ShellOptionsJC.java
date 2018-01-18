@@ -303,7 +303,8 @@ public class ShellOptionsJC {
   }
 
   public ClientConfiguration getClientConfiguration() throws ConfigurationException, FileNotFoundException {
-    ClientConfiguration clientConfig = clientConfigFile == null ? ClientConfiguration.loadDefault() : new ClientConfiguration(getClientConfigFile());
+    ClientConfiguration clientConfig = clientConfigFile == null ? ClientConfiguration.loadDefault() : ClientConfiguration.fromFile(new File(
+        getClientConfigFile()));
     if (useSsl()) {
       clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
     }

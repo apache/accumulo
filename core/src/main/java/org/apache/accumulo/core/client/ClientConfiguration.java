@@ -21,12 +21,17 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.File;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.Property;
@@ -35,7 +40,15 @@ import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration.event.ConfigurationErrorEvent;
+import org.apache.commons.configuration.event.ConfigurationErrorListener;
+import org.apache.commons.configuration.event.ConfigurationEvent;
+import org.apache.commons.configuration.event.ConfigurationListener;
+import org.apache.commons.configuration.interpol.ConfigurationInterpolator;
+import org.apache.commons.lang.text.StrSubstitutor;
+import org.apache.commons.logging.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,30 +145,46 @@ public class ClientConfiguration extends CompositeConfiguration {
     }
   }
 
+  // helper for the constructor which takes a String file name
+  private static PropertiesConfiguration newPropsFile(String file) throws ConfigurationException {
+    PropertiesConfiguration props = new PropertiesConfiguration();
+    props.setListDelimiter('\0');
+    props.load(file);
+    return props;
+  }
+
+  // helper for the constructor which takes a File
+  private static PropertiesConfiguration newPropsFile(File file) throws ConfigurationException {
+    PropertiesConfiguration props = new PropertiesConfiguration();
+    props.setListDelimiter('\0');
+    props.load(file);
+    return props;
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API; use {@link #fromFile(File)} instead.
+   */
+  @Deprecated
   public ClientConfiguration(String configFile) throws ConfigurationException {
-    this(new PropertiesConfiguration(), configFile);
+    this(Collections.singletonList(newPropsFile(configFile)));
   }
 
-  private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, String configFile) throws ConfigurationException {
-    super(propertiesConfiguration);
-    // Don't do list interpolation
-    this.setListDelimiter('\0');
-    propertiesConfiguration.setListDelimiter('\0');
-    propertiesConfiguration.load(configFile);
-  }
-
+  /**
+   * Load a client configuration from the provided configuration properties file
+   *
+   * @param configFile
+   *          the path to the properties file
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API; use {@link #fromFile(File)} instead.
+   */
+  @Deprecated
   public ClientConfiguration(File configFile) throws ConfigurationException {
-    this(new PropertiesConfiguration(), configFile);
+    this(Collections.singletonList(newPropsFile(configFile)));
   }
 
-  private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, File configFile) throws ConfigurationException {
-    super(propertiesConfiguration);
-    // Don't do list interpolation
-    this.setListDelimiter('\0');
-    propertiesConfiguration.setListDelimiter('\0');
-    propertiesConfiguration.load(configFile);
-  }
-
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
   public ClientConfiguration(List<? extends Configuration> configs) {
     super(configs);
     // Don't do list interpolation
@@ -177,8 +206,9 @@ public class ClientConfiguration extends CompositeConfiguration {
    *
    * @see PropertiesConfiguration
    * @see #loadDefault()
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
    */
-
+  @Deprecated
   public ClientConfiguration(Configuration... configs) {
     this(Arrays.asList(configs));
   }
@@ -205,23 +235,66 @@ public class ClientConfiguration extends CompositeConfiguration {
     return loadFromSearchPath(getDefaultSearchPath());
   }
 
-  private static ClientConfiguration loadFromSearchPath(List<String> paths) {
+  /**
+   * Initializes an empty configuration object to be further configured with other methods on the class.
+   *
+   * @since 1.9.0
+   */
+  public static ClientConfiguration create() {
+    return new ClientConfiguration(Collections.<Configuration> emptyList());
+  }
+
+  /**
+   * Initializes a configuration object from the contents of a configuration file. Currently supports Java "properties" files. The returned object can be
+   * further configured with subsequent calls to other methods on this class.
+   *
+   * @param file
+   *          the path to the configuration file
+   * @since 1.9.0
+   */
+  public static ClientConfiguration fromFile(File file) {
     try {
-      List<Configuration> configs = new LinkedList<>();
-      for (String path : paths) {
-        File conf = new File(path);
-        if (conf.isFile() && conf.canRead()) {
-          configs.add(new ClientConfiguration(conf));
-        }
-      }
-      // We couldn't find the client configuration anywhere
-      if (configs.isEmpty()) {
-        log.warn("Found no client.conf in default paths. Using default client configuration values.");
-      }
-      return new ClientConfiguration(configs);
+      return new ClientConfiguration(file);
     } catch (ConfigurationException e) {
-      throw new IllegalStateException("Error loading client configuration", e);
+      throw new IllegalArgumentException("Bad configuration file: " + file, e);
     }
+  }
+
+  /**
+   * Initializes a configuration object from the contents of a map. The returned object can be further configured with subsequent calls to other methods on this
+   * class.
+   *
+   * @param properties
+   *          a map containing the configuration properties to use
+   * @since 1.9.0
+   */
+  public static ClientConfiguration fromMap(Map<String,String> properties) {
+    MapConfiguration mapConf = new MapConfiguration(properties);
+    mapConf.setListDelimiter('\0');
+    return new ClientConfiguration(Collections.singletonList(mapConf));
+  }
+
+  private static ClientConfiguration loadFromSearchPath(List<String> paths) {
+    List<Configuration> configs = new LinkedList<>();
+    for (String path : paths) {
+      File conf = new File(path);
+      if (conf.isFile() && conf.canRead()) {
+        PropertiesConfiguration props = new PropertiesConfiguration();
+        props.setListDelimiter('\0');
+        try {
+          props.load(conf);
+          log.info("Loaded client configuration file {}", conf);
+        } catch (ConfigurationException e) {
+          throw new IllegalStateException("Error loading client configuration file " + conf, e);
+        }
+        configs.add(props);
+      }
+    }
+    // We couldn't find the client configuration anywhere
+    if (configs.isEmpty()) {
+      log.warn("Found no client.conf in default paths. Using default client configuration values.");
+    }
+    return new ClientConfiguration(configs);
   }
 
   public static ClientConfiguration deserialize(String serializedConfig) {
@@ -337,14 +410,32 @@ public class ClientConfiguration extends CompositeConfiguration {
    *
    */
   public void setProperty(ClientProperty prop, String value) {
-    this.setProperty(prop.getKey(), value);
+    with(prop, value);
   }
 
   /**
    * Same as {@link #setProperty(ClientProperty, String)} but returns the ClientConfiguration for chaining purposes
    */
   public ClientConfiguration with(ClientProperty prop, String value) {
-    this.setProperty(prop.getKey(), value);
+    return with(prop.getKey(), value);
+  }
+
+  /**
+   * Sets the value of property to value
+   *
+   * @since 1.9.0
+   */
+  public void setProperty(String prop, String value) {
+    with(prop, value);
+  }
+
+  /**
+   * Same as {@link #setProperty(String, String)} but returns the ClientConfiguration for chaining purposes
+   *
+   * @since 1.9.0
+   */
+  public ClientConfiguration with(String prop, String value) {
+    super.setProperty(prop, value);
     return this;
   }
 
@@ -456,6 +547,15 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
+   * Show whether SASL has been set on this configuration.
+   *
+   * @since 1.9.0
+   */
+  public boolean hasSasl() {
+    return getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), Boolean.parseBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getDefaultValue()));
+  }
+
+  /**
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SASL_ENABLED and ClientProperty.GENERAL_KERBEROS_PRINCIPAL.
    *
    * @param saslEnabled
@@ -467,4 +567,747 @@ public class ClientConfiguration extends CompositeConfiguration {
   public ClientConfiguration withSasl(boolean saslEnabled, String kerberosServerPrimary) {
     return withSasl(saslEnabled).with(ClientProperty.KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
   }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Configuration getConfiguration(int index) {
+    return super.getConfiguration(index);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Configuration getSource(String key) {
+    return super.getSource(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void removeConfiguration(Configuration config) {
+    super.removeConfiguration(config);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void addConfiguration(Configuration config) {
+    super.addConfiguration(config);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Configuration getInMemoryConfiguration() {
+    return super.getInMemoryConfiguration();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Log getLogger() {
+    return super.getLogger();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Configuration subset(String prefix) {
+    return super.subset(prefix);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Configuration interpolatedConfiguration() {
+    return super.interpolatedConfiguration();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void setLogger(Log log) {
+    super.setLogger(log);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public ConfigurationInterpolator getInterpolator() {
+    return super.getInterpolator();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public synchronized StrSubstitutor getSubstitutor() {
+    return super.getSubstitutor();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void append(Configuration c) {
+    super.append(c);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void copy(Configuration c) {
+    super.copy(c);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void addConfigurationListener(ConfigurationListener l) {
+    super.addConfigurationListener(l);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public boolean removeConfigurationListener(ConfigurationListener l) {
+    return super.removeConfigurationListener(l);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public boolean removeErrorListener(ConfigurationErrorListener l) {
+    return super.removeErrorListener(l);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void addErrorListener(ConfigurationErrorListener l) {
+    super.addErrorListener(l);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void addErrorLogListener() {
+    super.addErrorLogListener();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void addProperty(String key, Object value) {
+    super.addProperty(key, value);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected void addPropertyDirect(String key, Object token) {
+    super.addPropertyDirect(key, token);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void clear() {
+    super.clear();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void clearConfigurationListeners() {
+    super.clearConfigurationListeners();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void clearErrorListeners() {
+    super.clearErrorListeners();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void clearProperty(String key) {
+    super.clearProperty(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected void clearPropertyDirect(String key) {
+    super.clearPropertyDirect(key);
+  }
+
+  @Override
+  public boolean containsKey(String key) {
+    return super.containsKey(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected ConfigurationErrorEvent createErrorEvent(int type, String propName, Object propValue, Throwable ex) {
+    return super.createErrorEvent(type, propName, propValue, ex);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected ConfigurationEvent createEvent(int type, String propName, Object propValue, boolean before) {
+    return super.createEvent(type, propName, propValue, before);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected ConfigurationInterpolator createInterpolator() {
+    return super.createInterpolator();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected void fireError(int type, String propName, Object propValue, Throwable ex) {
+    super.fireError(type, propName, propValue, ex);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected void fireEvent(int type, String propName, Object propValue, boolean before) {
+    super.fireEvent(type, propName, propValue, before);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public BigDecimal getBigDecimal(String key) {
+    return super.getBigDecimal(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public BigDecimal getBigDecimal(String key, BigDecimal defaultValue) {
+    return super.getBigDecimal(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public BigInteger getBigInteger(String key) {
+    return super.getBigInteger(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public BigInteger getBigInteger(String key, BigInteger defaultValue) {
+    return super.getBigInteger(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public boolean getBoolean(String key) {
+    return super.getBoolean(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public boolean getBoolean(String key, boolean defaultValue) {
+    return super.getBoolean(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Boolean getBoolean(String key, Boolean defaultValue) {
+    return super.getBoolean(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public byte getByte(String key) {
+    return super.getByte(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public byte getByte(String key, byte defaultValue) {
+    return super.getByte(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Byte getByte(String key, Byte defaultValue) {
+    return super.getByte(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @SuppressWarnings("rawtypes")
+  @Override
+  public Collection getConfigurationListeners() {
+    return super.getConfigurationListeners();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public double getDouble(String key) {
+    return super.getDouble(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Double getDouble(String key, Double defaultValue) {
+    return super.getDouble(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public double getDouble(String key, double defaultValue) {
+    return super.getDouble(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @SuppressWarnings("rawtypes")
+  @Override
+  public Collection getErrorListeners() {
+    return super.getErrorListeners();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public float getFloat(String key) {
+    return super.getFloat(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Float getFloat(String key, Float defaultValue) {
+    return super.getFloat(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public float getFloat(String key, float defaultValue) {
+    return super.getFloat(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public int getInt(String key) {
+    return super.getInt(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public int getInt(String key, int defaultValue) {
+    return super.getInt(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Integer getInteger(String key, Integer defaultValue) {
+    return super.getInteger(key, defaultValue);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public Iterator<String> getKeys() {
+    return super.getKeys();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @SuppressWarnings("unchecked")
+  @Override
+  public Iterator<String> getKeys(String key) {
+    return super.getKeys(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @SuppressWarnings("rawtypes")
+  @Override
+  public List getList(String key) {
+    return super.getList(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @SuppressWarnings("rawtypes")
+  @Override
+  public List getList(String key, List defaultValue) {
+    return super.getList(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public char getListDelimiter() {
+    return super.getListDelimiter();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public long getLong(String key) {
+    return super.getLong(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public long getLong(String key, long defaultValue) {
+    return super.getLong(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Long getLong(String key, Long defaultValue) {
+    return super.getLong(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public int getNumberOfConfigurations() {
+    return super.getNumberOfConfigurations();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Properties getProperties(String key) {
+    return super.getProperties(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Properties getProperties(String key, Properties defaults) {
+    return super.getProperties(key, defaults);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Object getProperty(String key) {
+    return super.getProperty(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public short getShort(String key) {
+    return super.getShort(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public short getShort(String key, short defaultValue) {
+    return super.getShort(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public Short getShort(String key, Short defaultValue) {
+    return super.getShort(key, defaultValue);
+  }
+
+  @Override
+  public String getString(String key) {
+    return super.getString(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public String getString(String key, String defaultValue) {
+    return super.getString(key, defaultValue);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public String[] getStringArray(String key) {
+    return super.getStringArray(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected Object interpolate(Object value) {
+    return super.interpolate(value);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected String interpolate(String base) {
+    return super.interpolate(base);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @SuppressWarnings("rawtypes")
+  @Override
+  protected String interpolateHelper(String base, List priorVariables) {
+    return super.interpolateHelper(base, priorVariables);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public boolean isDelimiterParsingDisabled() {
+    return super.isDelimiterParsingDisabled();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public boolean isDetailEvents() {
+    return super.isDetailEvents();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public boolean isEmpty() {
+    return super.isEmpty();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public boolean isThrowExceptionOnMissing() {
+    return super.isThrowExceptionOnMissing();
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  protected Object resolveContainerStore(String key) {
+    return super.resolveContainerStore(key);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void setDelimiterParsingDisabled(boolean delimiterParsingDisabled) {
+    super.setDelimiterParsingDisabled(delimiterParsingDisabled);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void setDetailEvents(boolean enable) {
+    super.setDetailEvents(enable);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void setListDelimiter(char listDelimiter) {
+    super.setListDelimiter(listDelimiter);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void setProperty(String key, Object value) {
+    super.setProperty(key, value);
+  }
+
+  /**
+   * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into Accumulo API
+   */
+  @Deprecated
+  @Override
+  public void setThrowExceptionOnMissing(boolean throwExceptionOnMissing) {
+    super.setThrowExceptionOnMissing(throwExceptionOnMissing);
+  }
+
 }

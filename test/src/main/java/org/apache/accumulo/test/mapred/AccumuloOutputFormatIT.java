@@ -167,7 +167,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      ClientConfiguration clientConfig = new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers);
+      ClientConfiguration clientConfig = ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers);
 
       AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
       AccumuloInputFormat.setInputTableName(job, table1);

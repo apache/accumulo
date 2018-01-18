@@ -244,7 +244,7 @@ public class Proxy implements KeywordExecutable {
         sslParams = SslConnectionParams.forClient(ClientContext.convertClientConfig(clientConf));
         break;
       case SASL:
-        if (!clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+        if (!clientConf.hasSasl()) {
           // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j capability
           log.error("FATAL: SASL thrift server was requested but it is disabled in client configuration");
           throw new RuntimeException("SASL is not enabled in configuration");

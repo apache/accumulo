@@ -23,7 +23,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -68,7 +67,7 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
     opts.setTableName(tableName);
     vopts.setTableName(tableName);
     ClientConfiguration clientConfig = getCluster().getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
       vopts.updateKerberosCredentials(clientConfig);
     } else {

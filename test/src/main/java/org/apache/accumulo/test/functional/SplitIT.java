@@ -29,7 +29,6 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -133,7 +132,7 @@ public class SplitIT extends AccumuloClusterHarness {
     opts.setTableName(table);
 
     ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
       vopts.updateKerberosCredentials(clientConfig);
     } else {
@@ -167,7 +166,7 @@ public class SplitIT extends AccumuloClusterHarness {
     }
 
     String[] args;
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       ClusterUser rootUser = getAdminUser();
       args = new String[] {"-i", cluster.getInstanceName(), "-u", rootUser.getPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-z",
           cluster.getZooKeepers()};
@@ -206,7 +205,7 @@ public class SplitIT extends AccumuloClusterHarness {
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     ClientConfiguration clientConfig = getCluster().getClientConfig();
     String password = null, keytab = null;
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       keytab = getAdminUser().getKeytab().getAbsolutePath();
     } else {
       password = new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8);

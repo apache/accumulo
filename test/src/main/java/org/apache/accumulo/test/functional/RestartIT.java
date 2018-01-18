@@ -34,7 +34,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -159,7 +158,7 @@ public class RestartIT extends AccumuloClusterHarness {
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
     ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       OPTS.updateKerberosCredentials(clientConfig);
       VOPTS.updateKerberosCredentials(clientConfig);
     } else {
@@ -270,7 +269,7 @@ public class RestartIT extends AccumuloClusterHarness {
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
     ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       OPTS.updateKerberosCredentials(clientConfig);
       VOPTS.updateKerberosCredentials(clientConfig);
     } else {
@@ -306,7 +305,7 @@ public class RestartIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
     ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       OPTS.updateKerberosCredentials(clientConfig);
     } else {
       OPTS.setPrincipal(getAdminPrincipal());
@@ -326,7 +325,7 @@ public class RestartIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     VOPTS.setTableName(tableName);
     ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       OPTS.updateKerberosCredentials(clientConfig);
       VOPTS.updateKerberosCredentials(clientConfig);
     } else {
@@ -347,7 +346,7 @@ public class RestartIT extends AccumuloClusterHarness {
       c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "20K");
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.setTableName(tableName);
-      if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      if (clientConfig.hasSasl()) {
         opts.updateKerberosCredentials(clientConfig);
       } else {
         opts.setPrincipal(getAdminPrincipal());
