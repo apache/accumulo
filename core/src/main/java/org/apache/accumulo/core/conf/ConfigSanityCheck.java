@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Objects;
 
@@ -91,29 +92,10 @@ public class ConfigSanityCheck {
         keyAlgorithm = Objects.requireNonNull(value);
       }
       if (key.equals(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey()) && !(value == null || value.equals("NullSecretKeyEncryptionStrategy"))) {
-        Class<?> strat = null;
-        try {
-          strat = Class.forName(value);
-        } catch (ClassNotFoundException e) {
-          fatal(key + " has invalid class name " + value);
-        }
-
-        if (!SecretKeyEncryptionStrategy.class.isAssignableFrom(strat)) {
-          fatal(key + " must be a class that implements SecretKeyEncryptionStrategy, instead received: " + value);
-        }
-
+        verifyValidClassName(key, value, SecretKeyEncryptionStrategy.class);
       }
       if (key.equals(Property.CRYPTO_MODULE_CLASS.getKey()) && !(value == null || value.equals("NullCryptoModule"))) {
-        Class<?> mod = null;
-        try {
-          mod = Class.forName(value);
-        } catch (ClassNotFoundException e) {
-          fatal(key + " has invalid class name " + value);
-        }
-
-        if (!CryptoModule.class.isAssignableFrom(mod)) {
-          fatal(key + " must be a class that implements CryptoModule, instead received: " + value);
-        }
+        verifyValidClassName(key, value, CryptoModule.class);
       }
     }
 
@@ -189,5 +171,25 @@ public class ConfigSanityCheck {
     // ACCUMULO-3651 Level changed from fatal to error and FATAL added to message for slf4j compatibility
     log.error("FATAL: {}", msg);
     throw new SanityCheckException(msg);
+  }
+
+  /**
+   * Verifies a configured option is a legal class and has a required base class.
+   *
+   * @param confOption
+   *          The Property key name
+   * @param className
+   *          The Property value, the string representation of a class to be loaded
+   * @param requiredBaseClass
+   *          The base class required for the className
+   */
+  private static void verifyValidClassName(String confOption, String className, Class<?> requiredBaseClass) {
+    try {
+      ConfigurationTypeHelper.getClassInstance(null, className, requiredBaseClass);
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException e) {
+      fatal(confOption + " has an invalid class name: " + className);
+    } catch (ClassCastException e) {
+      fatal(confOption + " must implement " + requiredBaseClass + ", but the configured class does not: " + className);
+    }
   }
 }
