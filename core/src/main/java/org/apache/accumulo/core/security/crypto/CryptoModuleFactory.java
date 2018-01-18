@@ -71,23 +71,22 @@ public class CryptoModuleFactory {
     return cryptoModule;
   }
 
-  @SuppressWarnings({"rawtypes"})
   private static CryptoModule instantiateCryptoModule(String cryptoModuleClassname) {
     log.debug("About to instantiate crypto module {}", cryptoModuleClassname);
 
     CryptoModule cryptoModule = null;
-    Class cryptoModuleClazz = null;
+    Class<?> cryptoModuleClazz = null;
     try {
       cryptoModuleClazz = AccumuloVFSClassLoader.loadClass(cryptoModuleClassname);
     } catch (ClassNotFoundException e1) {
-      throw new RuntimeException("Could not find configured crypto module " + cryptoModuleClassname);
+      throw new IllegalArgumentException("Could not find configured crypto module " + cryptoModuleClassname);
     }
 
     // Check if the given class implements the CryptoModule interface
-    Class[] interfaces = cryptoModuleClazz.getInterfaces();
+    Class<?>[] interfaces = cryptoModuleClazz.getInterfaces();
     boolean implementsCryptoModule = false;
 
-    for (Class clazz : interfaces) {
+    for (Class<?> clazz : interfaces) {
       if (clazz.equals(CryptoModule.class)) {
         implementsCryptoModule = true;
         break;
@@ -137,24 +136,23 @@ public class CryptoModuleFactory {
     return strategy;
   }
 
-  @SuppressWarnings("rawtypes")
   private static SecretKeyEncryptionStrategy instantiateSecreteKeyEncryptionStrategy(String className) {
 
     log.debug("About to instantiate secret key encryption strategy {}", className);
 
     SecretKeyEncryptionStrategy strategy = null;
-    Class keyEncryptionStrategyClazz = null;
+    Class<?> keyEncryptionStrategyClazz = null;
     try {
       keyEncryptionStrategyClazz = AccumuloVFSClassLoader.loadClass(className);
     } catch (ClassNotFoundException e1) {
-      throw new RuntimeException("Could not find configured secret key encryption strategy: " + className);
+      throw new IllegalArgumentException("Could not find configured secret key encryption strategy: " + className);
     }
 
     // Check if the given class implements the CryptoModule interface
-    Class[] interfaces = keyEncryptionStrategyClazz.getInterfaces();
+    Class<?>[] interfaces = keyEncryptionStrategyClazz.getInterfaces();
     boolean implementsSecretKeyStrategy = false;
 
-    for (Class clazz : interfaces) {
+    for (Class<?> clazz : interfaces) {
       if (clazz.equals(SecretKeyEncryptionStrategy.class)) {
         implementsSecretKeyStrategy = true;
         break;
