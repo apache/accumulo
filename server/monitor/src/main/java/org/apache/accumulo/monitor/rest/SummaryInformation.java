@@ -31,13 +31,13 @@ import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 
 /**
  *
- * Generate XML summary of Monitor
+ * Generate summary of Monitor
  *
  * @since 2.0.0
  *
  */
 @XmlRootElement(name = "stats")
-public class XMLInformation {
+public class SummaryInformation {
 
   // Variable names become JSON keys
   public List<TabletServer> servers = new ArrayList<>();
@@ -55,10 +55,10 @@ public class XMLInformation {
 
   public Totals totals;
 
-  public XMLInformation() {}
+  public SummaryInformation() {}
 
   /**
-   * Stores Monitor information as XML
+   * Stores Monitor information as XML or JSON
    *
    * @param size
    *          Number of tservers
@@ -67,7 +67,7 @@ public class XMLInformation {
    * @param tablesList
    *          Table list
    */
-  public XMLInformation(int size, MasterInformation info, TableInformationList tablesList) {
+  public SummaryInformation(int size, MasterInformation info, TableInformationList tablesList) {
     this.servers = new ArrayList<>(size);
 
     this.masterGoalState = info.masterGoalState;
@@ -85,7 +85,7 @@ public class XMLInformation {
   }
 
   /**
-   * Adds a new tablet to the XML
+   * Adds a new tablet
    *
    * @param tablet
    *          Tablet to add

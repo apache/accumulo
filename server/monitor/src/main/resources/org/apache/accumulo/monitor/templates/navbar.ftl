@@ -64,8 +64,8 @@
                 API <span class="caret"></span>
               </a>
               <ul class="dropdown-menu">
-                <li><a href="/rest">XML</a></li>
-                <li><a href="/rest/tservers">JSON</a></li>
+                <li><a href="/rest/xml">XML</a></li>
+                <li><a href="/rest/json">JSON</a></li>
               </ul>
             </li>
             <li class="dropdown">
