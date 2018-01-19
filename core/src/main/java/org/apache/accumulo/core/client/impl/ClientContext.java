@@ -38,7 +38,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,7 +167,7 @@ public class ClientContext {
    *          the original {@link ClientConfiguration}
    * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
    */
-  public static AccumuloConfiguration convertClientConfig(final Configuration config) {
+  public static AccumuloConfiguration convertClientConfig(final ClientConfiguration config) {
 
     final AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
 
@@ -213,7 +212,7 @@ public class ClientContext {
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
 
-        Iterator<?> keyIter = config.getKeys();
+        Iterator<String> keyIter = config.getKeys();
         while (keyIter.hasNext()) {
           String key = keyIter.next().toString();
           if (filter.test(key))

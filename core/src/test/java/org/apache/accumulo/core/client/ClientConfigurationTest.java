@@ -22,11 +22,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Test;
 
 public class ClientConfigurationTest {
@@ -55,18 +52,8 @@ public class ClientConfigurationTest {
   }
 
   private ClientConfiguration createConfig() {
-    Configuration first = new PropertiesConfiguration();
-    first.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "firstZkHosts");
-    Configuration second = new PropertiesConfiguration();
-    second.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "secondZkHosts");
-    second.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "secondInstanceName");
-    Configuration third = new PropertiesConfiguration();
-    third.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "thirdZkHosts");
-    third.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "thirdInstanceName");
-    third.addProperty(ClientProperty.INSTANCE_ZK_TIMEOUT.getKey(), "123s");
-    @SuppressWarnings("deprecation")
-    ClientConfiguration clientConf = new ClientConfiguration(Arrays.asList(first, second, third));
-    return clientConf;
+    return ClientConfiguration.create().with(ClientProperty.INSTANCE_ZK_HOST, "firstZkHosts").with(ClientProperty.INSTANCE_NAME, "secondInstanceName")
+        .with(ClientProperty.INSTANCE_ZK_TIMEOUT, "123s");
   }
 
   @Test
