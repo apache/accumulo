@@ -137,7 +137,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<link rel='stylesheet' type='text/css' href='/web/screen.css' media='screen' />\n");
     sb.append("<script src='/web/functions.js' type='text/javascript'></script>\n");
 
-    sb.append("<!--[if lte IE 8]><script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/excanvas.min.js\"></script><![endif]-->\n");
+    sb.append("<!--[if lte IE 8]><script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/excanvas.js\"></script><![endif]-->\n");
     sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.js\"></script>\n");
     sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.flot.js\"></script>\n");
 
