@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
@@ -54,7 +53,6 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -68,8 +66,8 @@ public class CryptoTest {
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
   public static final String CRYPTO_ON_KEK_OFF_CONF = "crypto-on-no-key-encryption-accumulo-site.xml";
-  
-  //Used for kek file testing
+
+  // Used for kek file testing
   private static File kekWorks;
   private static File kekTooLong;
   private static File kekTooShort;
@@ -407,19 +405,12 @@ public class CryptoTest {
     testKekFile(kekTooShort);
   }
 
-  @AfterClass
-  public static void removeAllTestKekFiles() throws IOException {
-	Files.deleteIfExists(kekWorks.toPath());
-    Files.deleteIfExists(kekTooShort.toPath());
-    Files.deleteIfExists(kekTooLong.toPath());
-  }
-
   // Used to check reading of KEK files
   @SuppressWarnings("deprecation")
   private void testKekFile(File testFile) throws IOException {
-	assertTrue(testFile.exists());
-	assertFalse(testFile.isDirectory());
-		
+    assertTrue(testFile.exists());
+    assertFalse(testFile.isDirectory());
+
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
     CryptoModuleParameters params = CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
     // TODO ACCUMULO-2530 this will need to be fixed when CachingHDFSSecretKeyEncryptionStrategy is fixed
@@ -433,7 +424,10 @@ public class CryptoTest {
 
   private File createKekFile(String filename, Integer size) throws IOException {
     File dir = new File(System.getProperty("user.dir") + "/target/cryptoTest");
-    boolean unused = dir.mkdirs(); // if the directories don't already exist, it'll return 1. If they do, 0. Both cases can be fine.
+    // must do something with return value to avoid findbugs
+    boolean foilFindbugs = dir.mkdirs(); // if the directories don't already exist, it'll return 1. If they do, 0. Both cases can be fine.
+    // must do something with java var to avoid java warning
+    foilFindbugs = !foilFindbugs;
 
     File testFile = File.createTempFile(filename, ".kek", dir);
     DataOutputStream os = new DataOutputStream(new FileOutputStream(testFile));
@@ -445,9 +439,9 @@ public class CryptoTest {
     os.write(key);
     os.flush();
     os.close();
-    
+
     return testFile;
-    
+
   }
 
   public void AESGCM_Encryption_Test_Correct_Encryption_And_Decryption() throws IOException, AEADBadTagException {

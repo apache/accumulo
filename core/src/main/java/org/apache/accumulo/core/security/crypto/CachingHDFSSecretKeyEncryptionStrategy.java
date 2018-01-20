@@ -150,7 +150,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         // The keyEncryptionKeyLength+4 accounts for the integer read from the file.
         if (fs.getFileStatus(pathToKey).getLen() != keyEncryptionKeyLength + 4) {
           invalidFile = true;
-	// Passing this exception forward so we can provide the more useful error message
+          // Passing this exception forward so we can provide the more useful error message
           throw new IOException();
         }
         keyEncryptionKey = new byte[keyEncryptionKeyLength];
