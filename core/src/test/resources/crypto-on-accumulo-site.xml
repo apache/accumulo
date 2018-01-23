@@ -113,7 +113,7 @@
     </property>
     <property>
       <name>instance.dfs.dir</name>
-      <value>/tmp</value>
+      <value>target/dfs</value>
     </property>
     <property>
       <name>instance.dfs.uri</name>
@@ -126,7 +126,7 @@
     </property>
     <property>
       <name>crypto.default.key.strategy.key.location</name>
-      <value>/tmp/test.secret.key</value>
+      <value>test.secret.key</value>
     </property>
     
     <property>
