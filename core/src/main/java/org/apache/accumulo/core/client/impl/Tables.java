@@ -20,11 +20,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.security.SecurityPermission;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
@@ -37,64 +35,23 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Tables {
-  private static final Logger log = LoggerFactory.getLogger(Tables.class);
 
   public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
+  public static final Long TABLE_MAP_CACHE_EXPIRATION = TimeUnit.SECONDS.toNanos(1L);
+  private static final AtomicLong tableMapTimestamp = new AtomicLong(System.nanoTime());
 
   private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
   private static final AtomicLong cacheResetCount = new AtomicLong(0);
+  private static volatile TableMap tableMapCache;
 
-  private static ZooCache getZooCache(Instance instance) {
+  public static ZooCache getZooCache(Instance instance) {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(TABLES_PERMISSION);
     }
     return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-  }
-
-  private static SortedMap<String,String> getMap(Instance instance, boolean nameAsKey) {
-    ZooCache zc = getZooCache(instance);
-
-    List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
-    TreeMap<String,String> tableMap = new TreeMap<>();
-    Map<String,String> namespaceIdToNameMap = new HashMap<>();
-
-    for (String tableId : tableIds) {
-      byte[] tableName = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
-      byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
-      String namespaceName = Namespaces.DEFAULT_NAMESPACE;
-      // create fully qualified table name
-      if (nId == null) {
-        namespaceName = null;
-      } else {
-        String namespaceId = new String(nId, UTF_8);
-        if (!namespaceId.equals(Namespaces.DEFAULT_NAMESPACE_ID)) {
-          try {
-            namespaceName = namespaceIdToNameMap.get(namespaceId);
-            if (namespaceName == null) {
-              namespaceName = Namespaces.getNamespaceName(instance, namespaceId);
-              namespaceIdToNameMap.put(namespaceId, namespaceName);
-            }
-          } catch (NamespaceNotFoundException e) {
-            log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist", e);
-            continue;
-          }
-        }
-      }
-      if (tableName != null && namespaceName != null) {
-        String tableNameStr = qualified(new String(tableName, UTF_8), namespaceName);
-        if (nameAsKey)
-          tableMap.put(tableNameStr, tableId);
-        else
-          tableMap.put(tableId, tableNameStr);
-      }
-    }
-
-    return tableMap;
   }
 
   public static String getTableId(Instance instance, String tableName) throws TableNotFoundException {
@@ -129,12 +86,26 @@ public class Tables {
     return tableName;
   }
 
-  public static SortedMap<String,String> getNameToIdMap(Instance instance) {
-    return getMap(instance, true);
+  public static Map<String,String> getNameToIdMap(Instance instance) {
+    TableMap map = tableMapCache;
+    // check if map needs to be updated
+    if (map == null || tableMapTimestamp.longValue() + TABLE_MAP_CACHE_EXPIRATION <= System.nanoTime()) {
+      tableMapCache = new TableMap(instance);
+      tableMapTimestamp.set(System.nanoTime());
+      map = tableMapCache;
+    }
+    return map.getNameToIdMap();
   }
 
-  public static SortedMap<String,String> getIdToNameMap(Instance instance) {
-    return getMap(instance, false);
+  public static Map<String,String> getIdToNameMap(Instance instance) {
+    TableMap map = tableMapCache;
+    // check if map needs to be updated
+    if (map == null || tableMapTimestamp.longValue() + TABLE_MAP_CACHE_EXPIRATION <= System.nanoTime()) {
+      tableMapCache = new TableMap(instance);
+      tableMapTimestamp.set(System.nanoTime());
+      map = tableMapCache;
+    }
+    return map.getIdtoNameMap();
   }
 
   public static boolean exists(Instance instance, String tableId) {
@@ -147,6 +118,7 @@ public class Tables {
     cacheResetCount.incrementAndGet();
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZTABLES);
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
+    tableMapCache = null;
   }
 
   /**
