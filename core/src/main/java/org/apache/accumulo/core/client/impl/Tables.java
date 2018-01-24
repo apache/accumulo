@@ -40,13 +40,12 @@ public class Tables {
 
   public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
   public static final Long TABLE_MAP_CACHE_EXPIRATION = TimeUnit.SECONDS.toNanos(1L);
-  private static final AtomicLong tableMapTimestamp = new AtomicLong(System.nanoTime());
 
   private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
   private static final AtomicLong cacheResetCount = new AtomicLong(0);
   private static volatile TableMap tableMapCache;
 
-  public static ZooCache getZooCache(Instance instance) {
+  private static ZooCache getZooCache(Instance instance) {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(TABLES_PERMISSION);
@@ -87,25 +86,28 @@ public class Tables {
   }
 
   public static Map<String,String> getNameToIdMap(Instance instance) {
-    TableMap map = tableMapCache;
-    // check if map needs to be updated
-    if (map == null || tableMapTimestamp.longValue() + TABLE_MAP_CACHE_EXPIRATION <= System.nanoTime()) {
-      tableMapCache = new TableMap(instance);
-      tableMapTimestamp.set(System.nanoTime());
-      map = tableMapCache;
-    }
-    return map.getNameToIdMap();
+    return getTableMap(instance).getNameToIdMap();
   }
 
   public static Map<String,String> getIdToNameMap(Instance instance) {
+    return getTableMap(instance).getIdtoNameMap();
+  }
+
+  /**
+   * Create a new TableMap if needed and cache it locally. The creation of the TableMap is synchronized so only one thread will generate the map. Added for
+   * ACCUMULO-4778.
+   */
+  private static TableMap getTableMap(Instance instance) {
     TableMap map = tableMapCache;
-    // check if map needs to be updated
-    if (map == null || tableMapTimestamp.longValue() + TABLE_MAP_CACHE_EXPIRATION <= System.nanoTime()) {
-      tableMapCache = new TableMap(instance);
-      tableMapTimestamp.set(System.nanoTime());
-      map = tableMapCache;
+    if (map == null || map.getCreationTime() + TABLE_MAP_CACHE_EXPIRATION <= System.nanoTime()) {
+      synchronized (Tables.class) {
+        map = tableMapCache;
+        if (map == null || map.getCreationTime() + TABLE_MAP_CACHE_EXPIRATION <= System.nanoTime()) {
+          map = tableMapCache = new TableMap(instance, getZooCache(instance));
+        }
+      }
     }
-    return map.getIdtoNameMap();
+    return map;
   }
 
   public static boolean exists(Instance instance, String tableId) {
@@ -140,7 +142,7 @@ public class Tables {
     }
 
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + thePath);
-
+    tableMapCache = null;
   }
 
   public static String getPrintableTableNameFromId(Map<String,String> tidToNameMap, String tableId) {

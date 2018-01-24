@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.client.impl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.client.impl.Tables.getZooCache;
 import static org.apache.accumulo.core.client.impl.Tables.qualified;
 
 import java.util.HashMap;
@@ -35,29 +34,24 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 
 /**
- * Used for thread safe caching of table ID maps
+ * Used for thread safe caching of immutable table ID maps. See ACCUMULO-4778.
  */
 public class TableMap {
   private static final Logger log = LoggerFactory.getLogger(TableMap.class);
 
-  private Map<String,String> tableNameToIdMap;
-  private Map<String,String> tableIdtoNameMap;
+  private final Map<String,String> tableNameToIdMap;
+  private final Map<String,String> tableIdToNameMap;
+  private final Long creationTime;
 
-  public TableMap(Instance instance) {
-    generateMaps(instance);
-  }
-
-  private void generateMaps(Instance instance) {
-    ZooCache zc = getZooCache(instance);
-
-    List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
+  public TableMap(Instance instance, ZooCache zooCache) {
+    List<String> tableIds = zooCache.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
     Map<String,String> namespaceIdToNameMap = new HashMap<>();
     ImmutableMap.Builder<String,String> tableNameToIdBuilder = new ImmutableMap.Builder<>();
     ImmutableMap.Builder<String,String> tableIdToNameBuilder = new ImmutableMap.Builder<>();
 
     for (String tableId : tableIds) {
-      byte[] tableName = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
-      byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
+      byte[] tableName = zooCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
+      byte[] nId = zooCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
       String namespaceName = Namespaces.DEFAULT_NAMESPACE;
       // create fully qualified table name
       if (nId == null) {
@@ -84,7 +78,8 @@ public class TableMap {
       }
     }
     tableNameToIdMap = tableNameToIdBuilder.build();
-    tableIdtoNameMap = tableIdToNameBuilder.build();
+    tableIdToNameMap = tableIdToNameBuilder.build();
+    creationTime = System.nanoTime();
   }
 
   public Map<String,String> getNameToIdMap() {
@@ -92,6 +87,10 @@ public class TableMap {
   }
 
   public Map<String,String> getIdtoNameMap() {
-    return tableIdtoNameMap;
+    return tableIdToNameMap;
+  }
+
+  public Long getCreationTime() {
+    return creationTime;
   }
 }
