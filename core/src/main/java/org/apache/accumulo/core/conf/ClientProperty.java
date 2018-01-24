@@ -19,6 +19,8 @@ package org.apache.accumulo.core.conf;
 import java.util.Objects;
 import java.util.Properties;
 
+import org.apache.accumulo.core.Constants;
+
 public enum ClientProperty {
 
   // User
@@ -53,8 +55,12 @@ public enum ClientProperty {
   SASL_ENABLED("sasl.enabled", "false", "Enable SASL for client RPC"),
   SASL_QOP("sasl.qop", "auth", "SASL quality of protection. Valid values are 'auth', 'auth-int', and 'auth-conf'"),
 
-  // KERBEROS
-  KERBEROS_SERVER_PRIMARY("kerberos.server.primary", "accumulo", "Kerberos principal/primary that Accumulo servers use to login");
+  // Kerberos
+  KERBEROS_SERVER_PRIMARY("kerberos.server.primary", "accumulo", "Kerberos principal/primary that Accumulo servers use to login"),
+
+  // Trace
+  TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient", "A list of span receiver classes to send trace spans"),
+  TRACE_ZOOKEEPER_PATH("trace.zookeeper.path", Constants.ZTRACERS, "The zookeeper node where tracers are registered");
 
   private String key;
   private String defaultValue;
