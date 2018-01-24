@@ -281,6 +281,12 @@ public class ConnectorImpl extends Connector {
     }
 
     @Override
+    public SslOptions useJsse() {
+      props.setProperty(ClientProperty.SSL_USE_JSSE.getKey(), "true");
+      return this;
+    }
+
+    @Override
     public ConnectionOptions withZkTimeout(int timeout) {
       props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getKey(), Integer.toString(timeout));
       return this;

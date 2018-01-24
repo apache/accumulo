@@ -402,6 +402,13 @@ public abstract class Connector {
      * @return this builder
      */
     SslOptions withKeystore(String path, String password, String type);
+
+    /**
+     * Use JSSE system properties to configure SSL
+     *
+     * @return this builder
+     */
+    SslOptions useJsse();
   }
 
   /**

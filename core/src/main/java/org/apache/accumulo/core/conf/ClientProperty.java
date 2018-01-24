@@ -47,6 +47,7 @@ public enum ClientProperty {
   SSL_TRUSTSTORE_PASSWORD("ssl.truststore.password", "", "Password used to encrypt truststore"),
   SSL_TRUSTSTORE_PATH("ssl.truststore.path", "", "Path to SSL truststore file"),
   SSL_TRUSTSTORE_TYPE("ssl.truststore.type", "jks", "Type of SSL truststore"),
+  SSL_USE_JSSE("ssl.use.jsse", "false", "Use JSSE system properties to configure SSL"),
 
   // SASL
   SASL_ENABLED("sasl.enabled", "false", "Enable SASL for client RPC"),

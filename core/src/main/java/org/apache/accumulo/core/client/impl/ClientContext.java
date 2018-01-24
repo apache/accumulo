@@ -204,6 +204,7 @@ public class ClientContext {
         config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_ENABLED, val);
       } else if (key.equals(ClientProperty.SSL_KEYSTORE_PATH.getKey())) {
         config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PATH, val);
+        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, "true");
       } else if (key.equals(ClientProperty.SSL_KEYSTORE_TYPE.getKey())) {
         config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_TYPE, val);
       } else if (key.equals(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey())) {
@@ -214,6 +215,8 @@ public class ClientContext {
         config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PATH, val);
       } else if (key.equals(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey())) {
         config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PATH, val);
+      } else if (key.equals(ClientProperty.SSL_USE_JSSE.getKey())) {
+        config.setProperty(ClientConfiguration.ClientProperty.RPC_USE_JSSE, val);
       } else if (key.equals(ClientProperty.SASL_ENABLED.getKey())) {
         config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_ENABLED, val);
       } else if (key.equals(ClientProperty.SASL_QOP.getKey())) {
