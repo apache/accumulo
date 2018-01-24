@@ -192,7 +192,7 @@ public class ClientContext {
   }
 
   public static ClientConfiguration convertProperties(final Properties properties) {
-    ClientConfiguration config = new ClientConfiguration();
+    ClientConfiguration config = ClientConfiguration.create();
     for (Object keyObj : properties.keySet()) {
       String key = (String) keyObj;
       String val = properties.getProperty(key);

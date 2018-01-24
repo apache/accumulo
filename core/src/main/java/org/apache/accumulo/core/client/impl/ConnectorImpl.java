@@ -302,6 +302,9 @@ public class ConnectorImpl extends Connector {
     public ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig) {
       props.setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getKey(), Long.toString(batchWriterConfig.getMaxMemory()));
       props.setProperty(ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC.getKey(), Long.toString(batchWriterConfig.getMaxLatency(TimeUnit.SECONDS)));
+      props.setProperty(ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC.getKey(), Long.toString(batchWriterConfig.getTimeout(TimeUnit.SECONDS)));
+      props.setProperty(ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS.getKey(), Long.toString(batchWriterConfig.getMaxWriteThreads()));
+      props.setProperty(ClientProperty.BATCH_WRITER_DURABILITY.getKey(), batchWriterConfig.getDurability().toString());
       return this;
     }
 
