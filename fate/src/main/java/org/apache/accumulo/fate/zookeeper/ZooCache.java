@@ -28,6 +28,7 @@ import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -43,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
@@ -62,6 +64,38 @@ public class ZooCache {
   private final HashMap<String,List<String>> childrenCache;
 
   private final ZooReader zReader;
+
+  private static class ImmutableCacheCopies {
+    final Map<String,byte[]> cache;
+    final Map<String,Stat> statCache;
+    final Map<String,List<String>> childrenCache;
+
+    ImmutableCacheCopies() {
+      cache = Collections.emptyMap();
+      statCache = Collections.emptyMap();
+      childrenCache = Collections.emptyMap();
+    }
+
+    ImmutableCacheCopies(Map<String,byte[]> cache, Map<String,Stat> statCache, Map<String,List<String>> childrenCache) {
+      this.cache = Collections.unmodifiableMap(new HashMap<>(cache));
+      this.statCache = Collections.unmodifiableMap(new HashMap<>(statCache));
+      this.childrenCache = Collections.unmodifiableMap(new HashMap<>(childrenCache));
+    }
+
+    ImmutableCacheCopies(ImmutableCacheCopies prev, Map<String,List<String>> childrenCache) {
+      this.cache = prev.cache;
+      this.statCache = prev.statCache;
+      this.childrenCache = Collections.unmodifiableMap(new HashMap<>(childrenCache));
+    }
+
+    ImmutableCacheCopies(Map<String,byte[]> cache, Map<String,Stat> statCache, ImmutableCacheCopies prev) {
+      this.cache = Collections.unmodifiableMap(new HashMap<>(cache));
+      this.statCache = Collections.unmodifiableMap(new HashMap<>(statCache));
+      this.childrenCache = prev.childrenCache;
+    }
+  }
+
+  private volatile ImmutableCacheCopies immutableCache = new ImmutableCacheCopies();
 
   /**
    * Returns a ZooKeeper session. Calls should be made within run of ZooRunnable after caches are checked. This will be performed at each retry of the run
@@ -223,19 +257,17 @@ public class ZooCache {
    *          path of node
    * @return children list, or null if node has no children or does not exist
    */
-  public synchronized List<String> getChildren(final String zPath) {
+  public List<String> getChildren(final String zPath) {
 
     ZooRunnable<List<String>> zr = new ZooRunnable<List<String>>() {
 
       @Override
       public List<String> run() throws KeeperException, InterruptedException {
-        try {
-          cacheReadLock.lock();
-          if (childrenCache.containsKey(zPath)) {
-            return childrenCache.get(zPath);
-          }
-        } finally {
-          cacheReadLock.unlock();
+
+        // only read volatile once for consistency
+        ImmutableCacheCopies lic = immutableCache;
+        if (lic.childrenCache.containsKey(zPath)) {
+          return lic.childrenCache.get(zPath);
         }
 
         cacheWriteLock.lock();
@@ -247,7 +279,11 @@ public class ZooCache {
           final ZooKeeper zooKeeper = getZooKeeper();
 
           List<String> children = zooKeeper.getChildren(zPath, watcher);
+          if (children != null) {
+            children = ImmutableList.copyOf(children);
+          }
           childrenCache.put(zPath, children);
+          immutableCache = new ImmutableCacheCopies(immutableCache, childrenCache);
           return children;
         } catch (KeeperException ke) {
           if (ke.code() != Code.NONODE) {
@@ -261,12 +297,7 @@ public class ZooCache {
 
     };
 
-    List<String> children = zr.retry();
-
-    if (children == null) {
-      return null;
-    }
-    return Collections.unmodifiableList(children);
+    return zr.retry();
   }
 
   /**
@@ -295,15 +326,16 @@ public class ZooCache {
       @Override
       public byte[] run() throws KeeperException, InterruptedException {
         Stat stat = null;
-        cacheReadLock.lock();
-        try {
-          if (cache.containsKey(zPath)) {
-            stat = statCache.get(zPath);
+
+        // only read volatile once so following code works with a consistent snapshot
+        ImmutableCacheCopies lic = immutableCache;
+        byte[] val = lic.cache.get(zPath);
+        if (val != null || lic.cache.containsKey(zPath)) {
+          if (status != null) {
+            stat = lic.statCache.get(zPath);
             copyStats(status, stat);
-            return cache.get(zPath);
           }
-        } finally {
-          cacheReadLock.unlock();
+          return val;
         }
 
         /*
@@ -334,7 +366,6 @@ public class ZooCache {
           }
           put(zPath, data, stat);
           copyStats(status, stat);
-          statCache.put(zPath, stat);
           return data;
         } finally {
           cacheWriteLock.unlock();
@@ -377,6 +408,8 @@ public class ZooCache {
     try {
       cache.put(zPath, data);
       statCache.put(zPath, stat);
+
+      immutableCache = new ImmutableCacheCopies(cache, statCache, immutableCache);
     } finally {
       cacheWriteLock.unlock();
     }
@@ -388,6 +421,8 @@ public class ZooCache {
       cache.remove(zPath);
       childrenCache.remove(zPath);
       statCache.remove(zPath);
+
+      immutableCache = new ImmutableCacheCopies(cache, statCache, childrenCache);
     } finally {
       cacheWriteLock.unlock();
     }
@@ -396,12 +431,14 @@ public class ZooCache {
   /**
    * Clears this cache.
    */
-  public synchronized void clear() {
+  public void clear() {
     cacheWriteLock.lock();
     try {
       cache.clear();
       childrenCache.clear();
       statCache.clear();
+
+      immutableCache = new ImmutableCacheCopies();
     } finally {
       cacheWriteLock.unlock();
     }
@@ -415,8 +452,14 @@ public class ZooCache {
    * @return true if data value is cached
    */
   @VisibleForTesting
-  synchronized boolean dataCached(String zPath) {
-    return cache.containsKey(zPath);
+  boolean dataCached(String zPath) {
+    cacheReadLock.lock();
+    try {
+      return immutableCache.cache.containsKey(zPath) && cache.containsKey(zPath);
+    } finally {
+      cacheReadLock.unlock();
+    }
+
   }
 
   /**
@@ -430,7 +473,7 @@ public class ZooCache {
   boolean childrenCached(String zPath) {
     cacheReadLock.lock();
     try {
-      return childrenCache.containsKey(zPath);
+      return immutableCache.childrenCache.containsKey(zPath) && childrenCache.containsKey(zPath);
     } finally {
       cacheReadLock.unlock();
     }
@@ -462,6 +505,8 @@ public class ZooCache {
         if (path.startsWith(zPath))
           i.remove();
       }
+
+      immutableCache = new ImmutableCacheCopies(cache, statCache, childrenCache);
     } finally {
       cacheWriteLock.unlock();
     }
