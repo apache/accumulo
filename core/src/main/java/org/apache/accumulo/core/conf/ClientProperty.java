@@ -117,11 +117,4 @@ public enum ClientProperty {
     }
     return Long.parseLong(value);
   }
-
-  public static ClientProperty getPropertyByKey(String key) {
-    for (ClientProperty prop : ClientProperty.values())
-      if (prop.getKey().equals(key))
-        return prop;
-    return null;
-  }
 }

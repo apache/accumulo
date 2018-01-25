@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
  * Contains a list of property keys recognized by the Accumulo client and convenience methods for setting them.
  *
  * @since 1.6.0
+ * @deprecated since 2.0.0, replaced {@link Connector#builder()}
  */
 public class ClientConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ClientConfiguration.class);
