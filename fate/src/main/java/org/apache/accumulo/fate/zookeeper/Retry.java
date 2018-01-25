@@ -25,12 +25,14 @@ import org.slf4j.LoggerFactory;
 public class Retry {
   private static final Logger log = LoggerFactory.getLogger(Retry.class);
 
+  public static final long MAX_RETRY_DISABLED = -1;
+
   private long maxRetries, maxWait, waitIncrement;
   private long retriesDone, currentWait;
 
   /**
    * @param maxRetries
-   *          Maximum times to retry
+   *          Maximum times to retry or MAX_RETRY_DISABLED if no maximum
    * @param startWait
    *          The amount of time (ms) to wait for the initial retry
    * @param maxWait
@@ -44,6 +46,18 @@ public class Retry {
     this.waitIncrement = waitIncrement;
     this.retriesDone = 0l;
     this.currentWait = startWait;
+  }
+
+  /**
+   * @param startWait
+   *          The amount of time (ms) to wait for the initial retry
+   * @param maxWait
+   *          The maximum wait (ms)
+   * @param waitIncrement
+   *          The amount of time (ms) to increment next wait time by
+   */
+  public Retry(long startWait, long waitIncrement, long maxWait) {
+    this(MAX_RETRY_DISABLED, startWait, waitIncrement, maxWait);
   }
 
   // Visible for testing
@@ -86,8 +100,12 @@ public class Retry {
     this.maxWait = maxWait;
   }
 
+  public boolean isMaxRetryDisabled() {
+    return maxRetries < 0;
+  }
+
   public boolean canRetry() {
-    return retriesDone < maxRetries;
+    return isMaxRetryDisabled() || (retriesDone < maxRetries);
   }
 
   public void useRetry() {
