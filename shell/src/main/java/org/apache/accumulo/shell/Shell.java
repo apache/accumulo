@@ -550,8 +550,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
         AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig() {
           @Override
-          public String getProperty(String key) {
-            return systemConfig.get(key);
+          public String getVfsContextClasspathProperty(String key) {
+            return systemConfig.get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + key);
           }
 
         });

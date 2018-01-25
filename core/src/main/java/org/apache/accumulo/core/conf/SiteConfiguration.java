@@ -129,6 +129,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   @Override
+  protected String getArbitrarySystemPropertyImpl(String property) {
+    String val = staticConfigs.get(property);
+    if (val == null) {
+      val = parent.getArbitrarySystemPropertyImpl(property);
+    }
+    return val;
+  }
+
+  @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     parent.getProperties(props, filter);
 

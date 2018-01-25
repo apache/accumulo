@@ -152,6 +152,11 @@ public class CertUtils {
           }
 
           @Override
+          protected String getArbitrarySystemPropertyImpl(String property) {
+            return xml.get(property);
+          }
+
+          @Override
           public void getProperties(Map<String,String> props, Predicate<String> filter) {
             for (Entry<String,String> entry : this)
               if (filter.apply(entry.getKey()))

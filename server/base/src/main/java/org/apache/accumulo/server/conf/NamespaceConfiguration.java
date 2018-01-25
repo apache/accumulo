@@ -101,6 +101,11 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     return getPropCacheAccessor().get(property, getPath(), getParent);
   }
 
+  @Override
+  protected String getArbitrarySystemPropertyImpl(String property) {
+    throw new UnsupportedOperationException();
+  }
+
   private class SystemNamespaceFilter implements Predicate<String> {
 
     private Predicate<String> userFilter;

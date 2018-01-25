@@ -176,6 +176,12 @@ public class ClientContext {
     final AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
 
     return new AccumuloConfiguration() {
+
+      @Override
+      protected String getArbitrarySystemPropertyImpl(String property) {
+        return config.getString(property, null);
+      }
+
       @Override
       public String get(Property property) {
         final String key = property.getKey();

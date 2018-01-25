@@ -381,6 +381,11 @@ public class ClientOpts extends Help {
             return value;
           return DefaultConfiguration.getInstance().get(property);
         }
+
+        @Override
+        protected String getArbitrarySystemPropertyImpl(String property) {
+          return xml.get(property);
+        }
       };
       this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
 

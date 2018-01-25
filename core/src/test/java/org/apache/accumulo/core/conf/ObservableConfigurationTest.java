@@ -39,6 +39,11 @@ public class ObservableConfigurationTest {
 
     @Override
     public void getProperties(Map<String,String> props, Predicate<String> filter) {}
+
+    @Override
+    protected String getArbitrarySystemPropertyImpl(String property) {
+      return null;
+    }
   }
 
   private ObservableConfiguration c;
