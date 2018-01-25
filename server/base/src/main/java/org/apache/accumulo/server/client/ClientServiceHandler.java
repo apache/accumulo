@@ -423,6 +423,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
       for (String table : tables) {
         // ensure that table table exists
+        Tables.clearCache(instance);
         String tableId = checkTableId(instance, table, null);
         tableIds.add(tableId);
         String namespaceId = Tables.getNamespaceId(instance, tableId);
