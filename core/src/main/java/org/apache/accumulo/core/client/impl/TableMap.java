@@ -41,7 +41,6 @@ public class TableMap {
 
   private final Map<String,String> tableNameToIdMap;
   private final Map<String,String> tableIdToNameMap;
-  private final Long creationTime;
 
   public TableMap(Instance instance, ZooCache zooCache) {
     List<String> tableIds = zooCache.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
@@ -79,7 +78,6 @@ public class TableMap {
     }
     tableNameToIdMap = tableNameToIdBuilder.build();
     tableIdToNameMap = tableIdToNameBuilder.build();
-    creationTime = System.nanoTime();
   }
 
   public Map<String,String> getNameToIdMap() {
@@ -88,9 +86,5 @@ public class TableMap {
 
   public Map<String,String> getIdtoNameMap() {
     return tableIdToNameMap;
-  }
-
-  public Long getCreationTime() {
-    return creationTime;
   }
 }

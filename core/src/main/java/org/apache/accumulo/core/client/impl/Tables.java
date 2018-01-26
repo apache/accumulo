@@ -50,6 +50,10 @@ public class Tables {
   private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
   private static Cache<String,ZooCache> instanceToZooCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
 
+  /**
+   * Return the cached ZooCache for provided instance. ZooCache is initially created with a watcher that will clear the TableMap cache for that instance when
+   * WatchedEvent occurs.
+   */
   private static ZooCache getZooCache(final Instance instance) {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
@@ -117,8 +121,8 @@ public class Tables {
   }
 
   /**
-   * Create a new TableMap if needed and cache it locally. The creation of the TableMap is synchronized so only one thread will generate the map. Added for
-   * ACCUMULO-4778.
+   * Get the TableMap from the cache. A new one will be populated when needed. Cache is cleared manually by calling {@link #clearCache(Instance)} or
+   * automatically cleared by ZooCache watcher created in {@link #getZooCache(Instance)}. See ACCUMULO-4778.
    */
   private static TableMap getTableMap(final Instance instance) {
     TableMap map;
