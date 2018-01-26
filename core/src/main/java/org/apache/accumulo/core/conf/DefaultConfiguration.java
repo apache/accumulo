@@ -58,4 +58,9 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       if (filter.apply(entry.getKey()))
         props.put(entry.getKey(), entry.getValue());
   }
+
+  @Override
+  protected String getArbitrarySystemPropertyImpl(String property) {
+    return null;
+  }
 }

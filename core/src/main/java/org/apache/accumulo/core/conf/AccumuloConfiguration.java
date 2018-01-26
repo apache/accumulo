@@ -35,6 +35,7 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 
@@ -107,6 +108,32 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
+
+  protected String getArbitrarySystemPropertyImpl(AccumuloConfiguration parent, String property) {
+    return parent.getArbitrarySystemPropertyImpl(property);
+  }
+
+  /**
+   * This method is not called with sensitive or per table properties.
+   */
+  protected String getArbitrarySystemPropertyImpl(String property) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * This method was created because {@link #get(String)} is very slow. However this method does not properly handle everything that {@link #get(String)} does.
+   * For example it does not properly handle table or sensitive properties.
+   *
+   * <p>
+   * This method has a whitelist of prefixes it handles. To see the whitelist, check the implementation. When adding to the whitelist, ensure that all
+   * configurations can properly handle.
+   */
+  public String getArbitrarySystemProperty(Property prefix, String property) {
+    Preconditions.checkArgument(prefix == Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+
+    String key = prefix.getKey() + property;
+    return getArbitrarySystemPropertyImpl(key);
+  }
 
   /**
    * Gets a property value from this configuration.
