@@ -355,9 +355,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     // Tolerate `toleratedWalCreationFailures` failures, waiting `walFailureRetryIncrement` milliseconds after the first failure,
     // incrementing the next wait period by the same value, for a maximum of `walFailureRetryMax` retries.
     final RetryFactory walCreationRetryFactory = new RetryFactory(toleratedWalCreationFailures, walFailureRetryIncrement, walFailureRetryIncrement,
-        walFailureRetryMax);
+        walFailureRetryMax, RetryFactory.DEFAULT_LOG_INTERVAL);
     // Tolerate infinite failures for the write, however backing off the same as for creation failures.
-    final RetryFactory walWritingRetryFactory = new RetryFactory(walFailureRetryIncrement, walFailureRetryIncrement, walFailureRetryMax);
+    final RetryFactory walWritingRetryFactory = new RetryFactory(walFailureRetryIncrement, walFailureRetryIncrement, walFailureRetryMax,
+        RetryFactory.DEFAULT_LOG_INTERVAL);
 
     logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter, walCreationRetryFactory, walWritingRetryFactory, walogMaxAge);
     this.resourceManager = new TabletServerResourceManager(this, fs);

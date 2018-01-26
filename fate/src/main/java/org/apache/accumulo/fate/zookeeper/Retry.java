@@ -19,6 +19,8 @@ package org.apache.accumulo.fate.zookeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * Encapsulates the retrying implementation for some operation. Provides bounded retry attempts with a bounded, linear backoff.
  */
@@ -30,6 +32,9 @@ public class Retry {
   private long maxRetries, maxWait, waitIncrement;
   private long retriesDone, currentWait;
 
+  private long logInterval;
+  private long lastRetryLog;
+
   /**
    * @param maxRetries
    *          Maximum times to retry or MAX_RETRY_DISABLED if no maximum
@@ -39,13 +44,18 @@ public class Retry {
    *          The maximum wait (ms)
    * @param waitIncrement
    *          The amount of time (ms) to increment next wait time by
+   * @param logInterval
+   *          The amount of time (ms) between logging retries
    */
-  public Retry(long maxRetries, long startWait, long waitIncrement, long maxWait) {
+
+  public Retry(long maxRetries, long startWait, long waitIncrement, long maxWait, long logInterval) {
     this.maxRetries = maxRetries;
     this.maxWait = maxWait;
     this.waitIncrement = waitIncrement;
     this.retriesDone = 0l;
     this.currentWait = startWait;
+    this.logInterval = logInterval;
+    this.lastRetryLog = -1;
   }
 
   /**
@@ -55,53 +65,72 @@ public class Retry {
    *          The maximum wait (ms)
    * @param waitIncrement
    *          The amount of time (ms) to increment next wait time by
+   * @param logInterval
+   *          The amount of time (ms) between logging retries
    */
-  public Retry(long startWait, long waitIncrement, long maxWait) {
-    this(MAX_RETRY_DISABLED, startWait, waitIncrement, maxWait);
+  public Retry(long startWait, long waitIncrement, long maxWait, long logInterval) {
+    this(MAX_RETRY_DISABLED, startWait, waitIncrement, maxWait, logInterval);
   }
 
   // Visible for testing
+  @VisibleForTesting
   long getMaxRetries() {
     return maxRetries;
   }
 
   // Visible for testing
+  @VisibleForTesting
   long getCurrentWait() {
     return currentWait;
   }
 
   // Visible for testing
+  @VisibleForTesting
   long getWaitIncrement() {
     return waitIncrement;
   }
 
   // Visible for testing
+  @VisibleForTesting
   long getMaxWait() {
     return maxWait;
   }
 
   // Visible for testing
+  @VisibleForTesting
   void setMaxRetries(long maxRetries) {
     this.maxRetries = maxRetries;
   }
 
   // Visible for testing
+  @VisibleForTesting
   void setStartWait(long startWait) {
     this.currentWait = startWait;
   }
 
   // Visible for testing
+  @VisibleForTesting
   void setWaitIncrement(long waitIncrement) {
     this.waitIncrement = waitIncrement;
   }
 
   // Visible for testing
+  @VisibleForTesting
   void setMaxWait(long maxWait) {
     this.maxWait = maxWait;
   }
 
   public boolean isMaxRetryDisabled() {
     return maxRetries < 0;
+  }
+
+  // Visible for testing
+  void setLogInterval(long logInterval) {
+    this.logInterval = logInterval;
+  }
+
+  public long getLogInterval() {
+    return logInterval;
   }
 
   public boolean canRetry() {
@@ -125,7 +154,9 @@ public class Retry {
   }
 
   public void waitForNextAttempt() throws InterruptedException {
-    log.debug("Sleeping for " + currentWait + "ms before retrying operation");
+    if (log.isDebugEnabled()) {
+      log.debug("Sleeping for " + currentWait + "ms before retrying operation");
+    }
     sleep(currentWait);
     currentWait = Math.min(maxWait, currentWait + waitIncrement);
   }
@@ -133,4 +164,25 @@ public class Retry {
   protected void sleep(long wait) throws InterruptedException {
     Thread.sleep(wait);
   }
+
+  public void logRetry(Logger log, String message, Throwable t) {
+    // log the first time, and then after every logInterval
+    if (lastRetryLog < 0 || (System.currentTimeMillis() - lastRetryLog) > logInterval) {
+      log.warn(getMessage(message), t);
+      lastRetryLog = System.currentTimeMillis();
+    }
+  }
+
+  public void logRetry(Logger log, String message) {
+    // log the first time, and then after every logInterval
+    if (lastRetryLog < 0 || (System.currentTimeMillis() - lastRetryLog) > logInterval) {
+      log.warn(getMessage(message));
+      lastRetryLog = System.currentTimeMillis();
+    }
+  }
+
+  private String getMessage(String message) {
+    return message + ", retrying attempt " + (retriesDone + 1) + " (suppressing retry messages for " + logInterval + "ms)";
+  }
+
 }
