@@ -2815,8 +2815,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     try {
       AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig() {
         @Override
-        public String getProperty(String key) {
-          return getConfiguration().get(key);
+        public String getVfsContextClasspathProperty(String key) {
+          return getConfiguration().getArbitrarySystemProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY, key);
         }
       });
     } catch (IOException e) {
