@@ -591,9 +591,16 @@ public enum Property {
 
   ;
 
-  private String key, defaultValue, computedDefaultValue, description;
-  private boolean annotationsComputed = false, defaultValueComputed = false;
-  private boolean isSensitive, isDeprecated, isExperimental, isInterpolated;
+  private String key;
+  private String defaultValue;
+  private String computedDefaultValue;
+  private String description;
+  private boolean annotationsComputed = false;
+  private boolean defaultValueComputed = false;
+  private boolean isSensitive;
+  private boolean isDeprecated;
+  private boolean isExperimental;
+  private boolean isInterpolated;
   private PropertyType type;
   private static final Logger log = LoggerFactory.getLogger(Property.class);
 
@@ -633,7 +640,7 @@ public enum Property {
    * @return default value
    */
   public String getDefaultValue() {
-    Preconditions.checkState(defaultValueComputed);
+    Preconditions.checkState(defaultValueComputed, "precomputeDefaultValue() must be called before calling this method");
     return computedDefaultValue;
   }
 
@@ -676,7 +683,7 @@ public enum Property {
   }
 
   private boolean isInterpolated() {
-    Preconditions.checkState(annotationsComputed);
+    Preconditions.checkState(annotationsComputed, "precomputeAnnotations() must be called before calling this method");
     return isInterpolated;
   }
 
@@ -686,7 +693,7 @@ public enum Property {
    * @return true if this property is experimental
    */
   public boolean isExperimental() {
-    Preconditions.checkState(annotationsComputed);
+    Preconditions.checkState(annotationsComputed, "precomputeAnnotations() must be called before calling this method");
     return isExperimental;
   }
 
@@ -696,7 +703,7 @@ public enum Property {
    * @return true if this property is deprecated
    */
   public boolean isDeprecated() {
-    Preconditions.checkState(annotationsComputed);
+    Preconditions.checkState(annotationsComputed, "precomputeAnnotations() must be called before calling this method");
     return isDeprecated;
   }
 
@@ -706,7 +713,7 @@ public enum Property {
    * @return true if this property is sensitive
    */
   public boolean isSensitive() {
-    Preconditions.checkState(annotationsComputed);
+    Preconditions.checkState(annotationsComputed, "precomputeAnnotations() must be called before calling this method");
     return isSensitive;
   }
 

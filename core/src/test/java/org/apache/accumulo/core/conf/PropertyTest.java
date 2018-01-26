@@ -155,6 +155,10 @@ public class PropertyTest {
   }
 
   @SuppressWarnings("deprecation")
+  private Property getDeprecatedProperty() {
+    return Property.INSTANCE_DFS_DIR;
+  }
+
   @Test
   public void testAnnotations() {
     assertTrue(Property.TABLE_VOLUME_CHOOSER.isExperimental());
@@ -163,7 +167,7 @@ public class PropertyTest {
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
     assertFalse(Property.INSTANCE_VOLUMES.isSensitive());
 
-    assertTrue(Property.INSTANCE_DFS_URI.isDeprecated());
+    assertTrue(getDeprecatedProperty().isDeprecated());
     assertFalse(Property.INSTANCE_VOLUMES_REPLACEMENTS.isDeprecated());
 
   }
