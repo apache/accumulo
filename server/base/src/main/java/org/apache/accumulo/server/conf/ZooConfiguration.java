@@ -35,14 +35,12 @@ import org.slf4j.LoggerFactory;
 public class ZooConfiguration extends AccumuloConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ZooConfiguration.class);
 
-  private final String instanceId;
   private final ZooCache propCache;
   private final AccumuloConfiguration parent;
   private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<String,String>());
   private final String propPathPrefix;
 
   protected ZooConfiguration(String instanceId, ZooCache propCache, AccumuloConfiguration parent) {
-    this.instanceId = instanceId;
     this.propCache = propCache;
     this.parent = parent;
     this.propPathPrefix = ZooUtil.getRoot(instanceId) + Constants.ZCONFIG;
