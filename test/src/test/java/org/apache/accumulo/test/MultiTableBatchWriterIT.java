@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -61,12 +60,12 @@ public class MultiTableBatchWriterIT extends AccumuloClusterIT {
   @Before
   public void setUpArgs() throws AccumuloException, AccumuloSecurityException {
     connector = getConnector();
-    mtbw = getMultiTableBatchWriter(60);
+    mtbw = getMultiTableBatchWriter();
   }
 
-  public MultiTableBatchWriter getMultiTableBatchWriter(long cacheTimeoutInSeconds) {
+  public MultiTableBatchWriter getMultiTableBatchWriter() {
     ClientContext context = new ClientContext(connector.getInstance(), new Credentials(getAdminPrincipal(), getAdminToken()), getCluster().getClientConfig());
-    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig(), cacheTimeoutInSeconds, TimeUnit.SECONDS);
+    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig());
   }
 
   @Test
@@ -265,7 +264,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterIT {
 
   @Test
   public void testTableRenameNewWritersNoCaching() throws Exception {
-    mtbw = getMultiTableBatchWriter(0);
+    mtbw = getMultiTableBatchWriter();
 
     try {
       final String[] names = getUniqueNames(4);
@@ -462,7 +461,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterIT {
 
   @Test
   public void testOfflineTableWithoutCache() throws Exception {
-    mtbw = getMultiTableBatchWriter(0);
+    mtbw = getMultiTableBatchWriter();
     boolean mutationsRejected = false;
 
     try {

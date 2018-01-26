@@ -50,22 +50,23 @@ public class Tables {
   private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
   private static Cache<String,ZooCache> instanceToZooCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
 
-  private static ZooCache getZooCache(Instance instance) {
+  private static ZooCache getZooCache(final Instance instance) {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(TABLES_PERMISSION);
     }
     final String zks = instance.getZooKeepers();
     final int timeOut = instance.getZooKeepersSessionTimeOut();
+    final String uuid = instance.getInstanceID();
 
     try {
-      return instanceToZooCache.get(instance.getInstanceID(), new Callable<ZooCache>() {
+      return instanceToZooCache.get(uuid, new Callable<ZooCache>() {
         @Override
         public ZooCache call() {
           return new ZooCacheFactory().getZooCache(zks, timeOut, new Watcher() {
             @Override
             public void process(WatchedEvent watchedEvent) {
-              instanceToMapCache.invalidateAll();
+              instanceToMapCache.invalidate(uuid);
             }
           });
         }
@@ -143,7 +144,7 @@ public class Tables {
   public static void clearCache(Instance instance) {
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZTABLES);
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
-    instanceToMapCache.invalidateAll();
+    instanceToMapCache.invalidate(instance.getInstanceID());
   }
 
   /**
@@ -157,7 +158,7 @@ public class Tables {
   public static void clearCacheByPath(Instance instance, final String zooPath) {
     String thePath = zooPath.startsWith("/") ? zooPath : "/" + zooPath;
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + thePath);
-    instanceToMapCache.invalidateAll();
+    instanceToMapCache.invalidate(instance.getInstanceID());
   }
 
   public static String getPrintableTableNameFromId(Map<String,String> tidToNameMap, String tableId) {
