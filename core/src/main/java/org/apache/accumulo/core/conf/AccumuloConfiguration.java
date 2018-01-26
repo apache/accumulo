@@ -114,7 +114,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   /**
    * This method is not called with sensitive or per table properties.
    */
-  protected abstract String getArbitrarySystemPropertyImpl(String property);
+  protected String getArbitrarySystemPropertyImpl(String property) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * This method was created because {@link #get(String)} is very slow. However this method does not properly handle everything that {@link #get(String)} does.

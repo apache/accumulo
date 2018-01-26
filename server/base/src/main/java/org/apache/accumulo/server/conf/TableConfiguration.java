@@ -100,11 +100,6 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   @Override
-  protected String getArbitrarySystemPropertyImpl(String property) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, null);
   }

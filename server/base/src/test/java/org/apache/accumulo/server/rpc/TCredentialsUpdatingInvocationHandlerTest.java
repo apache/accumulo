@@ -61,11 +61,6 @@ public class TCredentialsUpdatingInvocationHandlerTest {
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         cc.getProperties(props, filter);
       }
-
-      @Override
-      protected String getArbitrarySystemPropertyImpl(String property) {
-        throw new UnsupportedOperationException();
-      }
     };
 
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
