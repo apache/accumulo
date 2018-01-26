@@ -493,7 +493,7 @@ public class OldMutation implements Writable {
 
   public TMutation toThrift() {
     serialize();
-    return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
+    return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries, -1);
   }
 
 }

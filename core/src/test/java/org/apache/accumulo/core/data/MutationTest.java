@@ -470,10 +470,10 @@ public class MutationTest {
     dos.close();
     long newSize = dos.size();
     assertTrue(newSize < oldSize);
-    assertEquals(10, newSize - exampleLen);
+    assertEquals(11, newSize - exampleLen);
     assertEquals(68, oldSize - exampleLen);
     // I am converting to integer to avoid comparing floats which are inaccurate
-    assertEquals(14705, (int) (((newSize - exampleLen) * 100. / (oldSize - exampleLen)) * 1000));
+    assertEquals(16176, (int) (((newSize - exampleLen) * 100. / (oldSize - exampleLen)) * 1000));
     StringBuilder sb = new StringBuilder();
     byte[] ba = bos.toByteArray();
     for (int i = 0; i < bos.size(); i += 4) {
@@ -482,7 +482,7 @@ public class MutationTest {
       }
       sb.append(" ");
     }
-    assertEquals("80322031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 06000000 00000001 ",
+    assertEquals("80322031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 06000000 00000001 32 ",
         sb.toString());
 
   }
@@ -679,5 +679,13 @@ public class MutationTest {
     } catch (IllegalStateException e) {
       fail("Calling Mutation#equals then Mutation#put should not result in an IllegalStateException.");
     }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSanityCheck() {
+    Mutation m = new Mutation("too big mutation");
+    m.put("cf", "cq1", "v");
+    m.size.update(Long.MAX_VALUE / 2);
+    m.put("cf", "cq2", "v");
   }
 }
