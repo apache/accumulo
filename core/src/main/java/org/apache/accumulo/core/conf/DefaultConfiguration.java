@@ -49,4 +49,9 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     resolvedProps.entrySet().stream().filter(p -> filter.test(p.getKey())).forEach(e -> props.put(e.getKey(), e.getValue()));
   }
+
+  @Override
+  protected String getArbitrarySystemPropertyImpl(String property) {
+    return null;
+  }
 }
