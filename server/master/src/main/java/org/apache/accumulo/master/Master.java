@@ -610,8 +610,8 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     try {
       AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig() {
         @Override
-        public String getVfsContextClasspathProperty(String key) {
-          return getConfiguration().getArbitrarySystemProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY, key);
+        public Map<String,String> getVfsContextClasspathProperties() {
+          return getConfiguration().getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
         }
       });
     } catch (IOException e) {

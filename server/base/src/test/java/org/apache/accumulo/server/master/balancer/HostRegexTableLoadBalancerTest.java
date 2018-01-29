@@ -185,6 +185,11 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
               }
             }
           }
+
+          @Override
+          public long getUpdateCount() {
+            return 0;
+          }
         };
       }
     });
@@ -255,6 +260,11 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
                 props.put(e.getKey(), e.getValue());
               }
             }
+          }
+
+          @Override
+          public long getUpdateCount() {
+            return 0;
           }
         };
       }

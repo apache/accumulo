@@ -177,6 +177,11 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
             }
           }
         }
+
+        @Override
+        public long getUpdateCount() {
+          return 0;
+        }
       };
     }
   }

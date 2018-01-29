@@ -167,4 +167,9 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     // to see if it happened to be created so we could invalidate its cache
     // but I don't see much benefit coming from that extra check.
   }
+
+  @Override
+  public long getUpdateCount() {
+    return parent.getUpdateCount() + getPropCacheAccessor().getZooCache().getUpdateCount();
+  }
 }
