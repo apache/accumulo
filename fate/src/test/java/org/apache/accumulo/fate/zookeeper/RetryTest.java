@@ -16,10 +16,17 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
 
 /**
  *
@@ -27,15 +34,15 @@ import org.junit.Test;
 public class RetryTest {
 
   private Retry retry;
-  long initialWait = 1000l, waitIncrement = 1000l, maxRetries = 5;
+  long initialWait = 1000l, waitIncrement = 1000l, maxRetries = 5, logInterval = 1000l;
   private Retry unlimitedRetry1;
   private Retry unlimitedRetry2;
 
   @Before
   public void setup() {
-    retry = new Retry(maxRetries, initialWait, waitIncrement, maxRetries * 1000l);
-    unlimitedRetry1 = new Retry(initialWait, waitIncrement, maxRetries * 1000l);
-    unlimitedRetry2 = new Retry(-10, initialWait, waitIncrement, maxRetries * 1000l);
+    retry = new Retry(maxRetries, initialWait, waitIncrement, maxRetries * 1000l, logInterval);
+    unlimitedRetry1 = new Retry(initialWait, waitIncrement, maxRetries * 1000l, logInterval);
+    unlimitedRetry2 = new Retry(-10, initialWait, waitIncrement, maxRetries * 1000l, logInterval);
   }
 
   @Test
@@ -147,4 +154,344 @@ public class RetryTest {
       unlimitedRetry2.useRetry();
     }
   }
+
+  @Test
+  public void testLogging() {
+    TestLogger testLogger = new TestLogger();
+    Retry.setLogger(testLogger);
+    try {
+
+      // we want to do this for 5 second and observe the log messages
+      long start = System.currentTimeMillis();
+      long end = System.currentTimeMillis();
+      int i = 0;
+      for (; (end - start < 5000l) && (i < Integer.MAX_VALUE); i++) {
+        unlimitedRetry1.logRetry("failure message");
+        unlimitedRetry1.useRetry();
+        end = System.currentTimeMillis();
+      }
+
+      // now observe what log messages we got which should be around 5 +- 1
+      Assert.assertTrue(i > 10);
+      Assert.assertTrue(testLogger.getMessages().size() >= 4 && testLogger.getMessages().size() <= 6);
+    } finally {
+      Retry.setLogger(LoggerFactory.getLogger(Retry.class));
+    }
+
+  }
+
+  private static class TestLogger implements Logger {
+
+    private List<String> messages = new ArrayList<>();
+
+    public List<String> getMessages() {
+      return Collections.unmodifiableList(messages);
+    }
+
+    @Override
+    public String getName() {
+      return "TestLogger";
+    }
+
+    @Override
+    public boolean isTraceEnabled() {
+      return true;
+    }
+
+    @Override
+    public void trace(String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void trace(String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void trace(String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void trace(String format, Object... arguments) {
+      messages.add(format);
+    }
+
+    @Override
+    public void trace(String msg, Throwable t) {
+      messages.add(msg);
+    }
+
+    @Override
+    public boolean isTraceEnabled(Marker marker) {
+      return true;
+    }
+
+    @Override
+    public void trace(Marker marker, String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void trace(Marker marker, String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void trace(Marker marker, String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void trace(Marker marker, String format, Object... argArray) {
+      messages.add(format);
+    }
+
+    @Override
+    public void trace(Marker marker, String msg, Throwable t) {
+      messages.add(msg);
+    }
+
+    @Override
+    public boolean isDebugEnabled() {
+      return true;
+    }
+
+    @Override
+    public void debug(String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void debug(String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void debug(String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void debug(String format, Object... arguments) {
+      messages.add(format);
+    }
+
+    @Override
+    public void debug(String msg, Throwable t) {
+      messages.add(msg);
+    }
+
+    @Override
+    public boolean isDebugEnabled(Marker marker) {
+      return true;
+    }
+
+    @Override
+    public void debug(Marker marker, String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void debug(Marker marker, String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void debug(Marker marker, String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void debug(Marker marker, String format, Object... arguments) {
+      messages.add(format);
+    }
+
+    @Override
+    public void debug(Marker marker, String msg, Throwable t) {
+      messages.add(msg);
+    }
+
+    @Override
+    public boolean isInfoEnabled() {
+      return true;
+    }
+
+    @Override
+    public void info(String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void info(String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void info(String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void info(String format, Object... arguments) {
+      messages.add(format);
+    }
+
+    @Override
+    public void info(String msg, Throwable t) {
+      messages.add(msg);
+    }
+
+    @Override
+    public boolean isInfoEnabled(Marker marker) {
+      return true;
+    }
+
+    @Override
+    public void info(Marker marker, String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void info(Marker marker, String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void info(Marker marker, String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void info(Marker marker, String format, Object... arguments) {
+      messages.add(format);
+    }
+
+    @Override
+    public void info(Marker marker, String msg, Throwable t) {
+      messages.add(msg);
+    }
+
+    @Override
+    public boolean isWarnEnabled() {
+      return true;
+    }
+
+    @Override
+    public void warn(String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void warn(String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void warn(String format, Object... arguments) {
+      messages.add(format);
+    }
+
+    @Override
+    public void warn(String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void warn(String msg, Throwable t) {
+      messages.add(msg);
+    }
+
+    @Override
+    public boolean isWarnEnabled(Marker marker) {
+      return true;
+    }
+
+    @Override
+    public void warn(Marker marker, String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void warn(Marker marker, String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void warn(Marker marker, String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void warn(Marker marker, String format, Object... arguments) {
+      messages.add(format);
+    }
+
+    @Override
+    public void warn(Marker marker, String msg, Throwable t) {
+      messages.add(msg);
+    }
+
+    @Override
+    public boolean isErrorEnabled() {
+      return true;
+    }
+
+    @Override
+    public void error(String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void error(String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void error(String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void error(String format, Object... arguments) {
+      messages.add(format);
+    }
+
+    @Override
+    public void error(String msg, Throwable t) {
+      messages.add(msg);
+    }
+
+    @Override
+    public boolean isErrorEnabled(Marker marker) {
+      return true;
+    }
+
+    @Override
+    public void error(Marker marker, String msg) {
+      messages.add(msg);
+    }
+
+    @Override
+    public void error(Marker marker, String format, Object arg) {
+      messages.add(format);
+    }
+
+    @Override
+    public void error(Marker marker, String format, Object arg1, Object arg2) {
+      messages.add(format);
+    }
+
+    @Override
+    public void error(Marker marker, String format, Object... arguments) {
+      messages.add(format);
+    }
+
+    @Override
+    public void error(Marker marker, String msg, Throwable t) {
+      messages.add(msg);
+    }
+  }
+
 }
