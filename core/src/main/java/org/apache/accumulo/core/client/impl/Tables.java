@@ -47,7 +47,8 @@ public class Tables {
   public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
 
   private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
-  private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
+  // Per instance cache will expire after 10 minutes in case we encounter an instance not used frequently
+  private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
   private static Cache<String,ZooCache> instanceToZooCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
 
   /**
