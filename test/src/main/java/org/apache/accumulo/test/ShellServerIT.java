@@ -2063,6 +2063,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table + "-l", false);
     ts.exec("createtable " + table + " -l locg1 = fam1,fam2", false);
     ts.exec("createtable " + table + " -l locg1=fam1 ,fam2", false);
+    ts.exec("createtable " + table + " -l locg1=fam1,fam2 locg1=fam3,fam4", false);
+    ts.exec("createtable " + table + " -l locg1=fam1,fam2 locg2=fam1", false);
     ts.exec("createtable " + table + " -l locg1", false);
     ts.exec("createtable " + table + " group=fam1", false);
     ts.exec("createtable " + table + "-l fam1,fam2", false);
@@ -2154,6 +2156,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Assert.assertTrue(output.contains("Profile : profile1"));
     ts.exec("createtable " + table + " -i noprofile:scan,minc", false);
     ts.exec("createtable " + table + " -i profile1:scan,minc,all,majc", false);
+    ts.exec("createtable " + table + " -i profile1:scan,min,majc", false);
     ts.exec("createtable " + table + " -i profile1", false);
     ts.exec("createtable " + table + " profile1:-scan", false);
     ts.exec("createtable " + table + " -i profile1: all", false);

@@ -18,6 +18,7 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -184,6 +185,8 @@ public class CreateTableCommand extends Command {
       final HashSet<Text> colFams = new HashSet<>();
       for (String family : parts[1].split(","))
         colFams.add(new Text(family.getBytes(Shell.CHARSET)));
+      if (localityGroupMap.containsKey(groupName))
+        throw new IllegalArgumentException("Duplicate locality group name found. Group names must be unique");
       localityGroupMap.put(groupName, colFams);
     }
     ntc.setLocalityGroups(localityGroupMap);
@@ -210,8 +213,13 @@ public class CreateTableCommand extends Command {
         throw new IllegalArgumentException("Provided iterator profile, " + profileName + ", does not exist");
       // parse scope info
       List<String> scopeList = Arrays.asList(parts[1].split(","));
+      // Check validity of scope
       if (scopeList.size() > 3) // max of three scope settings allowed
-        throw new IllegalArgumentException("Too many scopes supplied");
+        throw new IllegalArgumentException("Too many scope arguments supplied");
+      Collection<String> validScopes = setValidScopes();
+      for (String scope : scopeList)
+        if (!validScopes.contains(scope))
+          throw new IllegalArgumentException("Invalid scope supplied.");
       EnumSet<IteratorUtil.IteratorScope> scopes = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
       if (scopeList.contains("all") || scopeList.contains("scan"))
         scopes.add(IteratorUtil.IteratorScope.scan);
@@ -224,6 +232,15 @@ public class CreateTableCommand extends Command {
       ntc.attachIterator(iteratorSetting, scopes);
     }
     return ntc;
+  }
+
+  private Collection<String> setValidScopes() {
+    Collection<String> scopes = new HashSet<>();
+    scopes.add("all");
+    scopes.add("scan");
+    scopes.add("minc");
+    scopes.add("majc");
+    return scopes;
   }
 
   @Override
