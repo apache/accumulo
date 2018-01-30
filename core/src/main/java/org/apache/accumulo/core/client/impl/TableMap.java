@@ -48,22 +48,19 @@ public class TableMap {
     ImmutableMap.Builder<String,String> tableNameToIdBuilder = new ImmutableMap.Builder<>();
     ImmutableMap.Builder<String,String> tableIdToNameBuilder = new ImmutableMap.Builder<>();
     // use StringBuilder to construct zPath string efficiently across many tables
-    StringBuilder zPathTableIdBuilder = new StringBuilder();
-    StringBuilder zPathNameIdBuilder = new StringBuilder();
-    zPathTableIdBuilder.append(ZooUtil.getRoot(instance)).append(Constants.ZTABLES).append("/");
-    zPathNameIdBuilder.append(ZooUtil.getRoot(instance)).append(Constants.ZTABLES).append("/");
-    int zPathTableIdPrefixLength = zPathTableIdBuilder.length();
-    int zPathNameIdPrefixLength = zPathNameIdBuilder.length();
+    StringBuilder zPathBuilder = new StringBuilder();
+    zPathBuilder.append(ZooUtil.getRoot(instance)).append(Constants.ZTABLES).append("/");
+    int prefixLength = zPathBuilder.length();
 
     for (String tableId : tableIds) {
-      // reset StringBuilders to prefix length before appending ID and suffix
-      zPathTableIdBuilder.setLength(zPathTableIdPrefixLength);
-      zPathTableIdBuilder.append(tableId).append(Constants.ZTABLE_NAME);
-      zPathNameIdBuilder.setLength(zPathNameIdPrefixLength);
-      zPathNameIdBuilder.append(tableId).append(Constants.ZTABLE_NAMESPACE);
+      // reset StringBuilder to prefix length before appending ID and suffix
+      zPathBuilder.setLength(prefixLength);
+      zPathBuilder.append(tableId).append(Constants.ZTABLE_NAME);
+      byte[] tableName = zooCache.get(zPathBuilder.toString());
+      zPathBuilder.setLength(prefixLength);
+      zPathBuilder.append(tableId).append(Constants.ZTABLE_NAMESPACE);
+      byte[] nId = zooCache.get(zPathBuilder.toString());
 
-      byte[] tableName = zooCache.get(zPathTableIdBuilder.toString());
-      byte[] nId = zooCache.get(zPathNameIdBuilder.toString());
       String namespaceName = Namespaces.DEFAULT_NAMESPACE;
       // create fully qualified table name
       if (nId == null) {
