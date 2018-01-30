@@ -421,7 +421,6 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       HashSet<String> tableIds = new HashSet<>();
 
-      Tables.clearCache(instance);
       for (String table : tables) {
         // ensure that table table exists
         String tableId = checkTableId(instance, table, null);
