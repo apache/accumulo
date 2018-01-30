@@ -34,11 +34,13 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -2019,5 +2021,144 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertNotContains(output, "c:f3");
     // check that there are two files, with none having extra summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
+  }
+
+  @Test
+  public void testCreateTableWithLocalityGroups() throws Exception {
+    final String table = name.getMethodName();
+    ts.exec("createtable " + table + " -l locg1=fam1,fam2", true);
+    Connector connector = getConnector();
+    Map<String,Set<Text>> lMap = connector.tableOperations().getLocalityGroups(table);
+    Set<Text> expectedColFams = new HashSet<>(Arrays.asList(new Text("fam1"), new Text("fam2")));
+    for (Entry<String,Set<Text>> entry : lMap.entrySet()) {
+      Assert.assertTrue(entry.getKey().equals("locg1"));
+      Assert.assertTrue(entry.getValue().containsAll(expectedColFams));
+    }
+    ts.exec("deletetable -f " + table);
+  }
+
+  /**
+   * Due to the existing complexity of the createtable command, the createtable help only displays an example of setting one locality group. It is possible to
+   * set multiple groups if needed. This test verifies that capability.
+   */
+  @Test
+  public void testCreateTableWithMultipleLocalityGroups() throws Exception {
+    final String table = name.getMethodName();
+    ts.exec("createtable " + table + " -l locg1=fam1,fam2 locg2=colfam1", true);
+    Connector connector = getConnector();
+    Map<String,Set<Text>> lMap = connector.tableOperations().getLocalityGroups(table);
+    Assert.assertTrue(lMap.keySet().contains("locg1"));
+    Assert.assertTrue(lMap.keySet().contains("locg2"));
+    Set<Text> expectedColFams1 = new HashSet<>(Arrays.asList(new Text("fam1"), new Text("fam2")));
+    Set<Text> expectedColFams2 = new HashSet<>(Arrays.asList(new Text("colfam1")));
+    Assert.assertTrue(lMap.get("locg1").containsAll(expectedColFams1));
+    Assert.assertTrue(lMap.get("locg2").containsAll(expectedColFams2));
+    ts.exec("deletetable -f " + table);
+  }
+
+  @Test
+  public void testCreateTableWithLocalityGroupsBadArguments() throws IOException {
+    final String table = name.getMethodName();
+    ts.exec("createtable " + table + " -l locg1 fam1,fam2", false);
+    ts.exec("createtable " + table + "-l", false);
+    ts.exec("createtable " + table + " -l locg1 = fam1,fam2", false);
+    ts.exec("createtable " + table + " -l locg1=fam1 ,fam2", false);
+    ts.exec("createtable " + table + " -l locg1", false);
+    ts.exec("createtable " + table + " group=fam1", false);
+    ts.exec("createtable " + table + "-l fam1,fam2", false);
+    ts.exec("createtable " + table + " -local locg1=fam1,fam2", false);
+  }
+
+  @Test
+  public void testCreateTableWithIterators() throws Exception {
+    final String tmpTable = "tmpTable";
+    final String table = name.getMethodName();
+
+    // create iterator profile
+    // Will use tmpTable for creating profile since setshelliter is requiring a table
+    // even though its command line help indicates that it is optional. Likely due to
+    // the fact that setshelliter extends setiter, which does require a table argument.
+    ts.exec("createtable " + tmpTable, true);
+    String output = ts.exec("tables");
+    Assert.assertTrue(output.contains(tmpTable));
+
+    ts.input.set("\n5000\n\n");
+    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff -t " + tmpTable, true);
+    output = ts.exec("listshelliter");
+    Assert.assertTrue(output.contains("Profile : profile1"));
+
+    // create table making use of the iterator profile
+    ts.exec("createtable " + table + " -i profile1:scan,minc", true);
+    ts.exec("insert foo a b c", true);
+    ts.exec("scan", true, "foo a:b []    c");
+    ts.exec("sleep 6", true);
+    ts.exec("scan", true, "", true);
+    ts.exec("deletetable -f " + table);
+    ts.exec("deletetable -f " + tmpTable);
+  }
+
+  /**
+   * Due to the existing complexity of the createtable command, the createtable help only displays an example of setting one iterator upon table creation. It is
+   * possible to set multiple if needed. This test verifies that capability.
+   */
+  @Test
+  public void testCreateTableWithMultipleIterators() throws Exception {
+    final String tmpTable = "tmpTable";
+    final String table = name.getMethodName();
+
+    // create iterator profile
+    // Will use tmpTable for creating profile since setshelliter is requiring a table
+    // even though its command line help indicates that it is optional. Likely due to
+    // the fact that setshelliter extends setiter, which does require a table argument.
+    ts.exec("createtable " + tmpTable, true);
+    String output = ts.exec("tables");
+    Assert.assertTrue(output.contains(tmpTable));
+
+    ts.input.set("\n5000\n\n");
+    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff -t " + tmpTable, true);
+    output = ts.exec("listshelliter");
+    Assert.assertTrue(output.contains("Profile : profile1"));
+
+    ts.input.set("2\n");
+    ts.exec("setshelliter -n iter2 -p 11 -pn profile2 -vers -t " + tmpTable, true);
+    output = ts.exec("listshelliter");
+    Assert.assertTrue(output.contains("Profile : profile2"));
+
+    // create table making use of the iterator profiles
+    ts.exec("createtable " + table + " -i profile1:scan,minc profile2:all ", true);
+    ts.exec("insert foo a b c", true);
+    ts.exec("scan", true, "foo a:b []    c");
+    ts.exec("sleep 6", true);
+    ts.exec("scan", true, "", true);
+    output = ts.exec("listiter -t " + table + " -all");
+    Assert.assertTrue(output.contains("Iterator itname, scan scope options"));
+    Assert.assertTrue(output.contains("Iterator itname, minc scope options"));
+    Assert.assertFalse(output.contains("Iterator itname, majc scope options"));
+    Assert.assertTrue(output.contains("Iterator iter2, scan scope options"));
+    Assert.assertTrue(output.contains("Iterator iter2, minc scope options"));
+    Assert.assertTrue(output.contains("Iterator iter2, majc scope options"));
+    ts.exec("deletetable -f " + table);
+    ts.exec("deletetable -f " + tmpTable);
+  }
+
+  @Test
+  public void testCreateTableWithIteratorsBadArguments() throws IOException {
+    final String tmpTable = "tmpTable";
+    final String table = name.getMethodName();
+    ts.exec("createtable " + tmpTable, true);
+    String output = ts.exec("tables");
+    Assert.assertTrue(output.contains(tmpTable));
+    ts.input.set("\n5000\n\n");
+    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff -t " + tmpTable, true);
+    output = ts.exec("listshelliter");
+    Assert.assertTrue(output.contains("Profile : profile1"));
+    ts.exec("createtable " + table + " -i noprofile:scan,minc", false);
+    ts.exec("createtable " + table + " -i profile1:scan,minc,all,majc", false);
+    ts.exec("createtable " + table + " -i profile1", false);
+    ts.exec("createtable " + table + " profile1:-scan", false);
+    ts.exec("createtable " + table + " -i profile1: all", false);
+    ts.exec("createtable " + table + " -i profile1:minc scan", false);
+    ts.exec("createtable " + table + " -i profile1:minc, scan", false);
+    ts.exec("deletetable -f " + tmpTable);
   }
 }

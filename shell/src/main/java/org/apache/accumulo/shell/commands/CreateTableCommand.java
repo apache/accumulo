@@ -17,7 +17,11 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -26,6 +30,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -56,6 +61,8 @@ public class CreateTableCommand extends Command {
   private Option base64Opt;
   private Option createTableOptFormatter;
   private Option createTableOptInitProp;
+  private Option createTableOptLocalityProps;
+  private Option createTableOptIteratorProps;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
@@ -63,6 +70,7 @@ public class CreateTableCommand extends Command {
 
     final String testTableName = cl.getArgs()[0];
     final HashMap<String,String> props = new HashMap<>();
+    NewTableConfiguration ntc = new NewTableConfiguration();
 
     if (!testTableName.matches(Tables.VALID_NAME_REGEX)) {
       shellState.getReader().println("Only letters, numbers and underscores are allowed for use in table names.");
@@ -106,8 +114,18 @@ public class CreateTableCommand extends Command {
       }
     }
 
+    // Set iterator if supplied
+    if (cl.hasOption(createTableOptIteratorProps.getOpt())) {
+      ntc = attachIteratorToNewTable(cl, shellState, ntc);
+    }
+
+    // Set up locality groups, if supplied
+    if (cl.hasOption(createTableOptLocalityProps.getOpt())) {
+      ntc = setLocalityForNewTable(cl, ntc);
+    }
+
     // create table
-    shellState.getConnector().tableOperations().create(tableName, new NewTableConfiguration().setTimeType(timeType).setProperties(props));
+    shellState.getConnector().tableOperations().create(tableName, ntc.setTimeType(timeType).setProperties(props));
     if (partitions.size() > 0) {
       shellState.getConnector().tableOperations().addSplits(tableName, partitions);
     }
@@ -150,9 +168,67 @@ public class CreateTableCommand extends Command {
     return 0;
   }
 
+  /**
+   * Add supplied locality groups information to a NewTableConfiguration object.
+   *
+   * Used in conjunction with createtable shell command to allow locality groups to be configured upon table creation.
+   */
+  private NewTableConfiguration setLocalityForNewTable(CommandLine cl, NewTableConfiguration ntc) {
+    HashMap<String,Set<Text>> localityGroupMap = new HashMap<>();
+    String[] options = cl.getOptionValues(createTableOptLocalityProps.getOpt());
+    for (String localityInfo : options) {
+      final String parts[] = localityInfo.split("=", 2);
+      if (parts.length < 2)
+        throw new IllegalArgumentException("Missing '=' or there are spaces between entries");
+      final String groupName = parts[0];
+      final HashSet<Text> colFams = new HashSet<>();
+      for (String family : parts[1].split(","))
+        colFams.add(new Text(family.getBytes(Shell.CHARSET)));
+      localityGroupMap.put(groupName, colFams);
+    }
+    ntc.setLocalityGroups(localityGroupMap);
+    return ntc;
+  }
+
+  /**
+   * Add supplied iterator information to NewTableConfiguration object.
+   *
+   * Used in conjunction with createtable shell command to allow an iterator to be configured upon table creation.
+   */
+  private NewTableConfiguration attachIteratorToNewTable(CommandLine cl, Shell shellState, NewTableConfiguration ntc) {
+    if (shellState.iteratorProfiles.size() == 0)
+      throw new IllegalArgumentException("No shell iterator profiles have been created.");
+    String[] options = cl.getOptionValues(createTableOptIteratorProps.getOpt());
+    for (String profileInfo : options) {
+      String[] parts = profileInfo.split(":", 2);
+      if (parts.length < 2)
+        throw new IllegalArgumentException("Missing scope or there are spaces between parameters");
+      // get profile name
+      String profileName = parts[0];
+      IteratorSetting iteratorSetting = shellState.iteratorProfiles.get(profileName).get(0);
+      if (iteratorSetting == null)
+        throw new IllegalArgumentException("Provided iterator profile, " + profileName + ", does not exist");
+      // parse scope info
+      List<String> scopeList = Arrays.asList(parts[1].split(","));
+      if (scopeList.size() > 3) // max of three scope settings allowed
+        throw new IllegalArgumentException("Too many scopes supplied");
+      EnumSet<IteratorUtil.IteratorScope> scopes = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
+      if (scopeList.contains("all") || scopeList.contains("scan"))
+        scopes.add(IteratorUtil.IteratorScope.scan);
+      if (scopeList.contains("all") || scopeList.contains("minc"))
+        scopes.add(IteratorUtil.IteratorScope.minc);
+      if (scopeList.contains("all") || scopeList.contains("majc"))
+        scopes.add(IteratorUtil.IteratorScope.majc);
+      if (scopes.isEmpty())
+        throw new IllegalArgumentException("You must supply at least one scope to configure an iterator.");
+      ntc.attachIterator(iteratorSetting, scopes);
+    }
+    return ntc;
+  }
+
   @Override
   public String description() {
-    return "creates a new table, with optional aggregators and optionally pre-split";
+    return "creates a new table, with optional aggregators, iterators, locality groups and optionally pre-split";
   }
 
   @Override
@@ -174,12 +250,19 @@ public class CreateTableCommand extends Command {
         "prevent users from writing data they cannot read.  When enabling this, consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
     createTableOptInitProp = new Option("prop", "init-properties", true, "user defined initial properties");
-
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptFormatter.setArgName("className");
     createTableOptInitProp.setArgName("properties");
+
+    createTableOptLocalityProps = new Option("l", "locality", true, "create locality groups at table creation");
+    createTableOptLocalityProps.setArgName("group=col_fam[,col_fam]");
+    createTableOptLocalityProps.setArgs(Option.UNLIMITED_VALUES);
+
+    createTableOptIteratorProps = new Option("i", "iter", true, "initialize iterator at table creation using profile.");
+    createTableOptIteratorProps.setArgName("profile:<[all] | [minc[,]][majc][,]][scan]>");
+    createTableOptIteratorProps.setArgs(Option.UNLIMITED_VALUES);
 
     // Splits and CopySplits are put in an optionsgroup to make them
     // mutually exclusive
@@ -202,6 +285,8 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableOptEVC);
     o.addOption(createTableOptFormatter);
     o.addOption(createTableOptInitProp);
+    o.addOption(createTableOptLocalityProps);
+    o.addOption(createTableOptIteratorProps);
 
     return o;
   }
