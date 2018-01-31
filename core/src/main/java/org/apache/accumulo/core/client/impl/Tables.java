@@ -19,14 +19,11 @@ package org.apache.accumulo.core.client.impl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.security.SecurityPermission;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -38,19 +35,18 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 public class Tables {
-  private static final Logger log = LoggerFactory.getLogger(Tables.class);
 
   public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
 
-  private static final AtomicLong cacheResetCount = new AtomicLong(0);
-
-  private static ZooCache getZooCache(Instance instance) {
-    return new ZooCacheFactory().getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-  }
+  private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission("tablesPermission");
+  // Per instance cache will expire after 10 minutes in case we encounter an instance not used frequently
+  private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
+  private static Cache<String,ZooCache> instanceToZooCache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
 
   /**
    * Lookup table ID in ZK. Throw TableNotFoundException if not found. Also wraps NamespaceNotFoundException in TableNotFoundException if namespace is not
@@ -65,14 +61,35 @@ public class Tables {
   }
 
   /**
+   * Return the cached ZooCache for provided instance. ZooCache is initially created with a watcher that will clear the TableMap cache for that instance when
+   * WatchedEvent occurs.
+   */
+  private static ZooCache getZooCache(final Instance instance) {
+    SecurityManager sm = System.getSecurityManager();
+    if (sm != null) {
+      sm.checkPermission(TABLES_PERMISSION);
+    }
+    final String zks = instance.getZooKeepers();
+    final int timeOut = instance.getZooKeepersSessionTimeOut();
+    final String uuid = instance.getInstanceID();
+
+    try {
+      return instanceToZooCache.get(uuid, () -> new ZooCacheFactory().getZooCache(zks, timeOut,
+              watchedEvent -> instanceToMapCache.invalidate(uuid)));
+    } catch (ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
    * Lookup table ID in ZK. If not found, clears cache and tries again.
    */
   public static Table.ID _getTableId(Instance instance, String tableName) throws NamespaceNotFoundException, TableNotFoundException {
-    Table.ID tableId = lookupTableId(instance, tableName);
+    Table.ID tableId = getNameToIdMap(instance).get(tableName);
     if (tableId == null) {
       // maybe the table exist, but the cache was not updated yet... so try to clear the cache and check again
       clearCache(instance);
-      tableId = lookupTableId(instance, tableName);
+      tableId = getNameToIdMap(instance).get(tableName);
       if (tableId == null) {
         String namespace = qualify(tableName).getFirst();
         if (Namespaces.getNameToIdMap(instance).containsKey(namespace))
@@ -84,18 +101,45 @@ public class Tables {
     return tableId;
   }
 
+  public static String getTableName(Instance instance, Table.ID tableId) throws TableNotFoundException {
+    String tableName = getIdToNameMap(instance).get(tableId);
+    if (tableName == null)
+      throw new TableNotFoundException(tableId.canonicalID(), null, null);
+    return tableName;
+  }
+
+  public static Map<String,Table.ID> getNameToIdMap(Instance instance) {
+    return getTableMap(instance).getNameToIdMap();
+  }
+
+  public static Map<Table.ID,String> getIdToNameMap(Instance instance) {
+    return getTableMap(instance).getIdtoNameMap();
+  }
+
+  /**
+   * Get the TableMap from the cache. A new one will be populated when needed. Cache is cleared manually by calling {@link #clearCache(Instance)} or
+   * automatically cleared by ZooCache watcher created in {@link #getZooCache(Instance)}. See ACCUMULO-4778.
+   */
+  private static TableMap getTableMap(final Instance instance) {
+    TableMap map;
+    try {
+      map = instanceToMapCache.get(instance.getInstanceID(), () -> new TableMap(instance, getZooCache(instance)));
+    } catch (ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+    return map;
+  }
+
   public static boolean exists(Instance instance, Table.ID tableId) {
-    if (tableId == null)
-      return false;
     ZooCache zc = getZooCache(instance);
     List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
     return tableIds.contains(tableId.canonicalID());
   }
 
   public static void clearCache(Instance instance) {
-    cacheResetCount.incrementAndGet();
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZTABLES);
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZNAMESPACES);
+    instanceToMapCache.invalidate(instance.getInstanceID());
   }
 
   /**
@@ -107,17 +151,9 @@ public class Tables {
    *          A zookeeper path
    */
   public static void clearCacheByPath(Instance instance, final String zooPath) {
-
-    String thePath;
-
-    if (zooPath.startsWith("/")) {
-      thePath = zooPath;
-    } else {
-      thePath = "/" + zooPath;
-    }
-
+    String thePath = zooPath.startsWith("/") ? zooPath : "/" + zooPath;
     getZooCache(instance).clear(ZooUtil.getRoot(instance) + thePath);
-
+    instanceToMapCache.invalidate(instance.getInstanceID());
   }
 
   public static String getPrintableTableInfoFromId(Instance instance, Table.ID tableId) {
@@ -173,10 +209,6 @@ public class Tables {
 
   }
 
-  public static long getCacheResetCount() {
-    return cacheResetCount.get();
-  }
-
   public static String qualified(String tableName) {
     return qualified(tableName, Namespace.DEFAULT);
   }
@@ -229,81 +261,5 @@ public class Tables {
     }
 
     return Namespace.ID.of(new String(n, UTF_8));
-  }
-
-  /**
-   * Get all table Ids and table names from ZK. The biConsumer accepts the first arg (t) as the table ID and second arg (u) as the table name.
-   */
-  private static void getAllTables(Instance instance, BiConsumer<String,String> biConsumer) {
-    ZooCache zc = getZooCache(instance);
-    List<String> tableIds = zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
-    Map<Namespace.ID,String> namespaceIdToNameMap = new HashMap<>();
-
-    for (String tableId : tableIds) {
-      byte[] tableName = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
-      byte[] nId = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
-      String namespaceName = Namespace.DEFAULT;
-      // create fully qualified table name
-      if (nId == null) {
-        namespaceName = null;
-      } else {
-        Namespace.ID namespaceId = Namespace.ID.of(new String(nId, UTF_8));
-        if (!namespaceId.equals(Namespace.ID.DEFAULT)) {
-          try {
-            namespaceName = namespaceIdToNameMap.get(namespaceId);
-            if (namespaceName == null) {
-              namespaceName = Namespaces.getNamespaceName(instance, namespaceId);
-              namespaceIdToNameMap.put(namespaceId, namespaceName);
-            }
-          } catch (NamespaceNotFoundException e) {
-            log.error("Table (" + tableId + ") contains reference to namespace (" + namespaceId + ") that doesn't exist", e);
-            continue;
-          }
-        }
-      }
-      if (tableName != null && namespaceName != null) {
-        String tableNameStr = qualified(new String(tableName, UTF_8), namespaceName);
-        biConsumer.accept(tableId, tableNameStr);
-      }
-    }
-  }
-
-  public static SortedMap<Table.ID,String> getIdToNameMap(Instance instance) {
-    SortedMap<Table.ID,String> map = new TreeMap<>();
-    getAllTables(instance, (id, name) -> map.put(Table.ID.of(id), name));
-    return map;
-  }
-
-  public static SortedMap<String,Table.ID> getNameToIdMap(Instance instance) {
-    SortedMap<String,Table.ID> map = new TreeMap<>();
-    getAllTables(instance, (id, name) -> map.put(name, Table.ID.of(id)));
-    return map;
-  }
-
-  /**
-   * Lookup the table name in ZK. Fail quietly, returning null if not found.
-   */
-  public static Table.ID lookupTableId(Instance instance, String tableName) {
-    ArrayList<Table.ID> singleId = new ArrayList<>(1);
-    getAllTables(instance, (id, name) -> {
-      if (name.equals(tableName))
-        singleId.add(Table.ID.of(id));
-    });
-    if (singleId.isEmpty())
-      return null;
-    else
-      return singleId.get(0);
-  }
-
-  public static String getTableName(Instance instance, Table.ID tableId) throws TableNotFoundException {
-    ArrayList<String> singleName = new ArrayList<>(1);
-    getAllTables(instance, (id, name) -> {
-      if (id.equals(tableId.canonicalID()))
-        singleName.add(name);
-    });
-    if (singleName.isEmpty())
-      throw new TableNotFoundException(tableId.canonicalID(), null, null);
-
-    return singleName.get(0);
   }
 }
