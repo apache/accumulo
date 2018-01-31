@@ -701,7 +701,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       Table.ID tableId;
       // resolve table name to id once, and use id from this point forward
       if (DeprecationUtil.isMockInstance(instance)) {
-        tableId = null;
+        tableId = Table.ID.of("");
       } else {
         try {
           tableId = Tables.getTableId(instance, tableName);
@@ -751,7 +751,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
               getClientConfiguration(context));
           while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
             if (!DeprecationUtil.isMockInstance(instance)) {
-              String tableIdStr = tableId != null ? tableId.canonicalID() : null;
+              String tableIdStr = tableId.canonicalID();
               if (!Tables.exists(instance, tableId))
                 throw new TableDeletedException(tableIdStr);
               if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
