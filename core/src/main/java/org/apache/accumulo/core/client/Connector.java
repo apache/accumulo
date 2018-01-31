@@ -284,11 +284,26 @@ public abstract class Connector {
   public abstract ReplicationOperations replicationOperations();
 
   /**
+   * Builds ConnectionInfo after all options have been specified
+   *
+   * @since 2.0.0
+   */
+  public interface ConnectionInfoFactory {
+
+    /**
+     * Builds ConnectionInfo after all options have been specified
+     *
+     * @return ConnectionInfo
+     */
+    ConnectionInfo info();
+  }
+
+  /**
    * Builds Connector
    *
    * @since 2.0.0
    */
-  public interface ConnectorFactory {
+  public interface ConnectorFactory extends ConnectionInfoFactory {
 
     /**
      * Builds Connector after all options have been specified
@@ -296,6 +311,7 @@ public abstract class Connector {
      * @return Connector
      */
     Connector build() throws AccumuloException, AccumuloSecurityException;
+
   }
 
   /**
@@ -333,12 +349,46 @@ public abstract class Connector {
     ConnectorFactory usingProperties(Properties properties);
   }
 
+  public interface ConnectionInfoOptions extends PropertyOptions {
+
+    /**
+     * Build using connection information
+     *
+     * @param connectionInfo
+     *          ConnectionInfo object
+     * @return this builder
+     */
+    ConnectorFactory usingConnectionInfo(ConnectionInfo connectionInfo);
+  }
+
   /**
    * Build methods for authentication
    *
    * @since 2.0.0
    */
   public interface AuthenticationArgs {
+
+    /**
+     * Build using password-based credentials
+     *
+     * @param username
+     *          User name
+     * @param password
+     *          Password
+     * @return this builder
+     */
+    ConnectionOptions usingBasicCredentials(String username, CharSequence password);
+
+    /**
+     * Build using Kerberos credentials
+     *
+     * @param principal
+     *          Principal
+     * @param keyTabFile
+     *          Path to keytab file
+     * @return this builder
+     */
+    ConnectionOptions usingKerberosCredentials(String principal, String keyTabFile);
 
     /**
      * Build using specified credentials

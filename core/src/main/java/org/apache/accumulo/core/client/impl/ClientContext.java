@@ -22,8 +22,6 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -31,11 +29,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -57,19 +53,19 @@ public class ClientContext {
 
   protected final Instance inst;
   private Credentials creds;
-  private Properties properties;
   private ClientConfiguration clientConf;
+  private BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
   private final AccumuloConfiguration rpcConf;
   protected Connector conn;
 
-  public ClientContext(Instance instance, Credentials credentials, Properties properties) {
-    this(instance, credentials, convertProperties(requireNonNull(properties, "properties is null")));
-    this.properties = properties;
+  public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf) {
+    this(instance, credentials, clientConf, new BatchWriterConfig());
   }
 
-  public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf) {
+  public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf, BatchWriterConfig batchWriterConfig) {
     this(instance, credentials, convertClientConfig(requireNonNull(clientConf, "clientConf is null")));
     this.clientConf = clientConf;
+    this.batchWriterConfig = batchWriterConfig;
   }
 
   /**
@@ -161,26 +157,6 @@ public class ClientContext {
   }
 
   public BatchWriterConfig getBatchWriterConfig() {
-    BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
-    if (properties == null) {
-      return batchWriterConfig;
-    }
-    Long maxMemory = ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getLong(properties);
-    if (maxMemory != null) {
-      batchWriterConfig.setMaxMemory(maxMemory);
-    }
-    Long maxLatency = ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC.getLong(properties);
-    if (maxLatency != null) {
-      batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
-    }
-    Long timeout = ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC.getLong(properties);
-    if (timeout != null) {
-      batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
-    }
-    String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(properties);
-    if (!durability.isEmpty()) {
-      batchWriterConfig.setDurability(Durability.valueOf(durability));
-    }
     return batchWriterConfig;
   }
 
@@ -189,43 +165,6 @@ public class ClientContext {
    */
   public TCredentials rpcCreds() {
     return getCredentials().toThrift(getInstance());
-  }
-
-  public static ClientConfiguration convertProperties(final Properties properties) {
-    ClientConfiguration config = ClientConfiguration.create();
-    for (Object keyObj : properties.keySet()) {
-      String key = (String) keyObj;
-      String val = properties.getProperty(key);
-      if (key.equals(ClientProperty.INSTANCE_ZOOKEEPERS.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST, val);
-      } else if (key.equals(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT, val);
-      } else if (key.equals(ClientProperty.SSL_ENABLED.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_ENABLED, val);
-      } else if (key.equals(ClientProperty.SSL_KEYSTORE_PATH.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PATH, val);
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, "true");
-      } else if (key.equals(ClientProperty.SSL_KEYSTORE_TYPE.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_TYPE, val);
-      } else if (key.equals(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, val);
-      } else if (key.equals(ClientProperty.SSL_TRUSTSTORE_PATH.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PATH, val);
-      } else if (key.equals(ClientProperty.SSL_TRUSTSTORE_TYPE.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PATH, val);
-      } else if (key.equals(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PATH, val);
-      } else if (key.equals(ClientProperty.SSL_USE_JSSE.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_USE_JSSE, val);
-      } else if (key.equals(ClientProperty.SASL_ENABLED.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_ENABLED, val);
-      } else if (key.equals(ClientProperty.SASL_QOP.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SASL_QOP, val);
-      } else {
-        config.setProperty(key, val);
-      }
-    }
-    return config;
   }
 
   /**
@@ -267,9 +206,9 @@ public class ClientContext {
         else {
           // Reconstitute the server kerberos property from the client config
           if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
-            if (config.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+            if (config.containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
               // Avoid providing a realm since we don't know what it is...
-              return config.getString(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
+              return config.getString(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
             }
           }
           return defaults.get(property);
@@ -289,8 +228,8 @@ public class ClientContext {
 
         // Two client props that don't exist on the server config. Client doesn't need to know about the Kerberos instance from the principle, but servers do
         // Automatically reconstruct the server property when converting a client config.
-        if (props.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
-          final String serverPrimary = props.remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+        if (props.containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+          final String serverPrimary = props.remove(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
           if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(), serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());

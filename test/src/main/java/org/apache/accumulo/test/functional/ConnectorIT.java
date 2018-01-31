@@ -18,7 +18,9 @@ package org.apache.accumulo.test.functional;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.impl.ConnectionInfoImpl;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -32,22 +34,27 @@ public class ConnectorIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     String instanceName = c.getInstance().getInstanceName();
     String zookeepers = c.getInstance().getZooKeepers();
+    final String user = "testuser";
+    final String password = "testpassword";
+    c.securityOperations().createLocalUser(user, new PasswordToken(password));
 
-    Connector conn = Connector.builder().forInstance(instanceName, zookeepers).usingCredentials(getAdminPrincipal(), getAdminToken()).build();
+    Connector conn = Connector.builder().forInstance(instanceName, zookeepers).usingBasicCredentials(user, password).build();
 
     Assert.assertEquals(instanceName, conn.getInstance().getInstanceName());
     Assert.assertEquals(zookeepers, conn.getInstance().getZooKeepers());
-    Assert.assertEquals(getAdminPrincipal(), conn.whoami());
+    Assert.assertEquals(user, conn.whoami());
 
-    final String user = "testuser";
-    final String password = "testpassword";
-    conn.securityOperations().createLocalUser(user, new PasswordToken(password));
+    ConnectionInfo info = Connector.builder().forInstance(instanceName, zookeepers).usingBasicCredentials(user, password).info();
+    ConnectionInfoImpl impl = (ConnectionInfoImpl) info;
+    Assert.assertEquals(instanceName, impl.getInstance().getInstanceName());
+    Assert.assertEquals(zookeepers, impl.getInstance().getZooKeepers());
+    Assert.assertEquals(user, impl.getPrincipal());
 
     Properties props = new Properties();
     props.put(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
-    props.put(ClientProperty.USER_NAME.getKey(), user);
-    props.put(ClientProperty.USER_PASSWORD.getKey(), password);
+    props.put(ClientProperty.AUTH_BASIC_USERNAME.getKey(), user);
+    props.put(ClientProperty.AUTH_BASIC_PASSWORD.getKey(), password);
     conn = Connector.builder().usingProperties(props).build();
 
     Assert.assertEquals(instanceName, conn.getInstance().getInstanceName());

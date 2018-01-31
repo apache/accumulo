@@ -28,6 +28,7 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -249,6 +250,11 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
   public static String getAdminPrincipal() {
     checkState(initialized);
     return clusterConf.getAdminPrincipal();
+  }
+
+  public static ConnectionInfo getConnectionInfo() {
+    return Connector.builder().forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers()).usingCredentials(getAdminPrincipal(), getAdminToken())
+        .info();
   }
 
   public static AuthenticationToken getAdminToken() {

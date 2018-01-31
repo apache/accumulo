@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Objects;
 import java.util.TreeMap;
 
 /**
@@ -39,24 +40,31 @@ class ClientConfigGenerate {
     void generate() {
       pageHeader();
 
-      generateSection("User", "user.");
       generateSection("Instance", "instance.");
+      generateSection("Authentication", "auth.", "auth.type");
       generateSection("Batch Writer", "batch.writer.");
       generateSection("SSL", "ssl.");
       generateSection("SASL", "sasl.");
-      generateSection("Kerberos", "kerberos.");
       generateSection("Tracing", "trace.");
 
       doc.close();
     }
 
-    void generateSection(String section, String prefix) {
+    void generateSection(String section, String prefix, String firstProperty) {
       beginSection(section);
+      ClientProperty first = sortedProps.get(firstProperty);
+      if (first != null) {
+        property(sortedProps.get(firstProperty));
+      }
       for (ClientProperty prop : sortedProps.values()) {
-        if (prop.getKey().startsWith(prefix)) {
+        if (prop.getKey().startsWith(prefix) && !prop.getKey().equals(firstProperty)) {
           property(prop);
         }
       }
+    }
+
+    void generateSection(String section, String prefix) {
+      generateSection(section, prefix, "");
     }
   }
 
@@ -80,6 +88,7 @@ class ClientConfigGenerate {
 
     @Override
     void property(ClientProperty prop) {
+      Objects.nonNull(prop);
       doc.print("| <a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> " + prop.getKey() + " | ");
       String defaultValue = sanitize(prop.getDefaultValue()).trim();
       if (defaultValue.length() == 0) {
@@ -139,6 +148,7 @@ class ClientConfigGenerate {
   private final TreeMap<String,ClientProperty> sortedProps = new TreeMap<>();
 
   private ClientConfigGenerate(PrintStream doc) {
+    Objects.nonNull(doc);
     this.doc = doc;
     for (ClientProperty prop : ClientProperty.values()) {
       this.sortedProps.put(prop.getKey(), prop);

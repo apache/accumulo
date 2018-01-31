@@ -23,14 +23,18 @@ import org.apache.accumulo.core.Constants;
 
 public enum ClientProperty {
 
-  // User
-  USER_NAME("user.name", "", "Accumulo user name", true),
-  USER_PASSWORD("user.password", "", "Accumulo user password", true),
-
   // Instance
   INSTANCE_NAME("instance.name", "", "Name of Accumulo instance to connect to", true),
   INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181", "Zookeeper connection information for Accumulo instance", true),
   INSTANCE_ZOOKEEPERS_TIMEOUT_SEC("instance.zookeepers.timeout.sec", "30", "Zookeeper session timeout (in seconds)"),
+
+  // Authentication
+  AUTH_TYPE("auth.type", "basic", "Authentication type. Possible values: basic, kerberos", true),
+  AUTH_BASIC_USERNAME("auth.basic.username", "", "Accumulo user name"),
+  AUTH_BASIC_PASSWORD("auth.basic.password", "", "Accumulo user password"),
+  AUTH_KERBEROS_PRINCIPAL("auth.kerberos.principal", "", "Kerberos principal"),
+  AUTH_KERBEROS_KEYTAB_PATH("auth.kerberos.keytab.path", "", "Path to Kerberos keytab"),
+  AUTH_KERBEROS_KEYTAB_DATA("auth.kerberos.keytab.data", "", "Base64 encoding of Kerberos keytab data"),
 
   // BatchWriter
   BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "52428800", "Max memory (in bytes) to batch before writing"),
@@ -54,9 +58,7 @@ public enum ClientProperty {
   // SASL
   SASL_ENABLED("sasl.enabled", "false", "Enable SASL for client RPC"),
   SASL_QOP("sasl.qop", "auth", "SASL quality of protection. Valid values are 'auth', 'auth-int', and 'auth-conf'"),
-
-  // Kerberos
-  KERBEROS_SERVER_PRIMARY("kerberos.server.primary", "accumulo", "Kerberos principal/primary that Accumulo servers use to login"),
+  SASL_KERBEROS_SERVER_PRIMARY("sasl.kerberos.server.primary", "accumulo", "Kerberos principal/primary that Accumulo servers use to login"),
 
   // Trace
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient", "A list of span receiver classes to send trace spans"),
