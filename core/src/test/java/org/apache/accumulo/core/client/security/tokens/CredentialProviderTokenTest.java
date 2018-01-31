@@ -56,6 +56,8 @@ public class CredentialProviderTokenTest {
     }
 
     CredentialProviderToken token = new CredentialProviderToken("root.password", keystorePath);
+    Assert.assertEquals("root.password", token.getName());
+    Assert.assertEquals(keystorePath, token.getCredentialProviders());
     Assert.assertArrayEquals("password".getBytes(UTF_8), token.getPassword());
 
     token = new CredentialProviderToken("bob.password", keystorePath);

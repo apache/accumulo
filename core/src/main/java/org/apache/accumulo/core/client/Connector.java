@@ -288,7 +288,7 @@ public abstract class Connector {
    *
    * @since 2.0.0
    */
-  public interface ConnectionInfoFactory {
+  public interface ConnInfoFactory {
 
     /**
      * Builds ConnectionInfo after all options have been specified
@@ -303,7 +303,7 @@ public abstract class Connector {
    *
    * @since 2.0.0
    */
-  public interface ConnectorFactory extends ConnectionInfoFactory {
+  public interface ConnectorFactory extends ConnInfoFactory {
 
     /**
      * Builds Connector after all options have been specified
@@ -389,6 +389,19 @@ public abstract class Connector {
      * @return this builder
      */
     ConnectionOptions usingKerberosCredentials(String principal, String keyTabFile);
+
+    /**
+     * Build using credentials from a CredentialProvider
+     *
+     * @param username
+     *          Accumulo user name
+     * @param name
+     *          Alias to extract Accumulo user password from CredentialProvider
+     * @param providerUrls
+     *          Comma seperated list of URLs defining CredentialProvider(s)
+     * @return this builder
+     */
+    ConnectionOptions usingCredentialProvider(String username, String name, String providerUrls);
 
     /**
      * Build using specified credentials

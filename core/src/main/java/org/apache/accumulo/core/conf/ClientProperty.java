@@ -29,12 +29,15 @@ public enum ClientProperty {
   INSTANCE_ZOOKEEPERS_TIMEOUT_SEC("instance.zookeepers.timeout.sec", "30", "Zookeeper session timeout (in seconds)"),
 
   // Authentication
-  AUTH_TYPE("auth.type", "basic", "Authentication type. Possible values: basic, kerberos", true),
+  AUTH_TYPE("auth.type", "basic", "Authentication type. Possible values: basic, kerberos, provider", true),
   AUTH_BASIC_USERNAME("auth.basic.username", "", "Accumulo user name"),
   AUTH_BASIC_PASSWORD("auth.basic.password", "", "Accumulo user password"),
   AUTH_KERBEROS_PRINCIPAL("auth.kerberos.principal", "", "Kerberos principal"),
   AUTH_KERBEROS_KEYTAB_PATH("auth.kerberos.keytab.path", "", "Path to Kerberos keytab"),
   AUTH_KERBEROS_KEYTAB_DATA("auth.kerberos.keytab.data", "", "Base64 encoding of Kerberos keytab data"),
+  AUTH_PROVIDER_USERNAME("auth.provider.username", "", "Accumulo user name"),
+  AUTH_PROVIDER_NAME("auth.provider.name", "", "Alias used to extract Accumulo user password from CredentialProvider"),
+  AUTH_PROVIDER_URLS("auth.provider.urls", "", "Comma separated list of URLs defining CredentialProvider(s)"),
 
   // BatchWriter
   BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "52428800", "Max memory (in bytes) to batch before writing"),

@@ -49,7 +49,7 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ConnectionInfoImpl;
+import org.apache.accumulo.core.client.impl.ConnectionInfoFactory;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
@@ -122,14 +122,13 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *
    * @param job
    *          Hadoop job instance to be configured
-   * @param connectionInfo
+   * @param info
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  public static void setConnectionInfo(JobConf job, ConnectionInfo connectionInfo) throws AccumuloSecurityException {
-    ConnectionInfoImpl info = (ConnectionInfoImpl) connectionInfo;
+  public static void setConnectionInfo(JobConf job, ConnectionInfo info) throws AccumuloSecurityException {
     setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
-    setZooKeeperInstance(job, info.getClientConfiguration());
+    setZooKeeperInstance(job, ConnectionInfoFactory.getClientConfiguration(info));
   }
 
   /**

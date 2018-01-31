@@ -38,7 +38,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
-import org.apache.accumulo.core.client.impl.ConnectionInfoImpl;
+import org.apache.accumulo.core.client.impl.ConnectionInfoFactory;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
@@ -85,14 +85,13 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *
    * @param job
    *          Hadoop job to be configured
-   * @param connectionInfo
+   * @param info
    *          Accumulo connection information
    * @since 2.0.0
    */
-  public static void setConnectionInfo(JobConf job, ConnectionInfo connectionInfo) throws AccumuloSecurityException {
-    ConnectionInfoImpl info = (ConnectionInfoImpl) connectionInfo;
+  public static void setConnectionInfo(JobConf job, ConnectionInfo info) throws AccumuloSecurityException {
     setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
-    setZooKeeperInstance(job, info.getClientConfiguration());
+    setZooKeeperInstance(job, ConnectionInfoFactory.getClientConfiguration(info));
   }
 
   /**

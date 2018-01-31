@@ -20,7 +20,6 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.impl.ConnectionInfoImpl;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -45,10 +44,10 @@ public class ConnectorIT extends AccumuloClusterHarness {
     Assert.assertEquals(user, conn.whoami());
 
     ConnectionInfo info = Connector.builder().forInstance(instanceName, zookeepers).usingBasicCredentials(user, password).info();
-    ConnectionInfoImpl impl = (ConnectionInfoImpl) info;
-    Assert.assertEquals(instanceName, impl.getInstance().getInstanceName());
-    Assert.assertEquals(zookeepers, impl.getInstance().getZooKeepers());
-    Assert.assertEquals(user, impl.getPrincipal());
+    Assert.assertEquals(instanceName, info.getInstanceName());
+    Assert.assertEquals(zookeepers, info.getZookeepers());
+    Assert.assertEquals(user, info.getPrincipal());
+    Assert.assertTrue(info.getAuthenticationToken() instanceof PasswordToken);
 
     Properties props = new Properties();
     props.put(ClientProperty.INSTANCE_NAME.getKey(), instanceName);

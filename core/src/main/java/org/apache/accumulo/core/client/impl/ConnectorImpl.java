@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -225,96 +226,96 @@ public class ConnectorImpl extends Connector {
   public static class ConnectorBuilderImpl implements InstanceArgs, PropertyOptions, ConnectionInfoOptions, AuthenticationArgs, ConnectionOptions, SslOptions,
       SaslOptions, ConnectorFactory {
 
-    private ConnectionInfoImpl info = new ConnectionInfoImpl();
+    private Properties properties = new Properties();
 
     @Override
     public Connector build() throws AccumuloException, AccumuloSecurityException {
-      return info.getConnector();
+      return ConnectionInfoFactory.getConnector(new ConnectionInfoImpl(properties));
     }
 
     @Override
     public ConnectionInfo info() {
-      return info;
+      return new ConnectionInfoImpl(properties);
     }
 
     @Override
     public AuthenticationArgs forInstance(String instanceName, String zookeepers) {
-      info.setProperty(ClientProperty.INSTANCE_NAME, instanceName);
-      info.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS, zookeepers);
+      setProperty(ClientProperty.INSTANCE_NAME, instanceName);
+      setProperty(ClientProperty.INSTANCE_ZOOKEEPERS, zookeepers);
       return this;
     }
 
     @Override
     public SslOptions withTruststore(String path) {
-      info.setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
+      setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
       return this;
     }
 
     @Override
     public SslOptions withTruststore(String path, String password, String type) {
-      info.setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
-      info.setProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD, password);
-      info.setProperty(ClientProperty.SSL_TRUSTSTORE_TYPE, type);
+      setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
+      setProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD, password);
+      setProperty(ClientProperty.SSL_TRUSTSTORE_TYPE, type);
       return this;
     }
 
     @Override
     public SslOptions withKeystore(String path) {
-      info.setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
+      setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
       return this;
     }
 
     @Override
     public SslOptions withKeystore(String path, String password, String type) {
-      info.setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
-      info.setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD, password);
-      info.setProperty(ClientProperty.SSL_KEYSTORE_TYPE, type);
+      setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
+      setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD, password);
+      setProperty(ClientProperty.SSL_KEYSTORE_TYPE, type);
       return this;
     }
 
     @Override
     public SslOptions useJsse() {
-      info.setProperty(ClientProperty.SSL_USE_JSSE, "true");
+      setProperty(ClientProperty.SSL_USE_JSSE, "true");
       return this;
     }
 
     @Override
     public ConnectionOptions withZkTimeout(int timeout) {
-      info.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC, Integer.toString(timeout));
+      setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC, Integer.toString(timeout));
       return this;
     }
 
     @Override
     public SslOptions withSsl() {
-      info.setProperty(ClientProperty.SSL_ENABLED, "true");
+      setProperty(ClientProperty.SSL_ENABLED, "true");
       return this;
     }
 
     @Override
     public SaslOptions withSasl() {
-      info.setProperty(ClientProperty.SASL_ENABLED, "true");
+      setProperty(ClientProperty.SASL_ENABLED, "true");
       return this;
     }
 
     @Override
     public ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig) {
-      info.setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES, batchWriterConfig.getMaxMemory());
-      info.setProperty(ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC, batchWriterConfig.getMaxLatency(TimeUnit.SECONDS));
-      info.setProperty(ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC, batchWriterConfig.getTimeout(TimeUnit.SECONDS));
-      info.setProperty(ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS, batchWriterConfig.getMaxWriteThreads());
-      info.setProperty(ClientProperty.BATCH_WRITER_DURABILITY, batchWriterConfig.getDurability().toString());
+      setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES, batchWriterConfig.getMaxMemory());
+      setProperty(ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC, batchWriterConfig.getMaxLatency(TimeUnit.SECONDS));
+      setProperty(ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC, batchWriterConfig.getTimeout(TimeUnit.SECONDS));
+      setProperty(ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS, batchWriterConfig.getMaxWriteThreads());
+      setProperty(ClientProperty.BATCH_WRITER_DURABILITY, batchWriterConfig.getDurability().toString());
       return this;
     }
 
     @Override
     public SaslOptions withPrimary(String kerberosServerPrimary) {
-      info.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
+      setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
       return this;
     }
 
     @Override
     public SaslOptions withQop(String qualityOfProtection) {
-      info.setProperty(ClientProperty.SASL_QOP, qualityOfProtection);
+      setProperty(ClientProperty.SASL_QOP, qualityOfProtection);
       return this;
     }
 
@@ -331,41 +332,65 @@ public class ConnectorImpl extends Connector {
 
     @Override
     public ConnectorFactory usingProperties(Properties properties) {
-      info = new ConnectionInfoImpl(properties);
+      this.properties = properties;
       return this;
     }
 
     @Override
     public ConnectionOptions usingBasicCredentials(String username, CharSequence password) {
-      info.setProperty(ClientProperty.AUTH_TYPE, "basic");
-      info.setProperty(ClientProperty.AUTH_BASIC_USERNAME, username);
-      info.setProperty(ClientProperty.AUTH_BASIC_PASSWORD, password.toString());
+      setProperty(ClientProperty.AUTH_TYPE, "basic");
+      setProperty(ClientProperty.AUTH_BASIC_USERNAME, username);
+      setProperty(ClientProperty.AUTH_BASIC_PASSWORD, password.toString());
       return this;
     }
 
     @Override
     public ConnectionOptions usingKerberosCredentials(String principal, String keyTabFile) {
-      info.setProperty(ClientProperty.AUTH_TYPE, "kerberos");
-      info.setProperty(ClientProperty.AUTH_KERBEROS_PRINCIPAL, principal);
-      info.setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH, keyTabFile);
+      setProperty(ClientProperty.AUTH_TYPE, "kerberos");
+      setProperty(ClientProperty.AUTH_KERBEROS_PRINCIPAL, principal);
+      setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH, keyTabFile);
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions usingCredentialProvider(String username, String name, String providerUrls) {
+      setProperty(ClientProperty.AUTH_TYPE, "provider");
+      setProperty(ClientProperty.AUTH_PROVIDER_USERNAME, username);
+      setProperty(ClientProperty.AUTH_PROVIDER_NAME, name);
+      setProperty(ClientProperty.AUTH_PROVIDER_URLS, providerUrls);
       return this;
     }
 
     @Override
     public ConnectionOptions usingCredentials(String principal, AuthenticationToken token) {
-      if (token instanceof PasswordToken) {
+      if (token instanceof CredentialProviderToken) {
+        CredentialProviderToken cpt = (CredentialProviderToken) token;
+        return usingCredentialProvider(principal, cpt.getName(), cpt.getCredentialProviders());
+      } else if (token instanceof PasswordToken) {
         return usingBasicCredentials(principal, new String(((PasswordToken) token).getPassword()));
       } else if (token instanceof KerberosToken) {
         return usingKerberosCredentials(principal, ((KerberosToken) token).getKeytab().getAbsolutePath());
       } else {
-        throw new IllegalArgumentException("Unknown authentication token type");
+        throw new IllegalArgumentException("Unknown AuthenticationToken argument");
       }
     }
 
     @Override
     public ConnectorFactory usingConnectionInfo(ConnectionInfo connectionInfo) {
-      this.info = (ConnectionInfoImpl) connectionInfo;
+      this.properties = connectionInfo.getProperties();
       return this;
+    }
+
+    public void setProperty(ClientProperty property, String value) {
+      properties.setProperty(property.getKey(), value);
+    }
+
+    public void setProperty(ClientProperty property, Long value) {
+      setProperty(property, Long.toString(value));
+    }
+
+    public void setProperty(ClientProperty property, Integer value) {
+      setProperty(property, Integer.toString(value));
     }
   }
 }

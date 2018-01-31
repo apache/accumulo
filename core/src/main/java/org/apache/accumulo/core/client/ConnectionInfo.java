@@ -16,6 +16,24 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.util.Properties;
+
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+
+/**
+ * Accumulo client connection information
+ */
 public interface ConnectionInfo {
 
+  String getInstanceName();
+
+  String getZookeepers();
+
+  String getPrincipal();
+
+  AuthenticationToken getAuthenticationToken();
+
+  String getProperty(String property);
+
+  Properties getProperties();
 }
