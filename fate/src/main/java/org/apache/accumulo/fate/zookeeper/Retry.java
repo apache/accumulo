@@ -19,11 +19,13 @@ package org.apache.accumulo.fate.zookeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * Encapsulates the retrying implementation for some operation. Provides bounded retry attempts with a bounded, linear backoff.
  */
 public class Retry {
-  private static Logger log = LoggerFactory.getLogger(Retry.class);
+  private static final Logger log = LoggerFactory.getLogger(Retry.class);
 
   public static final long MAX_RETRY_DISABLED = -1;
 
@@ -71,48 +73,51 @@ public class Retry {
   }
 
   // Visible for testing
+  @VisibleForTesting
   long getMaxRetries() {
     return maxRetries;
   }
 
   // Visible for testing
+  @VisibleForTesting
   long getCurrentWait() {
     return currentWait;
   }
 
   // Visible for testing
+  @VisibleForTesting
   long getWaitIncrement() {
     return waitIncrement;
   }
 
   // Visible for testing
+  @VisibleForTesting
   long getMaxWait() {
     return maxWait;
   }
 
   // Visible for testing
+  @VisibleForTesting
   void setMaxRetries(long maxRetries) {
     this.maxRetries = maxRetries;
   }
 
   // Visible for testing
+  @VisibleForTesting
   void setStartWait(long startWait) {
     this.currentWait = startWait;
   }
 
   // Visible for testing
+  @VisibleForTesting
   void setWaitIncrement(long waitIncrement) {
     this.waitIncrement = waitIncrement;
   }
 
   // Visible for testing
+  @VisibleForTesting
   void setMaxWait(long maxWait) {
     this.maxWait = maxWait;
-  }
-
-  // Visible for testing
-  static void setLogger(Logger log) {
-    Retry.log = log;
   }
 
   public boolean isMaxRetryDisabled() {
@@ -150,7 +155,7 @@ public class Retry {
 
   public void waitForNextAttempt() throws InterruptedException {
     if (log.isDebugEnabled()) {
-      log.debug("Sleeping for " + currentWait + "ms before retrying operation: " + getCaller());
+      log.debug("Sleeping for " + currentWait + "ms before retrying operation");
     }
     sleep(currentWait);
     currentWait = Math.min(maxWait, currentWait + waitIncrement);
@@ -160,7 +165,7 @@ public class Retry {
     Thread.sleep(wait);
   }
 
-  public void logRetry(String message, Throwable t) {
+  public void logRetry(Logger log, String message, Throwable t) {
     // log the first time, and then after every logInterval
     if (lastRetryLog < 0 || (System.currentTimeMillis() - lastRetryLog) > logInterval) {
       log.warn(getMessage(message), t);
@@ -168,7 +173,7 @@ public class Retry {
     }
   }
 
-  public void logRetry(String message) {
+  public void logRetry(Logger log, String message) {
     // log the first time, and then after every logInterval
     if (lastRetryLog < 0 || (System.currentTimeMillis() - lastRetryLog) > logInterval) {
       log.warn(getMessage(message));
@@ -177,23 +182,7 @@ public class Retry {
   }
 
   private String getMessage(String message) {
-    return getCaller() + ": " + message + ", retrying attempt " + (retriesDone + 1) + " (suppressing retry messages for " + logInterval + "ms)";
-  }
-
-  private String getCaller() {
-    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    // find the first caller that is not the Retry class
-    // we can start at 3 because the first one is this method, the second one is getMessage, and the third is logRetry
-    StackTraceElement caller = null;
-    for (int i = 3; caller == null && i < stackTraceElements.length; i++) {
-      if (!stackTraceElements[i].getClassName().equals(this.getClass().getName())) {
-        caller = stackTraceElements[i];
-      }
-    }
-    if (caller == null) {
-      caller = stackTraceElements[Math.min(4, stackTraceElements.length - 1)];
-    }
-    return caller.getClassName() + '.' + caller.getMethodName();
+    return message + ", retrying attempt " + (retriesDone + 1) + " (suppressing retry messages for " + logInterval + "ms)";
   }
 
 }
