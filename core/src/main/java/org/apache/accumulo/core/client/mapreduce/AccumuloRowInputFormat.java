@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
@@ -40,10 +41,9 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloRowInputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
+ * <li>{@link AccumuloRowInputFormat#setConnectionInfo(Job, ConnectionInfo)}
  * <li>{@link AccumuloRowInputFormat#setInputTableName(Job, String)}
  * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(Job, Authorizations)}
- * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(Job, ClientConfiguration)}
  * </ul>
  *
  * Other static methods are optional.

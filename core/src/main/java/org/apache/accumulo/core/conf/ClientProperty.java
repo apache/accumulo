@@ -30,11 +30,10 @@ public enum ClientProperty {
 
   // Authentication
   AUTH_TYPE("auth.type", "basic", "Authentication type. Possible values: basic, kerberos, provider", true),
-  AUTH_BASIC_USERNAME("auth.basic.username", "", "Accumulo user name"),
-  AUTH_BASIC_PASSWORD("auth.basic.password", "", "Accumulo user password"),
+  AUTH_BASIC_USERNAME("auth.basic.username", "", "Accumulo user name", true),
+  AUTH_BASIC_PASSWORD("auth.basic.password", "", "Accumulo user password", true),
   AUTH_KERBEROS_PRINCIPAL("auth.kerberos.principal", "", "Kerberos principal"),
   AUTH_KERBEROS_KEYTAB_PATH("auth.kerberos.keytab.path", "", "Path to Kerberos keytab"),
-  AUTH_KERBEROS_KEYTAB_DATA("auth.kerberos.keytab.data", "", "Base64 encoding of Kerberos keytab data"),
   AUTH_PROVIDER_USERNAME("auth.provider.username", "", "Accumulo user name"),
   AUTH_PROVIDER_NAME("auth.provider.name", "", "Alias used to extract Accumulo user password from CredentialProvider"),
   AUTH_PROVIDER_URLS("auth.provider.urls", "", "Comma separated list of URLs defining CredentialProvider(s)"),
