@@ -76,10 +76,6 @@ public class ClientConfiguration {
     INSTANCE_NAME("instance.name", null, PropertyType.STRING, "Name of Accumulo instance to connect to"),
     INSTANCE_ID("instance.id", null, PropertyType.STRING, "UUID of Accumulo instance to connect to"),
 
-    // User information
-    USER_NAME("user.name", null, PropertyType.STRING, "Accumulo username"),
-    USER_PASSWORD("user.password", null, PropertyType.STRING, "Accumulo user password"),
-
     // Tracing
     TRACE_SPAN_RECEIVERS(Property.TRACE_SPAN_RECEIVERS),
     TRACE_SPAN_RECEIVER_PREFIX(Property.TRACE_SPAN_RECEIVER_PREFIX),
