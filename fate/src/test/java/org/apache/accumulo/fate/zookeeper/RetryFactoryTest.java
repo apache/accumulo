@@ -26,26 +26,28 @@ public class RetryFactoryTest {
 
   @Test
   public void properArgumentsInRetry() {
-    long maxRetries = 10, startWait = 50l, maxWait = 5000l, waitIncrement = 500l;
-    RetryFactory factory = new RetryFactory(maxRetries, startWait, waitIncrement, maxWait);
+    long maxRetries = 10, startWait = 50l, maxWait = 5000l, waitIncrement = 500l, logInterval = 10000l;
+    RetryFactory factory = new RetryFactory(maxRetries, startWait, waitIncrement, maxWait, logInterval);
     Retry retry = factory.create();
 
     Assert.assertEquals(maxRetries, retry.getMaxRetries());
     Assert.assertEquals(startWait, retry.getCurrentWait());
     Assert.assertEquals(maxWait, retry.getMaxWait());
     Assert.assertEquals(waitIncrement, retry.getWaitIncrement());
+    Assert.assertEquals(logInterval, retry.getLogInterval());
   }
 
   @Test
   public void properArgumentsInUnlimitedRetry() {
-    long startWait = 50l, maxWait = 5000l, waitIncrement = 500l;
-    RetryFactory factory = new RetryFactory(startWait, waitIncrement, maxWait);
+    long startWait = 50l, maxWait = 5000l, waitIncrement = 500l, logInterval = 10000l;
+    RetryFactory factory = new RetryFactory(startWait, waitIncrement, maxWait, logInterval);
     Retry retry = factory.create();
 
     Assert.assertEquals(Retry.MAX_RETRY_DISABLED, retry.getMaxRetries());
     Assert.assertEquals(startWait, retry.getCurrentWait());
     Assert.assertEquals(maxWait, retry.getMaxWait());
     Assert.assertEquals(waitIncrement, retry.getWaitIncrement());
+    Assert.assertEquals(logInterval, retry.getLogInterval());
   }
 
 }
