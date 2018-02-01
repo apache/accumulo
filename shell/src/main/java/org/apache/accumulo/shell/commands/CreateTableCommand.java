@@ -199,8 +199,8 @@ public class CreateTableCommand extends Command {
    * Used in conjunction with createtable shell command to allow an iterator to be configured upon table creation.
    */
   private NewTableConfiguration attachIteratorToNewTable(final CommandLine cl, final Shell shellState, NewTableConfiguration ntc) {
-    EnumSet<IteratorScope> scopeEnumSet = null;
-    IteratorSetting iteratorSetting = null;
+    EnumSet<IteratorScope> scopeEnumSet;
+    IteratorSetting iteratorSetting;
     if (shellState.iteratorProfiles.size() == 0)
       throw new IllegalArgumentException("No shell iterator profiles have been created.");
     String[] options = cl.getOptionValues(createTableOptIteratorProps.getOpt());
@@ -233,8 +233,7 @@ public class CreateTableCommand extends Command {
           scopeEnumSet = EnumSet.allOf(IteratorScope.class);
         } else {
           // 'all' is not involved, examine the scope arguments and populate iterator scope EnumSet
-          validateScopes(scopeArgs);
-          scopeEnumSet = addScopeArgsToIteratorEnumSet(scopeArgs);
+          scopeEnumSet = validateScopes(scopeArgs);
         }
       }
       ntc.attachIterator(iteratorSetting, scopeEnumSet);
@@ -243,35 +242,22 @@ public class CreateTableCommand extends Command {
   }
 
   /**
-   * Validate that the provided scope arguments are valid iterator scope settings. Checking for duplicate entries and invalid scope values.
+   * Validate that the provided scope arguments are valid iterator scope settings.
+   * Checking for duplicate entries and invalid scope values.
+   *
+   * Returns an EnumSet of scopes to be set.
    */
-  private void validateScopes(final List<String> scopeList) {
-    Set<String> dupes = new HashSet<>();
-    for (String scope : scopeList) {
-      if (dupes.contains(scope))
-        throw new IllegalArgumentException("duplicate scope argument provided.");
-      dupes.add(scope);
+  private EnumSet<IteratorScope> validateScopes(final List<String> scopeList) {
+    EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
+    for (String scopeStr : scopeList) {
       try {
-        IteratorScope.valueOf(scope);
+        IteratorScope scope = IteratorScope.valueOf(scopeStr);
+        if (!scopes.add(scope))
+          throw new IllegalArgumentException("duplicate scope arguments found");
       } catch (IllegalArgumentException ex) {
-        throw new IllegalArgumentException("iterator scope value is invalid/missing or contains spaces.", ex);
+        throw new IllegalArgumentException("illegal scope arguments: " + ex.getMessage(), ex);
       }
     }
-  }
-
-  /**
-   * Assign iterator scope arguments to an IteratorUntil.IteratorScope EnumSet for use with NewTableConfiguration object.
-   */
-  private EnumSet<IteratorScope> addScopeArgsToIteratorEnumSet(final List<String> scopeList) {
-    EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
-    if (scopeList.contains("scan"))
-      scopes.add(IteratorScope.scan);
-    if (scopeList.contains("minc"))
-      scopes.add(IteratorScope.minc);
-    if (scopeList.contains("majc"))
-      scopes.add(IteratorScope.majc);
-    if (scopes.isEmpty())
-      throw new IllegalArgumentException("supplied scope values are invalid.");
     return scopes;
   }
 
