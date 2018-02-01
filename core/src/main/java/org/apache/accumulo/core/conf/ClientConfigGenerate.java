@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.TreeMap;
 
 /**
- * This class generates documentation to inform users of the available configuration properties in a presentable form.
+ * Generates client-properties.md for documentation on Accumulo website and accumulo-client.properties for Accumulo distribution tarball
  */
 class ClientConfigGenerate {
 
@@ -164,7 +164,8 @@ class ClientConfigGenerate {
   }
 
   /**
-   * Generates documentation for accumulo-site.xml file usage. Arguments are: "--generate-markdown filename"
+   * Generates markdown and config files for Accumulo client properties.
+   * Arguments are: "--generate-markdown filename" or "--generate-config filename"
    *
    * @param args
    *          command-line arguments
