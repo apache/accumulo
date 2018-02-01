@@ -242,8 +242,7 @@ public class CreateTableCommand extends Command {
   }
 
   /**
-   * Validate that the provided scope arguments are valid iterator scope settings.
-   * Checking for duplicate entries and invalid scope values.
+   * Validate that the provided scope arguments are valid iterator scope settings. Checking for duplicate entries and invalid scope values.
    *
    * Returns an EnumSet of scopes to be set.
    */
