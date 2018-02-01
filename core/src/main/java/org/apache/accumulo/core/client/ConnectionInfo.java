@@ -25,15 +25,35 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
  */
 public interface ConnectionInfo {
 
+  /**
+   * @return Accumulo instance name
+   */
   String getInstanceName();
 
+  /**
+   * @return Zookeeper connection information for Accumulo instance
+   */
   String getZookeepers();
 
+  /**
+   * @return Accumulo principal/username
+   */
   String getPrincipal();
 
+  /**
+   * @return {@link AuthenticationToken} used for this connection
+   */
   AuthenticationToken getAuthenticationToken();
 
-  String getProperty(String property);
+  /**
+   * Retrieves property value given key
+   * @param key Property key
+   * @return Value of property
+   */
+  String getProperty(String key);
 
+  /**
+   * @return All Accumulo client properties set for this connection
+   */
   Properties getProperties();
 }
