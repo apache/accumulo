@@ -18,7 +18,6 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -185,9 +184,9 @@ public class CreateTableCommand extends Command {
       final HashSet<Text> colFams = new HashSet<>();
       for (String family : parts[1].split(","))
         colFams.add(new Text(family.getBytes(Shell.CHARSET)));
-      if (localityGroupMap.containsKey(groupName))
+      // check that group names are not duplicated on usage line
+      if (localityGroupMap.put(groupName, colFams) != null)
         throw new IllegalArgumentException("Duplicate locality group name found. Group names must be unique");
-      localityGroupMap.put(groupName, colFams);
     }
     ntc.setLocalityGroups(localityGroupMap);
     return ntc;
@@ -198,48 +197,80 @@ public class CreateTableCommand extends Command {
    *
    * Used in conjunction with createtable shell command to allow an iterator to be configured upon table creation.
    */
-  private NewTableConfiguration attachIteratorToNewTable(CommandLine cl, Shell shellState, NewTableConfiguration ntc) {
+  private NewTableConfiguration attachIteratorToNewTable(final CommandLine cl, final Shell shellState, NewTableConfiguration ntc) {
+    EnumSet<IteratorUtil.IteratorScope> scopeEnumSet = null;
+    IteratorSetting iteratorSetting = null;
     if (shellState.iteratorProfiles.size() == 0)
       throw new IllegalArgumentException("No shell iterator profiles have been created.");
     String[] options = cl.getOptionValues(createTableOptIteratorProps.getOpt());
     for (String profileInfo : options) {
       String[] parts = profileInfo.split(":", 2);
-      if (parts.length < 2)
-        throw new IllegalArgumentException("Missing scope or there are spaces between parameters");
-      // get profile name
       String profileName = parts[0];
-      IteratorSetting iteratorSetting = shellState.iteratorProfiles.get(profileName).get(0);
-      if (iteratorSetting == null)
-        throw new IllegalArgumentException("Provided iterator profile, " + profileName + ", does not exist");
-      // parse scope info
-      List<String> scopeList = Arrays.asList(parts[1].split(","));
-      // Check validity of scope
-      if (scopeList.size() > 3) // max of three scope settings allowed
-        throw new IllegalArgumentException("Too many scope arguments supplied");
-      Collection<String> validScopes = setValidScopes();
-      for (String scope : scopeList)
-        if (!validScopes.contains(scope))
-          throw new IllegalArgumentException("Invalid scope supplied.");
-      EnumSet<IteratorUtil.IteratorScope> scopes = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
-      if (scopeList.contains("all") || scopeList.contains("scan"))
-        scopes.add(IteratorUtil.IteratorScope.scan);
-      if (scopeList.contains("all") || scopeList.contains("minc"))
-        scopes.add(IteratorUtil.IteratorScope.minc);
-      if (scopeList.contains("all") || scopeList.contains("majc"))
-        scopes.add(IteratorUtil.IteratorScope.majc);
-      if (scopes.isEmpty())
-        throw new IllegalArgumentException("You must supply at least one scope to configure an iterator.");
-      ntc.attachIterator(iteratorSetting, scopes);
+      // The iteratorProfiles.get calls below will throw an NPE if the profile does not exist
+      // This can occur when the profile actually does not exist or if there is
+      // extraneous spacing in the iterator profile argument list causing the parser to read a scope as a profile.
+      try {
+        iteratorSetting = shellState.iteratorProfiles.get(profileName).get(0);
+      } catch (NullPointerException ex) {
+        throw new IllegalArgumentException("invalid iterator argument. Either profile does not exist or unexpected spaces in argument list.", ex);
+      }
+      // handle case where only the profile is supplied. Use all scopes by default if no scope args are provided.
+      if (parts.length == 1) {
+        // add all scopes to enum set
+        scopeEnumSet = EnumSet.allOf(IteratorUtil.IteratorScope.class);
+      } else {
+        // user provided scope arguments exist, parse them
+        List<String> scopeArgs = Arrays.asList(parts[1].split(","));
+        // there are only three allowable scope values
+        if (scopeArgs.size() > 3)
+          throw new IllegalArgumentException("Too many scope arguments supplied");
+        // handle the 'all' argument separately since it is not an allowable enum value for IteratorScope
+        // if 'all' is used, it should be the only scope provided
+        if (scopeArgs.contains("all")) {
+          if (scopeArgs.size() > 1)
+            throw new IllegalArgumentException("Cannot use 'all' in conjunction with other scopes");
+          scopeEnumSet = EnumSet.allOf(IteratorUtil.IteratorScope.class);
+        } else {
+          // 'all' is not involved, examine the scope arguments and populate iterator scope EnumSet
+          validateScopes(scopeArgs);
+          scopeEnumSet = addScopeArgsToIteratorEnumSet(scopeArgs);
+        }
+      }
+      ntc.attachIterator(iteratorSetting, scopeEnumSet);
     }
     return ntc;
   }
 
-  private Collection<String> setValidScopes() {
-    Collection<String> scopes = new HashSet<>();
-    scopes.add("all");
-    scopes.add("scan");
-    scopes.add("minc");
-    scopes.add("majc");
+  /**
+   * Validate that the provided scope arguments are valid iterator scope settings. Checking for duplicate entries and invalid scope values.
+   */
+  private void validateScopes(final List<String> scopeList) {
+    Set<String> dupes = new HashSet<>();
+    for (String scope : scopeList) {
+      if (dupes.contains(scope))
+        throw new IllegalArgumentException("duplicate scope argument provided.");
+      dupes.add(scope);
+      try {
+        IteratorUtil.IteratorScope.valueOf(scope);
+      } catch (IllegalArgumentException ex) {
+        throw new IllegalArgumentException("iterator scope value is invalid/missing or contains spaces.", ex);
+      }
+    }
+  }
+
+  /**
+   * Assign iterator scope arguments to an IteratorUntil.IteratorScope EnumSet for use with NewTableConfiguration object.
+   */
+  private EnumSet<IteratorUtil.IteratorScope> addScopeArgsToIteratorEnumSet(final List<String> scopeList) {
+    EnumSet<IteratorUtil.IteratorScope> scopes = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
+    if (scopeList.contains("scan"))
+      scopes.add(IteratorUtil.IteratorScope.scan);
+    if (scopeList.contains("minc"))
+      scopes.add(IteratorUtil.IteratorScope.minc);
+    if (scopeList.contains("majc"))
+      scopes.add(IteratorUtil.IteratorScope.majc);
+    if (scopes.isEmpty())
+      throw new IllegalArgumentException("supplied scope values are invalid.");
     return scopes;
   }
 
@@ -277,8 +308,9 @@ public class CreateTableCommand extends Command {
     createTableOptLocalityProps.setArgName("group=col_fam[,col_fam]");
     createTableOptLocalityProps.setArgs(Option.UNLIMITED_VALUES);
 
-    createTableOptIteratorProps = new Option("i", "iter", true, "initialize iterator at table creation using profile.");
-    createTableOptIteratorProps.setArgName("profile:<[all] | [minc[,]][majc][,]][scan]>");
+    createTableOptIteratorProps = new Option("i", "iter", true,
+        "initialize iterator at table creation using profile. If no scope supplied, all scopes are activated.");
+    createTableOptIteratorProps.setArgName("profile[:[all]|[scan[,]][minc[,]][majc]]");
     createTableOptIteratorProps.setArgs(Option.UNLIMITED_VALUES);
 
     // Splits and CopySplits are put in an optionsgroup to make them

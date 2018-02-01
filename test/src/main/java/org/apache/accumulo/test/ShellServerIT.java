@@ -2154,14 +2154,28 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff -t " + tmpTable, true);
     output = ts.exec("listshelliter");
     Assert.assertTrue(output.contains("Profile : profile1"));
+    // test various bad argument calls
     ts.exec("createtable " + table + " -i noprofile:scan,minc", false);
     ts.exec("createtable " + table + " -i profile1:scan,minc,all,majc", false);
+    ts.exec("createtable " + table + " -i profile1:scan,all,majc", false);
     ts.exec("createtable " + table + " -i profile1:scan,min,majc", false);
-    ts.exec("createtable " + table + " -i profile1", false);
-    ts.exec("createtable " + table + " profile1:-scan", false);
+    ts.exec("createtable " + table + " -i profile1:scan,max,all", false);
+    ts.exec("createtable " + table + " -i profile1:", false);
+    ts.exec("createtable " + table + " -i profile1: ", false);
+    ts.exec("createtable " + table + " -i profile1:-scan", false);
+    ts.exec("createtable " + table + " profile1:majc", false);
     ts.exec("createtable " + table + " -i profile1: all", false);
+    ts.exec("createtable " + table + " -i profile1: All", false);
+    ts.exec("createtable " + table + " -i profile1: scan", false);
     ts.exec("createtable " + table + " -i profile1:minc scan", false);
+    ts.exec("createtable " + table + " -i profile1:minc,Scan", false);
     ts.exec("createtable " + table + " -i profile1:minc, scan", false);
+    ts.exec("createtable " + table + " -i profile1:minc,,scan", false);
+    ts.exec("createtable " + table + " -i profile1:minc,minc", false);
+    ts.exec("createtable " + table + " -i profile1:minc,Minc", false);
+    ts.exec("createtable " + table + " -i profile1:minc, ,scan", false);
+    ts.exec("createtable " + table + "-i", false);
+    ts.exec("createtable " + table + "-i ", false);
     ts.exec("deletetable -f " + tmpTable);
   }
 }
