@@ -164,8 +164,7 @@ class ClientConfigGenerate {
   }
 
   /**
-   * Generates markdown and config files for Accumulo client properties.
-   * Arguments are: "--generate-markdown filename" or "--generate-config filename"
+   * Generates markdown and config files for Accumulo client properties. Arguments are: "--generate-markdown filename" or "--generate-config filename"
    *
    * @param args
    *          command-line arguments
