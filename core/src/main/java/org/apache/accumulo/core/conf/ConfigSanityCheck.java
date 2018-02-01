@@ -52,10 +52,10 @@ public class ConfigSanityCheck {
   public static void validate(Iterable<Entry<String,String>> entries) {
     String instanceZkTimeoutValue = null;
     boolean usingVolumes = false;
-    String cipherSuite = null;
-    String keyAlgorithm = null;
-    String secretKeyEncryptionStrategy = null;
-    String cryptoModule = null;
+    String cipherSuite = NULL_CIPHER;
+    String keyAlgorithm = NULL_CIPHER;
+    String secretKeyEncryptionStrategy = NULL_SECRET_KEY_ENCRYPTION_STRATEGY;
+    String cryptoModule = NULL_CRYPTO_MODULE;
     for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
       String value = entry.getValue();
@@ -110,12 +110,8 @@ public class ConfigSanityCheck {
       log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI, INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
     }
 
-    if (cipherSuite.equals(NULL_CIPHER) && !keyAlgorithm.equals(NULL_CIPHER)) {
-      fatal(Property.CRYPTO_CIPHER_SUITE.getKey() + " should be configured when " + Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey() + " is set.");
-    }
-
-    if (!cipherSuite.equals(NULL_CIPHER) && keyAlgorithm.equals(NULL_CIPHER)) {
-      fatal(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey() + " should be configured when " + Property.CRYPTO_CIPHER_SUITE.getKey() + " is set.");
+    if ((cipherSuite.equals(NULL_CIPHER) || keyAlgorithm.equals(NULL_CIPHER)) && !cipherSuite.equals(keyAlgorithm)) {
+      fatal(Property.CRYPTO_CIPHER_SUITE.getKey() + " and " + Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME + " must both be configured.");
     }
 
     if (cryptoModule.equals(NULL_CRYPTO_MODULE) && !secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_ENCRYPTION_STRATEGY)) {

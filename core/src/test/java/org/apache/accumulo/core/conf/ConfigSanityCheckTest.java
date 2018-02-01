@@ -28,10 +28,6 @@ public class ConfigSanityCheckTest {
   @Before
   public void setUp() {
     m = new java.util.HashMap<>();
-    m.put(Property.CRYPTO_CIPHER_SUITE.getKey(), "NullCipher");
-    m.put(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey(), "NullCipher");
-    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "NullCryptoModule");
-    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "NullSecretKeyEncryptionStrategy");
   }
 
   @Test
