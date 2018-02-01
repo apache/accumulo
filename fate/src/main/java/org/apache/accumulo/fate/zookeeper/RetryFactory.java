@@ -21,9 +21,12 @@ package org.apache.accumulo.fate.zookeeper;
  */
 public class RetryFactory {
   public static final long DEFAULT_MAX_RETRIES = 10l, DEFAULT_START_WAIT = 250l, DEFAULT_WAIT_INCREMENT = 250l, DEFAULT_MAX_WAIT = 5000l;
-  public static final RetryFactory DEFAULT_INSTANCE = new RetryFactory(DEFAULT_MAX_RETRIES, DEFAULT_START_WAIT, DEFAULT_WAIT_INCREMENT, DEFAULT_MAX_WAIT);
+  // default logging interval: 3 minutes
+  public static final long DEFAULT_LOG_INTERVAL = 3 * 60 * 1000;
+  public static final RetryFactory DEFAULT_INSTANCE = new RetryFactory(DEFAULT_MAX_RETRIES, DEFAULT_START_WAIT, DEFAULT_WAIT_INCREMENT, DEFAULT_MAX_WAIT,
+      DEFAULT_LOG_INTERVAL);
 
-  private final long maxRetries, startWait, maxWait, waitIncrement;
+  private final long maxRetries, startWait, maxWait, waitIncrement, logInterval;
 
   /**
    * Create a retry factor for retries with a limit
@@ -36,12 +39,15 @@ public class RetryFactory {
    *          The amount of ms to increment the wait on subsequent retries
    * @param maxWait
    *          The max amount of wait time between retries
+   * @param logInterval
+   *          The amount of time (ms) between logging retries
    */
-  public RetryFactory(long maxRetries, long startWait, long waitIncrement, long maxWait) {
+  public RetryFactory(long maxRetries, long startWait, long waitIncrement, long maxWait, long logInterval) {
     this.maxRetries = maxRetries;
     this.startWait = startWait;
     this.maxWait = maxWait;
     this.waitIncrement = waitIncrement;
+    this.logInterval = logInterval;
   }
 
   /**
@@ -54,14 +60,15 @@ public class RetryFactory {
    * @param maxWait
    *          The max amount of wait time between retries
    */
-  public RetryFactory(long startWait, long waitIncrement, long maxWait) {
+  public RetryFactory(long startWait, long waitIncrement, long maxWait, long logInterval) {
     this.maxRetries = Retry.MAX_RETRY_DISABLED;
     this.startWait = startWait;
     this.maxWait = maxWait;
     this.waitIncrement = waitIncrement;
+    this.logInterval = logInterval;
   }
 
   public Retry create() {
-    return new Retry(maxRetries, startWait, waitIncrement, maxWait);
+    return new Retry(maxRetries, startWait, waitIncrement, maxWait, logInterval);
   }
 }
