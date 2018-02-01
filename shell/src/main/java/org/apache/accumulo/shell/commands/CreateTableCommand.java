@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellUtil;
@@ -198,7 +199,7 @@ public class CreateTableCommand extends Command {
    * Used in conjunction with createtable shell command to allow an iterator to be configured upon table creation.
    */
   private NewTableConfiguration attachIteratorToNewTable(final CommandLine cl, final Shell shellState, NewTableConfiguration ntc) {
-    EnumSet<IteratorUtil.IteratorScope> scopeEnumSet = null;
+    EnumSet<IteratorScope> scopeEnumSet = null;
     IteratorSetting iteratorSetting = null;
     if (shellState.iteratorProfiles.size() == 0)
       throw new IllegalArgumentException("No shell iterator profiles have been created.");
@@ -217,7 +218,7 @@ public class CreateTableCommand extends Command {
       // handle case where only the profile is supplied. Use all scopes by default if no scope args are provided.
       if (parts.length == 1) {
         // add all scopes to enum set
-        scopeEnumSet = EnumSet.allOf(IteratorUtil.IteratorScope.class);
+        scopeEnumSet = EnumSet.allOf(IteratorScope.class);
       } else {
         // user provided scope arguments exist, parse them
         List<String> scopeArgs = Arrays.asList(parts[1].split(","));
@@ -229,7 +230,7 @@ public class CreateTableCommand extends Command {
         if (scopeArgs.contains("all")) {
           if (scopeArgs.size() > 1)
             throw new IllegalArgumentException("Cannot use 'all' in conjunction with other scopes");
-          scopeEnumSet = EnumSet.allOf(IteratorUtil.IteratorScope.class);
+          scopeEnumSet = EnumSet.allOf(IteratorScope.class);
         } else {
           // 'all' is not involved, examine the scope arguments and populate iterator scope EnumSet
           validateScopes(scopeArgs);
@@ -251,7 +252,7 @@ public class CreateTableCommand extends Command {
         throw new IllegalArgumentException("duplicate scope argument provided.");
       dupes.add(scope);
       try {
-        IteratorUtil.IteratorScope.valueOf(scope);
+        IteratorScope.valueOf(scope);
       } catch (IllegalArgumentException ex) {
         throw new IllegalArgumentException("iterator scope value is invalid/missing or contains spaces.", ex);
       }
@@ -261,14 +262,14 @@ public class CreateTableCommand extends Command {
   /**
    * Assign iterator scope arguments to an IteratorUntil.IteratorScope EnumSet for use with NewTableConfiguration object.
    */
-  private EnumSet<IteratorUtil.IteratorScope> addScopeArgsToIteratorEnumSet(final List<String> scopeList) {
-    EnumSet<IteratorUtil.IteratorScope> scopes = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
+  private EnumSet<IteratorScope> addScopeArgsToIteratorEnumSet(final List<String> scopeList) {
+    EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
     if (scopeList.contains("scan"))
-      scopes.add(IteratorUtil.IteratorScope.scan);
+      scopes.add(IteratorScope.scan);
     if (scopeList.contains("minc"))
-      scopes.add(IteratorUtil.IteratorScope.minc);
+      scopes.add(IteratorScope.minc);
     if (scopeList.contains("majc"))
-      scopes.add(IteratorUtil.IteratorScope.majc);
+      scopes.add(IteratorScope.majc);
     if (scopes.isEmpty())
       throw new IllegalArgumentException("supplied scope values are invalid.");
     return scopes;
