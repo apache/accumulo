@@ -414,11 +414,12 @@ public class ThriftScanner {
       scanState.prevLoc = loc;
 
       if (scanState.scanID == null) {
-        String msg = "Starting scan tserver=" + loc.tablet_location + " tablet=" + loc.tablet_extent + " range=" + scanState.range + " ssil="
-            + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions;
-        Thread.currentThread().setName(msg);
+
+        Thread.currentThread().setName("Starting scan tserver=" + loc.tablet_location + " tableId=" + loc.tablet_extent.getTableId());
 
         if (log.isTraceEnabled()) {
+          String msg = "Starting scan tserver=" + loc.tablet_location + " tablet=" + loc.tablet_extent + " range=" + scanState.range + " ssil="
+              + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions;
           log.trace("tid={} {}", Thread.currentThread().getId(), msg);
           timer = new OpTimer().start();
         }
