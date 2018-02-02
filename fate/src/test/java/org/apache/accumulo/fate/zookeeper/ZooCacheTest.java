@@ -34,6 +34,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
+import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -75,13 +76,13 @@ public class ZooCacheTest {
   }
 
   private void testGet(boolean fillStat) throws Exception {
-    Stat myStat = null;
+    ZcStat myStat = null;
     if (fillStat) {
-      myStat = new Stat();
+      myStat = new ZcStat();
     }
     long now = System.currentTimeMillis();
     Stat existsStat = new Stat();
-    existsStat.setMtime(now);
+    existsStat.setEphemeralOwner(now);
     expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
     expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
     replay(zk);
@@ -90,7 +91,7 @@ public class ZooCacheTest {
     assertArrayEquals(DATA, (fillStat ? zc.get(ZPATH, myStat) : zc.get(ZPATH)));
     verify(zk);
     if (fillStat) {
-      assertEquals(now, myStat.getMtime());
+      assertEquals(now, myStat.getEphemeralOwner());
     }
 
     assertTrue(zc.dataCached(ZPATH));

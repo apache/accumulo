@@ -24,7 +24,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.zookeeper.data.Stat;
+import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.junit.Test;
@@ -55,11 +55,11 @@ public class AdminTest {
 
     String serverPath = root + "/" + server;
     EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.singletonList("child"));
-    EasyMock.expect(zc.get(EasyMock.eq(serverPath + "/child"), EasyMock.anyObject(Stat.class))).andAnswer(new IAnswer<byte[]>() {
+    EasyMock.expect(zc.get(EasyMock.eq(serverPath + "/child"), EasyMock.anyObject(ZcStat.class))).andAnswer(new IAnswer<byte[]>() {
 
       @Override
       public byte[] answer() throws Throwable {
-        Stat stat = (Stat) EasyMock.getCurrentArguments()[1];
+        ZcStat stat = (ZcStat) EasyMock.getCurrentArguments()[1];
         stat.setEphemeralOwner(session);
         return new byte[0];
       }
