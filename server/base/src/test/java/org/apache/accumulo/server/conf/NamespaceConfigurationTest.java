@@ -65,15 +65,17 @@ public class NamespaceConfigurationTest {
     iid = UUID.randomUUID().toString();
     instance = createMock(Instance.class);
     parent = createMock(AccumuloConfiguration.class);
-    c = new NamespaceConfiguration(NSID, instance, parent);
-    zcf = createMock(ZooCacheFactory.class);
-    c.setZooCacheFactory(zcf);
 
     expect(instance.getInstanceID()).andReturn(iid);
     expectLastCall().anyTimes();
     expect(instance.getZooKeepers()).andReturn(ZOOKEEPERS);
     expect(instance.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT);
     replay(instance);
+
+    c = new NamespaceConfiguration(NSID, instance, parent);
+    zcf = createMock(ZooCacheFactory.class);
+    c.setZooCacheFactory(zcf);
+
     zc = createMock(ZooCache.class);
     expect(zcf.getZooCache(eq(ZOOKEEPERS), eq(ZK_SESSION_TIMEOUT), anyObject(NamespaceConfWatcher.class))).andReturn(zc);
     replay(zcf);

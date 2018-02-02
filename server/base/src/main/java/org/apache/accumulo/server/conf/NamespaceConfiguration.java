@@ -45,6 +45,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   protected String namespaceId = null;
   protected Instance inst = null;
   private ZooCacheFactory zcf = new ZooCacheFactory();
+  private final String path;
 
   public NamespaceConfiguration(String namespaceId, AccumuloConfiguration parent) {
     this(namespaceId, HdfsZooInstance.getInstance(), parent);
@@ -54,6 +55,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     this.inst = inst;
     this.parent = parent;
     this.namespaceId = namespaceId;
+    this.path = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZNAMESPACE_CONF;
   }
 
   /**
@@ -85,7 +87,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   }
 
   private String getPath() {
-    return ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF;
+    return path;
   }
 
   @Override

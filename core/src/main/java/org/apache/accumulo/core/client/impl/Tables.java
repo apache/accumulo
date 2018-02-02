@@ -60,14 +60,15 @@ public class Tables {
     if (sm != null) {
       sm.checkPermission(TABLES_PERMISSION);
     }
-    final String zks = instance.getZooKeepers();
-    final int timeOut = instance.getZooKeepersSessionTimeOut();
+
     final String uuid = instance.getInstanceID();
 
     try {
       return instanceToZooCache.get(uuid, new Callable<ZooCache>() {
         @Override
         public ZooCache call() {
+          final String zks = instance.getZooKeepers();
+          final int timeOut = instance.getZooKeepersSessionTimeOut();
           return new ZooCacheFactory().getZooCache(zks, timeOut, new Watcher() {
             @Override
             public void process(WatchedEvent watchedEvent) {
