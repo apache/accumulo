@@ -174,7 +174,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   protected ConnectionInfo getConnectionInfo() {
-    return Connector.builder().forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers()).usingBasicCredentials("root", ROOT_PASSWORD).info();
+    return Connector.builder().forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers()).usingPasswordCredentials("root", ROOT_PASSWORD).info();
   }
 
   protected Process exec(Class<?> clazz, String... args) throws IOException {

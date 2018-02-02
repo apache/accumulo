@@ -29,12 +29,10 @@ public enum ClientProperty {
   INSTANCE_ZOOKEEPERS_TIMEOUT_SEC("instance.zookeepers.timeout.sec", "30", "Zookeeper session timeout (in seconds)"),
 
   // Authentication
-  AUTH_TYPE("auth.type", "basic", "Authentication type. Possible values: basic, kerberos, provider", true),
-  AUTH_BASIC_USERNAME("auth.basic.username", "", "Accumulo user name", true),
-  AUTH_BASIC_PASSWORD("auth.basic.password", "", "Accumulo user password", true),
-  AUTH_KERBEROS_PRINCIPAL("auth.kerberos.principal", "", "Kerberos principal"),
+  AUTH_METHOD("auth.method", "password", "Authentication method (i.e password, kerberos, provider). Set additional properties for chosen method below.", true),
+  AUTH_USERNAME("auth.username", "", "Accumulo username/principal for chosen authentication method", true),
+  AUTH_PASSWORD("auth.password", "", "Accumulo user password", true),
   AUTH_KERBEROS_KEYTAB_PATH("auth.kerberos.keytab.path", "", "Path to Kerberos keytab"),
-  AUTH_PROVIDER_USERNAME("auth.provider.username", "", "Accumulo user name"),
   AUTH_PROVIDER_NAME("auth.provider.name", "", "Alias used to extract Accumulo user password from CredentialProvider"),
   AUTH_PROVIDER_URLS("auth.provider.urls", "", "Comma separated list of URLs defining CredentialProvider(s)"),
 

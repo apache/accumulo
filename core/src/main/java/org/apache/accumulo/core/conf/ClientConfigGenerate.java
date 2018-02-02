@@ -22,7 +22,10 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
+
+import com.google.common.collect.Sets;
 
 /**
  * Generates client-properties.md for documentation on Accumulo website and accumulo-client.properties for Accumulo distribution tarball
@@ -41,7 +44,7 @@ class ClientConfigGenerate {
       pageHeader();
 
       generateSection("Instance", "instance.");
-      generateSection("Authentication", "auth.", "auth.type");
+      generateSection("Authentication", "auth.", "auth.method", "auth.username");
       generateSection("Batch Writer", "batch.writer.");
       generateSection("SSL", "ssl.");
       generateSection("SASL", "sasl.");
@@ -50,14 +53,17 @@ class ClientConfigGenerate {
       doc.close();
     }
 
-    void generateSection(String section, String prefix, String firstProperty) {
+    void generateSection(String section, String prefix, String... prefixProps) {
       beginSection(section);
-      ClientProperty first = sortedProps.get(firstProperty);
-      if (first != null) {
-        property(sortedProps.get(firstProperty));
+      for (String prop : prefixProps) {
+        ClientProperty cp = sortedProps.get(prop);
+        if (cp != null) {
+          property(cp);
+        }
       }
+      Set<String> prefixSet = Sets.newHashSet(prefixProps);
       for (ClientProperty prop : sortedProps.values()) {
-        if (prop.getKey().startsWith(prefix) && !prop.getKey().equals(firstProperty)) {
+        if (prop.getKey().startsWith(prefix) && !prefixSet.contains(prop.getKey())) {
           property(prop);
         }
       }

@@ -37,13 +37,13 @@ public class ConnectorIT extends AccumuloClusterHarness {
     final String password = "testpassword";
     c.securityOperations().createLocalUser(user, new PasswordToken(password));
 
-    Connector conn = Connector.builder().forInstance(instanceName, zookeepers).usingBasicCredentials(user, password).build();
+    Connector conn = Connector.builder().forInstance(instanceName, zookeepers).usingPasswordCredentials(user, password).build();
 
     Assert.assertEquals(instanceName, conn.getInstance().getInstanceName());
     Assert.assertEquals(zookeepers, conn.getInstance().getZooKeepers());
     Assert.assertEquals(user, conn.whoami());
 
-    ConnectionInfo info = Connector.builder().forInstance(instanceName, zookeepers).usingBasicCredentials(user, password).info();
+    ConnectionInfo info = Connector.builder().forInstance(instanceName, zookeepers).usingPasswordCredentials(user, password).info();
     Assert.assertEquals(instanceName, info.getInstanceName());
     Assert.assertEquals(zookeepers, info.getZookeepers());
     Assert.assertEquals(user, info.getPrincipal());
@@ -52,8 +52,8 @@ public class ConnectorIT extends AccumuloClusterHarness {
     Properties props = new Properties();
     props.put(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
-    props.put(ClientProperty.AUTH_BASIC_USERNAME.getKey(), user);
-    props.put(ClientProperty.AUTH_BASIC_PASSWORD.getKey(), password);
+    props.put(ClientProperty.AUTH_USERNAME.getKey(), user);
+    props.put(ClientProperty.AUTH_PASSWORD.getKey(), password);
     conn = Connector.builder().usingProperties(props).build();
 
     Assert.assertEquals(instanceName, conn.getInstance().getInstanceName());

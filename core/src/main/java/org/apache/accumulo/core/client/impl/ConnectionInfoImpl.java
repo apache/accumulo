@@ -16,24 +16,20 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Objects;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 
 public class ConnectionInfoImpl implements ConnectionInfo {
 
   private Properties properties;
+  private AuthenticationToken token;
 
-  ConnectionInfoImpl(Properties properties) {
+  ConnectionInfoImpl(Properties properties, AuthenticationToken token) {
     this.properties = properties;
+    this.token = token;
   }
 
   @Override
@@ -48,22 +44,7 @@ public class ConnectionInfoImpl implements ConnectionInfo {
 
   @Override
   public String getPrincipal() {
-    String authType = getString(ClientProperty.AUTH_TYPE);
-    String principal;
-    switch (authType) {
-      case "basic":
-        principal = getString(ClientProperty.AUTH_BASIC_USERNAME);
-        break;
-      case "kerberos":
-        principal = getString(ClientProperty.AUTH_KERBEROS_PRINCIPAL);
-        break;
-      case "provider":
-        principal = getString(ClientProperty.AUTH_PROVIDER_USERNAME);
-        break;
-      default:
-        throw new IllegalArgumentException("An authentication type (basic, kerberos, etc) must be set");
-    }
-    return principal;
+    return getString(ClientProperty.AUTH_USERNAME);
   }
 
   @Override
@@ -73,33 +54,7 @@ public class ConnectionInfoImpl implements ConnectionInfo {
 
   @Override
   public AuthenticationToken getAuthenticationToken() {
-    String authType = getString(ClientProperty.AUTH_TYPE).toLowerCase();
-    switch (authType) {
-      case "basic":
-        String password = getString(ClientProperty.AUTH_BASIC_PASSWORD);
-        Objects.nonNull(password);
-        return new PasswordToken(password);
-      case "kerberos":
-        String principal = getString(ClientProperty.AUTH_KERBEROS_PRINCIPAL);
-        String keytabPath = getString(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH);
-        Objects.nonNull(principal);
-        Objects.nonNull(keytabPath);
-        try {
-          return new KerberosToken(principal, new File(keytabPath));
-        } catch (IOException e) {
-          throw new IllegalArgumentException(e);
-        }
-      case "provider":
-        String name = getString(ClientProperty.AUTH_PROVIDER_NAME);
-        String providerUrls = getString(ClientProperty.AUTH_PROVIDER_URLS);
-        try {
-          return new CredentialProviderToken(name, providerUrls);
-        } catch (IOException e) {
-          throw new IllegalArgumentException(e);
-        }
-      default:
-        throw new IllegalArgumentException("An authentication type (basic, kerberos, etc) must be set");
-    }
+    return token;
   }
 
   @Override

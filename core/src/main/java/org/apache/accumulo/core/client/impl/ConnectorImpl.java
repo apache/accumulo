@@ -18,9 +18,11 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -227,15 +229,16 @@ public class ConnectorImpl extends Connector {
       SaslOptions, ConnectorFactory {
 
     private Properties properties = new Properties();
+    private AuthenticationToken token = null;
 
     @Override
     public Connector build() throws AccumuloException, AccumuloSecurityException {
-      return ConnectionInfoFactory.getConnector(new ConnectionInfoImpl(properties));
+      return ConnectionInfoFactory.getConnector(new ConnectionInfoImpl(properties, token));
     }
 
     @Override
     public ConnectionInfo info() {
-      return new ConnectionInfoImpl(properties);
+      return new ConnectionInfoImpl(properties, token);
     }
 
     @Override
@@ -333,51 +336,97 @@ public class ConnectorImpl extends Connector {
     @Override
     public ConnectorFactory usingProperties(Properties properties) {
       this.properties = properties;
+      String authMethod = ClientProperty.AUTH_METHOD.getValue(properties).toLowerCase();
+      switch (authMethod) {
+        case "password":
+          String password = ClientProperty.AUTH_PASSWORD.getValue(properties);
+          Objects.nonNull(password);
+          this.token = new PasswordToken(password);
+          this.properties.remove(ClientProperty.AUTH_PASSWORD);
+          break;
+        case "kerberos":
+          String principal = ClientProperty.AUTH_USERNAME.getValue(properties);
+          String keytabPath = ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getValue(properties);
+          Objects.nonNull(principal);
+          Objects.nonNull(keytabPath);
+          try {
+            this.token = new KerberosToken(principal, new File(keytabPath));
+          } catch (IOException e) {
+            throw new IllegalArgumentException(e);
+          }
+        case "provider":
+          String name = ClientProperty.AUTH_PROVIDER_NAME.getValue(properties);
+          String providerUrls = ClientProperty.AUTH_PROVIDER_URLS.getValue(properties);
+          try {
+            this.token = new CredentialProviderToken(name, providerUrls);
+          } catch (IOException e) {
+            throw new IllegalArgumentException(e);
+          }
+        default:
+          throw new IllegalArgumentException("An authentication method (password, kerberos, etc) must be set");
+      }
       return this;
     }
 
     @Override
-    public ConnectionOptions usingBasicCredentials(String username, CharSequence password) {
-      setProperty(ClientProperty.AUTH_TYPE, "basic");
-      setProperty(ClientProperty.AUTH_BASIC_USERNAME, username);
-      setProperty(ClientProperty.AUTH_BASIC_PASSWORD, password.toString());
+    public ConnectionOptions usingPasswordCredentials(String username, CharSequence password) {
+      setProperty(ClientProperty.AUTH_METHOD, "password");
+      setProperty(ClientProperty.AUTH_USERNAME, username);
+      this.token = new PasswordToken(password);
       return this;
     }
 
     @Override
     public ConnectionOptions usingKerberosCredentials(String principal, String keyTabFile) {
-      setProperty(ClientProperty.AUTH_TYPE, "kerberos");
-      setProperty(ClientProperty.AUTH_KERBEROS_PRINCIPAL, principal);
+      setProperty(ClientProperty.AUTH_METHOD, "kerberos");
+      setProperty(ClientProperty.AUTH_USERNAME, principal);
       setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH, keyTabFile);
+      try {
+        this.token = new KerberosToken(principal, new File(keyTabFile));
+      } catch (IOException e) {
+        throw new IllegalArgumentException(e);
+      }
       return this;
     }
 
     @Override
     public ConnectionOptions usingCredentialProvider(String username, String name, String providerUrls) {
-      setProperty(ClientProperty.AUTH_TYPE, "provider");
-      setProperty(ClientProperty.AUTH_PROVIDER_USERNAME, username);
+      setProperty(ClientProperty.AUTH_METHOD, "provider");
+      setProperty(ClientProperty.AUTH_USERNAME, username);
       setProperty(ClientProperty.AUTH_PROVIDER_NAME, name);
       setProperty(ClientProperty.AUTH_PROVIDER_URLS, providerUrls);
+      try {
+        this.token = new CredentialProviderToken(name, providerUrls);
+      } catch (IOException e) {
+        throw new IllegalArgumentException(e);
+      }
       return this;
     }
 
     @Override
     public ConnectionOptions usingCredentials(String principal, AuthenticationToken token) {
+      this.token = token;
+      setProperty(ClientProperty.AUTH_USERNAME, principal);
       if (token instanceof CredentialProviderToken) {
+        setProperty(ClientProperty.AUTH_METHOD, "provider");
         CredentialProviderToken cpt = (CredentialProviderToken) token;
-        return usingCredentialProvider(principal, cpt.getName(), cpt.getCredentialProviders());
+        setProperty(ClientProperty.AUTH_PROVIDER_NAME, cpt.getName());
+        setProperty(ClientProperty.AUTH_PROVIDER_URLS, cpt.getCredentialProviders());
       } else if (token instanceof PasswordToken) {
-        return usingBasicCredentials(principal, new String(((PasswordToken) token).getPassword()));
+        setProperty(ClientProperty.AUTH_METHOD, "password");
       } else if (token instanceof KerberosToken) {
-        return usingKerberosCredentials(principal, ((KerberosToken) token).getKeytab().getAbsolutePath());
+        setProperty(ClientProperty.AUTH_METHOD, "kerberos");
+        setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH, ((KerberosToken) token).getKeytab().getAbsolutePath());
       } else {
-        throw new IllegalArgumentException("Unknown AuthenticationToken argument");
+        setProperty(ClientProperty.AUTH_METHOD, "unknown");
       }
+      return this;
     }
 
     @Override
     public ConnectorFactory usingConnectionInfo(ConnectionInfo connectionInfo) {
       this.properties = connectionInfo.getProperties();
+      this.token = connectionInfo.getAuthenticationToken();
       return this;
     }
 

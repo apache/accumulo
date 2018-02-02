@@ -377,7 +377,7 @@ public abstract class Connector {
      *          Password
      * @return this builder
      */
-    ConnectionOptions usingBasicCredentials(String username, CharSequence password);
+    ConnectionOptions usingPasswordCredentials(String username, CharSequence password);
 
     /**
      * Build using Kerberos credentials
