@@ -510,6 +510,14 @@ public class FileManager {
 
       ArrayList<InterruptibleIterator> iters = new ArrayList<>();
 
+      boolean sawTimeSet = false;
+      for (DataFileValue dfv : files.values()) {
+        if (dfv.isTimeSet()) {
+          sawTimeSet = true;
+          break;
+        }
+      }
+
       for (FileSKVIterator reader : newlyReservedReaders) {
         String filename = getReservedReadeFilename(reader);
         InterruptibleIterator iter;
@@ -530,9 +538,13 @@ public class FileManager {
         } else {
           iter = new ProblemReportingIterator(context, tablet.getTableId(), filename, continueOnFailure, source);
         }
-        DataFileValue value = files.get(new FileRef(filename));
-        if (value.isTimeSet()) {
-          iter = new TimeSettingIterator(iter, value.getTime());
+
+        if (sawTimeSet) {
+          // constucting FileRef is expensive so avoid if not needed
+          DataFileValue value = files.get(new FileRef(filename));
+          if (value.isTimeSet()) {
+            iter = new TimeSettingIterator(iter, value.getTime());
+          }
         }
 
         iters.add(iter);
