@@ -39,6 +39,7 @@ import org.apache.log4j.Level;
  *
  * <ul>
  * <li>{@link AccumuloInputFormat#setConnectionInfo(JobConf, ConnectionInfo)}
+ * <li>{@link AccumuloInputFormat#setInputTableName(JobConf, String)}</li>
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, Authorizations)}
  * </ul>
  *
