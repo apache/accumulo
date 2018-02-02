@@ -19,26 +19,37 @@ package org.apache.accumulo.core.client.impl;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
+  public static final long DEFAULT_CACHE_TIME = 200;
+  public static final TimeUnit DEFAULT_CACHE_TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private static final Logger log = LoggerFactory.getLogger(MultiTableBatchWriterImpl.class);
   private AtomicBoolean closed;
+  private AtomicLong cacheLastState;
 
   private class TableBatchWriter implements BatchWriter {
 
@@ -71,17 +82,49 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
   }
 
+  /**
+   * CacheLoader which will look up the internal table ID for a given table name.
+   */
+  private class TableNameToIdLoader extends CacheLoader<String,String> {
+
+    @Override
+    public String load(String tableName) throws Exception {
+      Instance instance = context.getInstance();
+      String tableId = Tables.getNameToIdMap(instance).get(tableName);
+
+      if (tableId == null)
+        throw new TableNotFoundException(null, tableName, null);
+
+      if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+        throw new TableOfflineException(instance, tableId);
+
+      return tableId;
+    }
+
+  }
+
   private TabletServerBatchWriter bw;
   private ConcurrentHashMap<String,BatchWriter> tableWriters;
   private final ClientContext context;
+  private final LoadingCache<String,String> nameToIdCache;
 
   public MultiTableBatchWriterImpl(ClientContext context, BatchWriterConfig config) {
+    this(context, config, DEFAULT_CACHE_TIME, DEFAULT_CACHE_TIME_UNIT);
+  }
+
+  public MultiTableBatchWriterImpl(ClientContext context, BatchWriterConfig config, long cacheTime, TimeUnit cacheTimeUnit) {
     checkArgument(context != null, "context is null");
     checkArgument(config != null, "config is null");
+    checkArgument(cacheTimeUnit != null, "cacheTimeUnit is null");
     this.context = context;
     this.bw = new TabletServerBatchWriter(context, config);
     tableWriters = new ConcurrentHashMap<>();
     this.closed = new AtomicBoolean(false);
+    this.cacheLastState = new AtomicLong(0);
+
+    // Potentially up to ~500k used to cache names to IDs with "segments" of (maybe) ~1000 entries
+    nameToIdCache = CacheBuilder.newBuilder().expireAfterWrite(cacheTime, cacheTimeUnit).concurrencyLevel(10).maximumSize(10000).initialCapacity(20)
+        .build(new TableNameToIdLoader());
   }
 
   @Override
@@ -118,7 +161,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
    */
   private String getId(String tableName) throws TableNotFoundException {
     try {
-      return Tables.getTableId(context.inst, tableName);
+      return nameToIdCache.get(tableName);
     } catch (UncheckedExecutionException e) {
       Throwable cause = e.getCause();
 
@@ -133,12 +176,46 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
       }
 
       throw e;
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+
+      log.error("Unexpected exception when fetching table id for " + tableName);
+
+      if (null == cause) {
+        throw new RuntimeException(e);
+      } else if (cause instanceof TableNotFoundException) {
+        throw (TableNotFoundException) cause;
+      } else if (cause instanceof TableOfflineException) {
+        throw (TableOfflineException) cause;
+      }
+
+      throw new RuntimeException(e);
     }
   }
 
   @Override
   public BatchWriter getBatchWriter(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+
+    while (true) {
+      long cacheResetCount = Tables.getCacheResetCount();
+
+      // cacheResetCount could change after this point in time, but I think thats ok because just want to ensure this methods sees changes
+      // made before it was called.
+
+      long internalResetCount = cacheLastState.get();
+
+      if (cacheResetCount > internalResetCount) {
+        if (!cacheLastState.compareAndSet(internalResetCount, cacheResetCount)) {
+          continue; // concurrent operation, lets not possibly move cacheLastState backwards in the case where a thread pauses for along time
+        }
+
+        nameToIdCache.invalidateAll();
+        break;
+      }
+
+      break;
+    }
 
     String tableId = getId(tableName);
 

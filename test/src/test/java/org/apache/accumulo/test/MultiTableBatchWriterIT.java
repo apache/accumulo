@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -59,12 +61,12 @@ public class MultiTableBatchWriterIT extends AccumuloClusterIT {
   @Before
   public void setUpArgs() throws AccumuloException, AccumuloSecurityException {
     connector = getConnector();
-    mtbw = getMultiTableBatchWriter();
+    mtbw = getMultiTableBatchWriter(60);
   }
 
-  public MultiTableBatchWriter getMultiTableBatchWriter() {
+  public MultiTableBatchWriter getMultiTableBatchWriter(long cacheTimeoutInSeconds) {
     ClientContext context = new ClientContext(connector.getInstance(), new Credentials(getAdminPrincipal(), getAdminToken()), getCluster().getClientConfig());
-    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig());
+    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig(), cacheTimeoutInSeconds, TimeUnit.SECONDS);
   }
 
   @Test
@@ -263,7 +265,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterIT {
 
   @Test
   public void testTableRenameNewWritersNoCaching() throws Exception {
-    mtbw = getMultiTableBatchWriter();
+    mtbw = getMultiTableBatchWriter(0);
 
     try {
       final String[] names = getUniqueNames(4);
@@ -394,6 +396,115 @@ public class MultiTableBatchWriterIT extends AccumuloClusterIT {
     } finally {
       if (null != mtbw) {
         try {
+          mtbw.close();
+        } catch (MutationsRejectedException e) {
+          // Pass
+          mutationsRejected = true;
+        }
+      }
+    }
+
+    Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
+  }
+
+  @Test
+  public void testOfflineTableWithCache() throws Exception {
+    boolean mutationsRejected = false;
+
+    try {
+      final String[] names = getUniqueNames(2);
+      final String table1 = names[0], table2 = names[1];
+
+      TableOperations tops = connector.tableOperations();
+      tops.create(table1);
+      tops.create(table2);
+
+      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
+
+      Mutation m1 = new Mutation("foo");
+      m1.put("col1", "", "val1");
+      m1.put("col2", "", "val2");
+
+      bw1.addMutation(m1);
+      bw2.addMutation(m1);
+
+      tops.offline(table1);
+
+      try {
+        bw1 = mtbw.getBatchWriter(table1);
+      } catch (TableOfflineException e) {
+        // pass
+        mutationsRejected = true;
+      }
+
+      tops.offline(table2);
+
+      try {
+        bw2 = mtbw.getBatchWriter(table2);
+      } catch (TableOfflineException e) {
+        // pass
+        mutationsRejected = true;
+      }
+    } finally {
+      if (null != mtbw) {
+        try {
+          // Mutations might have flushed before the table offline occurred
+          mtbw.close();
+        } catch (MutationsRejectedException e) {
+          // Pass
+          mutationsRejected = true;
+        }
+      }
+    }
+
+    Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
+  }
+
+  @Test
+  public void testOfflineTableWithoutCache() throws Exception {
+    mtbw = getMultiTableBatchWriter(0);
+    boolean mutationsRejected = false;
+
+    try {
+      final String[] names = getUniqueNames(2);
+      final String table1 = names[0], table2 = names[1];
+
+      TableOperations tops = connector.tableOperations();
+      tops.create(table1);
+      tops.create(table2);
+
+      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
+
+      Mutation m1 = new Mutation("foo");
+      m1.put("col1", "", "val1");
+      m1.put("col2", "", "val2");
+
+      bw1.addMutation(m1);
+      bw2.addMutation(m1);
+
+      // Mutations might or might not flush before tables goes offline
+      tops.offline(table1);
+      tops.offline(table2);
+
+      try {
+        bw1 = mtbw.getBatchWriter(table1);
+        Assert.fail(table1 + " should be offline");
+      } catch (TableOfflineException e) {
+        // pass
+        mutationsRejected = true;
+      }
+
+      try {
+        bw2 = mtbw.getBatchWriter(table2);
+        Assert.fail(table1 + " should be offline");
+      } catch (TableOfflineException e) {
+        // pass
+        mutationsRejected = true;
+      }
+    } finally {
+      if (null != mtbw) {
+        try {
+          // Mutations might have flushed before the table offline occurred
           mtbw.close();
         } catch (MutationsRejectedException e) {
           // Pass
