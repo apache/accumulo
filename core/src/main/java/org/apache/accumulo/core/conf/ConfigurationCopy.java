@@ -64,11 +64,6 @@ public class ConfigurationCopy extends AccumuloConfiguration {
   }
 
   @Override
-  protected String getArbitrarySystemPropertyImpl(String property) {
-    return copy.get(property);
-  }
-
-  @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     for (Entry<String,String> entry : copy.entrySet()) {
       if (filter.apply(entry.getKey())) {

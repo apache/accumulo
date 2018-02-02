@@ -40,13 +40,11 @@ public class ZooConfiguration extends AccumuloConfiguration {
   private final ZooCache propCache;
   private final AccumuloConfiguration parent;
   private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<String,String>());
-  private final String propPathPrefix;
 
   protected ZooConfiguration(String instanceId, ZooCache propCache, AccumuloConfiguration parent) {
     this.instanceId = instanceId;
     this.propCache = propCache;
     this.parent = parent;
-    this.propPathPrefix = ZooUtil.getRoot(instanceId) + Constants.ZCONFIG;
   }
 
   @Override
@@ -81,15 +79,6 @@ public class ZooConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  protected String getArbitrarySystemPropertyImpl(String property) {
-    String val = getRaw(property);
-    if (val == null) {
-      val = getArbitrarySystemPropertyImpl(parent, property);
-    }
-    return val;
-  }
-
-  @Override
   public String get(Property property) {
     if (Property.isFixedZooPropertyKey(property)) {
       if (fixedProps.containsKey(property.getKey())) {
@@ -108,7 +97,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
   }
 
   private String getRaw(String key) {
-    String zPath = propPathPrefix + "/" + key;
+    String zPath = ZooUtil.getRoot(instanceId) + Constants.ZCONFIG + "/" + key;
     byte[] v = propCache.get(zPath);
     String value = null;
     if (v != null)
@@ -120,7 +109,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
     parent.getProperties(props, filter);
 
-    List<String> children = propCache.getChildren(propPathPrefix);
+    List<String> children = propCache.getChildren(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
     if (children != null) {
       for (String child : children) {
         if (child != null && filter.apply(child)) {
