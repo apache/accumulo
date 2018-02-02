@@ -39,8 +39,6 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 public enum Property {
   // Crypto-related properties
   @Experimental
@@ -591,16 +589,7 @@ public enum Property {
 
   ;
 
-  private String key;
-  private String defaultValue;
-  private String computedDefaultValue;
-  private String description;
-  private boolean annotationsComputed = false;
-  private boolean defaultValueComputed = false;
-  private boolean isSensitive;
-  private boolean isDeprecated;
-  private boolean isExperimental;
-  private boolean isInterpolated;
+  private String key, defaultValue, description;
   private PropertyType type;
   private static final Logger log = LoggerFactory.getLogger(Property.class);
 
@@ -640,11 +629,6 @@ public enum Property {
    * @return default value
    */
   public String getDefaultValue() {
-    Preconditions.checkState(defaultValueComputed, "precomputeDefaultValue() must be called before calling this method");
-    return computedDefaultValue;
-  }
-
-  private void precomputeDefaultValue() {
     String v;
     if (isInterpolated()) {
       PropertiesConfiguration pconf = new PropertiesConfiguration();
@@ -659,9 +643,7 @@ public enum Property {
     }
     if (this.type == PropertyType.ABSOLUTEPATH && !(v.trim().equals("")))
       v = new File(v).getAbsolutePath();
-
-    computedDefaultValue = v;
-    defaultValueComputed = true;
+    return v;
   }
 
   /**
@@ -683,8 +665,7 @@ public enum Property {
   }
 
   private boolean isInterpolated() {
-    Preconditions.checkState(annotationsComputed, "precomputeAnnotations() must be called before calling this method");
-    return isInterpolated;
+    return hasAnnotation(Interpolated.class) || hasPrefixWithAnnotation(getKey(), Interpolated.class);
   }
 
   /**
@@ -693,8 +674,7 @@ public enum Property {
    * @return true if this property is experimental
    */
   public boolean isExperimental() {
-    Preconditions.checkState(annotationsComputed, "precomputeAnnotations() must be called before calling this method");
-    return isExperimental;
+    return hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
   }
 
   /**
@@ -703,9 +683,10 @@ public enum Property {
    * @return true if this property is deprecated
    */
   public boolean isDeprecated() {
-    Preconditions.checkState(annotationsComputed, "precomputeAnnotations() must be called before calling this method");
-    return isDeprecated;
+    return hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
   }
+
+  private volatile Boolean isSensitive = null;
 
   /**
    * Checks if this property is sensitive.
@@ -713,16 +694,10 @@ public enum Property {
    * @return true if this property is sensitive
    */
   public boolean isSensitive() {
-    Preconditions.checkState(annotationsComputed, "precomputeAnnotations() must be called before calling this method");
-    return isSensitive;
-  }
-
-  private void precomputeAnnotations() {
-    isSensitive = hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
-    isDeprecated = hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
-    isExperimental = hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
-    isInterpolated = hasAnnotation(Interpolated.class) || hasPrefixWithAnnotation(getKey(), Interpolated.class);
-    annotationsComputed = true;
+    if (isSensitive == null) {
+      isSensitive = hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+    }
+    return isSensitive.booleanValue();
   }
 
   /**
@@ -734,20 +709,7 @@ public enum Property {
    * @return true if property is sensitive
    */
   public static boolean isSensitive(String key) {
-    Property prop = propertiesByKey.get(key);
-    if (prop != null) {
-      return prop.isSensitive();
-    } else {
-      for (String prefix : validPrefixes) {
-        if (key.startsWith(prefix)) {
-          if (propertiesByKey.get(prefix).isSensitive()) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
+    return hasPrefixWithAnnotation(key, Sensitive.class);
   }
 
   private <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
@@ -765,21 +727,24 @@ public enum Property {
   }
 
   private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key, Class<T> annotationType) {
-    for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix)) {
-        if (propertiesByKey.get(prefix).hasAnnotation(annotationType)) {
-          return true;
-        }
-      }
+    // relies on side-effects of isValidPropertyKey to populate validPrefixes
+    if (isValidPropertyKey(key)) {
+      // check if property exists on its own and has the annotation
+      if (Property.getPropertyByKey(key) != null)
+        return getPropertyByKey(key).hasAnnotation(annotationType);
+      // can't find the property, so check the prefixes
+      boolean prefixHasAnnotation = false;
+      for (String prefix : validPrefixes)
+        if (key.startsWith(prefix))
+          prefixHasAnnotation = prefixHasAnnotation || getPropertyByKey(prefix).hasAnnotation(annotationType);
+      return prefixHasAnnotation;
     }
-
     return false;
   }
 
   private static HashSet<String> validTableProperties = null;
   private static HashSet<String> validProperties = null;
   private static HashSet<String> validPrefixes = null;
-  private static HashMap<String,Property> propertiesByKey = null;
 
   private static boolean isKeyValidlyPrefixed(String key) {
     for (String prefix : validPrefixes) {
@@ -798,7 +763,20 @@ public enum Property {
    *          property key
    * @return true if key is valid (recognized, or has a recognized prefix)
    */
-  public static boolean isValidPropertyKey(String key) {
+  public synchronized static boolean isValidPropertyKey(String key) {
+    if (validProperties == null) {
+      validProperties = new HashSet<>();
+      validPrefixes = new HashSet<>();
+
+      for (Property p : Property.values()) {
+        if (p.getType().equals(PropertyType.PREFIX)) {
+          validPrefixes.add(p.getKey());
+        } else {
+          validProperties.add(p.getKey());
+        }
+      }
+    }
+
     return validProperties.contains(key) || isKeyValidlyPrefixed(key);
   }
 
@@ -811,12 +789,20 @@ public enum Property {
    *          property key
    * @return true if key is valid for a table property (recognized, or has a recognized prefix)
    */
-  public static boolean isValidTablePropertyKey(String key) {
-    return validTableProperties.contains(key)
-        || (key.startsWith(Property.TABLE_PREFIX.getKey()) && (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
-            || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())
-            || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey()) || key
-              .startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey())));
+  public synchronized static boolean isValidTablePropertyKey(String key) {
+    if (validTableProperties == null) {
+      validTableProperties = new HashSet<>();
+      for (Property p : Property.values()) {
+        if (!p.getType().equals(PropertyType.PREFIX) && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+          validTableProperties.add(p.getKey());
+        }
+      }
+    }
+
+    return validTableProperties.contains(key) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
+        || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())
+        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey())
+        || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey());
   }
 
   /**
@@ -852,7 +838,7 @@ public enum Property {
     return key.startsWith(Property.TABLE_PREFIX.getKey()) || key.startsWith(Property.TSERV_PREFIX.getKey()) || key.startsWith(Property.LOGGER_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey()) || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.") || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
-        || key.startsWith(REPLICATION_PREFIX.getKey());
+        || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()) || key.startsWith(REPLICATION_PREFIX.getKey());
   }
 
   /**
@@ -863,7 +849,10 @@ public enum Property {
    * @return property, or null if not found
    */
   public static Property getPropertyByKey(String key) {
-    return propertiesByKey.get(key);
+    for (Property prop : Property.values())
+      if (prop.getKey().equals(key))
+        return prop;
+    return null;
   }
 
   /**
@@ -962,36 +951,5 @@ public enum Property {
       result.put(entry.getKey().substring(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey().length()), entry.getValue());
     }
     return result;
-  }
-
-  static {
-    // Precomputing information here avoids :
-    // * Computing it each time a method is called
-    // * Using synch to compute the first time a method is called
-    propertiesByKey = new HashMap<>();
-    validPrefixes = new HashSet<>();
-    validProperties = new HashSet<>();
-
-    for (Property p : Property.values()) {
-      if (p.getType().equals(PropertyType.PREFIX)) {
-        validPrefixes.add(p.getKey());
-      } else {
-        validProperties.add(p.getKey());
-      }
-      propertiesByKey.put(p.getKey(), p);
-    }
-
-    validTableProperties = new HashSet<>();
-    for (Property p : Property.values()) {
-      if (!p.getType().equals(PropertyType.PREFIX) && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-        validTableProperties.add(p.getKey());
-      }
-    }
-
-    // order is very important here the following code relies on the maps and sets populated above
-    for (Property p : Property.values()) {
-      p.precomputeAnnotations();
-      p.precomputeDefaultValue();
-    }
   }
 }
