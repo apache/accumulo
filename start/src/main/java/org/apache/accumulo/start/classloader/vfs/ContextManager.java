@@ -18,7 +18,9 @@ package org.apache.accumulo.start.classloader.vfs;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.vfs2.FileSystemException;
@@ -97,30 +99,38 @@ public class ContextManager {
     ContextConfig getContextConfig(String context);
   }
 
-  public static abstract class DefaultContextsConfig implements ContextsConfig {
+  public static class DefaultContextsConfig implements ContextsConfig {
 
-    public abstract String getProperty(String key);
+    private Iterable<Entry<String,String>> config;
+
+    public DefaultContextsConfig(Iterable<Entry<String,String>> config) {
+      this.config = config;
+    }
 
     @Override
     public ContextConfig getContextConfig(String context) {
 
       String key = AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY + context;
 
-      String uris = getProperty(key);
-
-      if (uris == null) {
-        return null;
-      }
-
-      String delegate = getProperty(key + ".delegation");
-
+      String uris = null;
       boolean preDelegate = true;
 
-      if (delegate != null && delegate.trim().equalsIgnoreCase("post")) {
-        preDelegate = false;
+      Iterator<Entry<String,String>> iter = config.iterator();
+      while (iter.hasNext()) {
+        Entry<String,String> entry = iter.next();
+        if (entry.getKey().equals(key)) {
+          uris = entry.getValue();
+        }
+
+        if (entry.getKey().equals(key + ".delegation") && entry.getValue().trim().equalsIgnoreCase("post")) {
+          preDelegate = false;
+        }
       }
 
-      return new ContextConfig(uris, preDelegate);
+      if (uris != null)
+        return new ContextConfig(uris, preDelegate);
+
+      return null;
     }
   }
 

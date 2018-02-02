@@ -589,12 +589,12 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     this.tabletBalancer.init(serverConfig);
 
     try {
-      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig() {
+      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
         @Override
-        public String getProperty(String key) {
-          return getConfiguration().get(key);
+        public Iterator<Entry<String,String>> iterator() {
+          return getConfiguration().iterator();
         }
-      });
+      }));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

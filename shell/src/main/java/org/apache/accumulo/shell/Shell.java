@@ -545,16 +545,18 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       shellState.getConnector().instanceOperations().getSystemConfiguration().get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
 
       try {
-
-        final Map<String,String> systemConfig = shellState.getConnector().instanceOperations().getSystemConfiguration();
-
-        AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig() {
+        AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Map.Entry<String,String>>() {
           @Override
-          public String getProperty(String key) {
-            return systemConfig.get(key);
+          public Iterator<Entry<String,String>> iterator() {
+            try {
+              return shellState.getConnector().instanceOperations().getSystemConfiguration().entrySet().iterator();
+            } catch (AccumuloException e) {
+              throw new RuntimeException(e);
+            } catch (AccumuloSecurityException e) {
+              throw new RuntimeException(e);
+            }
           }
-
-        });
+        }));
       } catch (IllegalStateException ise) {}
 
       classloader = AccumuloVFSClassLoader.getContextManager().getClassLoader(classpath);

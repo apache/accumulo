@@ -2814,12 +2814,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     clientAddress = HostAndPort.fromParts(hostname, 0);
     try {
-      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig() {
+      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
         @Override
-        public String getProperty(String key) {
-          return getConfiguration().get(key);
+        public Iterator<Entry<String,String>> iterator() {
+          return getConfiguration().iterator();
         }
-      });
+      }));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
