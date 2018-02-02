@@ -19,9 +19,7 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConnectionInfo;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
