@@ -32,7 +32,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
   private static final org.apache.thrift.protocol.TField VALUES_FIELD_DESC = new org.apache.thrift.protocol.TField("values", org.apache.thrift.protocol.TType.LIST, (short)3);
   private static final org.apache.thrift.protocol.TField ENTRIES_FIELD_DESC = new org.apache.thrift.protocol.TField("entries", org.apache.thrift.protocol.TType.I32, (short)4);
   private static final org.apache.thrift.protocol.TField SOURCES_FIELD_DESC = new org.apache.thrift.protocol.TField("sources", org.apache.thrift.protocol.TType.LIST, (short)5);
-  private static final org.apache.thrift.protocol.TField LENGTH_FIELD_DESC = new org.apache.thrift.protocol.TField("length", org.apache.thrift.protocol.TType.I64, (short)6);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TMutationStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TMutationTupleSchemeFactory();
@@ -42,7 +41,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
   public java.util.List<java.nio.ByteBuffer> values; // required
   public int entries; // required
   public java.util.List<java.lang.String> sources; // optional
-  public long length; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -50,8 +48,7 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
     DATA((short)2, "data"),
     VALUES((short)3, "values"),
     ENTRIES((short)4, "entries"),
-    SOURCES((short)5, "sources"),
-    LENGTH((short)6, "length");
+    SOURCES((short)5, "sources");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -76,8 +73,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
           return ENTRIES;
         case 5: // SOURCES
           return SOURCES;
-        case 6: // LENGTH
-          return LENGTH;
         default:
           return null;
       }
@@ -119,7 +114,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
 
   // isset id assignments
   private static final int __ENTRIES_ISSET_ID = 0;
-  private static final int __LENGTH_ISSET_ID = 1;
   private byte __isset_bitfield = 0;
   private static final _Fields optionals[] = {_Fields.SOURCES};
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
@@ -137,8 +131,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
     tmpMap.put(_Fields.SOURCES, new org.apache.thrift.meta_data.FieldMetaData("sources", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
-    tmpMap.put(_Fields.LENGTH, new org.apache.thrift.meta_data.FieldMetaData("length", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TMutation.class, metaDataMap);
   }
@@ -150,8 +142,7 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
     java.nio.ByteBuffer row,
     java.nio.ByteBuffer data,
     java.util.List<java.nio.ByteBuffer> values,
-    int entries,
-    long length)
+    int entries)
   {
     this();
     this.row = org.apache.thrift.TBaseHelper.copyBinary(row);
@@ -159,8 +150,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
     this.values = values;
     this.entries = entries;
     setEntriesIsSet(true);
-    this.length = length;
-    setLengthIsSet(true);
   }
 
   /**
@@ -183,7 +172,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
       java.util.List<java.lang.String> __this__sources = new java.util.ArrayList<java.lang.String>(other.sources);
       this.sources = __this__sources;
     }
-    this.length = other.length;
   }
 
   public TMutation deepCopy() {
@@ -198,8 +186,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
     setEntriesIsSet(false);
     this.entries = 0;
     this.sources = null;
-    setLengthIsSet(false);
-    this.length = 0;
   }
 
   public byte[] getRow() {
@@ -371,29 +357,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
     }
   }
 
-  public long getLength() {
-    return this.length;
-  }
-
-  public TMutation setLength(long length) {
-    this.length = length;
-    setLengthIsSet(true);
-    return this;
-  }
-
-  public void unsetLength() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __LENGTH_ISSET_ID);
-  }
-
-  /** Returns true if field length is set (has been assigned a value) and false otherwise */
-  public boolean isSetLength() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __LENGTH_ISSET_ID);
-  }
-
-  public void setLengthIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __LENGTH_ISSET_ID, value);
-  }
-
   public void setFieldValue(_Fields field, java.lang.Object value) {
     switch (field) {
     case ROW:
@@ -444,14 +407,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
       }
       break;
 
-    case LENGTH:
-      if (value == null) {
-        unsetLength();
-      } else {
-        setLength((java.lang.Long)value);
-      }
-      break;
-
     }
   }
 
@@ -471,9 +426,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
 
     case SOURCES:
       return getSources();
-
-    case LENGTH:
-      return getLength();
 
     }
     throw new java.lang.IllegalStateException();
@@ -496,8 +448,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
       return isSetEntries();
     case SOURCES:
       return isSetSources();
-    case LENGTH:
-      return isSetLength();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -562,15 +512,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
         return false;
     }
 
-    boolean this_present_length = true;
-    boolean that_present_length = true;
-    if (this_present_length || that_present_length) {
-      if (!(this_present_length && that_present_length))
-        return false;
-      if (this.length != that.length)
-        return false;
-    }
-
     return true;
   }
 
@@ -595,8 +536,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
     hashCode = hashCode * 8191 + ((isSetSources()) ? 131071 : 524287);
     if (isSetSources())
       hashCode = hashCode * 8191 + sources.hashCode();
-
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(length);
 
     return hashCode;
   }
@@ -659,16 +598,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.valueOf(isSetLength()).compareTo(other.isSetLength());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetLength()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.length, other.length);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     return 0;
   }
 
@@ -726,10 +655,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
       }
       first = false;
     }
-    if (!first) sb.append(", ");
-    sb.append("length:");
-    sb.append(this.length);
-    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -835,14 +760,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 6: // LENGTH
-            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.length = iprot.readI64();
-              struct.setLengthIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -897,9 +814,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
           oprot.writeFieldEnd();
         }
       }
-      oprot.writeFieldBegin(LENGTH_FIELD_DESC);
-      oprot.writeI64(struct.length);
-      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -933,10 +847,7 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
       if (struct.isSetSources()) {
         optionals.set(4);
       }
-      if (struct.isSetLength()) {
-        optionals.set(5);
-      }
-      oprot.writeBitSet(optionals, 6);
+      oprot.writeBitSet(optionals, 5);
       if (struct.isSetRow()) {
         oprot.writeBinary(struct.row);
       }
@@ -964,15 +875,12 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
           }
         }
       }
-      if (struct.isSetLength()) {
-        oprot.writeI64(struct.length);
-      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TMutation struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(6);
+      java.util.BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
         struct.row = iprot.readBinary();
         struct.setRowIsSet(true);
@@ -1010,10 +918,6 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
           }
         }
         struct.setSourcesIsSet(true);
-      }
-      if (incoming.get(5)) {
-        struct.length = iprot.readI64();
-        struct.setLengthIsSet(true);
       }
     }
   }
