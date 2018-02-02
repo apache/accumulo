@@ -685,7 +685,7 @@ public class MutationTest {
   public void testSanityCheck() {
     Mutation m = new Mutation("too big mutation");
     m.put("cf", "cq1", "v");
-    m.size.update(Long.MAX_VALUE / 2);
+    m.size.addEntryWithSize(Long.MAX_VALUE / 2);
     m.put("cf", "cq2", "v");
   }
 }
