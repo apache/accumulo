@@ -69,33 +69,39 @@ public class ZooCache {
     final Map<String,byte[]> cache;
     final Map<String,Stat> statCache;
     final Map<String,List<String>> childrenCache;
+    final long updateCount;
 
-    ImmutableCacheCopies() {
+    ImmutableCacheCopies(long updateCount) {
+      this.updateCount = updateCount;
       cache = Collections.emptyMap();
       statCache = Collections.emptyMap();
       childrenCache = Collections.emptyMap();
     }
 
-    ImmutableCacheCopies(Map<String,byte[]> cache, Map<String,Stat> statCache, Map<String,List<String>> childrenCache) {
+    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,Stat> statCache, Map<String,List<String>> childrenCache) {
+      this.updateCount = updateCount;
       this.cache = Collections.unmodifiableMap(new HashMap<>(cache));
       this.statCache = Collections.unmodifiableMap(new HashMap<>(statCache));
       this.childrenCache = Collections.unmodifiableMap(new HashMap<>(childrenCache));
     }
 
-    ImmutableCacheCopies(ImmutableCacheCopies prev, Map<String,List<String>> childrenCache) {
+    ImmutableCacheCopies(long updateCount, ImmutableCacheCopies prev, Map<String,List<String>> childrenCache) {
+      this.updateCount = updateCount;
       this.cache = prev.cache;
       this.statCache = prev.statCache;
       this.childrenCache = Collections.unmodifiableMap(new HashMap<>(childrenCache));
     }
 
-    ImmutableCacheCopies(Map<String,byte[]> cache, Map<String,Stat> statCache, ImmutableCacheCopies prev) {
+    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,Stat> statCache, ImmutableCacheCopies prev) {
+      this.updateCount = updateCount;
       this.cache = Collections.unmodifiableMap(new HashMap<>(cache));
       this.statCache = Collections.unmodifiableMap(new HashMap<>(statCache));
       this.childrenCache = prev.childrenCache;
     }
   }
 
-  private volatile ImmutableCacheCopies immutableCache = new ImmutableCacheCopies();
+  private volatile ImmutableCacheCopies immutableCache = new ImmutableCacheCopies(0);
+  private long updateCount = 0;
 
   /**
    * Returns a ZooKeeper session. Calls should be made within run of ZooRunnable after caches are checked. This will be performed at each retry of the run
@@ -285,7 +291,7 @@ public class ZooCache {
             children = ImmutableList.copyOf(children);
           }
           childrenCache.put(zPath, children);
-          immutableCache = new ImmutableCacheCopies(immutableCache, childrenCache);
+          immutableCache = new ImmutableCacheCopies(++updateCount, immutableCache, childrenCache);
           return children;
         } catch (KeeperException ke) {
           if (ke.code() != Code.NONODE) {
@@ -411,7 +417,7 @@ public class ZooCache {
       cache.put(zPath, data);
       statCache.put(zPath, stat);
 
-      immutableCache = new ImmutableCacheCopies(cache, statCache, immutableCache);
+      immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, immutableCache);
     } finally {
       cacheWriteLock.unlock();
     }
@@ -424,7 +430,7 @@ public class ZooCache {
       childrenCache.remove(zPath);
       statCache.remove(zPath);
 
-      immutableCache = new ImmutableCacheCopies(cache, statCache, childrenCache);
+      immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
     } finally {
       cacheWriteLock.unlock();
     }
@@ -440,10 +446,17 @@ public class ZooCache {
       childrenCache.clear();
       statCache.clear();
 
-      immutableCache = new ImmutableCacheCopies();
+      immutableCache = new ImmutableCacheCopies(++updateCount);
     } finally {
       cacheWriteLock.unlock();
     }
+  }
+
+  /**
+   * Returns a monotonically increasing count of the number of time the cache was updated. If the count is the same, then it means cache did not change.
+   */
+  public long getUpdateCount() {
+    return immutableCache.updateCount;
   }
 
   /**
@@ -508,7 +521,7 @@ public class ZooCache {
           i.remove();
       }
 
-      immutableCache = new ImmutableCacheCopies(cache, statCache, childrenCache);
+      immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
     } finally {
       cacheWriteLock.unlock();
     }

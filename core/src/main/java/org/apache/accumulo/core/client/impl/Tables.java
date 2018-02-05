@@ -69,13 +69,15 @@ public class Tables {
     if (sm != null) {
       sm.checkPermission(TABLES_PERMISSION);
     }
-    final String zks = instance.getZooKeepers();
-    final int timeOut = instance.getZooKeepersSessionTimeOut();
+
     final String uuid = instance.getInstanceID();
 
     try {
-      return instanceToZooCache.get(uuid, () -> new ZooCacheFactory().getZooCache(zks, timeOut,
-              watchedEvent -> instanceToMapCache.invalidate(uuid)));
+      return instanceToZooCache.get(uuid, () -> {
+        final String zks = instance.getZooKeepers();
+        final int timeOut = instance.getZooKeepersSessionTimeOut();
+        return new ZooCacheFactory().getZooCache(zks, timeOut, watchedEvent -> instanceToMapCache.invalidate(uuid));
+      });
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
     }

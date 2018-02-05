@@ -141,4 +141,9 @@ public class TableConfiguration extends ObservableConfiguration {
   public String toString() {
     return this.getClass().getSimpleName();
   }
+
+  @Override
+  public long getUpdateCount() {
+    return parent.getUpdateCount() + getPropCacheAccessor().getZooCache().getUpdateCount();
+  }
 }

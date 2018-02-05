@@ -39,11 +39,6 @@ class MockConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  protected String getArbitrarySystemPropertyImpl(String property) {
-    return map.get(property);
-  }
-
-  @Override
   public String get(Property property) {
     return map.get(property.getKey());
   }

@@ -104,21 +104,21 @@ public class ContextManager {
 
   public static abstract class DefaultContextsConfig implements ContextsConfig {
 
-    /**
-     * Implementations should prepend {@link AccumuloVFSClassLoader#VFS_CONTEXT_CLASSPATH_PROPERTY} to the given key.
-     */
-    public abstract String getVfsContextClasspathProperty(String key);
+    public abstract Map<String,String> getVfsContextClasspathProperties();
 
     @Override
     public ContextConfig getContextConfig(String context) {
 
-      String uris = getVfsContextClasspathProperty(context);
+      String prop = AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY + context;
+      Map<String,String> props = getVfsContextClasspathProperties();
+
+      String uris = props.get(prop);
 
       if (uris == null) {
         return null;
       }
 
-      String delegate = getVfsContextClasspathProperty(context + ".delegation");
+      String delegate = props.get(prop + ".delegation");
 
       boolean preDelegate = true;
 

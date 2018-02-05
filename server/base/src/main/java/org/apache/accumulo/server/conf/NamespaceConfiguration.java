@@ -43,11 +43,13 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   protected Namespace.ID namespaceId = null;
   protected Instance inst = null;
   private ZooCacheFactory zcf = new ZooCacheFactory();
+  private final String path;
 
   public NamespaceConfiguration(Namespace.ID namespaceId, Instance inst, AccumuloConfiguration parent) {
     this.inst = inst;
     this.parent = parent;
     this.namespaceId = namespaceId;
+    this.path = ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZNAMESPACE_CONF;
   }
 
   /**
@@ -79,7 +81,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   }
 
   private String getPath() {
-    return ZooUtil.getRoot(inst.getInstanceID()) + Constants.ZNAMESPACES + "/" + getNamespaceId() + Constants.ZNAMESPACE_CONF;
+    return path;
   }
 
   @Override
@@ -143,5 +145,10 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     // Else, if the accessor is null, we could lock and double-check
     // to see if it happened to be created so we could invalidate its cache
     // but I don't see much benefit coming from that extra check.
+  }
+
+  @Override
+  public long getUpdateCount() {
+    return parent.getUpdateCount() + getPropCacheAccessor().getZooCache().getUpdateCount();
   }
 }
