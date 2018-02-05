@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -23,6 +24,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -35,14 +38,27 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * A configuration object.
  */
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
+
+  private static class PrefixProps {
+    final long updateCount;
+    final Map<String,String> props;
+
+    PrefixProps(Map<String,String> props, long updateCount) {
+      this.updateCount = updateCount;
+      this.props = props;
+    }
+  }
+
+  private volatile EnumMap<Property,PrefixProps> cachedPrefixProps = new EnumMap<>(Property.class);
+  private Lock prefixCacheUpdateLock = new ReentrantLock();
 
   /**
    * A filter for properties, based on key.
@@ -109,32 +125,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
 
-  protected String getArbitrarySystemPropertyImpl(AccumuloConfiguration parent, String property) {
-    return parent.getArbitrarySystemPropertyImpl(property);
-  }
-
-  /**
-   * This method is not called with sensitive or per table properties.
-   */
-  protected String getArbitrarySystemPropertyImpl(String property) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * This method was created because {@link #get(String)} is very slow. However this method does not properly handle everything that {@link #get(String)} does.
-   * For example it does not properly handle table or sensitive properties.
-   *
-   * <p>
-   * This method has a whitelist of prefixes it handles. To see the whitelist, check the implementation. When adding to the whitelist, ensure that all
-   * configurations can properly handle.
-   */
-  public String getArbitrarySystemProperty(Property prefix, String property) {
-    Preconditions.checkArgument(prefix == Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-
-    String key = prefix.getKey() + property;
-    return getArbitrarySystemPropertyImpl(key);
-  }
-
   /**
    * Gets a property value from this configuration.
    *
@@ -194,6 +184,13 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
+   * Each time configurations is changes, this counter should increase.
+   */
+  public long getUpdateCount() {
+    return 0;
+  }
+
+  /**
    * Gets all properties under the given prefix in this configuration.
    *
    * @param property
@@ -205,9 +202,41 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public Map<String,String> getAllPropertiesWithPrefix(Property property) {
     checkType(property, PropertyType.PREFIX);
 
-    Map<String,String> propMap = new HashMap<>();
-    getProperties(propMap, new PrefixFilter(property.getKey()));
-    return propMap;
+    PrefixProps prefixProps = cachedPrefixProps.get(property);
+
+    if (prefixProps == null || prefixProps.updateCount != getUpdateCount()) {
+      prefixCacheUpdateLock.lock();
+      try {
+        // Very important that update count is read before getting properties. Also only read it once.
+        long updateCount = getUpdateCount();
+        prefixProps = cachedPrefixProps.get(property);
+
+        if (prefixProps == null || prefixProps.updateCount != updateCount) {
+          Map<String,String> propMap = new HashMap<>();
+          // The reason this caching exists is to avoid repeatedly making this expensive call.
+          getProperties(propMap, new PrefixFilter(property.getKey()));
+          propMap = ImmutableMap.copyOf(propMap);
+
+          // So that locking is not needed when reading from enum map, always create a new one. Construct and populate map using a local var so its not visible
+          // until ready.
+          EnumMap<Property,PrefixProps> localPrefixes = new EnumMap<>(Property.class);
+
+          // carry forward any other cached prefixes
+          localPrefixes.putAll(cachedPrefixProps);
+
+          // put the updates
+          prefixProps = new PrefixProps(propMap, updateCount);
+          localPrefixes.put(property, prefixProps);
+
+          // make the newly constructed map available
+          cachedPrefixProps = localPrefixes;
+        }
+      } finally {
+        prefixCacheUpdateLock.unlock();
+      }
+    }
+
+    return prefixProps.props;
   }
 
   /**

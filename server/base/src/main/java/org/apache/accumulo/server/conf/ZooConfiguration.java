@@ -79,15 +79,6 @@ public class ZooConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  protected String getArbitrarySystemPropertyImpl(String property) {
-    String val = getRaw(property);
-    if (val == null) {
-      val = getArbitrarySystemPropertyImpl(parent, property);
-    }
-    return val;
-  }
-
-  @Override
   public String get(Property property) {
     if (Property.isFixedZooPropertyKey(property)) {
       if (fixedProps.containsKey(property.getKey())) {
@@ -128,5 +119,10 @@ public class ZooConfiguration extends AccumuloConfiguration {
         }
       }
     }
+  }
+
+  @Override
+  public long getUpdateCount() {
+    return parent.getUpdateCount() + propCache.getUpdateCount();
   }
 }

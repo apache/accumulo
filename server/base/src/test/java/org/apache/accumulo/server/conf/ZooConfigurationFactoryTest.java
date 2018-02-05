@@ -17,8 +17,10 @@
 package org.apache.accumulo.server.conf;
 
 import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertNotNull;
@@ -28,6 +30,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.zookeeper.Watcher;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,7 +57,7 @@ public class ZooConfigurationFactoryTest {
     expect(instance.getZooKeepers()).andReturn("localhost");
     expect(instance.getZooKeepersSessionTimeOut()).andReturn(120000);
     replay(instance);
-    expect(zcf.getZooCache("localhost", 120000)).andReturn(zc);
+    expect(zcf.getZooCache(eq("localhost"), eq(120000), isA(Watcher.class))).andReturn(zc);
     replay(zcf);
 
     ZooConfiguration c = zconff.getInstance(instance, zcf, parent);
