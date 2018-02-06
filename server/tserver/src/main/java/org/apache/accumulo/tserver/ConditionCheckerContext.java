@@ -29,8 +29,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.impl.CompressedIterators;
 import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -43,6 +41,8 @@ import org.apache.accumulo.core.data.thrift.TCondition;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.hadoop.io.Text;
 
@@ -67,16 +67,14 @@ public class ConditionCheckerContext {
 
   private Map<ByteSequence,MergedIterConfig> mergedIterCache = new HashMap<>();
 
-  ConditionCheckerContext(CompressedIterators compressedIters, AccumuloConfiguration tableConf) {
+  ConditionCheckerContext(CompressedIterators compressedIters, TableConfiguration tableConf) {
     this.compressedIters = compressedIters;
 
-    tableIters = new ArrayList<>();
-    tableIterOpts = new HashMap<>();
+    ParsedIteratorConfig pic = tableConf.getParsedIteratorConfig(IteratorScope.scan);
 
-    // parse table iterator config once
-    IteratorUtil.parseIterConf(IteratorScope.scan, tableIters, tableIterOpts, tableConf);
-
-    context = tableConf.get(Property.TABLE_CLASSPATH);
+    tableIters = pic.getIterInfo();
+    tableIterOpts = pic.getOpts();
+    context = pic.getContext();
 
     classCache = new HashMap<>();
 
