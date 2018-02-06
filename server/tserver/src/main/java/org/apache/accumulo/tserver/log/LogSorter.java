@@ -221,6 +221,7 @@ public class LogSorter {
 
   ThreadPoolExecutor threadPool;
   private final Instance instance;
+  private double walBlockSize;
 
   public LogSorter(Instance instance, VolumeManager fs, AccumuloConfiguration conf) {
     this.instance = instance;
@@ -228,6 +229,7 @@ public class LogSorter {
     this.conf = conf;
     int threadPoolSize = conf.getCount(Property.TSERV_RECOVERY_MAX_CONCURRENT);
     this.threadPool = new SimpleThreadPool(threadPoolSize, this.getClass().getName());
+    this.walBlockSize = DfsLogger.getWalBlockSize(conf);
   }
 
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool) throws KeeperException, InterruptedException {
@@ -242,7 +244,9 @@ public class LogSorter {
         RecoveryStatus status = new RecoveryStatus();
         status.name = entries.getKey();
         try {
-          status.progress = entries.getValue().getBytesCopied() / (0.0 + conf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE));
+          double progress = entries.getValue().getBytesCopied() / walBlockSize;
+          // to be sure progress does not exceed 100%
+          status.progress = Math.max(progress, 99.0);
         } catch (IOException ex) {
           log.warn("Error getting bytes read");
         }
