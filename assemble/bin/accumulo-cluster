@@ -24,6 +24,7 @@ Commands:
   restart             Restarts the Accumulo cluster
   start               Starts Accumulo cluster
   stop                Stops Accumulo cluster
+  kill                Kills Accumulo cluster
   start-non-tservers  Starts all services except tservers
   start-tservers      Starts all tservers on cluster
   stop-tservers       Stops all tservers on cluster
@@ -221,8 +222,34 @@ function stop_tservers() {
   ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers
 }
 
+function kill_all() {
+  echo "Killing Accumulo cluster..."
+
+  for master in $(grep -v '^#' "${conf}/masters"); do
+    kill_service "$master" master
+  done
+
+  for gc in $(grep -v '^#' "${conf}/gc"); do
+    kill_service "$gc" gc
+  done
+
+  kill_service "$monitor" monitor
+
+  for tracer in $(egrep -v '(^#|^\s*$)' "${conf}/tracers"); do
+    kill_service "$tracer" tracer
+  done
+
+  for host in $(egrep -v '(^#|^\s*$)' "${conf}/tservers"); do
+    kill_service "$host" tserver
+  done
+
+  echo "Cleaning all server entries in ZooKeeper"
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -master -tservers -tracers --site-file "${conf}/accumulo-site.xml"
+}
+
+
 function stop_all() {
-  echo "Stopping accumulo services..."
+  echo "Stopping Accumulo cluster..."
   if ! ${accumulo_cmd} admin stopAll
   then
     echo "Invalid password or unable to connect to the master"
@@ -325,6 +352,10 @@ function main() {
     stop)
       verify_config
       stop_all
+      ;;
+    kill)
+      verify_config
+      kill_all
       ;;
     start-non-tservers)
       verify_config
