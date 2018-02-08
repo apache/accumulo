@@ -317,6 +317,14 @@ public class BatchWriterConfig implements Writable {
     return o2;
   }
 
+  /**
+   * Merge this BatchWriterConfig with another. If config is set in both, preference will be given to this config.
+   *
+   * @param other
+   *          Another BatchWriterConfig
+   * @return Merged BatchWriterConfig
+   * @since 2.0.0
+   */
   public BatchWriterConfig merge(BatchWriterConfig other) {
     BatchWriterConfig result = new BatchWriterConfig();
     result.maxMemory = merge(this.maxMemory, other.maxMemory);

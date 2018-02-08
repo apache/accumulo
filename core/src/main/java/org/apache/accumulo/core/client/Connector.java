@@ -92,7 +92,8 @@ public abstract class Connector {
    * @param numQueryThreads
    *          the number of concurrent threads to spawn for querying
    * @param config
-   *          configuration used to create batch writer
+   *          configuration used to create batch writer. This config takes precedence. Any unset values will be merged with config set when the Connector was
+   *          created. If no config was set during Connector creation, BatchWriterConfig defaults will be used.
    * @return BatchDeleter object for configuring and deleting
    * @since 1.5.0
    */
@@ -144,7 +145,8 @@ public abstract class Connector {
    * @param tableName
    *          the name of the table to insert data into
    * @param config
-   *          configuration used to create batch writer
+   *          configuration used to create batch writer. This config will take precedence. Any unset values will merged with config set when the Connector was
+   *          created. If no config was set during Connector creation, BatchWriterConfig defaults will be used.
    * @return BatchWriter object for configuring and writing data to
    * @since 1.5.0
    */
@@ -186,11 +188,11 @@ public abstract class Connector {
    * multiple tables can be sent to a server in a single batch. Its an efficient way to ingest data into multiple tables from a single process.
    *
    * @param config
-   *          configuration used to create multi-table batch writer
+   *          configuration used to create multi-table batch writer. This config will take precedence. Any unset values will merged with config set when the
+   *          Connector was created. If no config was set during Connector creation, BatchWriterConfig defaults will be used.
    * @return MultiTableBatchWriter object for configuring and writing data to
    * @since 1.5.0
    */
-
   public abstract MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config);
 
   /**
@@ -331,7 +333,7 @@ public abstract class Connector {
   public interface PropertyOptions extends InstanceArgs {
 
     /**
-     * Build using properties file
+     * Build using properties file. An example properties file can be found at conf/accumulo-client.properties in the Accumulo tarball distribution.
      *
      * @param propertiesFile
      *          Path to properties file
@@ -340,7 +342,8 @@ public abstract class Connector {
     ConnectorFactory usingProperties(String propertiesFile);
 
     /**
-     * Build using Java properties object
+     * Build using Java properties object. A list of available properties can be found in the documentation on the project website (http://accumulo.apache.org)
+     * under 'Development' -> 'Client Properties'
      *
      * @param properties
      *          Properties object

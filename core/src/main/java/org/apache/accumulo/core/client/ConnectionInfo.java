@@ -22,6 +22,8 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 /**
  * Accumulo client connection information. Can be built using {@link Connector#builder()}
+ *
+ * @since 2.0.0
  */
 public interface ConnectionInfo {
 
@@ -44,15 +46,6 @@ public interface ConnectionInfo {
    * @return {@link AuthenticationToken} used for this connection
    */
   AuthenticationToken getAuthenticationToken();
-
-  /**
-   * Retrieves property value given key
-   *
-   * @param key
-   *          Property key
-   * @return Value of property
-   */
-  String getProperty(String key);
 
   /**
    * @return All Accumulo client properties set for this connection

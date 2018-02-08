@@ -24,14 +24,14 @@ import org.apache.accumulo.core.Constants;
 public enum ClientProperty {
 
   // Instance
-  INSTANCE_NAME("instance.name", "", "Name of Accumulo instance to connect to", true),
-  INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181", "Zookeeper connection information for Accumulo instance", true),
+  INSTANCE_NAME("instance.name", "", "Name of Accumulo instance to connect to", "", true),
+  INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181", "Zookeeper connection information for Accumulo instance", "", true),
   INSTANCE_ZOOKEEPERS_TIMEOUT_SEC("instance.zookeepers.timeout.sec", "30", "Zookeeper session timeout (in seconds)"),
 
   // Authentication
-  AUTH_METHOD("auth.method", "password", "Authentication method (i.e password, kerberos, provider). Set additional properties for chosen method below.", true),
-  AUTH_USERNAME("auth.username", "", "Accumulo username/principal for chosen authentication method", true),
-  AUTH_PASSWORD("auth.password", "", "Accumulo user password", true),
+  AUTH_METHOD("auth.method", "password", "Authentication method (i.e password, kerberos, provider). Set more properties for chosen method below.", "", true),
+  AUTH_USERNAME("auth.username", "", "Accumulo username/principal for chosen authentication method", "", true),
+  AUTH_PASSWORD("auth.password", "", "Accumulo user password", "", true),
   AUTH_KERBEROS_KEYTAB_PATH("auth.kerberos.keytab.path", "", "Path to Kerberos keytab"),
   AUTH_PROVIDER_NAME("auth.provider.name", "", "Alias used to extract Accumulo user password from CredentialProvider"),
   AUTH_PROVIDER_URLS("auth.provider.urls", "", "Comma separated list of URLs defining CredentialProvider(s)"),
@@ -67,20 +67,27 @@ public enum ClientProperty {
   private String key;
   private String defaultValue;
   private String description;
+  private String since;
   private boolean required;
 
-  ClientProperty(String key, String defaultValue, String description, boolean required) {
+  ClientProperty(String key, String defaultValue, String description, String since, boolean required) {
     Objects.requireNonNull(key);
     Objects.requireNonNull(defaultValue);
     Objects.requireNonNull(description);
+    Objects.requireNonNull(since);
     this.key = key;
     this.defaultValue = defaultValue;
     this.description = description;
+    this.since = since;
     this.required = required;
   }
 
+  ClientProperty(String key, String defaultValue, String description, String since) {
+    this(key, defaultValue, description, since, false);
+  }
+
   ClientProperty(String key, String defaultValue, String description) {
-    this(key, defaultValue, description, false);
+    this(key, defaultValue, description, "");
   }
 
   public String getKey() {
@@ -93,6 +100,10 @@ public enum ClientProperty {
 
   public String getDescription() {
     return description;
+  }
+
+  public String getSince() {
+    return since;
   }
 
   public boolean isRequired() {

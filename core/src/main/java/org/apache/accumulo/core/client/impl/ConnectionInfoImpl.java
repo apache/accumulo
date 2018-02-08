@@ -57,11 +57,6 @@ public class ConnectionInfoImpl implements ConnectionInfo {
     return token;
   }
 
-  @Override
-  public String getProperty(String key) {
-    return properties.getProperty(key);
-  }
-
   private String getString(ClientProperty property) {
     return property.getValue(properties);
   }
