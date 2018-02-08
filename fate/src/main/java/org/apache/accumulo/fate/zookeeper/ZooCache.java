@@ -61,27 +61,27 @@ public class ZooCache {
   private final ZooReader zReader;
 
   public static class ZcStat {
-    private long emphemeralOwner;
+    private long ephemeralOwner;
 
     public ZcStat() {
 
     }
 
     private ZcStat(Stat stat) {
-      this.emphemeralOwner = stat.getEphemeralOwner();
+      this.ephemeralOwner = stat.getEphemeralOwner();
     }
 
     public long getEphemeralOwner() {
-      return emphemeralOwner;
+      return ephemeralOwner;
     }
 
     private void set(ZcStat cachedStat) {
-      this.emphemeralOwner = cachedStat.emphemeralOwner;
+      this.ephemeralOwner = cachedStat.ephemeralOwner;
     }
 
     @VisibleForTesting
-    public void setEphemeralOwner(long session) {
-      this.emphemeralOwner = session;
+    public void setEphemeralOwner(long ephemeralOwner) {
+      this.ephemeralOwner = ephemeralOwner;
     }
   }
 

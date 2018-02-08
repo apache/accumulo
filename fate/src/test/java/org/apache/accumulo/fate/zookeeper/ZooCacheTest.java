@@ -80,9 +80,9 @@ public class ZooCacheTest {
     if (fillStat) {
       myStat = new ZcStat();
     }
-    long now = System.currentTimeMillis();
+    final long ephemeralOwner = 123456789l;
     Stat existsStat = new Stat();
-    existsStat.setEphemeralOwner(now);
+    existsStat.setEphemeralOwner(ephemeralOwner);
     expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
     expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
     replay(zk);
@@ -91,7 +91,7 @@ public class ZooCacheTest {
     assertArrayEquals(DATA, (fillStat ? zc.get(ZPATH, myStat) : zc.get(ZPATH)));
     verify(zk);
     if (fillStat) {
-      assertEquals(now, myStat.getEphemeralOwner());
+      assertEquals(ephemeralOwner, myStat.getEphemeralOwner());
     }
 
     assertTrue(zc.dataCached(ZPATH));
