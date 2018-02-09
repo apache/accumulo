@@ -18,6 +18,8 @@ package org.apache.accumulo.core.client.impl;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
+
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -87,7 +89,7 @@ public class ThriftTransportKey {
   @Override
   public int hashCode() {
     if (hash == -1)
-      hash = toString().hashCode();
+      hash = Objects.hash(server, timeout, sslParams, saslParams);
     return hash;
   }
 

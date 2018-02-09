@@ -115,13 +115,13 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   private void audit(TCredentials credentials, String template, Object... args) {
-    if (shouldAudit(credentials)) {
+    if (audit.isInfoEnabled() && shouldAudit(credentials)) {
       audit.info("operation: success; user: {}: {}", credentials.getPrincipal(), String.format(template, args));
     }
   }
 
   private void audit(TCredentials credentials, boolean permitted, String template, Object... args) {
-    if (shouldAudit(credentials)) {
+    if (audit.isInfoEnabled() && shouldAudit(credentials)) {
       String prefix = permitted ? "permitted" : "denied";
       audit
           .info("operation: {}; user: {}; client: {}; {}", prefix, credentials.getPrincipal(), TServerUtils.clientAddress.get(), String.format(template, args));
