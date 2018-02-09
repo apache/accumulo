@@ -162,6 +162,10 @@ public class UnsynchronizedBuffer {
         data[offset++] = (byte) ((i & mask) >> shiftbits);
       }
     }
+
+    public int size() {
+      return offset;
+    }
   }
 
   /**

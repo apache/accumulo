@@ -87,7 +87,8 @@ public class Mutation implements Writable {
   private byte[] data;
   private int entries;
   private List<byte[]> values;
-  long estimatedSize = 0;
+  // tracks estimated size of row.length + largeValues.length
+  long estRowAndLargeValSize = 0;
 
   private UnsynchronizedBuffer.Writer buffer;
 
@@ -179,7 +180,7 @@ public class Mutation implements Writable {
     this.row = new byte[length];
     System.arraycopy(row, start, this.row, 0, length);
     buffer = new UnsynchronizedBuffer.Writer(initialBufferSize);
-    estimatedSize = length + SERIALIZATION_OVERHEAD;
+    estRowAndLargeValSize = length + SERIALIZATION_OVERHEAD;
   }
 
   /**
@@ -288,7 +289,6 @@ public class Mutation implements Writable {
   private void put(byte b[], int length) {
     buffer.writeVLong(length);
     buffer.add(b, 0, length);
-    estimatedSize += length + SERIALIZATION_OVERHEAD;
   }
 
   private void put(boolean b) {
@@ -318,8 +318,8 @@ public class Mutation implements Writable {
     if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
     }
-    estimatedSize += cfLength + cqLength + (hasts ? 8 : 0) + valLength + 2 * 1 + 4 * SERIALIZATION_OVERHEAD;
-    Preconditions.checkArgument(estimatedSize < MAX_MUTATION_SIZE && estimatedSize >= 0, "Maximum mutation size must be less than 2GB ");
+    long estimatedSizeAfterPut = estRowAndLargeValSize + buffer.size() + cfLength + cqLength + (hasts ? 8 : 0) + valLength + 2 * 1 + 4 * SERIALIZATION_OVERHEAD;
+    Preconditions.checkArgument(estimatedSizeAfterPut < MAX_MUTATION_SIZE && estimatedSizeAfterPut >= 0, "Maximum mutation size must be less than 2GB ");
     put(cf, cfLength);
     put(cq, cqLength);
     put(cv);
@@ -339,6 +339,7 @@ public class Mutation implements Writable {
       System.arraycopy(val, 0, copy, 0, valLength);
       values.add(copy);
       put(-1 * values.size());
+      estRowAndLargeValSize += valLength + SERIALIZATION_OVERHEAD;
     }
 
     entries++;
