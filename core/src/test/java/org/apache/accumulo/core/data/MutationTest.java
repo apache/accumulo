@@ -680,4 +680,12 @@ public class MutationTest {
       fail("Calling Mutation#equals then Mutation#put should not result in an IllegalStateException.");
     }
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSanityCheck() {
+    Mutation m = new Mutation("too big mutation");
+    m.put("cf", "cq1", "v");
+    m.estimatedSize += (Long.MAX_VALUE / 2);
+    m.put("cf", "cq2", "v");
+  }
 }

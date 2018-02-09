@@ -37,6 +37,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Mutation represents an action that manipulates a row in a table. A mutation holds a list of column/value pairs that represent an atomic set of modifications
  * to make to a row.
@@ -67,6 +69,13 @@ public class Mutation implements Writable {
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
 
   /**
+   * Maximum size of a mutation (2GB).
+   */
+  static final long MAX_MUTATION_SIZE = (1L << 31);
+
+  static final long SERIALIZATION_OVERHEAD = 5;
+
+  /**
    * Formats available for serializing Mutations. The formats are described in a <a href="doc-files/mutation-serialization.html">separate document</a>.
    */
   public static enum SERIALIZED_FORMAT {
@@ -78,6 +87,7 @@ public class Mutation implements Writable {
   private byte[] data;
   private int entries;
   private List<byte[]> values;
+  long estimatedSize = 0;
 
   private UnsynchronizedBuffer.Writer buffer;
 
@@ -169,6 +179,7 @@ public class Mutation implements Writable {
     this.row = new byte[length];
     System.arraycopy(row, start, this.row, 0, length);
     buffer = new UnsynchronizedBuffer.Writer(initialBufferSize);
+    estimatedSize = length + SERIALIZATION_OVERHEAD;
   }
 
   /**
@@ -277,6 +288,7 @@ public class Mutation implements Writable {
   private void put(byte b[], int length) {
     buffer.writeVLong(length);
     buffer.add(b, 0, length);
+    estimatedSize += length + SERIALIZATION_OVERHEAD;
   }
 
   private void put(boolean b) {
@@ -306,6 +318,8 @@ public class Mutation implements Writable {
     if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
     }
+    estimatedSize += cfLength + cqLength + (hasts ? 8 : 0) + valLength + 2 * 1 + 4 * SERIALIZATION_OVERHEAD;
+    Preconditions.checkArgument(estimatedSize < MAX_MUTATION_SIZE && estimatedSize >= 0, "Maximum mutation size must be less than 2GB ");
     put(cf, cfLength);
     put(cq, cqLength);
     put(cv);
