@@ -33,6 +33,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.Random;
 
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.zookeeper.KeeperException;
@@ -80,7 +81,7 @@ public class ZooCacheTest {
     if (fillStat) {
       myStat = new ZcStat();
     }
-    final long ephemeralOwner = 123456789l;
+    final long ephemeralOwner = new Random().nextLong();
     Stat existsStat = new Stat();
     existsStat.setEphemeralOwner(ephemeralOwner);
     expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
