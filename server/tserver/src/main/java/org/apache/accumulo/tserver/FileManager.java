@@ -275,7 +275,6 @@ public class FileManager {
 
     List<String> filesToOpen = null;
     List<FileSKVIterator> filesToClose = Collections.emptyList();
-    // List<FileSKVIterator> reservedFiles = new ArrayList<>();
     Map<FileSKVIterator,String> readersReserved = new HashMap<>();
 
     if (!tablet.isMeta()) {
