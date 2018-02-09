@@ -34,5 +34,9 @@ public interface TabletServerMetricsKeys {
   String UNOPENED_TABLETS = "unopenedTablets";
   String QUERIES = "queries";
   String TOTAL_MINCS = "totalMinCs";
-
+  String INGEST_RATE = "ingestRate";
+  String INGEST_BYTE_RATE = "ingestByteRate";
+  String QUERY_RATE = "queryRate";
+  String QUERY_BYTE_RATE = "queryByteRate";
+  String SCANNED_RATE = "scannedRate";
 }
