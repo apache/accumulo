@@ -37,6 +37,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
@@ -87,7 +88,9 @@ public class Mutation implements Writable {
   private byte[] data;
   private int entries;
   private List<byte[]> values;
+
   // tracks estimated size of row.length + largeValues.length
+  @VisibleForTesting
   long estRowAndLargeValSize = 0;
 
   private UnsynchronizedBuffer.Writer buffer;
@@ -318,7 +321,8 @@ public class Mutation implements Writable {
     if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
     }
-    long estimatedSizeAfterPut = estRowAndLargeValSize + buffer.size() + cfLength + cqLength + (hasts ? 8 : 0) + valLength + 2 * 1 + 4 * SERIALIZATION_OVERHEAD;
+    long estimatedSizeAfterPut = estRowAndLargeValSize + buffer.size() + cfLength + cqLength + cv.length + (hasts ? 8 : 0) + valLength + 2
+        + 4 * SERIALIZATION_OVERHEAD;
     Preconditions.checkArgument(estimatedSizeAfterPut < MAX_MUTATION_SIZE && estimatedSizeAfterPut >= 0, "Maximum mutation size must be less than 2GB ");
     put(cf, cfLength);
     put(cq, cqLength);
