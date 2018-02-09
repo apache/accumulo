@@ -37,8 +37,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
-import com.google.common.base.Preconditions;
-
 /**
  * Mutation represents an action that manipulates a row in a table. A mutation holds a list of column/value pairs that represent an atomic set of modifications
  * to make to a row.
@@ -69,48 +67,17 @@ public class Mutation implements Writable {
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
 
   /**
-   * Maximum size of a mutation (2GB).
-   */
-  static final long MAX_MUTATION_SIZE = 1L << 31;
-
-  /**
    * Formats available for serializing Mutations. The formats are described in a <a href="doc-files/mutation-serialization.html">separate document</a>.
    */
   public static enum SERIALIZED_FORMAT {
     VERSION1, VERSION2
   }
 
-  final class MutationSize {
-    private int numEntries = 0;
-    private long sizeInBytes = 0;
-
-    private MutationSize() {}
-
-    private MutationSize(long rowLength) {
-      sizeInBytes = rowLength;
-    }
-
-    private MutationSize(int numEntries, long sizeInBytes) {
-      this.numEntries = numEntries;
-      this.sizeInBytes = sizeInBytes;
-    }
-
-    private MutationSize(MutationSize mutationSize) {
-      this.numEntries = mutationSize.numEntries;
-      this.sizeInBytes = mutationSize.sizeInBytes;
-    }
-
-    void addEntryWithSize(long entrySize) {
-      numEntries++;
-      sizeInBytes += entrySize;
-    }
-  }
-
   private boolean useOldDeserialize = false;
   private byte[] row;
   private byte[] data;
+  private int entries;
   private List<byte[]> values;
-  MutationSize size = new MutationSize();
 
   private UnsynchronizedBuffer.Writer buffer;
 
@@ -202,7 +169,6 @@ public class Mutation implements Writable {
     this.row = new byte[length];
     System.arraycopy(row, start, this.row, 0, length);
     buffer = new UnsynchronizedBuffer.Writer(initialBufferSize);
-    size = new MutationSize(length);
   }
 
   /**
@@ -265,6 +231,7 @@ public class Mutation implements Writable {
   public Mutation(TMutation tmutation) {
     this.row = ByteBufferUtil.toBytes(tmutation.row);
     this.data = ByteBufferUtil.toBytes(tmutation.data);
+    this.entries = tmutation.entries;
     this.values = ByteBufferUtil.toBytesList(tmutation.values);
 
     if (tmutation.isSetSources()) {
@@ -277,7 +244,6 @@ public class Mutation implements Writable {
     if (this.data == null) {
       throw new IllegalArgumentException("null serialized data");
     }
-    this.size = new MutationSize(tmutation.entries, tmutation.length);
   }
 
   /**
@@ -290,7 +256,7 @@ public class Mutation implements Writable {
     m.serialize();
     this.row = m.row;
     this.data = m.data;
-    this.size = new MutationSize(m.size);
+    this.entries = m.entries;
     this.values = m.values;
     this.replicationSources = m.replicationSources;
   }
@@ -340,9 +306,6 @@ public class Mutation implements Writable {
     if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
     }
-    long length = cfLength + cqLength + valLength;
-    long newSize = size.sizeInBytes + length;
-    Preconditions.checkArgument(newSize < MAX_MUTATION_SIZE && newSize >= 0, "Maximum mutation size must be less than 2GB ");
     put(cf, cfLength);
     put(cq, cqLength);
     put(cv);
@@ -364,7 +327,7 @@ public class Mutation implements Writable {
       put(-1 * values.size());
     }
 
-    size.addEntryWithSize(length);
+    entries++;
   }
 
   private void put(CharSequence cf, CharSequence cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
@@ -841,12 +804,12 @@ public class Mutation implements Writable {
     UnsynchronizedBuffer.Reader in = new UnsynchronizedBuffer.Reader(data);
 
     if (updates == null) {
-      if (size.numEntries == 1) {
+      if (entries == 1) {
         updates = Collections.singletonList(deserializeColumnUpdate(in));
       } else {
-        ColumnUpdate[] tmpUpdates = new ColumnUpdate[size.numEntries];
+        ColumnUpdate[] tmpUpdates = new ColumnUpdate[entries];
 
-        for (int i = 0; i < size.numEntries; i++)
+        for (int i = 0; i < entries; i++)
           tmpUpdates[i] = deserializeColumnUpdate(in);
 
         updates = Arrays.asList(tmpUpdates);
@@ -885,6 +848,30 @@ public class Mutation implements Writable {
     return newColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
   }
 
+  private int cachedValLens = -1;
+
+  /**
+   * Gets the byte length of all large values stored in this mutation.
+   *
+   * @return length of all large values
+   * @see #VALUE_SIZE_COPY_CUTOFF
+   */
+  long getValueLengths() {
+    if (values == null)
+      return 0;
+
+    if (cachedValLens == -1) {
+      int tmpCVL = 0;
+      for (byte[] val : values)
+        tmpCVL += val.length;
+
+      cachedValLens = tmpCVL;
+    }
+
+    return cachedValLens;
+
+  }
+
   /**
    * Gets the total number of bytes in this mutation.
    *
@@ -892,7 +879,7 @@ public class Mutation implements Writable {
    */
   public long numBytes() {
     serialize();
-    return size.sizeInBytes;
+    return row.length + data.length + getValueLengths();
   }
 
   /**
@@ -910,7 +897,7 @@ public class Mutation implements Writable {
    * @return the number of modifications / deletions
    */
   public int size() {
-    return size.numEntries;
+    return entries;
   }
 
   /**
@@ -959,6 +946,7 @@ public class Mutation implements Writable {
     // that we recalculate them based on the (potentially) new
     // data we are about to read in.
     updates = null;
+    cachedValLens = -1;
     buffer = null;
     useOldDeserialize = false;
 
@@ -975,9 +963,7 @@ public class Mutation implements Writable {
     len = WritableUtils.readVInt(in);
     data = new byte[len];
     in.readFully(data);
-    int numEntries = WritableUtils.readVInt(in);
-    long length = WritableUtils.readVLong(in);
-    size = new MutationSize(numEntries, length);
+    entries = WritableUtils.readVInt(in);
 
     boolean valuesPresent = (first & 0x01) == 0x01;
     if (!valuesPresent) {
@@ -1080,8 +1066,7 @@ public class Mutation implements Writable {
 
     WritableUtils.writeVInt(out, data.length);
     out.write(data);
-    WritableUtils.writeVInt(out, size.numEntries);
-    WritableUtils.writeVLong(out, size.sizeInBytes);
+    WritableUtils.writeVInt(out, entries);
 
     if (0x01 == (0x01 & hasValues)) {
       WritableUtils.writeVInt(out, values.size());
@@ -1130,7 +1115,7 @@ public class Mutation implements Writable {
   private boolean equalMutation(Mutation m) {
     ByteBuffer myData = serializedSnapshot();
     ByteBuffer otherData = m.serializedSnapshot();
-    if (Arrays.equals(row, m.row) && size.numEntries == m.size.numEntries && size.sizeInBytes == m.size.sizeInBytes && myData.equals(otherData)) {
+    if (Arrays.equals(row, m.row) && entries == m.entries && myData.equals(otherData)) {
       // If two mutations don't have the same
       if (!replicationSources.equals(m.replicationSources)) {
         return false;
@@ -1160,9 +1145,15 @@ public class Mutation implements Writable {
    * @return a thrift form of this Mutation
    */
   public TMutation toThrift() {
-    this.serialize();
+    return toThrift(true);
+  }
+
+  private TMutation toThrift(boolean serialize) {
+    if (serialize) {
+      this.serialize();
+    }
     ByteBuffer data = serializedSnapshot();
-    TMutation tmutation = new TMutation(ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), size.numEntries, size.sizeInBytes);
+    TMutation tmutation = new TMutation(ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), entries);
     if (!this.replicationSources.isEmpty()) {
       tmutation.setSources(new ArrayList<>(replicationSources));
     }
