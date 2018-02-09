@@ -321,46 +321,43 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   protected Status replicateRFiles(ClientContext peerContext, final HostAndPort peerTserver, final ReplicationTarget target, final Path p, final Status status,
       final long sizeLimit, final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper, long timeout) throws TTransportException,
       AccumuloException, AccumuloSecurityException {
-    DataInputStream input;
-    try {
-      input = getRFileInputStream(p);
+    try (final DataInputStream input = getRFileInputStream(p)) {
+      Status lastStatus = status, currentStatus = status;
+      while (true) {
+        // Read and send a batch of mutations
+        ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new RFileClientExecReturn(target, input, p,
+            currentStatus, sizeLimit, remoteTableId, tcreds), timeout);
+
+        // Catch the overflow
+        long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
+        if (newBegin < 0) {
+          newBegin = Long.MAX_VALUE;
+        }
+
+        currentStatus = Status.newBuilder(currentStatus).setBegin(newBegin).build();
+
+        log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target, ProtobufUtil.toString(currentStatus));
+
+        // If we got a different status
+        if (!currentStatus.equals(lastStatus)) {
+          // If we don't have any more work, just quit
+          if (!StatusUtil.isWorkRequired(currentStatus)) {
+            return currentStatus;
+          } else {
+            // Otherwise, let it loop and replicate some more data
+            lastStatus = currentStatus;
+          }
+        } else {
+          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target, ProtobufUtil.toString(lastStatus));
+
+          // otherwise, we didn't actually replicate (likely because there was error sending the data)
+          // we can just not record any updates, and it will be picked up again by the work assigner
+          return status;
+        }
+      }
     } catch (IOException e) {
       log.error("Could not create input stream from RFile, will retry", e);
       return status;
-    }
-
-    Status lastStatus = status, currentStatus = status;
-    while (true) {
-      // Read and send a batch of mutations
-      ReplicationStats replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new RFileClientExecReturn(target, input, p,
-          currentStatus, sizeLimit, remoteTableId, tcreds), timeout);
-
-      // Catch the overflow
-      long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
-      if (newBegin < 0) {
-        newBegin = Long.MAX_VALUE;
-      }
-
-      currentStatus = Status.newBuilder(currentStatus).setBegin(newBegin).build();
-
-      log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target, ProtobufUtil.toString(currentStatus));
-
-      // If we got a different status
-      if (!currentStatus.equals(lastStatus)) {
-        // If we don't have any more work, just quit
-        if (!StatusUtil.isWorkRequired(currentStatus)) {
-          return currentStatus;
-        } else {
-          // Otherwise, let it loop and replicate some more data
-          lastStatus = currentStatus;
-        }
-      } else {
-        log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target, ProtobufUtil.toString(lastStatus));
-
-        // otherwise, we didn't actually replicate (likely because there was error sending the data)
-        // we can just not record any updates, and it will be picked up again by the work assigner
-        return status;
-      }
     }
   }
 
@@ -370,11 +367,112 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     log.debug("Replication WAL to peer tserver");
     final Set<Integer> tids;
-    final DataInputStream input;
-    Span span = Trace.start("Read WAL header");
-    span.data("file", p.toString());
-    try {
-      input = getWalStream(p);
+    try (final DataInputStream input = getWalStream(p)) {
+      log.debug("Skipping unwanted data in WAL");
+      Span span = Trace.start("Consume WAL prefix");
+      span.data("file", p.toString());
+      try {
+        // We want to read all records in the WAL up to the "begin" offset contained in the Status message,
+        // building a Set of tids from DEFINE_TABLET events which correspond to table ids for future mutations
+        tids = consumeWalPrefix(target, input, p, status, sizeLimit);
+      } catch (IOException e) {
+        log.warn("Unexpected error consuming file.");
+        return status;
+      } finally {
+        span.stop();
+      }
+
+      log.debug("Sending batches of data to peer tserver");
+
+      Status lastStatus = status, currentStatus = status;
+      final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+      while (true) {
+        // Set some trace info
+        span = Trace.start("Replicate WAL batch");
+        span.data("Batch size (bytes)", Long.toString(sizeLimit));
+        span.data("File", p.toString());
+        span.data("Peer instance name", peerContext.getInstance().getInstanceName());
+        span.data("Peer tserver", peerTserver.toString());
+        span.data("Remote table ID", remoteTableId);
+
+        ReplicationStats replResult;
+        try {
+          // Read and send a batch of mutations
+          replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new WalClientExecReturn(target, input, p, currentStatus,
+              sizeLimit, remoteTableId, tcreds, tids), timeout);
+        } catch (Exception e) {
+          log.error("Caught exception replicating data to {} at {}", peerContext.getInstance().getInstanceName(), peerTserver, e);
+          throw e;
+        } finally {
+          span.stop();
+        }
+
+        // Catch the overflow
+        long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
+        if (newBegin < 0) {
+          newBegin = Long.MAX_VALUE;
+        }
+
+        currentStatus = Status.newBuilder(currentStatus).setBegin(newBegin).build();
+
+        log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target, ProtobufUtil.toString(currentStatus));
+
+        // If we got a different status
+        if (!currentStatus.equals(lastStatus)) {
+          span = Trace.start("Update replication table");
+          try {
+            if (null != accumuloUgi) {
+              final Status copy = currentStatus;
+              accumuloUgi.doAs(new PrivilegedAction<Void>() {
+                @Override
+                public Void run() {
+                  try {
+                    helper.recordNewStatus(p, copy, target);
+                  } catch (Exception e) {
+                    exceptionRef.set(e);
+                  }
+                  return null;
+                }
+              });
+              Exception e = exceptionRef.get();
+              if (null != e) {
+                if (e instanceof TableNotFoundException) {
+                  throw (TableNotFoundException) e;
+                } else if (e instanceof AccumuloSecurityException) {
+                  throw (AccumuloSecurityException) e;
+                } else if (e instanceof AccumuloException) {
+                  throw (AccumuloException) e;
+                } else {
+                  throw new RuntimeException("Received unexpected exception", e);
+                }
+              }
+            } else {
+              helper.recordNewStatus(p, currentStatus, target);
+            }
+          } catch (TableNotFoundException e) {
+            log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(currentStatus), e);
+            throw new RuntimeException("Replication table did not exist, will retry", e);
+          } finally {
+            span.stop();
+          }
+
+          log.debug("Recorded updated status for {}: {}", p, ProtobufUtil.toString(currentStatus));
+
+          // If we don't have any more work, just quit
+          if (!StatusUtil.isWorkRequired(currentStatus)) {
+            return currentStatus;
+          } else {
+            // Otherwise, let it loop and replicate some more data
+            lastStatus = currentStatus;
+          }
+        } else {
+          log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target, ProtobufUtil.toString(lastStatus));
+
+          // otherwise, we didn't actually replicate (likely because there was error sending the data)
+          // we can just not record any updates, and it will be picked up again by the work assigner
+          return status;
+        }
+      }
     } catch (LogHeaderIncompleteException e) {
       log.warn("Could not read header from {}, assuming that there is no data present in the WAL, therefore replication is complete", p);
       Status newStatus;
@@ -384,7 +482,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       } else {
         newStatus = Status.newBuilder(status).setBegin(status.getEnd()).build();
       }
-      span = Trace.start("Update replication table");
+      Span span = Trace.start("Update replication table");
       try {
         helper.recordNewStatus(p, newStatus, target);
       } catch (TableNotFoundException tnfe) {
@@ -398,114 +496,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       log.error("Could not create stream for WAL", e);
       // No data sent (bytes nor records) and no progress made
       return status;
-    } finally {
-      span.stop();
-    }
-
-    log.debug("Skipping unwanted data in WAL");
-    span = Trace.start("Consume WAL prefix");
-    span.data("file", p.toString());
-    try {
-      // We want to read all records in the WAL up to the "begin" offset contained in the Status message,
-      // building a Set of tids from DEFINE_TABLET events which correspond to table ids for future mutations
-      tids = consumeWalPrefix(target, input, p, status, sizeLimit);
-    } catch (IOException e) {
-      log.warn("Unexpected error consuming file.");
-      return status;
-    } finally {
-      span.stop();
-    }
-
-    log.debug("Sending batches of data to peer tserver");
-
-    Status lastStatus = status, currentStatus = status;
-    final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
-    while (true) {
-      // Set some trace info
-      span = Trace.start("Replicate WAL batch");
-      span.data("Batch size (bytes)", Long.toString(sizeLimit));
-      span.data("File", p.toString());
-      span.data("Peer instance name", peerContext.getInstance().getInstanceName());
-      span.data("Peer tserver", peerTserver.toString());
-      span.data("Remote table ID", remoteTableId);
-
-      ReplicationStats replResult;
-      try {
-        // Read and send a batch of mutations
-        replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver, new WalClientExecReturn(target, input, p, currentStatus, sizeLimit,
-            remoteTableId, tcreds, tids), timeout);
-      } catch (Exception e) {
-        log.error("Caught exception replicating data to {} at {}", peerContext.getInstance().getInstanceName(), peerTserver, e);
-        throw e;
-      } finally {
-        span.stop();
-      }
-
-      // Catch the overflow
-      long newBegin = currentStatus.getBegin() + replResult.entriesConsumed;
-      if (newBegin < 0) {
-        newBegin = Long.MAX_VALUE;
-      }
-
-      currentStatus = Status.newBuilder(currentStatus).setBegin(newBegin).build();
-
-      log.debug("Sent batch for replication of {} to {}, with new Status {}", p, target, ProtobufUtil.toString(currentStatus));
-
-      // If we got a different status
-      if (!currentStatus.equals(lastStatus)) {
-        span = Trace.start("Update replication table");
-        try {
-          if (null != accumuloUgi) {
-            final Status copy = currentStatus;
-            accumuloUgi.doAs(new PrivilegedAction<Void>() {
-              @Override
-              public Void run() {
-                try {
-                  helper.recordNewStatus(p, copy, target);
-                } catch (Exception e) {
-                  exceptionRef.set(e);
-                }
-                return null;
-              }
-            });
-            Exception e = exceptionRef.get();
-            if (null != e) {
-              if (e instanceof TableNotFoundException) {
-                throw (TableNotFoundException) e;
-              } else if (e instanceof AccumuloSecurityException) {
-                throw (AccumuloSecurityException) e;
-              } else if (e instanceof AccumuloException) {
-                throw (AccumuloException) e;
-              } else {
-                throw new RuntimeException("Received unexpected exception", e);
-              }
-            }
-          } else {
-            helper.recordNewStatus(p, currentStatus, target);
-          }
-        } catch (TableNotFoundException e) {
-          log.error("Tried to update status in replication table for {} as {}, but the table did not exist", p, ProtobufUtil.toString(currentStatus), e);
-          throw new RuntimeException("Replication table did not exist, will retry", e);
-        } finally {
-          span.stop();
-        }
-
-        log.debug("Recorded updated status for {}: {}", p, ProtobufUtil.toString(currentStatus));
-
-        // If we don't have any more work, just quit
-        if (!StatusUtil.isWorkRequired(currentStatus)) {
-          return currentStatus;
-        } else {
-          // Otherwise, let it loop and replicate some more data
-          lastStatus = currentStatus;
-        }
-      } else {
-        log.debug("Did not replicate any new data for {} to {}, (state was {})", p, target, ProtobufUtil.toString(lastStatus));
-
-        // otherwise, we didn't actually replicate (likely because there was error sending the data)
-        // we can just not record any updates, and it will be picked up again by the work assigner
-        return status;
-      }
     }
   }
 
@@ -688,8 +678,14 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   public DataInputStream getWalStream(Path p) throws IOException {
-    DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, p, conf);
-    return streams.getDecryptingInputStream();
+    Span span = Trace.start("Read WAL header");
+    span.data("file", p.toString());
+    try {
+      DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, p, conf);
+      return streams.getDecryptingInputStream();
+    } finally {
+      span.stop();
+    }
   }
 
   protected WalReplication getWalEdits(ReplicationTarget target, DataInputStream wal, Path p, Status status, long sizeLimit, Set<Integer> desiredTids)
