@@ -37,6 +37,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+
 /**
  * Mutation represents an action that manipulates a row in a table. A mutation holds a list of column/value pairs that represent an atomic set of modifications
  * to make to a row.
@@ -67,6 +70,13 @@ public class Mutation implements Writable {
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
 
   /**
+   * Maximum size of a mutation (2GB).
+   */
+  static final long MAX_MUTATION_SIZE = (1L << 31);
+
+  static final long SERIALIZATION_OVERHEAD = 5;
+
+  /**
    * Formats available for serializing Mutations. The formats are described in a <a href="doc-files/mutation-serialization.html">separate document</a>.
    */
   public static enum SERIALIZED_FORMAT {
@@ -78,6 +88,10 @@ public class Mutation implements Writable {
   private byte[] data;
   private int entries;
   private List<byte[]> values;
+
+  // tracks estimated size of row.length + largeValues.length
+  @VisibleForTesting
+  long estRowAndLargeValSize = 0;
 
   private UnsynchronizedBuffer.Writer buffer;
 
@@ -169,6 +183,7 @@ public class Mutation implements Writable {
     this.row = new byte[length];
     System.arraycopy(row, start, this.row, 0, length);
     buffer = new UnsynchronizedBuffer.Writer(initialBufferSize);
+    estRowAndLargeValSize = length + SERIALIZATION_OVERHEAD;
   }
 
   /**
@@ -306,6 +321,9 @@ public class Mutation implements Writable {
     if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
     }
+    long estimatedSizeAfterPut = estRowAndLargeValSize + buffer.size() + cfLength + cqLength + cv.length + (hasts ? 8 : 0) + valLength + 2
+        + 4 * SERIALIZATION_OVERHEAD;
+    Preconditions.checkArgument(estimatedSizeAfterPut < MAX_MUTATION_SIZE && estimatedSizeAfterPut >= 0, "Maximum mutation size must be less than 2GB ");
     put(cf, cfLength);
     put(cq, cqLength);
     put(cv);
@@ -325,6 +343,7 @@ public class Mutation implements Writable {
       System.arraycopy(val, 0, copy, 0, valLength);
       values.add(copy);
       put(-1 * values.size());
+      estRowAndLargeValSize += valLength + SERIALIZATION_OVERHEAD;
     }
 
     entries++;
