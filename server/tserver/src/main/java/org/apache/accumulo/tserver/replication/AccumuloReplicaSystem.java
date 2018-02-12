@@ -77,6 +77,7 @@ import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.transport.TTransportException;
@@ -367,7 +368,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     log.debug("Replication WAL to peer tserver");
     final Set<Integer> tids;
-    try (final DataInputStream input = getWalStream(p)) {
+    try (final FSDataInputStream fsinput = fs.open(p); final DataInputStream input = getWalStream(p, fsinput)) {
       log.debug("Skipping unwanted data in WAL");
       Span span = Trace.start("Consume WAL prefix");
       span.data("file", p.toString());
@@ -677,11 +678,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return tids;
   }
 
-  public DataInputStream getWalStream(Path p) throws IOException {
+  public DataInputStream getWalStream(Path p, FSDataInputStream input) throws IOException {
     Span span = Trace.start("Read WAL header");
     span.data("file", p.toString());
     try {
-      DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(fs, p, conf);
+      DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(input, conf);
       return streams.getDecryptingInputStream();
     } finally {
       span.stop();
