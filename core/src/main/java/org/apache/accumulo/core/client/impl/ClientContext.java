@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -42,6 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 /**
  * This class represents any essential configuration and credentials needed to initiate RPC operations throughout the code. It is intended to represent a shared
@@ -59,6 +62,12 @@ public class ClientContext {
   private final AccumuloConfiguration rpcConf;
   protected Connector conn;
 
+  // These fields are very frequently accessed (each time a connection is created) and expensive to compute, so cache them.
+  private Supplier<Long> timeoutSupplier;
+  private Supplier<SaslConnectionParams> saslSupplier;
+  private Supplier<SslConnectionParams> sslSupplier;
+  private TCredentials rpcCreds;
+
   /**
    * Instantiate a client context
    */
@@ -75,6 +84,43 @@ public class ClientContext {
     creds = requireNonNull(credentials, "credentials is null");
     rpcConf = requireNonNull(serverConf, "serverConf is null");
     clientConf = null;
+
+    timeoutSupplier = new Supplier<Long>() {
+      @Override
+      public Long get() {
+        return getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
+      }
+    };
+
+    sslSupplier = new Supplier<SslConnectionParams>() {
+      @Override
+      public SslConnectionParams get() {
+        return SslConnectionParams.forClient(getConfiguration());
+      }
+    };
+
+    saslSupplier = new Supplier<SaslConnectionParams>() {
+      @Override
+      public SaslConnectionParams get() {
+        // Use the clientConf if we have it
+        if (null != clientConf) {
+          if (!clientConf.hasSasl()) {
+            return null;
+          }
+          return new SaslConnectionParams(clientConf, getCredentials().getToken());
+        }
+        AccumuloConfiguration conf = getConfiguration();
+        if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+          return null;
+        }
+        return new SaslConnectionParams(conf, getCredentials().getToken());
+      }
+    };
+
+    timeoutSupplier = Suppliers.memoizeWithExpiration(timeoutSupplier, 100, TimeUnit.MILLISECONDS);
+    sslSupplier = Suppliers.memoizeWithExpiration(sslSupplier, 100, TimeUnit.MILLISECONDS);
+    saslSupplier = Suppliers.memoizeWithExpiration(saslSupplier, 100, TimeUnit.MILLISECONDS);
+
   }
 
   /**
@@ -97,6 +143,7 @@ public class ClientContext {
   public synchronized void setCredentials(Credentials newCredentials) {
     checkArgument(newCredentials != null, "newCredentials is null");
     creds = newCredentials;
+    rpcCreds = null;
   }
 
   /**
@@ -110,32 +157,21 @@ public class ClientContext {
    * Retrieve the universal RPC client timeout from the configuration
    */
   public long getClientTimeoutInMillis() {
-    return getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
+    return timeoutSupplier.get();
   }
 
   /**
    * Retrieve SSL/TLS configuration to initiate an RPC connection to a server
    */
   public SslConnectionParams getClientSslParams() {
-    return SslConnectionParams.forClient(getConfiguration());
+    return sslSupplier.get();
   }
 
   /**
    * Retrieve SASL configuration to initiate an RPC connection to a server
    */
   public SaslConnectionParams getSaslParams() {
-    // Use the clientConf if we have it
-    if (null != clientConf) {
-      if (!clientConf.hasSasl()) {
-        return null;
-      }
-      return new SaslConnectionParams(clientConf, getCredentials().getToken());
-    }
-    AccumuloConfiguration conf = getConfiguration();
-    if (!conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      return null;
-    }
-    return new SaslConnectionParams(conf, getCredentials().getToken());
+    return saslSupplier.get();
   }
 
   /**
@@ -158,8 +194,16 @@ public class ClientContext {
   /**
    * Serialize the credentials just before initiating the RPC call
    */
-  public TCredentials rpcCreds() {
-    return getCredentials().toThrift(getInstance());
+  public synchronized TCredentials rpcCreds() {
+    if (getCredentials().getToken().isDestroyed()) {
+      rpcCreds = null;
+    }
+
+    if (rpcCreds == null) {
+      rpcCreds = getCredentials().toThrift(getInstance());
+    }
+
+    return rpcCreds;
   }
 
   /**
