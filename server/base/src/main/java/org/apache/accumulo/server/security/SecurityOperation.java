@@ -270,7 +270,7 @@ public class SecurityOperation {
   }
 
   public boolean userHasAuthorizations(TCredentials credentials, List<ByteBuffer> list) throws ThriftSecurityException {
-    authenticate(credentials);
+    // Authentication check not done here because this method is always called in conjunction with canScan that does auth check.
 
     if (isSystemUser(credentials)) {
       // system user doesn't need record-level authorizations for the tables it reads (for now)
