@@ -37,13 +37,13 @@ public class ConnectorIT extends AccumuloClusterHarness {
     final String password = "testpassword";
     c.securityOperations().createLocalUser(user, new PasswordToken(password));
 
-    Connector conn = Connector.builder().forInstance(instanceName, zookeepers).usingPasswordCredentials(user, password).build();
+    Connector conn = Connector.builder().forInstance(instanceName, zookeepers).usingPassword(user, password).build();
 
     Assert.assertEquals(instanceName, conn.getInstance().getInstanceName());
     Assert.assertEquals(zookeepers, conn.getInstance().getZooKeepers());
     Assert.assertEquals(user, conn.whoami());
 
-    ConnectionInfo info = Connector.builder().forInstance(instanceName, zookeepers).usingPasswordCredentials(user, password).info();
+    ConnectionInfo info = Connector.builder().forInstance(instanceName, zookeepers).usingPassword(user, password).info();
     Assert.assertEquals(instanceName, info.getInstanceName());
     Assert.assertEquals(zookeepers, info.getZookeepers());
     Assert.assertEquals(user, info.getPrincipal());

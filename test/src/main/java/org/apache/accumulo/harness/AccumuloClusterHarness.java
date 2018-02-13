@@ -253,7 +253,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
   }
 
   public static ConnectionInfo getConnectionInfo() {
-    return Connector.builder().forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers()).usingCredentials(getAdminPrincipal(), getAdminToken())
+    return Connector.builder().forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers()).usingToken(getAdminPrincipal(), getAdminToken())
         .info();
   }
 

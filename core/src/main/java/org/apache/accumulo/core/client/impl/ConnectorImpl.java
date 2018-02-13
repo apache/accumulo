@@ -369,7 +369,7 @@ public class ConnectorImpl extends Connector {
     }
 
     @Override
-    public ConnectionOptions usingPasswordCredentials(String username, CharSequence password) {
+    public ConnectionOptions usingPassword(String username, CharSequence password) {
       setProperty(ClientProperty.AUTH_METHOD, "password");
       setProperty(ClientProperty.AUTH_USERNAME, username);
       this.token = new PasswordToken(password);
@@ -377,7 +377,7 @@ public class ConnectorImpl extends Connector {
     }
 
     @Override
-    public ConnectionOptions usingKerberosCredentials(String principal, String keyTabFile) {
+    public ConnectionOptions usingKerberos(String principal, String keyTabFile) {
       setProperty(ClientProperty.AUTH_METHOD, "kerberos");
       setProperty(ClientProperty.AUTH_USERNAME, principal);
       setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH, keyTabFile);
@@ -390,7 +390,7 @@ public class ConnectorImpl extends Connector {
     }
 
     @Override
-    public ConnectionOptions usingCredentialProvider(String username, String name, String providerUrls) {
+    public ConnectionOptions usingProvider(String username, String name, String providerUrls) {
       setProperty(ClientProperty.AUTH_METHOD, "provider");
       setProperty(ClientProperty.AUTH_USERNAME, username);
       setProperty(ClientProperty.AUTH_PROVIDER_NAME, name);
@@ -404,7 +404,7 @@ public class ConnectorImpl extends Connector {
     }
 
     @Override
-    public ConnectionOptions usingCredentials(String principal, AuthenticationToken token) {
+    public ConnectionOptions usingToken(String principal, AuthenticationToken token) {
       this.token = token;
       setProperty(ClientProperty.AUTH_USERNAME, principal);
       if (token instanceof CredentialProviderToken) {

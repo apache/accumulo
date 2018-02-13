@@ -51,9 +51,7 @@ public class ConnectionInfoFactory {
   }
 
   public static Instance getInstance(ConnectionInfo info) {
-    String instanceName = getString(info, ClientProperty.INSTANCE_NAME);
-    String zookeepers = getString(info, ClientProperty.INSTANCE_ZOOKEEPERS);
-    return new ZooKeeperInstance(instanceName, zookeepers);
+    return new ZooKeeperInstance(getClientConfiguration(info));
   }
 
   public static Credentials getCredentials(ConnectionInfo info) {

@@ -380,7 +380,7 @@ public abstract class Connector {
      *          Password
      * @return this builder
      */
-    ConnectionOptions usingPasswordCredentials(String username, CharSequence password);
+    ConnectionOptions usingPassword(String username, CharSequence password);
 
     /**
      * Build using Kerberos credentials
@@ -391,7 +391,7 @@ public abstract class Connector {
      *          Path to keytab file
      * @return this builder
      */
-    ConnectionOptions usingKerberosCredentials(String principal, String keyTabFile);
+    ConnectionOptions usingKerberos(String principal, String keyTabFile);
 
     /**
      * Build using credentials from a CredentialProvider
@@ -404,7 +404,7 @@ public abstract class Connector {
      *          Comma seperated list of URLs defining CredentialProvider(s)
      * @return this builder
      */
-    ConnectionOptions usingCredentialProvider(String username, String name, String providerUrls);
+    ConnectionOptions usingProvider(String username, String name, String providerUrls);
 
     /**
      * Build using specified credentials
@@ -415,7 +415,7 @@ public abstract class Connector {
      *          Authentication token
      * @return this builder
      */
-    ConnectionOptions usingCredentials(String principal, AuthenticationToken token);
+    ConnectionOptions usingToken(String principal, AuthenticationToken token);
   }
 
   /**
