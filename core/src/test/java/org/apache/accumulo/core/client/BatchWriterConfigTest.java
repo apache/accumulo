@@ -27,6 +27,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -199,6 +200,24 @@ public class BatchWriterConfigTest {
     assertEquals(cfg1, cfg2);
 
     assertEquals(cfg1.hashCode(), cfg2.hashCode());
+  }
+
+  @Test
+  public void testMerge() {
+    BatchWriterConfig cfg1 = new BatchWriterConfig(), cfg2 = new BatchWriterConfig();
+    cfg1.setMaxMemory(1234);
+    cfg2.setMaxMemory(5858);
+    cfg2.setDurability(Durability.LOG);
+    cfg2.setMaxLatency(456, TimeUnit.MILLISECONDS);
+
+    Assert.assertEquals(Durability.DEFAULT, cfg1.getDurability());
+
+    BatchWriterConfig merged = cfg1.merge(cfg2);
+
+    Assert.assertEquals(1234, merged.getMaxMemory());
+    Assert.assertEquals(Durability.LOG, merged.getDurability());
+    Assert.assertEquals(456, merged.getMaxLatency(TimeUnit.MILLISECONDS));
+    Assert.assertEquals(3, merged.getMaxWriteThreads());
   }
 
   private byte[] createBytes(BatchWriterConfig bwConfig) throws IOException {

@@ -31,13 +31,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -83,9 +82,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
     // set the max memory so that we ensure we don't flush on the write.
     batchConfig.setMaxMemory(Long.MAX_VALUE);
     AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
+    AccumuloOutputFormat.setConnectionInfo(job, getConnectionInfo());
     AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
-    AccumuloOutputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
-    AccumuloOutputFormat.setConnectorInfo(job, "root", new PasswordToken(ROOT_PASSWORD));
     RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 
     try {
@@ -122,7 +120,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       OutputCollector<Text,Mutation> finalOutput;
 
       @Override
-      public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter) throws IOException {
+      public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter) {
         finalOutput = output;
         try {
           if (key != null)
@@ -167,11 +165,10 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      ClientConfiguration clientConfig = ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers);
+      ConnectionInfo info = Connector.builder().forInstance(instanceName, zooKeepers).usingPassword(user, pass).info();
 
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      AccumuloInputFormat.setConnectionInfo(job, info);
       AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setZooKeeperInstance(job, clientConfig);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -180,10 +177,9 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
+      AccumuloOutputFormat.setConnectionInfo(job, info);
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
-      AccumuloOutputFormat.setZooKeeperInstance(job, clientConfig);
 
       job.setNumReduceTasks(0);
 

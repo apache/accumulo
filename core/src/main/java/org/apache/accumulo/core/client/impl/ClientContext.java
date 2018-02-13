@@ -26,8 +26,8 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -54,15 +54,18 @@ public class ClientContext {
   protected final Instance inst;
   private Credentials creds;
   private ClientConfiguration clientConf;
+  private BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
   private final AccumuloConfiguration rpcConf;
   protected Connector conn;
 
-  /**
-   * Instantiate a client context
-   */
   public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf) {
+    this(instance, credentials, clientConf, new BatchWriterConfig());
+  }
+
+  public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf, BatchWriterConfig batchWriterConfig) {
     this(instance, credentials, convertClientConfig(requireNonNull(clientConf, "clientConf is null")));
     this.clientConf = clientConf;
+    this.batchWriterConfig = batchWriterConfig;
   }
 
   /**
@@ -153,6 +156,10 @@ public class ClientContext {
     return conn;
   }
 
+  public BatchWriterConfig getBatchWriterConfig() {
+    return batchWriterConfig;
+  }
+
   /**
    * Serialize the credentials just before initiating the RPC call
    */
@@ -200,9 +207,9 @@ public class ClientContext {
         else {
           // Reconstitute the server kerberos property from the client config
           if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
-            if (config.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+            if (config.containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
               // Avoid providing a realm since we don't know what it is...
-              return config.getString(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
+              return config.getString(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
             }
           }
           return defaults.get(property);
@@ -222,8 +229,8 @@ public class ClientContext {
 
         // Two client props that don't exist on the server config. Client doesn't need to know about the Kerberos instance from the principle, but servers do
         // Automatically reconstruct the server property when converting a client config.
-        if (props.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
-          final String serverPrimary = props.remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+        if (props.containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+          final String serverPrimary = props.remove(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
           if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(), serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());

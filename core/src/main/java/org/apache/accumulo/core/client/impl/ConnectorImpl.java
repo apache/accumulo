@@ -18,6 +18,12 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -28,6 +34,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -41,6 +48,11 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Tracer;
@@ -54,7 +66,7 @@ public class ConnectorImpl extends Connector {
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
 
-  public ConnectorImpl(final ClientContext context) throws AccumuloException, AccumuloSecurityException {
+  public ConnectorImpl(final ClientContext context) throws AccumuloSecurityException, AccumuloException {
     checkArgument(context != null, "Context is null");
     checkArgument(context.getCredentials() != null, "Credentials are null");
     checkArgument(context.getCredentials().getToken() != null, "Authentication token is null");
@@ -113,7 +125,12 @@ public class ConnectorImpl extends Connector {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, config);
+    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations, numQueryThreads, config.merge(context.getBatchWriterConfig()));
+  }
+
+  @Override
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
+    return createBatchDeleter(tableName, authorizations, numQueryThreads, new BatchWriterConfig());
   }
 
   @Deprecated
@@ -127,7 +144,16 @@ public class ConnectorImpl extends Connector {
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    return new BatchWriterImpl(context, getTableId(tableName), config);
+    // we used to allow null inputs for bw config
+    if (config == null) {
+      config = new BatchWriterConfig();
+    }
+    return new BatchWriterImpl(context, getTableId(tableName), config.merge(context.getBatchWriterConfig()));
+  }
+
+  @Override
+  public BatchWriter createBatchWriter(String tableName) throws TableNotFoundException {
+    return createBatchWriter(tableName, new BatchWriterConfig());
   }
 
   @Deprecated
@@ -139,7 +165,12 @@ public class ConnectorImpl extends Connector {
 
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
-    return new MultiTableBatchWriterImpl(context, config);
+    return new MultiTableBatchWriterImpl(context, config.merge(context.getBatchWriterConfig()));
+  }
+
+  @Override
+  public MultiTableBatchWriter createMultiTableBatchWriter() {
+    return createMultiTableBatchWriter(new BatchWriterConfig());
   }
 
   @Override
@@ -192,5 +223,223 @@ public class ConnectorImpl extends Connector {
     }
 
     return replicationops;
+  }
+
+  public static class ConnectorBuilderImpl implements InstanceArgs, PropertyOptions, ConnectionInfoOptions, AuthenticationArgs, ConnectionOptions, SslOptions,
+      SaslOptions, ConnectorFactory {
+
+    private Properties properties = new Properties();
+    private AuthenticationToken token = null;
+
+    @Override
+    public Connector build() throws AccumuloException, AccumuloSecurityException {
+      return ConnectionInfoFactory.getConnector(new ConnectionInfoImpl(properties, token));
+    }
+
+    @Override
+    public ConnectionInfo info() {
+      return new ConnectionInfoImpl(properties, token);
+    }
+
+    @Override
+    public AuthenticationArgs forInstance(String instanceName, String zookeepers) {
+      setProperty(ClientProperty.INSTANCE_NAME, instanceName);
+      setProperty(ClientProperty.INSTANCE_ZOOKEEPERS, zookeepers);
+      return this;
+    }
+
+    @Override
+    public SslOptions withTruststore(String path) {
+      setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
+      return this;
+    }
+
+    @Override
+    public SslOptions withTruststore(String path, String password, String type) {
+      setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
+      setProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD, password);
+      setProperty(ClientProperty.SSL_TRUSTSTORE_TYPE, type);
+      return this;
+    }
+
+    @Override
+    public SslOptions withKeystore(String path) {
+      setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
+      return this;
+    }
+
+    @Override
+    public SslOptions withKeystore(String path, String password, String type) {
+      setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
+      setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD, password);
+      setProperty(ClientProperty.SSL_KEYSTORE_TYPE, type);
+      return this;
+    }
+
+    @Override
+    public SslOptions useJsse() {
+      setProperty(ClientProperty.SSL_USE_JSSE, "true");
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions withZkTimeout(int timeout) {
+      setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC, Integer.toString(timeout));
+      return this;
+    }
+
+    @Override
+    public SslOptions withSsl() {
+      setProperty(ClientProperty.SSL_ENABLED, "true");
+      return this;
+    }
+
+    @Override
+    public SaslOptions withSasl() {
+      setProperty(ClientProperty.SASL_ENABLED, "true");
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig) {
+      setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES, batchWriterConfig.getMaxMemory());
+      setProperty(ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC, batchWriterConfig.getMaxLatency(TimeUnit.SECONDS));
+      setProperty(ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC, batchWriterConfig.getTimeout(TimeUnit.SECONDS));
+      setProperty(ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS, batchWriterConfig.getMaxWriteThreads());
+      setProperty(ClientProperty.BATCH_WRITER_DURABILITY, batchWriterConfig.getDurability().toString());
+      return this;
+    }
+
+    @Override
+    public SaslOptions withPrimary(String kerberosServerPrimary) {
+      setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
+      return this;
+    }
+
+    @Override
+    public SaslOptions withQop(String qualityOfProtection) {
+      setProperty(ClientProperty.SASL_QOP, qualityOfProtection);
+      return this;
+    }
+
+    @Override
+    public ConnectorFactory usingProperties(String configFile) {
+      Properties properties = new Properties();
+      try (InputStream is = new FileInputStream(configFile)) {
+        properties.load(is);
+      } catch (IOException e) {
+        throw new IllegalArgumentException(e);
+      }
+      return usingProperties(properties);
+    }
+
+    @Override
+    public ConnectorFactory usingProperties(Properties properties) {
+      this.properties = properties;
+      String authMethod = ClientProperty.AUTH_METHOD.getValue(properties).toLowerCase();
+      switch (authMethod) {
+        case "password":
+          String password = ClientProperty.AUTH_PASSWORD.getValue(properties);
+          Objects.nonNull(password);
+          this.token = new PasswordToken(password);
+          this.properties.remove(ClientProperty.AUTH_PASSWORD);
+          break;
+        case "kerberos":
+          String principal = ClientProperty.AUTH_USERNAME.getValue(properties);
+          String keytabPath = ClientProperty.AUTH_KERBEROS_KEYTAB_PATH.getValue(properties);
+          Objects.nonNull(principal);
+          Objects.nonNull(keytabPath);
+          try {
+            this.token = new KerberosToken(principal, new File(keytabPath));
+          } catch (IOException e) {
+            throw new IllegalArgumentException(e);
+          }
+        case "provider":
+          String name = ClientProperty.AUTH_PROVIDER_NAME.getValue(properties);
+          String providerUrls = ClientProperty.AUTH_PROVIDER_URLS.getValue(properties);
+          try {
+            this.token = new CredentialProviderToken(name, providerUrls);
+          } catch (IOException e) {
+            throw new IllegalArgumentException(e);
+          }
+        default:
+          throw new IllegalArgumentException("An authentication method (password, kerberos, etc) must be set");
+      }
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions usingPassword(String username, CharSequence password) {
+      setProperty(ClientProperty.AUTH_METHOD, "password");
+      setProperty(ClientProperty.AUTH_USERNAME, username);
+      this.token = new PasswordToken(password);
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions usingKerberos(String principal, String keyTabFile) {
+      setProperty(ClientProperty.AUTH_METHOD, "kerberos");
+      setProperty(ClientProperty.AUTH_USERNAME, principal);
+      setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH, keyTabFile);
+      try {
+        this.token = new KerberosToken(principal, new File(keyTabFile));
+      } catch (IOException e) {
+        throw new IllegalArgumentException(e);
+      }
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions usingProvider(String username, String name, String providerUrls) {
+      setProperty(ClientProperty.AUTH_METHOD, "provider");
+      setProperty(ClientProperty.AUTH_USERNAME, username);
+      setProperty(ClientProperty.AUTH_PROVIDER_NAME, name);
+      setProperty(ClientProperty.AUTH_PROVIDER_URLS, providerUrls);
+      try {
+        this.token = new CredentialProviderToken(name, providerUrls);
+      } catch (IOException e) {
+        throw new IllegalArgumentException(e);
+      }
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions usingToken(String principal, AuthenticationToken token) {
+      this.token = token;
+      setProperty(ClientProperty.AUTH_USERNAME, principal);
+      if (token instanceof CredentialProviderToken) {
+        setProperty(ClientProperty.AUTH_METHOD, "provider");
+        CredentialProviderToken cpt = (CredentialProviderToken) token;
+        setProperty(ClientProperty.AUTH_PROVIDER_NAME, cpt.getName());
+        setProperty(ClientProperty.AUTH_PROVIDER_URLS, cpt.getCredentialProviders());
+      } else if (token instanceof PasswordToken) {
+        setProperty(ClientProperty.AUTH_METHOD, "password");
+      } else if (token instanceof KerberosToken) {
+        setProperty(ClientProperty.AUTH_METHOD, "kerberos");
+        setProperty(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH, ((KerberosToken) token).getKeytab().getAbsolutePath());
+      } else {
+        setProperty(ClientProperty.AUTH_METHOD, "unknown");
+      }
+      return this;
+    }
+
+    @Override
+    public ConnectorFactory usingConnectionInfo(ConnectionInfo connectionInfo) {
+      this.properties = connectionInfo.getProperties();
+      this.token = connectionInfo.getAuthenticationToken();
+      return this;
+    }
+
+    public void setProperty(ClientProperty property, String value) {
+      properties.setProperty(property.getKey(), value);
+    }
+
+    public void setProperty(ClientProperty property, Long value) {
+      setProperty(property, Long.toString(value));
+    }
+
+    public void setProperty(ClientProperty property, Integer value) {
+      setProperty(property, Integer.toString(value));
+    }
   }
 }
