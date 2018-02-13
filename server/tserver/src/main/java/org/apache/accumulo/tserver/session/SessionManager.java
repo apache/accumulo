@@ -169,36 +169,36 @@ public class SessionManager {
   }
 
   private void sweep(final long maxIdle, final long maxUpdateIdle) {
-    List<Session> sessionsToCleanup = new ArrayList<>();
-    synchronized (this) {
-      Iterator<Session> iter = sessions.values().iterator();
-      while (iter.hasNext()) {
-        Session session = iter.next();
-        long configuredIdle = maxIdle;
-        if (session instanceof UpdateSession) {
-          configuredIdle = maxUpdateIdle;
+    synchronized (idleSessions) {
+      synchronized (this) {
+        Iterator<Session> iter = sessions.values().iterator();
+        while (iter.hasNext()) {
+          Session session = iter.next();
+          long configuredIdle = maxIdle;
+          if (session instanceof UpdateSession) {
+            configuredIdle = maxUpdateIdle;
+          }
+          long idleTime = System.currentTimeMillis() - session.lastAccessTime;
+          if (idleTime > configuredIdle && !session.reserved) {
+            log.info("Closing idle session from user=" + session.getUser() + ", client=" + session.client + ", idle=" + idleTime + "ms");
+            iter.remove();
+            idleSessions.add(session);
+          }
         }
-        long idleTime = System.currentTimeMillis() - session.lastAccessTime;
-        if (idleTime > configuredIdle && !session.reserved) {
-          log.info("Closing idle session from user=" + session.getUser() + ", client=" + session.client + ", idle=" + idleTime + "ms");
-          iter.remove();
+      }
+
+      List<Session> sessionsToCleanup = new ArrayList<>();
+
+      // do clean up outside of lock for TabletServer
+      for (Session session : idleSessions) {
+        if (!session.cleanup()) {
           sessionsToCleanup.add(session);
         }
       }
-    }
 
-    // do clean up outside of lock for TabletServer in a synchronized block for simplicity vice a synchronized list
-
-    synchronized (idleSessions) {
-
-      sessionsToCleanup.addAll(idleSessions);
-
-      idleSessions.clear();
-
-      // perform cleanup for all of the sessions
-      for (Session session : sessionsToCleanup) {
-        if (!session.cleanup())
-          idleSessions.add(session);
+      synchronized (this) {
+        idleSessions.clear();
+        idleSessions.addAll(sessionsToCleanup);
       }
     }
   }
@@ -234,16 +234,14 @@ public class SessionManager {
     Map<String,MapCounter<ScanRunState>> counts = new HashMap<>();
     Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
-    synchronized (idleSessions) {
-      /**
-       * Add sessions so that get the list returned in the active scans call
-       */
-      for (Session session : idleSessions) {
-        copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
-      }
+    /**
+     * Add sessions so that get the list returned in the active scans call
+     */
+    for (Session session : idleSessions) {
+      copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
     }
 
-    for (Entry<Long,Session> entry : sessions.entrySet()) {
+    for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
 
       Session session = entry.getValue();
       @SuppressWarnings("rawtypes")
@@ -286,13 +284,11 @@ public class SessionManager {
     final long ct = System.currentTimeMillis();
     final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
-    synchronized (idleSessions) {
-      /**
-       * Add sessions so that get the list returned in the active scans call
-       */
-      for (Session session : idleSessions) {
-        copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
-      }
+    /**
+     * Add sessions so that get the list returned in the active scans call
+     */
+    for (Session session : idleSessions) {
+      copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
     }
 
     for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
