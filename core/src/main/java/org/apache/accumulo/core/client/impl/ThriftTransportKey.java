@@ -86,6 +86,10 @@ public class ThriftTransportKey {
         && (!isSasl() || (ttk.isSasl() && saslParams.equals(ttk.saslParams)));
   }
 
+  public final void precomputeHashCode() {
+    hashCode();
+  }
+
   @Override
   public int hashCode() {
     if (hash == -1)
