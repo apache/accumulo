@@ -566,7 +566,10 @@ public class ThriftTransportPool {
 
             cachedConnection.lastReturnTime = System.currentTimeMillis();
             cachedConnection.unreserve();
-            cachedConns.unreserved.add(cachedConnection);
+            // Calling addFirst to use unreserved as LIFO queue. Using LIFO ensures that when the # of pooled connections exceeds the working set size that the
+            // idle times at the end of the list grow. The connections with large idle times will be cleaned up. Using a FIFO could continually reset the idle
+            // times of all connections, even when there are more than the working set size.
+            cachedConns.unreserved.addFirst(cachedConnection);
           }
           existInCache = true;
         }
