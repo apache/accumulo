@@ -47,6 +47,7 @@ import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -91,6 +92,7 @@ public class SessionManager {
     long sid = random.nextLong();
 
     synchronized (session) {
+      Preconditions.checkArgument(session.state == State.NEW);
       session.state = reserve ? State.RESERVED : State.UNRESERVED;
       session.startTime = session.lastAccessTime = System.currentTimeMillis();
     }

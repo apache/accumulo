@@ -22,13 +22,13 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 public class Session {
 
   enum State {
-    UNRESERVED, RESERVED, REMOVED
+    NEW, UNRESERVED, RESERVED, REMOVED
   }
 
   public final String client;
   long lastAccessTime;
   public long startTime;
-  State state;
+  State state = State.NEW;
   private final TCredentials credentials;
 
   Session(TCredentials credentials) {
