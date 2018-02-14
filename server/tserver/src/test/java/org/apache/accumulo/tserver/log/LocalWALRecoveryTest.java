@@ -78,7 +78,7 @@ public class LocalWALRecoveryTest {
     final Path path = recovered[0].getPath();
     final VolumeManager volumeManager = VolumeManagerImpl.getLocal(folder.getRoot().getAbsolutePath());
 
-    final DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(volumeManager, path, configuration);
+    final DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(volumeManager.open(path), configuration);
     final DataInputStream input = streams.getDecryptingInputStream();
 
     final LogFileKey key = new LogFileKey();
