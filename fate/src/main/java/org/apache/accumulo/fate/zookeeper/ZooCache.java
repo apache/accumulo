@@ -18,11 +18,6 @@ package org.apache.accumulo.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
@@ -60,14 +55,39 @@ public class ZooCache {
   private final Lock cacheReadLock = cacheLock.readLock();
 
   private final HashMap<String,byte[]> cache;
-  private final HashMap<String,Stat> statCache;
+  private final HashMap<String,ZcStat> statCache;
   private final HashMap<String,List<String>> childrenCache;
 
   private final ZooReader zReader;
 
+  public static class ZcStat {
+    private long ephemeralOwner;
+
+    public ZcStat() {
+
+    }
+
+    private ZcStat(Stat stat) {
+      this.ephemeralOwner = stat.getEphemeralOwner();
+    }
+
+    public long getEphemeralOwner() {
+      return ephemeralOwner;
+    }
+
+    private void set(ZcStat cachedStat) {
+      this.ephemeralOwner = cachedStat.ephemeralOwner;
+    }
+
+    @VisibleForTesting
+    public void setEphemeralOwner(long ephemeralOwner) {
+      this.ephemeralOwner = ephemeralOwner;
+    }
+  }
+
   private static class ImmutableCacheCopies {
     final Map<String,byte[]> cache;
-    final Map<String,Stat> statCache;
+    final Map<String,ZcStat> statCache;
     final Map<String,List<String>> childrenCache;
     final long updateCount;
 
@@ -78,7 +98,7 @@ public class ZooCache {
       childrenCache = Collections.emptyMap();
     }
 
-    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,Stat> statCache, Map<String,List<String>> childrenCache) {
+    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,ZcStat> statCache, Map<String,List<String>> childrenCache) {
       this.updateCount = updateCount;
       this.cache = Collections.unmodifiableMap(new HashMap<>(cache));
       this.statCache = Collections.unmodifiableMap(new HashMap<>(statCache));
@@ -92,7 +112,7 @@ public class ZooCache {
       this.childrenCache = Collections.unmodifiableMap(new HashMap<>(childrenCache));
     }
 
-    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,Stat> statCache, ImmutableCacheCopies prev) {
+    ImmutableCacheCopies(long updateCount, Map<String,byte[]> cache, Map<String,ZcStat> statCache, ImmutableCacheCopies prev) {
       this.updateCount = updateCount;
       this.cache = Collections.unmodifiableMap(new HashMap<>(cache));
       this.statCache = Collections.unmodifiableMap(new HashMap<>(statCache));
@@ -328,20 +348,20 @@ public class ZooCache {
    *          status object to populate
    * @return path data, or null if non-existent
    */
-  public byte[] get(final String zPath, final Stat status) {
+  public byte[] get(final String zPath, final ZcStat status) {
     ZooRunnable<byte[]> zr = new ZooRunnable<byte[]>() {
 
       @Override
       public byte[] run() throws KeeperException, InterruptedException {
-        Stat stat = null;
+        ZcStat zstat = null;
 
         // only read volatile once so following code works with a consistent snapshot
         ImmutableCacheCopies lic = immutableCache;
         byte[] val = lic.cache.get(zPath);
         if (val != null || lic.cache.containsKey(zPath)) {
           if (status != null) {
-            stat = lic.statCache.get(zPath);
-            copyStats(status, stat);
+            zstat = lic.statCache.get(zPath);
+            copyStats(status, zstat);
           }
           return val;
         }
@@ -354,7 +374,7 @@ public class ZooCache {
         cacheWriteLock.lock();
         try {
           final ZooKeeper zooKeeper = getZooKeeper();
-          stat = zooKeeper.exists(zPath, watcher);
+          Stat stat = zooKeeper.exists(zPath, watcher);
           byte[] data = null;
           if (stat == null) {
             if (log.isTraceEnabled()) {
@@ -363,6 +383,7 @@ public class ZooCache {
           } else {
             try {
               data = zooKeeper.getData(zPath, watcher, stat);
+              zstat = new ZcStat(stat);
             } catch (KeeperException.BadVersionException e1) {
               throw new ConcurrentModificationException();
             } catch (KeeperException.NoNodeException e2) {
@@ -372,8 +393,8 @@ public class ZooCache {
               log.trace("zookeeper contained " + zPath + " " + (data == null ? null : new String(data, UTF_8)));
             }
           }
-          put(zPath, data, stat);
-          copyStats(status, stat);
+          put(zPath, data, zstat);
+          copyStats(status, zstat);
           return data;
         } finally {
           cacheWriteLock.unlock();
@@ -392,26 +413,13 @@ public class ZooCache {
    * @param cachedStat
    *          cached statistic, that is or will be cached
    */
-  protected void copyStats(Stat userStat, Stat cachedStat) {
+  protected void copyStats(ZcStat userStat, ZcStat cachedStat) {
     if (userStat != null && cachedStat != null) {
-      try {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(baos);
-        cachedStat.write(dos);
-        dos.close();
-
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        DataInputStream dis = new DataInputStream(bais);
-        userStat.readFields(dis);
-
-        dis.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      userStat.set(cachedStat);
     }
   }
 
-  private void put(String zPath, byte[] data, Stat stat) {
+  private void put(String zPath, byte[] data, ZcStat stat) {
     cacheWriteLock.lock();
     try {
       cache.put(zPath, data);
