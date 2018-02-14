@@ -28,8 +28,6 @@ public class ConfigSanityCheckTest {
   @Before
   public void setUp() {
     m = new java.util.HashMap<>();
-    m.put(Property.CRYPTO_CIPHER_SUITE.getKey(), "NullCipher");
-    m.put(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey(), "NullCipher");
   }
 
   @Test
@@ -91,6 +89,34 @@ public class ConfigSanityCheckTest {
   public void testFail_cipherSuiteNotSetKeyAlgorithmSet() {
     m.put(Property.CRYPTO_CIPHER_SUITE.getKey(), "NullCipher");
     m.put(Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME.getKey(), "AES");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test(expected = SanityCheckException.class)
+  public void testFail_cryptoModuleSetSecretKeyEncryptionStrategyNotSet() {
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "DefaultCryptoModule");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "NullSecretKeyEncryptionStrategy");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test(expected = SanityCheckException.class)
+  public void testFail_cryptoModuleNotSetSecretKeyEncryptionStrategySet() {
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "NullCryptoModule");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "SecretKeyEncryptionStrategy");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test
+  public void testPass_cryptoModuleAndSecretKeyEncryptionStrategyBothNull() {
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "NullCryptoModule");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "NullSecretKeyEncryptionStrategy");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test
+  public void testPass_cryptoModuleAndSecretKeyEncryptionStrategyBothSet() {
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "DefaultCryptoModule");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "SecretKeyEncryptionStrategy");
     ConfigSanityCheck.validate(m.entrySet());
   }
 }
