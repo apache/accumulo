@@ -114,13 +114,9 @@ public class ConfigSanityCheck {
       fatal(Property.CRYPTO_CIPHER_SUITE.getKey() + " and " + Property.CRYPTO_CIPHER_KEY_ALGORITHM_NAME + " must both be configured.");
     }
 
-    if (cryptoModule.equals(NULL_CRYPTO_MODULE) && !secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_ENCRYPTION_STRATEGY)) {
-      fatal(Property.CRYPTO_MODULE_CLASS.getKey() + " should be configured when " + Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey() + " is set.");
+    if (cryptoModule.equals(NULL_CRYPTO_MODULE) ^ secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_ENCRYPTION_STRATEGY)) {
+      fatal(Property.CRYPTO_MODULE_CLASS.getKey() + " and " + Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey() + " must both be configured.");
     }
-    if (!cryptoModule.equals(NULL_CRYPTO_MODULE) && secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_ENCRYPTION_STRATEGY)) {
-      fatal(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey() + " should be configured when " + Property.CRYPTO_MODULE_CLASS.getKey() + " is set.");
-    }
-
   }
 
   private interface CheckTimeDuration {

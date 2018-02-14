@@ -105,4 +105,18 @@ public class ConfigSanityCheckTest {
     m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "SecretKeyEncryptionStrategy");
     ConfigSanityCheck.validate(m.entrySet());
   }
+
+  @Test
+  public void testPass_cryptoModuleAndSecretKeyEncryptionStrategyBothNull() {
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "NullCryptoModule");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "NullSecretKeyEncryptionStrategy");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
+
+  @Test
+  public void testPass_cryptoModuleAndSecretKeyEncryptionStrategyBothSet() {
+    m.put(Property.CRYPTO_MODULE_CLASS.getKey(), "DefaultCryptoModule");
+    m.put(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey(), "SecretKeyEncryptionStrategy");
+    ConfigSanityCheck.validate(m.entrySet());
+  }
 }
