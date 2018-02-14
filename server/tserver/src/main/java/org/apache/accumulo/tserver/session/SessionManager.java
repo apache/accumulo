@@ -169,6 +169,8 @@ public class SessionManager {
   }
 
   private void sweep(final long maxIdle, final long maxUpdateIdle) {
+    // In Accumulo's current code only one thread will ever call this method. However if multiple threads called this method concurrently it could result in
+    // sessions being lost. This method synchronizes on idleSessions to prevent the loss. Its not expected that anything else will synchronize on idleSessions.
     synchronized (idleSessions) {
       synchronized (this) {
         Iterator<Session> iter = sessions.values().iterator();
