@@ -85,7 +85,6 @@ public class SessionManager {
     };
 
     SimpleTimer.getInstance(conf).schedule(r, 0, Math.max(maxIdle / 2, 1000));
-
   }
 
   public long createSession(Session session, boolean reserve) {
@@ -130,7 +129,6 @@ public class SessionManager {
 
   public Session reserveSession(long sessionId, boolean wait) {
     Session session = sessions.get(sessionId);
-
     if (session != null) {
       synchronized (session) {
 
@@ -174,7 +172,6 @@ public class SessionManager {
     if (session != null) {
       unreserveSession(session);
     }
-
   }
 
   public Session getSession(long sessionId) {
@@ -256,7 +253,6 @@ public class SessionManager {
           idleSessions.add(session);
         }
     }
-
   }
 
   public void removeIfNotAccessed(final long sessionId, final long delay) {
@@ -309,7 +305,6 @@ public class SessionManager {
     for (Entry<Long,Session> entry : Iterables.concat(sessions.entrySet(), copiedIdleSessions)) {
 
       Session session = entry.getValue();
-
       @SuppressWarnings("rawtypes")
       ScanTask nbt = null;
       String tableID = null;
