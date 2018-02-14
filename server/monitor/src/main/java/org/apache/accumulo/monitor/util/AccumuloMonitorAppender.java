@@ -32,12 +32,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.AsyncAppender;
 import org.apache.log4j.net.SocketAppender;
-import org.apache.zookeeper.data.Stat;
 
 public class AccumuloMonitorAppender extends AsyncAppender implements AutoCloseable {
 
@@ -148,7 +148,7 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
       }
 
       // get the current location from the cache and update if necessary
-      Stat stat = new Stat();
+      ZcStat stat = new ZcStat();
       byte[] loc = zooCache.get(path, stat);
       // mzxid is 0 if location does not exist and the non-zero transaction id of the last modification otherwise
       return new MonitorLocation(stat.getMzxid(), loc);

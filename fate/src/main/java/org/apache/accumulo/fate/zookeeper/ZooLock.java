@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
@@ -411,7 +412,7 @@ public class ZooLock implements Watcher {
     if (!lid.node.equals(lockNode))
       return false;
 
-    Stat stat = new Stat();
+    ZcStat stat = new ZcStat();
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
   }
 
@@ -429,7 +430,7 @@ public class ZooLock implements Watcher {
     return zk.getData(path + "/" + lockNode, false, null);
   }
 
-  public static byte[] getLockData(org.apache.accumulo.fate.zookeeper.ZooCache zc, String path, Stat stat) {
+  public static byte[] getLockData(org.apache.accumulo.fate.zookeeper.ZooCache zc, String path, ZcStat stat) {
 
     List<String> children = zc.getChildren(path);
 
@@ -461,7 +462,7 @@ public class ZooLock implements Watcher {
 
     String lockNode = children.get(0);
 
-    Stat stat = new Stat();
+    ZcStat stat = new ZcStat();
     if (zc.get(path + "/" + lockNode, stat) != null)
       return stat.getEphemeralOwner();
     return 0;

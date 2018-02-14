@@ -321,8 +321,8 @@ public class Mutation implements Writable {
     if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
     }
-    long estimatedSizeAfterPut = estRowAndLargeValSize + buffer.size() + cfLength + cqLength + cv.length + (hasts ? 8 : 0) + valLength + 2
-        + 4 * SERIALIZATION_OVERHEAD;
+    long estimatedSizeAfterPut = estRowAndLargeValSize + buffer.size() + cfLength + cqLength + cv.length + (hasts ? 8 : 0) + valLength + 2 + 4
+        * SERIALIZATION_OVERHEAD;
     Preconditions.checkArgument(estimatedSizeAfterPut < MAX_MUTATION_SIZE && estimatedSizeAfterPut >= 0, "Maximum mutation size must be less than 2GB ");
     put(cf, cfLength);
     put(cq, cqLength);
