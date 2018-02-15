@@ -343,7 +343,7 @@ public abstract class Connector {
 
     /**
      * Build using Java properties object. A list of available properties can be found in the documentation on the project website (http://accumulo.apache.org)
-     * under 'Development' -> 'Client Properties'
+     * under 'Development' -&gt; 'Client Properties'
      *
      * @param properties
      *          Properties object
@@ -534,7 +534,7 @@ public abstract class Connector {
     SaslOptions withSasl();
 
     /**
-     * Build with BatchWriterConfig defaults for BatchWriter, MultiTableBatchWriter & BatchDeleter
+     * Build with BatchWriterConfig defaults for BatchWriter, MultiTableBatchWriter &amp; BatchDeleter
      *
      * @param batchWriterConfig
      *          BatchWriterConfig
