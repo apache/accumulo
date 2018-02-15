@@ -32,6 +32,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -58,14 +59,17 @@ import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -207,7 +211,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.columnFamily = colf;
     opts.createTable = true;
     opts.setTableName(tableName);
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
     } else {
       opts.setPrincipal(principal);
@@ -231,7 +235,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.startRow = offset;
     opts.columnFamily = colf;
     opts.setTableName(tableName);
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
     } else {
       opts.setPrincipal(principal);
@@ -259,7 +263,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           ClientConfiguration clientConf = cluster.getClientConfig();
           // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
           // Need to pass along the keytab because of that.
-          if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+          if (clientConf.hasSasl()) {
             String principal = getAdminPrincipal();
             AuthenticationToken token = getAdminToken();
             assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
@@ -288,7 +292,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           ClientConfiguration clientConf = cluster.getClientConfig();
           // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
           // Need to pass along the keytab because of that.
-          if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+          if (clientConf.hasSasl()) {
             String principal = getAdminPrincipal();
             AuthenticationToken token = getAdminToken();
             assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
@@ -384,28 +388,54 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
     bw.close();
     long now = System.currentTimeMillis();
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    scanner.fetchColumnFamily(new Text("colf"));
-    Iterators.size(scanner.iterator());
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.fetchColumnFamily(new Text("colf"));
+      Iterators.size(scanner.iterator());
+    }
     long diff = System.currentTimeMillis() - now;
     now = System.currentTimeMillis();
-    scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    scanner.fetchColumnFamily(new Text("colf2"));
-    Iterators.size(scanner.iterator());
+
+    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.fetchColumnFamily(new Text("colf2"));
+      Iterators.size(scanner.iterator());
+    }
     bw.close();
     long diff2 = System.currentTimeMillis() - now;
     assertTrue(diff2 < diff);
   }
 
+  /**
+   * create a locality group, write to it and ensure it exists in the RFiles that result
+   */
   @Test
   public void sunnyLG() throws Exception {
-    // create a locality group, write to it and ensure it exists in the RFiles that result
     final Connector connector = getConnector();
     final String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
     Map<String,Set<Text>> groups = new TreeMap<>();
     groups.put("g1", Collections.singleton(t("colf")));
     connector.tableOperations().setLocalityGroups(tableName, groups);
+    verifyLocalityGroupsInRFile(connector, tableName);
+  }
+
+  /**
+   * Pretty much identical to sunnyLG, but verifies locality groups are created when configured in NewTableConfiguration prior to table creation.
+   */
+  @Test
+  public void sunnyLGUsingNewTableConfiguration() throws Exception {
+    // create a locality group, write to it and ensure it exists in the RFiles that result
+    final Connector connector = getConnector();
+    final String tableName = getUniqueNames(1)[0];
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    Map<String,Set<Text>> groups = new HashMap<>();
+    groups.put("g1", Collections.singleton(t("colf")));
+    ntc.setLocalityGroups(groups);
+    connector.tableOperations().create(tableName, ntc);
+    verifyLocalityGroupsInRFile(connector, tableName);
+  }
+
+  private void verifyLocalityGroupsInRFile(final Connector connector, final String tableName) throws Exception, AccumuloException, AccumuloSecurityException,
+      TableNotFoundException {
     ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
     verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
     connector.tableOperations().flush(tableName, null, null, true);
@@ -423,7 +453,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           System.setOut(newOut);
           List<String> args = new ArrayList<>();
           args.add(entry.getKey().getColumnQualifier().toString());
-          if (ClusterType.STANDALONE == getClusterType() && cluster.getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+          if (ClusterType.STANDALONE == getClusterType() && cluster.getClientConfig().hasSasl()) {
             args.add("--config");
             StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
             String hadoopConfDir = sac.getHadoopConfDir();

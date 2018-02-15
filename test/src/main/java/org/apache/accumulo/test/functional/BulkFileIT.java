@@ -101,27 +101,28 @@ public class BulkFileIT extends AccumuloClusterHarness {
   }
 
   private void verifyData(String table, int s, int e) throws Exception {
-    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
+    try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
 
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
+      Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
-    for (int i = s; i <= e; i++) {
-      if (!iter.hasNext())
-        throw new Exception("row " + i + " not found");
+      for (int i = s; i <= e; i++) {
+        if (!iter.hasNext())
+          throw new Exception("row " + i + " not found");
 
-      Entry<Key,Value> entry = iter.next();
+        Entry<Key,Value> entry = iter.next();
 
-      String row = String.format("%04d", i);
+        String row = String.format("%04d", i);
 
-      if (!entry.getKey().getRow().equals(new Text(row)))
-        throw new Exception("unexpected row " + entry.getKey() + " " + i);
+        if (!entry.getKey().getRow().equals(new Text(row)))
+          throw new Exception("unexpected row " + entry.getKey() + " " + i);
 
-      if (Integer.parseInt(entry.getValue().toString()) != i)
-        throw new Exception("unexpected value " + entry + " " + i);
+        if (Integer.parseInt(entry.getValue().toString()) != i)
+          throw new Exception("unexpected value " + entry + " " + i);
+      }
+
+      if (iter.hasNext())
+        throw new Exception("found more than expected " + iter.next());
     }
-
-    if (iter.hasNext())
-      throw new Exception("found more than expected " + iter.next());
   }
 
   private void writeData(FileSKVWriter w, int s, int e) throws Exception {

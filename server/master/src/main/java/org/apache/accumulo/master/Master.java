@@ -610,16 +610,16 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     timeKeeper = new MasterTime(this);
     ThriftTransportPool.getInstance().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(this, this);
-    this.tabletBalancer = aconf.instantiateClassProperty(Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
+    this.tabletBalancer = Property.createInstanceFromPropertyName(aconf, Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     this.tabletBalancer.init(this);
 
     try {
-      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig(new Iterable<Entry<String,String>>() {
+      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.DefaultContextsConfig() {
         @Override
-        public Iterator<Entry<String,String>> iterator() {
-          return getConfiguration().iterator();
+        public Map<String,String> getVfsContextClasspathProperties() {
+          return getConfiguration().getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
         }
-      }));
+      });
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

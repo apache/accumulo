@@ -22,7 +22,6 @@ import java.util.Random;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
@@ -55,7 +54,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
     opts.cols = 1;
     opts.setTableName(tableName);
     ClientConfiguration clientConf = cluster.getClientConfig();
-    if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConf.hasSasl()) {
       opts.updateKerberosCredentials(clientConf);
     } else {
       opts.setPrincipal(getAdminPrincipal());

@@ -41,7 +41,6 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.commons.configuration.Configuration;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +92,7 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
    */
   @Deprecated
   public ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout) {
@@ -106,7 +105,7 @@ public class ZooKeeperInstance implements Instance {
    *          The UUID that identifies the accumulo instance you want to connect to.
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
    */
   @Deprecated
   public ZooKeeperInstance(UUID instanceId, String zooKeepers) {
@@ -121,30 +120,16 @@ public class ZooKeeperInstance implements Instance {
    *          A comma separated list of zoo keeper server locations. Each location can contain an optional port, of the format host:port.
    * @param sessionTimeout
    *          zoo keeper session time out in milliseconds.
-   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(Configuration)} instead.
+   * @deprecated since 1.6.0; Use {@link #ZooKeeperInstance(ClientConfiguration)} instead.
    */
   @Deprecated
   public ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
     this(ClientConfiguration.loadDefault().withInstance(instanceId).withZkHosts(zooKeepers).withZkTimeout(sessionTimeout));
   }
 
-  /**
-   * @param config
-   *          Client configuration for specifying connection options. See {@link ClientConfiguration} which extends Configuration with convenience methods
-   *          specific to Accumulo.
-   * @since 1.6.0
-   */
-  public ZooKeeperInstance(Configuration config) {
-    this(config, new ZooCacheFactory());
-  }
-
-  ZooKeeperInstance(Configuration config, ZooCacheFactory zcf) {
+  ZooKeeperInstance(ClientConfiguration config, ZooCacheFactory zcf) {
     checkArgument(config != null, "config is null");
-    if (config instanceof ClientConfiguration) {
-      this.clientConf = (ClientConfiguration) config;
-    } else {
-      this.clientConf = new ClientConfiguration(config);
-    }
+    this.clientConf = config;
     this.instanceId = clientConf.get(ClientProperty.INSTANCE_ID);
     this.instanceName = clientConf.get(ClientProperty.INSTANCE_NAME);
     if ((instanceId == null) == (instanceName == null))
@@ -156,6 +141,16 @@ public class ZooKeeperInstance implements Instance {
       // Validates that the provided instanceName actually exists
       getInstanceID();
     }
+  }
+
+  /**
+   * @param config
+   *          Client configuration for specifying connection options. See {@link ClientConfiguration} which extends Configuration with convenience methods
+   *          specific to Accumulo.
+   * @since 1.9.0
+   */
+  public ZooKeeperInstance(ClientConfiguration config) {
+    this(config, new ZooCacheFactory());
   }
 
   @Override

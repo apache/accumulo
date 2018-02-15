@@ -36,7 +36,7 @@ class TabletMemory implements Closeable {
   private InMemoryMap memTable;
   private InMemoryMap otherMemTable;
   private InMemoryMap deletingMemTable;
-  private int nextSeq = 1;
+  private long nextSeq = 1L;
   private CommitSession commitSession;
 
   TabletMemory(TabletCommitter tablet) {

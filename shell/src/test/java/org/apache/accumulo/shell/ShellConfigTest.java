@@ -122,21 +122,21 @@ public class ShellConfigTest {
    */
   @Test
   public void testZooKeeperHostFallBackToSite() throws Exception {
-    ClientConfiguration clientConfig = new ClientConfiguration();
+    ClientConfiguration clientConfig = ClientConfiguration.create();
     assertFalse("Client config contains zk hosts", clientConfig.containsKey(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST.getKey()));
     assertEquals("ShellConfigTestZKHostValue", Shell.getZooKeepers(null, clientConfig));
   }
 
   @Test
   public void testZooKeeperHostFromClientConfig() throws Exception {
-    ClientConfiguration clientConfig = new ClientConfiguration();
+    ClientConfiguration clientConfig = ClientConfiguration.create();
     clientConfig.withZkHosts("cc_hostname");
     assertEquals("cc_hostname", Shell.getZooKeepers(null, clientConfig));
   }
 
   @Test
   public void testZooKeeperHostFromOption() throws Exception {
-    ClientConfiguration clientConfig = new ClientConfiguration();
+    ClientConfiguration clientConfig = ClientConfiguration.create();
     clientConfig.withZkHosts("cc_hostname");
     assertEquals("opt_hostname", Shell.getZooKeepers("opt_hostname", clientConfig));
   }

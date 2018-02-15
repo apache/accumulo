@@ -21,29 +21,26 @@
         $(document).ready(function() {
           tableID = '${tableID}';
           refreshTable();
-
-          // Create tooltip for table column information
-          $(document).tooltip();
         });
       </script>
       <div><h3>${title}</h3></div>
       <div class="center-block">
       <table id="participatingTServers" class="table table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Participating&nbsp;Tablet&nbsp;Servers</span><br/><span class="table-subcaption">${table}</span><br/></caption>
+          <caption><span class="table-caption">${table}</span></caption>
           <tbody>
-          <tr><th class="firstcell" onclick="sortTable(0)">Server&nbsp;</th>
-          <th onclick="sortTable(1)">Hosted&nbsp;Tablets&nbsp;</th>
-          <th onclick="sortTable(2)">Last&nbsp;Contact&nbsp;</th>
-          <th onclick="sortTable(3)" title="Key/value pairs over each instance, table or tablet.">Entries&nbsp;</th>
-          <th onclick="sortTable(4)" title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)">Ingest&nbsp;</th>
-          <th onclick="sortTable(5)" title="The number of key/value pairs returned to clients. (Not the number of scans)">Query&nbsp;</th>
-          <th onclick="sortTable(6)" title="The amount of time that ingest operations are suspended while waiting for data to be written to disk.">Hold&nbsp;Time&nbsp;</th>
-          <th onclick="sortTable(7)" title="Information about the scans threads. Shows how many threads are running and how much work is queued for the threads.">Running<br/>Scans&nbsp;</th>
-          <th onclick="sortTable(8)" title="The action of flushing memory to disk. Multiple tablets can be compacted simultaneously, but sometimes they must wait for resources to be available. The number of tablets waiting for compaction are in parentheses.">Minor<br/>Compactions&nbsp;</th>
-          <th onclick="sortTable(9)" title="The action of gathering up many small files and rewriting them as one larger file.">Major<br/>Compactions&nbsp;</th>
-          <th onclick="sortTable(10)" title="The recent index cache hit rate.">Index Cache<br/>Hit Rate&nbsp;</th>
-          <th onclick="sortTable(11)" title="The recent data cache hit rate.">Data Cache<br/>Hit Rate&nbsp;</th>
-          <th onclick="sortTable(12)" title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load&nbsp;</th></tr>
+          <tr><th class="firstcell">Server&nbsp;</th>
+          <th>Hosted&nbsp;Tablets&nbsp;</th>
+          <th>Last&nbsp;Contact&nbsp;</th>
+          <th title="Key/value pairs over each instance, table or tablet.">Entries&nbsp;</th>
+          <th title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)">Ingest&nbsp;</th>
+          <th title="The number of key/value pairs returned to clients. (Not the number of scans)">Query&nbsp;</th>
+          <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk.">Hold&nbsp;Time&nbsp;</th>
+          <th title="Information about the scans threads. Shows how many threads are running and how much work is queued for the threads.">Running<br/>Scans&nbsp;</th>
+          <th title="The action of flushing memory to disk. Multiple tablets can be compacted simultaneously, but sometimes they must wait for resources to be available. The number of tablets waiting for compaction are in parentheses.">Minor<br/>Compactions&nbsp;</th>
+          <th title="The action of gathering up many small files and rewriting them as one larger file.">Major<br/>Compactions&nbsp;</th>
+          <th title="The recent index cache hit rate.">Index Cache<br/>Hit Rate&nbsp;</th>
+          <th title="The recent data cache hit rate.">Data Cache<br/>Hit Rate&nbsp;</th>
+          <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load&nbsp;</th></tr>
           </tbody>
       </table>
       </div>

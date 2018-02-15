@@ -147,7 +147,7 @@ public class TableLoadBalancerTest {
       @Override
       public TableConfiguration getTableConfiguration(Table.ID tableId) {
         // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration constructor
-        NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, null, null);
+        NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, inst, null);
         return new TableConfiguration(inst, tableId, dummyConf) {
           @Override
           public String get(Property property) {

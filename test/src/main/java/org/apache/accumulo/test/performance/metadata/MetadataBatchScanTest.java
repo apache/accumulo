@@ -68,7 +68,7 @@ public class MetadataBatchScanTest {
 
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MetadataBatchScanTest.class.getName(), args);
-    Instance inst = new ZooKeeperInstance(new ClientConfiguration().withInstance("acu14").withZkHosts("localhost"));
+    Instance inst = new ZooKeeperInstance(ClientConfiguration.create().withInstance("acu14").withZkHosts("localhost"));
     final Connector connector = inst.getConnector(opts.getPrincipal(), opts.getToken());
 
     TreeSet<Long> splits = new TreeSet<>();
@@ -176,22 +176,20 @@ public class MetadataBatchScanTest {
   }
 
   private static ScanStats runScanTest(Connector connector, int numLoop, List<Range> ranges) throws Exception {
-    Scanner scanner = null;
-
-    BatchScanner bs = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1);
-    bs.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(bs);
-
-    bs.setRanges(ranges);
-
-    // System.out.println(ranges);
-
     ScanStats stats = new ScanStats();
-    for (int i = 0; i < numLoop; i++) {
-      ScanStat ss = scan(bs, ranges, scanner);
-      stats.merge(ss);
-    }
 
+    try (BatchScanner bs = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
+      bs.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(bs);
+
+      bs.setRanges(ranges);
+
+      // System.out.println(ranges);
+      for (int i = 0; i < numLoop; i++) {
+        ScanStat ss = scan(bs, ranges, null);
+        stats.merge(ss);
+      }
+    }
     return stats;
   }
 

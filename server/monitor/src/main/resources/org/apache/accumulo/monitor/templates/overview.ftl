@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div><h3>${title}</h3></div>
+      <div class="center"><h3>${title}</h3></div>
       <br>
       <div class="center-block">
         <div class="container">

@@ -32,7 +32,7 @@ import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 
 /**
  *
- * Responsible for generating an XML summary of the Monitor
+ * Responsible for generating a JSON and XML summary of the Monitor
  *
  * @since 2.0.0
  *
@@ -42,22 +42,19 @@ import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 public class XMLResource {
 
   /**
-   * Generates an XML summary of the Monitor
+   * Generates summary of the Monitor
    *
-   * @return XML summary
+   * @return SummaryInformation object
    */
-  @GET
-  public XMLInformation getXMLInformation() {
+  public SummaryInformation getInformation() {
 
     MasterMonitorInfo mmi = Monitor.getMmi();
     if (null == mmi) {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
 
-    new MasterResource();
-    new TablesResource();
     // Add Monitor information
-    XMLInformation xml = new XMLInformation(mmi.tServerInfo.size(), MasterResource.getTables(), TablesResource.getTables());
+    SummaryInformation xml = new SummaryInformation(mmi.tServerInfo.size(), MasterResource.getTables(), TablesResource.getTables());
 
     // Add tserver information
     for (TabletServerStatus status : mmi.tServerInfo) {
@@ -65,5 +62,19 @@ public class XMLResource {
     }
 
     return xml;
+  }
+
+  @GET
+  @Path("xml")
+  @Produces(MediaType.APPLICATION_XML)
+  public SummaryInformation getXMLInformation() {
+    return getInformation();
+  }
+
+  @GET
+  @Path("json")
+  @Produces(MediaType.APPLICATION_JSON)
+  public SummaryInformation getJSONInformation() {
+    return getInformation();
   }
 }

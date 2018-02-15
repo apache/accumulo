@@ -18,6 +18,7 @@ package org.apache.accumulo.proxy;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -112,7 +113,6 @@ import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -197,11 +197,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       ClientConfiguration clientConf;
       if (props.containsKey("clientConfigurationFile")) {
         String clientConfFile = props.getProperty("clientConfigurationFile");
-        try {
-          clientConf = new ClientConfiguration(clientConfFile);
-        } catch (ConfigurationException e) {
-          throw new RuntimeException(e);
-        }
+        clientConf = ClientConfiguration.fromFile(new File(clientConfFile));
       } else {
         clientConf = ClientConfiguration.loadDefault();
       }

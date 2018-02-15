@@ -58,16 +58,17 @@ public class TestMultiTableIngest {
       // wait for table to exist
       while (!conn.tableOperations().exists(table))
         UtilWaitThread.sleep(100);
-      Scanner scanner = conn.createScanner(table, opts.auths);
-      scanner.setBatchSize(scanOpts.scanBatchSize);
-      int count = i;
-      for (Entry<Key,Value> elt : scanner) {
-        String expected = String.format("%06d", count);
-        if (!elt.getKey().getRow().toString().equals(expected))
-          throw new RuntimeException("entry " + elt + " does not match expected " + expected + " in table " + table);
-        count += tableNames.size();
+      try (Scanner scanner = conn.createScanner(table, opts.auths)) {
+        scanner.setBatchSize(scanOpts.scanBatchSize);
+        int count = i;
+        for (Entry<Key,Value> elt : scanner) {
+          String expected = String.format("%06d", count);
+          if (!elt.getKey().getRow().toString().equals(expected))
+            throw new RuntimeException("entry " + elt + " does not match expected " + expected + " in table " + table);
+          count += tableNames.size();
+        }
+        i++;
       }
-      i++;
     }
   }
 

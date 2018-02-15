@@ -23,7 +23,6 @@ import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -41,7 +40,7 @@ public class UsersIT extends AccumuloClusterHarness {
     // Ensure that the user exists
     if (!currentUsers.contains(user0.getPrincipal())) {
       PasswordToken token = null;
-      if (!getCluster().getClientConfig().getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      if (!getCluster().getClientConfig().hasSasl()) {
         token = new PasswordToken(user0.getPassword());
       }
       conn.securityOperations().createLocalUser(user0.getPrincipal(), token);

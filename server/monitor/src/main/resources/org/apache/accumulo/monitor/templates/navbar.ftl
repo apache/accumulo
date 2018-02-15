@@ -23,7 +23,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <img id="accumulo-avatar" class="navbar-left pull-left" src="/resources/images/accumulo-avatar.png" />
+          <img id="accumulo-avatar" alt="accumulo" class="navbar-left pull-left" src="/resources/images/accumulo-avatar.png" />
           <a class="navbar-brand" id="headertitle" href="/">${instance_name}</a>
         </div>
         <!-- Nav links -->
@@ -64,8 +64,8 @@
                 API <span class="caret"></span>
               </a>
               <ul class="dropdown-menu">
-                <li><a href="/rest">XML</a></li>
-                <li><a href="/rest/tservers">JSON</a></li>
+                <li><a href="/rest/xml">XML</a></li>
+                <li><a href="/rest/json">JSON</a></li>
               </ul>
             </li>
             <li class="dropdown">

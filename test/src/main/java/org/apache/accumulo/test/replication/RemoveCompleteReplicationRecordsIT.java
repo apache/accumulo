@@ -96,18 +96,17 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
-    BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
-    bs.setRanges(Collections.singleton(new Range()));
-    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
-    bs.addScanIterator(cfg);
-    bw = EasyMock.createMock(BatchWriter.class);
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+      bs.setRanges(Collections.singleton(new Range()));
+      IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+      bs.addScanIterator(cfg);
+      bw = EasyMock.createMock(BatchWriter.class);
 
-    EasyMock.replay(bw);
+      EasyMock.replay(bw);
 
-    rcrr.removeCompleteRecords(conn, bs, bw);
-    bs.close();
-
-    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+      rcrr.removeCompleteRecords(conn, bs, bw);
+      Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    }
   }
 
   @Test
@@ -129,19 +128,18 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
-    BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
-    bs.setRanges(Collections.singleton(new Range()));
-    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
-    bs.addScanIterator(cfg);
-    bw = EasyMock.createMock(BatchWriter.class);
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+      bs.setRanges(Collections.singleton(new Range()));
+      IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+      bs.addScanIterator(cfg);
+      bw = EasyMock.createMock(BatchWriter.class);
 
-    EasyMock.replay(bw);
+      EasyMock.replay(bw);
 
-    // We don't remove any records, so we can just pass in a fake BW for both
-    rcrr.removeCompleteRecords(conn, bs, bw);
-    bs.close();
-
-    Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+      // We don't remove any records, so we can just pass in a fake BW for both
+      rcrr.removeCompleteRecords(conn, bs, bw);
+      Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    }
   }
 
   @Test
@@ -183,16 +181,16 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
     // We should not remove any records because they're missing closed status
-    BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
-    bs.setRanges(Collections.singleton(new Range()));
-    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
-    bs.addScanIterator(cfg);
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+      bs.setRanges(Collections.singleton(new Range()));
+      IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+      bs.addScanIterator(cfg);
 
-    try {
-      Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
-    } finally {
-      bs.close();
-      replBw.close();
+      try {
+        Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
+      } finally {
+        replBw.close();
+      }
     }
   }
 
@@ -264,27 +262,27 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
     // We should remove the two fully completed records we inserted
-    BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
-    bs.setRanges(Collections.singleton(new Range()));
-    StatusSection.limit(bs);
-    WorkSection.limit(bs);
-    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
-    bs.addScanIterator(cfg);
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+      bs.setRanges(Collections.singleton(new Range()));
+      StatusSection.limit(bs);
+      WorkSection.limit(bs);
+      IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+      bs.addScanIterator(cfg);
 
-    try {
-      Assert.assertEquals(4l, rcrr.removeCompleteRecords(conn, bs, replBw));
-    } finally {
-      bs.close();
-      replBw.close();
+      try {
+        Assert.assertEquals(4l, rcrr.removeCompleteRecords(conn, bs, replBw));
+      } finally {
+        replBw.close();
+      }
+
+      int actualRecords = 0;
+      for (Entry<Key,Value> entry : ReplicationTable.getScanner(conn)) {
+        Assert.assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
+        actualRecords++;
+      }
+
+      Assert.assertEquals(finalNumRecords, actualRecords);
     }
-
-    int actualRecords = 0;
-    for (Entry<Key,Value> entry : ReplicationTable.getScanner(conn)) {
-      Assert.assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
-      actualRecords++;
-    }
-
-    Assert.assertEquals(finalNumRecords, actualRecords);
   }
 
   @Test
@@ -326,16 +324,16 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     Assert.assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
 
     // We should remove the two fully completed records we inserted
-    BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1);
-    bs.setRanges(Collections.singleton(new Range()));
-    IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
-    bs.addScanIterator(cfg);
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+      bs.setRanges(Collections.singleton(new Range()));
+      IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
+      bs.addScanIterator(cfg);
 
-    try {
-      Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
-    } finally {
-      bs.close();
-      replBw.close();
+      try {
+        Assert.assertEquals(0l, rcrr.removeCompleteRecords(conn, bs, replBw));
+      } finally {
+        replBw.close();
+      }
     }
   }
 }

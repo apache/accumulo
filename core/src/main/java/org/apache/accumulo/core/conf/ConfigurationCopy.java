@@ -26,6 +26,7 @@ import java.util.function.Predicate;
  * An {@link AccumuloConfiguration} which holds a flat copy of properties defined in another configuration
  */
 public class ConfigurationCopy extends AccumuloConfiguration {
+  private long updateCount = 0;
   final Map<String,String> copy = Collections.synchronizedMap(new HashMap<String,String>());
 
   /**
@@ -80,7 +81,10 @@ public class ConfigurationCopy extends AccumuloConfiguration {
    *          property value
    */
   public void set(Property prop, String value) {
-    copy.put(prop.getKey(), value);
+    synchronized (copy) {
+      copy.put(prop.getKey(), value);
+      updateCount++;
+    }
   }
 
   /**
@@ -92,7 +96,16 @@ public class ConfigurationCopy extends AccumuloConfiguration {
    *          property value
    */
   public void set(String key, String value) {
-    copy.put(key, value);
+    synchronized (copy) {
+      copy.put(key, value);
+      updateCount++;
+    }
   }
 
+  @Override
+  public long getUpdateCount() {
+    synchronized (copy) {
+      return updateCount;
+    }
+  }
 }

@@ -29,7 +29,6 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -133,7 +132,7 @@ public class SplitIT extends AccumuloClusterHarness {
     opts.setTableName(table);
 
     ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
       vopts.updateKerberosCredentials(clientConfig);
     } else {
@@ -149,24 +148,25 @@ public class SplitIT extends AccumuloClusterHarness {
       sleepUninterruptibly(15, TimeUnit.SECONDS);
     }
     Table.ID id = Table.ID.of(c.tableOperations().tableIdMap().get(table));
-    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    KeyExtent extent = new KeyExtent(id, null, null);
-    s.setRange(extent.toMetadataRange());
-    MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
-    int count = 0;
-    int shortened = 0;
-    for (Entry<Key,Value> entry : s) {
-      extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
-      if (extent.getEndRow() != null && extent.getEndRow().toString().length() < 14)
-        shortened++;
-      count++;
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      KeyExtent extent = new KeyExtent(id, null, null);
+      s.setRange(extent.toMetadataRange());
+      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
+      int count = 0;
+      int shortened = 0;
+      for (Entry<Key,Value> entry : s) {
+        extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
+        if (extent.getEndRow() != null && extent.getEndRow().toString().length() < 14)
+          shortened++;
+        count++;
+      }
+
+      assertTrue("Shortened should be greater than zero: " + shortened, shortened > 0);
+      assertTrue("Count should be cgreater than 10: " + count, count > 10);
     }
 
-    assertTrue("Shortened should be greater than zero: " + shortened, shortened > 0);
-    assertTrue("Count should be cgreater than 10: " + count, count > 10);
-
     String[] args;
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       ClusterUser rootUser = getAdminUser();
       args = new String[] {"-i", cluster.getInstanceName(), "-u", rootUser.getPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-z",
           cluster.getZooKeepers()};
@@ -205,7 +205,7 @@ public class SplitIT extends AccumuloClusterHarness {
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     ClientConfiguration clientConfig = getCluster().getClientConfig();
     String password = null, keytab = null;
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       keytab = getAdminUser().getKeytab().getAbsolutePath();
     } else {
       password = new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8);

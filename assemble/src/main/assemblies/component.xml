@@ -117,6 +117,14 @@
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
     </fileSet>
+    <fileSet>
+      <directory>target</directory>
+      <outputDirectory>conf</outputDirectory>
+      <fileMode>0644</fileMode>
+      <includes>
+        <include>accumulo-client.properties</include>
+      </includes>
+    </fileSet>
     <!-- Lift generated thrift proxy code into its own directory -->
     <fileSet>
       <directory>../proxy/target</directory>

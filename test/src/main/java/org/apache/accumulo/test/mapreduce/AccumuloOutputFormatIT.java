@@ -94,9 +94,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, user, pass);
+      AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
       AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -105,10 +104,9 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setConnectorInfo(job, user, pass);
+      AccumuloOutputFormat.setConnectionInfo(job, getConnectionInfo());
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
-      AccumuloOutputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
 
       job.setNumReduceTasks(0);
 
@@ -144,11 +142,12 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
     MRTester.main(new String[] {table1, table2});
     assertNull(e1);
 
-    Scanner scanner = c.createScanner(table2, new Authorizations());
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    assertTrue(iter.hasNext());
-    Entry<Key,Value> entry = iter.next();
-    assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-    assertFalse(iter.hasNext());
+    try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
+      Iterator<Entry<Key,Value>> iter = scanner.iterator();
+      assertTrue(iter.hasNext());
+      Entry<Key,Value> entry = iter.next();
+      assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
+      assertFalse(iter.hasNext());
+    }
   }
 }

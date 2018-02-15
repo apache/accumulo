@@ -104,46 +104,46 @@ public class TestBinaryRows {
 
       bw.close();
     } else if (opts.mode.equals("verifyDeleted")) {
-      Scanner s = connector.createScanner(opts.getTableName(), opts.auths);
-      s.setBatchSize(scanOpts.scanBatchSize);
-      Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
-      Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
-      s.setBatchSize(50000);
-      s.setRange(new Range(startKey, stopKey));
+      try (Scanner s = connector.createScanner(opts.getTableName(), opts.auths)) {
+        s.setBatchSize(scanOpts.scanBatchSize);
+        Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
+        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
+        s.setBatchSize(50000);
+        s.setRange(new Range(startKey, stopKey));
 
-      for (Entry<Key,Value> entry : s) {
-        throw new Exception("ERROR : saw entries in range that should be deleted ( first value : " + entry.getValue().toString() + ")");
+        for (Entry<Key,Value> entry : s) {
+          throw new Exception("ERROR : saw entries in range that should be deleted ( first value : " + entry.getValue().toString() + ")");
+        }
       }
-
     } else if (opts.mode.equals("verify")) {
       long t1 = System.currentTimeMillis();
 
-      Scanner s = connector.createScanner(opts.getTableName(), opts.auths);
-      Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
-      Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
-      s.setBatchSize(scanOpts.scanBatchSize);
-      s.setRange(new Range(startKey, stopKey));
+      try (Scanner s = connector.createScanner(opts.getTableName(), opts.auths)) {
+        Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
+        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
+        s.setBatchSize(scanOpts.scanBatchSize);
+        s.setRange(new Range(startKey, stopKey));
 
-      long i = opts.start;
+        long i = opts.start;
 
-      for (Entry<Key,Value> e : s) {
-        Key k = e.getKey();
-        Value v = e.getValue();
+        for (Entry<Key,Value> e : s) {
+          Key k = e.getKey();
+          Value v = e.getValue();
 
-        checkKeyValue(i, k, v);
+          checkKeyValue(i, k, v);
 
-        i++;
+          i++;
+        }
+
+        if (i != opts.start + opts.num) {
+          throw new Exception("ERROR : did not see expected number of rows, saw " + (i - opts.start) + " expected " + opts.num);
+        }
+
+        long t2 = System.currentTimeMillis();
+
+        System.out.printf("time : %9.2f secs%n", ((t2 - t1) / 1000.0));
+        System.out.printf("rate : %9.2f entries/sec%n", opts.num / ((t2 - t1) / 1000.0));
       }
-
-      if (i != opts.start + opts.num) {
-        throw new Exception("ERROR : did not see expected number of rows, saw " + (i - opts.start) + " expected " + opts.num);
-      }
-
-      long t2 = System.currentTimeMillis();
-
-      System.out.printf("time : %9.2f secs%n", ((t2 - t1) / 1000.0));
-      System.out.printf("rate : %9.2f entries/sec%n", opts.num / ((t2 - t1) / 1000.0));
-
     } else if (opts.mode.equals("randomLookups")) {
       int numLookups = 1000;
 
@@ -154,27 +154,28 @@ public class TestBinaryRows {
       for (int i = 0; i < numLookups; i++) {
         long row = ((r.nextLong() & 0x7fffffffffffffffl) % opts.num) + opts.start;
 
-        Scanner s = connector.createScanner(opts.getTableName(), opts.auths);
-        s.setBatchSize(scanOpts.scanBatchSize);
-        Key startKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
-        Key stopKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], 0);
-        s.setRange(new Range(startKey, stopKey));
+        try (Scanner s = connector.createScanner(opts.getTableName(), opts.auths)) {
+          s.setBatchSize(scanOpts.scanBatchSize);
+          Key startKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
+          Key stopKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], 0);
+          s.setRange(new Range(startKey, stopKey));
 
-        Iterator<Entry<Key,Value>> si = s.iterator();
-
-        if (si.hasNext()) {
-          Entry<Key,Value> e = si.next();
-          Key k = e.getKey();
-          Value v = e.getValue();
-
-          checkKeyValue(row, k, v);
+          Iterator<Entry<Key,Value>> si = s.iterator();
 
           if (si.hasNext()) {
-            throw new Exception("ERROR : lookup on " + row + " returned more than one result ");
-          }
+            Entry<Key,Value> e = si.next();
+            Key k = e.getKey();
+            Value v = e.getValue();
 
-        } else {
-          throw new Exception("ERROR : lookup on " + row + " failed ");
+            checkKeyValue(row, k, v);
+
+            if (si.hasNext()) {
+              throw new Exception("ERROR : lookup on " + row + " returned more than one result ");
+            }
+
+          } else {
+            throw new Exception("ERROR : lookup on " + row + " failed ");
+          }
         }
       }
 

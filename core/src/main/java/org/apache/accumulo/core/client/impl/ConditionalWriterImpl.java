@@ -96,7 +96,11 @@ import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), r -> {
+    Thread t = new Thread(r, "Conditional Writer Cleanup Thread");
+    t.setDaemon(true);
+    return t;
+  });
 
   static {
     cleanupThreadPool.allowCoreThreadTimeOut(true);
@@ -615,8 +619,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
       queueRetry(ignored, location);
 
     } catch (ThriftSecurityException tse) {
-      AccumuloSecurityException ase = new AccumuloSecurityException(context.getCredentials().getPrincipal(), tse.getCode(), Tables.getPrintableTableInfoFromId(
-          context.getInstance(), tableId), tse);
+      AccumuloSecurityException ase = new AccumuloSecurityException(context.getCredentials().getPrincipal(), tse.getCode(),
+          Tables.getPrintableTableInfoFromId(context.getInstance(), tableId), tse);
       queueException(location, cmidToCm, ase);
     } catch (TTransportException e) {
       locator.invalidateCache(context.getInstance(), location.toString());

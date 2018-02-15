@@ -16,25 +16,42 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * A configuration object.
  */
 public abstract class AccumuloConfiguration implements Iterable<Entry<String,String>> {
+
+  private static class PrefixProps {
+    final long updateCount;
+    final Map<String,String> props;
+
+    PrefixProps(Map<String,String> props, long updateCount) {
+      this.updateCount = updateCount;
+      this.props = props;
+    }
+  }
+
+  private volatile EnumMap<Property,PrefixProps> cachedPrefixProps = new EnumMap<>(Property.class);
+  private Lock prefixCacheUpdateLock = new ReentrantLock();
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
 
@@ -97,6 +114,13 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
+   * Each time configurations is changes, this counter should increase.
+   */
+  public long getUpdateCount() {
+    return 0;
+  }
+
+  /**
    * Gets all properties under the given prefix in this configuration.
    *
    * @param property
@@ -108,9 +132,41 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public Map<String,String> getAllPropertiesWithPrefix(Property property) {
     checkType(property, PropertyType.PREFIX);
 
-    Map<String,String> propMap = new HashMap<>();
-    getProperties(propMap, key -> key.startsWith(property.getKey()));
-    return propMap;
+    PrefixProps prefixProps = cachedPrefixProps.get(property);
+
+    if (prefixProps == null || prefixProps.updateCount != getUpdateCount()) {
+      prefixCacheUpdateLock.lock();
+      try {
+        // Very important that update count is read before getting properties. Also only read it once.
+        long updateCount = getUpdateCount();
+        prefixProps = cachedPrefixProps.get(property);
+
+        if (prefixProps == null || prefixProps.updateCount != updateCount) {
+          Map<String,String> propMap = new HashMap<>();
+          // The reason this caching exists is to avoid repeatedly making this expensive call.
+          getProperties(propMap, key -> key.startsWith(property.getKey()));
+          propMap = ImmutableMap.copyOf(propMap);
+
+          // So that locking is not needed when reading from enum map, always create a new one. Construct and populate map using a local var so its not visible
+          // until ready.
+          EnumMap<Property,PrefixProps> localPrefixes = new EnumMap<>(Property.class);
+
+          // carry forward any other cached prefixes
+          localPrefixes.putAll(cachedPrefixProps);
+
+          // put the updates
+          prefixProps = new PrefixProps(propMap, updateCount);
+          localPrefixes.put(property, prefixProps);
+
+          // make the newly constructed map available
+          cachedPrefixProps = localPrefixes;
+        }
+      } finally {
+        prefixCacheUpdateLock.unlock();
+      }
+    }
+
+    return prefixProps.props;
   }
 
   /**
@@ -283,36 +339,5 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Invalidates the <code>ZooCache</code> used for storage and quick retrieval of properties for this configuration.
    */
   public void invalidateCache() {}
-
-  /**
-   * Creates a new instance of a class specified in a configuration property.
-   *
-   * @param property
-   *          property specifying class name
-   * @param base
-   *          base class of type
-   * @param defaultInstance
-   *          instance to use if creation fails
-   * @return new class instance, or default instance if creation failed
-   * @see AccumuloVFSClassLoader
-   */
-  public <T> T instantiateClassProperty(Property property, Class<T> base, T defaultInstance) {
-    String clazzName = get(property);
-    T instance = null;
-
-    try {
-      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
-      instance = clazz.newInstance();
-      log.info("Loaded class : {}", clazzName);
-    } catch (Exception e) {
-      log.warn("Failed to load class ", e);
-    }
-
-    if (instance == null) {
-      log.info("Using {}", defaultInstance.getClass().getName());
-      instance = defaultInstance;
-    }
-    return instance;
-  }
 
 }

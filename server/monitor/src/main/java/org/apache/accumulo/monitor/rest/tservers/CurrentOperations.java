@@ -16,7 +16,10 @@
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**
  *
@@ -30,7 +33,10 @@ public class CurrentOperations {
   // Variable names become JSON keys
   public String name;
   public String tablet;
+
+  @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
   public Table.ID tableID;
+
   public long entries;
   public double ingest;
   public double query;

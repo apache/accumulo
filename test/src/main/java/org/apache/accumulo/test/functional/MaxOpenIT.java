@@ -25,7 +25,6 @@ import java.util.Random;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
@@ -107,7 +106,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       opts.cols = 1;
       opts.random = i;
       opts.setTableName(tableName);
-      if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+      if (clientConf.hasSasl()) {
         opts.updateKerberosCredentials(clientConf);
       } else {
         opts.setPrincipal(getAdminPrincipal());
@@ -135,42 +134,41 @@ public class MaxOpenIT extends AccumuloClusterHarness {
   }
 
   private long batchScan(Connector c, String tableName, List<Range> ranges, int threads) throws Exception {
-    BatchScanner bs = c.createBatchScanner(tableName, TestIngest.AUTHS, threads);
+    try (BatchScanner bs = c.createBatchScanner(tableName, TestIngest.AUTHS, threads)) {
 
-    bs.setRanges(ranges);
+      bs.setRanges(ranges);
 
-    int count = 0;
+      int count = 0;
 
-    long t1 = System.currentTimeMillis();
+      long t1 = System.currentTimeMillis();
 
-    byte rval[] = new byte[50];
-    Random random = new Random();
+      byte rval[] = new byte[50];
+      Random random = new Random();
 
-    for (Entry<Key,Value> entry : bs) {
-      count++;
-      int row = VerifyIngest.getRow(entry.getKey());
-      int col = VerifyIngest.getCol(entry.getKey());
+      for (Entry<Key,Value> entry : bs) {
+        count++;
+        int row = VerifyIngest.getRow(entry.getKey());
+        int col = VerifyIngest.getCol(entry.getKey());
 
-      if (row < 0 || row >= NUM_TO_INGEST) {
-        throw new Exception("unexcepted row " + row);
+        if (row < 0 || row >= NUM_TO_INGEST) {
+          throw new Exception("unexcepted row " + row);
+        }
+
+        rval = TestIngest.genRandomValue(random, rval, 2, row, col);
+
+        if (entry.getValue().compareTo(rval) != 0) {
+          throw new Exception("unexcepted value row=" + row + " col=" + col);
+        }
       }
 
-      rval = TestIngest.genRandomValue(random, rval, 2, row, col);
+      long t2 = System.currentTimeMillis();
 
-      if (entry.getValue().compareTo(rval) != 0) {
-        throw new Exception("unexcepted value row=" + row + " col=" + col);
+      if (count != NUM_TO_INGEST) {
+        throw new Exception("Batch Scan did not return expected number of values " + count);
       }
+
+      return t2 - t1;
     }
-
-    long t2 = System.currentTimeMillis();
-
-    bs.close();
-
-    if (count != NUM_TO_INGEST) {
-      throw new Exception("Batch Scan did not return expected number of values " + count);
-    }
-
-    return t2 - t1;
   }
 
 }

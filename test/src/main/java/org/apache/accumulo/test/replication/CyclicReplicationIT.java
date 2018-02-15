@@ -284,46 +284,51 @@ public class CyclicReplicationIT {
       Thread.sleep(1000);
 
       // Sanity check that the element is there on master1
-      Scanner s = connMaster1.createScanner(master1Table, Authorizations.EMPTY);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-      Assert.assertEquals("1", entry.getValue().toString());
+      Entry<Key,Value> entry;
+      try (Scanner s = connMaster1.createScanner(master1Table, Authorizations.EMPTY)) {
+        entry = Iterables.getOnlyElement(s);
+        Assert.assertEquals("1", entry.getValue().toString());
 
-      // Wait for this table to replicate
-      connMaster1.replicationOperations().drain(master1Table, files);
+        // Wait for this table to replicate
+        connMaster1.replicationOperations().drain(master1Table, files);
 
-      Thread.sleep(5000);
-
-      // Check that the element made it to master2 only once
-      s = connMaster2.createScanner(master2Table, Authorizations.EMPTY);
-      entry = Iterables.getOnlyElement(s);
-      Assert.assertEquals("1", entry.getValue().toString());
-
-      // Wait for master2 to finish replicating it back
-      files = connMaster2.replicationOperations().referencedFiles(master2Table);
-
-      // Kill and restart the tserver to close the WAL on master2
-      for (ProcessReference proc : master2Cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
-        master2Cluster.killProcess(ServerType.TABLET_SERVER, proc);
+        Thread.sleep(5000);
       }
 
-      master2Cluster.exec(TabletServer.class);
+      // Check that the element made it to master2 only once
+      try (Scanner s = connMaster2.createScanner(master2Table, Authorizations.EMPTY)) {
+        entry = Iterables.getOnlyElement(s);
+        Assert.assertEquals("1", entry.getValue().toString());
 
-      // Try to avoid ACCUMULO-2964
-      Thread.sleep(1000);
+        // Wait for master2 to finish replicating it back
+        files = connMaster2.replicationOperations().referencedFiles(master2Table);
+
+        // Kill and restart the tserver to close the WAL on master2
+        for (ProcessReference proc : master2Cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+          master2Cluster.killProcess(ServerType.TABLET_SERVER, proc);
+        }
+
+        master2Cluster.exec(TabletServer.class);
+
+        // Try to avoid ACCUMULO-2964
+        Thread.sleep(1000);
+      }
 
       // Check that the element made it to master2 only once
-      s = connMaster2.createScanner(master2Table, Authorizations.EMPTY);
-      entry = Iterables.getOnlyElement(s);
-      Assert.assertEquals("1", entry.getValue().toString());
+      try (Scanner s = connMaster2.createScanner(master2Table, Authorizations.EMPTY)) {
+        entry = Iterables.getOnlyElement(s);
+        Assert.assertEquals("1", entry.getValue().toString());
 
-      connMaster2.replicationOperations().drain(master2Table, files);
+        connMaster2.replicationOperations().drain(master2Table, files);
 
-      Thread.sleep(5000);
+        Thread.sleep(5000);
+      }
 
       // Verify that the entry wasn't sent back to master1
-      s = connMaster1.createScanner(master1Table, Authorizations.EMPTY);
-      entry = Iterables.getOnlyElement(s);
-      Assert.assertEquals("1", entry.getValue().toString());
+      try (Scanner s = connMaster1.createScanner(master1Table, Authorizations.EMPTY)) {
+        entry = Iterables.getOnlyElement(s);
+        Assert.assertEquals("1", entry.getValue().toString());
+      }
     } finally {
       master1Cluster.stop();
       master2Cluster.stop();

@@ -298,8 +298,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(inputFormatClass);
 
-      AccumuloInputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
-      AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
+      AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setBatchScan(job, batchScan);
       if (sample) {
@@ -409,9 +408,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     Connector connector = getConnector();
     connector.tableOperations().create(table);
 
-    AccumuloInputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
-    AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
-
+    AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
     AccumuloInputFormat.setInputTableName(job, table);
     AccumuloInputFormat.setScanAuthorizations(job, auths);
     AccumuloInputFormat.setScanIsolation(job, isolated);

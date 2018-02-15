@@ -29,21 +29,21 @@ public class CommitSession {
 
   private static final Logger log = LoggerFactory.getLogger(CommitSession.class);
 
-  private final int seq;
+  private final long seq;
   private final InMemoryMap memTable;
   private final TabletCommitter committer;
 
   private int commitsInProgress;
   private long maxCommittedTime = Long.MIN_VALUE;
 
-  CommitSession(TabletCommitter committer, int seq, InMemoryMap imm) {
+  CommitSession(TabletCommitter committer, long seq, InMemoryMap imm) {
     this.seq = seq;
     this.memTable = imm;
     this.committer = committer;
     commitsInProgress = 0;
   }
 
-  public int getWALogSeq() {
+  public long getWALogSeq() {
     return seq;
   }
 

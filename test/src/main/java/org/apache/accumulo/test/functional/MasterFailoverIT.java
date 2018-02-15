@@ -22,7 +22,6 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -55,7 +54,7 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.setTableName(names[0]);
     ClientConfiguration clientConf = cluster.getClientConfig();
-    if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConf.hasSasl()) {
       opts.updateKerberosCredentials(clientConf);
     } else {
       opts.setPrincipal(getAdminPrincipal());
@@ -70,7 +69,7 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
     c.tableOperations().rename(names[0], names[1]);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(names[1]);
-    if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConf.hasSasl()) {
       vopts.updateKerberosCredentials(clientConf);
     } else {
       vopts.setPrincipal(getAdminPrincipal());

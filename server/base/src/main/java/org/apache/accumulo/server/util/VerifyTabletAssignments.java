@@ -90,7 +90,7 @@ public class VerifyTabletAssignments {
 
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
 
-    Table.ID tableId = Tables.lookupTableId(context.getInstance(), tableName);
+    Table.ID tableId = Tables.getNameToIdMap(context.getInstance()).get(tableName);
     MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
     final HashSet<KeyExtent> failures = new HashSet<>();

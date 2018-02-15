@@ -96,14 +96,16 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    Scanner scanner = conn.createScanner(table, Authorizations.EMPTY);
-    scanner.setRange(new Range(last));
+    try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
+      scanner.setRange(new Range(last));
 
-    bw.close();
+      bw.close();
 
-    long time = scanner.iterator().next().getKey().getTimestamp();
-    if (time != expected)
-      throw new RuntimeException("unexpected time " + time + " " + expected);
+      long time = scanner.iterator().next().getKey().getTimestamp();
+      if (time != expected) {
+        throw new RuntimeException("unexpected time " + time + " " + expected);
+      }
+    }
   }
 
 }

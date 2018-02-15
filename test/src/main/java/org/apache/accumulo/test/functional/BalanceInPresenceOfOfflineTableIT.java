@@ -29,7 +29,6 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -127,7 +126,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     ClientConfiguration conf = cluster.getClientConfig();
-    if (conf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (conf.hasSasl()) {
       opts.updateKerberosCredentials(cluster.getClientConfig());
       vopts.updateKerberosCredentials(cluster.getClientConfig());
     } else {

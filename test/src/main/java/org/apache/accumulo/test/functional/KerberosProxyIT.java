@@ -506,8 +506,7 @@ public class KerberosProxyIT extends AccumuloITBase {
       public Void run() throws Exception {
         ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
         Connector conn = inst.getConnector(proxyPrincipal, new KerberosToken());
-        try {
-          Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
+        try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
           s.iterator().hasNext();
           Assert.fail("Expected to see an exception");
         } catch (RuntimeException e) {
@@ -535,8 +534,7 @@ public class KerberosProxyIT extends AccumuloITBase {
       public Void run() throws Exception {
         ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
         Connector conn = inst.getConnector(userWithoutCredentials2, new KerberosToken(userWithoutCredentials3));
-        try {
-          Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
+        try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
           s.iterator().hasNext();
           Assert.fail("Expected to see an exception");
         } catch (RuntimeException e) {

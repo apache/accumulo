@@ -105,7 +105,7 @@ public class TabletServerResource {
    */
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
-  public void clearDeadServer(@QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) throws Exception {
+  public void clearDeadServer(@QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) {
     DeadServerList obit = new DeadServerList(ZooUtil.getRoot(Monitor.getContext().getInstance()) + Constants.ZDEADTSERVERS);
     obit.delete(server);
   }
@@ -131,9 +131,9 @@ public class TabletServerResource {
           String serv = AddressUtil.parseAddress(server.name, false).getHost();
           String log = recovery.name;
           int time = recovery.runtime;
-          double copySort = recovery.progress;
+          double progress = recovery.progress;
 
-          recoveryList.addRecovery(new TabletServerRecoveryInformation(serv, log, time, copySort));
+          recoveryList.addRecovery(new TabletServerRecoveryInformation(serv, log, time, progress));
         }
       }
     }

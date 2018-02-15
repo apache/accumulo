@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -31,10 +32,10 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
-import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,13 +44,16 @@ import org.slf4j.LoggerFactory;
  * Contains a list of property keys recognized by the Accumulo client and convenience methods for setting them.
  *
  * @since 1.6.0
+ * @deprecated since 2.0.0, replaced {@link Connector#builder()}
  */
-public class ClientConfiguration extends CompositeConfiguration {
+public class ClientConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ClientConfiguration.class);
 
   public static final String USER_ACCUMULO_DIR_NAME = ".accumulo";
   public static final String USER_CONF_FILENAME = "config";
   public static final String GLOBAL_CONF_FILENAME = "client.conf";
+
+  private final CompositeConfiguration compositeConfig;
 
   public enum ClientProperty {
     // SSL
@@ -132,55 +136,10 @@ public class ClientConfiguration extends CompositeConfiguration {
     }
   }
 
-  public ClientConfiguration(String configFile) throws ConfigurationException {
-    this(new PropertiesConfiguration(), configFile);
-  }
-
-  private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, String configFile) throws ConfigurationException {
-    super(propertiesConfiguration);
-    // Don't do list interpolation
-    this.setListDelimiter('\0');
-    propertiesConfiguration.setListDelimiter('\0');
-    propertiesConfiguration.load(configFile);
-  }
-
-  public ClientConfiguration(File configFile) throws ConfigurationException {
-    this(new PropertiesConfiguration(), configFile);
-  }
-
-  private ClientConfiguration(PropertiesConfiguration propertiesConfiguration, File configFile) throws ConfigurationException {
-    super(propertiesConfiguration);
-    // Don't do list interpolation
-    this.setListDelimiter('\0');
-    propertiesConfiguration.setListDelimiter('\0');
-    propertiesConfiguration.load(configFile);
-  }
-
-  public ClientConfiguration(List<? extends Configuration> configs) {
-    super(configs);
-    // Don't do list interpolation
-    this.setListDelimiter('\0');
-    for (Configuration c : configs) {
-      if (c instanceof AbstractConfiguration) {
-        AbstractConfiguration abstractConfiguration = (AbstractConfiguration) c;
-        if (!abstractConfiguration.isDelimiterParsingDisabled() && abstractConfiguration.getListDelimiter() != '\0') {
-          log.warn("Client configuration constructed with a Configuration that did not have list delimiter disabled or overridden, multi-valued config "
-              + "properties may be unavailable");
-          abstractConfiguration.setListDelimiter('\0');
-        }
-      }
-    }
-  }
-
-  /**
-   * Iterates through the Configuration objects, populating this object.
-   *
-   * @see PropertiesConfiguration
-   * @see #loadDefault()
-   */
-
-  public ClientConfiguration(Configuration... configs) {
-    this(Arrays.asList(configs));
+  private ClientConfiguration(List<? extends Configuration> configs) {
+    compositeConfig = new CompositeConfiguration(configs);
+    // Don't do list interpolation; the items in configs should already have set this
+    compositeConfig.setListDelimiter('\0');
   }
 
   /**
@@ -205,23 +164,69 @@ public class ClientConfiguration extends CompositeConfiguration {
     return loadFromSearchPath(getDefaultSearchPath());
   }
 
-  private static ClientConfiguration loadFromSearchPath(List<String> paths) {
+  /**
+   * Initializes an empty configuration object to be further configured with other methods on the class.
+   *
+   * @since 1.9.0
+   */
+  public static ClientConfiguration create() {
+    return new ClientConfiguration(Collections.emptyList());
+  }
+
+  /**
+   * Initializes a configuration object from the contents of a configuration file. Currently supports Java "properties" files. The returned object can be
+   * further configured with subsequent calls to other methods on this class.
+   *
+   * @param file
+   *          the path to the configuration file
+   * @since 1.9.0
+   */
+  public static ClientConfiguration fromFile(File file) {
+    PropertiesConfiguration props = new PropertiesConfiguration();
+    props.setListDelimiter('\0');
     try {
-      List<Configuration> configs = new LinkedList<>();
-      for (String path : paths) {
-        File conf = new File(path);
-        if (conf.isFile() && conf.canRead()) {
-          configs.add(new ClientConfiguration(conf));
-        }
-      }
-      // We couldn't find the client configuration anywhere
-      if (configs.isEmpty()) {
-        log.warn("Found no client.conf in default paths. Using default client configuration values.");
-      }
-      return new ClientConfiguration(configs);
+      props.load(file);
+      return new ClientConfiguration(Collections.singletonList(props));
     } catch (ConfigurationException e) {
-      throw new IllegalStateException("Error loading client configuration", e);
+      throw new IllegalArgumentException("Bad configuration file: " + file, e);
     }
+  }
+
+  /**
+   * Initializes a configuration object from the contents of a map. The returned object can be further configured with subsequent calls to other methods on this
+   * class.
+   *
+   * @param properties
+   *          a map containing the configuration properties to use
+   * @since 1.9.0
+   */
+  public static ClientConfiguration fromMap(Map<String,String> properties) {
+    MapConfiguration mapConf = new MapConfiguration(properties);
+    mapConf.setListDelimiter('\0');
+    return new ClientConfiguration(Collections.singletonList(mapConf));
+  }
+
+  private static ClientConfiguration loadFromSearchPath(List<String> paths) {
+    List<Configuration> configs = new LinkedList<>();
+    for (String path : paths) {
+      File conf = new File(path);
+      if (conf.isFile() && conf.canRead()) {
+        PropertiesConfiguration props = new PropertiesConfiguration();
+        props.setListDelimiter('\0');
+        try {
+          props.load(conf);
+          log.info("Loaded client configuration file {}", conf);
+        } catch (ConfigurationException e) {
+          throw new IllegalStateException("Error loading client configuration file " + conf, e);
+        }
+        configs.add(props);
+      }
+    }
+    // We couldn't find the client configuration anywhere
+    if (configs.isEmpty()) {
+      log.warn("Found no client.conf in default paths. Using default client configuration values.");
+    }
+    return new ClientConfiguration(configs);
   }
 
   public static ClientConfiguration deserialize(String serializedConfig) {
@@ -232,7 +237,7 @@ public class ClientConfiguration extends CompositeConfiguration {
     } catch (ConfigurationException e) {
       throw new IllegalArgumentException("Error deserializing client configuration: " + serializedConfig, e);
     }
-    return new ClientConfiguration(propConfig);
+    return new ClientConfiguration(Collections.singletonList(propConfig));
   }
 
   /**
@@ -278,7 +283,7 @@ public class ClientConfiguration extends CompositeConfiguration {
 
   public String serialize() {
     PropertiesConfiguration propConfig = new PropertiesConfiguration();
-    propConfig.copy(this);
+    propConfig.copy(compositeConfig);
     StringWriter writer = new StringWriter();
     try {
       propConfig.save(writer);
@@ -294,8 +299,8 @@ public class ClientConfiguration extends CompositeConfiguration {
    *
    */
   public String get(ClientProperty prop) {
-    if (this.containsKey(prop.getKey()))
-      return this.getString(prop.getKey());
+    if (compositeConfig.containsKey(prop.getKey()))
+      return compositeConfig.getString(prop.getKey());
     else
       return prop.getDefaultValue();
   }
@@ -324,10 +329,10 @@ public class ClientConfiguration extends CompositeConfiguration {
     if (prefix.endsWith(".")) {
       prefix = prefix.substring(0, prefix.length() - 1);
     }
-    Iterator<?> iter = this.getKeys(prefix);
+    Iterator<?> iter = compositeConfig.getKeys(prefix);
     while (iter.hasNext()) {
       String p = (String) iter.next();
-      propMap.put(p, getString(p));
+      propMap.put(p, compositeConfig.getString(p));
     }
     return propMap;
   }
@@ -337,14 +342,32 @@ public class ClientConfiguration extends CompositeConfiguration {
    *
    */
   public void setProperty(ClientProperty prop, String value) {
-    this.setProperty(prop.getKey(), value);
+    with(prop, value);
   }
 
   /**
    * Same as {@link #setProperty(ClientProperty, String)} but returns the ClientConfiguration for chaining purposes
    */
   public ClientConfiguration with(ClientProperty prop, String value) {
-    this.setProperty(prop.getKey(), value);
+    return with(prop.getKey(), value);
+  }
+
+  /**
+   * Sets the value of property to value
+   *
+   * @since 1.9.0
+   */
+  public void setProperty(String prop, String value) {
+    with(prop, value);
+  }
+
+  /**
+   * Same as {@link #setProperty(String, String)} but returns the ClientConfiguration for chaining purposes
+   *
+   * @since 1.9.0
+   */
+  public ClientConfiguration with(String prop, String value) {
+    compositeConfig.setProperty(prop, value);
     return this;
   }
 
@@ -456,6 +479,16 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
+   * Show whether SASL has been set on this configuration.
+   *
+   * @since 1.9.0
+   */
+  public boolean hasSasl() {
+    return compositeConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(),
+        Boolean.parseBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getDefaultValue()));
+  }
+
+  /**
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SASL_ENABLED and ClientProperty.GENERAL_KERBEROS_PRINCIPAL.
    *
    * @param saslEnabled
@@ -467,4 +500,18 @@ public class ClientConfiguration extends CompositeConfiguration {
   public ClientConfiguration withSasl(boolean saslEnabled, String kerberosServerPrimary) {
     return withSasl(saslEnabled).with(ClientProperty.KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
   }
+
+  public boolean containsKey(String key) {
+    return compositeConfig.containsKey(key);
+  }
+
+  @SuppressWarnings("unchecked")
+  public Iterator<String> getKeys() {
+    return compositeConfig.getKeys();
+  }
+
+  public String getString(String key) {
+    return compositeConfig.getString(key);
+  }
+
 }

@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -323,7 +322,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         ClientConfiguration clientConf = cluster.getClientConfig();
-        if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+        if (clientConf.hasSasl()) {
           // TODO Try to obtain a delegation token without the permission
         }
         break;
@@ -466,7 +465,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case OBTAIN_DELEGATION_TOKEN:
         ClientConfiguration clientConf = cluster.getClientConfig();
-        if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+        if (clientConf.hasSasl()) {
           // TODO Try to obtain a delegation token with the permission
         }
         break;
@@ -571,7 +570,6 @@ public class PermissionsIT extends AccumuloClusterHarness {
   }
 
   private void testMissingTablePermission(Connector test_user_conn, ClusterUser testUser, TablePermission perm, String tableName) throws Exception {
-    Scanner scanner;
     BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
@@ -579,13 +577,13 @@ public class PermissionsIT extends AccumuloClusterHarness {
     // test permission prior to granting it
     switch (perm) {
       case READ:
-        try {
-          scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY);
+        try (Scanner scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY)) {
           int i = 0;
           for (Entry<Key,Value> entry : scanner)
             i += 1 + entry.getKey().getRowData().length();
-          if (i != 0)
+          if (i != 0) {
             throw new IllegalStateException("Should NOT be able to read from the table");
+          }
         } catch (RuntimeException e) {
           AccumuloSecurityException se = (AccumuloSecurityException) e.getCause();
           if (se.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
@@ -658,7 +656,6 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   private void testGrantedTablePermission(Connector test_user_conn, ClusterUser normalUser, TablePermission perm, String tableName) throws AccumuloException,
       TableExistsException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
-    Scanner scanner;
     BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the presence of the {} permission properly permits the user", perm);
@@ -666,10 +663,11 @@ public class PermissionsIT extends AccumuloClusterHarness {
     // test permission after granting it
     switch (perm) {
       case READ:
-        scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY);
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        while (iter.hasNext())
-          iter.next();
+        try (Scanner scanner = test_user_conn.createScanner(tableName, Authorizations.EMPTY)) {
+          Iterator<Entry<Key,Value>> iter = scanner.iterator();
+          while (iter.hasNext())
+            iter.next();
+        }
         break;
       case WRITE:
         writer = test_user_conn.createBatchWriter(tableName, new BatchWriterConfig());

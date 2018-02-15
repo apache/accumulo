@@ -42,10 +42,12 @@ public class ColumnAgeOffFilter extends Filter {
 
       for (Entry<String,String> entry : objectStrings.entrySet()) {
         String column = entry.getKey();
-        String ttl = entry.getValue();
+        String ttl = entry.getValue().trim();
         // skip the negate option, it will cause an exception to be thrown
-        if (column.equals(NEGATE) && (ttl.equalsIgnoreCase("true") || ttl.equalsIgnoreCase("false")))
+        if (column.equals(NEGATE) && (ttl.isEmpty() || ttl.equalsIgnoreCase("true") || ttl.equalsIgnoreCase("false"))) {
           continue;
+        }
+
         Long l = Long.parseLong(ttl);
 
         Pair<Text,Text> colPair = ColumnSet.decodeColumns(column);

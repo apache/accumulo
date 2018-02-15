@@ -40,10 +40,6 @@
       <artifactId>guava</artifactId>
     </dependency>
     <dependency>
-      <groupId>commons-configuration</groupId>
-      <artifactId>commons-configuration</artifactId>
-    </dependency>
-    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
@@ -163,7 +159,6 @@
               </excludes>
               <allows>
                 <allow>org[.]apache[.]accumulo[.]core[.](client|data|security)[.](?!.*(impl|thrift|crypto).*).*</allow>
-                <allow>org.apache.commons.configuration.PropertiesConfiguration</allow>
               </allows>
             </configuration>
           </execution>

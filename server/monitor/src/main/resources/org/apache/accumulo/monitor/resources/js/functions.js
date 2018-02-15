@@ -36,7 +36,7 @@ function setupAutoRefresh() {
     $('.auto-refresh').parent().addClass('active');
   }
   // Initializes the auto refresh on click listener
-  $('.auto-refresh').click(function(e) {
+  $('.auto-refresh').on("click", function(e) {
     if ($(this).parent().attr('class') == 'active') {
       $(this).parent().removeClass('active');
       sessionStorage.autoRefresh = 'false';
@@ -99,16 +99,41 @@ function bigNumberForQuantity(quantity) {
  * @return {string} The new value with the suffix
  */
 function bigNumber(big, suffixes, base) {
-  // If the number is smaller than the base, return thee number with no suffix
+  // if the number is a fraction keep to 2 decimal places
+  if ((big - Math.floor(big)) !== 0)
+    big = big.toFixed(2);
+  // If the number is smaller than the base, return the number with no suffix
   if (big < base) {
-    return big + suffixes[0];
+    return big;
   }
   // Finds which suffix to use
   var exp = Math.floor(Math.log(big) / Math.log(base));
-  // Divides the bumber by the equivalent suffix number
+  // Divides the number by the equivalent suffix number
   var val = big / Math.pow(base, exp);
   // Keeps the number to 2 decimal places and adds the suffix
   return val.toFixed(2) + suffixes[exp];
+}
+
+/**
+ * Formats the timestamp nicely
+ */
+function dateFormat(timestamp) {
+   var date = new Date(timestamp);
+   date.toLocaleString().split(' ').join('&nbsp;');
+   return date;
+}
+
+/**
+ * Formats the log level as HTML
+ */
+function levelFormat(level) {
+  if (level === 'WARN') {
+    return '<span class="label label-warning">' + level + '</span>';
+  } else if (level === 'ERROR' || level === 'FATAL') {
+    return '<span class="label label-danger">' + level + '</span>';
+  } else {
+    return level;
+  }
 }
 
 /**
@@ -178,107 +203,6 @@ function sanitize(url) {
 }
 
 /**
- * Sorts the selected table by column in the direction chosen
- *
- * @param {string} tableID Table to sort
- * @param {string} direction Direction to sort table, asc or desc
- * @param {number} n Column to sort
- */
-function sortTables(tableID, direction, n) {
-  var table, rows, switching, i, x, y, h, shouldSwitch, dir, xFinal, yFinal;
-  table = document.getElementById(tableID);
-  switching = true;
-
-  dir = direction;
-  sessionStorage.direction = dir;
-
-  // Select the rows of the table
-  rows = table.getElementsByTagName('tr');
-
-  // Clears the sortable class from the table columns
-  var count = 0;
-  while (rows[0].getElementsByTagName('th').length > count) {
-    var tmpH = rows[0].getElementsByTagName('th')[count];
-    tmpH.classList.remove('sortable');
-    if (rows.length > 2) {
-      tmpH.classList.add('sortable');
-    }
-    $(tmpH.getElementsByTagName('span')).remove();
-    count += 1;
-  }
-
-  // If there are more than 2 rows, add arrow to the selected column
-  if (rows.length <= 2) {
-      switching = false;
-  } else {
-    h = rows[0].getElementsByTagName('th')[n];
-    if (dir == 'asc') {
-      $(h).append('<span class="glyphicon glyphicon-chevron-up"' +
-          ' width="10px" height="10px" />');
-    } else if (dir == 'desc') {
-      $(h).append('<span class="glyphicon glyphicon-chevron-down"' +
-          ' width="10px" height="10px" />');
-    }
-  }
-
-  /*
-   * Make a loop that will continue until
-   * no switching has been done:
-   */
-  while (switching) {
-    switching = false;
-    rows = table.getElementsByTagName('tr');
-
-    /*
-     * Loop through all table rows (except the
-     * first, which contains table headers):
-     */
-    for (i = 1; i < (rows.length - 1); i++) {
-      shouldSwitch = false;
-      /*
-       * Get two elements to compare,
-       * one from current row and one from the next:
-       * If the element is a dash, convert to null, otherwise,
-       * if it is a string, convert to number
-       */
-      x = rows[i].getElementsByTagName('td')[n].getAttribute('data-value');
-      xFinal = (x === '-' || x === '&mdash;' ?
-          null : (Number(x) == x ? Number(x) : x));
-
-      y = rows[i + 1].getElementsByTagName('td')[n].getAttribute('data-value');
-      yFinal = (y === '-' || y === '&mdash;' ?
-          null : (Number(y) == y ? Number(y) : y));
-
-      /*
-       * Check if the two rows should switch place,
-       * based on the direction, asc or desc:
-       */
-      if (dir == 'asc') {
-        if (xFinal > yFinal || (xFinal !== null && yFinal === null)) {
-          // if so, mark as a switch and break the loop:
-          shouldSwitch = true;
-          break;
-        }
-      } else if (dir == 'desc') {
-        if (xFinal < yFinal || (yFinal !== null && xFinal === null)) {
-          // if so, mark as a switch and break the loop:
-          shouldSwitch = true;
-          break;
-        }
-      }
-    }
-    if (shouldSwitch) {
-      /*
-       * If a switch has been marked, make the switch
-       * and mark that a switch has been done:
-       */
-      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-      switching = true;
-    }
-  }
-}
-
-/**
  * Clears the selected table while leaving the headers
  *
  * @param {string} tableID Table to clear
@@ -327,22 +251,6 @@ function createTableCell(index, sortValue, showValue) {
 
   return '<td class="'+ valueClass[index] + '" data-value="' + sortValue +
       '">' + showValue + '</td>';
-}
-
-/**
- * Creates a cell for the header
- *
- * @param {boolean} firstCell Defines a first cell
- * @param {string} onClick Function to select on click
- * @param {string} title Title for tooltip
- * @param {string} showValue Value for the cell
- */
-function createHeaderCell(firstCell, onClick, title, showValue) {
-  var cellClass = firstCell ? ' class="firstcell"' : '';
-  var clickFunc = onClick != '' ? (' onclick="' + onClick + '"') : '';
-  var cellTitle = title != '' ? (' title="' + title + '"') : '';
-
-  return '<th' + cellClass + clickFunc + cellTitle + '>' + showValue + '</th>';
 }
 
 /**

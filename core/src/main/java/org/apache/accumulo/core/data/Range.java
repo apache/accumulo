@@ -171,7 +171,7 @@ public class Range implements WritableComparable<Range> {
     this.stopKeyInclusive = endKeyInclusive;
     this.infiniteStopKey = stop == null;
 
-    if (!infiniteStartKey && !infiniteStopKey && beforeStartKey(endKey)) {
+    if (!infiniteStartKey && !infiniteStopKey && beforeStartKeyImpl(endKey)) {
       throw new IllegalArgumentException("Start key must be less than end key in range (" + startKey + ", " + endKey + ")");
     }
   }
@@ -206,7 +206,7 @@ public class Range implements WritableComparable<Range> {
    */
   public Range(Key start, Key stop, boolean startKeyInclusive, boolean stopKeyInclusive, boolean infiniteStartKey, boolean infiniteStopKey) {
     this(start, startKeyInclusive, infiniteStartKey, stop, stopKeyInclusive, infiniteStopKey);
-    if (!infiniteStartKey && !infiniteStopKey && beforeStartKey(stop)) {
+    if (!infiniteStartKey && !infiniteStopKey && beforeStartKeyImpl(stop)) {
       throw new IllegalArgumentException("Start key must be less than end key in range (" + start + ", " + stop + ")");
     }
   }
@@ -254,7 +254,7 @@ public class Range implements WritableComparable<Range> {
   public Range(TRange trange) {
     this(trange.start == null ? null : new Key(trange.start), trange.startKeyInclusive, trange.infiniteStartKey, trange.stop == null ? null : new Key(
         trange.stop), trange.stopKeyInclusive, trange.infiniteStopKey);
-    if (!infiniteStartKey && !infiniteStopKey && beforeStartKey(stop)) {
+    if (!infiniteStartKey && !infiniteStopKey && beforeStartKeyImpl(stop)) {
       throw new IllegalArgumentException("Start key must be less than end key in range (" + start + ", " + stop + ")");
     }
   }
@@ -279,6 +279,14 @@ public class Range implements WritableComparable<Range> {
    * @return true if the given key is before the range, otherwise false
    */
   public boolean beforeStartKey(Key key) {
+    return beforeStartKeyImpl(key);
+  }
+
+  /**
+   * Implements logic of {@code #beforeStartKey(Key)}, but in a private method, so that it can be safely used by constructors if a subclass overrides that
+   * {@link #beforeStartKey(Key)}
+   */
+  private boolean beforeStartKeyImpl(Key key) {
     if (infiniteStartKey) {
       return false;
     }

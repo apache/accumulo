@@ -33,6 +33,9 @@ import org.apache.hadoop.conf.Configuration;
 public class CredentialProviderToken extends PasswordToken {
   public static final String NAME_PROPERTY = "name", CREDENTIAL_PROVIDERS_PROPERTY = "credentialProviders";
 
+  private String name;
+  private String credentialProviders;
+
   public CredentialProviderToken() {
     super();
   }
@@ -40,11 +43,12 @@ public class CredentialProviderToken extends PasswordToken {
   public CredentialProviderToken(String name, String credentialProviders) throws IOException {
     requireNonNull(name);
     requireNonNull(credentialProviders);
-
     setWithCredentialProviders(name, credentialProviders);
   }
 
   protected void setWithCredentialProviders(String name, String credentialProviders) throws IOException {
+    this.name = name;
+    this.credentialProviders = credentialProviders;
     final Configuration conf = new Configuration(CachedConfiguration.getInstance());
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credentialProviders);
 
@@ -55,6 +59,20 @@ public class CredentialProviderToken extends PasswordToken {
     }
 
     setPassword(CharBuffer.wrap(password));
+  }
+
+  /**
+   * @return Name used to extract Accumulo user password from CredentialProvider
+   */
+  public String getName() {
+    return name;
+  }
+
+  /**
+   * @return CSV list of CredentialProvider(s)
+   */
+  public String getCredentialProviders() {
+    return credentialProviders;
   }
 
   @Override

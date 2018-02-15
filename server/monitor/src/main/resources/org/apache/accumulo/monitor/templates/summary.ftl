@@ -21,16 +21,12 @@
         $(document).ready(function() {
           minutes = '${minutes}';
           refreshSummary();
-
-          // Create tooltip for table column information
-          $(document).tooltip();
         });
       </script>
 
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="traceSummary" class="table table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">All Traces</span><br/></caption>
             <tbody><tr><th class="firstcell" title="Trace Type">Type&nbsp;</th>
                 <th title="Number of spans of this type">Total&nbsp;</th>
                 <th title="Shortest span duration">min&nbsp;</th>

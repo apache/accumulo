@@ -88,14 +88,15 @@ public class TabletIT extends AccumuloClusterHarness {
       b.close();
     }
 
-    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
-    int count = 0;
-    for (Entry<Key,Value> elt : scanner) {
-      String expected = String.format("%05d", count);
-      assert (elt.getKey().getRow().toString().equals(expected));
-      count++;
+    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+      int count = 0;
+      for (Entry<Key,Value> elt : scanner) {
+        String expected = String.format("%05d", count);
+        assert (elt.getKey().getRow().toString().equals(expected));
+        count++;
+      }
+      assertEquals(N, count);
     }
-    assertEquals(N, count);
   }
 
 }

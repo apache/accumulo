@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -164,8 +165,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.
     if (conf == null) {
-      // changed - include instance in constructor call
-      conf = new TableParentConfiguration(tableId, instance, getSystemConfiguration());
+      Namespace.ID namespaceId;
+      try {
+        namespaceId = Tables.getNamespaceId(instance, tableId);
+      } catch (TableNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+      conf = new NamespaceConfiguration(namespaceId, instance, getSystemConfiguration());
       ConfigSanityCheck.validate(conf);
       synchronized (tableParentConfigs) {
         tableParentConfigs.get(instanceID).put(tableId, conf);

@@ -77,43 +77,44 @@ public class FileArchiveIT extends ConfigurableMacBase {
     // Compact memory to disk
     conn.tableOperations().compact(tableName, null, null, true, true);
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    final String file = entry.getKey().getColumnQualifier().toString();
-    final Path p = new Path(file);
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      final String file = entry.getKey().getColumnQualifier().toString();
+      final Path p = new Path(file);
 
-    // Then force another to make an unreferenced file
-    conn.tableOperations().compact(tableName, null, null, true, true);
+      // Then force another to make an unreferenced file
+      conn.tableOperations().compact(tableName, null, null, true, true);
 
-    log.info("File for table: {}", file);
+      log.info("File for table: {}", file);
 
-    FileSystem fs = getCluster().getFileSystem();
-    int i = 0;
-    while (fs.exists(p)) {
-      i++;
-      Thread.sleep(1000);
-      if (0 == i % 10) {
-        log.info("Waited {} iterations, file still exists", i);
+      FileSystem fs = getCluster().getFileSystem();
+      int i = 0;
+      while (fs.exists(p)) {
+        i++;
+        Thread.sleep(1000);
+        if (0 == i % 10) {
+          log.info("Waited {} iterations, file still exists", i);
+        }
       }
+
+      log.info("File was removed");
+
+      String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
+
+      log.info("File relative to accumulo dir: {}", filePath);
+
+      Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
+
+      Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
+
+      // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
+      Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
+
+      Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
     }
-
-    log.info("File was removed");
-
-    String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
-
-    log.info("File relative to accumulo dir: {}", filePath);
-
-    Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
-
-    Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
-
-    // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
-    Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
-
-    Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
   }
 
   @Test
@@ -135,42 +136,43 @@ public class FileArchiveIT extends ConfigurableMacBase {
     // Compact memory to disk
     conn.tableOperations().compact(tableName, null, null, true, true);
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    final String file = entry.getKey().getColumnQualifier().toString();
-    final Path p = new Path(file);
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      final String file = entry.getKey().getColumnQualifier().toString();
+      final Path p = new Path(file);
 
-    conn.tableOperations().delete(tableName);
+      conn.tableOperations().delete(tableName);
 
-    log.info("File for table: {}", file);
+      log.info("File for table: {}", file);
 
-    FileSystem fs = getCluster().getFileSystem();
-    int i = 0;
-    while (fs.exists(p)) {
-      i++;
-      Thread.sleep(1000);
-      if (0 == i % 10) {
-        log.info("Waited {} iterations, file still exists", i);
+      FileSystem fs = getCluster().getFileSystem();
+      int i = 0;
+      while (fs.exists(p)) {
+        i++;
+        Thread.sleep(1000);
+        if (0 == i % 10) {
+          log.info("Waited {} iterations, file still exists", i);
+        }
       }
+
+      log.info("File was removed");
+
+      String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
+
+      log.info("File relative to accumulo dir: {}", filePath);
+
+      Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
+
+      Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
+
+      // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
+      Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
+
+      Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
     }
-
-    log.info("File was removed");
-
-    String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
-
-    log.info("File relative to accumulo dir: {}", filePath);
-
-    Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
-
-    Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
-
-    // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
-    Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
-
-    Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
   }
 
   @Test
@@ -192,81 +194,85 @@ public class FileArchiveIT extends ConfigurableMacBase {
     // Compact memory to disk
     conn.tableOperations().compact(tableName, null, null, true, true);
 
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    final String file = entry.getKey().getColumnQualifier().toString();
-    final Path p = new Path(file);
-
-    // Then force another to make an unreferenced file
-    conn.tableOperations().compact(tableName, null, null, true, true);
-
-    log.info("File for table: {}", file);
-
-    FileSystem fs = getCluster().getFileSystem();
+    Entry<Key,Value> entry;
+    Path fileArchiveDir;
+    FileSystem fs;
     int i = 0;
-    while (fs.exists(p)) {
-      i++;
-      Thread.sleep(1000);
-      if (0 == i % 10) {
-        log.info("Waited {} iterations, file still exists", i);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+
+      entry = Iterables.getOnlyElement(s);
+      final String file = entry.getKey().getColumnQualifier().toString();
+      final Path p = new Path(file);
+
+      // Then force another to make an unreferenced file
+      conn.tableOperations().compact(tableName, null, null, true, true);
+
+      log.info("File for table: {}", file);
+
+      fs = getCluster().getFileSystem();
+      while (fs.exists(p)) {
+        i++;
+        Thread.sleep(1000);
+        if (0 == i % 10) {
+          log.info("Waited {} iterations, file still exists", i);
+        }
       }
+
+      log.info("File was removed");
+
+      String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
+
+      log.info("File relative to accumulo dir: {}", filePath);
+
+      fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
+
+      Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
+
+      // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
+      Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
+
+      Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
+
+      // Offline the table so we can be sure there is a single file
+      conn.tableOperations().offline(tableName, true);
     }
-
-    log.info("File was removed");
-
-    String filePath = p.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
-
-    log.info("File relative to accumulo dir: {}", filePath);
-
-    Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(), ServerConstants.FILE_ARCHIVE_DIR);
-
-    Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
-
-    // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
-    Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
-
-    Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile, fs.exists(archivedFile));
-
-    // Offline the table so we can be sure there is a single file
-    conn.tableOperations().offline(tableName, true);
 
     // See that the file in metadata currently is
-    s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-    entry = Iterables.getOnlyElement(s);
-    final String finalFile = entry.getKey().getColumnQualifier().toString();
-    final Path finalPath = new Path(finalFile);
+      entry = Iterables.getOnlyElement(s);
+      final String finalFile = entry.getKey().getColumnQualifier().toString();
+      final Path finalPath = new Path(finalFile);
 
-    conn.tableOperations().delete(tableName);
+      conn.tableOperations().delete(tableName);
 
-    log.info("File for table: {}", finalPath);
+      log.info("File for table: {}", finalPath);
 
-    i = 0;
-    while (fs.exists(finalPath)) {
-      i++;
-      Thread.sleep(1000);
-      if (0 == i % 10) {
-        log.info("Waited {} iterations, file still exists", i);
+      i = 0;
+      while (fs.exists(finalPath)) {
+        i++;
+        Thread.sleep(1000);
+        if (0 == i % 10) {
+          log.info("Waited {} iterations, file still exists", i);
+        }
       }
+
+      log.info("File was removed");
+
+      String finalFilePath = finalPath.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
+
+      log.info("File relative to accumulo dir: {}", finalFilePath);
+
+      Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
+
+      // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
+      Path finalArchivedFile = new Path(fileArchiveDir, finalFilePath.substring(1));
+
+      Assert.assertTrue("File doesn't exists in archive directory: " + finalArchivedFile, fs.exists(finalArchivedFile));
     }
-
-    log.info("File was removed");
-
-    String finalFilePath = finalPath.toUri().getPath().substring(getCluster().getConfig().getAccumuloDir().toString().length());
-
-    log.info("File relative to accumulo dir: {}", finalFilePath);
-
-    Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
-
-    // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
-    Path finalArchivedFile = new Path(fileArchiveDir, finalFilePath.substring(1));
-
-    Assert.assertTrue("File doesn't exists in archive directory: " + finalArchivedFile, fs.exists(finalArchivedFile));
   }
-
 }

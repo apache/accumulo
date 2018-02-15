@@ -377,14 +377,15 @@ public class KerberosIT extends AccumuloITBase {
         conn.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
 
         // Read (and proper authorizations)
-        Scanner s = conn.createScanner(table, new Authorizations(viz));
-        Iterator<Entry<Key,Value>> iter = s.iterator();
-        assertTrue("No results from iterator", iter.hasNext());
-        Entry<Key,Value> entry = iter.next();
-        assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
-        assertEquals(new Value("d".getBytes()), entry.getValue());
-        assertFalse("Had more results from iterator", iter.hasNext());
-        return null;
+        try (Scanner s = conn.createScanner(table, new Authorizations(viz))) {
+          Iterator<Entry<Key,Value>> iter = s.iterator();
+          assertTrue("No results from iterator", iter.hasNext());
+          Entry<Key,Value> entry = iter.next();
+          assertEquals(new Key("a", "b", "c", viz, ts), entry.getKey());
+          assertEquals(new Value("d".getBytes()), entry.getValue());
+          assertFalse("Had more results from iterator", iter.hasNext());
+          return null;
+        }
       }
     });
   }
@@ -430,11 +431,11 @@ public class KerberosIT extends AccumuloITBase {
       public Integer run() throws Exception {
         Connector conn = mac.getConnector(rootUser.getPrincipal(), delegationToken);
 
-        BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
-        bs.setRanges(Collections.singleton(new Range()));
-        int recordsSeen = Iterables.size(bs);
-        bs.close();
-        return recordsSeen;
+        try (BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+          bs.setRanges(Collections.singleton(new Range()));
+          int recordsSeen = Iterables.size(bs);
+          return recordsSeen;
+        }
       }
     });
 

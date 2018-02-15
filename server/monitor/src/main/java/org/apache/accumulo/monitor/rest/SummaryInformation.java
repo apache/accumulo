@@ -23,10 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.apache.accumulo.monitor.rest.logs.DeadLoggerList;
 import org.apache.accumulo.monitor.rest.master.MasterInformation;
-import org.apache.accumulo.monitor.rest.tables.TableInformation;
 import org.apache.accumulo.monitor.rest.tables.TableInformationList;
-import org.apache.accumulo.monitor.rest.tables.TableNamespace;
-import org.apache.accumulo.monitor.rest.tables.TablesList;
 import org.apache.accumulo.monitor.rest.tservers.BadTabletServers;
 import org.apache.accumulo.monitor.rest.tservers.DeadServerList;
 import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
@@ -34,13 +31,13 @@ import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 
 /**
  *
- * Generate XML summary of Monitor
+ * Generate summary of Monitor
  *
  * @since 2.0.0
  *
  */
 @XmlRootElement(name = "stats")
-public class XMLInformation {
+public class SummaryInformation {
 
   // Variable names become JSON keys
   public List<TabletServer> servers = new ArrayList<>();
@@ -58,10 +55,10 @@ public class XMLInformation {
 
   public Totals totals;
 
-  public XMLInformation() {}
+  public SummaryInformation() {}
 
   /**
-   * Stores Monitor information as XML
+   * Stores Monitor information as XML or JSON
    *
    * @param size
    *          Number of tservers
@@ -70,7 +67,7 @@ public class XMLInformation {
    * @param tablesList
    *          Table list
    */
-  public XMLInformation(int size, MasterInformation info, TablesList tablesList) {
+  public SummaryInformation(int size, MasterInformation info, TableInformationList tablesList) {
     this.servers = new ArrayList<>(size);
 
     this.masterGoalState = info.masterGoalState;
@@ -82,32 +79,18 @@ public class XMLInformation {
     this.deadTabletServers = info.deadTabletServers;
     this.deadLoggers = info.deadLoggers;
 
-    getTableInformationList(tablesList.tables);
+    this.tables = tablesList;
 
     this.totals = new Totals(info.ingestrate, info.queryrate, info.numentries);
   }
 
   /**
-   * Adds a new tablet to the XML
+   * Adds a new tablet
    *
    * @param tablet
    *          Tablet to add
    */
   public void addTabletServer(TabletServer tablet) {
     servers.add(tablet);
-  }
-
-  /**
-   * For backwards compatibility, gets all the tables without namespace information
-   */
-  private void getTableInformationList(List<TableNamespace> namespaces) {
-
-    this.tables = new TableInformationList();
-
-    for (TableNamespace namespace : namespaces) {
-      for (TableInformation info : namespace.table) {
-        tables.addTable(info);
-      }
-    }
   }
 }

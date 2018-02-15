@@ -26,7 +26,6 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -73,7 +72,7 @@ public class TableIT extends AccumuloClusterHarness {
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     ClientConfiguration clientConfig = getCluster().getClientConfig();
-    if (clientConfig.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+    if (clientConfig.hasSasl()) {
       opts.updateKerberosCredentials(clientConfig);
       vopts.updateKerberosCredentials(clientConfig);
     } else {
@@ -87,25 +86,27 @@ public class TableIT extends AccumuloClusterHarness {
     vopts.setTableName(tableName);
     VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     Table.ID id = Table.ID.of(to.tableIdMap().get(tableName));
-    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(new KeyExtent(id, null, null).toMetadataRange());
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    assertTrue(Iterators.size(s.iterator()) > 0);
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(new KeyExtent(id, null, null).toMetadataRange());
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      assertTrue(Iterators.size(s.iterator()) > 0);
 
-    FileSystem fs = getCluster().getFileSystem();
-    assertTrue(fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length > 0);
-    to.delete(tableName);
-    assertEquals(0, Iterators.size(s.iterator()));
-    try {
-      assertEquals(0, fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length);
-    } catch (FileNotFoundException ex) {
-      // that's fine, too
+      FileSystem fs = getCluster().getFileSystem();
+      assertTrue(fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length > 0);
+      to.delete(tableName);
+      assertEquals(0, Iterators.size(s.iterator()));
+
+      try {
+        assertEquals(0, fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id)).length);
+      } catch (FileNotFoundException ex) {
+        // that's fine, too
+      }
+      assertNull(to.tableIdMap().get(tableName));
+      to.create(tableName);
+      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      to.delete(tableName);
     }
-    assertNull(to.tableIdMap().get(tableName));
-    to.create(tableName);
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    to.delete(tableName);
   }
 
 }

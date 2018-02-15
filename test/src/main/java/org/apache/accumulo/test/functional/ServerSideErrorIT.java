@@ -64,67 +64,68 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    // try to scan table
-    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-
     boolean caught = false;
-    try {
-      for (Entry<Key,Value> entry : scanner) {
-        entry.getKey();
+    // try to scan table
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+
+      try {
+        for (Entry<Key,Value> entry : scanner) {
+          entry.getKey();
+        }
+      } catch (Exception e) {
+        caught = true;
       }
-    } catch (Exception e) {
-      caught = true;
-    }
 
-    if (!caught)
-      throw new Exception("Scan did not fail");
+      if (!caught)
+        throw new Exception("Scan did not fail");
 
-    // try to batch scan the table
-    BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2);
-    bs.setRanges(Collections.singleton(new Range()));
+      // try to batch scan the table
+      try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+        bs.setRanges(Collections.singleton(new Range()));
 
-    caught = false;
-    try {
-      for (Entry<Key,Value> entry : bs) {
-        entry.getKey();
+        caught = false;
+        try {
+          for (Entry<Key,Value> entry : bs) {
+            entry.getKey();
+          }
+        } catch (Exception e) {
+          caught = true;
+        }
       }
-    } catch (Exception e) {
-      caught = true;
-    } finally {
-      bs.close();
+
+      if (!caught)
+        throw new Exception("batch scan did not fail");
+
+      // remove the bad agg so accumulo can shutdown
+      TableOperations to = c.tableOperations();
+      for (Entry<String,String> e : to.getProperties(tableName)) {
+        to.removeProperty(tableName, e.getKey());
+      }
+
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
-
-    if (!caught)
-      throw new Exception("batch scan did not fail");
-
-    // remove the bad agg so accumulo can shutdown
-    TableOperations to = c.tableOperations();
-    for (Entry<String,String> e : to.getProperties(tableName)) {
-      to.removeProperty(tableName, e.getKey());
-    }
-
-    sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
     // should be able to scan now
-    scanner = c.createScanner(tableName, Authorizations.EMPTY);
-    for (Entry<Key,Value> entry : scanner) {
-      entry.getKey();
-    }
-
-    // set a non existant iterator, should cause scan to fail on server side
-    scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
-
-    caught = false;
-    try {
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
       for (Entry<Key,Value> entry : scanner) {
-        // should error
         entry.getKey();
       }
-    } catch (Exception e) {
-      caught = true;
-    }
 
-    if (!caught)
-      throw new Exception("Scan did not fail");
+      // set a non existant iterator, should cause scan to fail on server side
+      scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
+
+      caught = false;
+      try {
+        for (Entry<Key,Value> entry : scanner) {
+          // should error
+          entry.getKey();
+        }
+      } catch (Exception e) {
+        caught = true;
+      }
+
+      if (!caught)
+        throw new Exception("Scan did not fail");
+    }
   }
 }

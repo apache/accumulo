@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -141,7 +140,7 @@ public class CompactionIT extends AccumuloClusterHarness {
               opts.dataSize = 50;
               opts.cols = 1;
               opts.setTableName(tableName);
-              if (clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), false)) {
+              if (clientConf.hasSasl()) {
                 opts.updateKerberosCredentials(clientConf);
               } else {
                 opts.setPrincipal(getAdminPrincipal());
@@ -177,10 +176,11 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   private int countFiles(Connector c) throws Exception {
-    Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.TabletColumnFamily.NAME));
-    s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME));
-    return Iterators.size(s.iterator());
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.TabletColumnFamily.NAME));
+      s.fetchColumnFamily(new Text(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME));
+      return Iterators.size(s.iterator());
+    }
   }
 
 }

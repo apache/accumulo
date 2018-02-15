@@ -14,26 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.impl;
+package org.apache.accumulo.monitor.util;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
+import org.apache.accumulo.core.client.impl.AbstractId;
+
 /**
- * A class for marshaling @link{AbstractId} so REST calls can serialize AbstractId to its canonical value.
+ * A class for marshaling {@link AbstractId} into its canonical form for REST endpoints
  */
 public class JaxbAbstractIdSerializer extends XmlAdapter<String,AbstractId> {
 
   @Override
   public String marshal(AbstractId id) {
-    if (id != null)
-      return id.canonicalID();
-    else
-      return null;
+    return id == null ? null : id.canonicalID();
   }
 
   @Override
   public AbstractId unmarshal(String id) {
-    // should not unmarshal from String
     throw new UnsupportedOperationException("Cannot unmarshal from String");
   }
 }

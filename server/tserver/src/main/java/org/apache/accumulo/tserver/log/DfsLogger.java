@@ -338,8 +338,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     metaReference = meta;
   }
 
-  public static DFSLoggerInputStreams readHeaderAndReturnStream(VolumeManager fs, Path path, AccumuloConfiguration conf) throws IOException {
-    FSDataInputStream input = fs.open(path);
+  public static DFSLoggerInputStreams readHeaderAndReturnStream(FSDataInputStream input, AccumuloConfiguration conf) throws IOException {
     DataInputStream decryptingInput = null;
 
     byte[] magic = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
@@ -415,7 +414,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
       }
     } catch (EOFException e) {
-      log.warn("Got EOFException trying to read WAL header information, assuming the rest of the file ({}) has no data.", path);
+      log.warn("Got EOFException trying to read WAL header information, assuming the rest of the file has no data.");
       // A TabletServer might have died before the (complete) header was written
       throw new LogHeaderIncompleteException(e);
     }
@@ -578,7 +577,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
   }
 
-  public synchronized void defineTablet(int seq, int tid, KeyExtent tablet) throws IOException {
+  public synchronized void defineTablet(long seq, int tid, KeyExtent tablet) throws IOException {
     // write this log to the METADATA table
     final LogFileKey key = new LogFileKey();
     key.event = DEFINE_TABLET;
@@ -599,7 +598,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     encryptingLogFile.flush();
   }
 
-  public LoggerOperation log(int seq, int tid, Mutation mutation, Durability durability) throws IOException {
+  public LoggerOperation log(long seq, int tid, Mutation mutation, Durability durability) throws IOException {
     return logManyTablets(Collections.singletonList(new TabletMutations(tid, seq, Collections.singletonList(mutation), durability)));
   }
 
@@ -661,7 +660,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return result;
   }
 
-  public LoggerOperation minorCompactionFinished(int seq, int tid, String fqfn, Durability durability) throws IOException {
+  public LoggerOperation minorCompactionFinished(long seq, int tid, String fqfn, Durability durability) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_FINISH;
     key.seq = seq;
@@ -669,7 +668,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), durability);
   }
 
-  public LoggerOperation minorCompactionStarted(int seq, int tid, String fqfn, Durability durability) throws IOException {
+  public LoggerOperation minorCompactionStarted(long seq, int tid, String fqfn, Durability durability) throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_START;
     key.seq = seq;

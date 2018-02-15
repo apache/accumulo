@@ -26,8 +26,8 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -38,7 +38,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,15 +54,18 @@ public class ClientContext {
   protected final Instance inst;
   private Credentials creds;
   private ClientConfiguration clientConf;
+  private BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
   private final AccumuloConfiguration rpcConf;
   protected Connector conn;
 
-  /**
-   * Instantiate a client context
-   */
   public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf) {
+    this(instance, credentials, clientConf, new BatchWriterConfig());
+  }
+
+  public ClientContext(Instance instance, Credentials credentials, ClientConfiguration clientConf, BatchWriterConfig batchWriterConfig) {
     this(instance, credentials, convertClientConfig(requireNonNull(clientConf, "clientConf is null")));
     this.clientConf = clientConf;
+    this.batchWriterConfig = batchWriterConfig;
   }
 
   /**
@@ -123,11 +125,9 @@ public class ClientContext {
    * Retrieve SASL configuration to initiate an RPC connection to a server
    */
   public SaslConnectionParams getSaslParams() {
-    final boolean defaultVal = Boolean.parseBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getDefaultValue());
-
     // Use the clientConf if we have it
     if (null != clientConf) {
-      if (!clientConf.getBoolean(ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey(), defaultVal)) {
+      if (!clientConf.hasSasl()) {
         return null;
       }
       return new SaslConnectionParams(clientConf, getCredentials().getToken());
@@ -156,6 +156,10 @@ public class ClientContext {
     return conn;
   }
 
+  public BatchWriterConfig getBatchWriterConfig() {
+    return batchWriterConfig;
+  }
+
   /**
    * Serialize the credentials just before initiating the RPC call
    */
@@ -170,11 +174,12 @@ public class ClientContext {
    *          the original {@link ClientConfiguration}
    * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
    */
-  public static AccumuloConfiguration convertClientConfig(final Configuration config) {
+  public static AccumuloConfiguration convertClientConfig(final ClientConfiguration config) {
 
     final AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
 
     return new AccumuloConfiguration() {
+
       @Override
       public String get(Property property) {
         final String key = property.getKey();
@@ -202,9 +207,9 @@ public class ClientContext {
         else {
           // Reconstitute the server kerberos property from the client config
           if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
-            if (config.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+            if (config.containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
               // Avoid providing a realm since we don't know what it is...
-              return config.getString(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
+              return config.getString(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
             }
           }
           return defaults.get(property);
@@ -215,7 +220,7 @@ public class ClientContext {
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
 
-        Iterator<?> keyIter = config.getKeys();
+        Iterator<String> keyIter = config.getKeys();
         while (keyIter.hasNext()) {
           String key = keyIter.next().toString();
           if (filter.test(key))
@@ -224,8 +229,8 @@ public class ClientContext {
 
         // Two client props that don't exist on the server config. Client doesn't need to know about the Kerberos instance from the principle, but servers do
         // Automatically reconstruct the server property when converting a client config.
-        if (props.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
-          final String serverPrimary = props.remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+        if (props.containsKey(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
+          final String serverPrimary = props.remove(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
           if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(), serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());

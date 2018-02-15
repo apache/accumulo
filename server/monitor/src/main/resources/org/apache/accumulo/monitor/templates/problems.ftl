@@ -26,7 +26,7 @@
       <div><h3>${title}</h3></div>
       <div class="center-block">
         <table id="problemSummary" class="table table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Problem&nbsp;Summary</span><br/></caption>
+            <caption><span class="table-caption">Summary</span></caption>
             <tbody><tr><th class="firstcell">Table&nbsp;</th>
                 <th>FILE_READ&nbsp;</th>
                 <th>FILE_WRITE&nbsp;</th>
@@ -35,13 +35,13 @@
             </tbody>
         </table>
         <table id="problemDetails" class="table table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Problem&nbsp;Details</span><br/><span class="table-subcaption">Problems&nbsp;identified&nbsp;with&nbsp;tables.</span><br/></caption>
-            <tbody><tr><th class="firstcell" onclick="sortTable(0)">Table&nbsp;</th>
-                <th onclick="sortTable(1)">Problem&nbsp;Type&nbsp;</th>
-                <th onclick="sortTable(2)">Server&nbsp;</th>
-                <th onclick="sortTable(3)">Time&nbsp;</th>
-                <th onclick="sortTable(4)">Resource&nbsp;</th>
-                <th onclick="sortTable(5)">Exception&nbsp;</th>
+            <caption><span class="table-caption">Details</span></caption>
+            <tbody><tr><th class="firstcell" >Table&nbsp;</th>
+                <th>Problem&nbsp;Type&nbsp;</th>
+                <th>Server&nbsp;</th>
+                <th>Time&nbsp;</th>
+                <th>Resource&nbsp;</th>
+                <th>Exception&nbsp;</th>
                 <th>Operations&nbsp;</th></tr>
             </tbody>
         </table>

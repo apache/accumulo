@@ -60,13 +60,14 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
       public void run() {
         try {
           while (stop.get() == false) {
-            Scanner s = c.createScanner(tableName, Authorizations.EMPTY);
-            IteratorSetting is = new IteratorSetting(50, SlowIterator.class);
-            SlowIterator.setSleepTime(is, 10);
-            s.addScanIterator(is);
-            Iterator<Entry<Key,Value>> iterator = s.iterator();
-            while (iterator.hasNext() && stop.get() == false) {
-              iterator.next();
+            try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
+              IteratorSetting is = new IteratorSetting(50, SlowIterator.class);
+              SlowIterator.setSleepTime(is, 10);
+              s.addScanIterator(is);
+              Iterator<Entry<Key,Value>> iterator = s.iterator();
+              while (iterator.hasNext() && stop.get() == false) {
+                iterator.next();
+              }
             }
           }
         } catch (Exception ex) {
@@ -101,8 +102,11 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     t2.start();
     sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     long now = System.currentTimeMillis();
-    Scanner m = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    Iterators.size(m.iterator());
+
+    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      Iterators.size(s.iterator());
+    }
+
     long delay = System.currentTimeMillis() - now;
     System.out.println("Delay = " + delay);
     assertTrue("metadata table scan was slow", delay < 1000);

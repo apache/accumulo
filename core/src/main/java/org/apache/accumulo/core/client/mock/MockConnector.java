@@ -85,6 +85,11 @@ public class MockConnector extends Connector {
         config.getMaxWriteThreads());
   }
 
+  @Override
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
+    return createBatchDeleter(tableName, authorizations, numQueryThreads, new BatchWriterConfig());
+  }
+
   @Deprecated
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
@@ -98,6 +103,11 @@ public class MockConnector extends Connector {
     return createBatchWriter(tableName, config.getMaxMemory(), config.getMaxLatency(TimeUnit.MILLISECONDS), config.getMaxWriteThreads());
   }
 
+  @Override
+  public BatchWriter createBatchWriter(String tableName) throws TableNotFoundException {
+    return createBatchWriter(tableName, new BatchWriterConfig());
+  }
+
   @Deprecated
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
@@ -107,6 +117,11 @@ public class MockConnector extends Connector {
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
     return createMultiTableBatchWriter(config.getMaxMemory(), config.getMaxLatency(TimeUnit.MILLISECONDS), config.getMaxWriteThreads());
+  }
+
+  @Override
+  public MultiTableBatchWriter createMultiTableBatchWriter() {
+    return createMultiTableBatchWriter(new BatchWriterConfig());
   }
 
   @Override

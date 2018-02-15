@@ -52,7 +52,7 @@ public class Utils {
   static void checkTableDoesNotExist(Instance instance, String tableName, Table.ID tableId, TableOperation operation)
       throws AcceptableThriftTableOperationException {
 
-    Table.ID id = Tables.lookupTableId(instance, tableName);
+    Table.ID id = Tables.getNameToIdMap(instance).get(tableName);
 
     if (id != null && !id.equals(tableId))
       throw new AcceptableThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, null);

@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.client.impl.ConnectionInfoFactory;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
@@ -69,9 +71,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, String)}
- * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, ClientConfiguration)}
+ * <li>{@link AccumuloOutputFormat#setConnectionInfo(Job, ConnectionInfo)}
  * </ul>
  *
  * Other static methods are optional.
@@ -80,6 +80,20 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
 
   private static final Class<?> CLASS = AccumuloOutputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
+
+  /**
+   * Set the connection information needed to communicate with Accumulo in this job.
+   *
+   * @param job
+   *          Hadoop job to be configured
+   * @param info
+   *          Accumulo connection information
+   * @since 2.0.0
+   */
+  public static void setConnectionInfo(Job job, ConnectionInfo info) throws AccumuloSecurityException {
+    setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
+    setZooKeeperInstance(job, ConnectionInfoFactory.getClientConfiguration(info));
+  }
 
   /**
    * Sets the connector information needed to communicate with Accumulo in this job.
@@ -97,7 +111,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @param token
    *          the user's password
    * @since 1.5.0
+   * @deprecated since 2.0.0, replaced by {@link #setConnectionInfo(Job, ConnectionInfo)}
    */
+  @Deprecated
   public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
@@ -138,7 +154,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @param tokenFile
    *          the path to the token file
    * @since 1.6.0
+   * @deprecated since 2.0.0, replaced by {@link #setConnectionInfo(Job, ConnectionInfo)}
    */
+  @Deprecated
   public static void setConnectorInfo(Job job, String principal, String tokenFile) throws AccumuloSecurityException {
     OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, tokenFile);
   }
@@ -220,7 +238,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   @Deprecated
   public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
+    setZooKeeperInstance(job, ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -232,7 +250,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
+   * @deprecated since 2.0.0; Use {@link #setConnectionInfo(Job, ConnectionInfo)} instead.
    */
+  @Deprecated
   public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
     OutputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
   }

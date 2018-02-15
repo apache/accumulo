@@ -20,9 +20,6 @@
  */
 $(document).ready(function() {
   refreshBulkImport();
-
-  // Create tooltip for table column information
-  $(document).tooltip();
 });
 
 /**
@@ -112,26 +109,4 @@ function refreshServerBulkTable() {
   $('<tr/>', {
     html: items.join('')
   }).appendTo('#bulkImportStatus');
-}
-
-/**
- * Sorts the bulkImportStatus table on the selected column
- *
- * @param {string} table Table ID to sort
- * @param {number} n Column number to sort by
- */
-function sortTable(table, n) {
-  var tableIDs = ['bulkImportStatus', 'masterBulkImportStatus'];
-
-  if (sessionStorage.tableColumnSort !== undefined &&
-      sessionStorage.tableColumnSort == n &&
-      sessionStorage.direction !== undefined) {
-    direction = sessionStorage.direction === 'asc' ? 'desc' : 'asc';
-  } else {
-    direction = sessionStorage.direction === undefined ?
-        'asc' : sessionStorage.direction;
-  }
-  sessionStorage.tableColumn = tableIDs[table];
-  sessionStorage.tableColumnSort = n;
-  sortTables(tableIDs[table], direction, n);
 }

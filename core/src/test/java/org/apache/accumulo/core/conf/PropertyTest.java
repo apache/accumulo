@@ -19,6 +19,7 @@ package org.apache.accumulo.core.conf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -129,5 +130,62 @@ public class PropertyTest {
         assertNull(prop.getDefaultValue());
       }
     }
+  }
+
+  @SuppressWarnings("deprecation")
+  private Property getDeprecatedProperty() {
+    return Property.INSTANCE_DFS_DIR;
+  }
+
+  @Test
+  public void testAnnotations() {
+    assertTrue(Property.GENERAL_VOLUME_CHOOSER.isExperimental());
+    assertFalse(Property.TABLE_SAMPLER.isExperimental());
+
+    assertTrue(Property.INSTANCE_SECRET.isSensitive());
+    assertFalse(Property.INSTANCE_VOLUMES.isSensitive());
+
+    assertTrue(getDeprecatedProperty().isDeprecated());
+    assertFalse(Property.INSTANCE_VOLUMES_REPLACEMENTS.isDeprecated());
+
+  }
+
+  @Test
+  public void testGetPropertyByKey() {
+    for (Property prop : Property.values()) {
+      assertSame(prop, Property.getPropertyByKey(prop.getKey()));
+    }
+  }
+
+  @Test
+  public void testIsValidPropertyKey() {
+    for (Property prop : Property.values()) {
+      assertTrue(Property.isValidPropertyKey(prop.getKey()));
+      if (prop.getType().equals(PropertyType.PREFIX)) {
+        assertTrue(Property.isValidPropertyKey(prop.getKey() + "foo9"));
+      }
+    }
+
+    assertFalse(Property.isValidPropertyKey("abc.def"));
+  }
+
+  @Test
+  public void testIsValidTablePropertyKey() {
+    for (Property prop : Property.values()) {
+      if (prop.getKey().startsWith("table.") && !prop.getKey().equals("table.")) {
+        assertTrue(Property.isValidTablePropertyKey(prop.getKey()));
+
+        if (prop.getType().equals(PropertyType.PREFIX)) {
+          assertTrue(Property.isValidTablePropertyKey(prop.getKey() + "foo9"));
+        } else {
+          assertFalse(Property.isValidTablePropertyKey(prop.getKey() + "foo9"));
+        }
+      } else {
+        assertFalse(Property.isValidTablePropertyKey(prop.getKey()));
+      }
+
+    }
+
+    assertFalse(Property.isValidTablePropertyKey("abc.def"));
   }
 }

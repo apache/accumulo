@@ -17,19 +17,13 @@
 package org.apache.accumulo.monitor.rest.tables;
 
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
-import static org.apache.accumulo.monitor.util.ParameterValidator.NAMESPACE_LIST_REGEX;
-import static org.apache.accumulo.monitor.util.ParameterValidator.NAMESPACE_REGEX;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
@@ -40,12 +34,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -73,85 +66,6 @@ import org.apache.hadoop.io.Text;
 public class TablesResource {
 
   private static final TabletServerStatus NO_STATUS = new TabletServerStatus();
-  private static final java.util.regex.Pattern COMMA = java.util.regex.Pattern.compile(",");
-
-  /**
-   * Generates a table list based on the namespace
-   *
-   * @param namespace
-   *          Namespace used to filter the tables
-   * @return Table list
-   */
-  private static TablesList generateTables(String namespace) {
-    SortedMap<String,Namespace.ID> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
-
-    TablesList tableNamespace = new TablesList();
-
-    /*
-     * Add the tables that have the selected namespace Asterisk = All namespaces Hyphen = Default namespace
-     */
-    if (null != namespace) {
-      for (String key : namespaces.keySet()) {
-        if (namespace.equals("*") || namespace.equals(key) || (key.isEmpty() && namespace.equals("-"))) {
-          tableNamespace.addTable(new TableNamespace(key));
-        }
-      }
-    }
-
-    return generateTables(tableNamespace);
-  }
-
-  /**
-   * Generates a table list based on the list of namespaces
-   *
-   * @param tableNamespace
-   *          Namespace list
-   * @return Table list
-   */
-  private static TablesList generateTables(TablesList tableNamespace) {
-    Instance inst = Monitor.getContext().getInstance();
-    SortedMap<String,TableInfo> tableStats = new TreeMap<>();
-
-    if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
-      for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
-        tableStats.put(Tables.getPrintableTableInfoFromId(inst, Table.ID.of(te.getKey())), te.getValue());
-    Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
-    TableManager tableManager = TableManager.getInstance();
-    List<TableInformation> tables = new ArrayList<>();
-
-    // Add tables to the list
-    for (Entry<String,Table.ID> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
-      String tableName = entry.getKey();
-      Table.ID tableId = entry.getValue();
-      TableInfo tableInfo = tableStats.get(tableName);
-      if (null != tableInfo) {
-        Double holdTime = compactingByTable.get(tableId.canonicalID());
-        if (holdTime == null)
-          holdTime = Double.valueOf(0.);
-
-        for (TableNamespace name : tableNamespace.tables) {
-          // Check if table has the default namespace
-          if (!tableName.contains(".") && name.namespace.isEmpty()) {
-            name.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
-          } else if (tableName.startsWith(name.namespace + ".")) {
-            name.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
-          }
-        }
-        tables.add(new TableInformation(tableName, tableId, tableInfo, holdTime, tableManager.getTableState(tableId).name()));
-      } else {
-        for (TableNamespace name : tableNamespace.tables) {
-          if (!tableName.contains(".") && name.namespace.isEmpty()) {
-            name.addTable(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
-          } else if (tableName.startsWith(name.namespace + ".")) {
-            name.addTable(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
-          }
-        }
-        tables.add(new TableInformation(tableName, tableId, tableManager.getTableState(tableId).name()));
-      }
-    }
-
-    return tableNamespace;
-  }
 
   /**
    * Generates a list of all the tables
@@ -159,49 +73,36 @@ public class TablesResource {
    * @return list with all tables
    */
   @GET
-  public static TablesList getTables() {
-    return generateTables("*");
-  }
+  public static TableInformationList getTables() {
 
-  /**
-   * Generates a list with the selected namespace
-   *
-   * @param namespace
-   *          Namespace to filter tables
-   * @return list with selected tables
-   */
-  @GET
-  @Path("namespace/{namespace}")
-  public TablesList getTable(@PathParam("namespace") @NotNull @Pattern(regexp = NAMESPACE_REGEX) String namespace) throws UnsupportedEncodingException {
-    return generateTables(namespace);
-  }
+    TableInformationList tableList = new TableInformationList();
+    SortedMap<Table.ID,TableInfo> tableStats = new TreeMap<>();
 
-  /**
-   * Generates a list with the list of namespaces
-   *
-   * @param namespaceList
-   *          List of namespaces separated by a comma
-   * @return list with selected tables
-   */
-  @GET
-  @Path("namespaces/{namespaces}")
-  public TablesList getTableWithNamespace(@PathParam("namespaces") @NotNull @Pattern(regexp = NAMESPACE_LIST_REGEX) String namespaceList)
-      throws UnsupportedEncodingException {
-    SortedMap<String,Namespace.ID> namespaces = Namespaces.getNameToIdMap(Monitor.getContext().getInstance());
+    if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
+      for (Map.Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
+        tableStats.put(Table.ID.of(te.getKey()), te.getValue());
 
-    TablesList tableNamespace = new TablesList();
-    /*
-     * Add the tables that have the selected namespace Asterisk = All namespaces Hyphen = Default namespace
-     */
-    for (String namespace : COMMA.split(namespaceList)) {
-      for (String key : namespaces.keySet()) {
-        if (namespace.equals("*") || namespace.equals(key) || (key.isEmpty() && namespace.equals("-"))) {
-          tableNamespace.addTable(new TableNamespace(key));
-        }
+    Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
+    TableManager tableManager = TableManager.getInstance();
+
+    // Add tables to the list
+    for (Map.Entry<String,Table.ID> entry : Tables.getNameToIdMap(HdfsZooInstance.getInstance()).entrySet()) {
+      String tableName = entry.getKey();
+      Table.ID tableId = entry.getValue();
+      TableInfo tableInfo = tableStats.get(tableId);
+      TableState tableState = tableManager.getTableState(tableId);
+
+      if (null != tableInfo && !tableState.equals(TableState.OFFLINE)) {
+        Double holdTime = compactingByTable.get(tableId.canonicalID());
+        if (holdTime == null)
+          holdTime = Double.valueOf(0.);
+
+        tableList.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableState.name()));
+      } else {
+        tableList.addTable(new TableInformation(tableName, tableId, tableState.name()));
       }
     }
-
-    return generateTables(tableNamespace);
+    return tableList;
   }
 
   /**
@@ -213,8 +114,7 @@ public class TablesResource {
    */
   @Path("{tableId}")
   @GET
-  public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr)
-      throws Exception {
+  public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
     Instance instance = Monitor.getContext().getInstance();
     Table.ID tableId = Table.ID.of(tableIdStr);
 
@@ -278,15 +178,4 @@ public class TablesResource {
 
   }
 
-  /**
-   * Generates the list of existing namespaces
-   *
-   * @return list of namespaces as a JSON object
-   */
-  @Path("namespaces")
-  @GET
-  public Map<String,List<String>> getNamespaces() {
-    Instance inst = Monitor.getContext().getInstance();
-    return Collections.singletonMap("namespaces", Namespaces.getNameToIdMap(inst).keySet().stream().collect(Collectors.toList()));
-  }
 }

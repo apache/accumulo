@@ -14,12 +14,11 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+<!DOCTYPE html>
 <html>
   <head>
     <title>${title} - Accumulo ${version}</title>
-    <meta http-equiv="Content-Type" content="test/html" />
-    <meta http-equiv="Content-Script-Type" content="text/javascript" />
-    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <!-- external resources configurable by setting monitor.resources.external -->
     <!-- make sure jquery is included first - other scripts depend on it -->
     <#if externalResources?has_content>
@@ -27,22 +26,22 @@
         ${val}
       </#list>
     <#else>
-      <script src="/resources/external/jquery-2.2.4.js"></script>
+      <script src="/resources/external/jquery-3.2.1.js"></script>
       <script src="/resources/external/bootstrap/js/bootstrap.js"></script>
-      <script src="/resources/external/jquery-ui.js"></script>
-      <script src="/resources/external/select2.js"></script>
+      <script src="/resources/external/datatables/js/jquery.dataTables.js"></script>
+      <script src="/resources/external/datatables/js/dataTables.bootstrap.js"></script>
       <script src="/resources/external/flot/jquery.flot.js"></script>
       <script src="/resources/external/flot/jquery.flot.time.js"></script>
+      <script src="/resources/external/ellipsis.js"></script>
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap.css" />
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap-theme.css" />
-      <link rel="stylesheet" href="/resources/external/jquery-ui.css" />
-      <link rel="stylesheet" href="/resources/external/select2.css" />
+      <link rel="stylesheet" href="/resources/external/datatables/css/dataTables.bootstrap.css" />
     </#if>
 
     <!-- accumulo resources -->
     <link rel="shortcut icon" type="image/jng" href="/resources/images/favicon.png" />
-    <script src="/resources/js/global.js" type="text/javascript"></script>
-    <script src="/resources/js/functions.js" type="text/javascript"></script>
+    <script src="/resources/js/global.js"></script>
+    <script src="/resources/js/functions.js"></script>
     <link rel="stylesheet" type="text/css" href="/resources/css/screen.css" media="screen" />
 
     <script>

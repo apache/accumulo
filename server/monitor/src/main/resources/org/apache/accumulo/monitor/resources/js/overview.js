@@ -96,21 +96,18 @@ function refreshZKTable() {
   if (data.length === 0 || data.zkServers.length === 0) {
     $('#zookeeper tr td:first').show();
   } else {
-    var items = [];
     $.each(data.zkServers, function(key, val) {
+      var cells = '<td class="left">' + val.server + '</td>';
       if (val.clients >= 0) {
-        items.push('<td class="left">' + val.server + '</td>');
-        items.push('<td class="left">' + val.mode + '</td>');
-        items.push('<td class="right">' + val.clients + '</td></tr>');
+        cells += '<td class="left">' + val.mode + '</td>';
+        cells += '<td class="right">' + val.clients + '</td>';
       } else {
-        items.push('<tr><td class="left">' + val.server + '</td>');
-        items.push('<td class="left"><span class="error">Down</span></td>');
-        items.push('<td class="right"></td>');
+        cells += '<td class="left"><span class="error">Down</span></td>';
+        cells += '<td class="right"></td>';
       }
+      // create a <tr> element with html containing the cell data; append it to the table
+      $('<tr/>', { html: cells }).appendTo('#zookeeper table');
     });
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#zookeeper table');
   }
 }
 

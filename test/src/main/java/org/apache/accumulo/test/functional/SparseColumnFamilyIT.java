@@ -69,22 +69,23 @@ public class SparseColumnFamilyIT extends AccumuloClusterHarness {
 
     c.tableOperations().flush(scftt, null, null, true);
 
-    Scanner scanner = c.createScanner(scftt, Authorizations.EMPTY);
+    try (Scanner scanner = c.createScanner(scftt, Authorizations.EMPTY)) {
 
-    for (int i = 0; i < 200; i++) {
+      for (int i = 0; i < 200; i++) {
 
-      // every time we search for column family 1, it will scan the entire file
-      // that has mostly column family 0 until the bug is fixed
-      scanner.setRange(new Range(String.format("%06d", i), null));
-      scanner.clearColumns();
-      scanner.setBatchSize(3);
-      scanner.fetchColumnFamily(new Text(String.format("%03d", 1)));
+        // every time we search for column family 1, it will scan the entire file
+        // that has mostly column family 0 until the bug is fixed
+        scanner.setRange(new Range(String.format("%06d", i), null));
+        scanner.clearColumns();
+        scanner.setBatchSize(3);
+        scanner.fetchColumnFamily(new Text(String.format("%03d", 1)));
 
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      if (iter.hasNext()) {
-        Entry<Key,Value> entry = iter.next();
-        if (!"001".equals(entry.getKey().getColumnFamilyData().toString())) {
-          throw new Exception();
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        if (iter.hasNext()) {
+          Entry<Key,Value> entry = iter.next();
+          if (!"001".equals(entry.getKey().getColumnFamilyData().toString())) {
+            throw new Exception();
+          }
         }
       }
     }

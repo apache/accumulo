@@ -60,6 +60,11 @@ public class TCredentialsUpdatingInvocationHandlerTest {
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         cc.getProperties(props, filter);
       }
+
+      @Override
+      public long getUpdateCount() {
+        return cc.getUpdateCount();
+      }
     };
 
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);

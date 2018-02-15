@@ -20,6 +20,7 @@ import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
 
 /**
  *
@@ -27,11 +28,15 @@ import org.junit.Test;
 public class RetryTest {
 
   private Retry retry;
-  long initialWait = 1000l, waitIncrement = 1000l, maxRetries = 5;
+  long initialWait = 1000l, waitIncrement = 1000l, maxRetries = 5, logInterval = 1000l;
+  private Retry unlimitedRetry1;
+  private Retry unlimitedRetry2;
 
   @Before
   public void setup() {
-    retry = new Retry(maxRetries, initialWait, waitIncrement, maxRetries * 1000l);
+    retry = new Retry(maxRetries, initialWait, waitIncrement, maxRetries * 1000l, logInterval);
+    unlimitedRetry1 = new Retry(initialWait, waitIncrement, maxRetries * 1000l, logInterval);
+    unlimitedRetry2 = new Retry(-10, initialWait, waitIncrement, maxRetries * 1000l, logInterval);
   }
 
   @Test
@@ -123,5 +128,47 @@ public class RetryTest {
     }
 
     EasyMock.verify(retry);
+  }
+
+  @Test
+  public void testIsMaxRetryDisabled() {
+    Assert.assertFalse(retry.isMaxRetryDisabled());
+    Assert.assertTrue(unlimitedRetry1.isMaxRetryDisabled());
+    Assert.assertTrue(unlimitedRetry2.isMaxRetryDisabled());
+    Assert.assertEquals(Retry.MAX_RETRY_DISABLED, unlimitedRetry1.getMaxRetries());
+    Assert.assertEquals(-10, unlimitedRetry2.getMaxRetries());
+  }
+
+  @Test
+  public void testUnlimitedRetry() {
+    for (int i = 0; i < Integer.MAX_VALUE; i++) {
+      Assert.assertTrue(unlimitedRetry1.canRetry());
+      unlimitedRetry1.useRetry();
+      Assert.assertTrue(unlimitedRetry2.canRetry());
+      unlimitedRetry2.useRetry();
+    }
+  }
+
+  @Test
+  public void testLogging() {
+    Logger testLogger = EasyMock.createMock(Logger.class);
+    testLogger.warn(EasyMock.anyObject(String.class));
+    EasyMock.expectLastCall().times(4, 6);
+    EasyMock.replay(testLogger);
+
+    // we want to do this for 5 second and observe the log messages
+    long start = System.currentTimeMillis();
+    long end = System.currentTimeMillis();
+    int i = 0;
+    for (; (end - start < 5000l) && (i < Integer.MAX_VALUE); i++) {
+      unlimitedRetry1.logRetry(testLogger, "failure message");
+      unlimitedRetry1.useRetry();
+      end = System.currentTimeMillis();
+    }
+
+    // now observe what log messages we got which should be around 5 +- 1
+    EasyMock.verify(testLogger);
+    Assert.assertTrue(i > 10);
+
   }
 }

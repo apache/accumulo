@@ -18,8 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.ExecutionException;
 
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
 import org.apache.accumulo.core.client.Instance;
 
 import com.google.common.cache.Cache;
@@ -34,7 +32,6 @@ public class Table {
    * Uses an internal cache and private constructor for storing a WeakReference of every Table.ID. Therefore, a Table.ID can't be instantiated outside this
    * class and is accessed by calling Table.ID.{@link #of(String)}.
    */
-  @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
   public static class ID extends AbstractId {
     private static final long serialVersionUID = 7399913185860577809L;
     static final Cache<String,ID> cache = CacheBuilder.newBuilder().weakValues().build();

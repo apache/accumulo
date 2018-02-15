@@ -74,36 +74,36 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
     connector.tableOperations().offline(tableName, true);
 
     log.debug("Replacing rfile(s) with empty");
-    Scanner meta = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    String tableId = connector.tableOperations().tableIdMap().get(tableName);
-    meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
-    meta.fetchColumnFamily(DataFileColumnFamily.NAME);
-    boolean foundFile = false;
-    for (Entry<Key,Value> entry : meta) {
-      foundFile = true;
-      Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
-      log.debug("Removing rfile '{}'", rfile);
-      cluster.getFileSystem().delete(rfile, false);
-      Process info = cluster.exec(CreateEmpty.class, rfile.toString());
-      assertEquals(0, info.waitFor());
+    try (Scanner meta = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      String tableId = connector.tableOperations().tableIdMap().get(tableName);
+      meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
+      meta.fetchColumnFamily(DataFileColumnFamily.NAME);
+      boolean foundFile = false;
+      for (Entry<Key,Value> entry : meta) {
+        foundFile = true;
+        Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
+        log.debug("Removing rfile '{}'", rfile);
+        cluster.getFileSystem().delete(rfile, false);
+        Process info = cluster.exec(CreateEmpty.class, rfile.toString());
+        assertEquals(0, info.waitFor());
+      }
+      assertTrue(foundFile);
     }
-    meta.close();
-    assertTrue(foundFile);
 
     log.trace("invalidate cached file handles by issuing a compaction");
     connector.tableOperations().online(tableName, true);
     connector.tableOperations().compact(tableName, null, null, false, true);
 
     log.debug("make sure we can still scan");
-    Scanner scan = connector.createScanner(tableName, Authorizations.EMPTY);
-    scan.setRange(new Range());
-    long cells = 0l;
-    for (Entry<Key,Value> entry : scan) {
-      if (entry != null)
-        cells++;
+    try (Scanner scan = connector.createScanner(tableName, Authorizations.EMPTY)) {
+      scan.setRange(new Range());
+      long cells = 0l;
+      for (Entry<Key,Value> entry : scan) {
+        if (entry != null)
+          cells++;
+      }
+      assertEquals(0l, cells);
     }
-    scan.close();
-    assertEquals(0l, cells);
   }
 
 }

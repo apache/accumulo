@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.ConnectionInfoFactory;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
@@ -119,6 +121,20 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
+   * Sets connection information needed to communicate with Accumulo for this job
+   *
+   * @param job
+   *          Hadoop job instance to be configured
+   * @param info
+   *          Connection information for Accumulo
+   * @since 2.0.0
+   */
+  public static void setConnectionInfo(Job job, ConnectionInfo info) throws AccumuloSecurityException {
+    setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
+    setZooKeeperInstance(job, ConnectionInfoFactory.getClientConfiguration(info));
+  }
+
+  /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
@@ -134,7 +150,9 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param token
    *          the user's password
    * @since 1.5.0
+   * @deprecated since 2.0.0; use {@link #setConnectionInfo(Job, ConnectionInfo)} instead.
    */
+  @Deprecated
   public static void setConnectorInfo(Job job, String principal, AuthenticationToken token) throws AccumuloSecurityException {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
@@ -253,11 +271,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(Job, ClientConfiguration)} instead.
+   * @deprecated since 1.6.0; Use {@link #setConnectionInfo(Job, ConnectionInfo)} instead.
    */
   @Deprecated
   public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job, new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
+    setZooKeeperInstance(job, ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -269,7 +287,9 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param clientConfig
    *          client configuration containing connection options
    * @since 1.6.0
+   * @deprecated since 2.0.0; Use {@link #setConnectionInfo(Job, ConnectionInfo)} instead.
    */
+  @Deprecated
   public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
     InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
   }
@@ -701,7 +721,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       Table.ID tableId;
       // resolve table name to id once, and use id from this point forward
       if (DeprecationUtil.isMockInstance(instance)) {
-        tableId = null;
+        tableId = Table.ID.of("");
       } else {
         try {
           tableId = Tables.getTableId(instance, tableName);
@@ -751,7 +771,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
               getClientConfiguration(context));
           while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
             if (!DeprecationUtil.isMockInstance(instance)) {
-              String tableIdStr = tableId != null ? tableId.canonicalID() : null;
+              String tableIdStr = tableId.canonicalID();
               if (!Tables.exists(instance, tableId))
                 throw new TableDeletedException(tableIdStr);
               if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)

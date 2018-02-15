@@ -182,10 +182,11 @@ public class KerberosRenewalIT extends AccumuloITBase {
     bw.addMutation(m);
     bw.close();
     conn.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
-    Scanner s = conn.createScanner(table, Authorizations.EMPTY);
-    Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    assertEquals("Did not find the expected key", 0, new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL));
-    assertEquals("d", entry.getValue().toString());
-    conn.tableOperations().delete(table);
+    try (Scanner s = conn.createScanner(table, Authorizations.EMPTY)) {
+      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      assertEquals("Did not find the expected key", 0, new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL));
+      assertEquals("d", entry.getValue().toString());
+      conn.tableOperations().delete(table);
+    }
   }
 }

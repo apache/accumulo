@@ -138,106 +138,107 @@ public class ConstraintIT extends AccumuloClusterHarness {
     }
 
     // verify mutation did not go through
-    Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
-    scanner.setRange(new Range(new Text("r1")));
+    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new Range(new Text("r1")));
 
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    Entry<Key,Value> entry = iter.next();
+      Iterator<Entry<Key,Value>> iter = scanner.iterator();
+      Entry<Key,Value> entry = iter.next();
 
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
-      throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
-    }
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+        throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
+      }
 
-    if (iter.hasNext()) {
-      entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
-    }
+      if (iter.hasNext()) {
+        entry = iter.next();
+        throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      }
 
-    // remove the numeric value constraint
-    getConnector().tableOperations().removeConstraint(tableName, 2);
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // remove the numeric value constraint
+      getConnector().tableOperations().removeConstraint(tableName, 2);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
 
-    // now should be able to add a non numeric value
-    bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
-    bw.addMutation(mut2);
-    bw.close();
-
-    // verify mutation went through
-    iter = scanner.iterator();
-    entry = iter.next();
-
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
-      throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
-    }
-
-    if (iter.hasNext()) {
-      entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
-    }
-
-    // add a constraint that references a non-existant class
-    getConnector().tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1", "com.foobar.nonExistantClass");
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
-
-    // add a mutation
-    bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
-
-    Mutation mut3 = new Mutation(new Text("r1"));
-    mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
-
-    bw.addMutation(mut3);
-
-    sawMRE = false;
-
-    try {
+      // now should be able to add a non numeric value
+      bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
+      bw.addMutation(mut2);
       bw.close();
-      // should not get here
-      throw new Exception("Test failed, mutation went through when table had bad constraints");
-    } catch (MutationsRejectedException mre) {
-      sawMRE = true;
-    }
 
-    if (!sawMRE) {
-      throw new Exception("Did not see MutationsRejectedException");
-    }
-
-    // verify the mutation did not go through
-    iter = scanner.iterator();
-    entry = iter.next();
-
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
-      throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
-    }
-
-    if (iter.hasNext()) {
+      // verify mutation went through
+      iter = scanner.iterator();
       entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
-    }
 
-    // remove the bad constraint
-    getConnector().tableOperations().removeConstraint(tableName, 1);
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+        throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
+      }
 
-    // try the mutation again
-    bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
-    bw.addMutation(mut3);
-    bw.close();
+      if (iter.hasNext()) {
+        entry = iter.next();
+        throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      }
 
-    // verify it went through
-    iter = scanner.iterator();
-    entry = iter.next();
+      // add a constraint that references a non-existant class
+      getConnector().tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1", "com.foobar.nonExistantClass");
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
 
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
-      throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
-    }
+      // add a mutation
+      bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
 
-    if (iter.hasNext()) {
+      Mutation mut3 = new Mutation(new Text("r1"));
+      mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
+
+      bw.addMutation(mut3);
+
+      sawMRE = false;
+
+      try {
+        bw.close();
+        // should not get here
+        throw new Exception("Test failed, mutation went through when table had bad constraints");
+      } catch (MutationsRejectedException mre) {
+        sawMRE = true;
+      }
+
+      if (!sawMRE) {
+        throw new Exception("Did not see MutationsRejectedException");
+      }
+
+      // verify the mutation did not go through
+      iter = scanner.iterator();
       entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123a".getBytes(UTF_8)))) {
+        throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
+      }
+
+      if (iter.hasNext()) {
+        entry = iter.next();
+        throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      }
+
+      // remove the bad constraint
+      getConnector().tableOperations().removeConstraint(tableName, 1);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
+
+      // try the mutation again
+      bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
+      bw.addMutation(mut3);
+      bw.close();
+
+      // verify it went through
+      iter = scanner.iterator();
+      entry = iter.next();
+
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("foo".getBytes(UTF_8)))) {
+        throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
+      }
+
+      if (iter.hasNext()) {
+        entry = iter.next();
+        throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      }
     }
   }
 
@@ -308,29 +309,29 @@ public class ConstraintIT extends AccumuloClusterHarness {
       throw new Exception("Did not see MutationsRejectedException");
     }
 
-    Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
+    try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
 
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
+      Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
-    Entry<Key,Value> entry = iter.next();
+      Entry<Key,Value> entry = iter.next();
 
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
-      throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
-    }
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq1")) || !entry.getValue().equals(new Value("123".getBytes(UTF_8)))) {
+        throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
+      }
 
-    entry = iter.next();
-
-    if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
-        || !entry.getKey().getColumnQualifier().equals(new Text("cq4")) || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
-      throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
-    }
-
-    if (iter.hasNext()) {
       entry = iter.next();
-      throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
-    }
 
+      if (!entry.getKey().getRow().equals(new Text("r1")) || !entry.getKey().getColumnFamily().equals(new Text("cf1"))
+          || !entry.getKey().getColumnQualifier().equals(new Text("cq4")) || !entry.getValue().equals(new Value("789".getBytes(UTF_8)))) {
+        throw new Exception("Unexpected key or value " + entry.getKey() + " " + entry.getValue());
+      }
+
+      if (iter.hasNext()) {
+        entry = iter.next();
+        throw new Exception("Unexpected extra key or value " + entry.getKey() + " " + entry.getValue());
+      }
+    }
   }
 
 }

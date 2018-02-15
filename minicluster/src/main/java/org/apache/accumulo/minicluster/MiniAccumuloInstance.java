@@ -24,8 +24,6 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -38,19 +36,8 @@ public class MiniAccumuloInstance extends ZooKeeperInstance {
    * Construct an {@link Instance} entry point to Accumulo using a {@link MiniAccumuloCluster} directory
    */
   public MiniAccumuloInstance(String instanceName, File directory) throws FileNotFoundException {
-    super(new ClientConfiguration(getConfigProperties(directory)).withInstance(instanceName).withZkHosts(getZooKeepersFromDir(directory)));
-  }
-
-  public static PropertiesConfiguration getConfigProperties(File directory) {
-    try {
-      PropertiesConfiguration conf = new PropertiesConfiguration();
-      conf.setListDelimiter('\0');
-      conf.load(new File(new File(directory, "conf"), "client.conf"));
-      return conf;
-    } catch (ConfigurationException e) {
-      // this should never happen since we wrote the config file ourselves
-      throw new IllegalArgumentException(e);
-    }
+    super(ClientConfiguration.fromFile(new File(new File(directory, "conf"), "client.conf")).withInstance(instanceName)
+        .withZkHosts(getZooKeepersFromDir(directory)));
   }
 
   // Keep this private to avoid bringing it into the public API

@@ -228,7 +228,7 @@ public class CryptoModuleFactory {
 
   public static CryptoModuleParameters fillParamsObjectFromConfiguration(CryptoModuleParameters params, AccumuloConfiguration conf) {
     // Get all the options from the configuration
-    Map<String,String> cryptoOpts = conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
+    Map<String,String> cryptoOpts = new HashMap<>(conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
     cryptoOpts.putAll(conf.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX));
     cryptoOpts.remove(Property.INSTANCE_SECRET.getKey());
     cryptoOpts.put(Property.CRYPTO_BLOCK_STREAM_SIZE.getKey(), Integer.toString((int) conf.getAsBytes(Property.CRYPTO_BLOCK_STREAM_SIZE)));

@@ -139,26 +139,28 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
     // Get all `file` colfams from the metadata table for the new table
     log.info("Imported into table with ID: {}", tableId);
-    Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    s.setRange(MetadataSchema.TabletsSection.getRange(org.apache.accumulo.core.client.impl.Table.ID.of(tableId)));
-    s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
 
-    // Should find a single entry
-    for (Entry<Key,Value> fileEntry : s) {
-      Key k = fileEntry.getKey();
-      String value = fileEntry.getValue().toString();
-      if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
-        // The file should be an absolute URI (file:///...), not a relative path (/b-000.../I000001.rf)
-        String fileUri = k.getColumnQualifier().toString();
-        Assert.assertFalse("Imported files should have absolute URIs, not relative: " + fileUri, looksLikeRelativePath(fileUri));
-      } else if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
-        Assert.assertFalse("Server directory should have absolute URI, not relative: " + value, looksLikeRelativePath(value));
-      } else {
-        Assert.fail("Got expected pair: " + k + "=" + fileEntry.getValue());
+    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      s.setRange(MetadataSchema.TabletsSection.getRange(org.apache.accumulo.core.client.impl.Table.ID.of(tableId)));
+      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
+
+      // Should find a single entry
+      for (Entry<Key,Value> fileEntry : s) {
+        Key k = fileEntry.getKey();
+        String value = fileEntry.getValue().toString();
+        if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+          // The file should be an absolute URI (file:///...), not a relative path (/b-000.../I000001.rf)
+          String fileUri = k.getColumnQualifier().toString();
+          Assert.assertFalse("Imported files should have absolute URIs, not relative: " + fileUri, looksLikeRelativePath(fileUri));
+        } else if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
+          Assert.assertFalse("Server directory should have absolute URI, not relative: " + value, looksLikeRelativePath(value));
+        } else {
+          Assert.fail("Got expected pair: " + k + "=" + fileEntry.getValue());
+        }
       }
-    }
 
+    }
     // Online the original table before we verify equivalence
     conn.tableOperations().online(srcTable, true);
 
