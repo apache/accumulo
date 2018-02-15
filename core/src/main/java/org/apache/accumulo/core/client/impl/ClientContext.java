@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -42,7 +43,6 @@ import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
 /**
@@ -68,6 +68,11 @@ public class ClientContext {
   private Supplier<SslConnectionParams> sslSupplier;
   private TCredentials rpcCreds;
 
+  private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
+    //This insanity exists to make modernizer plugin happy.  We are living in the future now.
+    return () -> Suppliers.memoizeWithExpiration(() -> s.get(), 100, TimeUnit.MILLISECONDS).get();
+  }
+
   /**
    * Instantiate a client context
    */
@@ -90,10 +95,6 @@ public class ClientContext {
     rpcConf = requireNonNull(serverConf, "serverConf is null");
     clientConf = null;
 
-    timeoutSupplier = () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
-
-    sslSupplier = () -> SslConnectionParams.forClient(getConfiguration());
-
     saslSupplier = new Supplier<SaslConnectionParams>() {
       @Override
       public SaslConnectionParams get() {
@@ -111,10 +112,10 @@ public class ClientContext {
         return new SaslConnectionParams(conf, getCredentials().getToken());
       }
     };
-    
-    timeoutSupplier = Suppliers.memoizeWithExpiration(timeoutSupplier, 100, TimeUnit.MILLISECONDS);
-    sslSupplier = Suppliers.memoizeWithExpiration(sslSupplier, 100, TimeUnit.MILLISECONDS);
-    saslSupplier = Suppliers.memoizeWithExpiration(saslSupplier, 100, TimeUnit.MILLISECONDS);
+
+    timeoutSupplier = memoizeWithExpiration(() -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
+    saslSupplier = memoizeWithExpiration(saslSupplier);
 
   }
 
