@@ -34,4 +34,4 @@ jdk:
 before_script:
   - rm -rf $HOME/.m2/repository/org/apache/accumulo
   - echo "<settings xmlns='http://maven.apache.org/SETTINGS/1.0.0'><mirrors><mirror><id>secure-central</id><url>https://repo.maven.apache.org/maven2</url><mirrorOf>central</mirrorOf></mirror></mirrors></settings>" > $HOME/settings-custom.xml
-script: mvn --settings $HOME/settings-custom.xml clean verify -DskipITs
+script: mvn --settings $HOME/settings-custom.xml clean verify javadoc:jar -DskipITs
