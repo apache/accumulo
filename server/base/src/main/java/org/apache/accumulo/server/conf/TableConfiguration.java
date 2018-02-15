@@ -116,8 +116,7 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   /**
-   * Gets the parent configuration of this configuration. The parent is actually a {@link TableParentConfiguration} that can change which namespace it
-   * references.
+   * Gets the parent configuration of this configuration.
    *
    * @return parent configuration
    */
