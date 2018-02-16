@@ -268,10 +268,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     try {
       return tableOps.doFateOperation(op, args, opts, namespace);
-    } catch (TableExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    } catch (TableNotFoundException e) {
+    } catch (TableExistsException | TableNotFoundException e) {
       // should not happen
       throw new AssertionError(e);
     }

@@ -76,9 +76,7 @@ public class VisibilityConstraint implements Constraint {
           if (!ve.evaluate(new ColumnVisibility(cv)))
             return Collections.singletonList(Short.valueOf((short) 2));
 
-        } catch (BadArgumentException bae) {
-          return Collections.singletonList(Short.valueOf((short) 1));
-        } catch (VisibilityParseException e) {
+        } catch (BadArgumentException | VisibilityParseException bae) {
           return Collections.singletonList(Short.valueOf((short) 1));
         }
 

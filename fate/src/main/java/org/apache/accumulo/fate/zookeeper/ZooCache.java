@@ -389,9 +389,7 @@ public class ZooCache {
             try {
               data = zooKeeper.getData(zPath, watcher, stat);
               zstat = new ZcStat(stat);
-            } catch (KeeperException.BadVersionException e1) {
-              throw new ConcurrentModificationException();
-            } catch (KeeperException.NoNodeException e2) {
+            } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
               throw new ConcurrentModificationException();
             }
             if (log.isTraceEnabled()) {

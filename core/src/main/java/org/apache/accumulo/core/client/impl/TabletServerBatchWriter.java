@@ -714,11 +714,7 @@ public class TabletServerBatchWriter {
         failedMutations.add(mutationsToProcess);
       } catch (AccumuloSecurityException e) {
         updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(tableId, null, null), SecurityErrorCode.valueOf(e.getSecurityErrorCode().name())));
-      } catch (TableDeletedException e) {
-        updateUnknownErrors(e.getMessage(), e);
-      } catch (TableOfflineException e) {
-        updateUnknownErrors(e.getMessage(), e);
-      } catch (TableNotFoundException e) {
+      } catch (TableDeletedException | TableNotFoundException | TableOfflineException e) {
         updateUnknownErrors(e.getMessage(), e);
       }
 
@@ -1001,8 +997,6 @@ public class TabletServerBatchWriter {
       } catch (ThriftSecurityException e) {
         updateAuthorizationFailures(tabMuts.keySet(), e.code);
         throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (NoSuchScanIDException e) {
-        throw new IOException(e);
       } catch (TException e) {
         throw new IOException(e);
       }

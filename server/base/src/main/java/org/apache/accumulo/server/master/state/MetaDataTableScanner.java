@@ -189,9 +189,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     try {
       Entry<Key,Value> e = iter.next();
       return createTabletLocationState(e.getKey(), e.getValue());
-    } catch (IOException ex) {
-      throw new RuntimeException(ex);
-    } catch (BadLocationStateException ex) {
+    } catch (IOException | BadLocationStateException ex) {
       throw new RuntimeException(ex);
     }
   }

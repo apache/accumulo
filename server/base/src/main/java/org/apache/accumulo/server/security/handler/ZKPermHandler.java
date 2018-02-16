@@ -401,10 +401,7 @@ public class ZKPermHandler implements PermissionHandler {
         createTablePerm(rootuser, entry.getKey(), entry.getValue());
       for (Entry<Namespace.ID,Set<NamespacePermission>> entry : namespacePerms.entrySet())
         createNamespacePerm(rootuser, entry.getKey(), entry.getValue());
-    } catch (KeeperException e) {
-      log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
+    } catch (KeeperException | InterruptedException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }

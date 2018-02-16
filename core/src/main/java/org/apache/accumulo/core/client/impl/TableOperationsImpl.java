@@ -802,10 +802,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<>();
     try {
       doFateOperation(FateOperation.TABLE_COMPACT, args, opts, tableName, config.getWait());
-    } catch (TableExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    } catch (NamespaceExistsException e) {
+    } catch (TableExistsException | NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
     } catch (NamespaceNotFoundException e) {

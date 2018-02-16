@@ -282,13 +282,7 @@ public class IteratorUtil {
         skvi.init(prev, options, env);
         prev = skvi;
       }
-    } catch (ClassNotFoundException e) {
-      log.error(e.toString());
-      throw new RuntimeException(e);
-    } catch (InstantiationException e) {
-      log.error(e.toString());
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
+    } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
       log.error(e.toString());
       throw new RuntimeException(e);
     }

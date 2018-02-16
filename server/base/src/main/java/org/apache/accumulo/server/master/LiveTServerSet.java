@@ -270,10 +270,8 @@ public class LiveTServerSet implements Watcher {
   private void deleteServerNode(String serverNode) throws InterruptedException, KeeperException {
     try {
       ZooReaderWriter.getInstance().delete(serverNode, -1);
-    } catch (NotEmptyException ex) {
+    } catch (NotEmptyException | NoNodeException ex) {
       // race condition: tserver created the lock after our last check; we'll see it at the next check
-    } catch (NoNodeException nne) {
-      // someone else deleted it
     }
   }
 

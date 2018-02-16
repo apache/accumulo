@@ -102,10 +102,7 @@ public class ZKAuthorizor implements Authorizor {
 
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths, ZKSecurityTool.convertAuthorizations(Authorizations.EMPTY), NodeExistsPolicy.FAIL);
-    } catch (KeeperException e) {
-      log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
+    } catch (KeeperException | InterruptedException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }

@@ -84,10 +84,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
       try {
         Key plaintextKey = cipher.unwrap(params.getEncryptedKey(), params.getKeyAlgorithmName(), Cipher.SECRET_KEY);
         params.setPlaintextKey(plaintextKey.getEncoded());
-      } catch (InvalidKeyException e) {
-        log.error("{}", e.getMessage(), e);
-        throw new RuntimeException(e);
-      } catch (NoSuchAlgorithmException e) {
+      } catch (InvalidKeyException | NoSuchAlgorithmException e) {
         log.error("{}", e.getMessage(), e);
         throw new RuntimeException(e);
       }
@@ -97,10 +94,7 @@ public class CachingHDFSSecretKeyEncryptionStrategy implements SecretKeyEncrypti
         byte[] encryptedSecretKey = cipher.wrap(plaintextKey);
         params.setEncryptedKey(encryptedSecretKey);
         params.setOpaqueKeyEncryptionKeyID(secretKeyCache.getPathToKeyName());
-      } catch (InvalidKeyException e) {
-        log.error("{}", e.getMessage(), e);
-        throw new RuntimeException(e);
-      } catch (IllegalBlockSizeException e) {
+      } catch (InvalidKeyException | IllegalBlockSizeException e) {
         log.error("{}", e.getMessage(), e);
         throw new RuntimeException(e);
       }

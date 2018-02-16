@@ -92,9 +92,6 @@ public class MetaDataStateStore extends TabletStateStore {
     try {
       return context.getConnector().createBatchWriter(targetTableName,
           new BatchWriterConfig().setMaxMemory(MAX_MEMORY).setMaxLatency(LATENCY, TimeUnit.MILLISECONDS).setMaxWriteThreads(THREADS));
-    } catch (TableNotFoundException e) {
-      // ya, I don't think so
-      throw new RuntimeException(e);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

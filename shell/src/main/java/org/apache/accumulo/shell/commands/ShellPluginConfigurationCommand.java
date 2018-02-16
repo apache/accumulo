@@ -94,9 +94,7 @@ public abstract class ShellPluginConfigurationCommand extends Command {
     Iterator<Entry<String,String>> props;
     try {
       props = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
-    } catch (AccumuloException e) {
-      return null;
-    } catch (TableNotFoundException e) {
+    } catch (AccumuloException | TableNotFoundException e) {
       return null;
     }
 

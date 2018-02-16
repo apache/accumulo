@@ -193,10 +193,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
       transport = ThriftUtil.createTransport(AddressUtil.parseAddress(tserver, false), context);
       TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
       client.getTabletServerStatus(Tracer.traceInfo(), context.rpcCreds());
-    } catch (TTransportException e) {
-      throw new AccumuloException(e);
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloException(e);
     } catch (TException e) {
       throw new AccumuloException(e);
     } finally {

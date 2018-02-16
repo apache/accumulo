@@ -834,9 +834,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       Boolean bb = ve.evaluate(new ColumnVisibility(testVis));
       cache.put(new Text(testVis), bb);
       return bb;
-    } catch (VisibilityParseException e) {
-      return false;
-    } catch (BadArgumentException e) {
+    } catch (VisibilityParseException | BadArgumentException e) {
       return false;
     }
   }

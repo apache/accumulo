@@ -210,9 +210,7 @@ public class SetIterCommand extends Command {
         msg.append("; class not found.");
       }
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, msg.toString());
-    } catch (InstantiationException e) {
-      throw new IllegalArgumentException(e.getMessage());
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | IllegalAccessException e) {
       throw new IllegalArgumentException(e.getMessage());
     } catch (ClassCastException e) {
       StringBuilder msg = new StringBuilder(50);

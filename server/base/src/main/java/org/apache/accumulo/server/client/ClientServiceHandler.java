@@ -345,16 +345,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       Class test = AccumuloVFSClassLoader.loadClass(className, shouldMatch);
       test.newInstance();
       return true;
-    } catch (ClassCastException e) {
-      log.warn("Error checking object types", e);
-      return false;
-    } catch (ClassNotFoundException e) {
-      log.warn("Error checking object types", e);
-      return false;
-    } catch (InstantiationException e) {
-      log.warn("Error checking object types", e);
-      return false;
-    } catch (IllegalAccessException e) {
+    } catch (ClassCastException | IllegalAccessException | InstantiationException | ClassNotFoundException e) {
       log.warn("Error checking object types", e);
       return false;
     }
@@ -452,11 +443,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
-    } catch (AccumuloException e) {
-      throw new TException(e);
-    } catch (IOException e) {
-      throw new TException(e);
-    } catch (TableNotFoundException e) {
+    } catch (AccumuloException | TableNotFoundException | IOException e) {
       throw new TException(e);
     }
   }

@@ -479,9 +479,7 @@ public class BulkImporter {
       try {
         List<KeyExtent> failures = assignMapFiles(context, location, assignmentsPerTablet);
         handleFailures(failures, "Not Serving Tablet");
-      } catch (AccumuloException e) {
-        handleFailures(assignmentsPerTablet.keySet(), e.getMessage());
-      } catch (AccumuloSecurityException e) {
+      } catch (AccumuloException | AccumuloSecurityException e) {
         handleFailures(assignmentsPerTablet.keySet(), e.getMessage());
       }
     }

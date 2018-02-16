@@ -978,9 +978,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
               us.walogTimes.addStat(t2 - t1);
               updateWalogWriteTime((t2 - t1));
               break;
-            } catch (IOException ex) {
-              log.warn("logging mutations failed, retrying");
-            } catch (FSError ex) { // happens when DFS is localFS
+            } catch (IOException | FSError ex) {
               log.warn("logging mutations failed, retrying");
             } catch (Throwable t) {
               log.error("Unknown exception logging mutations, counts for mutations in flight not decremented!", t);
@@ -1267,9 +1265,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             long t2 = System.currentTimeMillis();
             updateWalogWriteTime(t2 - t1);
             break;
-          } catch (IOException ex) {
-            log.warn("logging mutations failed, retrying");
-          } catch (FSError ex) { // happens when DFS is localFS
+          } catch (IOException | FSError ex) {
             log.warn("logging mutations failed, retrying");
           } catch (Throwable t) {
             log.error("Unknown exception logging mutations, counts for mutations in flight not decremented!", t);

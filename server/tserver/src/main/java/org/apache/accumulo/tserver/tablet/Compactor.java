@@ -243,10 +243,7 @@ public class Compactor implements Callable<CompactionStats> {
 
       majCStats.setFileSize(mfwTmp.getLength());
       return majCStats;
-    } catch (IOException e) {
-      log.error("{}", e.getMessage(), e);
-      throw e;
-    } catch (RuntimeException e) {
+    } catch (IOException | RuntimeException e) {
       log.error("{}", e.getMessage(), e);
       throw e;
     } finally {
@@ -267,10 +264,8 @@ public class Compactor implements Callable<CompactionStats> {
                 log.error("Unable to delete {}", outputFile);
           }
         }
-      } catch (IOException e) {
+      } catch (IOException | RuntimeException e) {
         log.warn("{}", e.getMessage(), e);
-      } catch (RuntimeException exception) {
-        log.warn("{}", exception.getMessage(), exception);
       }
     }
   }

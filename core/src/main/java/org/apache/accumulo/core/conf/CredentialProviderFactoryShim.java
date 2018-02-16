@@ -98,10 +98,7 @@ public class CredentialProviderFactoryShim {
     // Load Hadoop CredentialProviderFactory.getProviders(Configuration)
     try {
       getProvidersMethod = hadoopCredProviderFactoryClz.getMethod(HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, Configuration.class);
-    } catch (SecurityException e) {
-      log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, e);
-      return false;
-    } catch (NoSuchMethodException e) {
+    } catch (SecurityException | NoSuchMethodException e) {
       log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, e);
       return false;
     }
@@ -109,10 +106,7 @@ public class CredentialProviderFactoryShim {
     // Instantiate Hadoop CredentialProviderFactory
     try {
       hadoopCredProviderFactory = hadoopCredProviderFactoryClz.newInstance();
-    } catch (InstantiationException e) {
-      log.trace("Could not instantiate class {}", HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, e);
-      return false;
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | IllegalAccessException e) {
       log.trace("Could not instantiate class {}", HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, e);
       return false;
     }
@@ -129,10 +123,7 @@ public class CredentialProviderFactoryShim {
     // Load Hadoop CredentialProvider.getCredentialEntry(String)
     try {
       getCredentialEntryMethod = hadoopCredProviderClz.getMethod(HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME, String.class);
-    } catch (SecurityException e) {
-      log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
-      return false;
-    } catch (NoSuchMethodException e) {
+    } catch (SecurityException | NoSuchMethodException e) {
       log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_GET_CREDENTIAL_ENTRY_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
       return false;
     }
@@ -140,10 +131,7 @@ public class CredentialProviderFactoryShim {
     // Load Hadoop CredentialProvider.getAliases()
     try {
       getAliasesMethod = hadoopCredProviderClz.getMethod(HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME);
-    } catch (SecurityException e) {
-      log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
-      return false;
-    } catch (NoSuchMethodException e) {
+    } catch (SecurityException | NoSuchMethodException e) {
       log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
       return false;
     }
@@ -151,10 +139,7 @@ public class CredentialProviderFactoryShim {
     // Load Hadoop CredentialProvider.createCredentialEntry(String, char[])
     try {
       createCredentialEntryMethod = hadoopCredProviderClz.getMethod(HADOOP_CRED_PROVIDER_CREATE_CREDENTIAL_ENTRY_METHOD_NAME, String.class, char[].class);
-    } catch (SecurityException e) {
-      log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_CREATE_CREDENTIAL_ENTRY_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
-      return false;
-    } catch (NoSuchMethodException e) {
+    } catch (SecurityException | NoSuchMethodException e) {
       log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_CREATE_CREDENTIAL_ENTRY_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
       return false;
     }
@@ -162,10 +147,7 @@ public class CredentialProviderFactoryShim {
     // Load Hadoop CredentialProvider.flush()
     try {
       flushMethod = hadoopCredProviderClz.getMethod(HADOOP_CRED_PROVIDER_FLUSH_METHOD_NAME);
-    } catch (SecurityException e) {
-      log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_FLUSH_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
-      return false;
-    } catch (NoSuchMethodException e) {
+    } catch (SecurityException | NoSuchMethodException e) {
       log.trace("Could not find {} method on {}", HADOOP_CRED_PROVIDER_FLUSH_METHOD_NAME, HADOOP_CRED_PROVIDER_CLASS_NAME, e);
       return false;
     }
@@ -182,10 +164,7 @@ public class CredentialProviderFactoryShim {
     // Load Hadoop CredentialEntry.getCredential()
     try {
       getCredentialMethod = hadoopCredentialEntryClz.getMethod(HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME);
-    } catch (SecurityException e) {
-      log.trace("Could not find {} method on {}", HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME, HADOOP_CRED_ENTRY_CLASS_NAME, e);
-      return false;
-    } catch (NoSuchMethodException e) {
+    } catch (SecurityException | NoSuchMethodException e) {
       log.trace("Could not find {} method on {}", HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME, HADOOP_CRED_ENTRY_CLASS_NAME, e);
       return false;
     }
@@ -218,13 +197,7 @@ public class CredentialProviderFactoryShim {
     Object providersObj = null;
     try {
       providersObj = getProvidersMethod.invoke(hadoopCredProviderFactory, conf);
-    } catch (IllegalArgumentException e) {
-      log.warn("Could not invoke {}.{}", HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, e);
-      return null;
-    } catch (IllegalAccessException e) {
-      log.warn("Could not invoke {}.{}", HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, e);
-      return null;
-    } catch (InvocationTargetException e) {
+    } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
       log.warn("Could not invoke {}.{}", HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME, e);
       return null;
     }
@@ -264,13 +237,7 @@ public class CredentialProviderFactoryShim {
         Object credential = getCredentialMethod.invoke(credEntryObj);
 
         return (char[]) credential;
-      } catch (IllegalArgumentException e) {
-        log.warn("Failed to get credential for {} from {}", alias, providerObj, e);
-        continue;
-      } catch (IllegalAccessException e) {
-        log.warn("Failed to get credential for {} from {}", alias, providerObj, e);
-        continue;
-      } catch (InvocationTargetException e) {
+      } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
         log.warn("Failed to get credential for {} from {}", alias, providerObj, e);
         continue;
       }
@@ -307,13 +274,7 @@ public class CredentialProviderFactoryShim {
             }
           }
 
-        } catch (IllegalArgumentException e) {
-          log.warn("Failed to invoke {} on {}", HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME, providerObj, e);
-          continue;
-        } catch (IllegalAccessException e) {
-          log.warn("Failed to invoke {} on {}", HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME, providerObj, e);
-          continue;
-        } catch (InvocationTargetException e) {
+        } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
           log.warn("Failed to invoke {} on {}", HADOOP_CRED_PROVIDER_GET_ALIASES_METHOD_NAME, providerObj, e);
           continue;
         }
@@ -452,21 +413,14 @@ public class CredentialProviderFactoryShim {
     } catch (IllegalArgumentException e) {
       log.warn("Failed to invoke createCredentialEntry method on CredentialProvider", e);
       return;
-    } catch (IllegalAccessException e) {
-      log.warn("Failed to invoke createCredentialEntry method", e);
-      return;
-    } catch (InvocationTargetException e) {
+    } catch (IllegalAccessException | InvocationTargetException e) {
       log.warn("Failed to invoke createCredentialEntry method", e);
       return;
     }
 
     try {
       flushMethod.invoke(credentialProvider);
-    } catch (IllegalArgumentException e) {
-      log.warn("Failed to invoke flush method on CredentialProvider", e);
-    } catch (IllegalAccessException e) {
-      log.warn("Failed to invoke flush method on CredentialProvider", e);
-    } catch (InvocationTargetException e) {
+    } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
       log.warn("Failed to invoke flush method on CredentialProvider", e);
     }
   }

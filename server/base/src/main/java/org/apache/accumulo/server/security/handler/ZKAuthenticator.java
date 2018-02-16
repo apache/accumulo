@@ -78,13 +78,7 @@ public final class ZKAuthenticator implements Authenticator {
 
         constructUser(principal, ZKSecurityTool.createPass(token));
       }
-    } catch (KeeperException e) {
-      log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
-      log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
-    } catch (AccumuloException e) {
+    } catch (KeeperException | AccumuloException | InterruptedException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
