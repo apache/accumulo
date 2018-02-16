@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -32,7 +33,6 @@ import org.junit.Test;
 
 public class FirstEntryInRowIteratorTest {
 
-  @SuppressWarnings("unchecked")
   private static long process(TreeMap<Key,Value> sourceMap, TreeMap<Key,Value> resultMap, Range range, int numScans) throws IOException {
     org.apache.accumulo.core.iterators.SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);
@@ -41,7 +41,7 @@ public class FirstEntryInRowIteratorTest {
 
     feiri.init(counter, Collections.singletonMap(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME, Integer.toString(numScans)), env);
 
-    feiri.seek(range, Collections.EMPTY_SET, false);
+    feiri.seek(range, Collections.<ByteSequence> emptySet(), false);
     while (feiri.hasTop()) {
       resultMap.put(feiri.getTopKey(), feiri.getTopValue());
       feiri.next();
