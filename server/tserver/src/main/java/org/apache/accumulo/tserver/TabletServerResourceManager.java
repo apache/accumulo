@@ -143,7 +143,7 @@ public class TabletServerResourceManager {
   }
 
   private ExecutorService createEs(Property max, String name) {
-    return createEs(max, name, new LinkedBlockingQueue<Runnable>());
+    return createEs(max, name, new LinkedBlockingQueue<>());
   }
 
   private ExecutorService createIdlingEs(Property max, String name, long timeout, TimeUnit timeUnit) {
@@ -161,7 +161,7 @@ public class TabletServerResourceManager {
   }
 
   private ExecutorService createEs(int min, int max, int timeout, String name) {
-    return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name)));
+    return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), new NamingThreadFactory(name)));
   }
 
   public TabletServerResourceManager(TabletServer tserver, VolumeManager fs) {

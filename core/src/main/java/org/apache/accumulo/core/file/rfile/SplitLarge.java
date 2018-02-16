@@ -74,7 +74,7 @@ public class SplitLarge {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();
 
-          iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
+          iter.seek(new Range(), new ArrayList<>(), false);
           while (iter.hasTop()) {
             Key key = iter.getTopKey();
             Value value = iter.getTopValue();

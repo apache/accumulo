@@ -326,7 +326,7 @@ public class InputTableConfig implements Writable {
       Text colFam = new Text();
       colFam.readFields(dataInput);
       if (numPairs == 1) {
-        columns.add(new Pair<Text,Text>(colFam, null));
+        columns.add(new Pair<>(colFam, null));
       } else if (numPairs == 2) {
         Text colQual = new Text();
         colQual.readFields(dataInput);

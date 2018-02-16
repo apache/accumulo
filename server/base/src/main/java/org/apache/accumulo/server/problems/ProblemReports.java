@@ -70,7 +70,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
    * make the thread pool use a bounded queue to avoid the case where problem reports are not being processed because the whole system is in a really bad state
    * (like HDFS is down) and everything is reporting lots of problems, but problem reports can not be processed
    */
-  private ExecutorService reportExecutor = new ThreadPoolExecutor(0, 1, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(500), new NamingThreadFactory(
+  private ExecutorService reportExecutor = new ThreadPoolExecutor(0, 1, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<>(500), new NamingThreadFactory(
       "acu-problem-reporter"));
 
   private final AccumuloServerContext context;

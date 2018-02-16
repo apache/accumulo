@@ -176,7 +176,7 @@ public class AccumuloInputFormatTest {
   public void testEmptyColumnFamily() throws IOException {
     Job job = Job.getInstance();
     Set<Pair<Text,Text>> cols = new HashSet<>();
-    cols.add(new Pair<Text,Text>(new Text(""), null));
+    cols.add(new Pair<>(new Text(""), null));
     cols.add(new Pair<>(new Text("foo"), new Text("bar")));
     cols.add(new Pair<>(new Text(""), new Text("bar")));
     cols.add(new Pair<>(new Text(""), new Text("")));

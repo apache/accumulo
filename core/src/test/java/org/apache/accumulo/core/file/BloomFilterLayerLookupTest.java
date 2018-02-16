@@ -140,7 +140,7 @@ public class BloomFilterLayerLookupTest {
     String fi = String.format("%010d", row);
     // bmfr.seek(new Range(new Text("r"+fi)));
     Key k1 = new Key(new Text("r" + fi), new Text("cf1"));
-    bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false), new ArrayList<ByteSequence>(), false);
+    bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false), new ArrayList<>(), false);
   }
 
 }

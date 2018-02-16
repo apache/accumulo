@@ -127,7 +127,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   }
 
   private void addSplits(final String table, Connector c, String... splits) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    c.tableOperations().addSplits(table, new TreeSet<Text>(Lists.transform(Arrays.asList(splits), Text::new)));
+    c.tableOperations().addSplits(table, new TreeSet<>(Lists.transform(Arrays.asList(splits), Text::new)));
   }
 
   @Test

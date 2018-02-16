@@ -30,7 +30,7 @@ public class SortedMapIteratorTest {
 
   @Test(expected = SampleNotPresentException.class)
   public void testSampleNotPresent() {
-    SortedMapIterator smi = new SortedMapIterator(new TreeMap<Key,Value>());
+    SortedMapIterator smi = new SortedMapIterator(new TreeMap<>());
     smi.deepCopy(new BaseIteratorEnvironment() {
       @Override
       public boolean isSamplingEnabled() {

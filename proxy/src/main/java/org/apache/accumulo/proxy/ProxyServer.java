@@ -649,7 +649,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       Map<String,Set<Text>> groups = new HashMap<>();
       for (Entry<String,Set<String>> groupEntry : groupStrings.entrySet()) {
-        groups.put(groupEntry.getKey(), new HashSet<Text>());
+        groups.put(groupEntry.getKey(), new HashSet<>());
         for (String val : groupEntry.getValue()) {
           groups.get(groupEntry.getKey()).add(new Text(val));
         }
@@ -1194,7 +1194,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     // synchronized to prevent race conditions
     synchronized (batchScanner) {
       ScanResult ret = new ScanResult();
-      ret.setResults(new ArrayList<KeyValue>());
+      ret.setResults(new ArrayList<>());
       int numRead = 0;
       try {
         while (batchScanner.hasNext() && numRead < k) {

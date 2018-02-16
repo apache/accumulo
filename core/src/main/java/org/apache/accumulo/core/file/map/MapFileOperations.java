@@ -140,7 +140,7 @@ public class MapFileOperations extends FileOperations {
     FileSKVIterator iter = new RangeIterator(new MapFileIterator(options.getTableConfiguration(), options.getFileSystem(), options.getFilename(),
         options.getConfiguration()));
     if (options.isSeekToBeginning()) {
-      iter.seek(new Range(new Key(), null), new ArrayList<ByteSequence>(), false);
+      iter.seek(new Range(new Key(), null), new ArrayList<>(), false);
     }
     return iter;
   }

@@ -667,7 +667,7 @@ public class TabletServerBatchWriter {
       queued = new HashSet<>();
       sendThreadPool = new SimpleThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<>();
-      binningThreadPool = new SimpleThreadPool(1, "BinMutations", new SynchronousQueue<Runnable>());
+      binningThreadPool = new SimpleThreadPool(1, "BinMutations", new SynchronousQueue<>());
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 

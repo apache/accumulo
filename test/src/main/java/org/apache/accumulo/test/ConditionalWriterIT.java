@@ -431,7 +431,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     conn.tableOperations().create(tableName);
     conn.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
-    conn.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<String,String>(), new HashSet<String>());
+    conn.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<>(), new HashSet<>());
 
     try (ConditionalWriter cw = conn.createConditionalWriter(tableName + "_clone", new ConditionalWriterConfig());
         Scanner scanner = conn.createScanner(tableName + "_clone", new Authorizations())) {
@@ -863,7 +863,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     conn.tableOperations().create(tableName);
     conn.tableOperations().addConstraint(tableName, AlphaNumKeyConstraint.class.getName());
-    conn.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<String,String>(), new HashSet<String>());
+    conn.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<>(), new HashSet<>());
 
     conn.securityOperations().changeUserAuthorizations(getAdminPrincipal(), new Authorizations("A", "B"));
 

@@ -92,7 +92,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     expect(mockInst.getInstanceID()).andReturn(testName.getMethodName()).anyTimes();
     expect(mockInst.getZooKeepers()).andReturn("localhost").anyTimes();
     expect(mockInst.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
-    final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<String,String>());
+    final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<>());
     ServerConfigurationFactory factory = createMock(ServerConfigurationFactory.class);
     expect(factory.getSystemConfiguration()).andReturn(systemConf).anyTimes();
     expect(factory.getSiteConfiguration()).andReturn(siteConfig).anyTimes();

@@ -181,8 +181,8 @@ public class MasterMetadataUtil {
           }
         }
 
-        MetadataTableUtil.splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), origDatafileSizes, lowDatafileSizes,
-            highDatafileSizes, highDatafilesToRemove);
+        MetadataTableUtil.splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<>(), origDatafileSizes, lowDatafileSizes, highDatafileSizes,
+            highDatafilesToRemove);
 
         MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove, context, lock);
 

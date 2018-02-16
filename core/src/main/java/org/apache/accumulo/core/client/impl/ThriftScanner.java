@@ -79,7 +79,7 @@ public class ThriftScanner {
 
   static {
     for (TabletType ttype : TabletType.values()) {
-      serversWaitedForWrites.put(ttype, Collections.synchronizedSet(new HashSet<String>()));
+      serversWaitedForWrites.put(ttype, Collections.synchronizedSet(new HashSet<>()));
     }
   }
 

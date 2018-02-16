@@ -756,7 +756,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException {
-    compact(tableName, start, end, new ArrayList<IteratorSetting>(), flush, wait);
+    compact(tableName, start, end, new ArrayList<>(), flush, wait);
   }
 
   @Override

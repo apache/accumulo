@@ -109,7 +109,7 @@ public class CredentialProviderFactoryShimTest {
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, absPath);
 
-    checkCredentialProviders(conf, new HashMap<String,String>());
+    checkCredentialProviders(conf, new HashMap<>());
   }
 
   @Test

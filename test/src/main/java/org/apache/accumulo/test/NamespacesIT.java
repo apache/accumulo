@@ -1131,7 +1131,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 1:
-            ops.addSplits(tableName, new TreeSet<Text>());
+            ops.addSplits(tableName, new TreeSet<>());
             fail();
             break;
           case 2:

@@ -73,7 +73,7 @@ public class MutationsRejectedException extends AccumuloException {
       String tableInfo = Tables.getPrintableTableInfoFromId(instance, Table.ID.of(tabletId.getTableId().toString()));
 
       if (!result.containsKey(tableInfo)) {
-        result.put(tableInfo, new HashSet<SecurityErrorCode>());
+        result.put(tableInfo, new HashSet<>());
       }
 
       result.get(tableInfo).addAll(hashMap.get(tabletId));

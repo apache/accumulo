@@ -123,7 +123,7 @@ public class TestProxyNamespaceOperations {
 
   @Test
   public void namespaceIterators() throws TException {
-    IteratorSetting setting = new IteratorSetting(40, "DebugTheThings", "org.apache.accumulo.core.iterators.DebugIterator", new HashMap<String,String>());
+    IteratorSetting setting = new IteratorSetting(40, "DebugTheThings", "org.apache.accumulo.core.iterators.DebugIterator", new HashMap<>());
     Set<IteratorScope> scopes = new HashSet<>();
     scopes.add(IteratorScope.SCAN);
     tpc.proxy().attachNamespaceIterator(userpass, testnamespace, setting, scopes);
@@ -138,7 +138,7 @@ public class TestProxyNamespaceOperations {
 
   @Test(expected = AccumuloException.class)
   public void namespaceIteratorConflict() throws TException {
-    IteratorSetting setting = new IteratorSetting(40, "DebugTheThings", "org.apache.accumulo.core.iterators.DebugIterator", new HashMap<String,String>());
+    IteratorSetting setting = new IteratorSetting(40, "DebugTheThings", "org.apache.accumulo.core.iterators.DebugIterator", new HashMap<>());
     Set<IteratorScope> scopes = new HashSet<>();
     scopes.add(IteratorScope.SCAN);
     tpc.proxy().attachNamespaceIterator(userpass, testnamespace, setting, scopes);

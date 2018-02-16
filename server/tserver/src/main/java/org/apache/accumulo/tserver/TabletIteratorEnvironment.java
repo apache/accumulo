@@ -85,7 +85,7 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
 
   public TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
       Authorizations authorizations, SamplerConfigurationImpl samplerConfig) {
-    this(scope, config, trm, files, authorizations, samplerConfig, new ArrayList<SortedKeyValueIterator<Key,Value>>());
+    this(scope, config, trm, files, authorizations, samplerConfig, new ArrayList<>());
   }
 
   public TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC, AccumuloConfiguration config) {

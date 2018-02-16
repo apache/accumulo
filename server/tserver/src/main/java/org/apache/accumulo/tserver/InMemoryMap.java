@@ -311,7 +311,7 @@ public class InMemoryMap {
       partitioner = new LocalityGroupUtil.Partitioner(this.groupFams);
 
       for (int i = 0; i < partitioned.length; i++) {
-        partitioned.set(i, new ArrayList<Mutation>());
+        partitioned.set(i, new ArrayList<>());
       }
     }
 

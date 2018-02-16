@@ -422,7 +422,7 @@ public class CollectTabletStats {
       Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
       boolean useTableIterators, TableConfiguration conf) throws IOException {
 
-    SortedMapIterator smi = new SortedMapIterator(new TreeMap<Key,Value>());
+    SortedMapIterator smi = new SortedMapIterator(new TreeMap<>());
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(mapfiles.size() + 1);
 
@@ -486,7 +486,7 @@ public class CollectTabletStats {
     List<IterInfo> emptyIterinfo = Collections.emptyList();
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
     TableConfiguration tconf = aconf.getTableConfiguration(ke.getTableId());
-    reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<Column>(), emptyIterinfo, emptySsio, useTableIterators, tconf);
+    reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<>(), emptyIterinfo, emptySsio, useTableIterators, tconf);
 
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 

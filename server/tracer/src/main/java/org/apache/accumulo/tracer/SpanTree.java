@@ -35,7 +35,7 @@ public class SpanTree {
   public void addNode(RemoteSpan span) {
     nodes.put(span.spanId, span);
     if (parentChildren.get(span.parentId) == null)
-      parentChildren.put(span.parentId, new ArrayList<Long>());
+      parentChildren.put(span.parentId, new ArrayList<>());
     parentChildren.get(span.parentId).add(span.spanId);
   }
 

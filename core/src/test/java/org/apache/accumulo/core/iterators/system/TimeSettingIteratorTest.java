@@ -47,7 +47,7 @@ public class TimeSettingIteratorTest {
 
     TimeSettingIterator tsi = new TimeSettingIterator(new SortedMapIterator(tm1), 50);
 
-    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 50l), true, new Key("r1", "cf1", "cq1", 50l), true), new HashSet<ByteSequence>(), false);
+    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 50l), true, new Key("r1", "cf1", "cq1", 50l), true), new HashSet<>(), false);
 
     assertTrue(tsi.hasTop());
     assertEquals(new Key("r1", "cf1", "cq1", 50l), tsi.getTopKey());
@@ -66,7 +66,7 @@ public class TimeSettingIteratorTest {
 
     assertFalse(tsi.hasTop());
 
-    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 50l), false, null, true), new HashSet<ByteSequence>(), false);
+    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 50l), false, null, true), new HashSet<>(), false);
 
     assertTrue(tsi.hasTop());
     assertEquals(new Key("r2", "cf1", "cq1", 50l), tsi.getTopKey());
@@ -75,7 +75,7 @@ public class TimeSettingIteratorTest {
 
     assertFalse(tsi.hasTop());
 
-    tsi.seek(new Range(null, true, new Key("r1", "cf1", "cq1", 50l), false), new HashSet<ByteSequence>(), false);
+    tsi.seek(new Range(null, true, new Key("r1", "cf1", "cq1", 50l), false), new HashSet<>(), false);
 
     assertTrue(tsi.hasTop());
     assertEquals(new Key("r0", "cf1", "cq1", 50l), tsi.getTopKey());
@@ -84,7 +84,7 @@ public class TimeSettingIteratorTest {
 
     assertFalse(tsi.hasTop());
 
-    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 51l), true, new Key("r1", "cf1", "cq1", 50l), false), new HashSet<ByteSequence>(), false);
+    tsi.seek(new Range(new Key("r1", "cf1", "cq1", 51l), true, new Key("r1", "cf1", "cq1", 50l), false), new HashSet<>(), false);
     assertFalse(tsi.hasTop());
   }
 
@@ -97,7 +97,7 @@ public class TimeSettingIteratorTest {
 
     TimeSettingIterator tsi = new TimeSettingIterator(new SortedMapIterator(tm1), 50);
 
-    tsi.seek(new Range(), new HashSet<ByteSequence>(), false);
+    tsi.seek(new Range(), new HashSet<>(), false);
 
     assertTrue(tsi.hasTop());
     final Key topKey = tsi.getTopKey();
@@ -128,7 +128,7 @@ public class TimeSettingIteratorTest {
       Key startKey = new Key();
       Key endKey = new Key(row, colf, colq, cv, Long.MIN_VALUE);
       Range testRange = new Range(startKey, false, endKey, inclusiveEndRange);
-      it.seek(testRange, new HashSet<ByteSequence>(), false);
+      it.seek(testRange, new HashSet<>(), false);
 
       assertTrue(it.hasTop());
       assertTrue(it.getTopValue().equals(new Value("00".getBytes())));

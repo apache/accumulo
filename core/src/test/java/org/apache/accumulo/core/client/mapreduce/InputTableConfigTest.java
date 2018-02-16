@@ -81,7 +81,7 @@ public class InputTableConfigTest {
   public void testSerialization_columns() throws IOException {
     Set<Pair<Text,Text>> columns = new HashSet<>();
     columns.add(new Pair<>(new Text("cf1"), new Text("cq1")));
-    columns.add(new Pair<Text,Text>(new Text("cf2"), null));
+    columns.add(new Pair<>(new Text("cf2"), null));
     tableQueryConfig.fetchColumns(columns);
 
     byte[] serialized = serialize(tableQueryConfig);

@@ -291,7 +291,7 @@ public class InMemoryMapIT {
 
     List<MemKey> memKeys = new ArrayList<>();
     try {
-      skvi.seek(new Range(), new ArrayList<ByteSequence>(), false); // everything
+      skvi.seek(new Range(), new ArrayList<>(), false); // everything
       while (skvi.hasTop()) {
         memKeys.add((MemKey) skvi.getTopKey());
         skvi.next();

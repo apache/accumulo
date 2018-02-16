@@ -113,7 +113,7 @@ public class NullTserver {
 
     @Override
     public UpdateErrors closeUpdate(TInfo tinfo, long updateID) {
-      return new UpdateErrors(new HashMap<TKeyExtent,Long>(), new ArrayList<TConstraintViolationSummary>(), new HashMap<TKeyExtent,SecurityErrorCode>());
+      return new UpdateErrors(new HashMap<>(), new ArrayList<>(), new HashMap<>());
     }
 
     @Override

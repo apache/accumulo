@@ -87,7 +87,7 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
   }
 
   public SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow) {
-    this(source, onlySwitchAfterRow, new ArrayList<SourceSwitchingIterator>());
+    this(source, onlySwitchAfterRow, new ArrayList<>());
   }
 
   public SourceSwitchingIterator(DataSource source) {

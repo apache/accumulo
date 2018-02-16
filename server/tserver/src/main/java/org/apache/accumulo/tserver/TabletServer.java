@@ -810,7 +810,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = onlineTablets.get(keyExtent);
           if (us.currentTablet != null) {
-            us.queuedMutations.put(us.currentTablet, new ArrayList<Mutation>());
+            us.queuedMutations.put(us.currentTablet, new ArrayList<>());
           } else {
             // not serving tablet, so report all mutations as
             // failures
@@ -1022,7 +1022,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       } finally {
         us.queuedMutations.clear();
         if (us.currentTablet != null) {
-          us.queuedMutations.put(us.currentTablet, new ArrayList<Mutation>());
+          us.queuedMutations.put(us.currentTablet, new ArrayList<>());
         }
         updateTotalQueuedMutationSize(-us.queuedMutationSize);
         us.queuedMutationSize = 0;

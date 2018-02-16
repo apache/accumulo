@@ -96,7 +96,7 @@ import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), r -> {
+  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r -> {
     Thread t = new Thread(r, "Conditional Writer Cleanup Thread");
     t.setDaemon(true);
     return t;
