@@ -169,8 +169,7 @@ public class Accumulo {
           String procFile = "/proc/sys/vm/swappiness";
           File swappiness = new File(procFile);
           if (swappiness.exists() && swappiness.canRead()) {
-            InputStream is = new FileInputStream(procFile);
-            try {
+            try (InputStream is = new FileInputStream(procFile)) {
               byte[] buffer = new byte[10];
               int bytes = is.read(buffer);
               String setting = new String(buffer, 0, bytes, UTF_8);
@@ -179,8 +178,6 @@ public class Accumulo {
                 log.warn("System swappiness setting is greater than ten ({}) which can cause time-sensitive operations to be delayed. "
                     + " Accumulo is time sensitive because it needs to maintain distributed lock agreement.", setting);
               }
-            } finally {
-              is.close();
             }
           }
         } catch (Throwable t) {

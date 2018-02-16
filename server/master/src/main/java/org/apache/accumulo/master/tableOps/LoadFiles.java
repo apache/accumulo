@@ -198,14 +198,11 @@ class LoadFiles extends MasterRepo {
     }
 
     FSDataOutputStream failFile = fs.create(new Path(errorDir, BulkImport.FAILURES_TXT), true);
-    BufferedWriter out = new BufferedWriter(new OutputStreamWriter(failFile, UTF_8));
-    try {
+    try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(failFile, UTF_8))) {
       for (String f : filesToLoad) {
         out.write(f);
         out.write("\n");
       }
-    } finally {
-      out.close();
     }
 
     // return the next step, which will perform cleanup

@@ -89,12 +89,9 @@ public class LiveTServerSet implements Watcher {
     public void assignTablet(ZooLock lock, KeyExtent extent) throws TException {
       if (extent.isMeta()) {
         // see ACCUMULO-3597
-        TTransport transport = ThriftUtil.createTransport(address, context);
-        try {
+        try (TTransport transport = ThriftUtil.createTransport(address, context)) {
           TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
           loadTablet(client, lock, extent);
-        } finally {
-          transport.close();
         }
       } else {
         TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);

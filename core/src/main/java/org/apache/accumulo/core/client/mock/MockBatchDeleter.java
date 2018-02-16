@@ -58,8 +58,7 @@ public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
   @Override
   public void delete() throws MutationsRejectedException, TableNotFoundException {
 
-    BatchWriter writer = new MockBatchWriter(acc, tableName);
-    try {
+    try (BatchWriter writer = new MockBatchWriter(acc, tableName)) {
       Iterator<Entry<Key,Value>> iter = super.iterator();
       while (iter.hasNext()) {
         Entry<Key,Value> next = iter.next();
@@ -68,8 +67,6 @@ public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
         m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), new ColumnVisibility(k.getColumnVisibility()), k.getTimestamp());
         writer.addMutation(m);
       }
-    } finally {
-      writer.close();
     }
   }
 

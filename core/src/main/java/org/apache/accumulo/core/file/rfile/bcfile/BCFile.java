@@ -384,11 +384,8 @@ public final class BCFile {
           }
 
           // add metaBCFileIndex to metaIndex as the last meta block
-          BlockAppender appender = prepareMetaBlock(DataIndex.BLOCK_NAME, getDefaultCompressionAlgorithm());
-          try {
+          try (BlockAppender appender = prepareMetaBlock(DataIndex.BLOCK_NAME, getDefaultCompressionAlgorithm())) {
             dataIndex.write(appender);
-          } finally {
-            appender.close();
           }
 
           long offsetIndexMeta = out.position();
@@ -868,11 +865,8 @@ public final class BCFile {
       }
 
       // read data:BCFile.index, the data block index
-      BlockReader blockR = getMetaBlock(DataIndex.BLOCK_NAME);
-      try {
+      try (BlockReader blockR = getMetaBlock(DataIndex.BLOCK_NAME)) {
         dataIndex = new DataIndex(blockR);
-      } finally {
-        blockR.close();
       }
     }
 

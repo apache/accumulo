@@ -47,8 +47,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
     String tableName = getUniqueNames(1)[0];
     Connector conn = getCluster().getConnector("root", new PasswordToken(ROOT_PASSWORD));
     conn.tableOperations().create(tableName);
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
-    try {
+    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
       Random r = new Random();
       while (bytesWritten < BYTES_TO_WRITE) {
         byte[] rowKey = new byte[32];
@@ -66,8 +65,6 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
 
         bytesWritten += rowKey.length + qual.length + value.length;
       }
-    } finally {
-      bw.close();
     }
 
     conn.tableOperations().flush(tableName, null, null, true);

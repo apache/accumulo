@@ -43,17 +43,14 @@ public class ShellUtil {
    */
   public static List<Text> scanFile(String filename, boolean decode) throws FileNotFoundException {
     String line;
-    Scanner file = new Scanner(new File(filename), UTF_8.name());
     List<Text> result = new ArrayList<>();
-    try {
+    try (Scanner file = new Scanner(new File(filename), UTF_8.name())) {
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {
           result.add(decode ? new Text(Base64.getDecoder().decode(line)) : new Text(line));
         }
       }
-    } finally {
-      file.close();
     }
     return result;
   }
