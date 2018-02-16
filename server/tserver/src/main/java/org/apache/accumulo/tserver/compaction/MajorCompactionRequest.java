@@ -103,8 +103,8 @@ public class MajorCompactionRequest implements Cloneable {
    *
    * <p>
    * This method can only be called from {@link CompactionStrategy#gatherInformation(MajorCompactionRequest)}. Unfortunately, {@code gatherInformation()} is not
-   * called before {@link CompactionStrategy#shouldCompact(MajorCompactionRequest)}. Therefore {@code shouldCompact()) should just return true when a compactions strategy
-   * wants to use summary information.
+   * called before {@link CompactionStrategy#shouldCompact(MajorCompactionRequest)}. Therefore {@code shouldCompact()} should just return true when a
+   * compactions strategy wants to use summary information.
    *
    * <p>
    * When using summaries to make compaction decisions, its important to ensure that all summary data fits in the tablet server summary cache. The size of this
