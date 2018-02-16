@@ -66,7 +66,7 @@
         <groupId>org.asciidoctor</groupId>
         <artifactId>asciidoctor-maven-plugin</artifactId>
         <configuration>
-          <backend>html</backend>
+          <backend>html5</backend>
           <doctype>book</doctype>
           <embedAssets>true</embedAssets>
           <imagesDir>${project.build.directory}/asciidoc/images</imagesDir>

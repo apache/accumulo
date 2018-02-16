@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>18</version>
+    <version>19</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -76,22 +76,15 @@
       <archive>https://lists.apache.org/list.html?notifications@accumulo.apache.org</archive>
     </mailingList>
   </mailingLists>
-  <prerequisites>
-    <maven>${maven.min-version}</maven>
-  </prerequisites>
   <modules>
-    <module>trace</module>
-    <module>core</module>
-    <module>shell</module>
-    <module>fate</module>
-    <module>start</module>
-    <module>examples/simple</module>
     <module>assemble</module>
-    <module>proxy</module>
-    <module>test</module>
-    <module>minicluster</module>
+    <module>core</module>
     <module>docs</module>
+    <module>examples/simple</module>
+    <module>fate</module>
     <module>maven-plugin</module>
+    <module>minicluster</module>
+    <module>proxy</module>
     <module>server/base</module>
     <module>server/gc</module>
     <module>server/master</module>
@@ -99,6 +92,10 @@
     <module>server/native</module>
     <module>server/tracer</module>
     <module>server/tserver</module>
+    <module>shell</module>
+    <module>start</module>
+    <module>test</module>
+    <module>trace</module>
   </modules>
   <scm>
     <connection>scm:git:https://gitbox.apache.org/repos/asf/accumulo.git</connection>
@@ -112,22 +109,20 @@
   </issueManagement>
   <ciManagement>
     <system>Apache Jenkins</system>
-    <url>https://builds.apache.org/view/A-D/view/Accumulo/</url>
+    <url>https://builds.apache.org/view/A/view/Accumulo/</url>
   </ciManagement>
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
-    <assembly.tarLongFileMode>posix</assembly.tarLongFileMode>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.50</bouncycastle.version>
+    <bouncycastle.version>1.59</bouncycastle.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <!-- extra release args for testing -->
     <extraReleaseArgs />
     <failsafe.excludedGroups />
     <failsafe.groups />
-    <!-- findbugs-maven-plugin won't work on jdk8 or later; set to 3.0.0 or newer -->
-    <findbugs.version>3.0.3</findbugs.version>
+    <findbugs.version>3.0.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
     <!-- overwritten in hadoop profiles -->
@@ -138,11 +133,10 @@
     <jetty.version>9.1.5.v20140505</jetty.version>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
-    <!-- the maven-release-plugin makes this recommendation, due to plugin bugs -->
-    <maven.min-version>3.0.5</maven.min-version>
+    <maven.plugin-version>3.0.5</maven.plugin-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>1.6.4</powermock.version>
+    <powermock.version>1.6.6</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <sealJars>false</sealJars>
@@ -407,22 +401,22 @@
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-artifact</artifactId>
-        <version>${maven.min-version}</version>
+        <version>${maven.plugin-version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-core</artifactId>
-        <version>${maven.min-version}</version>
+        <version>${maven.plugin-version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-model</artifactId>
-        <version>${maven.min-version}</version>
+        <version>${maven.plugin-version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-plugin-api</artifactId>
-        <version>${maven.min-version}</version>
+        <version>${maven.plugin-version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven.plugin-tools</groupId>
@@ -538,12 +532,12 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.2</version>
+          <version>2.5</version>
         </plugin>
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
-          <version>1.4.0</version>
+          <version>1.6.0</version>
           <configuration>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
@@ -563,11 +557,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>2.17</version>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
+          <!-- version 2.4.0 is the last version which supports Java 7 -->
           <version>2.4.0</version>
           <configuration>
             <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
@@ -583,7 +578,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>0.7.2</version>
+          <version>0.8.2</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -596,7 +591,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-changes-plugin</artifactId>
-          <version>2.12</version>
+          <version>2.12.1</version>
           <configuration>
             <issueManagementSystems>
               <issueManagementSystem>JIRA</issueManagementSystem>
@@ -706,12 +701,12 @@
         <plugin>
           <groupId>org.asciidoctor</groupId>
           <artifactId>asciidoctor-maven-plugin</artifactId>
-          <version>1.5.2</version>
+          <version>1.5.6</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.9.1</version>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -731,9 +726,10 @@
           </configuration>
         </plugin>
         <plugin>
+          <!-- version 1.6.0 is broken; see https://github.com/mojohaus/exec-maven-plugin/issues/75 -->
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>1.4.0</version>
+          <version>1.5.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -744,7 +740,7 @@
                 <version>[${maven.compiler.target},)</version>
               </requireJavaVersion>
               <requireMavenVersion>
-                <version>[${maven.min-version},)</version>
+                <version>[3.0.5,)</version>
               </requireMavenVersion>
               <requireProperty>
                 <property>hadoop.profile</property>
@@ -764,7 +760,7 @@
             <dependency>
               <groupId>org.codehaus.mojo</groupId>
               <artifactId>animal-sniffer-enforcer-rule</artifactId>
-              <version>1.15</version>
+              <version>1.16</version>
             </dependency>
           </dependencies>
         </plugin>
@@ -772,12 +768,12 @@
           <!-- Allows us to get the apache-ds bundle artifacts -->
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>2.5.3</version>
+          <version>3.5.0</version>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>apilyzer-maven-plugin</artifactId>
-          <version>1.0.1</version>
+          <version>1.2.0</version>
         </plugin>
         <plugin>
           <groupId>com.googlecode.maven-java-formatter-plugin</groupId>
@@ -823,9 +819,10 @@
           </configuration>
         </plugin>
         <plugin>
+          <!-- this plugin requires java 1.8 and should only be used in a jdk8 profile -->
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.0.0</version>
+          <version>1.0.1</version>
           <configuration>
             <groups>java.,javax.,org.,com.</groups>
             <excludes>
@@ -999,9 +996,10 @@
         </configuration>
         <dependencies>
           <dependency>
+            <!-- this is the last version which supports java 7 -->
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>6.14.1</version>
+            <version>6.19</version>
           </dependency>
         </dependencies>
         <executions>

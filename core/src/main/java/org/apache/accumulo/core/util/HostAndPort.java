@@ -56,8 +56,6 @@ import com.google.common.base.Strings;
  * Note that this is not an exhaustive list, because these methods are only concerned with brackets, colons, and port numbers. Full validation of the host field
  * (if desired) is the caller's responsibility.
  *
- * @author Paul Marks
- * @since 10.0
  */
 
 public final class HostAndPort implements Serializable {
