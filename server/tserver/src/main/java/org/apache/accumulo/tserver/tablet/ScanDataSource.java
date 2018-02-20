@@ -194,9 +194,11 @@ class ScanDataSource implements DataSource {
 
       ParsedIteratorConfig pic = tablet.getTableConfiguration().getParsedIteratorConfig(IteratorScope.scan);
       if (options.getSsiList().size() == 0 && options.getSsio().size() == 0) {
+        // No scan time iterator options were set, so can just use the pre-parsed table iterator options.
         iterInfos = pic.getIterInfo();
         iterOpts = pic.getOpts();
       } else {
+        // Scan time iterator options were set, so need to merge those with pre-parsed table iterator options.
         iterOpts = new HashMap<>(pic.getOpts().size() + options.getSsio().size());
         iterInfos = new ArrayList<>(pic.getIterInfo().size() + options.getSsiList().size());
         IteratorUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(), options.getSsiList(), options.getSsio());
