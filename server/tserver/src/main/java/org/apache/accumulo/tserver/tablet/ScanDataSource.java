@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
@@ -186,12 +188,30 @@ class ScanDataSource implements DataSource {
 
     if (!loadIters) {
       return visFilter;
-    } else if (null == options.getClassLoaderContext()) {
-      return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
-          options.getSsiList(), options.getSsio(), iterEnv));
     } else {
-      return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, visFilter, tablet.getExtent(), tablet.getTableConfiguration(),
-          options.getSsiList(), options.getSsio(), iterEnv, true, options.getClassLoaderContext()));
+      List<IterInfo> iterInfos;
+      Map<String,Map<String,String>> iterOpts;
+
+      ParsedIteratorConfig pic = tablet.getTableConfiguration().getParsedIteratorConfig(IteratorScope.scan);
+      if (options.getSsiList().size() == 0 && options.getSsio().size() == 0) {
+        // No scan time iterator options were set, so can just use the pre-parsed table iterator options.
+        iterInfos = pic.getIterInfo();
+        iterOpts = pic.getOpts();
+      } else {
+        // Scan time iterator options were set, so need to merge those with pre-parsed table iterator options.
+        iterOpts = new HashMap<>(pic.getOpts().size() + options.getSsio().size());
+        iterInfos = new ArrayList<>(pic.getIterInfo().size() + options.getSsiList().size());
+        IteratorUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(), options.getSsiList(), options.getSsio());
+      }
+
+      String context;
+      if (options.getClassLoaderContext() != null) {
+        context = options.getClassLoaderContext();
+      } else {
+        context = pic.getContext();
+      }
+
+      return iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(visFilter, iterInfos, iterOpts, iterEnv, true, context));
     }
   }
 
