@@ -502,7 +502,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (!security.canScan(credentials, tableId, namespaceId, range, columns, ssiList, ssio, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-      if (!security.userHasAuthorizations(credentials, authorizations))
+      if (!security.authenticatedUserHasAuthorizations(credentials, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
 
       final KeyExtent extent = new KeyExtent(textent);
@@ -673,7 +673,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       try {
-        if (!security.userHasAuthorizations(credentials, authorizations))
+        if (!security.authenticatedUserHasAuthorizations(credentials, authorizations))
           throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_AUTHORIZATIONS);
       } catch (ThriftSecurityException tse) {
         log.error("{} is not authorized", credentials.getPrincipal(), tse);

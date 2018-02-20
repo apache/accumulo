@@ -114,7 +114,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Each time configurations is changes, this counter should increase.
+   * Each time configuration changes, this counter should increase. Anything that caches information that is derived from configuration can use this method to
+   * know when to update.
    */
   public long getUpdateCount() {
     return 0;
