@@ -44,8 +44,8 @@ public class TservConstraintEnvTest {
     ByteSequence bs = new ArrayByteSequence("foo".getBytes());
     List<ByteBuffer> bbList = Collections.<ByteBuffer> singletonList(ByteBuffer.wrap(bs.getBackingArray(), bs.offset(), bs.length()));
 
-    expect(security.userHasAuthorizations(goodCred, bbList)).andReturn(true);
-    expect(security.userHasAuthorizations(badCred, bbList)).andReturn(false);
+    expect(security.authenticatedUserHasAuthorizations(goodCred, bbList)).andReturn(true);
+    expect(security.authenticatedUserHasAuthorizations(badCred, bbList)).andReturn(false);
     replay(security);
 
     assertTrue(new TservConstraintEnv(security, goodCred).getAuthorizationsContainer().contains(bs));

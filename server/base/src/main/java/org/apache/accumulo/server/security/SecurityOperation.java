@@ -269,9 +269,10 @@ public class SecurityOperation {
     return getUserAuthorizations(credentials, credentials.getPrincipal());
   }
 
-  public boolean userHasAuthorizations(TCredentials credentials, List<ByteBuffer> list) throws ThriftSecurityException {
-    authenticate(credentials);
-
+  /**
+   * Check if an already authenticated user has specified authorizations.
+   */
+  public boolean authenticatedUserHasAuthorizations(TCredentials credentials, List<ByteBuffer> list) throws ThriftSecurityException {
     if (isSystemUser(credentials)) {
       // system user doesn't need record-level authorizations for the tables it reads (for now)
       return list.isEmpty();
