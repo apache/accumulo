@@ -519,9 +519,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       } catch (TableNotFoundException e) {
         log.error("Accumulo table " + table + " doesn't exist and cannot be created.", e);
         throw new AccumuloException(e);
-      } catch (AccumuloException e) {
-        throw e;
-      } catch (AccumuloSecurityException e) {
+      } catch (AccumuloException | AccumuloSecurityException e) {
         throw e;
       }
 
@@ -595,9 +593,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       Connector c = getInstance(job).getConnector(principal, token);
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
-    } catch (AccumuloException e) {
-      throw new IOException(e);
-    } catch (AccumuloSecurityException e) {
+    } catch (AccumuloException | AccumuloSecurityException e) {
       throw new IOException(e);
     }
   }

@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class SimpleThreadPool extends ThreadPoolExecutor {
 
   public SimpleThreadPool(int max, final String name) {
-    super(max, max, 4l, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name));
+    super(max, max, 4l, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), new NamingThreadFactory(name));
     allowCoreThreadTimeOut(true);
   }
 

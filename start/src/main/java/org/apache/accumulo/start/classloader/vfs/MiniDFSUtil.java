@@ -29,8 +29,7 @@ public class MiniDFSUtil {
     // with the correct permissions.
     try {
       Process p = Runtime.getRuntime().exec("/bin/sh -c umask");
-      BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
-      try {
+      try (BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
         String line = bri.readLine();
         p.waitFor();
 
@@ -43,8 +42,6 @@ public class MiniDFSUtil {
         int newPermission = 0777 ^ umask;
 
         return String.format("%03o", newPermission);
-      } finally {
-        bri.close();
       }
     } catch (Exception e) {
       throw new RuntimeException("Error getting umask from O/S", e);

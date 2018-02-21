@@ -151,7 +151,7 @@ public class TableOperationsHelperTest {
     @Override
     public void setProperty(String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException {
       if (!settings.containsKey(tableName))
-        settings.put(tableName, new TreeMap<String,String>());
+        settings.put(tableName, new TreeMap<>());
       settings.get(tableName).put(property, value);
     }
 

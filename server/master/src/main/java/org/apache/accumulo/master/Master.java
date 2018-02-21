@@ -1246,9 +1246,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
           store.ageOff();
         }
       }, 63000, 63000);
-    } catch (KeeperException e) {
-      throw new IOException(e);
-    } catch (InterruptedException e) {
+    } catch (KeeperException | InterruptedException e) {
       throw new IOException(e);
     }
 

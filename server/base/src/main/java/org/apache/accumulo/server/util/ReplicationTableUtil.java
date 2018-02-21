@@ -161,13 +161,7 @@ public class ReplicationTableUtil {
       try {
         t.update(m);
         return;
-      } catch (AccumuloException e) {
-        log.error(e.toString(), e);
-      } catch (AccumuloSecurityException e) {
-        log.error(e.toString(), e);
-      } catch (ConstraintViolationException e) {
-        log.error(e.toString(), e);
-      } catch (TableNotFoundException e) {
+      } catch (AccumuloException | TableNotFoundException | ConstraintViolationException | AccumuloSecurityException e) {
         log.error(e.toString(), e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);

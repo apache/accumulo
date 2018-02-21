@@ -42,9 +42,7 @@ public class AccumuloStatus {
         return false;
       if (!reader.getChildren(rootPath + Constants.ZGC_LOCK).isEmpty())
         return false;
-    } catch (KeeperException e) {
-      throw new IOException("Issues contacting ZooKeeper to get Accumulo status.", e);
-    } catch (InterruptedException e) {
+    } catch (KeeperException | InterruptedException e) {
       throw new IOException("Issues contacting ZooKeeper to get Accumulo status.", e);
     }
     return true;

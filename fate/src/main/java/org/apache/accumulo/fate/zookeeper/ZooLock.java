@@ -219,9 +219,7 @@ public class ZooLock implements Watcher {
             if (restat == null) {
               lockAsync(myLock, lw);
             }
-          } catch (KeeperException e) {
-            lw.failedToAcquireLock(new Exception("Failed to renew watch on other master node"));
-          } catch (InterruptedException e) {
+          } catch (KeeperException | InterruptedException e) {
             lw.failedToAcquireLock(new Exception("Failed to renew watch on other master node"));
           }
         }
@@ -295,9 +293,7 @@ public class ZooLock implements Watcher {
 
       lockAsync(asyncLock, lw);
 
-    } catch (KeeperException e) {
-      lw.failedToAcquireLock(e);
-    } catch (InterruptedException e) {
+    } catch (KeeperException | InterruptedException e) {
       lw.failedToAcquireLock(e);
     }
   }

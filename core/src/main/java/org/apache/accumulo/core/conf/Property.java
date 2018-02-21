@@ -809,9 +809,7 @@ public enum Property {
       for (Annotation a : getClass().getField(name()).getAnnotations())
         if (annotationType.isInstance(a))
           return true;
-    } catch (SecurityException e) {
-      log.error("{}", e.getMessage(), e);
-    } catch (NoSuchFieldException e) {
+    } catch (SecurityException | NoSuchFieldException e) {
       log.error("{}", e.getMessage(), e);
     }
     return false;

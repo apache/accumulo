@@ -28,7 +28,6 @@ import java.util.Random;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -140,7 +139,7 @@ public class BloomFilterLayerLookupTest {
     String fi = String.format("%010d", row);
     // bmfr.seek(new Range(new Text("r"+fi)));
     Key k1 = new Key(new Text("r" + fi), new Text("cf1"));
-    bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false), new ArrayList<ByteSequence>(), false);
+    bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false), new ArrayList<>(), false);
   }
 
 }

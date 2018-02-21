@@ -391,7 +391,7 @@ public class Monitor implements HighlyAvailableService {
     if (req > 0)
       hitRate.add(new Pair<>(currentTime, cacheHits.calculateCount() / (double) cacheReq.calculateCount()));
     else
-      hitRate.add(new Pair<Long,Double>(currentTime, null));
+      hitRate.add(new Pair<>(currentTime, null));
   }
 
   private static GCStatus fetchGcStatus() {

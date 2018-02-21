@@ -41,7 +41,6 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -89,7 +88,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     SortedMapIterator source = new SortedMapIterator(map);
     WholeColumnFamilyIterator iter = new WholeColumnFamilyIterator(source);
     SortedMap<Key,Value> resultMap = new TreeMap<>();
-    iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    iter.seek(new Range(), new ArrayList<>(), false);
     int numRows = 0;
     while (iter.hasTop()) {
       numRows++;
@@ -111,7 +110,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
       }
     };
     resultMap.clear();
-    iter2.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    iter2.seek(new Range(), new ArrayList<>(), false);
     numRows = 0;
     while (iter2.hasTop()) {
       numRows++;
@@ -150,7 +149,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     WholeColumnFamilyIterator iter = new WholeColumnFamilyIterator(source);
 
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
     assertEquals(map1, WholeColumnFamilyIterator.decodeColumnFamily(iter.getTopKey(), iter.getTopValue()));
@@ -158,7 +157,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do
     range = new Range(iter.getTopKey(), false, range.getEndKey(), range.isEndKeyInclusive());
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
     assertEquals(map2, WholeColumnFamilyIterator.decodeColumnFamily(iter.getTopKey(), iter.getTopValue()));
@@ -186,7 +185,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     WholeColumnFamilyIterator iter = new WholeColumnFamilyIterator(source);
 
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
     assertEquals(map1, WholeColumnFamilyIterator.decodeColumnFamily(iter.getTopKey(), iter.getTopValue()));
@@ -194,7 +193,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do
     range = new Range(iter.getTopKey(), false, range.getEndKey(), range.isEndKeyInclusive());
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertFalse(iter.hasTop());
 

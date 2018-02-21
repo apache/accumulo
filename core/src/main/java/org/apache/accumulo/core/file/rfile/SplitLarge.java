@@ -23,7 +23,6 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -74,7 +73,7 @@ public class SplitLarge {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();
 
-          iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
+          iter.seek(new Range(), new ArrayList<>(), false);
           while (iter.hasTop()) {
             Key key = iter.getTopKey();
             Value value = iter.getTopValue();

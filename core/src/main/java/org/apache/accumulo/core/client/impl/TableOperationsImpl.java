@@ -756,7 +756,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException {
-    compact(tableName, start, end, new ArrayList<IteratorSetting>(), flush, wait);
+    compact(tableName, start, end, new ArrayList<>(), flush, wait);
   }
 
   @Override
@@ -802,10 +802,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<>();
     try {
       doFateOperation(FateOperation.TABLE_COMPACT, args, opts, tableName, config.getWait());
-    } catch (TableExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    } catch (NamespaceExistsException e) {
+    } catch (TableExistsException | NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
     } catch (NamespaceNotFoundException e) {
@@ -1385,27 +1382,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public static Map<String,String> getExportedProps(FileSystem fs, Path path) throws IOException {
     HashMap<String,String> props = new HashMap<>();
 
-    ZipInputStream zis = new ZipInputStream(fs.open(path));
-    try {
+    try (ZipInputStream zis = new ZipInputStream(fs.open(path))) {
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_TABLE_CONFIG_FILE)) {
-          BufferedReader in = new BufferedReader(new InputStreamReader(zis, UTF_8));
-          try {
+          try (BufferedReader in = new BufferedReader(new InputStreamReader(zis, UTF_8))) {
             String line;
             while ((line = in.readLine()) != null) {
               String sa[] = line.split("=", 2);
               props.put(sa[0], sa[1]);
             }
-          } finally {
-            in.close();
           }
 
           break;
         }
       }
-    } finally {
-      zis.close();
     }
     return props;
   }

@@ -55,8 +55,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
     long total = 0;
     final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
     for (int i = 0; i < 5; i++) {
-      Socket socket = new Socket(hostAndPort.getHost(), hostAndPort.getPort());
-      try {
+      try (Socket socket = new Socket(hostAndPort.getHost(), hostAndPort.getPort())) {
         socket.getOutputStream().write("wchs\n".getBytes(), 0, 5);
         byte[] buffer = new byte[1024];
         int n = socket.getInputStream().read(buffer);
@@ -68,8 +67,6 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
         }
         log.debug("Expected number of watchers to be contained in ({}, {}), but actually was {}. Sleeping and retrying", MIN, MAX, total);
         Thread.sleep(5000);
-      } finally {
-        socket.close();
       }
     }
 

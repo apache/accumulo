@@ -492,7 +492,7 @@ public class BloomFilterLayer {
       String fi = String.format("%010d", row);
       // bmfr.seek(new Range(new Text("r"+fi)));
       org.apache.accumulo.core.data.Key k1 = new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
-      bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false), new ArrayList<ByteSequence>(), false);
+      bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false), new ArrayList<>(), false);
       if (valsSet.contains(row)) {
         hits++;
         if (!bmfr.hasTop()) {
@@ -515,7 +515,7 @@ public class BloomFilterLayer {
       // bmfr.seek(new Range(new Text("r"+fi)));
 
       org.apache.accumulo.core.data.Key k1 = new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
-      bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false), new ArrayList<ByteSequence>(), false);
+      bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false), new ArrayList<>(), false);
 
       if (!bmfr.hasTop()) {
         out.println("ERROR 2 " + row);

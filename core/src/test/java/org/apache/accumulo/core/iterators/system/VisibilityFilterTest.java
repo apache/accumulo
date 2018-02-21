@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -44,7 +43,7 @@ public class VisibilityFilterTest extends TestCase {
     Level prevLevel = Logger.getLogger(VisibilityFilter.class).getLevel();
     Logger.getLogger(VisibilityFilter.class).setLevel(Level.FATAL);
 
-    filter.seek(new Range(), new HashSet<ByteSequence>(), false);
+    filter.seek(new Range(), new HashSet<>(), false);
     assertFalse(filter.hasTop());
 
     Logger.getLogger(VisibilityFilter.class).setLevel(prevLevel);
@@ -58,7 +57,7 @@ public class VisibilityFilterTest extends TestCase {
     tm.put(new Key("r1", "cf1", "cq3", ""), new Value(new byte[0]));
     SortedKeyValueIterator<Key,Value> filter = VisibilityFilter.wrap(new SortedMapIterator(tm), Authorizations.EMPTY, "".getBytes());
 
-    filter.seek(new Range(), new HashSet<ByteSequence>(), false);
+    filter.seek(new Range(), new HashSet<>(), false);
     assertTrue(filter.hasTop());
     assertEquals(new Key("r1", "cf1", "cq1", ""), filter.getTopKey());
     filter.next();

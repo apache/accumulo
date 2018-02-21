@@ -1257,7 +1257,7 @@ public class TabletLocatorImplTest {
 
     // create the ~ tablet so it exists
     Map<KeyExtent,SortedMap<Key,Value>> ts3 = new HashMap<>();
-    ts3.put(mte2, new TreeMap<Key,Value>());
+    ts3.put(mte2, new TreeMap<>());
     tservers.tservers.put("tserver3", ts3);
 
     assertNull(tab0TabletCache.locateTablet(context, new Text("row_0000000000"), false, false));

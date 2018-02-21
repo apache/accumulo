@@ -43,7 +43,7 @@ class WriteTracker {
 
   WriteTracker() {
     for (TabletType ttype : TabletType.values()) {
-      inProgressWrites.put(ttype, new TreeSet<Long>());
+      inProgressWrites.put(ttype, new TreeSet<>());
     }
   }
 

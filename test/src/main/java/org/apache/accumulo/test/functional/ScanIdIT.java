@@ -296,11 +296,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
         log.trace("Split {}", split);
       }
 
-    } catch (AccumuloSecurityException e) {
-      throw new IllegalStateException("Initialization failed. Could not add splits to " + tableName, e);
-    } catch (TableNotFoundException e) {
-      throw new IllegalStateException("Initialization failed. Could not add splits to " + tableName, e);
-    } catch (AccumuloException e) {
+    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
       throw new IllegalStateException("Initialization failed. Could not add splits to " + tableName, e);
     }
 
@@ -354,9 +350,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
       }
 
       bw.close();
-    } catch (TableNotFoundException ex) {
-      throw new IllegalStateException("Initialization failed. Could not create test data", ex);
-    } catch (MutationsRejectedException ex) {
+    } catch (TableNotFoundException | MutationsRejectedException ex) {
       throw new IllegalStateException("Initialization failed. Could not create test data", ex);
     }
   }
@@ -377,11 +371,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       connector.tableOperations().attachIterator(tablename, slowIter, EnumSet.of(IteratorUtil.IteratorScope.scan));
 
-    } catch (AccumuloException ex) {
-      throw new IllegalStateException("Initialization failed. Could not attach slow iterator", ex);
-    } catch (TableNotFoundException ex) {
-      throw new IllegalStateException("Initialization failed. Could not attach slow iterator", ex);
-    } catch (AccumuloSecurityException ex) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException ex) {
       throw new IllegalStateException("Initialization failed. Could not attach slow iterator", ex);
     }
   }

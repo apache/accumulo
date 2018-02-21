@@ -96,7 +96,7 @@ import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), r -> {
+  private static ThreadPoolExecutor cleanupThreadPool = new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r -> {
     Thread t = new Thread(r, "Conditional Writer Cleanup Thread");
     t.setDaemon(true);
     return t;
@@ -834,9 +834,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       Boolean bb = ve.evaluate(new ColumnVisibility(testVis));
       cache.put(new Text(testVis), bb);
       return bb;
-    } catch (VisibilityParseException e) {
-      return false;
-    } catch (BadArgumentException e) {
+    } catch (VisibilityParseException | BadArgumentException e) {
       return false;
     }
   }

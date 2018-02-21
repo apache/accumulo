@@ -62,7 +62,6 @@ import org.apache.accumulo.core.data.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
-import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Span;
@@ -667,7 +666,7 @@ public class TabletServerBatchWriter {
       queued = new HashSet<>();
       sendThreadPool = new SimpleThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<>();
-      binningThreadPool = new SimpleThreadPool(1, "BinMutations", new SynchronousQueue<Runnable>());
+      binningThreadPool = new SimpleThreadPool(1, "BinMutations", new SynchronousQueue<>());
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
@@ -714,11 +713,7 @@ public class TabletServerBatchWriter {
         failedMutations.add(mutationsToProcess);
       } catch (AccumuloSecurityException e) {
         updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(tableId, null, null), SecurityErrorCode.valueOf(e.getSecurityErrorCode().name())));
-      } catch (TableDeletedException e) {
-        updateUnknownErrors(e.getMessage(), e);
-      } catch (TableOfflineException e) {
-        updateUnknownErrors(e.getMessage(), e);
-      } catch (TableNotFoundException e) {
+      } catch (TableDeletedException | TableNotFoundException | TableOfflineException e) {
         updateUnknownErrors(e.getMessage(), e);
       }
 
@@ -1001,8 +996,6 @@ public class TabletServerBatchWriter {
       } catch (ThriftSecurityException e) {
         updateAuthorizationFailures(tabMuts.keySet(), e.code);
         throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (NoSuchScanIDException e) {
-        throw new IOException(e);
       } catch (TException e) {
         throw new IOException(e);
       }

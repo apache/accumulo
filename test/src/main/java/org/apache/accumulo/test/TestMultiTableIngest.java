@@ -83,9 +83,7 @@ public class TestMultiTableIngest {
     Connector connector;
     try {
       connector = opts.getConnector();
-    } catch (AccumuloException e) {
-      throw new RuntimeException(e);
-    } catch (AccumuloSecurityException e) {
+    } catch (AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException(e);
     }
     for (int i = 0; i < opts.tables; i++) {

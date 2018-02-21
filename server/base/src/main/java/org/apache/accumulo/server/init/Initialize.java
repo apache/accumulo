@@ -423,9 +423,7 @@ public class Initialize implements KeywordExecutable {
   private static boolean zookeeperAvailable() {
     try {
       return zoo.exists("/");
-    } catch (KeeperException e) {
-      return false;
-    } catch (InterruptedException e) {
+    } catch (KeeperException | InterruptedException e) {
       return false;
     }
   }

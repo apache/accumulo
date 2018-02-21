@@ -245,10 +245,8 @@ public class MasterClientServiceHandler extends FateServiceHandler implements Ma
         if (tabletCount == 0 && !Tables.exists(master.getInstance(), tableId))
           throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
 
-      } catch (AccumuloException e) {
+      } catch (AccumuloException | TabletDeletedException e) {
         Master.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME, tableId, e);
-      } catch (TabletDeletedException tde) {
-        Master.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME, tableId, tde);
       } catch (AccumuloSecurityException e) {
         Master.log.warn("{}", e.getMessage(), e);
         throw new ThriftSecurityException();

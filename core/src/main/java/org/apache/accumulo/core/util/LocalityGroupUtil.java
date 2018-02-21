@@ -83,7 +83,7 @@ public class LocalityGroupUtil {
     String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
     for (String group : groups) {
       if (group.length() > 0)
-        result.put(group, new HashSet<ByteSequence>());
+        result.put(group, new HashSet<>());
     }
     HashSet<ByteSequence> all = new HashSet<>();
     for (Entry<String,String> entry : acuconf) {
@@ -278,7 +278,7 @@ public class LocalityGroupUtil {
             int lgid = getLgid(mbs, cu);
 
             if (parts.get(lgid) == null) {
-              parts.set(lgid, new ArrayList<ColumnUpdate>());
+              parts.set(lgid, new ArrayList<>());
               lgcount++;
             }
 

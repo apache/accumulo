@@ -55,7 +55,7 @@ public class ConfigurationCopy extends AccumuloConfiguration {
    * Creates a new empty configuration.
    */
   public ConfigurationCopy() {
-    this(new HashMap<String,String>());
+    this(new HashMap<>());
   }
 
   @Override

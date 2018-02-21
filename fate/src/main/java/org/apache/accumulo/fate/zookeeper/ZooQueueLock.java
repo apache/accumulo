@@ -101,10 +101,8 @@ public class ZooQueueLock implements QueueLock {
       try {
         // try to delete the parent if it has no children
         zoo.delete(path, -1);
-      } catch (NotEmptyException nee) {
+      } catch (NotEmptyException | NoNodeException nee) {
         // the path had other lock nodes, no big deal
-      } catch (NoNodeException nne) {
-        // someone else deleted the lock path
       }
     } catch (Exception ex) {
       throw new RuntimeException(ex);

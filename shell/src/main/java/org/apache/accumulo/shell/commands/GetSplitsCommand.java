@@ -62,9 +62,7 @@ public class GetSplitsCommand extends Command {
     final boolean encode = cl.hasOption(base64Opt.getOpt());
     final boolean verbose = cl.hasOption(verboseOpt.getOpt());
 
-    final PrintLine p = outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile);
-
-    try {
+    try (PrintLine p = outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile)) {
       if (!verbose) {
         for (Text row : maxSplits > 0 ? shellState.getConnector().tableOperations().listSplits(tableName, maxSplits) : shellState.getConnector()
             .tableOperations().listSplits(tableName)) {
@@ -91,8 +89,6 @@ public class GetSplitsCommand extends Command {
         }
       }
 
-    } finally {
-      p.close();
     }
 
     return 0;

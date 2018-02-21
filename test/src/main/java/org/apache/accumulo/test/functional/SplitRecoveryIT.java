@@ -60,7 +60,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -167,8 +166,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
     List<FileRef> highDatafilesToRemove = new ArrayList<>();
 
-    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), mapFiles, lowDatafileSizes, highDatafileSizes,
-        highDatafilesToRemove);
+    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), mapFiles, lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
 
     MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, context, zl);
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());

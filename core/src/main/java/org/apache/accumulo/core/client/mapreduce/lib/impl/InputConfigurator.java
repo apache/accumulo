@@ -736,11 +736,7 @@ public class InputConfigurator extends ConfiguratorBase {
           }
         }
       }
-    } catch (AccumuloException e) {
-      throw new IOException(e);
-    } catch (AccumuloSecurityException e) {
-      throw new IOException(e);
-    } catch (TableNotFoundException e) {
+    } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
       throw new IOException(e);
     }
   }
@@ -799,11 +795,7 @@ public class InputConfigurator extends ConfiguratorBase {
           }
         }
       }
-    } catch (AccumuloException e) {
-      throw new IOException(e);
-    } catch (AccumuloSecurityException e) {
-      throw new IOException(e);
-    } catch (TableNotFoundException e) {
+    } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
       throw new IOException(e);
     }
   }

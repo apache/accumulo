@@ -71,7 +71,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     AtomicBoolean iflag;
 
     TestDataSource(SortedKeyValueIterator<Key,Value> iter) {
-      this(iter, new ArrayList<TestDataSource>());
+      this(iter, new ArrayList<>());
     }
 
     public TestDataSource(SortedKeyValueIterator<Key,Value> iter, List<TestDataSource> copies) {
@@ -127,7 +127,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     TestDataSource tds = new TestDataSource(smi);
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds);
 
-    ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range(), new ArrayList<>(), false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v2", true);
     testAndCallNext(ssi, "r2", "cf1", "cq1", 5, "v3", true);
@@ -144,7 +144,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     TestDataSource tds = new TestDataSource(smi);
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds);
 
-    ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range(), new ArrayList<>(), false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
 
     TreeMap<Key,Value> tm2 = new TreeMap<>();
@@ -176,7 +176,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     TestDataSource tds = new TestDataSource(smi);
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds, true);
 
-    ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range(), new ArrayList<>(), false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
 
     TreeMap<Key,Value> tm2 = new TreeMap<>(tm1);
@@ -215,7 +215,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     TestDataSource tds2 = new TestDataSource(smi2);
     tds.next = tds2;
 
-    ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range(), new ArrayList<>(), false);
 
     testAndCallNext(ssi, "r1", "cf1", "cq1", 6, "v3", true);
     testAndCallNext(ssi, "r1", "cf1", "cq2", 6, "v4", true);
@@ -244,8 +244,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
     ssi.switchNow();
 
-    ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
-    dc1.seek(new Range("r2"), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range("r1"), new ArrayList<>(), false);
+    dc1.seek(new Range("r2"), new ArrayList<>(), false);
 
     testAndCallNext(ssi, "r1", "cf1", "cq1", 6, "v3", true);
     assertFalse(ssi.hasTop());
@@ -267,14 +267,14 @@ public class SourceSwitchingIteratorTest extends TestCase {
 
     assertSame(flag, tds.iflag);
 
-    ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range("r1"), new ArrayList<>(), false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     assertFalse(ssi.hasTop());
 
     flag.set(true);
 
     try {
-      ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
+      ssi.seek(new Range("r1"), new ArrayList<>(), false);
       fail("expected to see IterationInterruptedException");
     } catch (IterationInterruptedException iie) {}
 
@@ -287,7 +287,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
         throw new IOException("Underlying iterator yielded to a position outside of its range: " + yieldPosition + " not in " + r);
       }
       r = new Range(yieldPosition, false, (Key) null, r.isEndKeyInclusive());
-      ssi.seek(r, new ArrayList<ByteSequence>(), false);
+      ssi.seek(r, new ArrayList<>(), false);
     }
     return r;
   }
@@ -307,7 +307,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
     ssi.enableYielding(yield);
 
     Range r = new Range();
-    ssi.seek(r, new ArrayList<ByteSequence>(), false);
+    ssi.seek(r, new ArrayList<>(), false);
     r = yield(r, ssi, yield);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     r = yield(r, ssi, yield);

@@ -80,8 +80,8 @@ public class VisMetricsGatherer implements MetricsGatherer<Map<String,ArrayList<
       }
     }
     localityGroups.add(name);
-    metric.put(name, AtomicLongMap.create(new HashMap<String,Long>()));
-    blocks.put(name, AtomicLongMap.create(new HashMap<String,Long>()));
+    metric.put(name, AtomicLongMap.create(new HashMap<>()));
+    blocks.put(name, AtomicLongMap.create(new HashMap<>()));
     numLG++;
     numEntries.add((long) 0);
     numBlocks.add(0);

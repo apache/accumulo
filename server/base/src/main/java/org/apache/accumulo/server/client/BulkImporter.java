@@ -479,9 +479,7 @@ public class BulkImporter {
       try {
         List<KeyExtent> failures = assignMapFiles(context, location, assignmentsPerTablet);
         handleFailures(failures, "Not Serving Tablet");
-      } catch (AccumuloException e) {
-        handleFailures(assignmentsPerTablet.keySet(), e.getMessage());
-      } catch (AccumuloSecurityException e) {
+      } catch (AccumuloException | AccumuloSecurityException e) {
         handleFailures(assignmentsPerTablet.keySet(), e.getMessage());
       }
     }
@@ -642,9 +640,8 @@ public class BulkImporter {
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
     FileSystem fs = vm.getVolumeByPath(file).getFileSystem();
-    FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder().forFile(filename, fs, fs.getConf())
-        .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
-    try {
+    try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder().forFile(filename, fs, fs.getConf())
+        .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
       Text row = startRow;
       if (row == null)
         row = new Text();
@@ -666,8 +663,6 @@ public class BulkImporter {
         } else
           break;
       }
-    } finally {
-      reader.close();
     }
     // log.debug(filename + " to be sent to " + result);
     return result;

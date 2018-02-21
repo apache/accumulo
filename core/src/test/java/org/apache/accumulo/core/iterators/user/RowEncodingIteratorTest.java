@@ -33,7 +33,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -137,7 +136,7 @@ public class RowEncodingIteratorTest {
     Map<String,String> bigBufferOpts = new HashMap<>();
     bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "3K");
     iter.init(src, bigBufferOpts, new DummyIteratorEnv());
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
     assertEquals(map1, RowEncodingIteratorImpl.decodeRow(iter.getTopKey(), iter.getTopValue()));
@@ -145,7 +144,7 @@ public class RowEncodingIteratorTest {
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do
     range = new Range(iter.getTopKey(), false, range.getEndKey(), range.isEndKeyInclusive());
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
     assertEquals(map2, RowEncodingIteratorImpl.decodeRow(iter.getTopKey(), iter.getTopValue()));
@@ -171,7 +170,7 @@ public class RowEncodingIteratorTest {
     Map<String,String> bigBufferOpts = new HashMap<>();
     bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "1K");
     iter.init(src, bigBufferOpts, new DummyIteratorEnv());
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
     // BufferOverflowException should be thrown as RowEncodingIterator can't fit the whole row into its buffer.
   }
 }

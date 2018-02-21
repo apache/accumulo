@@ -106,11 +106,8 @@ public class FindOfflineTablets {
       range = new KeyExtent(tableId, null, null).toMetadataRange();
     }
 
-    MetaDataTableScanner metaScanner = new MetaDataTableScanner(context, range, MetadataTable.NAME);
-    try {
+    try (MetaDataTableScanner metaScanner = new MetaDataTableScanner(context, range, MetadataTable.NAME)) {
       return checkTablets(metaScanner, tservers);
-    } finally {
-      metaScanner.close();
     }
   }
 

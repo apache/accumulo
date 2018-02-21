@@ -99,7 +99,7 @@ public class Scanner {
 
       if (results.getResults() == null) {
         range = null;
-        return new ScanBatch(new ArrayList<KVEntry>(), false);
+        return new ScanBatch(new ArrayList<>(), false);
       } else if (results.getContinueKey() == null) {
         return new ScanBatch(results.getResults(), false);
       } else {

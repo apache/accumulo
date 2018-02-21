@@ -415,10 +415,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
           colVis = new ColumnVisibility(visibility.toArray());
         visible = ve.evaluate(colVis);
         visibleCache.put(visibility, visible);
-      } catch (VisibilityParseException e) {
-        log.error("Parse Error", e);
-        visible = Boolean.FALSE;
-      } catch (BadArgumentException e) {
+      } catch (VisibilityParseException | BadArgumentException e) {
         log.error("Parse Error", e);
         visible = Boolean.FALSE;
       }

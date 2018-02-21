@@ -118,7 +118,7 @@ public class AccumuloVFSClassLoader {
   }
 
   static FileObject[] resolve(FileSystemManager vfs, String uris) throws FileSystemException {
-    return resolve(vfs, uris, new ArrayList<FileObject>());
+    return resolve(vfs, uris, new ArrayList<>());
   }
 
   static FileObject[] resolve(FileSystemManager vfs, String uris, ArrayList<FileObject> pathsToMonitor) throws FileSystemException {

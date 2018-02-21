@@ -96,11 +96,11 @@ public class IteratorSettingTest {
   @Test
   public void testEquivalentConstructor() {
     IteratorSetting setting1 = new IteratorSetting(100, Combiner.class);
-    IteratorSetting setting2 = new IteratorSetting(100, "Combiner", Combiner.class, new HashMap<String,String>());
+    IteratorSetting setting2 = new IteratorSetting(100, "Combiner", Combiner.class, new HashMap<>());
 
     assertEquals(setting1, setting2);
 
-    IteratorSetting notEqual1 = new IteratorSetting(100, "FooCombiner", Combiner.class, new HashMap<String,String>());
+    IteratorSetting notEqual1 = new IteratorSetting(100, "FooCombiner", Combiner.class, new HashMap<>());
 
     assertNotEquals(setting1, notEqual1);
 

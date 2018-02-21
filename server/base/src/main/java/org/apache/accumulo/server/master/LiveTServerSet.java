@@ -89,12 +89,9 @@ public class LiveTServerSet implements Watcher {
     public void assignTablet(ZooLock lock, KeyExtent extent) throws TException {
       if (extent.isMeta()) {
         // see ACCUMULO-3597
-        TTransport transport = ThriftUtil.createTransport(address, context);
-        try {
+        try (TTransport transport = ThriftUtil.createTransport(address, context)) {
           TabletClientService.Client client = ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
           loadTablet(client, lock, extent);
-        } finally {
-          transport.close();
         }
       } else {
         TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
@@ -270,10 +267,8 @@ public class LiveTServerSet implements Watcher {
   private void deleteServerNode(String serverNode) throws InterruptedException, KeeperException {
     try {
       ZooReaderWriter.getInstance().delete(serverNode, -1);
-    } catch (NotEmptyException ex) {
+    } catch (NotEmptyException | NoNodeException ex) {
       // race condition: tserver created the lock after our last check; we'll see it at the next check
-    } catch (NoNodeException nne) {
-      // someone else deleted it
     }
   }
 

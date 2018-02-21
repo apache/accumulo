@@ -121,7 +121,7 @@ public class IteratorSetting implements Writable {
    *          the fully qualified class name for the iterator
    */
   public IteratorSetting(int priority, String name, String iteratorClass) {
-    this(priority, name, iteratorClass, new HashMap<String,String>());
+    this(priority, name, iteratorClass, new HashMap<>());
   }
 
   /**

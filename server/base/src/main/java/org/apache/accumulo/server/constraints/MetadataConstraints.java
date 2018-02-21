@@ -176,9 +176,7 @@ public class MetadataConstraints implements Constraint {
           if (dfv.getSize() < 0 || dfv.getNumEntries() < 0) {
             violations = addViolation(violations, 1);
           }
-        } catch (NumberFormatException nfe) {
-          violations = addViolation(violations, 1);
-        } catch (ArrayIndexOutOfBoundsException aiooe) {
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException nfe) {
           violations = addViolation(violations, 1);
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {

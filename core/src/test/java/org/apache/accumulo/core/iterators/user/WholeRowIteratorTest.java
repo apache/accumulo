@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -88,7 +87,7 @@ public class WholeRowIteratorTest {
     SortedMapIterator source = new SortedMapIterator(map);
     WholeRowIterator iter = new WholeRowIterator(source);
     SortedMap<Key,Value> resultMap = new TreeMap<>();
-    iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    iter.seek(new Range(), new ArrayList<>(), false);
     int numRows = 0;
     while (iter.hasTop()) {
       numRows++;
@@ -107,7 +106,7 @@ public class WholeRowIteratorTest {
       }
     };
     resultMap.clear();
-    iter2.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    iter2.seek(new Range(), new ArrayList<>(), false);
     numRows = 0;
     while (iter2.hasTop()) {
       numRows++;
@@ -147,7 +146,7 @@ public class WholeRowIteratorTest {
     WholeRowIterator iter = new WholeRowIterator(source);
 
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
     assertEquals(map1, WholeRowIterator.decodeRow(iter.getTopKey(), iter.getTopValue()));
@@ -155,7 +154,7 @@ public class WholeRowIteratorTest {
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do
     range = new Range(iter.getTopKey(), false, range.getEndKey(), range.isEndKeyInclusive());
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
     assertEquals(map2, WholeRowIterator.decodeRow(iter.getTopKey(), iter.getTopValue()));
@@ -184,7 +183,7 @@ public class WholeRowIteratorTest {
     WholeRowIterator iter = new WholeRowIterator(source);
 
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
     assertEquals(map1, WholeRowIterator.decodeRow(iter.getTopKey(), iter.getTopValue()));
@@ -192,7 +191,7 @@ public class WholeRowIteratorTest {
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do
     range = new Range(iter.getTopKey(), false, range.getEndKey(), range.isEndKeyInclusive());
-    iter.seek(range, new ArrayList<ByteSequence>(), false);
+    iter.seek(range, new ArrayList<>(), false);
 
     assertFalse(iter.hasTop());
 

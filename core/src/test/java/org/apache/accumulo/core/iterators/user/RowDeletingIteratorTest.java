@@ -85,28 +85,28 @@ public class RowDeletingIteratorTest extends TestCase {
     RowDeletingIterator rdi = new RowDeletingIterator();
     rdi.init(new SortedMapIterator(tm1), null, new TestIE(IteratorScope.scan, false));
 
-    rdi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(), new ArrayList<>(), false);
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
     for (int i = 0; i < 5; i++) {
-      rdi.seek(new Range(newKey("r1", "cf1", "cq" + i, 5), null), new ArrayList<ByteSequence>(), false);
+      rdi.seek(new Range(newKey("r1", "cf1", "cq" + i, 5), null), new ArrayList<>(), false);
       testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
     }
 
-    rdi.seek(new Range(newKey("r11", "cf1", "cq1", 5), null), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(newKey("r11", "cf1", "cq1", 5), null), new ArrayList<>(), false);
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
     put(tm1, "r2", "", "", 10, RowDeletingIterator.DELETE_ROW_VALUE);
-    rdi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(), new ArrayList<>(), false);
     assertFalse(rdi.hasTop());
 
     for (int i = 0; i < 5; i++) {
-      rdi.seek(new Range(newKey("r1", "cf1", "cq" + i, 5), null), new ArrayList<ByteSequence>(), false);
+      rdi.seek(new Range(newKey("r1", "cf1", "cq" + i, 5), null), new ArrayList<>(), false);
       assertFalse(rdi.hasTop());
     }
 
     put(tm1, "r0", "cf1", "cq1", 5, "v1");
-    rdi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(), new ArrayList<>(), false);
     testAssertions(rdi, "r0", "cf1", "cq1", 5, "v1");
     rdi.next();
     assertFalse(rdi.hasTop());
@@ -126,31 +126,31 @@ public class RowDeletingIteratorTest extends TestCase {
     RowDeletingIterator rdi = new RowDeletingIterator();
     rdi.init(new SortedMapIterator(tm1), null, new TestIE(IteratorScope.scan, false));
 
-    rdi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(), new ArrayList<>(), false);
     testAssertions(rdi, "r1", "cf1", "cq3", 15, "v1");
     rdi.next();
     testAssertions(rdi, "r1", "cf1", "cq5", 15, "v1");
     rdi.next();
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
-    rdi.seek(new Range(newKey("r1", "cf1", "cq1", 5), null), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(newKey("r1", "cf1", "cq1", 5), null), new ArrayList<>(), false);
     testAssertions(rdi, "r1", "cf1", "cq3", 15, "v1");
     rdi.next();
     testAssertions(rdi, "r1", "cf1", "cq5", 15, "v1");
     rdi.next();
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
-    rdi.seek(new Range(newKey("r1", "cf1", "cq4", 5), null), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(newKey("r1", "cf1", "cq4", 5), null), new ArrayList<>(), false);
     testAssertions(rdi, "r1", "cf1", "cq5", 15, "v1");
     rdi.next();
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
-    rdi.seek(new Range(newKey("r1", "cf1", "cq5", 20), null), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(newKey("r1", "cf1", "cq5", 20), null), new ArrayList<>(), false);
     testAssertions(rdi, "r1", "cf1", "cq5", 15, "v1");
     rdi.next();
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
-    rdi.seek(new Range(newKey("r1", "cf1", "cq9", 20), null), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(newKey("r1", "cf1", "cq9", 20), null), new ArrayList<>(), false);
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
   }
 
@@ -196,19 +196,19 @@ public class RowDeletingIteratorTest extends TestCase {
     RowDeletingIterator rdi = new RowDeletingIterator();
     rdi.init(new SortedMapIterator(tm1), null, new TestIE(IteratorScope.minc, false));
 
-    rdi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(), new ArrayList<>(), false);
     testAssertions(rdi, "r1", "", "", 10, RowDeletingIterator.DELETE_ROW_VALUE.toString());
     rdi.next();
     testAssertions(rdi, "r1", "cf1", "cq3", 15, "v1");
     rdi.next();
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
-    rdi.seek(new Range(newKey("r1", "cf1", "cq3", 20), null), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(newKey("r1", "cf1", "cq3", 20), null), new ArrayList<>(), false);
     testAssertions(rdi, "r1", "cf1", "cq3", 15, "v1");
     rdi.next();
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
-    rdi.seek(new Range(newKey("r1", "", "", 42), null), new ArrayList<ByteSequence>(), false);
+    rdi.seek(new Range(newKey("r1", "", "", 42), null), new ArrayList<>(), false);
     testAssertions(rdi, "r1", "", "", 10, RowDeletingIterator.DELETE_ROW_VALUE.toString());
     rdi.next();
     testAssertions(rdi, "r1", "cf1", "cq3", 15, "v1");

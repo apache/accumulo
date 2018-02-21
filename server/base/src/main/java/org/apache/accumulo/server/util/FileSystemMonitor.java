@@ -70,12 +70,9 @@ public class FileSystemMonitor {
   static List<Mount> parse(String procFile) throws IOException {
 
     FileReader fr = new FileReader(procFile);
-    BufferedReader br = new BufferedReader(fr);
 
-    try {
+    try (BufferedReader br = new BufferedReader(fr)) {
       return getMountsFromFile(br);
-    } finally {
-      br.close();
     }
   }
 

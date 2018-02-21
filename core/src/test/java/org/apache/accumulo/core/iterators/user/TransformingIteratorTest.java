@@ -159,7 +159,7 @@ public class TransformingIteratorTest {
   public void testVisbilityFiltering() throws Exception {
     // Should return nothing since we produced visibilities that can't be seen
     setUpTransformIterator(BadVisKeyTransformingIterator.class);
-    checkExpected(new TreeMap<Key,Value>());
+    checkExpected(new TreeMap<>());
 
     // Do a "reverse" on the visibility (vis1 -> vis2, vis2 -> vis3, vis3 -> vis0)
     // Source data has vis1, vis2, vis3 so vis0 is a new one that is introduced.
@@ -183,11 +183,11 @@ public class TransformingIteratorTest {
   public void testCreatingIllegalVisbility() throws Exception {
     // illegal visibility created by transform should be filtered on scan, even if evaluation is done
     setUpTransformIterator(IllegalVisKeyTransformingIterator.class, false);
-    checkExpected(new TreeMap<Key,Value>());
+    checkExpected(new TreeMap<>());
 
     // ensure illegal vis is supressed when evaluations is done
     setUpTransformIterator(IllegalVisKeyTransformingIterator.class);
-    checkExpected(new TreeMap<Key,Value>());
+    checkExpected(new TreeMap<>());
   }
 
   @Test
@@ -232,7 +232,7 @@ public class TransformingIteratorTest {
     // Set a range that's after all data and make sure we don't
     // somehow return something.
     setUpTransformIterator(ColFamReversingKeyTransformingIterator.class);
-    checkExpected(new Range(new Key("row4"), null), new TreeMap<Key,Value>());
+    checkExpected(new Range(new Key("row4"), null), new TreeMap<>());
   }
 
   @Test
@@ -298,7 +298,7 @@ public class TransformingIteratorTest {
     IntersectingIterator.setColumnFamilies(iicfg, new Text[] {new Text("foo"), new Text("dog"), new Text("cat")});
     iiIter.init(titer, iicfg.getOptions(), null);
 
-    iiIter.seek(new Range(), new HashSet<ByteSequence>(), false);
+    iiIter.seek(new Range(), new HashSet<>(), false);
 
     assertTrue(iiIter.hasTop());
     Key docKey = iiIter.getTopKey();
@@ -356,7 +356,7 @@ public class TransformingIteratorTest {
   public void testCompactionAndIllegalVisibility() throws Exception {
     setUpTransformIterator(IllegalVisCompactionKeyTransformingIterator.class);
     try {
-      checkExpected(new TreeMap<Key,Value>());
+      checkExpected(new TreeMap<>());
       assertTrue(false);
     } catch (Exception e) {
 
@@ -367,7 +367,7 @@ public class TransformingIteratorTest {
   public void testDupes() throws Exception {
     setUpTransformIterator(DupeTransformingIterator.class);
 
-    titer.seek(new Range(), new HashSet<ByteSequence>(), false);
+    titer.seek(new Range(), new HashSet<>(), false);
 
     int count = 0;
     while (titer.hasTop()) {
@@ -419,7 +419,7 @@ public class TransformingIteratorTest {
   }
 
   private void checkExpected(Range range, TreeMap<Key,Value> expectedEntries) throws IOException {
-    checkExpected(range, new HashSet<ByteSequence>(), expectedEntries);
+    checkExpected(range, new HashSet<>(), expectedEntries);
   }
 
   private void checkExpected(TreeMap<Key,Value> expectedEntries, String... fa) throws IOException {

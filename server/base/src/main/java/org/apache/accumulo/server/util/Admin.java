@@ -578,11 +578,8 @@ public class Admin implements KeywordExecutable {
       }
     }
     File siteBackup = new File(outputDirectory, ACCUMULO_SITE_BACKUP_FILE);
-    FileOutputStream fos = new FileOutputStream(siteBackup);
-    try {
+    try (FileOutputStream fos = new FileOutputStream(siteBackup)) {
       conf.writeXml(fos);
-    } finally {
-      fos.close();
     }
   }
 

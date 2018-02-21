@@ -447,9 +447,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : bscanner) {
         foundFile = true;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream newOut = new PrintStream(baos);
         PrintStream oldOut = System.out;
-        try {
+        try (PrintStream newOut = new PrintStream(baos)) {
           System.setOut(newOut);
           List<String> args = new ArrayList<>();
           args.add(entry.getKey().getColumnQualifier().toString());
@@ -467,7 +466,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           assertTrue(stdout.contains("Locality group           : g1"));
           assertTrue(stdout.contains("families        : [colf]"));
         } finally {
-          newOut.close();
           System.setOut(oldOut);
         }
       }

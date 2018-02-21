@@ -505,7 +505,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v2.toString()));
 
-    conn.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<String,String>(), new HashSet<String>());
+    conn.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(), new HashSet<>());
 
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
@@ -566,7 +566,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
 
-    getConnector().tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<String,String>(), new HashSet<String>());
+    getConnector().tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<>(), new HashSet<>());
 
     getConnector().tableOperations().flush(MetadataTable.NAME, null, null, true);
     getConnector().tableOperations().flush(RootTable.NAME, null, null, true);

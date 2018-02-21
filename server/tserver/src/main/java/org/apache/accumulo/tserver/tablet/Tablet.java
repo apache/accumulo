@@ -868,11 +868,7 @@ public class Tablet implements TabletCommitter {
         span.stop();
       }
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
-    } catch (Exception e) {
-      failed = true;
-      throw new RuntimeException(e);
-    } catch (Error e) {
-      // Weird errors like "OutOfMemoryError" when trying to create the thread for the compaction
+    } catch (Exception | Error e) {
       failed = true;
       throw new RuntimeException(e);
     } finally {
@@ -1043,10 +1039,8 @@ public class Tablet implements TabletCommitter {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_FLUSH_ID;
       return Long.parseLong(new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8));
-    } catch (InterruptedException e) {
+    } catch (InterruptedException | NumberFormatException e) {
       throw new RuntimeException(e);
-    } catch (NumberFormatException nfe) {
-      throw new RuntimeException(nfe);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
         throw (NoNodeException) ke;
@@ -1062,9 +1056,7 @@ public class Tablet implements TabletCommitter {
 
     try {
       return Long.parseLong(new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8));
-    } catch (KeeperException e) {
-      throw new RuntimeException(e);
-    } catch (InterruptedException e) {
+    } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
@@ -1099,18 +1091,14 @@ public class Tablet implements TabletCommitter {
       }
 
       return new Pair<>(compactID, compactionConfig);
-    } catch (InterruptedException e) {
+    } catch (InterruptedException | DecoderException | NumberFormatException e) {
       throw new RuntimeException(e);
-    } catch (NumberFormatException nfe) {
-      throw new RuntimeException(nfe);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
         throw (NoNodeException) ke;
       } else {
         throw new RuntimeException(ke);
       }
-    } catch (DecoderException e) {
-      throw new RuntimeException(e);
     }
   }
 

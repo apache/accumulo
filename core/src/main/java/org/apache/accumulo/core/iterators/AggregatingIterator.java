@@ -174,13 +174,7 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
       if (null != env)
         context = env.getConfig().get(Property.TABLE_CLASSPATH);
       this.aggregators = new ColumnToClassMapping<>(options, org.apache.accumulo.core.iterators.aggregation.Aggregator.class, context);
-    } catch (ClassNotFoundException e) {
-      log.error(e.toString());
-      throw new IllegalArgumentException(e);
-    } catch (InstantiationException e) {
-      log.error(e.toString());
-      throw new IllegalArgumentException(e);
-    } catch (IllegalAccessException e) {
+    } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
       log.error(e.toString());
       throw new IllegalArgumentException(e);
     }

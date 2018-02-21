@@ -55,7 +55,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -289,9 +288,6 @@ public class CloseWriteAheadLogReferences implements Runnable {
     try {
       tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server, context);
       return tserverClient.getActiveLogs(tinfo, context.rpcCreds());
-    } catch (TTransportException e) {
-      log.warn("Failed to fetch active write-ahead logs from " + server, e);
-      return null;
     } catch (TException e) {
       log.warn("Failed to fetch active write-ahead logs from " + server, e);
       return null;

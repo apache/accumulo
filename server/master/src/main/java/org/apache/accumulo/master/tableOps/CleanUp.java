@@ -123,8 +123,7 @@ class CleanUp extends MasterRepo {
     try {
       // look for other tables that references this table's files
       Connector conn = master.getConnector();
-      BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8);
-      try {
+      try (BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
         Range allTables = MetadataSchema.TabletsSection.getRange();
         Range tableRange = MetadataSchema.TabletsSection.getRange(tableId);
         Range beforeTable = new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
@@ -140,8 +139,6 @@ class CleanUp extends MasterRepo {
             refCount++;
           }
         }
-      } finally {
-        bs.close();
       }
 
     } catch (Exception e) {

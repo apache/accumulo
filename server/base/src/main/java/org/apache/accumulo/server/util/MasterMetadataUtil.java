@@ -181,8 +181,8 @@ public class MasterMetadataUtil {
           }
         }
 
-        MetadataTableUtil.splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<FileRef,FileUtil.FileInfo>(), origDatafileSizes, lowDatafileSizes,
-            highDatafileSizes, highDatafilesToRemove);
+        MetadataTableUtil.splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<>(), origDatafileSizes, lowDatafileSizes, highDatafileSizes,
+            highDatafilesToRemove);
 
         MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove, context, lock);
 
@@ -195,9 +195,7 @@ public class MasterMetadataUtil {
     while (true) {
       try {
         return new TServerInstance(address, zooLock.getSessionId());
-      } catch (KeeperException e) {
-        log.error("{}", e.getMessage(), e);
-      } catch (InterruptedException e) {
+      } catch (KeeperException | InterruptedException e) {
         log.error("{}", e.getMessage(), e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
@@ -278,9 +276,7 @@ public class MasterMetadataUtil {
             zk.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
           }
           break;
-        } catch (KeeperException e) {
-          log.error("{}", e.getMessage(), e);
-        } catch (InterruptedException e) {
+        } catch (KeeperException | InterruptedException e) {
           log.error("{}", e.getMessage(), e);
         }
         sleepUninterruptibly(1, TimeUnit.SECONDS);

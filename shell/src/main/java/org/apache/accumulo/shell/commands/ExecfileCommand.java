@@ -37,13 +37,10 @@ public class ExecfileCommand extends Command {
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
-    Scanner scanner = new Scanner(new File(cl.getArgs()[0]), UTF_8.name());
-    try {
+    try (Scanner scanner = new Scanner(new File(cl.getArgs()[0]), UTF_8.name())) {
       while (scanner.hasNextLine()) {
         shellState.execCommand(scanner.nextLine(), true, cl.hasOption(verboseOption.getOpt()));
       }
-    } finally {
-      scanner.close();
     }
     return 0;
   }

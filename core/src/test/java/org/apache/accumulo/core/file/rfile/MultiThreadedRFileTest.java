@@ -224,7 +224,7 @@ public class MultiThreadedRFileTest {
       // now start up multiple RFile deepcopies
       int maxThreads = 10;
       String name = "MultiThreadedRFileTestThread";
-      ThreadPoolExecutor pool = new ThreadPoolExecutor(maxThreads + 1, maxThreads + 1, 5 * 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
+      ThreadPoolExecutor pool = new ThreadPoolExecutor(maxThreads + 1, maxThreads + 1, 5 * 60, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
           new NamingThreadFactory(name));
       pool.allowCoreThreadTimeOut(true);
       try {

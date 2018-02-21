@@ -393,10 +393,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             // there were some failures
             try {
               processFailures(failures, receiver, columns);
-            } catch (TableNotFoundException e) {
-              log.debug("{}", e.getMessage(), e);
-              fatalException = e;
-            } catch (AccumuloException e) {
+            } catch (TableNotFoundException | AccumuloException e) {
               log.debug("{}", e.getMessage(), e);
               fatalException = e;
             } catch (AccumuloSecurityException e) {
