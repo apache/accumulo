@@ -255,7 +255,7 @@ public class FileManager {
           openFiles.remove(file);
         }
       } else {
-        if(filesToOpen.size() == 0) {
+        if (filesToOpen.isEmpty()) {
           filesToOpen = new ArrayList<>(files.size());
         }
         filesToOpen.add(file);
@@ -292,7 +292,7 @@ public class FileManager {
 
       filesToOpen = takeOpenFiles(files, readersReserved);
 
-      if(filesToOpen.size() > 0) {
+      if (!filesToOpen.isEmpty()) {
         int numOpen = countReaders(openFiles);
 
         if (filesToOpen.size() + numOpen + reservedReaders.size() > maxOpen) {
