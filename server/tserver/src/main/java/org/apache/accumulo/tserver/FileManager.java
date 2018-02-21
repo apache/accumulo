@@ -245,10 +245,8 @@ public class FileManager {
   }
 
   private List<String> takeOpenFiles(Collection<String> files, Map<FileSKVIterator,String> readersReserved) {
-    List<String> filesToOpen = new LinkedList<>(files);
-    for (Iterator<String> iterator = filesToOpen.iterator(); iterator.hasNext();) {
-      String file = iterator.next();
-
+    List<String> filesToOpen = Collections.emptyList();
+    for (String file : files) {
       List<OpenReader> ofl = openFiles.get(file);
       if (ofl != null && ofl.size() > 0) {
         OpenReader openReader = ofl.remove(ofl.size() - 1);
@@ -256,9 +254,12 @@ public class FileManager {
         if (ofl.size() == 0) {
           openFiles.remove(file);
         }
-        iterator.remove();
+      } else {
+        if (filesToOpen.isEmpty()) {
+          filesToOpen = new ArrayList<>(files.size());
+        }
+        filesToOpen.add(file);
       }
-
     }
     return filesToOpen;
   }
@@ -291,10 +292,12 @@ public class FileManager {
 
       filesToOpen = takeOpenFiles(files, readersReserved);
 
-      int numOpen = countReaders(openFiles);
+      if (!filesToOpen.isEmpty()) {
+        int numOpen = countReaders(openFiles);
 
-      if (filesToOpen.size() + numOpen + reservedReaders.size() > maxOpen) {
-        filesToClose = takeLRUOpenFiles((filesToOpen.size() + numOpen + reservedReaders.size()) - maxOpen);
+        if (filesToOpen.size() + numOpen + reservedReaders.size() > maxOpen) {
+          filesToClose = takeLRUOpenFiles((filesToOpen.size() + numOpen + reservedReaders.size()) - maxOpen);
+        }
       }
     }
 
