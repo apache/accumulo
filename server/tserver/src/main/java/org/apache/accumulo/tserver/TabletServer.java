@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
@@ -2749,7 +2750,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   public static Pair<Text,KeyExtent> verifyTabletInformation(AccumuloServerContext context, KeyExtent extent, TServerInstance instance,
-      SortedMap<Key,Value> tabletsKeyValues, String clientAddress, ZooLock lock) throws AccumuloSecurityException, DistributedStoreException, AccumuloException {
+      final SortedMap<Key,Value> tabletsKeyValues, String clientAddress, ZooLock lock) throws AccumuloSecurityException, DistributedStoreException,
+      AccumuloException {
+    Objects.requireNonNull(tabletsKeyValues);
 
     log.debug("verifying extent {}", extent);
     if (extent.isRootTablet()) {
@@ -2771,12 +2774,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     }
 
     // only populate map after success
-    if (tabletsKeyValues == null) {
-      tabletsKeyValues = tkv;
-    } else {
-      tabletsKeyValues.clear();
-      tabletsKeyValues.putAll(tkv);
-    }
+    tabletsKeyValues.clear();
+    tabletsKeyValues.putAll(tkv);
 
     Text metadataEntry = extent.getMetadataEntry();
 
