@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test.monitor;
+package org.apache.accumulo.monitor;
 
 import static org.easymock.EasyMock.expect;
 
@@ -35,10 +35,9 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.monitor.Monitor;
+import org.apache.accumulo.monitor.util.MonitorTests;
 import org.apache.accumulo.monitor.view.WebViews;
 import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.easymock.EasyMock;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -55,7 +54,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 /**
  * Basic tests for parameter validation constraints
  */
-@Category(SunnyDayTests.class)
+@Category(MonitorTests.class)
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({Monitor.class, Tables.class})
 public class WebViewsIT extends JerseyTest {
