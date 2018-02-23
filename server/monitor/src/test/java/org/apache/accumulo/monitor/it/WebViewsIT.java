@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor;
+package org.apache.accumulo.monitor.it;
 
 import static org.easymock.EasyMock.expect;
 
@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.util.MonitorTests;
 import org.apache.accumulo.monitor.view.WebViews;
 import org.apache.accumulo.server.AccumuloServerContext;
