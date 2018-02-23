@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ZombieTServer {
 
-  public static class ThriftClientHandler extends org.apache.accumulo.test.performance.thrift.NullTserver.ThriftClientHandler {
+  public static class ThriftClientHandler extends org.apache.accumulo.test.performance.NullTserver.ThriftClientHandler {
 
     int statusCount = 0;
 
