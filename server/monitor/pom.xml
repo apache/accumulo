@@ -175,8 +175,8 @@
       <id>hadoop2</id>
       <activation>
         <property>
-          <name>hadoop.profile</name>
-          <value>2</value>
+          <!-- Hack around activeByDefault=true not working as we'd want -->
+          <name>!hadoop.profile</name>
         </property>
       </activation>
       <dependencies>
