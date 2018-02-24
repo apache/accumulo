@@ -209,6 +209,28 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- generate version listing for packaged dependencies -->
+            <id>generate-dependencies-raw</id>
+            <goals>
+              <goal>list</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <outputFile>${project.build.directory}/dependencies.raw.txt</outputFile>
+              <outputScope>false</outputScope>
+              <sort>true</sort>
+              <!-- this list should match that in src/main/assemblies/component.xml -->
+              <includeArtifactIds>${artifactList}</includeArtifactIds>
+              <excludeTransitive>true</excludeTransitive>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <executions>
@@ -230,28 +252,6 @@
             <phase>generate-resources</phase>
             <configuration>
               <executable>${basedir}/src/main/scripts/generate-example-configs.sh</executable>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <!-- generate version listing for packaged dependencies -->
-            <id>generate-dependencies-raw</id>
-            <goals>
-              <goal>list</goal>
-            </goals>
-            <phase>compile</phase>
-            <configuration>
-              <outputFile>${project.build.directory}/dependencies.raw.txt</outputFile>
-              <outputScope>false</outputScope>
-              <sort>true</sort>
-              <!-- this list should match that in src/main/assemblies/component.xml -->
-              <includeArtifactIds>${artifactList}</includeArtifactIds>
-              <excludeTransitive>true</excludeTransitive>
             </configuration>
           </execution>
         </executions>
