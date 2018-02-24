@@ -182,6 +182,7 @@
         <dependency>
           <groupId>org.apache.hadoop</groupId>
           <artifactId>hadoop-client-runtime</artifactId>
+          <scope>runtime</scope>
         </dependency>
       </dependencies>
     </profile>
