@@ -24,7 +24,7 @@ where options include (long options not available on all platforms):
     -n, --native     Configure to use native libraries
     -j, --jvm        Configure to use the jvm
     -o, --overwrite  Overwrite the default config directory
-    -v, --version    Specify the Apache Hadoop version supported versions: '1' '2' '3'
+    -v, --version    Specify the Apache Hadoop version supported versions: '2', '3', 'HDP2', 'HDP2.2', 'IOP4.1'
     -k, --kerberos   Configure for use with Kerberos
     -h, --help       Print this help message
 EOF
@@ -257,9 +257,9 @@ if [[ -z "${HADOOP_VERSION}" ]]; then
     echo
     break
   done
-elif [[ "${HADOOP_VERSION}" != "2" && "${HADOOP_VERSION}" != "HDP2" && "${HADOOP_VERSION}" != "HDP2.2" && "${HADOOP_VERSION}" != "3" ]]; then
+elif [[ "${HADOOP_VERSION}" != "2" && "${HADOOP_VERSION}" != "HDP2" && "${HADOOP_VERSION}" != "HDP2.2" && "${HADOOP_VERSION}" != "3" && "${HADOOP_VERSION}" != "IOP4.1" ]]; then
   echo "Invalid Hadoop version"
-  echo "Supported Hadoop versions: '2', 'HDP2', 'HDP2.2', '3'"
+  echo "Supported Hadoop versions: '2', 'HDP2', 'HDP2.2', '3', 'IOP4.1'"
   exit 1
 fi
 
