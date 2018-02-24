@@ -324,11 +324,23 @@
       </dependencies>
     </profile>
     <profile>
+      <id>hadoop-default</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <properties>
+        <artifactList>commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</artifactList>
+        <assemblyDescriptor>src/main/assemblies/binary-release.xml</assemblyDescriptor>
+      </properties>
+    </profile>
+    <profile>
       <id>hadoop2</id>
       <activation>
         <property>
-          <!-- Hack around activeByDefault=true not working as we'd want -->
-          <name>!hadoop.profile</name>
+          <name>hadoop.profile</name>
+          <value>2</value>
         </property>
       </activation>
       <properties>

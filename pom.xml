@@ -128,7 +128,6 @@
     <findbugs.version>3.0.5</findbugs.version>
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
-    <hadoop.profile>2</hadoop.profile>
     <hadoop.version>2.6.4</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
@@ -929,6 +928,22 @@
               </rules>
             </configuration>
           </execution>
+          <execution>
+            <id>enforce-hadoop-profile</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireProperty>
+                  <property>hadoop.profile</property>
+                  <regex>(2|3)</regex>
+                  <regexMessage>You should specify the Hadoop profile by major Hadoop generation, i.e. 2 or 3, not by a version number.
+    Use hadoop.version to use a particular Hadoop version within that generation.</regexMessage>
+                </requireProperty>
+              </rules>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -1526,15 +1541,32 @@
         <findbugs.excludeFilterFile>src/main/findbugs/exclude-filter.xml</findbugs.excludeFilterFile>
       </properties>
     </profile>
+    <!-- Active by default, build against Hadoop 2 -->
+    <profile>
+      <id>hadoop-default</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.version>2.6.4</hadoop.version>
+      </properties>
+    </profile>
+    <!-- Build against hadoop 2 explicitly -->
     <profile>
       <id>hadoop2</id>
       <activation>
         <property>
-          <!-- Hack around activeByDefault=true not working as we'd want -->
-          <name>!hadoop.profile</name>
+          <name>hadoop.profile</name>
+          <value>2</value>
         </property>
       </activation>
+      <properties>
+        <hadoop.version>2.6.4</hadoop.version>
+      </properties>
     </profile>
+    <!-- Build against hadoop 3 explicitly -->
     <profile>
       <id>hadoop3</id>
       <activation>

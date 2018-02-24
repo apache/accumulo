@@ -172,11 +172,31 @@
   </build>
   <profiles>
     <profile>
+      <id>hadoop-default</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-client</artifactId>
+          <exclusions>
+            <exclusion>
+              <groupId>javax.xml.bind</groupId>
+              <artifactId>jaxb-api</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>hadoop2</id>
       <activation>
         <property>
-          <!-- Hack around activeByDefault=true not working as we'd want -->
-          <name>!hadoop.profile</name>
+          <name>hadoop.profile</name>
+          <value>2</value>
         </property>
       </activation>
       <dependencies>
