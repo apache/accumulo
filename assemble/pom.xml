@@ -333,6 +333,7 @@
       <properties>
         <artifactList>commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</artifactList>
         <assemblyDescriptor>src/main/assemblies/binary-release.xml</assemblyDescriptor>
+        <hadoop.profile>2</hadoop.profile>
       </properties>
     </profile>
     <profile>

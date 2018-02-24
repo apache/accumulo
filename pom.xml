@@ -1550,6 +1550,7 @@
         </property>
       </activation>
       <properties>
+        <hadoop.profile>2</hadoop.profile>
         <hadoop.version>2.6.4</hadoop.version>
       </properties>
     </profile>

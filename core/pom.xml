@@ -284,6 +284,9 @@
           <name>!hadoop.profile</name>
         </property>
       </activation>
+      <properties>
+        <hadoop.profile>2</hadoop.profile>
+      </properties>
       <dependencies>
         <dependency>
           <groupId>org.apache.hadoop</groupId>
