@@ -127,6 +127,7 @@
     <forkCount>1</forkCount>
     <hadoop.version>2.6.4</hadoop.version>
     <hk2.version>2.4.0-b27</hk2.version>
+    <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
     <httpclient.version>4.3.1</httpclient.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
@@ -443,6 +444,21 @@
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client-api</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client-minicluster</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client-runtime</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-distcp</artifactId>
         <version>${hadoop.version}</version>
       </dependency>
@@ -476,6 +492,11 @@
         <groupId>org.apache.htrace</groupId>
         <artifactId>htrace-core</artifactId>
         <version>${htrace.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.htrace</groupId>
+        <artifactId>htrace-core4</artifactId>
+        <version>${htrace.hadoop.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
@@ -1157,7 +1178,27 @@
                     <artifactId>java18</artifactId>
                     <version>1.0</version>
                   </signature>
+                  <ignores>
+                    <ignore>org.apache.hadoop.conf.Configuration</ignore>
+                    <ignore>org.apache.hadoop.fs.FileSystem</ignore>
+                  </ignores>
                 </checkSignatureRule>
+              </rules>
+            </configuration>
+          </execution>
+          <execution>
+            <id>enforce-hadoop-profile</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireProperty>
+                  <property>hadoop.profile</property>
+                  <regex>(2|3)</regex>
+                  <regexMessage>You should specify the Hadoop profile by major Hadoop generation, i.e. 2 or 3, not by a version number.
+    Use hadoop.version to use a particular Hadoop version within that generation.</regexMessage>
+                </requireProperty>
               </rules>
             </configuration>
           </execution>
@@ -1715,6 +1756,45 @@
       </activation>
       <properties>
         <findbugs.excludeFilterFile>src/main/findbugs/exclude-filter.xml</findbugs.excludeFilterFile>
+      </properties>
+    </profile>
+    <!-- Active by default, build against Hadoop 2 -->
+    <profile>
+      <id>hadoop-default</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.profile>2</hadoop.profile>
+        <hadoop.version>2.6.4</hadoop.version>
+      </properties>
+    </profile>
+    <!-- Build against hadoop 2 explicitly -->
+    <profile>
+      <id>hadoop2</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>2</value>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.version>2.6.4</hadoop.version>
+      </properties>
+    </profile>
+    <!-- Build against hadoop 3 explicitly -->
+    <profile>
+      <id>hadoop3</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>3</value>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.version>3.0.0</hadoop.version>
       </properties>
     </profile>
   </profiles>
