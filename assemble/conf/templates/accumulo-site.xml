@@ -170,6 +170,9 @@ ${mvnProjBaseDir}
       /usr/iop/current/hadoop-yarn-client/lib/jersey.*.jar,
       /usr/iop/current/hive-client/lib/hive-accumulo-handler.jar
       <!-- End IOP 4.1 requirements -->
+      <!-- Hadoop 3 requirements -->
+      $HADOOP_PREFIX/share/hadoop/client/[^.].*.jar,
+      <!-- End Hadoop 3 requirements -->
     </value>
     <description>Classpaths that accumulo checks for updates and class files.</description>
   </property>

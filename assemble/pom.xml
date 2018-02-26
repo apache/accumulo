@@ -224,7 +224,7 @@
               <outputScope>false</outputScope>
               <sort>true</sort>
               <!-- this list should match that in src/main/assemblies/component.xml -->
-              <includeArtifactIds>commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</includeArtifactIds>
+              <includeArtifactIds>${artifactList}</includeArtifactIds>
               <excludeTransitive>true</excludeTransitive>
             </configuration>
           </execution>
@@ -268,7 +268,7 @@
             <phase>package</phase>
             <configuration>
               <descriptors>
-                <descriptor>src/main/assemblies/binary-release.xml</descriptor>
+                <descriptor>${assemblyDescriptor}</descriptor>
               </descriptors>
             </configuration>
           </execution>
@@ -320,6 +320,81 @@
           <artifactId>accumulo-test</artifactId>
           <classifier>mrit</classifier>
           <optional>true</optional>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>hadoop-default</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <properties>
+        <artifactList>commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</artifactList>
+        <assemblyDescriptor>src/main/assemblies/binary-release.xml</assemblyDescriptor>
+        <hadoop.profile>2</hadoop.profile>
+      </properties>
+    </profile>
+    <profile>
+      <id>hadoop2</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>2</value>
+        </property>
+      </activation>
+      <properties>
+        <artifactList>commons-math3,commons-vfs2,gson,guava,htrace-core,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</artifactList>
+        <assemblyDescriptor>src/main/assemblies/binary-release.xml</assemblyDescriptor>
+      </properties>
+    </profile>
+    <profile>
+      <id>hadoop3</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>3</value>
+        </property>
+      </activation>
+      <properties>
+        <artifactList>commons-cli,commons-codec,commons-collections,commons-configuration,commons-io,commons-lang,commons-logging,commons-math3,commons-vfs2,gson,guava,htrace-core,htrace-core4,javax.servlet-api,jcommander,jetty-http,jetty-io,jetty-security,jetty-server,jetty-servlet,jetty-util,jline,libthrift,protobuf-java,slf4j-api,slf4j-log4j12</artifactList>
+        <assemblyDescriptor>src/main/assemblies/binary-release-hadoop3.xml</assemblyDescriptor>
+      </properties>
+      <!-- When using Hadoop 3 with the shaded jars, we need to provide
+ 					 the jars we need instead of relying on them externally. -->
+      <dependencies>
+        <dependency>
+          <groupId>commons-cli</groupId>
+          <artifactId>commons-cli</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-codec</groupId>
+          <artifactId>commons-codec</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-collections</groupId>
+          <artifactId>commons-collections</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-configuration</groupId>
+          <artifactId>commons-configuration</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-io</groupId>
+          <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-lang</groupId>
+          <artifactId>commons-lang</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.htrace</groupId>
+          <artifactId>htrace-core4</artifactId>
         </dependency>
       </dependencies>
     </profile>
