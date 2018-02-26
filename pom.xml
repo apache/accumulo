@@ -1111,6 +1111,7 @@
               <ignoredUnusedDeclaredDependencies>
                 <!-- unused/declared implementation jars or parent jars that bring in children -->
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:${hadoop.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.hadoop:hadoop-client-runtime:jar:${hadoop.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-minicluster:jar:${hadoop.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.httpcomponents:httpclient:jar:${httpclient.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.glassfish.jersey.containers:jersey-container-jetty-http:jar:${jersey.version}</unusedDeclaredDependency>
