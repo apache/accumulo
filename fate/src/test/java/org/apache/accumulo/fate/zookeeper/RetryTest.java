@@ -152,8 +152,14 @@ public class RetryTest {
   @Test
   public void testLogging() {
     Logger testLogger = EasyMock.createMock(Logger.class);
+    EasyMock.expect(testLogger.isDebugEnabled()).andReturn(true);
+    testLogger.debug(EasyMock.anyObject(String.class));
+    EasyMock.expectLastCall().times(1);
+    EasyMock.expect(testLogger.isTraceEnabled()).andReturn(true).anyTimes();
+    testLogger.trace(EasyMock.anyObject(String.class));
+    EasyMock.expectLastCall().anyTimes();
     testLogger.warn(EasyMock.anyObject(String.class));
-    EasyMock.expectLastCall().times(4, 6);
+    EasyMock.expectLastCall().times(3, 5);
     EasyMock.replay(testLogger);
 
     // we want to do this for 5 second and observe the log messages
