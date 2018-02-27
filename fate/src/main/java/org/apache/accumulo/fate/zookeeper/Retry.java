@@ -32,7 +32,8 @@ public class Retry {
   private long maxRetries, maxWait, waitIncrement;
   private long retriesDone, currentWait;
 
-  private long logInterval;
+  private static long NANO_SEC_PER_MILLI_SEC = 1000000L;
+  private long logIntervalNanoSec;
   private long lastRetryLog;
 
   /**
@@ -54,7 +55,7 @@ public class Retry {
     this.waitIncrement = waitIncrement;
     this.retriesDone = 0l;
     this.currentWait = startWait;
-    this.logInterval = logInterval;
+    this.logIntervalNanoSec = (logInterval * NANO_SEC_PER_MILLI_SEC);
     this.lastRetryLog = -1;
   }
 
@@ -126,11 +127,11 @@ public class Retry {
 
   // Visible for testing
   void setLogInterval(long logInterval) {
-    this.logInterval = logInterval;
+    this.logIntervalNanoSec = logInterval * NANO_SEC_PER_MILLI_SEC;
   }
 
   public long getLogInterval() {
-    return logInterval;
+    return logIntervalNanoSec / NANO_SEC_PER_MILLI_SEC;
   }
 
   public boolean canRetry() {
@@ -164,23 +165,47 @@ public class Retry {
   }
 
   public void logRetry(Logger log, String message, Throwable t) {
-    // log the first time, and then after every logInterval
-    if (lastRetryLog < 0 || (System.currentTimeMillis() - lastRetryLog) > logInterval) {
+    // log the first time as debug, and then after every logInterval as a warning
+    long now = System.nanoTime();
+    if (lastRetryLog < 0) {
+      if (log.isDebugEnabled()) {
+        log.debug(getMessage(message, t));
+      }
+      lastRetryLog = now;
+    } else if ((now - lastRetryLog) > logIntervalNanoSec) {
       log.warn(getMessage(message), t);
-      lastRetryLog = System.currentTimeMillis();
+      lastRetryLog = now;
+    } else {
+      if (log.isTraceEnabled()) {
+        log.trace(getMessage(message, t));
+      }
     }
   }
 
   public void logRetry(Logger log, String message) {
-    // log the first time, and then after every logInterval
-    if (lastRetryLog < 0 || (System.currentTimeMillis() - lastRetryLog) > logInterval) {
+    // log the first time as debug, and then after every logInterval as a warning
+    long now = System.nanoTime();
+    if (lastRetryLog < 0) {
+      if (log.isDebugEnabled()) {
+        log.debug(getMessage(message));
+      }
+      lastRetryLog = now;
+    } else if ((now - lastRetryLog) > logIntervalNanoSec) {
       log.warn(getMessage(message));
-      lastRetryLog = System.currentTimeMillis();
+      lastRetryLog = now;
+    } else {
+      if (log.isTraceEnabled()) {
+        log.trace(getMessage(message));
+      }
     }
   }
 
   private String getMessage(String message) {
-    return message + ", retrying attempt " + (retriesDone + 1) + " (suppressing retry messages for " + logInterval + "ms)";
+    return message + ", retrying attempt " + (retriesDone + 1) + " (suppressing retry messages for " + getLogInterval() + "ms)";
+  }
+
+  private String getMessage(String message, Throwable t) {
+    return message + ":" + t + ", retrying attempt " + (retriesDone + 1) + " (suppressing retry messages for " + getLogInterval() + "ms)";
   }
 
 }

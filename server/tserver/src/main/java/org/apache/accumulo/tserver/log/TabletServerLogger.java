@@ -413,10 +413,9 @@ public class TabletServerLogger {
           success = (currentLogId == logId.get());
         }
       } catch (DfsLogger.LogClosedException ex) {
-        writeRetry.logRetry(log, "Logs closed while writing");
+        writeRetry.logRetry(log, "Logs closed while writing", ex);
       } catch (Exception t) {
-        if (writeRetry.retriesCompleted() != 0)
-          writeRetry.logRetry(log, "Failed to write to WAL", t);
+        writeRetry.logRetry(log, "Failed to write to WAL", t);
 
         try {
           // Backoff
