@@ -22,18 +22,15 @@ notifications:
     on_failure: always
     template:
       - "%{result} %{repository_slug} %{branch} (%{build_url}): %{message}"
-# speed up builds; don't use with install
+# speed up builds; don't use with default install step
 cache:
   directories:
     - $HOME/.m2
-# skip pre-fetch of maven dependencies by making install step a NOOP
-install: true
+install: echo NOOP Skipping pre-fetch of Maven dependencies
 jdk:
   - oraclejdk8
-# clear any cache of accumulo artifacts, just in case; use https for central
-before_script:
-  - rm -rf $HOME/.m2/repository/org/apache/accumulo
-  - echo "<settings xmlns='http://maven.apache.org/SETTINGS/1.0.0'><mirrors><mirror><id>secure-central</id><url>https://repo.maven.apache.org/maven2</url><mirrorOf>central</mirrorOf></mirror></mirrors></settings>" > $HOME/settings-custom.xml
+env:
+  - HADOOP_PROFILE=
+  - HADOOP_PROFILE=-Dhadoop.profile=3
 script:
-  - mvn --settings $HOME/settings-custom.xml clean verify javadoc:jar -DskipITs
-  - mvn --settings $HOME/settings-custom.xml clean verify javadoc:jar -DskipITs -Dhadoop.profile=3
+  - mvn clean verify javadoc:jar -DskipITs $HADOOP_PROFILE
