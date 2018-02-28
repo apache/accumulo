@@ -22,6 +22,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -57,6 +58,12 @@ public class AddSplits extends Test {
       log.debug("AddSplits " + tableName + " failed, doesnt exist");
     } catch (TableOfflineException e) {
       log.debug("AddSplits " + tableName + " failed, offline");
+    } catch (AccumuloException ae) {
+      Throwable cause = ae.getCause();
+      if (cause != null && cause instanceof TableOfflineException)
+        log.debug("AddSplits " + tableName + " failed, offline");
+      else
+        throw ae;
     }
   }
 }
