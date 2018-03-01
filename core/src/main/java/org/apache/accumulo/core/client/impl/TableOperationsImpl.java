@@ -458,6 +458,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
           if (excep instanceof TableNotFoundException) {
             TableNotFoundException tnfe = (TableNotFoundException) excep;
             throw new TableNotFoundException(tableId.canonicalID(), tableName, "Table not found by background thread", tnfe);
+          } else if (excep instanceof TableOfflineException) {
+            log.debug("TableOfflineException occurred in background thread. Throwing new exception", excep);
+            throw new TableOfflineException(context.getInstance(), tableId.canonicalID());
           } else if (excep instanceof AccumuloSecurityException) {
             // base == background accumulo security exception
             AccumuloSecurityException base = (AccumuloSecurityException) excep;
