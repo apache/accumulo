@@ -246,7 +246,7 @@ public class LogSorter {
         try {
           double progress = entries.getValue().getBytesCopied() / walBlockSize;
           // to be sure progress does not exceed 100%
-          status.progress = Math.min(progress, 99.0);
+          status.progress = Math.min(progress, 99.9);
         } catch (IOException ex) {
           log.warn("Error getting bytes read");
         }
