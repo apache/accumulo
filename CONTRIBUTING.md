@@ -17,7 +17,7 @@ limitations under the License.
 
 # Contributors Guide
 
- If you believe that you have found a bug, please search for an existing [issue](https://issues.apache.org/jira/browse/accumulo) to see if it has already been reported. If you would like to add a new feature to Accumulo, please send an email with your idea to the [dev](mailto:dev@accumulo.apache.org) mail list. If it's appropriate, then we will create a ticket and assign it to you.
+ If you believe that you have found a bug, please search for an existing [issue](/issues) to see if it has already been reported. If you would like to add a new feature to Accumulo, please send an email with your idea to the [dev](mailto:dev@accumulo.apache.org) mail list. If it's appropriate, then we will create a ticket and assign it to you.
 
 ## Issues
 
