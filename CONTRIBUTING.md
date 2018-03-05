@@ -19,6 +19,23 @@ limitations under the License.
 
  If you believe that you have found a bug, please search for an existing [issue](https://issues.apache.org/jira/browse/accumulo) to see if it has already been reported. If you would like to add a new feature to Accumulo, please send an email with your idea to the [dev](mailto:dev@accumulo.apache.org) mail list. If it's appropriate, then we will create a ticket and assign it to you.
 
+## Issues
+
+For pull request and issues, the following labels are used. Consider an issue
+with labels `v1.9.3`, `v2.0.2`, and `bug`.  If the issue is open, then its a
+bug that someone plans to fix in 1.9.3 and 2.0.2.  If it is closed, then
+it was fixed in those versions.
+
+ Label       | Description
+-------------|----------------------------------------------------------------------------
+ blocker     | Indicates a release blocker that must be fixed in labeled versions.
+ bug         |
+ duplicate   |
+ enhancement |
+ vX.Y.Z      | Fix version. The prefix `v` was chosen so that these labels sort last in the drop down list.
+
+Currently only Accumulo committers can set labels.  If you think a label should be set, comment on the issue and someone will help.
+
 ## Development
 
 - See the [Developer's Guide](https://accumulo.apache.org/contributor/source) for information regarding common build commands, IDE setup and more.
@@ -27,7 +44,7 @@ limitations under the License.
 
 ## Patch Submission
 
-- Ensure that Accumulo builds cleanly before submiting your patch using the command: `mvn clean verify -DskipITs`
+- Ensure that Accumulo builds cleanly before submitting your patch using the command: `mvn clean verify -DskipITs`
 - Before submission please squash your commits using a message that starts with the JIRA issue number and a description of the changes.
 - Patches should be submitted in the form of Pull Requests to the Apache Accumulo GitHub [repository](https://github.com/apache/accumulo/) or to the [Review Board](https://reviews.apache.org) accumulo repository.
 
