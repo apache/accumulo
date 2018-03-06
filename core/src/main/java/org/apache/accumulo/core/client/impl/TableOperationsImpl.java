@@ -1069,14 +1069,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       if (Tables.getTableState(context.getInstance(), tableId) != expectedState) {
         Tables.clearCache(context.getInstance());
-        if (Tables.getTableState(context.getInstance(), tableId) != expectedState) {
+        TableState currentState = Tables.getTableState(context.getInstance(), tableId);
+        if (currentState != expectedState) {
           if (!Tables.exists(context.getInstance(), tableId))
             throw new TableDeletedException(tableId);
+          if (currentState == TableState.DELETING)
+            throw new TableNotFoundException(tableId, "", "Table is being deleted.");
           throw new AccumuloException("Unexpected table state " + tableId + " " + Tables.getTableState(context.getInstance(), tableId) + " != " + expectedState);
         }
       }
 
-      Range range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+      Range range;
       if (startRow == null || lastRow == null)
         range = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
       else
