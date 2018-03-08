@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Objects;
 
+import org.apache.accumulo.core.security.crypto.CryptoModule;
+import org.apache.accumulo.core.security.crypto.SecretKeyEncryptionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,9 +99,16 @@ public class ConfigSanityCheck {
 
       if (key.equals(Property.CRYPTO_MODULE_CLASS.getKey())) {
         cryptoModule = Objects.requireNonNull(value);
+        if (!cryptoModule.equals(NULL_CRYPTO_MODULE)) {
+          verifyValidClassName(key, cryptoModule, CryptoModule.class);
+        }
+
       }
       if (key.equals(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS.getKey())) {
         secretKeyEncryptionStrategy = Objects.requireNonNull(value);
+        if (!secretKeyEncryptionStrategy.equals(NULL_SECRET_KEY_ENCRYPTION_STRATEGY)) {
+          verifyValidClassName(key, secretKeyEncryptionStrategy, SecretKeyEncryptionStrategy.class);
+        }
       }
     }
 
@@ -174,5 +184,25 @@ public class ConfigSanityCheck {
     // ACCUMULO-3651 Level changed from fatal to error and FATAL added to message for slf4j compatibility
     log.error("FATAL: {}", msg);
     throw new SanityCheckException(msg);
+  }
+
+  /**
+   * Verifies a configured option is a legal class and has a required base class.
+   *
+   * @param confOption
+   *          The Property key name
+   * @param className
+   *          The Property value, the string representation of a class to be loaded
+   * @param requiredBaseClass
+   *          The base class required for the className
+   */
+  private static void verifyValidClassName(String confOption, String className, Class<?> requiredBaseClass) {
+    try {
+      ConfigurationTypeHelper.getClassInstance(null, className, requiredBaseClass);
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException e) {
+      fatal(confOption + " has an invalid class name: " + className);
+    } catch (ClassCastException e) {
+      fatal(confOption + " must implement " + requiredBaseClass + ", but the configured class does not: " + className);
+    }
   }
 }
