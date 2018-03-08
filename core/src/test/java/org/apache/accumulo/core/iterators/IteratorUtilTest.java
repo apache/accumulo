@@ -316,10 +316,10 @@ public class IteratorUtilTest {
   }
 
   /**
-   * Iterators should not contain dots in the name. Also, if the split size on "." is greater than
-   * one, it should be 3, i.e., itername.opt.optname
+   * Iterators should not contain dots in the name. Also, if the split size on "." is greater than one, it should be 3, i.e., itername.opt.optname
    */
-  @Test public void testInvalidIteratorFormats() {
+  @Test
+  public void testInvalidIteratorFormats() {
 
     Map<String,String> data = new HashMap<>();
     List<IterInfo> iterators = new ArrayList<>();
@@ -328,8 +328,7 @@ public class IteratorUtilTest {
 
     // create iterator with 'dot' in name
     try {
-      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar",
-          "50," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar", "50," + SummingCombiner.class.getName());
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
     } catch (IllegalArgumentException ex) {
@@ -342,8 +341,7 @@ public class IteratorUtilTest {
     // create iterator with 'dot' in name and with split size of 3. If split size of three, then
     // second part must be 'opt'.
     try {
-      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar.baz",
-          "49," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar.baz", "49," + SummingCombiner.class.getName());
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
     } catch (IllegalArgumentException ex) {
@@ -355,8 +353,7 @@ public class IteratorUtilTest {
 
     // create iterator with invalid option format
     try {
-      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar",
-          "48," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar", "48," + SummingCombiner.class.getName());
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar.opt", "fakevalue");
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
@@ -372,8 +369,7 @@ public class IteratorUtilTest {
 
     // create iterator with 'opt' in incorrect position
     try {
-      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz",
-          "47," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz", "47," + SummingCombiner.class.getName());
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz.fake.opt", "fakevalue");
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
