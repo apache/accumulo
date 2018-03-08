@@ -74,38 +74,19 @@ public class CryptoModuleFactory {
   private static CryptoModule instantiateCryptoModule(String cryptoModuleClassname) {
     log.debug("About to instantiate crypto module {}", cryptoModuleClassname);
 
-    CryptoModule cryptoModule = null;
-    Class<?> cryptoModuleClazz = null;
     try {
-      cryptoModuleClazz = AccumuloVFSClassLoader.loadClass(cryptoModuleClassname);
+      CryptoModule cryptoModule = AccumuloVFSClassLoader.loadClass(cryptoModuleClassname).asSubclass(CryptoModule.class).newInstance();
+
+      log.debug("Successfully instantiated crypto module {}", cryptoModuleClassname);
+
+      return cryptoModule;
     } catch (ClassNotFoundException e1) {
       throw new IllegalArgumentException("Could not find configured crypto module " + cryptoModuleClassname);
-    }
-
-    // Check if the given class implements the CryptoModule interface
-    Class<?>[] interfaces = cryptoModuleClazz.getInterfaces();
-    boolean implementsCryptoModule = false;
-
-    for (Class<?> clazz : interfaces) {
-      if (clazz.equals(CryptoModule.class)) {
-        implementsCryptoModule = true;
-        break;
-      }
-    }
-
-    if (!implementsCryptoModule) {
+    } catch (ClassCastException cce) {
       throw new IllegalArgumentException("Configured Accumulo crypto module " + cryptoModuleClassname + " does not implement the CryptoModule interface.");
-    } else {
-      try {
-        cryptoModule = (CryptoModule) cryptoModuleClazz.newInstance();
-
-        log.debug("Successfully instantiated crypto module {}", cryptoModuleClassname);
-
-      } catch (InstantiationException | IllegalAccessException e) {
-        throw new IllegalArgumentException("Unable to instantiate the crypto module: " + cryptoModuleClassname, e);
-      }
+    } catch (InstantiationException | IllegalAccessException e) {
+      throw new IllegalArgumentException("Unable to instantiate the crypto module: " + cryptoModuleClassname, e);
     }
-    return cryptoModule;
   }
 
   public static SecretKeyEncryptionStrategy getSecretKeyEncryptionStrategy(AccumuloConfiguration conf) {
@@ -140,39 +121,20 @@ public class CryptoModuleFactory {
 
     log.debug("About to instantiate secret key encryption strategy {}", className);
 
-    SecretKeyEncryptionStrategy strategy = null;
-    Class<?> keyEncryptionStrategyClazz = null;
     try {
-      keyEncryptionStrategyClazz = AccumuloVFSClassLoader.loadClass(className);
+      SecretKeyEncryptionStrategy strategy = AccumuloVFSClassLoader.loadClass(className).asSubclass(SecretKeyEncryptionStrategy.class).newInstance();
+
+      log.debug("Successfully instantiated secret key encryption strategy {}", className);
+
+      return strategy;
     } catch (ClassNotFoundException e1) {
       throw new IllegalArgumentException("Could not find configured secret key encryption strategy: " + className);
+    } catch (ClassCastException e) {
+      throw new IllegalArgumentException("Configured Accumulo secret key encryption strategy \"" + className
+          + "\" does not implement the SecretKeyEncryptionStrategy interface.");
+    } catch (InstantiationException | IllegalAccessException e) {
+      throw new IllegalArgumentException("Unable to instantiate the secret key encryption strategy: " + className, e);
     }
-
-    // Check if the given class implements the CryptoModule interface
-    Class<?>[] interfaces = keyEncryptionStrategyClazz.getInterfaces();
-    boolean implementsSecretKeyStrategy = false;
-
-    for (Class<?> clazz : interfaces) {
-      if (clazz.equals(SecretKeyEncryptionStrategy.class)) {
-        implementsSecretKeyStrategy = true;
-        break;
-      }
-    }
-
-    if (!implementsSecretKeyStrategy) {
-      throw new IllegalArgumentException(
-          "Configured Accumulo secret key encryption strategy \"%s\" does not implement the SecretKeyEncryptionStrategy interface.");
-    } else {
-      try {
-        strategy = (SecretKeyEncryptionStrategy) keyEncryptionStrategyClazz.newInstance();
-
-        log.debug("Successfully instantiated secret key encryption strategy {}", className);
-
-      } catch (InstantiationException | IllegalAccessException e) {
-        throw new IllegalArgumentException("Unable to instantiate the secret key encryption strategy: " + className, e);
-      }
-    }
-    return strategy;
   }
 
   static class NullSecretKeyEncryptionStrategy implements SecretKeyEncryptionStrategy {
