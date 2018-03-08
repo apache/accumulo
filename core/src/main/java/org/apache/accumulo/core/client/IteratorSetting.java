@@ -85,10 +85,12 @@ public class IteratorSetting implements Writable {
   }
 
   /**
-   * Set the iterator's name. Must be a simple alphanumeric identifier.
+   * Set the iterator's name. Must be a simple alphanumeric identifier. The iterator name
+   * also may not contain a dot/period.
    */
   public void setName(String name) {
     checkArgument(name != null, "name is null");
+    checkArgument(!name.contains("."), "Iterator name cannot contain a dot/period");
     this.name = name;
   }
 

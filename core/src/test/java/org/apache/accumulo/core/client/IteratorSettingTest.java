@@ -110,4 +110,13 @@ public class IteratorSettingTest {
 
     assertNotEquals(setting1, notEquals2);
   }
+
+  /**
+   * Iterator names cannot contain dots. Throw IllegalArgumentException is invalid name is used.
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testIteratorNameCannotContainDot() {
+    new IteratorSetting(500, "iterator.name.with.dots", Combiner.class.getName());
+  }
+
 }
