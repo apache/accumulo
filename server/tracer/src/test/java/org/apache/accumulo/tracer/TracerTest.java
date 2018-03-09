@@ -91,7 +91,7 @@ public class TracerTest {
       SpanStruct span = new SpanStruct(traceId, s.getSpanId(), s.getParentId(), s.getStartTimeMillis(), s.getStopTimeMillis(), s.getDescription(),
           s.getKVAnnotations());
       if (!traces.containsKey(traceId))
-        traces.put(traceId, new ArrayList<SpanStruct>());
+        traces.put(traceId, new ArrayList<>());
       traces.get(traceId).add(span);
     }
 

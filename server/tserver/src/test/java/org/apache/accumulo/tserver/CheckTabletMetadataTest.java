@@ -117,7 +117,7 @@ public class CheckTabletMetadataTest {
     put(copy, "1<", TabletsSection.FutureLocationColumnFamily.NAME, "5", "127.0.0.1:9998");
     assertFail(copy, ke, tsi);
 
-    assertFail(new TreeMap<Key,Value>(), ke, tsi);
+    assertFail(new TreeMap<>(), ke, tsi);
 
   }
 }

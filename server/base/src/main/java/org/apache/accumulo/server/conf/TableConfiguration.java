@@ -68,7 +68,7 @@ public class TableConfiguration extends ObservableConfiguration {
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);
     for (IteratorScope scope : IteratorScope.values()) {
-      iteratorConfig.put(scope, new AtomicReference<ParsedIteratorConfig>(null));
+      iteratorConfig.put(scope, new AtomicReference<>(null));
     }
   }
 

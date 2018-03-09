@@ -124,7 +124,7 @@ public class SortedLogRecoveryTest {
   }
 
   private static List<Mutation> recover(Map<String,KeyValue[]> logs, KeyExtent extent) throws IOException {
-    return recover(logs, new HashSet<String>(), extent);
+    return recover(logs, new HashSet<>(), extent);
   }
 
   private static List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent) throws IOException {
