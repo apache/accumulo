@@ -275,7 +275,7 @@ public class MiniAccumuloConfigImpl {
    *          key/values that you normally put in accumulo-site.xml can be put here.
    */
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
-    if (existingInstance != null && existingInstance.booleanValue())
+    if (existingInstance != null && existingInstance)
       throw new UnsupportedOperationException("Cannot set set config info when using an existing instance.");
 
     this.existingInstance = Boolean.FALSE;
@@ -298,7 +298,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
-    if (existingInstance != null && existingInstance.booleanValue())
+    if (existingInstance != null && existingInstance)
       throw new UnsupportedOperationException("Cannot set zookeeper info when using an existing instance.");
 
     this.existingInstance = Boolean.FALSE;
@@ -317,7 +317,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.1
    */
   public MiniAccumuloConfigImpl setZooKeeperStartupTime(long zooKeeperStartupTime) {
-    if (existingInstance != null && existingInstance.booleanValue())
+    if (existingInstance != null && existingInstance)
       throw new UnsupportedOperationException("Cannot set zookeeper info when using an existing instance.");
 
     this.existingInstance = Boolean.FALSE;
@@ -638,7 +638,7 @@ public class MiniAccumuloConfigImpl {
    *           when there are issues converting the provided Files to URLs
    */
   public MiniAccumuloConfigImpl useExistingInstance(File accumuloSite, File hadoopConfDir) throws IOException {
-    if (existingInstance != null && !existingInstance.booleanValue())
+    if (existingInstance != null && !existingInstance)
       throw new UnsupportedOperationException("Cannot set to useExistingInstance after specifying config/zookeeper");
 
     this.existingInstance = Boolean.TRUE;

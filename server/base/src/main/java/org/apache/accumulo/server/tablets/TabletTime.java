@@ -183,7 +183,7 @@ public abstract class TabletTime {
     AtomicLong nextTime;
 
     private LogicalTime(Long time) {
-      this.nextTime = new AtomicLong(time.longValue() + 1);
+      this.nextTime = new AtomicLong(time + 1);
     }
 
     @Override

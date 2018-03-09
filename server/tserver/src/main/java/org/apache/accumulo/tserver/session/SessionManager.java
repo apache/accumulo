@@ -60,7 +60,7 @@ public class SessionManager {
   private final long maxIdle;
   private final long maxUpdateIdle;
   private final List<Session> idleSessions = new ArrayList<>();
-  private final Long expiredSessionMarker = Long.valueOf(-1);
+  private final Long expiredSessionMarker = (long) -1;
   private final AccumuloConfiguration aconf;
 
   public SessionManager(AccumuloConfiguration conf) {

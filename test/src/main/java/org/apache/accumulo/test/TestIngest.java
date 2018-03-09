@@ -263,7 +263,7 @@ public class TestIngest {
           } else {
             byte value[];
             if (opts.random != null) {
-              value = genRandomValue(random, randomValue, opts.random.intValue(), rowid + opts.startRow, j);
+              value = genRandomValue(random, randomValue, opts.random, rowid + opts.startRow, j);
             } else {
               value = bytevals[j % bytevals.length];
             }
@@ -285,7 +285,7 @@ public class TestIngest {
           } else {
             byte value[];
             if (opts.random != null) {
-              value = genRandomValue(random, randomValue, opts.random.intValue(), rowid + opts.startRow, j);
+              value = genRandomValue(random, randomValue, opts.random, rowid + opts.startRow, j);
             } else {
               value = bytevals[j % bytevals.length];
             }

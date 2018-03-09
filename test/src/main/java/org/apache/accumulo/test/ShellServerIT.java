@@ -1255,7 +1255,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       for (byte b : v.get()) {
         if ((b >= 48 && b <= 57) || (b >= 97 && b <= 102)) {
-          sb.append(String.format("0x%x ", Integer.valueOf(b)));
+          sb.append(String.format("0x%x ", (int) b));
         }
       }
 

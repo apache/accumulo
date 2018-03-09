@@ -95,7 +95,7 @@ public class TablesResource {
       if (null != tableInfo && !tableState.equals(TableState.OFFLINE)) {
         Double holdTime = compactingByTable.get(tableId.canonicalID());
         if (holdTime == null)
-          holdTime = Double.valueOf(0.);
+          holdTime = 0.;
 
         tableList.addTable(new TableInformation(tableName, tableId, tableInfo, holdTime, tableState.name()));
       } else {

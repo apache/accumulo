@@ -763,7 +763,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   static class ConditionComparator implements Comparator<Condition> {
 
-    private static final Long MAX = Long.valueOf(Long.MAX_VALUE);
+    private static final Long MAX = Long.MAX_VALUE;
 
     @Override
     public int compare(Condition c1, Condition c2) {
