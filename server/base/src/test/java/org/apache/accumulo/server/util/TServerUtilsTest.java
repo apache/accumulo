@@ -230,12 +230,9 @@ public class TServerUtilsTest {
     int port = getFreePort(1024);
     InetAddress addr = InetAddress.getByName("localhost");
     // Bind to the port
-    ServerSocket s = new ServerSocket(port, 50, addr);
     ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port));
-    try {
+    try (ServerSocket s = new ServerSocket(port, 50, addr)) {
       startServer();
-    } finally {
-      s.close();
     }
   }
 
@@ -245,10 +242,9 @@ public class TServerUtilsTest {
     int[] port = findTwoFreeSequentialPorts(1024);
     // Bind to the port
     InetAddress addr = InetAddress.getByName("localhost");
-    ServerSocket s = new ServerSocket(port[0], 50, addr);
     ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, Integer.toString(port[0]));
     ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_PORTSEARCH, "true");
-    try {
+    try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       ServerAddress address = startServer();
       assertNotNull(address);
       server = address.getServer();
@@ -258,7 +254,7 @@ public class TServerUtilsTest {
       if (null != server) {
         TServerUtils.stopTServer(server);
       }
-      s.close();
+
     }
   }
 
@@ -288,9 +284,8 @@ public class TServerUtilsTest {
     int[] port = findTwoFreeSequentialPorts(1024);
     String portRange = Integer.toString(port[0]) + "-" + Integer.toString(port[1]);
     // Bind to the port
-    ServerSocket s = new ServerSocket(port[0], 50, addr);
     ((ConfigurationCopy) factory.getSystemConfiguration()).set(Property.TSERV_CLIENTPORT, portRange);
-    try {
+    try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       ServerAddress address = startServer();
       assertNotNull(address);
       server = address.getServer();
@@ -300,7 +295,7 @@ public class TServerUtilsTest {
       if (null != server) {
         TServerUtils.stopTServer(server);
       }
-      s.close();
+
     }
   }
 

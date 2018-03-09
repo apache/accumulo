@@ -370,8 +370,7 @@ public class StandaloneClusterControl implements ClusterControl {
    * Read the provided file and return all lines which don't start with a '#' character
    */
   protected List<String> getHosts(File f) throws IOException {
-    BufferedReader reader = new BufferedReader(new FileReader(f));
-    try {
+    try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
       List<String> hosts = new ArrayList<>();
       String line;
       while ((line = reader.readLine()) != null) {
@@ -382,8 +381,6 @@ public class StandaloneClusterControl implements ClusterControl {
       }
 
       return hosts;
-    } finally {
-      reader.close();
     }
   }
 }

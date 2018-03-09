@@ -796,15 +796,12 @@ public class RangeTest extends TestCase {
     r.write(dos);
     dos.close();
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-    DataInputStream dis = new DataInputStream(bais);
     Range r2 = new Range();
-    try {
+    try (DataInputStream dis = new DataInputStream(bais)) {
       r2.readFields(dis);
       fail("readFields allowed invalid range");
     } catch (InvalidObjectException exc) {
       /* good! */
-    } finally {
-      dis.close();
     }
   }
 
