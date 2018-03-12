@@ -1233,11 +1233,11 @@ public class RFile {
 
       Key minKey = null;
 
-      for (int i = 0; i < currentReaders.length; i++) {
+      for (LocalityGroupReader currentReader : currentReaders) {
         if (minKey == null) {
-          minKey = currentReaders[i].getFirstKey();
+          minKey = currentReader.getFirstKey();
         } else {
-          Key firstKey = currentReaders[i].getFirstKey();
+          Key firstKey = currentReader.getFirstKey();
           if (firstKey != null && firstKey.compareTo(minKey) < 0)
             minKey = firstKey;
         }
@@ -1254,11 +1254,11 @@ public class RFile {
 
       Key maxKey = null;
 
-      for (int i = 0; i < currentReaders.length; i++) {
+      for (LocalityGroupReader currentReader : currentReaders) {
         if (maxKey == null) {
-          maxKey = currentReaders[i].getLastKey();
+          maxKey = currentReader.getLastKey();
         } else {
-          Key lastKey = currentReaders[i].getLastKey();
+          Key lastKey = currentReader.getLastKey();
           if (lastKey != null && lastKey.compareTo(maxKey) > 0)
             maxKey = lastKey;
         }

@@ -387,8 +387,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    */
   protected static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < columns.length; i++) {
-      sb.append(Base64.getEncoder().encodeToString(TextUtil.getBytes(columns[i])));
+    for (Text column : columns) {
+      sb.append(Base64.getEncoder().encodeToString(TextUtil.getBytes(column)));
       sb.append('\n');
     }
     return sb.toString();

@@ -130,9 +130,9 @@ public class CacheTestWriter {
         if (files.length == numReaders) {
           boolean ok = true;
 
-          for (int i = 0; i < files.length; i++) {
+          for (File file : files) {
             try {
-              FileInputStream fis = new FileInputStream(files[i]);
+              FileInputStream fis = new FileInputStream(file);
               ObjectInputStream ois = new ObjectInputStream(fis);
 
               @SuppressWarnings("unchecked")

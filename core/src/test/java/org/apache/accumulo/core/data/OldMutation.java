@@ -453,8 +453,7 @@ public class OldMutation implements Writable {
     else {
       out.writeBoolean(true);
       out.writeInt(values.size());
-      for (int i = 0; i < values.size(); i++) {
-        byte val[] = values.get(i);
+      for (byte[] val : values) {
         out.writeInt(val.length);
         out.write(val);
       }

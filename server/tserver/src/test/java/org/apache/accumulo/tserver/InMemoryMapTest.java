@@ -491,8 +491,8 @@ public class InMemoryMapTest {
 
   static long sum(long[] counts) {
     long result = 0;
-    for (int i = 0; i < counts.length; i++)
-      result += counts[i];
+    for (long count : counts)
+      result += count;
     return result;
   }
 
@@ -531,8 +531,8 @@ public class InMemoryMapTest {
       log.info(String.format("%.1f mutations per second with %d threads", mutationsPerSecond, threads));
     }
     // verify that more threads doesn't go a lot faster, or a lot slower than one thread
-    for (int i = 0; i < timings.size(); i++) {
-      double ratioFirst = timings.get(0) / timings.get(i);
+    for (Double timing : timings) {
+      double ratioFirst = timings.get(0) / timing;
       assertTrue(ratioFirst < 3);
       assertTrue(ratioFirst > 0.3);
     }

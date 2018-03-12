@@ -1089,8 +1089,7 @@ public class Mutation implements Writable {
 
     if (0x01 == (0x01 & hasValues)) {
       WritableUtils.writeVInt(out, values.size());
-      for (int i = 0; i < values.size(); i++) {
-        byte val[] = values.get(i);
+      for (byte[] val : values) {
         WritableUtils.writeVInt(out, val.length);
         out.write(val);
       }

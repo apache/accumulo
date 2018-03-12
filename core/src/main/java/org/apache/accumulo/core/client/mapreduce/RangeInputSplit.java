@@ -229,8 +229,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
     out.writeUTF(tableName);
     out.writeUTF(tableId);
     out.writeInt(locations.length);
-    for (int i = 0; i < locations.length; ++i)
-      out.writeUTF(locations[i]);
+    for (String location : locations)
+      out.writeUTF(location);
 
     out.writeBoolean(null != isolatedScan);
     if (null != isolatedScan) {

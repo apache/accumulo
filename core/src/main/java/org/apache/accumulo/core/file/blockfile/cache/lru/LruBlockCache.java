@@ -387,8 +387,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     public long free(long toFree) {
       CachedBlock[] blocks = queue.get();
       long freedBytes = 0;
-      for (int i = 0; i < blocks.length; i++) {
-        freedBytes += evictBlock(blocks[i]);
+      for (CachedBlock block : blocks) {
+        freedBytes += evictBlock(block);
         if (freedBytes >= toFree) {
           return freedBytes;
         }
