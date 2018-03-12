@@ -198,7 +198,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (super.validateOptions(options) == false)
+    if (!super.validateOptions(options))
       return false;
     try {
       setLossyness(options);

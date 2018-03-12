@@ -56,21 +56,21 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
 
   @Override
   public Key getTopKey() {
-    if (seenSeek == false)
+    if (!seenSeek)
       throw new IllegalStateException("never been seeked");
     return getSource().getTopKey();
   }
 
   @Override
   public Value getTopValue() {
-    if (seenSeek == false)
+    if (!seenSeek)
       throw new IllegalStateException("never been seeked");
     return getSource().getTopValue();
   }
 
   @Override
   public boolean hasTop() {
-    if (seenSeek == false)
+    if (!seenSeek)
       throw new IllegalStateException("never been seeked");
     return getSource().hasTop();
   }
@@ -83,7 +83,7 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
 
   @Override
   public void next() throws IOException {
-    if (seenSeek == false)
+    if (!seenSeek)
       throw new IllegalStateException("never been seeked");
     getSource().next();
   }

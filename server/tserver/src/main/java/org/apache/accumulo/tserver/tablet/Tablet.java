@@ -796,7 +796,7 @@ public class Tablet implements TabletCommitter {
       Metrics scanMetrics = getTabletServer().getScanMetrics();
       if (scanMetrics.isEnabled())
         scanMetrics.add(TabletServerScanMetrics.YIELD, 1);
-    } else if (iter.hasTop() == false) {
+    } else if (!iter.hasTop()) {
       // end of tablet has been reached
       continueKey = null;
       if (results.size() == 0)

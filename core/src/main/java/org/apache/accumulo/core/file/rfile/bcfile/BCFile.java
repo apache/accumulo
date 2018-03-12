@@ -317,7 +317,7 @@ public final class BCFile {
        */
       @Override
       public void close() throws IOException {
-        if (closed == true) {
+        if (closed) {
           return;
         }
         try {
@@ -373,13 +373,13 @@ public final class BCFile {
      */
     @Override
     public void close() throws IOException {
-      if (closed == true) {
+      if (closed) {
         return;
       }
 
       try {
         if (errorCount == 0) {
-          if (blkInProgress == true) {
+          if (blkInProgress) {
             throw new IllegalStateException("Close() called with active block appender.");
           }
 
@@ -417,7 +417,7 @@ public final class BCFile {
     }
 
     private BlockAppender prepareMetaBlock(String name, Algorithm compressAlgo) throws IOException, MetaBlockAlreadyExists {
-      if (blkInProgress == true) {
+      if (blkInProgress) {
         throw new IllegalStateException("Cannot create Meta Block until previous block is closed.");
       }
 
@@ -471,11 +471,11 @@ public final class BCFile {
      * @return The BlockAppender stream
      */
     public BlockAppender prepareDataBlock() throws IOException {
-      if (blkInProgress == true) {
+      if (blkInProgress) {
         throw new IllegalStateException("Cannot create Data Block until previous block is closed.");
       }
 
-      if (metaBlkSeen == true) {
+      if (metaBlkSeen) {
         throw new IllegalStateException("Cannot create Data Block after Meta Blocks.");
       }
 
@@ -705,7 +705,7 @@ public final class BCFile {
        */
       @Override
       public void close() throws IOException {
-        if (closed == true) {
+        if (closed) {
           return;
         }
         try {

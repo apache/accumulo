@@ -107,13 +107,13 @@ public class InsertCommand extends Command {
       bw.close();
     } catch (MutationsRejectedException e) {
       final ArrayList<String> lines = new ArrayList<>();
-      if (e.getSecurityErrorCodes().isEmpty() == false) {
+      if (!e.getSecurityErrorCodes().isEmpty()) {
         lines.add("\tAuthorization Failures:");
       }
       for (Entry<TabletId,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes().entrySet()) {
         lines.add("\t\t" + entry);
       }
-      if (e.getConstraintViolationSummaries().isEmpty() == false) {
+      if (!e.getConstraintViolationSummaries().isEmpty()) {
         lines.add("\tConstraint Failures:");
       }
       for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {

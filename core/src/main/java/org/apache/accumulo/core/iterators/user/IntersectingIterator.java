@@ -175,7 +175,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
 
     if (sources[sourceID].notFlag) {
       while (true) {
-        if (sources[sourceID].iter.hasTop() == false) {
+        if (!sources[sourceID].iter.hasTop()) {
           // an empty column that you are negating is a valid condition
           break;
         }
@@ -251,7 +251,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       }
     } else {
       while (true) {
-        if (sources[sourceID].iter.hasTop() == false) {
+        if (!sources[sourceID].iter.hasTop()) {
           currentPartition = null;
           // setting currentRow to null counts as advancing the cursor
           return true;
@@ -455,7 +455,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     }
     if (notFlag[0]) {
       for (int i = 1; i < notFlag.length; i++) {
-        if (notFlag[i] == false) {
+        if (!notFlag[i]) {
           Text swapFamily = new Text(terms[0]);
           terms[0].set(terms[i]);
           terms[i].set(swapFamily);

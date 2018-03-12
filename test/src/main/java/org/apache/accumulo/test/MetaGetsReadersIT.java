@@ -59,13 +59,13 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
       @Override
       public void run() {
         try {
-          while (stop.get() == false) {
+          while (!stop.get()) {
             try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
               IteratorSetting is = new IteratorSetting(50, SlowIterator.class);
               SlowIterator.setSleepTime(is, 10);
               s.addScanIterator(is);
               Iterator<Entry<Key,Value>> iterator = s.iterator();
-              while (iterator.hasNext() && stop.get() == false) {
+              while (iterator.hasNext() && !stop.get()) {
                 iterator.next();
               }
             }

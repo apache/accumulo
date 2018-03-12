@@ -75,7 +75,7 @@ public class TableLoadBalancer extends TabletBalancer {
     if (clazzName == null)
       clazzName = DefaultLoadBalancer.class.getName();
     if (balancer != null) {
-      if (clazzName.equals(balancer.getClass().getName()) == false) {
+      if (!clazzName.equals(balancer.getClass().getName())) {
         // the balancer class for this table does not match the class specified in the configuration
         try {
           // attempt to construct a balancer with the specified class

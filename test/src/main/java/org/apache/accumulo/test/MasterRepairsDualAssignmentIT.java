@@ -116,7 +116,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
         }
       }
       System.out.println(states + " size " + states.size() + " allAssigned " + allAssigned);
-      if (states.size() != 2 && allAssigned == true)
+      if (states.size() != 2 && allAssigned)
         break;
     }
     assertEquals(1, replStates.size());
