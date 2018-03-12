@@ -154,7 +154,7 @@ public abstract class TabletBalancer {
    * Iff a TabletBalancer makes use of the migrations member to provide samples, then OutstandingMigrations is not thread safe.
    */
   protected static class OutstandingMigrations extends BalancerProblem {
-    public Set<KeyExtent> migrations = Collections.<KeyExtent> emptySet();
+    public Set<KeyExtent> migrations = Collections.emptySet();
 
     public OutstandingMigrations(Logger logger) {
       super(logger);

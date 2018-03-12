@@ -17,7 +17,6 @@
 package org.apache.accumulo.tserver.tablet;
 
 import java.util.Collections;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
@@ -59,7 +58,7 @@ public class TabletTest {
     int replication = 5;
     String compressType = "snappy";
 
-    EasyMock.expect(tableConf.iterator()).andReturn(Collections.<Entry<String,String>> emptyIterator());
+    EasyMock.expect(tableConf.iterator()).andReturn(Collections.emptyIterator());
     EasyMock.expect(writeParams.getHdfsBlockSize()).andReturn(hdfsBlockSize).times(2);
     EasyMock.expect(writeParams.getBlockSize()).andReturn(blockSize).times(2);
     EasyMock.expect(writeParams.getIndexBlockSize()).andReturn(indexBlockSize).times(2);

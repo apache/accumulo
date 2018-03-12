@@ -134,7 +134,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public synchronized void start(ServerType server, String hostname) throws IOException {
-    start(server, hostname, Collections.<String,String> emptyMap(), Integer.MAX_VALUE);
+    start(server, hostname, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
   public synchronized void start(ServerType server, String hostname, Map<String,String> configOverrides, int limit) throws IOException {

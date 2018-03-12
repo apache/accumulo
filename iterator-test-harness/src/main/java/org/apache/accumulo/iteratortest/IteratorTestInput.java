@@ -57,7 +57,7 @@ public class IteratorTestInput {
    */
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, Map<String,String> iteratorOptions, Range range,
       SortedMap<Key,Value> input) {
-    this(iteratorClass, iteratorOptions, range, input, Collections.<ByteSequence> emptySet(), false);
+    this(iteratorClass, iteratorOptions, range, input, Collections.emptySet(), false);
   }
 
   /**

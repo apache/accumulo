@@ -28,7 +28,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.Connector;
@@ -147,7 +146,7 @@ public class ReplicationTableUtilTest {
     tops.attachIterator(myMetadataTable, combiner);
     expectLastCall().once();
 
-    expect(tops.getProperties(myMetadataTable)).andReturn(Collections.<Entry<String,String>> emptyList());
+    expect(tops.getProperties(myMetadataTable)).andReturn(Collections.emptyList());
     tops.setProperty(myMetadataTable, Property.TABLE_FORMATTER_CLASS.getKey(), ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
     expectLastCall().once();
 

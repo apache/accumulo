@@ -122,7 +122,7 @@ public class LogSorter {
             // Creating a 'finished' marker will cause recovery to proceed normally and the
             // empty file will be correctly ignored downstream.
             fs.mkdirs(new Path(destPath));
-            writeBuffer(destPath, Collections.<Pair<LogFileKey,LogFileValue>> emptyList(), part++);
+            writeBuffer(destPath, Collections.emptyList(), part++);
             fs.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
             return;
           }

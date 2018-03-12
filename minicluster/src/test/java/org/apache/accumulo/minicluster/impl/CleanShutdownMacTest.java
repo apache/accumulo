@@ -48,7 +48,7 @@ public class CleanShutdownMacTest {
 
     EasyMock.expect(future.get()).andReturn(0).anyTimes();
     EasyMock.expect(mockService.<Integer> submit(EasyMock.anyObject(Callable.class))).andReturn(future).anyTimes();
-    EasyMock.expect(mockService.shutdownNow()).andReturn(Collections.<Runnable> emptyList()).once();
+    EasyMock.expect(mockService.shutdownNow()).andReturn(Collections.emptyList()).once();
 
     EasyMock.replay(mockService, future);
 

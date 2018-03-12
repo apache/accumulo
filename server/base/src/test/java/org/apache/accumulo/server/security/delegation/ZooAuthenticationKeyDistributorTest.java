@@ -122,7 +122,7 @@ public class ZooAuthenticationKeyDistributorTest {
 
     // Attempt to create the directory and fail
     expect(zrw.exists(baseNode)).andReturn(true);
-    expect(zrw.getACL(eq(baseNode), anyObject(Stat.class))).andReturn(Collections.<ACL> emptyList());
+    expect(zrw.getACL(eq(baseNode), anyObject(Stat.class))).andReturn(Collections.emptyList());
 
     replay(zrw);
 

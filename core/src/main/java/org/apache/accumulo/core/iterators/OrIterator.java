@@ -102,7 +102,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
       this.iter = Objects.requireNonNull(iter);
       this.term = Objects.requireNonNull(term);
       // The desired column families for this source is the term itself
-      this.seekColfams = Collections.<ByteSequence> singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      this.seekColfams = Collections.singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
       // No current range until we're seek()'ed for the first time
       this.currentRange = null;
     }
@@ -303,7 +303,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   public IteratorOptions describeOptions() {
     Map<String,String> options = new HashMap<>();
     options.put(COLUMNS_KEY, "A comma-separated list of families");
-    return new IteratorOptions("OrIterator", "Produces a sorted stream of qualifiers based on families", options, Collections.<String> emptyList());
+    return new IteratorOptions("OrIterator", "Produces a sorted stream of qualifiers based on families", options, Collections.emptyList());
   }
 
   @Override

@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -80,7 +79,7 @@ public class MinorCompactor extends Compactor {
       public RateLimiter getWriteLimiter() {
         return null;
       }
-    }, Collections.<IteratorSetting> emptyList(), mincReason.ordinal(), tableConfig);
+    }, Collections.emptyList(), mincReason.ordinal(), tableConfig);
     this.tabletServer = tabletServer;
   }
 

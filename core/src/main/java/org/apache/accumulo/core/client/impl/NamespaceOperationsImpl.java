@@ -115,8 +115,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(namespace != null, "namespace is null");
 
     try {
-      doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE, Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))),
-          Collections.<String,String> emptyMap(), namespace);
+      doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE, Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))), Collections.emptyMap(), namespace);
     } catch (NamespaceNotFoundException e) {
       // should not happen
       throw new AssertionError(e);

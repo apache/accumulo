@@ -26,7 +26,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -87,7 +86,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -110,7 +109,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("badrow")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("badrow")));
 
     key.write(dos);
     value.write(dos);
@@ -142,7 +141,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tid = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -193,7 +192,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -216,7 +215,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("badrow")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("badrow")));
 
     key.write(dos);
     value.write(dos);
@@ -248,7 +247,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tid = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -390,7 +389,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -399,7 +398,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tid = 1;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -444,7 +443,7 @@ public class AccumuloReplicaSystemTest {
   public void dontSendEmptyDataToPeer() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
-    WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
+    WalEdits edits = new WalEdits(Collections.emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 0, 0);
 
     ReplicationTarget target = new ReplicationTarget("peer", "2", Table.ID.of("1"));
@@ -473,7 +472,7 @@ public class AccumuloReplicaSystemTest {
   public void consumedButNotSentDataShouldBeRecorded() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
-    WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
+    WalEdits edits = new WalEdits(Collections.emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 5, 0);
 
     ReplicationTarget target = new ReplicationTarget("peer", "2", Table.ID.of("1"));

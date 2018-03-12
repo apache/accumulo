@@ -742,7 +742,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
   public void attachNamespaceIteratorLoginFailure() throws Exception {
-    IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.<String,String> emptyMap());
+    IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.emptyMap());
     client.attachNamespaceIterator(badLogin, namespaceName, setting, EnumSet.allOf(IteratorScope.class));
   }
 
@@ -763,7 +763,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
   public void checkNamespaceIteratorConflictsLoginFailure() throws Exception {
-    IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.<String,String> emptyMap());
+    IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.emptyMap());
     client.checkNamespaceIteratorConflicts(badLogin, namespaceName, setting, EnumSet.allOf(IteratorScope.class));
   }
 
@@ -976,7 +976,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
-      IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.<String,String> emptyMap());
+      IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.emptyMap());
       client.attachNamespaceIterator(creds, doesNotExist, setting, EnumSet.allOf(IteratorScope.class));
       fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
@@ -993,7 +993,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
     try {
-      IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.<String,String> emptyMap());
+      IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.emptyMap());
       client.checkNamespaceIteratorConflicts(creds, doesNotExist, setting, EnumSet.allOf(IteratorScope.class));
       fail("exception not thrown");
     } catch (NamespaceNotFoundException ex) {}
@@ -2679,7 +2679,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     assertTrue("Namespace ID map should contain namespace created during setup", client.namespaceIdMap(creds).containsKey(namespaceName));
 
     // namespace iterators
-    IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.<String,String> emptyMap());
+    IteratorSetting setting = new IteratorSetting(100, "DebugTheThings", DebugIterator.class.getName(), Collections.emptyMap());
     client.attachNamespaceIterator(creds, namespaceName, setting, EnumSet.of(IteratorScope.SCAN));
     assertEquals("Wrong iterator setting returned", setting, client.getNamespaceIteratorSetting(creds, namespaceName, "DebugTheThings", IteratorScope.SCAN));
     assertTrue("Namespace iterator settings should contain iterator just added",
