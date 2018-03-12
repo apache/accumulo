@@ -136,7 +136,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     if (options.containsKey(docFamilyOptionName))
       docColf = new Text(options.get(docFamilyOptionName));
     docSource = source.deepCopy(env);
-    indexColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
+    indexColfSet = Collections.singleton(new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
 
     for (TermSource ts : this.sources) {
       ts.seekColfams = indexColfSet;
@@ -179,7 +179,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     Text colf = new Text(docColf);
     colf.append(nullByte, 0, 1);
     colf.append(currentDocID.getBytes(), 0, zeroIndex);
-    docColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(colf.getBytes(), 0, colf.getLength()));
+    docColfSet = Collections.singleton(new ArrayByteSequence(colf.getBytes(), 0, colf.getLength()));
     if (log.isTraceEnabled())
       log.trace("{} {}", zeroIndex, currentDocID.getLength());
     Text colq = new Text();

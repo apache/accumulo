@@ -89,7 +89,7 @@ public class MultiIterator extends HeapIterator {
   }
 
   public MultiIterator(List<SortedKeyValueIterator<Key,Value>> readers, boolean init) {
-    this(readers, (Range) null, init);
+    this(readers, null, init);
   }
 
   @Override

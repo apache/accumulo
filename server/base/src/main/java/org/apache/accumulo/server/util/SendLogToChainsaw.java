@@ -32,7 +32,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,9 +44,7 @@ import org.apache.log4j.Category;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.spi.Filter;
-import org.apache.log4j.spi.LocationInfo;
 import org.apache.log4j.spi.LoggingEvent;
-import org.apache.log4j.spi.ThrowableInformation;
 import org.apache.log4j.varia.LevelRangeFilter;
 import org.apache.log4j.xml.XMLLayout;
 
@@ -199,8 +196,7 @@ public class SendLogToChainsaw extends XMLLayout {
         return null;
       Category c = Logger.getLogger(clazz);
       Level l = Level.toLevel(level);
-      LoggingEvent event = new LoggingEvent(clazz, c, ts, l, message, threadName, (ThrowableInformation) null, (String) null, (LocationInfo) null,
-          (Map<?,?>) null);
+      LoggingEvent event = new LoggingEvent(clazz, c, ts, l, message, threadName, null, null, null, null);
       // Check the log level filter
       if (null != levelFilter && (levelFilter.decide(event) == Filter.DENY)) {
         return null;

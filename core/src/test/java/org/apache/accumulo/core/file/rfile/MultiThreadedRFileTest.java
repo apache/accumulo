@@ -339,7 +339,7 @@ public class MultiThreadedRFileTest {
 
     try {
       for (int locality = 1; locality < 4; locality++) {
-        trfBase.writer.startNewLocalityGroup("locality" + locality, Collections.singleton((ByteSequence) (new ArrayByteSequence(getCf(locality)))));
+        trfBase.writer.startNewLocalityGroup("locality" + locality, Collections.singleton(new ArrayByteSequence(getCf(locality))));
         for (int part = 0; part < 4; part++) {
           for (int i = 0; i < 2048; i++) {
             trfBase.writer.append(getKey(part, locality, i), getValue(i));

@@ -65,8 +65,8 @@ public class GarbageCollectWriteAheadLogsTest {
   private final TabletLocationState tabletAssignedToServer2;
   {
     try {
-      tabletAssignedToServer1 = new TabletLocationState(extent, (TServerInstance) null, server1, (TServerInstance) null, null, walogs, false);
-      tabletAssignedToServer2 = new TabletLocationState(extent, (TServerInstance) null, server2, (TServerInstance) null, null, walogs, false);
+      tabletAssignedToServer1 = new TabletLocationState(extent, null, server1, null, null, walogs, false);
+      tabletAssignedToServer2 = new TabletLocationState(extent, null, server2, null, null, walogs, false);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
