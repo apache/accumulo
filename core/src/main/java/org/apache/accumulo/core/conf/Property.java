@@ -238,6 +238,8 @@ public enum Property {
       "The time between adjustments of the coordinator thread pool"),
   MASTER_STATUS_THREAD_POOL_SIZE("master.status.threadpool.size", "1", PropertyType.COUNT,
       "The number of threads to use when fetching the tablet server status for balancing."),
+  MASTER_STATUS_THREAD_TIMEOUT("master.status.thread.timeout", "6s", PropertyType.TIMEDURATION,
+      "The timeout that master will use when collecting each tablet server status."),
   MASTER_METADATA_SUSPENDABLE("master.metadata.suspendable", "false", PropertyType.BOOLEAN, "Allow tablets for the " + MetadataTable.NAME
       + " table to be suspended via table.suspend.duration."),
 
