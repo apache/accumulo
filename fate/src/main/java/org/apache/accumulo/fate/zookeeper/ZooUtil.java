@@ -17,13 +17,17 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.fate.util.Retry;
+import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -38,6 +42,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ZooUtil {
+
+  public static final RetryFactory DEFAULT_RETRY = Retry.builder().maxRetries(10).retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS)
+      .maxWait(5, TimeUnit.SECONDS).logInterval(3, TimeUnit.MINUTES).createFactory();
+
   private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
 
   public enum NodeExistsPolicy {
@@ -166,7 +174,7 @@ public class ZooUtil {
     PUBLIC = new ArrayList<>();
     PUBLIC.addAll(PRIVATE);
     PUBLIC.add(new ACL(Perms.READ, Ids.ANYONE_ID_UNSAFE));
-    RETRY_FACTORY = RetryFactory.DEFAULT_INSTANCE;
+    RETRY_FACTORY = DEFAULT_RETRY;
   }
 
   protected static ZooKeeper getZooKeeper(ZooKeeperConnectionInfo info) {
@@ -199,7 +207,7 @@ public class ZooUtil {
       throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
     try {
       List<String> children;
-      final Retry retry = RETRY_FACTORY.create();
+      final Retry retry = RETRY_FACTORY.createRetry();
       while (true) {
         try {
           children = getZooKeeper(info).getChildren(zPath, false);
@@ -283,7 +291,7 @@ public class ZooUtil {
     if (policy == null)
       policy = NodeExistsPolicy.FAIL;
 
-    final Retry retry = RETRY_FACTORY.create();
+    final Retry retry = RETRY_FACTORY.createRetry();
     while (true) {
       try {
         getZooKeeper(info).create(zPath, data, acls, mode);
@@ -329,7 +337,7 @@ public class ZooUtil {
   }
 
   public static byte[] getData(ZooKeeperConnectionInfo info, String zPath, Stat stat) throws KeeperException, InterruptedException {
-    final Retry retry = RETRY_FACTORY.create();
+    final Retry retry = RETRY_FACTORY.createRetry();
     while (true) {
       try {
         return getZooKeeper(info).getData(zPath, false, stat);
@@ -347,7 +355,7 @@ public class ZooUtil {
   }
 
   public static Stat getStatus(ZooKeeperConnectionInfo info, String zPath) throws KeeperException, InterruptedException {
-    final Retry retry = RETRY_FACTORY.create();
+    final Retry retry = RETRY_FACTORY.createRetry();
     while (true) {
       try {
         return getZooKeeper(info).exists(zPath, false);
@@ -394,7 +402,7 @@ public class ZooUtil {
       putPersistentData(info, destination, data, policy);
       if (stat.getNumChildren() > 0) {
         List<String> children;
-        final Retry retry = RETRY_FACTORY.create();
+        final Retry retry = RETRY_FACTORY.createRetry();
         while (true) {
           try {
             children = getZooKeeper(info).getChildren(source, false);
@@ -422,7 +430,7 @@ public class ZooUtil {
   }
 
   public static String putPersistentSequential(ZooKeeperConnectionInfo info, String zPath, byte[] data) throws KeeperException, InterruptedException {
-    final Retry retry = RETRY_FACTORY.create();
+    final Retry retry = RETRY_FACTORY.createRetry();
     while (true) {
       try {
         return getZooKeeper(info).create(zPath, data, ZooUtil.PUBLIC, CreateMode.PERSISTENT_SEQUENTIAL);
@@ -440,7 +448,7 @@ public class ZooUtil {
   }
 
   public static String putEphemeralData(ZooKeeperConnectionInfo info, String zPath, byte[] data) throws KeeperException, InterruptedException {
-    final Retry retry = RETRY_FACTORY.create();
+    final Retry retry = RETRY_FACTORY.createRetry();
     while (true) {
       try {
         return getZooKeeper(info).create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL);
@@ -458,7 +466,7 @@ public class ZooUtil {
   }
 
   public static String putEphemeralSequential(ZooKeeperConnectionInfo info, String zPath, byte[] data) throws KeeperException, InterruptedException {
-    final Retry retry = RETRY_FACTORY.create();
+    final Retry retry = RETRY_FACTORY.createRetry();
     while (true) {
       try {
         return getZooKeeper(info).create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
@@ -492,7 +500,7 @@ public class ZooUtil {
   }
 
   public static boolean isLockHeld(ZooKeeperConnectionInfo info, LockID lid) throws KeeperException, InterruptedException {
-    final Retry retry = RETRY_FACTORY.create();
+    final Retry retry = RETRY_FACTORY.createRetry();
     while (true) {
       try {
         List<String> children = getZooKeeper(info).getChildren(lid.path, false);
@@ -521,7 +529,7 @@ public class ZooUtil {
   }
 
   public static List<ACL> getACL(ZooKeeperConnectionInfo info, String zPath, Stat stat) throws KeeperException, InterruptedException {
-    final Retry retry = RETRY_FACTORY.create();
+    final Retry retry = RETRY_FACTORY.createRetry();
     while (true) {
       try {
         return getZooKeeper(info).getACL(zPath, stat);

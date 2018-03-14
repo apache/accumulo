@@ -36,8 +36,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
-import org.apache.accumulo.fate.zookeeper.Retry;
-import org.apache.accumulo.fate.zookeeper.RetryFactory;
+import org.apache.accumulo.fate.util.Retry;
+import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -215,7 +215,7 @@ public class TabletServerLogger {
       return;
     } catch (Exception t) {
       if (null == createRetry) {
-        createRetry = createRetryFactory.create();
+        createRetry = createRetryFactory.createRetry();
       }
 
       // We have more retries or we exceeded the maximum number of accepted failures
@@ -267,7 +267,7 @@ public class TabletServerLogger {
   }
 
   private void write(CommitSession commitSession, boolean mincFinish, Writer writer) throws IOException {
-    write(commitSession, mincFinish, writer, writeRetryFactory.create());
+    write(commitSession, mincFinish, writer, writeRetryFactory.createRetry());
   }
 
   private void write(CommitSession commitSession, boolean mincFinish, Writer writer, Retry writeRetry) throws IOException {
@@ -276,7 +276,7 @@ public class TabletServerLogger {
   }
 
   private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
-    write(sessions, mincFinish, writer, writeRetryFactory.create());
+    write(sessions, mincFinish, writer, writeRetryFactory.createRetry());
   }
 
   private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer, Retry writeRetry) throws IOException {
