@@ -19,6 +19,8 @@ package org.apache.accumulo.core.client.impl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.BufferedReader;
@@ -114,7 +116,7 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.fate.zookeeper.Retry;
+import org.apache.accumulo.fate.util.Retry;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -1626,7 +1628,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     locator.invalidateCache();
 
-    Retry retry = new Retry(Long.MAX_VALUE, 100, 100, 2000);
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS).incrementBy(100, MILLISECONDS).maxWait(2, SECONDS)
+        .logInterval(3, TimeUnit.MINUTES).createRetry();
 
     while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
 

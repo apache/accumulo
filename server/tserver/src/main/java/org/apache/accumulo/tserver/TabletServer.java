@@ -151,8 +151,9 @@ import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.fate.util.Retry;
+import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.RetryFactory;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -374,13 +375,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     final long toleratedWalCreationFailures = aconf.getCount(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES);
     final long walFailureRetryIncrement = aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT);
     final long walFailureRetryMax = aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION);
-    // Tolerate `toleratedWalCreationFailures` failures, waiting `walFailureRetryIncrement` milliseconds after the first failure,
-    // incrementing the next wait period by the same value, for a maximum of `walFailureRetryMax` retries.
-    final RetryFactory walCreationRetryFactory = new RetryFactory(toleratedWalCreationFailures, walFailureRetryIncrement, walFailureRetryIncrement,
-        walFailureRetryMax, RetryFactory.DEFAULT_LOG_INTERVAL);
+    final RetryFactory walCreationRetryFactory = Retry.builder().maxRetries(toleratedWalCreationFailures)
+        .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS).incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
+        .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).logInterval(3, TimeUnit.MINUTES).createFactory();
     // Tolerate infinite failures for the write, however backing off the same as for creation failures.
-    final RetryFactory walWritingRetryFactory = new RetryFactory(walFailureRetryIncrement, walFailureRetryIncrement, walFailureRetryMax,
-        RetryFactory.DEFAULT_LOG_INTERVAL);
+    final RetryFactory walWritingRetryFactory = Retry.builder().infiniteRetries().retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
+        .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS).maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).logInterval(3, TimeUnit.MINUTES)
+        .createFactory();
 
     logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter, walCreationRetryFactory, walWritingRetryFactory, walogMaxAge);
     this.resourceManager = new TabletServerResourceManager(this, fs);
