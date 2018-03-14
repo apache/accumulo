@@ -19,6 +19,7 @@ package org.apache.accumulo.fate.zookeeper;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.ZooKeeperConnectionInfo;
@@ -99,7 +100,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
 
   @Override
   public void delete(String path, int version) throws InterruptedException, KeeperException {
-    final Retry retry = getRetryFactory().create();
+    final Retry retry = getRetryFactory().createRetry();
     while (true) {
       try {
         getZooKeeper().delete(path, version);
@@ -130,7 +131,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   public byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator) throws Exception {
     if (createValue != null) {
       while (true) {
-        final Retry retry = getRetryFactory().create();
+        final Retry retry = getRetryFactory().createRetry();
         try {
           getZooKeeper().create(zPath, createValue, acl, CreateMode.PERSISTENT);
           return createValue;
@@ -150,7 +151,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
       }
     }
     do {
-      final Retry retry = getRetryFactory().create();
+      final Retry retry = getRetryFactory().createRetry();
       Stat stat = new Stat();
       byte[] data = getData(zPath, false, stat);
       data = mutator.mutate(data);

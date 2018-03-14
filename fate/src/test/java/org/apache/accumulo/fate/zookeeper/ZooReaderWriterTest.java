@@ -20,6 +20,8 @@ import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.fate.util.Retry;
+import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -53,7 +55,7 @@ public class ZooReaderWriterTest {
 
     EasyMock.expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
     EasyMock.expect(zrw.getRetryFactory()).andReturn(retryFactory).anyTimes();
-    EasyMock.expect(retryFactory.create()).andReturn(retry).anyTimes();
+    EasyMock.expect(retryFactory.createRetry()).andReturn(retry).anyTimes();
   }
 
   @Test(expected = NoNodeException.class)
