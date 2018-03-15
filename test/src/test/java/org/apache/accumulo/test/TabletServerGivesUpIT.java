@@ -37,12 +37,13 @@ public class TabletServerGivesUpIT extends ConfigurableMacIT {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.useMiniDFS(true);
     cfg.setNumTservers(1);
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-    cfg.setProperty(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES, "15");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
+    cfg.setProperty(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES, "10");
+    cfg.setProperty(Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT, "0s");
     cfg.setProperty(Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION, "0s");
   }
 
-  @Test(timeout = 30 * 1000)
+  @Test(timeout = 45 * 1000)
   public void test() throws Exception {
     final Connector conn = this.getConnector();
     // Yes, there's a tabletserver
