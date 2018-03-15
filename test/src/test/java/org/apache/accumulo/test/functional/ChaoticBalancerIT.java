@@ -42,6 +42,7 @@ public class ChaoticBalancerIT extends AccumuloClusterIT {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
+    siteConfig.put(Property.TABLE_LOAD_BALANCER.getKey(), ChaoticLoadBalancer.class.getName());
     cfg.setSiteConfig(siteConfig);
   }
 
@@ -56,7 +57,6 @@ public class ChaoticBalancerIT extends AccumuloClusterIT {
     String[] names = getUniqueNames(2);
     String tableName = names[0], unused = names[1];
     c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_LOAD_BALANCER.getKey(), ChaoticLoadBalancer.class.getName());
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 100; i++) {
