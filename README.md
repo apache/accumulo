@@ -19,52 +19,35 @@ limitations under the License.
 --
 [![Build Status][ti]][tl] [![Maven Central][mi]][ml] [![Javadoc][ji]][jl] [![Apache License][li]][ll]
 
-[Apache Accumulo][accumulo] is a sorted, distributed key/value store that
-provides robust, scalable data storage and retrieval.
+[Apache Accumulo][accumulo] is a sorted, distributed key/value store that provides robust,
+scalable data storage and retrieval. With Apache Accumulo, users can store and manage large
+data sets across a cluster. Accumulo uses [Apache Hadoop]'s HDFS to store its data and
+[Apache Zookeeper] for consensus. Check out the [Accumulo project website][accumulo] for
+news and general information.
 
-Apache Accumulo is based on Google's [BigTable] design and is built on top of Apache
-[Hadoop], [Zookeeper], and [Thrift].  It has several novel [features] such as cell-based
-access control and a server-side programming mechanism that can modify key/value pairs
-at various points in the data management process.
+## Getting Started
 
-Installation
-------------
-
-Follow [these instructions][install] to install and run an Accumulo binary distribution.
-
-Resources 
----------
-
-Apache Accumulo publishes the following resources with each release:
-
-* [Documentation][docs] - In-depth developer and administrator documentation
-* [Accumulo Examples][examples] - Documented example code for using Accumulo
-* [Javadocs][javadocs] - Accumulo API documentation
+* Follow [these instructions][install] to install and run Accumulo
+* Read the [Accumulo documentation][docs]
+* Run the [Accumulo examples][examples] to learn how to write Accumulo clients
+* View the [Javadocs][javadocs] to learn the Accumulo API
 
 More resources can be found on the [project website][accumulo].
 
-Building
---------
+## Building
 
-Accumulo uses [Maven] to compile, [test], and package its source.  The
-following command will build the binary tar.gz from source.  Note, these
-instructions will not work for the Accumulo binary distribution as it does not
-include source.  If you just want to build without waiting for the tests to
-run, add `-DskipTests`.
+Accumulo uses [Maven] to compile, [test], and package its source. The following
+command will build the binary tar.gz from source. Add `-DskipTests` to build without
+waiting for the tests to run.
 
     mvn package
 
-This command produces a file at the following location.
+This command produces `assemble/target/accumulo-<version>-bin.tar.gz`
 
-    assemble/target/accumulo-<version>-bin.tar.gz
+## Accumulo API
 
-API
----
-
-The public Accumulo API is composed of :
-
-All public types in the following packages and their subpackages excluding
-those named *impl*, *thrift*, or *crypto*.
+The public Accumulo API is composed of all public types in the following packages
+and their subpackages excluding those named *impl*, *thrift*, or *crypto*.
 
    * org.apache.accumulo.core.client
    * org.apache.accumulo.core.data
@@ -76,7 +59,7 @@ acccess in an API type is in the API.  This includes, but is not limited to:
 methods, members classes, interfaces, and enums.  Package-private types in
 the above packages are *not* considered public API.
 
-The following regex matches imports that are *not* Accumulo public API.  This
+The following regex matches imports that are *not* Accumulo public API. This
 regex can be used with [RegexpSingleline][regex] to automatically find
 suspicious imports in a project using Accumulo.
 
@@ -88,8 +71,7 @@ The Accumulo project maintains binary compatibility across this API within a
 major release, as defined in the Java Language Specification 3rd ed. Starting
 with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][semver]
 
-Export Control
---------------
+## Export Control
 
 This distribution includes cryptographic software. The country in which you
 currently reside may have restrictions on the import, possession, use, and/or
@@ -121,11 +103,8 @@ more details on bouncycastle's cryptography features.
 [logo]: contrib/accumulo-logo.png
 [install]: INSTALL.md
 [test]: TESTING.md
-[BigTable]: https://research.google.com/archive/bigtable.html
-[Hadoop]: https://hadoop.apache.org
-[Zookeeper]: https://zookeeper.apache.org
-[Thrift]: https://thrift.apache.org
-[features]: https://accumulo.apache.org/notable_features
+[Apache Hadoop]: https://hadoop.apache.org
+[Apache Zookeeper]: https://zookeeper.apache.org
 [Maven]: https://maven.apache.org
 [docs]: https://accumulo.apache.org/latest/accumulo_user_manual
 [examples]: https://github.com/apache/accumulo-examples
@@ -136,7 +115,7 @@ more details on bouncycastle's cryptography features.
 [ll]: https://www.apache.org/licenses/LICENSE-2.0
 [mi]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg
 [ml]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/
-[ji]: https://javadoc-emblem.rhcloud.com/doc/org.apache.accumulo/accumulo-core/badge.svg
+[ji]: https://www.javadoc.io/badge/org.apache.accumulo/accumulo-core.svg
 [jl]: https://www.javadoc.io/doc/org.apache.accumulo/accumulo-core
 [ti]: https://travis-ci.org/apache/accumulo.svg?branch=master
 [tl]: https://travis-ci.org/apache/accumulo
