@@ -45,6 +45,11 @@ import com.google.common.collect.ImmutableSet;
 
 public class LocatorIT extends AccumuloClusterHarness {
 
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
+
   private void assertContains(Locations locations, HashSet<String> tservers, Map<Range,ImmutableSet<TabletId>> expected1,
       Map<TabletId,ImmutableSet<Range>> expected2) {
 
