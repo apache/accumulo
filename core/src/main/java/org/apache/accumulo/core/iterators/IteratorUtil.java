@@ -165,7 +165,7 @@ public class IteratorUtil {
         options.put(optName, entry.getValue());
 
       } else {
-        log.warn("Unrecognizable option: {}", entry.getKey());
+        throw new IllegalArgumentException("Invalid iterator format: " + entry.getKey());
       }
     }
 
