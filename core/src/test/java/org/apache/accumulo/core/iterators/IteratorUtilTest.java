@@ -42,9 +42,12 @@ import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IteratorUtilTest {
 
+  private static final Logger log = LoggerFactory.getLogger(IteratorUtilTest.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   static class WrappedIter implements SortedKeyValueIterator<Key,Value> {
@@ -311,4 +314,71 @@ public class IteratorUtilTest {
     IterInfo ii = iterators.get(0);
     Assert.assertEquals(new IterInfo(50, SummingCombiner.class.getName(), "foo"), ii);
   }
+
+  /**
+   * Iterators should not contain dots in the name. Also, if the split size on "." is greater than one, it should be 3, i.e., itername.opt.optname
+   */
+  @Test
+  public void testInvalidIteratorFormats() {
+
+    Map<String,String> data = new HashMap<>();
+    List<IterInfo> iterators = new ArrayList<>();
+    Map<String,Map<String,String>> options = new HashMap<>();
+    AccumuloConfiguration conf;
+
+    // create iterator with 'dot' in name
+    try {
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar", "50," + SummingCombiner.class.getName());
+      conf = new ConfigurationCopy(data);
+      IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
+    } catch (IllegalArgumentException ex) {
+      log.debug("caught expected exception: " + ex.getMessage());
+    }
+    data.clear();
+    iterators.clear();
+    options.clear();
+
+    // create iterator with 'dot' in name and with split size of 3. If split size of three, then
+    // second part must be 'opt'.
+    try {
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foo.bar.baz", "49," + SummingCombiner.class.getName());
+      conf = new ConfigurationCopy(data);
+      IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
+    } catch (IllegalArgumentException ex) {
+      log.debug("caught expected exception: " + ex.getMessage());
+    }
+    data.clear();
+    iterators.clear();
+    options.clear();
+
+    // create iterator with invalid option format
+    try {
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar", "48," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar.opt", "fakevalue");
+      conf = new ConfigurationCopy(data);
+      IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
+      Assert.assertEquals(1, iterators.size());
+      IterInfo ii = iterators.get(0);
+      Assert.assertEquals(new IterInfo(48, SummingCombiner.class.getName(), "foobar"), ii);
+    } catch (IllegalArgumentException ex) {
+      log.debug("caught expected exception: " + ex.getMessage());
+    }
+    data.clear();
+    iterators.clear();
+    options.clear();
+
+    // create iterator with 'opt' in incorrect position
+    try {
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz", "47," + SummingCombiner.class.getName());
+      data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz.fake.opt", "fakevalue");
+      conf = new ConfigurationCopy(data);
+      IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
+      Assert.assertEquals(1, iterators.size());
+      IterInfo ii = iterators.get(0);
+      Assert.assertEquals(new IterInfo(47, SummingCombiner.class.getName(), "foobaz"), ii);
+    } catch (IllegalArgumentException ex) {
+      log.debug("caught expected exception: " + ex.getMessage());
+    }
+  }
+
 }
