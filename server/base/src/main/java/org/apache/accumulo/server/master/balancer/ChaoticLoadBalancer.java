@@ -32,10 +32,8 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,10 +165,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
   @Deprecated
   @Override
   public void init(ServerConfiguration conf) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
-
-  @Override
-  public void init(ServerConfigurationFactory conf) {}
 
 }
