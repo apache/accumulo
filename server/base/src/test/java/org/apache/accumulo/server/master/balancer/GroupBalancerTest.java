@@ -77,7 +77,7 @@ public class GroupBalancerTest {
     }
 
     public void balance(final int maxMigrations) {
-      GroupBalancer balancer = new GroupBalancer("1") {
+      GroupBalancer balancer = new GroupBalancer(Table.ID.of("1")) {
 
         @Override
         protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {

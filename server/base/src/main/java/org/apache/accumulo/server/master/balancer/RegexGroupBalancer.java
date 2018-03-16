@@ -49,16 +49,16 @@ public class RegexGroupBalancer extends GroupBalancer {
   public static final String DEFAUT_GROUP_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.default";
   public static final String WAIT_TIME_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.wait.time";
 
-  private final String tableId;
+  private final Table.ID tableId;
 
-  public RegexGroupBalancer(String tableId) {
+  public RegexGroupBalancer(Table.ID tableId) {
     super(tableId);
     this.tableId = tableId;
   }
 
   @Override
   protected long getWaitTime() {
-    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(Table.ID.of(tableId))
+    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(tableId)
         .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     if (customProps.containsKey(WAIT_TIME_PROPERTY)) {
       return ConfigurationTypeHelper.getTimeInMillis(customProps.get(WAIT_TIME_PROPERTY));
@@ -70,7 +70,7 @@ public class RegexGroupBalancer extends GroupBalancer {
   @Override
   protected Function<KeyExtent,String> getPartitioner() {
 
-    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(Table.ID.of(tableId))
+    Map<String,String> customProps = context.getServerConfigurationFactory().getTableConfiguration(tableId)
         .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     String regex = customProps.get(REGEX_PROPERTY);
     final String defaultGroup = customProps.get(DEFAUT_GROUP_PROPERTY);
