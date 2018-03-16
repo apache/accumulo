@@ -42,6 +42,8 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
+    // ChaoticLoadBalancer balances across all tables
+    siteConfig.put(Property.TABLE_LOAD_BALANCER.getKey(), ChaoticLoadBalancer.class.getName());
     cfg.setSiteConfig(siteConfig);
   }
 
@@ -56,8 +58,7 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
     String[] names = getUniqueNames(1);
     String tableName = names[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.setProperties(Stream.of(new Pair<>(Property.TABLE_LOAD_BALANCER.getKey(), ChaoticLoadBalancer.class.getName()),
-        new Pair<>(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"), new Pair<>(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K")).collect(
+    ntc.setProperties(Stream.of(new Pair<>(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"), new Pair<>(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K")).collect(
         Collectors.toMap(k -> k.getFirst(), v -> v.getSecond())));
     c.tableOperations().create(tableName, ntc);
 
