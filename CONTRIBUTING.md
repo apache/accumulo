@@ -17,7 +17,7 @@ limitations under the License.
 
 # Contributors Guide
 
- If you believe that you have found a bug, please search for an existing [issue](https://issues.apache.org/jira/browse/accumulo) to see if it has already been reported. If you would like to add a new feature to Accumulo, please send an email with your idea to the [dev](mailto:dev@accumulo.apache.org) mail list. If it's appropriate, then we will create a ticket and assign it to you.
+ If you believe that you have found a bug, please search for an existing [issue](https://github.com/apache/accumulo/issues) to see if it has already been reported. If you would like to add a new feature to Accumulo, please send an email with your idea to the [dev](mailto:dev@accumulo.apache.org) mail list. If it's appropriate, then we will create an issue.  For simple changes, its ok to just submit a pull request without an issue.
 
 ## Development
 
@@ -27,8 +27,8 @@ limitations under the License.
 
 ## Patch Submission
 
-- Ensure that Accumulo builds cleanly before submiting your patch using the command: `mvn clean verify -DskipITs`
-- Before submission please squash your commits using a message that starts with the JIRA issue number and a description of the changes.
+- Ensure that Accumulo builds cleanly before submitting your patch using the command: `mvn clean verify -DskipITs`
+- Before submission please squash your commits using a message that starts with the issue number and a description of the changes.
 - Patches should be submitted in the form of Pull Requests to the Apache Accumulo GitHub [repository](https://github.com/apache/accumulo/) or to the [Review Board](https://reviews.apache.org) accumulo repository.
 
 ## Review
