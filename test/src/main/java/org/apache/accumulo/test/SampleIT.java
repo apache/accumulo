@@ -481,8 +481,7 @@ public class SampleIT extends AccumuloClusterHarness {
       scanner.setSamplerConfiguration(sc);
 
       try {
-        for (Iterator<Entry<Key,Value>> i = scanner.iterator(); i.hasNext();) {
-          Entry<Key,Value> entry = i.next();
+        for (Entry<Key,Value> entry : scanner) {
           entry.getKey();
         }
         Assert.fail("Expected SampleNotPresentException, but it did not happen : " + scanner.getClass().getSimpleName());
@@ -491,8 +490,7 @@ public class SampleIT extends AccumuloClusterHarness {
       }
 
       scanner.clearSamplerConfiguration();
-      for (Iterator<Entry<Key,Value>> i = scanner.iterator(); i.hasNext();) {
-        Entry<Key,Value> entry = i.next();
+      for (Entry<Key,Value> entry : scanner) {
         entry.getKey();
       }
 

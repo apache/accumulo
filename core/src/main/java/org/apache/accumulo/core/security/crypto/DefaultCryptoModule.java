@@ -111,7 +111,7 @@ public class DefaultCryptoModule implements CryptoModule {
       return false;
     }
 
-    return true && allIsWell;
+    return allIsWell;
   }
 
   private boolean validateNotNull(Object givenValue, boolean allIsWell, StringBuilder buf, String errorMessage) {
@@ -121,7 +121,7 @@ public class DefaultCryptoModule implements CryptoModule {
       return false;
     }
 
-    return true && allIsWell;
+    return allIsWell;
   }
 
   private boolean validateNotZero(int givenValue, boolean allIsWell, StringBuilder buf, String errorMessage) {
@@ -131,7 +131,7 @@ public class DefaultCryptoModule implements CryptoModule {
       return false;
     }
 
-    return true && allIsWell;
+    return allIsWell;
   }
 
   private boolean validateParamsObject(CryptoModuleParameters params, int cipherMode) {

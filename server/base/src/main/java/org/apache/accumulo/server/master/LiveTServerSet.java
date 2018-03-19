@@ -114,7 +114,7 @@ public class LiveTServerSet implements Watcher {
 
     public TabletServerStatus getTableMap(boolean usePooledConnection) throws TException, ThriftSecurityException {
 
-      if (usePooledConnection == true)
+      if (usePooledConnection)
         throw new UnsupportedOperationException();
 
       long start = System.currentTimeMillis();

@@ -518,8 +518,8 @@ public class InMemoryMap {
    */
   public void mutate(List<Mutation> mutations) {
     int numKVs = 0;
-    for (int i = 0; i < mutations.size(); i++)
-      numKVs += mutations.get(i).size();
+    for (Mutation mutation : mutations)
+      numKVs += mutation.size();
 
     // Can not update mutationCount while writes that started before
     // are in progress, this would cause partial mutations to be seen.

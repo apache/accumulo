@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Mutation;
 public class MaxMutationSize implements Constraint {
   static final long MAX_SIZE = Runtime.getRuntime().maxMemory() >> 8;
   static final List<Short> empty = Collections.emptyList();
-  static final List<Short> violations = Collections.singletonList(Short.valueOf((short) 0));
+  static final List<Short> violations = Collections.singletonList((short) 0);
 
   @Override
   public String getViolationDescription(short violationCode) {

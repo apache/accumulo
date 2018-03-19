@@ -77,7 +77,7 @@ public class CompressionTest {
   public void testSingle() throws IOException {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to issupported should be true
         Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
@@ -93,7 +93,7 @@ public class CompressionTest {
   public void testSingleNoSideEffect() throws IOException {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
         Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
 
@@ -111,7 +111,7 @@ public class CompressionTest {
   public void testManyStartNotNull() throws IOException, InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to issupported should be true
         Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
@@ -157,7 +157,7 @@ public class CompressionTest {
   public void testManyDontStartUntilThread() throws IOException, InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to issupported should be true
         Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
@@ -197,7 +197,7 @@ public class CompressionTest {
   public void testThereCanBeOnlyOne() throws IOException, InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to issupported should be true
         Assert.assertTrue(al + " is not supported, but should be", al.isSupported());

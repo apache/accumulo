@@ -65,9 +65,8 @@ class PopulateMetadataTable extends MasterRepo {
   }
 
   static Map<String,String> readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo) throws Exception {
-    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), UTF_8));
 
-    try {
+    try (BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(tableInfo.importDir, "mappings.txt")), UTF_8))) {
       Map<String,String> map = new HashMap<>();
 
       String line = null;
@@ -77,8 +76,6 @@ class PopulateMetadataTable extends MasterRepo {
       }
 
       return map;
-    } finally {
-      in.close();
     }
 
   }

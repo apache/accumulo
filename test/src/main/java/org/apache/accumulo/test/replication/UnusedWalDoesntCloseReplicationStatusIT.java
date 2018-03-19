@@ -124,7 +124,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = tserverWal.getAbsolutePath();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);

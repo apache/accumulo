@@ -85,7 +85,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   int countTrue(Collection<Boolean> bools) {
     int result = 0;
     for (Boolean b : bools) {
-      if (b.booleanValue())
+      if (b)
         result++;
     }
     return result;
@@ -104,7 +104,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     // wal markers are added lazily
     Map<String,Boolean> wals = getWALsAndAssertCount(c, 2);
     for (Boolean b : wals.values()) {
-      assertTrue("logs should be in use", b.booleanValue());
+      assertTrue("logs should be in use", b);
     }
 
     // roll log, get a new next

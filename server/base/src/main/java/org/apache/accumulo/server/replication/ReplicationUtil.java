@@ -175,7 +175,7 @@ public class ReplicationUtil {
         // TODO ACCUMULO-2835 once explicit lengths are tracked, we can give size-based estimates instead of just file-based
         Long count = counts.get(target);
         if (null == count) {
-          counts.put(target, Long.valueOf(1l));
+          counts.put(target, 1l);
         } else {
           counts.put(target, count + 1);
         }

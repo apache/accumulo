@@ -250,19 +250,19 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     initialTableLocation.put(BAR.getTableName(), new TServerInstance("192.168.0.6:9997", 1));
     initialTableLocation.put(BAZ.getTableName(), new TServerInstance("192.168.0.11:9997", 1));
 
-    tableExtents.put(FOO.getTableName(), new ArrayList<KeyExtent>());
+    tableExtents.put(FOO.getTableName(), new ArrayList<>());
     tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("1"), new Text("0")));
     tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("2"), new Text("1")));
     tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("3"), new Text("2")));
     tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("4"), new Text("3")));
     tableExtents.get(FOO.getTableName()).add(new KeyExtent(FOO.getId(), new Text("5"), new Text("4")));
-    tableExtents.put(BAR.getTableName(), new ArrayList<KeyExtent>());
+    tableExtents.put(BAR.getTableName(), new ArrayList<>());
     tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("11"), new Text("10")));
     tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("12"), new Text("11")));
     tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("13"), new Text("12")));
     tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("14"), new Text("13")));
     tableExtents.get(BAR.getTableName()).add(new KeyExtent(BAR.getId(), new Text("15"), new Text("14")));
-    tableExtents.put(BAZ.getTableName(), new ArrayList<KeyExtent>());
+    tableExtents.put(BAZ.getTableName(), new ArrayList<>());
     tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("21"), new Text("20")));
     tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("22"), new Text("21")));
     tableExtents.get(BAZ.getTableName()).add(new KeyExtent(BAZ.getId(), new Text("23"), new Text("22")));

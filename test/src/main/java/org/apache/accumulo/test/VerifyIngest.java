@@ -121,7 +121,7 @@ public class VerifyIngest {
 
           byte ev[];
           if (opts.random != null) {
-            ev = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, expectedCol);
+            ev = TestIngest.genRandomValue(random, randomValue, opts.random, expectedRow, expectedCol);
           } else {
             ev = bytevals[expectedCol % bytevals.length];
           }
@@ -188,7 +188,7 @@ public class VerifyIngest {
 
             byte value[];
             if (opts.random != null) {
-              value = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, colNum);
+              value = TestIngest.genRandomValue(random, randomValue, opts.random, expectedRow, colNum);
             } else {
               value = bytevals[colNum % bytevals.length];
             }

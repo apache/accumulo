@@ -120,7 +120,7 @@ public class ContextManagerTest {
 
     Assert.assertFalse(defaultContextClass.equals(myContextClass));
 
-    cm.removeUnusedContexts(new HashSet<String>());
+    cm.removeUnusedContexts(new HashSet<>());
   }
 
   @Test

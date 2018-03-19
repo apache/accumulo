@@ -89,7 +89,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
       int index = r.nextInt(tServerArray.size());
       TServerInstance dest = tServerArray.get(index);
       assignments.put(ke, dest);
-      long remaining = toAssign.get(dest).longValue() - 1;
+      long remaining = toAssign.get(dest) - 1;
       if (remaining == 0) {
         tServerArray.remove(index);
         toAssign.remove(dest);

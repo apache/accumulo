@@ -1260,7 +1260,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       Span walSpan = Trace.start("wal");
       try {
-        while (true && sendables.size() > 0) {
+        while (sendables.size() > 0) {
           try {
             long t1 = System.currentTimeMillis();
             logger.logManyTablets(sendables);
@@ -2698,7 +2698,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     // consider making other threads daemon threads so that objects don't
     // get prematurely finalized
     synchronized (this) {
-      while (shutdownComplete == false) {
+      while (!shutdownComplete) {
         try {
           this.wait(1000);
         } catch (InterruptedException e) {

@@ -104,7 +104,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       this.term = term;
       this.notFlag = notFlag;
       // The desired column families for this source is the term itself
-      this.seekColfams = Collections.<ByteSequence> singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      this.seekColfams = Collections.singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
     }
 
     public String getTermString() {
@@ -175,7 +175,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
 
     if (sources[sourceID].notFlag) {
       while (true) {
-        if (sources[sourceID].iter.hasTop() == false) {
+        if (!sources[sourceID].iter.hasTop()) {
           // an empty column that you are negating is a valid condition
           break;
         }
@@ -251,7 +251,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       }
     } else {
       while (true) {
-        if (sources[sourceID].iter.hasTop() == false) {
+        if (!sources[sourceID].iter.hasTop()) {
           currentPartition = null;
           // setting currentRow to null counts as advancing the cursor
           return true;
@@ -387,8 +387,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    */
   protected static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < columns.length; i++) {
-      sb.append(Base64.getEncoder().encodeToString(TextUtil.getBytes(columns[i])));
+    for (Text column : columns) {
+      sb.append(Base64.getEncoder().encodeToString(TextUtil.getBytes(column)));
       sb.append('\n');
     }
     return sb.toString();
@@ -455,7 +455,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     }
     if (notFlag[0]) {
       for (int i = 1; i < notFlag.length; i++) {
-        if (notFlag[i] == false) {
+        if (!notFlag[i]) {
           Text swapFamily = new Text(terms[0]);
           terms[0].set(terms[i]);
           terms[i].set(swapFamily);

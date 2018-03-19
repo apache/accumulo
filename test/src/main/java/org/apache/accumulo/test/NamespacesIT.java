@@ -32,7 +32,6 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -1071,7 +1070,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
             break;
           case 1:
             ops.create("a");
-            ops.clone("a", tableName, true, Collections.<String,String> emptyMap(), Collections.<String> emptySet());
+            ops.clone("a", tableName, true, Collections.emptyMap(), Collections.emptySet());
             fail();
             break;
           case 2:
@@ -1151,7 +1150,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 6:
-            ops.clone(tableName, "2", true, Collections.<String,String> emptyMap(), Collections.<String> emptySet());
+            ops.clone(tableName, "2", true, Collections.emptyMap(), Collections.emptySet());
             fail();
             break;
           case 7:
@@ -1239,7 +1238,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 28:
-            ops.setLocalityGroups(tableName, Collections.<String,Set<Text>> emptyMap());
+            ops.setLocalityGroups(tableName, Collections.emptyMap());
             fail();
             break;
           default:

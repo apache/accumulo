@@ -796,7 +796,7 @@ public class Tablet implements TabletCommitter {
       Metrics scanMetrics = getTabletServer().getScanMetrics();
       if (scanMetrics.isEnabled())
         scanMetrics.add(TabletServerScanMetrics.YIELD, 1);
-    } else if (iter.hasTop() == false) {
+    } else if (!iter.hasTop()) {
       // end of tablet has been reached
       continueKey = null;
       if (results.size() == 0)
@@ -1620,14 +1620,11 @@ public class Tablet implements TabletCommitter {
     for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
       FileRef file = entry.getKey();
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
-      FileSKVIterator openReader = fileFactory.newReaderBuilder().forFile(file.path().toString(), ns, ns.getConf())
-          .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build();
-      try {
+      try (FileSKVIterator openReader = fileFactory.newReaderBuilder().forFile(file.path().toString(), ns, ns.getConf())
+          .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build()) {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
         result.put(file, new Pair<>(first, last));
-      } finally {
-        openReader.close();
       }
     }
     return result;

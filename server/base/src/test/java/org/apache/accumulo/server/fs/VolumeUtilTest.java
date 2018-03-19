@@ -209,11 +209,8 @@ public class VolumeUtilTest {
   }
 
   private void writeFile(FileSystem fs, Path dir, String filename, String data) throws IOException {
-    FSDataOutputStream out = fs.create(new Path(dir, filename));
-    try {
+    try (FSDataOutputStream out = fs.create(new Path(dir, filename))) {
       out.writeUTF(data);
-    } finally {
-      out.close();
     }
   }
 }

@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -55,7 +54,7 @@ public class CountingIteratorTest {
   }
 
   private void readAll(CountingIterator ci) throws IOException {
-    ci.seek(new Range(), new HashSet<ByteSequence>(), false);
+    ci.seek(new Range(), new HashSet<>(), false);
     while (ci.hasTop()) {
       ci.next();
     }

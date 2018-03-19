@@ -100,7 +100,7 @@ public abstract class RowEncodingIterator implements SortedKeyValueIterator<Key,
       return;
     Text currentRow;
     do {
-      if (sourceIter.hasTop() == false)
+      if (!sourceIter.hasTop())
         return;
       currentRow = new Text(sourceIter.getTopKey().getRow());
       keys.clear();

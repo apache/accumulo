@@ -103,7 +103,7 @@ public class CfCqSliceOpts {
       options.put(OPT_MIN_INCLUSIVE, OPT_MIN_INCLUSIVE_DESC);
       options.put(OPT_MAX_INCLUSIVE, OPT_MAX_INCLUSIVE_DESC);
       return new OptionDescriber.IteratorOptions("ColumnSliceFilter", "Returns all key/value pairs where the column is between the specified values", options,
-          Collections.<String> emptyList());
+          Collections.emptyList());
     }
 
     @Override

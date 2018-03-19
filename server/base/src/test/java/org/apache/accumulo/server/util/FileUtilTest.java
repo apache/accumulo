@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -92,7 +91,7 @@ public class FileUtilTest {
 
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
 
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
+    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
 
     Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
   }
@@ -118,11 +117,11 @@ public class FileUtilTest {
 
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
 
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
+    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
 
     Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
 
-    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<FileSKVIterator>());
+    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
 
     Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
   }
@@ -149,11 +148,11 @@ public class FileUtilTest {
 
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
 
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
+    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
 
     Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
 
-    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<FileSKVIterator>());
+    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
 
     Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
   }
@@ -176,11 +175,11 @@ public class FileUtilTest {
 
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
 
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
+    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
 
     Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
 
-    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<FileSKVIterator>());
+    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
 
     Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
   }
@@ -204,11 +203,11 @@ public class FileUtilTest {
 
     VolumeManager fs = VolumeManagerImpl.getLocal(accumuloDir.getAbsolutePath());
 
-    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
+    FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<>());
 
     Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
 
-    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<FileSKVIterator>());
+    FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<>());
 
     Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
   }

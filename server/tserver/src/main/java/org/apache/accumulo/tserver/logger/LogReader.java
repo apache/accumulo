@@ -111,9 +111,8 @@ public class LogReader {
             log.warn("Could not read header for {} . Ignoring...", path);
             continue;
           }
-          DataInputStream input = streams.getDecryptingInputStream();
 
-          try {
+          try (DataInputStream input = streams.getDecryptingInputStream()) {
             while (true) {
               try {
                 key.readFields(input);
@@ -123,8 +122,6 @@ public class LogReader {
               }
               printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
             }
-          } finally {
-            input.close();
           }
         }
       } else {

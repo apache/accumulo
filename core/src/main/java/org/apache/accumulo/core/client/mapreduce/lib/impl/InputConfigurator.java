@@ -639,7 +639,7 @@ public class InputConfigurator extends ConfiguratorBase {
       }
     }
     for (Map.Entry<Writable,Writable> entry : mapWritable.entrySet())
-      configs.put(((Text) entry.getKey()).toString(), (InputTableConfig) entry.getValue());
+      configs.put(entry.getKey().toString(), (InputTableConfig) entry.getValue());
 
     return configs;
   }

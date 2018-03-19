@@ -344,10 +344,10 @@ public class KerberosProxyIT extends AccumuloITBase {
     Map<ByteBuffer,List<ColumnUpdate>> updates = new HashMap<>();
     ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap("cf1".getBytes(UTF_8)), ByteBuffer.wrap("cq1".getBytes(UTF_8)));
     update.setValue(ByteBuffer.wrap("value1".getBytes(UTF_8)));
-    updates.put(ByteBuffer.wrap("row1".getBytes(UTF_8)), Collections.<ColumnUpdate> singletonList(update));
+    updates.put(ByteBuffer.wrap("row1".getBytes(UTF_8)), Collections.singletonList(update));
     update = new ColumnUpdate(ByteBuffer.wrap("cf2".getBytes(UTF_8)), ByteBuffer.wrap("cq2".getBytes(UTF_8)));
     update.setValue(ByteBuffer.wrap("value2".getBytes(UTF_8)));
-    updates.put(ByteBuffer.wrap("row2".getBytes(UTF_8)), Collections.<ColumnUpdate> singletonList(update));
+    updates.put(ByteBuffer.wrap("row2".getBytes(UTF_8)), Collections.singletonList(update));
     client.update(writer, updates);
 
     // Flush and close the writer

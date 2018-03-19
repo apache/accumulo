@@ -46,7 +46,7 @@ public class ReadOnlyStoreTest {
 
     EasyMock.expect(mock.waitForStatusChange(0xdeadbeefl, EnumSet.allOf(TStatus.class))).andReturn(TStatus.UNKNOWN);
     EasyMock.expect(mock.getProperty(0xdeadbeefl, "com.example.anyproperty")).andReturn("property");
-    EasyMock.expect(mock.list()).andReturn(Collections.<Long> emptyList());
+    EasyMock.expect(mock.list()).andReturn(Collections.emptyList());
 
     EasyMock.replay(repo);
     EasyMock.replay(mock);

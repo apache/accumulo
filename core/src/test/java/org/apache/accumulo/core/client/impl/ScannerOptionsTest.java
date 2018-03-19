@@ -79,7 +79,7 @@ public class ScannerOptionsTest {
   public void testFetchNullColumn() {
     try (ScannerOptions options = new ScannerOptions()) {
       // Require a non-null instance of Column
-      options.fetchColumn((IteratorSetting.Column) null);
+      options.fetchColumn(null);
     }
   }
 }

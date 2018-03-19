@@ -286,7 +286,7 @@ public class SourceSwitchingIteratorTest extends TestCase {
       if (!r.contains(yieldPosition)) {
         throw new IOException("Underlying iterator yielded to a position outside of its range: " + yieldPosition + " not in " + r);
       }
-      r = new Range(yieldPosition, false, (Key) null, r.isEndKeyInclusive());
+      r = new Range(yieldPosition, false, null, r.isEndKeyInclusive());
       ssi.seek(r, new ArrayList<>(), false);
     }
     return r;

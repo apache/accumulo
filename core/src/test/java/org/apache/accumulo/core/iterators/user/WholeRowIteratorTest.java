@@ -33,7 +33,6 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
@@ -178,8 +177,7 @@ public class WholeRowIteratorTest {
     map.putAll(map1);
     map.putAll(map2);
 
-    MultiIterator source = new MultiIterator(Collections.singletonList((SortedKeyValueIterator<Key,Value>) new SortedMapIterator(map)), new Range(null, true,
-        new Text("row1"), true));
+    MultiIterator source = new MultiIterator(Collections.singletonList(new SortedMapIterator(map)), new Range(null, true, new Text("row1"), true));
     WholeRowIterator iter = new WholeRowIterator(source);
 
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);

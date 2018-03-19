@@ -164,7 +164,7 @@ public class ReplicationResource {
         // TODO ACCUMULO-2835 once explicit lengths are tracked, we can give size-based estimates instead of just file-based
         Long count = targetCounts.get(target);
         if (null == count) {
-          targetCounts.put(target, Long.valueOf(1l));
+          targetCounts.put(target, 1l);
         } else {
           targetCounts.put(target, count + 1);
         }

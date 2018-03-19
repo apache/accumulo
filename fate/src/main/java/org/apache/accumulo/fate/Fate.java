@@ -210,7 +210,7 @@ public class Fate<T> {
         }
 
         if (autoCleanUp)
-          store.setProperty(tid, AUTO_CLEAN_PROP, Boolean.valueOf(autoCleanUp));
+          store.setProperty(tid, AUTO_CLEAN_PROP, autoCleanUp);
 
         store.setProperty(tid, DEBUG_PROP, repo.getDescription());
 

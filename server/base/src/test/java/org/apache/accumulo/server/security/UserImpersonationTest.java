@@ -47,7 +47,7 @@ public class UserImpersonationTest {
 
   @Before
   public void setup() {
-    cc = new ConfigurationCopy(new HashMap<String,String>());
+    cc = new ConfigurationCopy(new HashMap<>());
     conf = new AccumuloConfiguration() {
       DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
 

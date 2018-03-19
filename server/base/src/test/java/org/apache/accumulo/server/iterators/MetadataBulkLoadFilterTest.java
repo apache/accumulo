@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -102,7 +101,7 @@ public class MetadataBulkLoadFilterTest {
     put(tm1, "2<", TabletsSection.BulkFileColumnFamily.NAME, "/t2/fileA", "2");
 
     TestMetadataBulkLoadFilter iter = new TestMetadataBulkLoadFilter();
-    iter.init(new SortedMapIterator(tm1), new HashMap<String,String>(), new BaseIteratorEnvironment() {
+    iter.init(new SortedMapIterator(tm1), new HashMap<>(), new BaseIteratorEnvironment() {
 
       @Override
       public boolean isFullMajorCompaction() {
@@ -115,7 +114,7 @@ public class MetadataBulkLoadFilterTest {
       }
     });
 
-    iter.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    iter.seek(new Range(), new ArrayList<>(), false);
 
     TreeMap<Key,Value> actual = new TreeMap<>();
 

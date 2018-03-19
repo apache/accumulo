@@ -158,7 +158,7 @@ public class WholeColumnFamilyIterator implements SortedKeyValueIterator<Key,Val
     Text currentCf;
 
     do {
-      if (sourceIter.hasTop() == false)
+      if (!sourceIter.hasTop())
         return;
       currentRow = new Text(sourceIter.getTopKey().getRow());
       currentCf = new Text(sourceIter.getTopKey().getColumnFamily());

@@ -122,7 +122,7 @@ public class LogSorter {
             // Creating a 'finished' marker will cause recovery to proceed normally and the
             // empty file will be correctly ignored downstream.
             fs.mkdirs(new Path(destPath));
-            writeBuffer(destPath, Collections.<Pair<LogFileKey,LogFileValue>> emptyList(), part++);
+            writeBuffer(destPath, Collections.emptyList(), part++);
             fs.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
             return;
           }
@@ -179,9 +179,8 @@ public class LogSorter {
       Path path = new Path(destPath, String.format("part-r-%05d", part));
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
 
-      MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path), MapFile.Writer.keyClass(LogFileKey.class),
-          MapFile.Writer.valueClass(LogFileValue.class));
-      try {
+      try (MapFile.Writer output = new MapFile.Writer(ns.getConf(), ns.makeQualified(path), MapFile.Writer.keyClass(LogFileKey.class),
+          MapFile.Writer.valueClass(LogFileValue.class))) {
         Collections.sort(buffer, new Comparator<Pair<LogFileKey,LogFileValue>>() {
           @Override
           public int compare(Pair<LogFileKey,LogFileValue> o1, Pair<LogFileKey,LogFileValue> o2) {
@@ -191,8 +190,6 @@ public class LogSorter {
         for (Pair<LogFileKey,LogFileValue> entry : buffer) {
           output.append(entry.getFirst(), entry.getSecond());
         }
-      } finally {
-        output.close();
       }
     }
 

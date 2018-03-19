@@ -81,7 +81,7 @@ public class AdminTest {
     String server = "localhost:12345";
 
     String serverPath = root + "/" + server;
-    EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.<String> emptyList());
+    EasyMock.expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
 
     EasyMock.replay(zc);
 

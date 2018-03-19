@@ -89,7 +89,7 @@ public class ZooAuthenticationKeyDistributorTest {
 
     // Attempt to create the directory and fail
     expect(zrw.exists(baseNode)).andReturn(false);
-    expect(zrw.putPrivatePersistentData(eq(baseNode), (byte[]) anyObject(), eq(NodeExistsPolicy.FAIL))).andReturn(true);
+    expect(zrw.putPrivatePersistentData(eq(baseNode), anyObject(), eq(NodeExistsPolicy.FAIL))).andReturn(true);
 
     replay(zrw);
 
@@ -122,7 +122,7 @@ public class ZooAuthenticationKeyDistributorTest {
 
     // Attempt to create the directory and fail
     expect(zrw.exists(baseNode)).andReturn(true);
-    expect(zrw.getACL(eq(baseNode), anyObject(Stat.class))).andReturn(Collections.<ACL> emptyList());
+    expect(zrw.getACL(eq(baseNode), anyObject(Stat.class))).andReturn(Collections.emptyList());
 
     replay(zrw);
 

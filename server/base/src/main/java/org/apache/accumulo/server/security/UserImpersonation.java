@@ -288,7 +288,7 @@ public class UserImpersonation {
             usersWithHosts.setUsers(users);
           }
           String[] userValues = StringUtils.split(userString, ',');
-          users.addAll(Arrays.<String> asList(userValues));
+          users.addAll(Arrays.asList(userValues));
         }
       } else if (HOSTS.equals(usersOrHosts)) {
         String hostsString = entry.getValue().trim();
@@ -301,7 +301,7 @@ public class UserImpersonation {
             usersWithHosts.setHosts(hosts);
           }
           String[] hostValues = StringUtils.split(hostsString, ',');
-          hosts.addAll(Arrays.<String> asList(hostValues));
+          hosts.addAll(Arrays.asList(hostValues));
         }
       } else {
         log.debug("Ignoring key {}", aclKey);

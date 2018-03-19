@@ -157,12 +157,12 @@ public class MetadataBatchScanTest {
 
       long t1 = System.currentTimeMillis();
 
-      for (int i = 0; i < threads.length; i++) {
-        threads[i].start();
+      for (Thread thread : threads) {
+        thread.start();
       }
 
-      for (int i = 0; i < threads.length; i++) {
-        threads[i].join();
+      for (Thread thread : threads) {
+        thread.join();
       }
 
       long t2 = System.currentTimeMillis();

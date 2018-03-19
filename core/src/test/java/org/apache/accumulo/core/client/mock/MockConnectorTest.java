@@ -115,7 +115,7 @@ public class MockConnectorTest {
       Assert.fail("addMutations should throw IAE for null iterable");
     } catch (IllegalArgumentException iae) {}
 
-    bw.addMutations(Collections.<Mutation> emptyList());
+    bw.addMutations(Collections.emptyList());
 
     Mutation bad = new Mutation("bad");
     try {

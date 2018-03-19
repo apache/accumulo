@@ -181,9 +181,9 @@ public class RowFilterTest {
     ColumnFamilySkippingIterator source = new ColumnFamilySkippingIterator(new SortedMapIterator(createKeyValues()));
 
     RowFilter filter = new SummingRowFilter();
-    filter.init(source, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
-    filter.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
+    filter.seek(new Range(), Collections.emptySet(), false);
 
     assertEquals(new HashSet<>(Arrays.asList("2", "3")), getRows(filter));
 
@@ -192,13 +192,13 @@ public class RowFilterTest {
     filter.seek(new Range(), ImmutableSet.of(cf), true);
     assertEquals(new HashSet<>(Arrays.asList("1", "3", "0", "4")), getRows(filter));
 
-    filter.seek(new Range("0", "4"), Collections.<ByteSequence> emptySet(), false);
+    filter.seek(new Range("0", "4"), Collections.emptySet(), false);
     assertEquals(new HashSet<>(Arrays.asList("2", "3")), getRows(filter));
 
-    filter.seek(new Range("2"), Collections.<ByteSequence> emptySet(), false);
+    filter.seek(new Range("2"), Collections.emptySet(), false);
     assertEquals(new HashSet<>(Arrays.asList("2")), getRows(filter));
 
-    filter.seek(new Range("4"), Collections.<ByteSequence> emptySet(), false);
+    filter.seek(new Range("4"), Collections.emptySet(), false);
     assertEquals(new HashSet<String>(), getRows(filter));
 
     filter.seek(new Range("4"), ImmutableSet.of(cf), true);
@@ -211,12 +211,12 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter0 = new TrueFilter();
-    filter0.init(source, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+    filter0.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
     RowFilter filter = new TrueFilter();
-    filter.init(filter0, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(filter0, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
-    filter.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
+    filter.seek(new Range(), Collections.emptySet(), false);
 
     assertEquals(new HashSet<>(Arrays.asList("0", "1", "2", "3", "4")), getRows(filter));
   }
@@ -227,12 +227,12 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter0 = new RowZeroOrOneFilter();
-    filter0.init(source, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+    filter0.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
     RowFilter filter = new RowOneOrTwoFilter();
-    filter.init(filter0, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(filter0, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
-    filter.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
+    filter.seek(new Range(), Collections.emptySet(), false);
 
     assertEquals(new HashSet<>(Arrays.asList("1")), getRows(filter));
   }
@@ -242,9 +242,9 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter = new RowZeroOrOneFilter();
-    filter.init(source, Collections.<String,String> emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
-    filter.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
+    filter.seek(new Range(), Collections.emptySet(), false);
 
     // Save off the first key and value
     Key firstKey = filter.getTopKey();
@@ -265,7 +265,7 @@ public class RowFilterTest {
     RowFilter copy = (RowFilter) filter.deepCopy(new DefaultIteratorEnvironment());
 
     // Because it's a copy, we should be able to safely seek this one without affecting the original
-    copy.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
+    copy.seek(new Range(), Collections.emptySet(), false);
 
     assertTrue("deepCopy'ed RowFilter did not have a top key", copy.hasTop());
 
