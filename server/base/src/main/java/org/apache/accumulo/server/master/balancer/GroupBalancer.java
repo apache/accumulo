@@ -450,7 +450,7 @@ public abstract class GroupBalancer extends TabletBalancer {
 
   private static class Moves {
 
-    private final com.google.common.collect.Table<TServerInstance,String,List<Move>> moves = HashBasedTable.create();
+    private final HashBasedTable<TServerInstance,String,List<Move>> moves = HashBasedTable.create();
     private int totalMoves = 0;
 
     public void move(String group, int num, TserverGroupInfo src, TserverGroupInfo dest) {
