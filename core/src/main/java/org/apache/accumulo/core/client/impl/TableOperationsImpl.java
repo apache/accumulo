@@ -1269,6 +1269,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     TableState expectedState = Tables.getTableState(context.getInstance(), tableId, true);
     if (expectedState == TableState.ONLINE) {
+      if (wait)
+        waitForTableStateTransition(tableId, TableState.ONLINE);
       return;
     }
 
