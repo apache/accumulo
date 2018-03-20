@@ -44,7 +44,7 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
     this.context = context;
     this.tableId = tableId;
     this.bwConfig = bwConfig;
-    super.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, BatchDeleter.class.getName() + ".NOVALUE", SortedKeyIterator.class));
+    super.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, BatchDeleter.class.getName().replaceAll("[.]", "_") + "_NOVALUE", SortedKeyIterator.class));
   }
 
   @Override
