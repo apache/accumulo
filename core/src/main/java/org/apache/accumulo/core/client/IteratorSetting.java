@@ -89,7 +89,7 @@ public class IteratorSetting implements Writable {
    */
   public void setName(String name) {
     checkArgument(name != null, "name is null");
-    checkArgument(!name.contains("."), "Iterator name cannot contain a dot/period");
+    checkArgument(!name.contains("."), "Iterator name cannot contain a dot/period: " + name);
     this.name = name;
   }
 
