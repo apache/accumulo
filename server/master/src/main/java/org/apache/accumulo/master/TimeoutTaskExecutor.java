@@ -123,7 +123,7 @@ public class TimeoutTaskExecutor<T,C extends Callable<T>> implements AutoCloseab
    * @throws IllegalStateException
    *           If all of the callbacks were not registered before calling this method.
    * @throws InterruptedException
-   *           If interrupted while awaiting trackingCallable results.
+   *           If interrupted while awaiting callable results.
    */
   public void complete() throws InterruptedException {
     Preconditions.checkState(successCallback != null, "Must set a success callback before completing " + this);
