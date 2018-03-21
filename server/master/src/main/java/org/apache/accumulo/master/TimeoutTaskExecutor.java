@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -55,15 +56,15 @@ public class TimeoutTaskExecutor<T,C extends Callable<T>> implements AutoCloseab
    * Constructs a new TimeoutTaskExecutor using the given executor to schedule tasks with a max timeout. Takes an expected number of Callables to initialize the
    * underlying task collection more appropriately.
    *
-   * @param executorService
-   *          The executor to schedule tasks with.
+   * @param numThreads
+   *          The number of threads to use.
    * @param timeout
    *          The timeout for each task.
    * @param expectedNumCallables
    *          The expected number of callables you will schedule (for sizing optimization).
    */
-  public TimeoutTaskExecutor(ExecutorService executorService, long timeout, int expectedNumCallables) {
-    this.executorService = executorService;
+  public TimeoutTaskExecutor(int numThreads, long timeout, int expectedNumCallables) {
+    this.executorService = Executors.newFixedThreadPool(numThreads);
     this.timeout = timeout;
     this.wrappedTasks = new ArrayList<>(expectedNumCallables);
   }
@@ -75,7 +76,8 @@ public class TimeoutTaskExecutor<T,C extends Callable<T>> implements AutoCloseab
    *          Task to run
    */
   public void submit(C callable) {
-    WrappedTask wt = new WrappedTask(callable, executorService.submit(callable));
+    WrappedTask wt = new WrappedTask(callable);
+    wt.future = executorService.submit(wt);
     wrappedTasks.add(wt);
   }
 
@@ -121,25 +123,43 @@ public class TimeoutTaskExecutor<T,C extends Callable<T>> implements AutoCloseab
    * @throws IllegalStateException
    *           If all of the callbacks were not registered before calling this method.
    * @throws InterruptedException
-   *           If interrupted while awaiting callable results.
+   *           If interrupted while awaiting trackingCallable results.
    */
   public void complete() throws InterruptedException {
     Preconditions.checkState(successCallback != null, "Must set a success callback before completing " + this);
     Preconditions.checkState(exceptionCallback != null, "Must set an exception callback before completing " + this);
     Preconditions.checkState(timeoutCallback != null, "Must set a timeout callback before completing " + this);
 
-    for (WrappedTask wt : wrappedTasks) {
-      try {
-        successCallback.accept(wt.callable, wt.future.get(timeout, TimeUnit.MILLISECONDS));
-      } catch (InterruptedException e) {
-        throw e;
-      } catch (TimeoutException e) {
-        wt.future.cancel(true);
-        timeoutCallback.accept(wt.callable);
-      } catch (Exception e) {
-        exceptionCallback.accept(wt.callable, e);
+    while (hasUnfinishedTasks()) {
+      for (WrappedTask wt : wrappedTasks) {
+        if (wt.hasStarted && !wt.hasCompleted) {
+          completeTask(wt);
+        }
       }
     }
+  }
+
+  private boolean hasUnfinishedTasks() {
+    for (WrappedTask wt : wrappedTasks) {
+      if (!wt.hasCompleted) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void completeTask(WrappedTask wt) throws InterruptedException {
+    try {
+      successCallback.accept(wt.callable, wt.future.get(timeout, TimeUnit.MILLISECONDS));
+    } catch (InterruptedException e) {
+      throw e;
+    } catch (TimeoutException e) {
+      wt.future.cancel(true);
+      timeoutCallback.accept(wt.callable);
+    } catch (Exception e) {
+      exceptionCallback.accept(wt.callable, e);
+    }
+    wt.hasCompleted = true;
   }
 
   @Override
@@ -152,15 +172,24 @@ public class TimeoutTaskExecutor<T,C extends Callable<T>> implements AutoCloseab
   }
 
   /*
-   * A wrapper for keeping a callable and its future together.
+   * A wrapper for a Callable that keeps additional information. This tracks if the callable has been started, has completed (either finished or cancelled), and
+   * keeps the associated future.
    */
-  private class WrappedTask {
+  private class WrappedTask implements Callable<T> {
     public final C callable;
-    public final Future<T> future;
 
-    public WrappedTask(C callable, Future<T> future) {
+    public volatile boolean hasStarted = false;
+    public boolean hasCompleted = false;
+    public Future<T> future;
+
+    public WrappedTask(C callable) {
       this.callable = callable;
-      this.future = future;
+    }
+
+    @Override
+    public T call() throws Exception {
+      hasStarted = true;
+      return callable.call();
     }
   }
 

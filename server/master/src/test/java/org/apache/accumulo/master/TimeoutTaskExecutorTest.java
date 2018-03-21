@@ -23,7 +23,6 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
 
 import org.apache.accumulo.master.TimeoutTaskExecutor.SuccessCallback;
 import org.apache.accumulo.master.TimeoutTaskExecutor.TimeoutCallback;
@@ -44,7 +43,7 @@ public class TimeoutTaskExecutorTest {
   @Before
   public void setup() {
     int numThreads = 2;
-    executor = new TimeoutTaskExecutor<>(Executors.newFixedThreadPool(numThreads), timeout, 3);
+    executor = new TimeoutTaskExecutor<>(numThreads, timeout, 3);
 
     results = new ArrayList<>();
     timeouts = new ArrayList<>();
@@ -99,16 +98,26 @@ public class TimeoutTaskExecutorTest {
 
   @Test
   public void slowTasksShouldNotPreventOthersFromRunning() throws Exception {
-    // Clog up the threadpool with slow running tasks
-    executor.submit(new DummyTask("slow task 1", Long.MAX_VALUE));
-    executor.submit(new DummyTask("slow task 2", Long.MAX_VALUE));
-    executor.submit(new DummyTask("slow task 3", Long.MAX_VALUE));
+    // Clog up the threadpool with misbehaving tasks
+    executor.submit(new MisbehavingTask("slow task 1", timeout * 2));
+    executor.submit(new MisbehavingTask("slow task 2", timeout * 2));
+    executor.submit(new MisbehavingTask("slow task 3", timeout * 2));
     executor.submit(new DummyTask("good task", 0L));
 
     executor.complete();
 
-    assertThat(results.size(), is(1));
-    assertThat(Iterables.getFirst(results, null), is("good task"));
+    // Some of the slow tasks may complete, but we want to ensure
+    // that the well behaving task completes.
+    assertThat(results.size() >= 1, is(true));
+
+    boolean foundGoodTask = false;
+    for (String t : results) {
+      if (t.equals("good task")) {
+        foundGoodTask = true;
+      }
+    }
+
+    assertThat(foundGoodTask, is(true));
   }
 
   @After
@@ -116,7 +125,10 @@ public class TimeoutTaskExecutorTest {
     executor.close();
   }
 
-  private class DummyTask implements Callable<String> {
+  /*
+   * Task that will sleep and then return the given result.
+   */
+  private static class DummyTask implements Callable<String> {
     private final String result;
     private final long timeout;
 
@@ -129,6 +141,24 @@ public class TimeoutTaskExecutorTest {
     public String call() throws Exception {
       Thread.sleep(timeout);
       return result;
+    }
+  }
+
+  /*
+   * Task that will misbehave by ignoring the first interrupt attempt and continue to sleep for one extra cycle.
+   */
+  private static class MisbehavingTask extends DummyTask {
+    public MisbehavingTask(String result, long timeout) {
+      super(result, timeout);
+    }
+
+    @Override
+    public String call() throws Exception {
+      try {
+        return super.call();
+      } catch (InterruptedException e) {
+        return super.call();
+      }
     }
   }
 }

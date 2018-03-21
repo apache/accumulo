@@ -1083,8 +1083,7 @@ public class Master extends AccumuloServerContext implements LiveTServerSet.List
     long timeout = getConfiguration().getTimeInMillis(Property.MASTER_STATUS_THREAD_TIMEOUT);
     final SortedMap<TServerInstance,TabletServerStatus> results = new ConcurrentSkipListMap<>();
 
-    try (TimeoutTaskExecutor<TabletServerStatus,GetTServerStatus> executor = new TimeoutTaskExecutor<>(Executors.newFixedThreadPool(threads), timeout,
-        currentServers.size())) {
+    try (TimeoutTaskExecutor<TabletServerStatus,GetTServerStatus> executor = new TimeoutTaskExecutor<>(threads, timeout, currentServers.size())) {
       executor.onSuccess(new SuccessCallback<TabletServerStatus,GetTServerStatus>() {
         @Override
         public void accept(GetTServerStatus task, TabletServerStatus result) {
