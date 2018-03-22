@@ -104,6 +104,10 @@ public class Metrics2TabletServerMetrics implements Metrics, MetricsSource, Tabl
     // TODO Some day, MetricsRegistry will also support the MetricsGaugeDouble or allow us to instantiate it directly
     builder.addGauge(Interns.info(FILES_PER_TABLET, "Number of files per tablet"), util.getAverageFilesPerTablet());
     builder.addGauge(Interns.info(HOLD_TIME, "Time commits held"), util.getHoldTime());
+    builder.addGauge(Interns.info(INGEST_RATE, "Ingest rate (entries/sec)"), util.getIngest());
+    builder.addGauge(Interns.info(INGEST_BYTE_RATE, "Ingest rate (bytes/sec)"), util.getIngestByteRate());
+    builder.addGauge(Interns.info(QUERY_RATE, "Query rate (entries/sec)"), util.getQueryRate());
+    builder.addGauge(Interns.info(QUERY_BYTE_RATE, "Query rate (bytes/sec)"), util.getQueryByteRate());
+    builder.addGauge(Interns.info(SCANNED_RATE, "Scanned rate"), util.getScannedRate());
   }
-
 }
