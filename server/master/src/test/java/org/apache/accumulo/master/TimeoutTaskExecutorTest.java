@@ -49,22 +49,19 @@ public class TimeoutTaskExecutorTest {
     timeouts = new ArrayList<>();
 
     executor.onSuccess(new SuccessCallback<String,DummyTask>() {
-      @Override
-      public void accept(DummyTask task, String result) {
+      @Override public void accept(DummyTask task, String result) {
         results.add(result);
       }
     });
 
     executor.onTimeout(new TimeoutCallback<DummyTask>() {
-      @Override
-      public void accept(DummyTask task) {
+      @Override public void accept(DummyTask task) {
         timeouts.add(task);
       }
     });
 
     executor.onException(new TimeoutTaskExecutor.ExceptionCallback<DummyTask>() {
-      @Override
-      public void accept(DummyTask task, Exception e) {
+      @Override public void accept(DummyTask task, Exception e) {
         e.printStackTrace();
         fail("Unexpected exception");
       }
@@ -118,6 +115,21 @@ public class TimeoutTaskExecutorTest {
     }
 
     assertThat(foundGoodTask, is(true));
+  }
+
+  @Test
+  public void shouldAllowMoreTasksAfterComplete() throws Exception {
+    executor.submit(new DummyTask("task1", 0L));
+    executor.complete();
+    assertThat(results.size(), is(1));
+    assertThat(Iterables.get(results, 0), is("task1"));
+
+    results.clear();
+
+    executor.submit(new DummyTask("task2", 0L));
+    executor.complete();
+    assertThat(results.size(), is(1));
+    assertThat(Iterables.get(results, 0), is("task2"));
   }
 
   @After
