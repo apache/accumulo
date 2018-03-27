@@ -1737,58 +1737,110 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(true);
     }
     ts.exec("createtable t");
+    // Assert that the TabletServer does not know anything about our class
+    String result = ts.exec("setiter -scan -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
+    assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
-    // Add the context to the table so that setscaniter works. After setscaniter succeeds, then
-    // remove the property from the table.
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
-    ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
-    ts.exec("setscaniter -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
-    String result = ts.exec("scan -np -b row1 -e row1");
+    // Add the context to the table so that setiter works.
+    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
+
+    result = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
+    assertEquals("root@miniInstance t> config -t t -s table.classpath.context=" + FAKE_CONTEXT + "\n", result);
+
+    result = ts.exec("setshelliter -pn baz -n reverse -p 21 -class org.apache.accumulo.test" + ".functional.ValueReversingIterator");
+    assertTrue(result.contains("The iterator class does not implement OptionDescriber"));
+
+    // The implementation of ValueReversingIterator in the FAKE context does nothing, the value is not reversed.
+    result = ts.exec("scan -pn baz -np -b row1 -e row1");
     assertEquals(2, result.split("\n").length);
-    log.error(result);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -np -b row3 -e row5");
+    result = ts.exec("scan -pn baz -np -b row3 -e row5");
     assertEquals(4, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -np -r row3");
+    result = ts.exec("scan -pn baz -np -r row3");
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -np -b row:");
+    result = ts.exec("scan -pn baz -np -b row:");
     assertEquals(1, result.split("\n").length);
-    result = ts.exec("scan -np -b row");
+    result = ts.exec("scan -pn baz -np -b row");
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -np -e row:");
+    result = ts.exec("scan -pn baz -np -e row:");
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("value"));
 
     setupRealContextPath();
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
-    result = ts.exec("scan -np -b row1 -e row1 -cc " + REAL_CONTEXT);
-    log.error(result);
+    // Define a new classloader context, but don't set it on the table
+    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
+    // Override the table classloader context with the REAL implementation of ValueReversingIterator, which does reverse the value.
+    result = ts.exec("scan -pn baz -np -b row1 -e row1 -cc " + REAL_CONTEXT);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -np -b row3 -e row5 -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -b row3 -e row5 -cc " + REAL_CONTEXT);
     assertEquals(4, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -np -r row3 -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -r row3 -cc " + REAL_CONTEXT);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -np -b row: -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -b row: -cc " + REAL_CONTEXT);
     assertEquals(1, result.split("\n").length);
-    result = ts.exec("scan -np -b row -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -b row -cc " + REAL_CONTEXT);
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -np -e row: -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -e row: -cc " + REAL_CONTEXT);
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
     ts.exec("deletetable -f t");
+  }
+
+  /**
+   * The purpose of this test is to verify that you can successfully scan a table that has an iterator set but not via the shellIter capability. Purpose is to
+   * verify that the scansWithClassLoaderContext test can handle situations with both normal iterators and shell iterators.
+   */
+  @Test
+  public void testScanTableWithIterSetWithoutProfile() throws Exception {
+    final String table = name.getMethodName();
+
+    // create a table
+    ts.exec("createtable " + table, true);
+
+    // add some data
+    ts.exec("insert foo a b c", true);
+    ts.exec("scan", true, "foo a:b []    c");
+
+    // create a normal iterator while in current table context
+    ts.input.set("\n5000\n\n");
+    ts.exec("setiter -scan -n itname -p 10 -ageoff", true);
+
+    ts.exec("sleep 6", true);
+    // scan the created table.
+    ts.exec("scan", true, "", true);
+    ts.exec("deletetable -f " + table);
+
+    // Repeat process but do it within the 'notable' context (after table creation and insertion)
+    // create a table
+    ts.exec("createtable " + table, true);
+
+    // add some data
+    ts.exec("insert foo a b c", true);
+    ts.exec("notable");
+    ts.exec("scan -t " + table, true, "foo a:b []    c");
+
+    // create a normal iterator which in current table context
+    ts.input.set("\n5000\n\n");
+    ts.exec("setiter -scan -n itname -p 10 -ageoff -t " + table, true);
+    ts.exec("sleep 6", true);
+    // re-scan the table. Should not see data.
+    ts.exec("scan -t " + table, true, "", true);
+    ts.exec("deletetable -f " + table);
   }
 
   private static final String FAKE_CONTEXT = "FAKE";
