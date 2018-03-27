@@ -405,7 +405,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
     ts.input.set("true\n\n\n\nSTRING");
-    ts.exec("setscaniter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
+    ts.exec("setscaniter -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name", true);
     ts.exec("scan", true, "3", true);
     ts.exec("deletescaniter -n name", true);
     ts.exec("scan", true, "1", true);
@@ -533,11 +533,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -pn sum -n name", true);
-    ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -pn sum -n name", false);
-    ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -pn sum -n other", false);
+    ts.exec("setshelliter -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -pn sum -n name", true);
+    ts.exec("setshelliter -class " + SUMMING_COMBINER_ITERATOR + " -p 11 -pn sum -n name", false);
+    ts.exec("setshelliter -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -pn sum -n other", false);
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -pn sum -n xyzzy", true);
+    ts.exec("setshelliter -class " + SUMMING_COMBINER_ITERATOR + " -p 11 -pn sum -n xyzzy", true);
     ts.exec("scan -pn sum", true, "3", true);
     ts.exec("listshelliter", true, "Iterator name", true);
     ts.exec("listshelliter", true, "Iterator xyzzy", true);
@@ -555,11 +555,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -n name", false);
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n other", false);
+    ts.exec("setiter -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name", true);
+    ts.exec("setiter -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 11 -n name", false);
+    ts.exec("setiter -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n other", false);
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -n xyzzy", true);
+    ts.exec("setiter -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 11 -n xyzzy", true);
     ts.exec("scan", true, "3", true);
     ts.exec("listiter -scan", true, "Iterator name", true);
     ts.exec("listiter -scan", true, "Iterator xyzzy", true);
@@ -580,13 +580,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + tableName);
     ts.input.set("\n\n");
     // Setting a non-optiondescriber with no name should fail
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", false);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", false);
 
     // Name as option will work
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name cfcounter", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter", true);
 
     String expectedKey = "table.iterator.scan.cfcounter";
-    String expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    String expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
     TableOperations tops = conn.tableOperations();
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
 
@@ -598,9 +598,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.input.set("customcfcounter\n\n");
 
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
     expectedKey = "table.iterator.scan.customcfcounter";
-    expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
 
     ts.exec("deletetable " + tableName, true);
@@ -611,9 +611,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.input.set("customcfcounter\nname1 value1\nname2 value2\n\n");
 
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
     expectedKey = "table.iterator.scan.customcfcounter";
-    expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
     expectedKey = "table.iterator.scan.customcfcounter.opt.name1";
     expectedValue = "value1";
@@ -630,9 +630,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.input.set("\nname1 value1.1,value1.2,value1.3\nname2 value2\n\n");
 
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name cfcounter", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter", true);
     expectedKey = "table.iterator.scan.cfcounter";
-    expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
     expectedKey = "table.iterator.scan.cfcounter.opt.name1";
     expectedValue = "value1.1,value1.2,value1.3";
@@ -1665,7 +1665,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("namespaces", true, "testers3", true);
     ts.exec("deletenamespace testers3 -f", true);
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setiter -ns thing2 -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
+    ts.exec("setiter -ns thing2 -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name", true);
     ts.exec("listiter -ns thing2 -scan", true, "Summing", true);
     ts.exec("deleteiter -ns thing2 -n name -scan", true);
     ts.exec("createuser dude");
@@ -1729,7 +1729,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void scansWithClassLoaderContext() throws Exception {
     try {
-      Class.forName("org.apache.accumulo.test.functional.ValueReversingIterator");
+      Class.forName(VALUE_REVERSING_ITERATOR);
       fail("ValueReversingIterator already on the classpath");
     } catch (Exception e) {
       // Do nothing here, This is success. The following line is here
@@ -1737,58 +1737,111 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(true);
     }
     ts.exec("createtable t");
+    // Assert that the TabletServer does not know anything about our class
+    String result = ts.exec("setiter -scan -n reverse -t t -p 21 -class " + VALUE_REVERSING_ITERATOR);
+    assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
-    // Add the context to the table so that setscaniter works. After setscaniter succeeds, then
-    // remove the property from the table.
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
-    ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
-    ts.exec("setscaniter -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
-    String result = ts.exec("scan -np -b row1 -e row1");
+    // Add the context to the table so that setiter works.
+    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
+
+    result = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
+    assertEquals("root@miniInstance t> config -t t -s table.classpath.context=" + FAKE_CONTEXT + "\n", result);
+
+    result = ts.exec("setshelliter -pn baz -n reverse -p 21 -class " + VALUE_REVERSING_ITERATOR);
+    assertTrue(result.contains("The iterator class does not implement OptionDescriber"));
+
+    // The implementation of ValueReversingIterator in the FAKE context does nothing, the value is not reversed.
+    result = ts.exec("scan -pn baz -np -b row1 -e row1");
     assertEquals(2, result.split("\n").length);
-    log.error(result);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -np -b row3 -e row5");
+    result = ts.exec("scan -pn baz -np -b row3 -e row5");
     assertEquals(4, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -np -r row3");
+    result = ts.exec("scan -pn baz -np -r row3");
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -np -b row:");
+    result = ts.exec("scan -pn baz -np -b row:");
     assertEquals(1, result.split("\n").length);
-    result = ts.exec("scan -np -b row");
+    result = ts.exec("scan -pn baz -np -b row");
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("value"));
-    result = ts.exec("scan -np -e row:");
+    result = ts.exec("scan -pn baz -np -e row:");
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("value"));
 
     setupRealContextPath();
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
-    result = ts.exec("scan -np -b row1 -e row1 -cc " + REAL_CONTEXT);
-    log.error(result);
+    // Define a new classloader context, but don't set it on the table
+    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
+    // Override the table classloader context with the REAL implementation of ValueReversingIterator, which does reverse the value.
+    result = ts.exec("scan -pn baz -np -b row1 -e row1 -cc " + REAL_CONTEXT);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -np -b row3 -e row5 -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -b row3 -e row5 -cc " + REAL_CONTEXT);
     assertEquals(4, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -np -r row3 -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -r row3 -cc " + REAL_CONTEXT);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -np -b row: -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -b row: -cc " + REAL_CONTEXT);
     assertEquals(1, result.split("\n").length);
-    result = ts.exec("scan -np -b row -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -b row -cc " + REAL_CONTEXT);
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -np -e row: -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -np -e row: -cc " + REAL_CONTEXT);
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
     ts.exec("deletetable -f t");
+  }
+
+  /**
+   * The purpose of this test is to verify that you can successfully scan a table with a regular iterator. It was written to verify that the changes made while
+   * updating the setshelliter command did not break the existing setiter capabilities. It tests that a table can be scanned with an iterator both while within
+   * a table context and also while in the 'notable' context.
+   */
+  @Test
+  public void testScanTableWithIterSetWithoutProfile() throws Exception {
+    final String table = name.getMethodName();
+
+    // create a table
+    ts.exec("createtable " + table, true);
+
+    // add some data
+    ts.exec("insert foo a b c", true);
+    ts.exec("scan", true, "foo a:b []    c");
+
+    // create a normal iterator while in current table context
+    ts.input.set("\n1000\n\n");
+    ts.exec("setiter -scan -n itname -p 10 -ageoff", true);
+
+    ts.exec("sleep 2", true);
+    // scan the created table.
+    ts.exec("scan", true, "", true);
+    ts.exec("deletetable -f " + table);
+
+    // Repeat process but do it within the 'notable' context (after table creation and insertion)
+    // create a table
+    ts.exec("createtable " + table, true);
+
+    // add some data
+    ts.exec("insert foo a b c", true);
+    ts.exec("notable");
+    ts.exec("scan -t " + table, true, "foo a:b []    c");
+
+    // create a normal iterator which in current table context
+    ts.input.set("\n1000\n\n");
+    ts.exec("setiter -scan -n itname -p 10 -ageoff -t " + table, true);
+    ts.exec("sleep 2", true);
+    // re-scan the table. Should not see data.
+    ts.exec("scan -t " + table, true, "", true);
+    ts.exec("deletetable -f " + table);
   }
 
   private static final String FAKE_CONTEXT = "FAKE";
@@ -1797,6 +1850,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private static final String REAL_CONTEXT = "REAL";
   private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir") + "/target/" + ShellServerIT.class.getSimpleName()
       + "-real-iterators.jar";
+  private static final String VALUE_REVERSING_ITERATOR = "org.apache.accumulo.test.functional.ValueReversingIterator";
+  private static final String SUMMING_COMBINER_ITERATOR = "org.apache.accumulo.core.iterators.user.SummingCombiner";
+  private static final String COLUMN_FAMILY_COUNTER_ITERATOR = "org.apache.accumulo.core.iterators" + ".ColumnFamilyCounter";
 
   private void setupRealContextPath() throws Exception {
     // Copy the test iterators jar to tmp
