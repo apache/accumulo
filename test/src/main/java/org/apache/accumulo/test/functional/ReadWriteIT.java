@@ -64,11 +64,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -126,8 +124,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test(expected = RuntimeException.class)
   public void invalidInstanceName() throws Exception {
-    final Connector conn = getConnector();
-    new ZooKeeperInstance("fake_instance_name", conn.getInstance().getZooKeepers());
+    Connector.builder().forInstance("fake_instance_name", cluster.getZooKeepers()).usingToken(getAdminPrincipal(), getAdminToken()).build();
   }
 
   @Test
@@ -138,8 +135,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
     Connector connector = getConnector();
     String tableName = getUniqueNames(1)[0];
-    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS, COLS, 50, 0, tableName);
-    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS, COLS, 50, 0, tableName);
+    ingest(connector, getAdminPrincipal(), ROWS, COLS, 50, 0, tableName);
+    verify(connector, getAdminPrincipal(), ROWS, COLS, 50, 0, tableName);
     String monitorLocation = null;
     while (null == monitorLocation) {
       monitorLocation = MonitorUtil.getLocation(getConnector().getInstance());
@@ -196,13 +193,11 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     cluster.start();
   }
 
-  public static void ingest(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String tableName)
-      throws Exception {
-    ingest(connector, clientConfig, principal, rows, cols, width, offset, COLF, tableName);
+  public static void ingest(Connector connector, String principal, int rows, int cols, int width, int offset, String tableName) throws Exception {
+    ingest(connector, principal, rows, cols, width, offset, COLF, tableName);
   }
 
-  public static void ingest(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String colf,
-      String tableName) throws Exception {
+  public static void ingest(Connector connector, String principal, int rows, int cols, int width, int offset, String colf, String tableName) throws Exception {
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = rows;
     opts.cols = cols;
@@ -211,8 +206,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.columnFamily = colf;
     opts.createTable = true;
     opts.setTableName(tableName);
-    if (clientConfig.hasSasl()) {
-      opts.updateKerberosCredentials(clientConfig);
+    if (saslEnabled()) {
+      opts.updateKerberosCredentials();
     } else {
       opts.setPrincipal(principal);
     }
@@ -220,13 +215,11 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     TestIngest.ingest(connector, opts, new BatchWriterOpts());
   }
 
-  public static void verify(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String tableName)
-      throws Exception {
-    verify(connector, clientConfig, principal, rows, cols, width, offset, COLF, tableName);
+  public static void verify(Connector connector, String principal, int rows, int cols, int width, int offset, String tableName) throws Exception {
+    verify(connector, principal, rows, cols, width, offset, COLF, tableName);
   }
 
-  private static void verify(Connector connector, ClientConfiguration clientConfig, String principal, int rows, int cols, int width, int offset, String colf,
-      String tableName) throws Exception {
+  private static void verify(Connector connector, String principal, int rows, int cols, int width, int offset, String colf, String tableName) throws Exception {
     ScannerOpts scannerOpts = new ScannerOpts();
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.rows = rows;
@@ -235,8 +228,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.startRow = offset;
     opts.columnFamily = colf;
     opts.setTableName(tableName);
-    if (clientConfig.hasSasl()) {
-      opts.updateKerberosCredentials(clientConfig);
+    if (saslEnabled()) {
+      opts.updateKerberosCredentials();
     } else {
       opts.setPrincipal(principal);
     }
@@ -260,10 +253,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       @Override
       public Integer call() {
         try {
-          ClientConfiguration clientConf = cluster.getClientConfig();
           // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
           // Need to pass along the keytab because of that.
-          if (clientConf.hasSasl()) {
+          if (saslEnabled()) {
             String principal = getAdminPrincipal();
             AuthenticationToken token = getAdminToken();
             assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
@@ -289,10 +281,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       @Override
       public Integer call() {
         try {
-          ClientConfiguration clientConf = cluster.getClientConfig();
           // Invocation is different for SASL. We're only logged in via this processes memory (not via some credentials cache on disk)
           // Need to pass along the keytab because of that.
-          if (clientConf.hasSasl()) {
+          if (saslEnabled()) {
             String principal = getAdminPrincipal();
             AuthenticationToken token = getAdminToken();
             assertTrue("Expected KerberosToken, but was " + token.getClass(), token instanceof KerberosToken);
@@ -327,8 +318,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     // write a few large values
     Connector connector = getConnector();
     String table = getUniqueNames(1)[0];
-    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2, 1, 500000, 0, table);
-    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2, 1, 500000, 0, table);
+    ingest(connector, getAdminPrincipal(), 2, 1, 500000, 0, table);
+    verify(connector, getAdminPrincipal(), 2, 1, 500000, 0, table);
   }
 
   @Test
@@ -342,7 +333,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   static void interleaveTest(final Connector connector, final String tableName) throws Exception {
     final AtomicBoolean fail = new AtomicBoolean(false);
     final int CHUNKSIZE = ROWS / 10;
-    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, 0, tableName);
+    ingest(connector, getAdminPrincipal(), CHUNKSIZE, 1, 50, 0, tableName);
     int i;
     for (i = 0; i < ROWS; i += CHUNKSIZE) {
       final int start = i;
@@ -350,18 +341,18 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         @Override
         public void run() {
           try {
-            verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, start, tableName);
+            verify(connector, getAdminPrincipal(), CHUNKSIZE, 1, 50, start, tableName);
           } catch (Exception ex) {
             fail.set(true);
           }
         }
       };
       verify.start();
-      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
+      ingest(connector, getAdminPrincipal(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
       verify.join();
       assertFalse(fail.get());
     }
-    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), CHUNKSIZE, 1, 50, i, tableName);
+    verify(connector, getAdminPrincipal(), CHUNKSIZE, 1, 50, i, tableName);
   }
 
   public static Text t(String s) {
@@ -382,7 +373,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     connector.tableOperations().create(tableName);
     connector.tableOperations().setProperty(tableName, "table.group.g1", "colf");
     connector.tableOperations().setProperty(tableName, "table.groups.enabled", "g1");
-    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
+    ingest(connector, getAdminPrincipal(), 2000, 1, 50, 0, tableName);
     connector.tableOperations().compact(tableName, null, null, true, true);
     BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
     bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
@@ -436,8 +427,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   private void verifyLocalityGroupsInRFile(final Connector connector, final String tableName) throws Exception, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
-    verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0, tableName);
+    ingest(connector, getAdminPrincipal(), 2000, 1, 50, 0, tableName);
+    verify(connector, getAdminPrincipal(), 2000, 1, 50, 0, tableName);
     connector.tableOperations().flush(tableName, null, null, true);
     try (BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
       String tableId = connector.tableOperations().tableIdMap().get(tableName);
@@ -452,7 +443,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           System.setOut(newOut);
           List<String> args = new ArrayList<>();
           args.add(entry.getKey().getColumnQualifier().toString());
-          if (ClusterType.STANDALONE == getClusterType() && cluster.getClientConfig().hasSasl()) {
+          if (ClusterType.STANDALONE == getClusterType() && saslEnabled()) {
             args.add("--config");
             StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
             String hadoopConfDir = sac.getHadoopConfDir();
@@ -484,9 +475,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     int i = 0;
     for (String cfg : config) {
       to.setLocalityGroups(table, getGroups(cfg));
-      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * (i + 1), 1, 50, ROWS * i, table);
+      ingest(connector, getAdminPrincipal(), ROWS * (i + 1), 1, 50, ROWS * i, table);
       to.flush(table, null, null, true);
-      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 0, 1, 50, ROWS * (i + 1), table);
+      verify(connector, getAdminPrincipal(), 0, 1, 50, ROWS * (i + 1), table);
       i++;
     }
     to.delete(table);
@@ -494,12 +485,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     config = new String[] {"lg1:colf", null, "lg1:colf,xyz", "lg1:colf;lg2:colf",};
     i = 1;
     for (String cfg : config) {
-      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, table);
-      ingest(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, "xyz", table);
+      ingest(connector, getAdminPrincipal(), ROWS * i, 1, 50, 0, table);
+      ingest(connector, getAdminPrincipal(), ROWS * i, 1, 50, 0, "xyz", table);
       to.setLocalityGroups(table, getGroups(cfg));
       to.flush(table, null, null, true);
-      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, table);
-      verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), ROWS * i, 1, 50, 0, "xyz", table);
+      verify(connector, getAdminPrincipal(), ROWS * i, 1, 50, 0, table);
+      verify(connector, getAdminPrincipal(), ROWS * i, 1, 50, 0, "xyz", table);
       i++;
     }
   }

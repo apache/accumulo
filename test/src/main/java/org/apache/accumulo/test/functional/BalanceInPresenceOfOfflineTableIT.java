@@ -28,12 +28,10 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
@@ -125,10 +123,9 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    ClientConfiguration conf = cluster.getClientConfig();
-    if (conf.hasSasl()) {
-      opts.updateKerberosCredentials(cluster.getClientConfig());
-      vopts.updateKerberosCredentials(cluster.getClientConfig());
+    if (saslEnabled()) {
+      opts.updateKerberosCredentials();
+      vopts.updateKerberosCredentials();
     } else {
       opts.setPrincipal("root");
       vopts.setPrincipal("root");
@@ -154,10 +151,10 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
       MasterClientService.Iface client = null;
       MasterMonitorInfo stats = null;
-      Instance instance = new ZooKeeperInstance(cluster.getClientConfig());
+      Instance instance = getConnector().getInstance();
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(new ClientContext(instance, creds, cluster.getClientConfig()));
+          client = MasterClient.getConnectionWithRetry(new ClientContext(getConnectionInfo()));
           stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(instance));
           break;
         } catch (ThriftSecurityException exception) {

@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MultiTableBatchWriterImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -63,7 +62,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
   }
 
   public MultiTableBatchWriter getMultiTableBatchWriter() {
-    ClientContext context = new ClientContext(connector.getInstance(), new Credentials(getAdminPrincipal(), getAdminToken()), getCluster().getClientConfig());
+    ClientContext context = new ClientContext(getConnectionInfo());
     return new MultiTableBatchWriterImpl(context, new BatchWriterConfig());
   }
 

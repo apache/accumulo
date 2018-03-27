@@ -538,6 +538,13 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
+   * @return location of accumulo-client.properties file for connecting to this mini cluster
+   */
+  public File getClientPropsFile() {
+    return new File(getConfDir(), "accumulo-client.properties");
+  }
+
+  /**
    * sets system properties set for service processes
    *
    * @since 1.6.0

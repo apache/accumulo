@@ -24,10 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -84,8 +82,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
   }
 
   private MasterMonitorInfo getStats(Connector c) throws Exception {
-    Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-    ClientContext context = new ClientContext(c.getInstance(), creds, getClientConfig());
+    ClientContext context = new ClientContext(getConnectionInfo());
     Client client = null;
     while (true) {
       try {

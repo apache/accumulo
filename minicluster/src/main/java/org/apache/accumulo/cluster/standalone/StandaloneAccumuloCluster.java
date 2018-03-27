@@ -28,9 +28,9 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -56,21 +56,15 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   static final List<ServerType> ALL_SERVER_TYPES = Collections.unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER, ServerType.TRACER,
       ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
-  private Instance instance;
-  private ClientConfiguration clientConf;
+  private ConnectionInfo info;
   private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
   private Path tmp;
   private List<ClusterUser> users;
   private String clientCmdPrefix;
   private String serverCmdPrefix;
 
-  public StandaloneAccumuloCluster(ClientConfiguration clientConf, Path tmp, List<ClusterUser> users) {
-    this(new ZooKeeperInstance(clientConf), clientConf, tmp, users);
-  }
-
-  public StandaloneAccumuloCluster(Instance instance, ClientConfiguration clientConf, Path tmp, List<ClusterUser> users) {
-    this.instance = instance;
-    this.clientConf = clientConf;
+  public StandaloneAccumuloCluster(ConnectionInfo info, Path tmp, List<ClusterUser> users) {
+    this.info = info;
     this.tmp = tmp;
     this.users = users;
   }
@@ -123,22 +117,27 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public String getInstanceName() {
-    return instance.getInstanceName();
+    return info.getInstanceName();
   }
 
   @Override
   public String getZooKeepers() {
-    return instance.getZooKeepers();
+    return info.getZooKeepers();
   }
 
   @Override
   public Connector getConnector(String user, AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-    return instance.getConnector(user, token);
+    return Connector.builder().forInstance(getInstanceName(), getZooKeepers()).usingToken(user, token).build();
   }
 
   @Override
   public ClientConfiguration getClientConfig() {
-    return clientConf;
+    return ClientConfConverter.toClientConf(info.getProperties());
+  }
+
+  @Override
+  public ConnectionInfo getConnectionInfo() {
+    return info;
   }
 
   @Override

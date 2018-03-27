@@ -1413,6 +1413,27 @@
   </build>
   <profiles>
     <profile>
+      <!-- This profile skips all Quality Assurance checks  -->
+      <id>skipQA</id>
+      <properties>
+        <accumulo.skip>true</accumulo.skip>
+        <apilyzer.skip>true</apilyzer.skip>
+        <checkstyle.skip>true</checkstyle.skip>
+        <enforcer.skip>true</enforcer.skip>
+        <findbugs.skip>true</findbugs.skip>
+        <formatter.skip>true</formatter.skip>
+        <impsort.skip>true</impsort.skip>
+        <maven.plugin.skip>true</maven.plugin.skip>
+        <mdep.analyze.skip>true</mdep.analyze.skip>
+        <modernizer.skip>true</modernizer.skip>
+        <rat.skip>true</rat.skip>
+        <skipITs>true</skipITs>
+        <skipTests>true</skipTests>
+        <sort.skip>true</sort.skip>
+        <warbucks.skip>true</warbucks.skip>
+      </properties>
+    </profile>
+    <profile>
       <id>m2e</id>
       <activation>
         <property>

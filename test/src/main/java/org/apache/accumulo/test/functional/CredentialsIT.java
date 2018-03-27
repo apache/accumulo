@@ -27,7 +27,6 @@ import java.util.Set;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
@@ -61,10 +60,9 @@ public class CredentialsIT extends AccumuloClusterHarness {
     Connector conn = getConnector();
     inst = conn.getInstance();
 
-    ClientConfiguration clientConf = cluster.getClientConfig();
     ClusterUser user = getUser(0);
     username = user.getPrincipal();
-    saslEnabled = clientConf.hasSasl();
+    saslEnabled = saslEnabled();
     // Create the user if it doesn't exist
     Set<String> users = conn.securityOperations().listLocalUsers();
     if (!users.contains(username)) {

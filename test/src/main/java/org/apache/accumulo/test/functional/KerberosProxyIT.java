@@ -37,7 +37,6 @@ import java.util.Properties;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
@@ -491,8 +490,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     rootUgi.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
-        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
-        Connector conn = inst.getConnector(rootUgi.getUserName(), new KerberosToken());
+        Connector conn = mac.getConnector(rootUgi.getUserName(), new KerberosToken());
         conn.tableOperations().create(tableName);
         conn.securityOperations().createLocalUser(userWithoutCredentials1, new PasswordToken("ignored"));
         conn.securityOperations().grantTablePermission(userWithoutCredentials1, tableName, TablePermission.READ);
@@ -504,8 +502,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     realUgi.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
-        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
-        Connector conn = inst.getConnector(proxyPrincipal, new KerberosToken());
+        Connector conn = mac.getConnector(proxyPrincipal, new KerberosToken());
         try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
           s.iterator().hasNext();
           Assert.fail("Expected to see an exception");
@@ -521,8 +518,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     proxyUser1.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
-        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
-        Connector conn = inst.getConnector(userWithoutCredentials1, new KerberosToken(userWithoutCredentials1));
+        Connector conn = mac.getConnector(userWithoutCredentials1, new KerberosToken(userWithoutCredentials1));
         Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
         assertFalse(s.iterator().hasNext());
         return null;
@@ -532,8 +528,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     proxyUser2.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
-        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
-        Connector conn = inst.getConnector(userWithoutCredentials2, new KerberosToken(userWithoutCredentials3));
+        Connector conn = mac.getConnector(userWithoutCredentials2, new KerberosToken(userWithoutCredentials3));
         try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
           s.iterator().hasNext();
           Assert.fail("Expected to see an exception");
@@ -549,9 +544,8 @@ public class KerberosProxyIT extends AccumuloITBase {
     proxyUser3.doAs(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
-        ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
         try {
-          inst.getConnector(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
+          mac.getConnector(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
           Assert.fail("Should not be able to create a Connector as this user cannot be proxied");
         } catch (org.apache.accumulo.core.client.AccumuloSecurityException e) {
           // Expected, this user cannot be proxied

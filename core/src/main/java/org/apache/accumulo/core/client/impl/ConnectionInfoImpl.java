@@ -16,16 +16,20 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.io.File;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 public class ConnectionInfoImpl implements ConnectionInfo {
 
   private Properties properties;
   private AuthenticationToken token;
+  private String instanceId = null;
+  private ZooCache zooCache = null;
 
   ConnectionInfoImpl(Properties properties, AuthenticationToken token) {
     this.properties = properties;
@@ -38,8 +42,16 @@ public class ConnectionInfoImpl implements ConnectionInfo {
   }
 
   @Override
-  public String getZookeepers() {
+  public String getZooKeepers() {
     return getString(ClientProperty.INSTANCE_ZOOKEEPERS);
+  }
+
+  public int getZooKeepersTimeout() {
+    Integer timeout = ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getInteger(properties);
+    if (timeout == null) {
+      return 30;
+    }
+    return timeout;
   }
 
   @Override
@@ -55,6 +67,20 @@ public class ConnectionInfoImpl implements ConnectionInfo {
   @Override
   public AuthenticationToken getAuthenticationToken() {
     return token;
+  }
+
+  @Override
+  public File getKeytab() {
+    String keyTab = getString(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH);
+    if (keyTab == null) {
+      return null;
+    }
+    return new File(keyTab);
+  }
+
+  @Override
+  public boolean saslEnabled() {
+    return Boolean.valueOf(getString(ClientProperty.SASL_ENABLED));
   }
 
   private String getString(ClientProperty property) {

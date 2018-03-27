@@ -33,13 +33,10 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
@@ -54,8 +51,8 @@ import com.google.common.collect.Iterators;
  */
 public class IMMLGBenchmark {
   public static void main(String[] args) throws Exception {
-    ZooKeeperInstance zki = new ZooKeeperInstance(ClientConfiguration.create().withInstance("test16").withZkHosts("localhost"));
-    Connector conn = zki.getConnector("root", new PasswordToken("secret"));
+
+    Connector conn = Connector.builder().forInstance("test16", "localhost").usingPassword("root", "secret").build();
 
     int numlg = Integer.parseInt(args[0]);
 

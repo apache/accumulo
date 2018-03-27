@@ -17,21 +17,20 @@
 package org.apache.accumulo.shell;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.commons.configuration.ConfigurationException;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -201,8 +200,8 @@ public class ShellOptionsJC {
 
   public String getUsername() throws Exception {
     if (null == username) {
-      final ClientConfiguration clientConf = getClientConfiguration();
-      if (Boolean.parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED))) {
+      final Properties clientProps = getClientProperties();
+      if (Boolean.parseBoolean(clientProps.getProperty(ClientProperty.SASL_ENABLED.getKey()))) {
         if (!UserGroupInformation.isSecurityEnabled()) {
           throw new RuntimeException("Kerberos security is not enabled");
         }
@@ -221,9 +220,9 @@ public class ShellOptionsJC {
 
   public AuthenticationToken getAuthenticationToken() throws Exception {
     if (null == authenticationToken) {
-      final ClientConfiguration clientConf = getClientConfiguration();
+      final Properties clientProps = getClientProperties();
       // Automatically use a KerberosToken if the client conf is configured for SASL
-      final boolean saslEnabled = Boolean.parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+      final boolean saslEnabled = Boolean.parseBoolean(clientProps.getProperty(ClientProperty.SASL_ENABLED.getKey()));
       if (saslEnabled) {
         authenticationToken = new KerberosToken();
       }
@@ -302,37 +301,37 @@ public class ShellOptionsJC {
     return clientConfigFile;
   }
 
-  public ClientConfiguration getClientConfiguration() throws ConfigurationException, FileNotFoundException {
-    ClientConfiguration clientConfig = clientConfigFile == null ? ClientConfiguration.loadDefault() : ClientConfiguration.fromFile(new File(
-        getClientConfigFile()));
+  public Properties getClientProperties() {
+    Properties props = new Properties();
+    if (clientConfigFile != null) {
+      try (InputStream is = new FileInputStream(clientConfigFile)) {
+        props.load(is);
+      } catch (IOException e) {
+        log.error("Failed to load properties from " + clientConfigFile);
+        throw new IllegalArgumentException(e);
+      }
+    }
     if (useSsl()) {
-      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
+      props.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
     }
     if (useSasl()) {
-      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
+      props.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
     }
     if (!getZooKeeperInstance().isEmpty()) {
       List<String> zkOpts = getZooKeeperInstance();
       String instanceName = zkOpts.get(0);
       String hosts = zkOpts.get(1);
-      clientConfig.setProperty(ClientProperty.INSTANCE_ZK_HOST, hosts);
-      clientConfig.setProperty(ClientProperty.INSTANCE_NAME, instanceName);
+      props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), hosts);
+      props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     }
     // If the user provided the hosts, set the ZK for tracing too
     if (null != zooKeeperHosts && !zooKeeperHosts.isEmpty()) {
-      clientConfig.setProperty(ClientProperty.INSTANCE_ZK_HOST, zooKeeperHosts);
+      props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zooKeeperHosts);
     }
     if (null != zooKeeperInstanceName && !zooKeeperInstanceName.isEmpty()) {
-      clientConfig.setProperty(ClientProperty.INSTANCE_NAME, zooKeeperInstanceName);
+      props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), zooKeeperInstanceName);
     }
-
-    // Automatically try to add in the proper ZK from accumulo-site for backwards compat.
-    if (!clientConfig.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
-      AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
-      clientConfig.withZkHosts(siteConf.get(Property.INSTANCE_ZK_HOST));
-    }
-
-    return clientConfig;
+    return props;
   }
 
   public boolean useSasl() {

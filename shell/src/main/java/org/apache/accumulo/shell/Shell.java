@@ -26,7 +26,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,16 +36,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -56,7 +53,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -70,8 +67,6 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.core.util.format.FormatterFactory;
-import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.shell.commands.AboutCommand;
 import org.apache.accumulo.shell.commands.AddAuthsCommand;
 import org.apache.accumulo.shell.commands.AddSplitsCommand;
@@ -171,9 +166,7 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.vfs2.FileSystemException;
-import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -294,15 +287,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     authTimeout = TimeUnit.MINUTES.toNanos(options.getAuthTimeout());
     disableAuthTimeout = options.isAuthTimeoutDisabled();
 
-    ClientConfiguration clientConf;
-    try {
-      clientConf = options.getClientConfiguration();
-    } catch (Exception e) {
-      printException(e);
-      return true;
-    }
-
-    if (Boolean.parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED))) {
+    Properties properties = options.getClientProperties();
+    if (ClientProperty.SASL_ENABLED.getBoolean(properties)) {
       log.debug("SASL is enabled, disabling authorization timeout");
       disableAuthTimeout = true;
     }
@@ -372,7 +358,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       }
 
       if (!options.isFake()) {
-        DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", clientConf);
+        // DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
       }
 
       this.setTableName("");
@@ -466,13 +452,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         instanceName = options.getZooKeeperInstanceName();
         hosts = options.getZooKeeperHosts();
       }
-      final ClientConfiguration clientConf;
-      try {
-        clientConf = options.getClientConfiguration();
-      } catch (ConfigurationException | FileNotFoundException e) {
-        throw new IllegalArgumentException("Unable to load client config from " + options.getClientConfigFile(), e);
-      }
-      instance = getZooInstance(instanceName, hosts, clientConf);
+      final Properties properties = options.getClientProperties();
+      instance = getZooInstance(instanceName, hosts, properties);
     }
   }
 
@@ -481,19 +462,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    *
    * @param keepers
    *          ZooKeepers passed to the shell
-   * @param clientConfig
-   *          ClientConfiguration instance
+   * @param properties
+   *          Client properties
    * @return The ZooKeepers to connect to
    */
-  static String getZooKeepers(String keepers, ClientConfiguration clientConfig) {
+  static String getZooKeepers(String keepers, Properties properties) {
     if (null != keepers) {
       return keepers;
     }
-
-    if (clientConfig.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
-      return clientConfig.get(ClientProperty.INSTANCE_ZK_HOST);
+    if (properties.containsKey(ClientProperty.INSTANCE_ZOOKEEPERS.getKey())) {
+      return properties.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey());
     }
-
     return SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST);
   }
 
@@ -501,23 +480,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    * Takes instanceName and keepers as separate arguments, rather than just packaged into the clientConfig, so that we can fail over to accumulo-site.xml or
    * HDFS config if they're unspecified.
    */
-  private static Instance getZooInstance(String instanceName, String keepersOption, ClientConfiguration clientConfig) {
-    UUID instanceId = null;
+  private static Instance getZooInstance(String instanceName, String keepersOption, Properties properties) {
     if (instanceName == null) {
-      instanceName = clientConfig.get(ClientProperty.INSTANCE_NAME);
+      instanceName = properties.getProperty(ClientProperty.INSTANCE_NAME.getKey());
     }
+    String keepers = getZooKeepers(keepersOption, properties);
 
-    String keepers = getZooKeepers(keepersOption, clientConfig);
-    if (instanceName == null) {
-      AccumuloConfiguration conf = SiteConfiguration.getInstance();
-      Path instanceDir = new Path(VolumeConfiguration.getVolumeUris(conf)[0], "instance_id");
-      instanceId = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(instanceDir, conf));
-    }
-    if (instanceId != null) {
-      return new ZooKeeperInstance(clientConfig.withInstance(instanceId).withZkHosts(keepers));
-    } else {
-      return new ZooKeeperInstance(clientConfig.withInstance(instanceName).withZkHosts(keepers));
-    }
+    return new ZooKeeperInstance(instanceName, keepers);
   }
 
   public Connector getConnector() {

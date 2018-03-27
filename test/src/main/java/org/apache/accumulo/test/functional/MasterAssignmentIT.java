@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -90,8 +89,7 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
   }
 
   private TabletLocationState getTabletLocationState(Connector c, String tableId) throws FileNotFoundException, ConfigurationException {
-    Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
-    ClientContext context = new ClientContext(c.getInstance(), creds, getCluster().getClientConfig());
+    ClientContext context = new ClientContext(getConnectionInfo());
     try (MetaDataTableScanner s = new MetaDataTableScanner(context, new Range(KeyExtent.getMetadataEntry(Table.ID.of(tableId), null)))) {
       TabletLocationState tlState = s.next();
       return tlState;

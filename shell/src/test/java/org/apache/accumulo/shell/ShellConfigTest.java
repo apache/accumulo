@@ -26,9 +26,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.util.Properties;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.shell.ShellTest.TestOutputStream;
 import org.apache.log4j.Level;
 import org.junit.After;
@@ -121,23 +122,21 @@ public class ShellConfigTest {
    * the accumulo-site.xml from the classpath in src/test/resources
    */
   @Test
-  public void testZooKeeperHostFallBackToSite() throws Exception {
-    ClientConfiguration clientConfig = ClientConfiguration.create();
-    assertFalse("Client config contains zk hosts", clientConfig.containsKey(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST.getKey()));
-    assertEquals("ShellConfigTestZKHostValue", Shell.getZooKeepers(null, clientConfig));
+  public void testZooKeeperHostFallBackToSite() {
+    assertEquals("ShellConfigTestZKHostValue", Shell.getZooKeepers(null, new Properties()));
   }
 
   @Test
-  public void testZooKeeperHostFromClientConfig() throws Exception {
-    ClientConfiguration clientConfig = ClientConfiguration.create();
-    clientConfig.withZkHosts("cc_hostname");
-    assertEquals("cc_hostname", Shell.getZooKeepers(null, clientConfig));
+  public void testZooKeeperHostFromClientConfig() {
+    Properties props = new Properties();
+    props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "cc_hostname");
+    assertEquals("cc_hostname", Shell.getZooKeepers(null, props));
   }
 
   @Test
-  public void testZooKeeperHostFromOption() throws Exception {
-    ClientConfiguration clientConfig = ClientConfiguration.create();
-    clientConfig.withZkHosts("cc_hostname");
-    assertEquals("opt_hostname", Shell.getZooKeepers("opt_hostname", clientConfig));
+  public void testZooKeeperHostFromOption() {
+    Properties props = new Properties();
+    props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "cc_hostname");
+    assertEquals("opt_hostname", Shell.getZooKeepers("opt_hostname", props));
   }
 }

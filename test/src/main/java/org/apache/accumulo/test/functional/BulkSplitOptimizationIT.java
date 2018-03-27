@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -128,8 +127,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       opts.setPassword(new Password(new String(token.getPassword(), UTF_8)));
       opts.setPrincipal(getAdminPrincipal());
     } else if (adminToken instanceof KerberosToken) {
-      ClientConfiguration clientConf = cluster.getClientConfig();
-      opts.updateKerberosCredentials(clientConf);
+      opts.updateKerberosCredentials(saslEnabled());
     } else {
       Assert.fail("Unknown token type");
     }

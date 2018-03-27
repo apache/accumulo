@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.harness.conf;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 
@@ -30,6 +29,4 @@ public interface AccumuloClusterConfiguration {
   String getAdminPrincipal();
 
   AuthenticationToken getAdminToken();
-
-  ClientConfiguration getClientConf();
 }

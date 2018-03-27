@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -63,6 +65,8 @@ public enum ClientProperty {
   // Trace
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient", "A list of span receiver classes to send trace spans"),
   TRACE_ZOOKEEPER_PATH("trace.zookeeper.path", Constants.ZTRACERS, "The zookeeper node where tracers are registered");
+
+  public static final String TRACE_SPAN_RECEIVER_PREFIX = "trace.span.receiver";
 
   private String key;
   private String defaultValue;
@@ -129,5 +133,40 @@ public enum ClientProperty {
       return null;
     }
     return Long.parseLong(value);
+  }
+
+  public Integer getInteger(Properties properties) {
+    String value = getValue(properties);
+    if (value.isEmpty()) {
+      return null;
+    }
+    return Integer.parseInt(value);
+  }
+
+  public boolean getBoolean(Properties properties) {
+    String value = getValue(properties);
+    if (value.isEmpty()) {
+      return false;
+    }
+    return Boolean.valueOf(value);
+  }
+
+  public static Properties getPrefix(Properties properties, String prefix) {
+    Properties props = new Properties();
+    for (Object keyObj : properties.keySet()) {
+      String key = (String) keyObj;
+      if (key.startsWith(prefix)) {
+        props.put(key, properties.getProperty(key));
+      }
+    }
+    return props;
+  }
+
+  public static Map<String,String> toMap(Properties properties) {
+    Map<String,String> propMap = new HashMap<>();
+    for (Object obj : properties.keySet()) {
+      propMap.put((String) obj, properties.getProperty((String) obj));
+    }
+    return propMap;
   }
 }

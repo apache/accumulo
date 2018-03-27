@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -87,9 +86,8 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
     opts.rows = 500 * 1000;
     opts.createTable = true;
     opts.setTableName(firstTable);
-    ClientConfiguration clientConf = cluster.getClientConfig();
-    if (clientConf.hasSasl()) {
-      opts.updateKerberosCredentials(clientConf);
+    if (saslEnabled()) {
+      opts.updateKerberosCredentials();
     } else {
       opts.setPrincipal(getAdminPrincipal());
     }
@@ -107,7 +105,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
       MasterMonitorInfo stats = null;
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(new ClientContext(c.getInstance(), creds, clientConf));
+          client = MasterClient.getConnectionWithRetry(new ClientContext(getConnectionInfo()));
           stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstance()));
           break;
         } catch (ThriftNotActiveServiceException e) {

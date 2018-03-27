@@ -27,10 +27,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.ConnectionInfo;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -76,27 +74,19 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   private Map<String,String> conf;
   private String serverUser;
-  private File clientConfFile;
-  private ClientConfiguration clientConf;
+  private ConnectionInfo connectionInfo;
   private List<ClusterUser> clusterUsers;
+  private File clientPropsFile;
 
-  public StandaloneAccumuloClusterConfiguration(File clientConfFile) {
+  public StandaloneAccumuloClusterConfiguration(File clientPropsFile) {
     ClusterType type = getClusterType();
     if (ClusterType.STANDALONE != type) {
       throw new IllegalStateException("Expected only to see standalone cluster state");
     }
 
     this.conf = getConfiguration(type);
-    this.clientConfFile = clientConfFile;
-    this.clientConf = ClientConfiguration.fromFile(clientConfFile);
-    // Update instance name if not already set
-    if (!clientConf.containsKey(ClientProperty.INSTANCE_NAME.getKey())) {
-      clientConf.withInstance(getInstanceName());
-    }
-    // Update zookeeper hosts if not already set
-    if (!clientConf.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
-      clientConf.withZkHosts(getZooKeepers());
-    }
+    this.clientPropsFile = clientPropsFile;
+    connectionInfo = Connector.builder().forInstance(getInstanceName(), getZooKeepers()).usingToken(getAdminPrincipal(), getAdminToken()).info();
 
     // The user Accumulo is running as
     serverUser = conf.get(ACCUMULO_STANDALONE_SERVER_USER);
@@ -135,6 +125,10 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
     return principal;
   }
 
+  public ConnectionInfo getConnectionInfo() {
+    return connectionInfo;
+  }
+
   public String getPassword() {
     String password = conf.get(ACCUMULO_STANDALONE_PASSWORD_KEY);
     if (null == password) {
@@ -145,8 +139,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   public File getAdminKeytab() {
     String keytabPath = conf.get(ACCUMULO_STANDALONE_ADMIN_KEYTAB_KEY);
-    if (null == keytabPath) {
-      throw new RuntimeException("SASL is enabled, but " + ACCUMULO_STANDALONE_ADMIN_KEYTAB_KEY + " was not provided");
+    if (keytabPath == null || keytabPath.isEmpty()) {
+      return null;
     }
     File keytab = new File(keytabPath);
     if (!keytab.exists() || !keytab.isFile()) {
@@ -157,8 +151,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   @Override
   public AuthenticationToken getAdminToken() {
-    if (clientConf.hasSasl()) {
-      File keytab = getAdminKeytab();
+    File keytab = getAdminKeytab();
+    if (keytab != null) {
       try {
         UserGroupInformation.loginUserFromKeytab(getAdminPrincipal(), keytab.getAbsolutePath());
         return new KerberosToken();
@@ -172,10 +166,6 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   }
 
   public String getZooKeepers() {
-    if (clientConf.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
-      return clientConf.get(ClientProperty.INSTANCE_ZK_HOST);
-    }
-
     String zookeepers = conf.get(ACCUMULO_STANDALONE_ZOOKEEPERS_KEY);
     if (null == zookeepers) {
       zookeepers = ACCUMULO_STANDALONE_ZOOKEEPERS_DEFAULT;
@@ -184,20 +174,11 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   }
 
   public String getInstanceName() {
-    if (clientConf.containsKey(ClientProperty.INSTANCE_NAME.getKey())) {
-      return clientConf.get(ClientProperty.INSTANCE_NAME);
-    }
-
     String instanceName = conf.get(ACCUMULO_STANDALONE_INSTANCE_NAME_KEY);
     if (null == instanceName) {
       instanceName = ACCUMULO_STANDALONE_INSTANCE_NAME_DEFAULT;
     }
     return instanceName;
-  }
-
-  public Instance getInstance() {
-    // Make sure the ZKI is created with the ClientConf so it gets things like SASL passed through to the connector
-    return new ZooKeeperInstance(clientConf);
   }
 
   @Override
@@ -229,13 +210,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
     return conf.get(ACCUMULO_STANDALONE_CLIENT_CMD_PREFIX);
   }
 
-  @Override
-  public ClientConfiguration getClientConf() {
-    return clientConf;
-  }
-
-  public File getClientConfFile() {
-    return clientConfFile;
+  public File getClientPropsFile() {
+    return clientPropsFile;
   }
 
   public Path getTmpDirectory() {

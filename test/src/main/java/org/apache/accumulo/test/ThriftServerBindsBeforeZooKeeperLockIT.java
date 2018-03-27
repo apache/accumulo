@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -66,10 +65,9 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       getClusterControl().start(ServerType.MONITOR, "localhost");
     }
 
-    final ZooKeeperInstance inst = new ZooKeeperInstance(cluster.getClientConfig());
     while (true) {
       try {
-        MonitorUtil.getLocation(inst);
+        MonitorUtil.getLocation(getConnector().getInstance());
         break;
       } catch (Exception e) {
         LOG.debug("Failed to find active monitor location, retrying", e);
@@ -125,13 +123,13 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   @Test
   public void testMasterService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
-    final ZooKeeperInstance inst = new ZooKeeperInstance(cluster.getClientConfig());
+    final String instanceID = getConnector().getInstance().getInstanceID();
 
     // Wait for the Master to grab its lock
     while (true) {
-      final ZooReader reader = new ZooReader(inst.getZooKeepers(), 30000);
+      final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
       try {
-        List<String> locks = reader.getChildren(Constants.ZROOT + "/" + inst.getInstanceID() + Constants.ZMASTER_LOCK);
+        List<String> locks = reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
         if (locks.size() > 0) {
           break;
         }
@@ -186,13 +184,13 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   @Test
   public void testGarbageCollectorPorts() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
-    final ZooKeeperInstance inst = new ZooKeeperInstance(cluster.getClientConfig());
+    String instanceID = getConnector().getInstance().getInstanceID();
 
     // Wait for the Master to grab its lock
     while (true) {
-      final ZooReader reader = new ZooReader(inst.getZooKeepers(), 30000);
+      final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
       try {
-        List<String> locks = reader.getChildren(Constants.ZROOT + "/" + inst.getInstanceID() + Constants.ZGC_LOCK);
+        List<String> locks = reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
         if (locks.size() > 0) {
           break;
         }

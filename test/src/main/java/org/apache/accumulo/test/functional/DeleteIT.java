@@ -25,7 +25,6 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -77,9 +76,8 @@ public class DeleteIT extends AccumuloClusterHarness {
     }
     if (null != keytab) {
       assertNull("Given keytab, expect null password", password);
-      ClientConfiguration clientConfig = cluster.getClientConfig();
-      opts.updateKerberosCredentials(clientConfig);
-      vopts.updateKerberosCredentials(clientConfig);
+      opts.updateKerberosCredentials(saslEnabled());
+      vopts.updateKerberosCredentials(saslEnabled());
     }
 
     BatchWriterOpts BWOPTS = new BatchWriterOpts();

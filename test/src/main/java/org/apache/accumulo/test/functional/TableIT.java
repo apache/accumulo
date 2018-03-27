@@ -25,7 +25,6 @@ import java.io.FileNotFoundException;
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -71,10 +70,9 @@ public class TableIT extends AccumuloClusterHarness {
 
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    ClientConfiguration clientConfig = getCluster().getClientConfig();
-    if (clientConfig.hasSasl()) {
-      opts.updateKerberosCredentials(clientConfig);
-      vopts.updateKerberosCredentials(clientConfig);
+    if (saslEnabled()) {
+      opts.updateKerberosCredentials();
+      vopts.updateKerberosCredentials();
     } else {
       opts.setPrincipal(getAdminPrincipal());
       vopts.setPrincipal(getAdminPrincipal());
