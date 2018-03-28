@@ -163,7 +163,7 @@ public class ZKAuthorizor implements Authorizor {
 
   @Override
   public boolean isValidAuthorizations(String user, List<ByteBuffer> auths) throws AccumuloSecurityException {
-    if (auths.size() == 0) {
+    if (auths.isEmpty()) {
       // avoid deserializing auths from ZK cache
       return true;
     }
