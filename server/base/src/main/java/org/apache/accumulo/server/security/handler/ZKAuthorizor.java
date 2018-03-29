@@ -19,7 +19,6 @@ package org.apache.accumulo.server.security.handler;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -161,11 +161,19 @@ public class ZKAuthorizor implements Authorizor {
 
   @Override
   public boolean isValidAuthorizations(String user, List<ByteBuffer> auths) throws AccumuloSecurityException {
-    Collection<ByteBuffer> userauths = getCachedUserAuthorizations(user).getAuthorizationsBB();
-    for (ByteBuffer auth : auths)
-      if (!userauths.contains(auth))
+    if (auths.isEmpty()) {
+      // avoid deserializing auths from ZK cache
+      return true;
+    }
+
+    Authorizations userauths = getCachedUserAuthorizations(user);
+
+    for (ByteBuffer auth : auths) {
+      if (!userauths.contains(ByteBufferUtil.toBytes(auth))) {
         return false;
+      }
+    }
+
     return true;
   }
-
 }
