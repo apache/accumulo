@@ -184,7 +184,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);
     }
 
-    TabletServer.verifyTabletInformation(context, high, instance, null, "127.0.0.1:0", zl);
+    TabletServer.verifyTabletInformation(context, high, instance, new TreeMap<>(), "127.0.0.1:0", zl);
 
     if (steps >= 1) {
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
