@@ -108,7 +108,7 @@ public class SetIterCommand extends Command {
       configuredName = setUpOptions(classloader, shellState.getReader(), classname, options);
     } finally {
       // ACCUMULO-4792: reset table name and continue
-      if (profileOpt != null && tmpTable != null) {
+      if (tmpTable != null) {
         shellState.setTableName(currentTableName);
       }
     }
