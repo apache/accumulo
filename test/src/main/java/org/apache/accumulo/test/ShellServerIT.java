@@ -1802,8 +1802,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   /**
-   * The purpose of this test is to verify that you can successfully scan a table that has an iterator set but not via the shellIter capability. Purpose is to
-   * verify that the scansWithClassLoaderContext test can handle situations with both normal iterators and shell iterators.
+   * The purpose of this test is to verify that you can successfully scan a table with a regular iterator. It was written to verify that the changes made while
+   * updating the setshelliter command did not break the existing setiter capabilities. It tests that a table can be scanned with an iterator both while within
+   * a table context and also while in the 'notable' context.
    */
   @Test
   public void testScanTableWithIterSetWithoutProfile() throws Exception {
