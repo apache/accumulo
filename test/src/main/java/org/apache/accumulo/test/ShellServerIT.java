@@ -1835,9 +1835,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan -t " + table, true, "foo a:b []    c");
 
     // create a normal iterator which in current table context
-    ts.input.set("\n5000\n\n");
+    ts.input.set("\n1000\n\n");
     ts.exec("setiter -scan -n itname -p 10 -ageoff -t " + table, true);
-    ts.exec("sleep 6", true);
+    ts.exec("sleep 2", true);
     // re-scan the table. Should not see data.
     ts.exec("scan -t " + table, true, "", true);
     ts.exec("deletetable -f " + table);
