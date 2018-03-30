@@ -363,23 +363,54 @@ public class SetIterCommand extends Command {
     return "sets a table-specific or namespace-specific iterator";
   }
 
-  @Override
-  public Options getOptions() {
+  // Set all options common to both iterators and shell iterators
+  public void setBaseOptions(Options options) {
+    setPriorityOptions(options);
+    setNameOptions(options);
+    setIteratorTypeOptions(options);
+  }
 
-    final Options o = new Options();
+  private void setNameOptions(Options options) {
+    nameOpt = new Option("n", "name", true, "iterator to set");
+    nameOpt.setArgName("itername");
+    options.addOption(nameOpt);
+  }
 
+  private void setPriorityOptions(Options options) {
     priorityOpt = new Option("p", "priority", true, "the order in which the iterator is applied");
     priorityOpt.setArgName("pri");
     priorityOpt.setRequired(true);
+    options.addOption(priorityOpt);
+  }
 
-    nameOpt = new Option("n", "name", true, "iterator to set");
-    nameOpt.setArgName("itername");
+  @Override
+  public Options getOptions() {
+    final Options o = new Options();
+    setBaseOptions(o);
+    setScopeOptions(o);
+    setTableOptions(o);
+    return o;
+  }
 
+  private void setScopeOptions(Options o) {
     allScopeOpt = new Option("all", "all-scopes", false, "applied at scan time, minor and major compactions");
     mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false, "applied at minor compaction");
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "applied at major compaction");
     scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time");
+    o.addOption(allScopeOpt);
+    o.addOption(mincScopeOpt);
+    o.addOption(majcScopeOpt);
+    o.addOption(scanScopeOpt);
+  }
 
+  private void setTableOptions(Options o) {
+    final OptionGroup tableGroup = new OptionGroup();
+    tableGroup.addOption(OptUtil.tableOpt("table to configure iterators on"));
+    tableGroup.addOption(OptUtil.namespaceOpt("namespace to configure iterators on"));
+    o.addOptionGroup(tableGroup);
+  }
+
+  private void setIteratorTypeOptions(Options o) {
     final OptionGroup typeGroup = new OptionGroup();
     classnameTypeOpt = new Option("class", "class-name", true, "a java class that implements SortedKeyValueIterator");
     classnameTypeOpt.setArgName("name");
@@ -396,20 +427,7 @@ public class SetIterCommand extends Command {
     typeGroup.addOption(reqvisTypeOpt);
     typeGroup.addOption(ageoffTypeOpt);
     typeGroup.setRequired(true);
-
-    final OptionGroup tableGroup = new OptionGroup();
-    tableGroup.addOption(OptUtil.tableOpt("table to configure iterators on"));
-    tableGroup.addOption(OptUtil.namespaceOpt("namespace to configure iterators on"));
-
-    o.addOption(priorityOpt);
-    o.addOption(nameOpt);
-    o.addOption(allScopeOpt);
-    o.addOption(mincScopeOpt);
-    o.addOption(majcScopeOpt);
-    o.addOption(scanScopeOpt);
     o.addOptionGroup(typeGroup);
-    o.addOptionGroup(tableGroup);
-    return o;
   }
 
   @Override
