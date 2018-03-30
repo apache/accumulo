@@ -22,7 +22,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 public class ConnectionInfoImpl implements ConnectionInfo {
 

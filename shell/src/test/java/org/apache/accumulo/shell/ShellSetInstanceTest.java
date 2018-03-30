@@ -152,7 +152,6 @@ public class ShellSetInstanceTest {
   }
 
   private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts) throws Exception {
-    //ClientConfiguration clientConf = createMock(ClientConfiguration.class);
     Properties props = createMock(Properties.class);
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(false);
