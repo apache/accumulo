@@ -1817,10 +1817,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "foo a:b []    c");
 
     // create a normal iterator while in current table context
-    ts.input.set("\n5000\n\n");
+    ts.input.set("\n1000\n\n");
     ts.exec("setiter -scan -n itname -p 10 -ageoff", true);
 
-    ts.exec("sleep 6", true);
+    ts.exec("sleep 2", true);
     // scan the created table.
     ts.exec("scan", true, "", true);
     ts.exec("deletetable -f " + table);
