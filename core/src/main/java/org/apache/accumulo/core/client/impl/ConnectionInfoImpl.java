@@ -28,8 +28,6 @@ public class ConnectionInfoImpl implements ConnectionInfo {
 
   private Properties properties;
   private AuthenticationToken token;
-  private String instanceId = null;
-  private ZooCache zooCache = null;
 
   ConnectionInfoImpl(Properties properties, AuthenticationToken token) {
     this.properties = properties;
@@ -44,14 +42,6 @@ public class ConnectionInfoImpl implements ConnectionInfo {
   @Override
   public String getZooKeepers() {
     return getString(ClientProperty.INSTANCE_ZOOKEEPERS);
-  }
-
-  public int getZooKeepersTimeout() {
-    Integer timeout = ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getInteger(properties);
-    if (timeout == null) {
-      return 30;
-    }
-    return timeout;
   }
 
   @Override

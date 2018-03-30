@@ -253,8 +253,10 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase implements M
   }
 
   public static boolean saslEnabled() {
-    checkState(initialized);
-    return getConnectionInfo().saslEnabled();
+    if (initialized) {
+      return getConnectionInfo().saslEnabled();
+    }
+    return false;
   }
 
   public static AuthenticationToken getAdminToken() {

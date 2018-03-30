@@ -91,10 +91,10 @@ public class DistributedTrace {
    * {@link org.apache.accumulo.core.client.ClientConfiguration.ClientProperty#TRACE_SPAN_RECEIVERS} and any properties specific to the span receiver.
    */
   public static void enable(String hostname, String service, Properties properties) {
-    String spanReceivers = properties.getProperty(ClientProperty.TRACE_SPAN_RECEIVERS.getKey());
-    String zookeepers = properties.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey());
-    long timeout = ConfigurationTypeHelper.getTimeInMillis(properties.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()));
-    String zkPath = properties.getProperty(ClientProperty.TRACE_ZOOKEEPER_PATH.getKey());
+    String spanReceivers = ClientProperty.TRACE_SPAN_RECEIVERS.getValue(properties);
+    String zookeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(properties);
+    long timeout = ConfigurationTypeHelper.getTimeInMillis(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getValue(properties));
+    String zkPath = ClientProperty.TRACE_ZOOKEEPER_PATH.getValue(properties);
     Map<String,String> props = ClientProperty.toMap(ClientProperty.getPrefix(properties, ClientProperty.TRACE_SPAN_RECEIVER_PREFIX));
     enableTracing(hostname, service, spanReceivers, zookeepers, timeout, zkPath, props);
   }
