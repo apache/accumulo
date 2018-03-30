@@ -1729,7 +1729,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void scansWithClassLoaderContext() throws Exception {
     try {
-      Class.forName("org.apache.accumulo.test.functional.ValueReversingIterator");
+      Class.forName(VALUE_REVERSING_ITERATOR);
       fail("ValueReversingIterator already on the classpath");
     } catch (Exception e) {
       // Do nothing here, This is success. The following line is here
@@ -1738,7 +1738,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
     ts.exec("createtable t");
     // Assert that the TabletServer does not know anything about our class
-    String result = ts.exec("setiter -scan -n reverse -t t -p 21 -class org.apache.accumulo.test.functional.ValueReversingIterator");
+    String result = ts.exec("setiter -scan -n reverse -t t -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
@@ -1749,7 +1749,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     result = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
     assertEquals("root@miniInstance t> config -t t -s table.classpath.context=" + FAKE_CONTEXT + "\n", result);
 
-    result = ts.exec("setshelliter -pn baz -n reverse -p 21 -class org.apache.accumulo.test" + ".functional.ValueReversingIterator");
+    result = ts.exec("setshelliter -pn baz -n reverse -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("The iterator class does not implement OptionDescriber"));
 
     // The implementation of ValueReversingIterator in the FAKE context does nothing, the value is not reversed.
@@ -1849,6 +1849,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private static final String REAL_CONTEXT = "REAL";
   private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir") + "/target/" + ShellServerIT.class.getSimpleName()
       + "-real-iterators.jar";
+  private static final String VALUE_REVERSING_ITERATOR = "org.apache.accumulo.test.functional.ValueReversingIterator";
 
   private void setupRealContextPath() throws Exception {
     // Copy the test iterators jar to tmp
