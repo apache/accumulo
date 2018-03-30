@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.monitor.util;
+package org.apache.accumulo.test.categories;
 
 /**
- * Special category for Monitor ITs to avoid adding dependency on test module
+ * Interface to be used with JUnit Category annotation to represent the integration test is for testing Accumulo's Monitor
  */
 public interface MonitorTests {}
