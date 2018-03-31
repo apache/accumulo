@@ -405,7 +405,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
     ts.input.set("true\n\n\n\nSTRING");
-    ts.exec("setscaniter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
+    ts.exec("setscaniter -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name", true);
     ts.exec("scan", true, "3", true);
     ts.exec("deletescaniter -n name", true);
     ts.exec("scan", true, "1", true);
@@ -533,11 +533,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -pn sum -n name", true);
-    ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -pn sum -n name", false);
-    ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -pn sum -n other", false);
+    ts.exec("setshelliter -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -pn sum -n name", true);
+    ts.exec("setshelliter -class " + SUMMING_COMBINER_ITERATOR + " -p 11 -pn sum -n name", false);
+    ts.exec("setshelliter -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -pn sum -n other", false);
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setshelliter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -pn sum -n xyzzy", true);
+    ts.exec("setshelliter -class " + SUMMING_COMBINER_ITERATOR + " -p 11 -pn sum -n xyzzy", true);
     ts.exec("scan -pn sum", true, "3", true);
     ts.exec("listshelliter", true, "Iterator name", true);
     ts.exec("listshelliter", true, "Iterator xyzzy", true);
@@ -555,11 +555,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert a cf cq 1");
     ts.exec("insert a cf cq 1");
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -n name", false);
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n other", false);
+    ts.exec("setiter -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name", true);
+    ts.exec("setiter -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 11 -n name", false);
+    ts.exec("setiter -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n other", false);
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 11 -n xyzzy", true);
+    ts.exec("setiter -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 11 -n xyzzy", true);
     ts.exec("scan", true, "3", true);
     ts.exec("listiter -scan", true, "Iterator name", true);
     ts.exec("listiter -scan", true, "Iterator xyzzy", true);
@@ -580,13 +580,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + tableName);
     ts.input.set("\n\n");
     // Setting a non-optiondescriber with no name should fail
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", false);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", false);
 
     // Name as option will work
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name cfcounter", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter", true);
 
     String expectedKey = "table.iterator.scan.cfcounter";
-    String expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    String expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
     TableOperations tops = conn.tableOperations();
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
 
@@ -598,9 +598,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.input.set("customcfcounter\n\n");
 
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
     expectedKey = "table.iterator.scan.customcfcounter";
-    expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
 
     ts.exec("deletetable " + tableName, true);
@@ -611,9 +611,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.input.set("customcfcounter\nname1 value1\nname2 value2\n\n");
 
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
     expectedKey = "table.iterator.scan.customcfcounter";
-    expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
     expectedKey = "table.iterator.scan.customcfcounter.opt.name1";
     expectedValue = "value1";
@@ -630,9 +630,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.input.set("\nname1 value1.1,value1.2,value1.3\nname2 value2\n\n");
 
     // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class org.apache.accumulo.core.iterators.ColumnFamilyCounter -p 30 -name cfcounter", true);
+    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter", true);
     expectedKey = "table.iterator.scan.cfcounter";
-    expectedValue = "30,org.apache.accumulo.core.iterators.ColumnFamilyCounter";
+    expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
     expectedKey = "table.iterator.scan.cfcounter.opt.name1";
     expectedValue = "value1.1,value1.2,value1.3";
@@ -1665,7 +1665,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("namespaces", true, "testers3", true);
     ts.exec("deletenamespace testers3 -f", true);
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setiter -ns thing2 -scan -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -n name", true);
+    ts.exec("setiter -ns thing2 -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name", true);
     ts.exec("listiter -ns thing2 -scan", true, "Summing", true);
     ts.exec("deleteiter -ns thing2 -n name -scan", true);
     ts.exec("createuser dude");
@@ -1851,6 +1851,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir") + "/target/" + ShellServerIT.class.getSimpleName()
       + "-real-iterators.jar";
   private static final String VALUE_REVERSING_ITERATOR = "org.apache.accumulo.test.functional.ValueReversingIterator";
+  private static final String SUMMING_COMBINER_ITERATOR = "org.apache.accumulo.core.iterators.user.SummingCombiner";
+  private static final String COLUMN_FAMILY_COUNTER_ITERATOR = "org.apache.accumulo.core.iterators" + ".ColumnFamilyCounter";
 
   private void setupRealContextPath() throws Exception {
     // Copy the test iterators jar to tmp
