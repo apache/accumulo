@@ -16,24 +16,23 @@
  */
 package org.apache.accumulo.master;
 
+import com.google.common.base.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.concurrent.NotThreadSafe;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import javax.annotation.concurrent.NotThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Runs one or more tasks with a timeout per task (instead of a timeout for the entire pool). Uses callbacks to invoke functions on successful, timed out, or
@@ -55,7 +54,7 @@ public class TimeoutTaskExecutor<T, C extends Callable<T>> implements AutoClosea
 
   private final static Logger log = LoggerFactory.getLogger(TimeoutTaskExecutor.class);
 
-  private final long timeout;
+  private final long timeoutInNanos;
   private final ExecutorService executorService;
   private final BlockingQueue<WrappedTask> startedTasks;
   private final List<WrappedTask> wrappedTasks;
@@ -71,18 +70,18 @@ public class TimeoutTaskExecutor<T, C extends Callable<T>> implements AutoClosea
    * If the expectedNumCallables is sized too small, this executor will block on calls to submit() once the internal queue is full.
    *
    * @param numThreads           The number of threads to use.
-   * @param timeout              The timeout for each task.
+   * @param timeoutInMillis      The timeout for each task in milliseconds.
    * @param expectedNumCallables The expected number of callables you will schedule. Note this is used for an underlying BlockingQueue. If sized too small this will cause blocking
    *                             when calling submit().
    * @throws IllegalArgumentException If numThreads is less than 1 or expectedNumCallables is negative.
    */
-  public TimeoutTaskExecutor(int numThreads, long timeout, int expectedNumCallables) {
+  public TimeoutTaskExecutor(int numThreads, long timeoutInMillis, int expectedNumCallables) {
     Preconditions.checkArgument(numThreads >= 1, "Number of threads must be at least 1.");
     Preconditions.checkArgument(expectedNumCallables >= 0, "The expected number of callables must be non-negative.");
 
     this.executorService = Executors.newFixedThreadPool(numThreads);
     this.startedTasks = new ArrayBlockingQueue<>(expectedNumCallables);
-    this.timeout = timeout;
+    this.timeoutInNanos = TimeUnit.MILLISECONDS.toNanos(timeoutInMillis);
     this.wrappedTasks = new ArrayList<>(expectedNumCallables);
   }
 
@@ -138,35 +137,46 @@ public class TimeoutTaskExecutor<T, C extends Callable<T>> implements AutoClosea
     Preconditions.checkState(exceptionCallback != null, "Must set an exception callback before completing " + this);
     Preconditions.checkState(timeoutCallback != null, "Must set a timeout callback before completing " + this);
 
-    while (hasUnfinishedTasks()) {
-      completeTask(startedTasks.take());
+    int unfinished = wrappedTasks.size();
+
+    while (unfinished > 0) {
+      // poll for twice the timeout which should definitely yield a new running task
+      WrappedTask wt = startedTasks.poll(timeoutInNanos * 2, TimeUnit.NANOSECONDS);
+      if (wt != null) {
+        completeTask(wt);
+        wt.hasCompleted = true;
+        unfinished--;
+      }
     }
 
     wrappedTasks.clear();
   }
 
-  private boolean hasUnfinishedTasks() {
-    for (WrappedTask wt : wrappedTasks) {
-      if (!wt.hasCompleted) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   private void completeTask(WrappedTask wt) throws InterruptedException {
     try {
-      long waitTime = wt.endTime - System.currentTimeMillis();
-      successCallback.accept(wt.callable, wt.future.get(waitTime, TimeUnit.MILLISECONDS));
+      handleSuccess(wt);
     } catch (InterruptedException e) {
       throw e;
     } catch (TimeoutException e) {
-      wt.future.cancel(true);
-      timeoutCallback.accept(wt.callable);
+      handleTimeout(wt);
     } catch (Exception e) {
-      exceptionCallback.accept(wt.callable, e);
+      handleException(wt, e);
     }
-    wt.hasCompleted = true;
+  }
+
+  private void handleSuccess(WrappedTask wt) throws InterruptedException, ExecutionException, TimeoutException {
+    long waitTime = wt.endTime - System.nanoTime();
+    waitTime = (waitTime < 0 ? 0 : waitTime);
+    successCallback.accept(wt.callable, wt.future.get(waitTime, TimeUnit.NANOSECONDS));
+  }
+
+  private void handleTimeout(WrappedTask wt) {
+    wt.future.cancel(true);
+    timeoutCallback.accept(wt.callable);
+  }
+
+  private void handleException(WrappedTask wt, Exception e) {
+    exceptionCallback.accept(wt.callable, e);
   }
 
   @Override
@@ -181,9 +191,13 @@ public class TimeoutTaskExecutor<T, C extends Callable<T>> implements AutoClosea
   /*
    * A wrapper for a Callable that keeps additional information. This tracks the desired end time, if it has completed (either finished or cancelled), and keeps
    * the associated future.
+   *
+   * The only state shared between the executor thread and the worker threads is the startedTasks
+   * BlockingQueue and the endTime variable. The endTime will be set when the worker starts by
+   * the worker thread and then read by the executor thread.
    */
   private class WrappedTask implements Callable<T> {
-    public final C callable;
+    final C callable;
 
     // Set by worker thread and read by master thread
     volatile long endTime;
@@ -191,7 +205,7 @@ public class TimeoutTaskExecutor<T, C extends Callable<T>> implements AutoClosea
     // Set and read only by master thread
     boolean hasCompleted = false;
 
-    public Future<T> future;
+    Future<T> future;
 
     WrappedTask(C callable) {
       this.callable = callable;
@@ -199,8 +213,8 @@ public class TimeoutTaskExecutor<T, C extends Callable<T>> implements AutoClosea
 
     @Override
     public T call() throws Exception {
+      endTime = timeoutInNanos + System.nanoTime();
       startedTasks.put(this);
-      endTime = timeout + System.currentTimeMillis();
       return callable.call();
     }
   }
