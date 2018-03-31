@@ -364,7 +364,7 @@ public class SetIterCommand extends Command {
   }
 
   // Set all options common to both iterators and shell iterators
-  public void setBaseOptions(Options options) {
+  protected void setBaseOptions(Options options) {
     setPriorityOptions(options);
     setNameOptions(options);
     setIteratorTypeOptions(options);
