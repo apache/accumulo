@@ -56,7 +56,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
@@ -299,17 +298,22 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     try {
       user = options.getUsername();
     } catch (Exception e) {
-      printException(e);
-      return true;
+      logError(e.getMessage());
+      exitCode = 1;
+      return false;
     }
     String password = options.getPassword();
 
     tabCompletion = !options.isTabCompletionDisabled();
 
-    // Use a ZK, or HdfsZK Accumulo instance
-    setInstance(options);
+    try {
+      setInstance(options);
+    } catch (Exception e) {
+      logError(e.getMessage());
+      exitCode = 1;
+      return false;
+    }
 
-    // AuthenticationToken options
     try {
       token = options.getAuthenticationToken();
     } catch (Exception e) {
@@ -443,9 +447,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       instance = DeprecationUtil.makeMockInstance("fake");
     } else {
       String instanceName, hosts;
-      if (options.isHdfsZooInstance()) {
-        instanceName = hosts = null;
-      } else if (options.getZooKeeperInstance().size() > 0) {
+      if (options.getZooKeeperInstance().size() > 0) {
         List<String> zkOpts = options.getZooKeeperInstance();
         instanceName = zkOpts.get(0);
         hosts = zkOpts.get(1);
@@ -459,7 +461,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   /**
-   * Get the ZooKeepers. Use the value passed in (if there was one), then fall back to the ClientConf, finally trying the accumulo-site.xml.
+   * Get the ZooKeepers. Use the value passed in (if there was one), then fall back to value in accumulo-client.properties
    *
    * @param keepers
    *          ZooKeepers passed to the shell
@@ -471,15 +473,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     if (null != keepers) {
       return keepers;
     }
-    if (properties.containsKey(ClientProperty.INSTANCE_ZOOKEEPERS.getKey())) {
-      return properties.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey());
-    }
-    return SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST);
+    return properties.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey());
   }
 
-  /*
-   * Takes instanceName and keepers as separate arguments, rather than just packaged into the clientConfig, so that we can fail over to accumulo-site.xml or
-   * HDFS config if they're unspecified.
+  /**
+   * Determines Instance using command line options and properties
+   *
+   * @param instanceName Instance name set on CL
+   * @param keepersOption ZooKeeper CL options
+   * @param properties Config properties
+   * @return Instance
+   * @throws IllegalArgumentException if no instance name or zookeeper can be determined
    */
   private static Instance getZooInstance(String instanceName, String keepersOption, Properties properties) {
     if (instanceName == null) {
@@ -487,6 +491,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
     String keepers = getZooKeepers(keepersOption, properties);
 
+    if (keepers == null) {
+      throw new IllegalArgumentException("ZooKeepers must be set using -z or -zh on command line or in accumulo-client.properties");
+    }
+    if (instanceName == null) {
+      throw new IllegalArgumentException("Instance name must be set using -z or -zi on command line or in accumulo-client.properties");
+    }
     return new ZooKeeperInstance(instanceName, keepers);
   }
 

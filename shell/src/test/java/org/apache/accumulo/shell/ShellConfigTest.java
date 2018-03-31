@@ -102,7 +102,7 @@ public class ShellConfigTest {
 
   @Test
   public void testTokenWithoutOptions() throws IOException {
-    assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getName())));
+    assertFalse(shell.config(args("--fake", "-u", "foo", "-tc", PasswordToken.class.getName())));
     assertFalse(output.get().contains(ParameterException.class.getName()));
   }
 
@@ -113,21 +113,12 @@ public class ShellConfigTest {
 
   @Test
   public void testTokenAndOptionAndPassword() throws IOException {
-    assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-l", "password=foo", "-p", "bar")));
+    assertFalse(shell.config(args("--fake", "-tc", PasswordToken.class.getName(), "-u", "foo", "-l", "password=foo", "-p", "bar")));
     assertTrue(output.get().contains(ParameterException.class.getName()));
   }
 
-  /**
-   * Tests getting the ZK hosts config value will fail on String parameter, client config and then fall back to Site configuration. SiteConfiguration will get
-   * the accumulo-site.xml from the classpath in src/test/resources
-   */
   @Test
-  public void testZooKeeperHostFallBackToSite() {
-    assertEquals("ShellConfigTestZKHostValue", Shell.getZooKeepers(null, new Properties()));
-  }
-
-  @Test
-  public void testZooKeeperHostFromClientConfig() {
+  public void testZooKeeperHostFromClientProps() {
     Properties props = new Properties();
     props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "cc_hostname");
     assertEquals("cc_hostname", Shell.getZooKeepers(null, props));

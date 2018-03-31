@@ -164,7 +164,7 @@ public class DistributedTrace {
         log.warn("Failed to load SpanReceiver {}", className);
       } else {
         receivers.add(rcvr);
-        log.info("SpanReceiver {} was loaded successfully.", className);
+        log.debug("SpanReceiver {} was loaded successfully.", className);
       }
     }
     for (SpanReceiver rcvr : receivers) {

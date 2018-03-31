@@ -16,12 +16,10 @@
  */
 package org.apache.accumulo.shell;
 
-import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.powermock.api.easymock.PowerMock.createMock;
 import static org.powermock.api.easymock.PowerMock.expectLastCall;
 import static org.powermock.api.easymock.PowerMock.expectNew;
-import static org.powermock.api.easymock.PowerMock.mockStatic;
 import static org.powermock.api.easymock.PowerMock.replay;
 import static org.powermock.api.easymock.PowerMock.verify;
 
@@ -32,18 +30,14 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -132,91 +126,6 @@ public class ShellSetInstanceTest {
   }
 
   @Test
-  public void testSetInstance_HdfsZooInstance_Explicit() throws Exception {
-    testSetInstance_HdfsZooInstance(true, false, false);
-  }
-
-  @Test
-  public void testSetInstance_HdfsZooInstance_InstanceGiven() throws Exception {
-    testSetInstance_HdfsZooInstance(false, true, false);
-  }
-
-  @Test
-  public void testSetInstance_HdfsZooInstance_HostsGiven() throws Exception {
-    testSetInstance_HdfsZooInstance(false, false, true);
-  }
-
-  @Test
-  public void testSetInstance_HdfsZooInstance_Implicit() throws Exception {
-    testSetInstance_HdfsZooInstance(false, false, false);
-  }
-
-  private void testSetInstance_HdfsZooInstance(boolean explicitHdfs, boolean onlyInstance, boolean onlyHosts) throws Exception {
-    Properties props = createMock(Properties.class);
-    ShellOptionsJC opts = createMock(ShellOptionsJC.class);
-    expect(opts.isFake()).andReturn(false);
-    expect(opts.getClientProperties()).andReturn(new Properties());
-    expect(opts.isHdfsZooInstance()).andReturn(explicitHdfs);
-    if (!explicitHdfs) {
-      expect(opts.getZooKeeperInstance()).andReturn(Collections.emptyList());
-      if (onlyInstance) {
-        expect(opts.getZooKeeperInstanceName()).andReturn("instance");
-        expect(props.getProperty(ClientProperty.INSTANCE_NAME.getKey())).andReturn("instance");
-      } else {
-        expect(opts.getZooKeeperInstanceName()).andReturn(null);
-      }
-      if (onlyHosts) {
-        expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
-        expect(props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey())).andReturn("host3,host4");
-      } else {
-        expect(opts.getZooKeeperHosts()).andReturn(null);
-      }
-    }
-    replay(opts);
-
-    if (!onlyInstance) {
-      expect(props.getProperty(ClientProperty.INSTANCE_NAME.getKey())).andReturn(null);
-    }
-
-    mockStatic(ConfigSanityCheck.class);
-    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration> anyObject());
-    expectLastCall().atLeastOnce();
-    replay(ConfigSanityCheck.class);
-
-    if (!onlyHosts) {
-      expect(props.containsKey(ClientProperty.INSTANCE_ZOOKEEPERS.getKey())).andReturn(true).atLeastOnce();
-      expect(props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey())).andReturn("host1,host2");
-    }
-    if (!onlyInstance) {
-      expect(props.containsKey(Property.INSTANCE_VOLUMES.getKey())).andReturn(false).atLeastOnce();
-      @SuppressWarnings("deprecation")
-      String INSTANCE_DFS_DIR_KEY = Property.INSTANCE_DFS_DIR.getKey();
-      @SuppressWarnings("deprecation")
-      String INSTANCE_DFS_URI_KEY = Property.INSTANCE_DFS_URI.getKey();
-      expect(props.containsKey(INSTANCE_DFS_DIR_KEY)).andReturn(true).atLeastOnce();
-      expect(props.containsKey(INSTANCE_DFS_URI_KEY)).andReturn(true).atLeastOnce();
-      expect(props.getProperty(INSTANCE_DFS_URI_KEY)).andReturn("hdfs://nn1").atLeastOnce();
-      expect(props.getProperty(INSTANCE_DFS_DIR_KEY)).andReturn("/dfs").atLeastOnce();
-    }
-
-    UUID randomUUID = null;
-    if (!onlyInstance) {
-      mockStatic(ZooUtil.class);
-      randomUUID = UUID.randomUUID();
-      expect(ZooUtil.getInstanceIDFromHdfs(anyObject(Path.class), anyObject(AccumuloConfiguration.class))).andReturn(randomUUID.toString());
-      replay(ZooUtil.class);
-    }
-
-    ZooKeeperInstance theInstance = createMock(ZooKeeperInstance.class);
-
-    expectNew(ZooKeeperInstance.class, new Class<?>[] {String.class, String.class}, anyObject(), anyObject()).andReturn(theInstance);
-    replay(theInstance, ZooKeeperInstance.class);
-
-    shell.setInstance(opts);
-    verify(theInstance, ZooKeeperInstance.class);
-  }
-
-  @Test
   public void testSetInstance_ZKInstance_DashZ() throws Exception {
     testSetInstance_ZKInstance(true);
   }
@@ -231,7 +140,6 @@ public class ShellSetInstanceTest {
     ShellOptionsJC opts = createMock(ShellOptionsJC.class);
     expect(opts.isFake()).andReturn(false);
     expect(opts.getClientProperties()).andReturn(new Properties());
-    expect(opts.isHdfsZooInstance()).andReturn(false);
     expect(props.getProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey())).andReturn(null);
     if (dashZ) {
       expect(props.getProperty(ClientProperty.INSTANCE_NAME.getKey())).andReturn("foo");

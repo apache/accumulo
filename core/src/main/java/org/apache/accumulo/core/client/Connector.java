@@ -549,7 +549,7 @@ public abstract class Connector {
    * @return this builder
    * @since 2.0.0
    */
-  public static PropertyOptions builder() {
+  public static ConnectionInfoOptions builder() {
     return new ConnectorImpl.ConnectorBuilderImpl();
   }
 }

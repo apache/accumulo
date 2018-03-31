@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -44,7 +45,7 @@ import com.beust.jcommander.converters.FileConverter;
 public class ShellOptionsJC {
   private static final Logger log = LoggerFactory.getLogger(ShellOptionsJC.class);
 
-  @Parameter(names = {"-u", "--user"}, description = "username (defaults to your OS user)")
+  @Parameter(names = {"-u", "--user"}, description = "username")
   private String username = null;
 
   public static class PasswordConverter implements IStringConverter<String> {
@@ -163,9 +164,6 @@ public class ShellOptionsJC {
       converter = FileConverter.class)
   private File execFileVerbose;
 
-  @Parameter(names = {"-h", "--hdfsZooInstance"}, description = "use hdfs zoo instance")
-  private boolean hdfsZooInstance;
-
   @Parameter(names = {"-z", "--zooKeeperInstance"}, description = "use a zookeeper instance with the given instance name and list of zoo hosts. "
       + "Syntax: -z <zoo-instance-name> <zoo-hosts>. Where <zoo-hosts> is a comma separated list of zookeeper servers.", arity = 2)
   private List<String> zooKeeperInstance = new ArrayList<>();
@@ -176,9 +174,8 @@ public class ShellOptionsJC {
   @Parameter(names = "--sasl", description = "use SASL to connect to Accumulo (Kerberos)")
   private boolean useSasl = false;
 
-  @Parameter(names = "--config-file", description = "read the given client config file. "
-      + "If omitted, the path searched can be specified with $ACCUMULO_CLIENT_CONF_PATH, "
-      + "which defaults to ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+  @Parameter(names = "--config-file", description = "Read the given accumulo-client.properties file. If omitted, the following locations will be searched "
+      + "~/.accumulo/accumulo-client.properties:$ACCUMULO_CONF_DIR/accumulo-client.properties:/etc/accumulo/accumulo-client.properties")
   private String clientConfigFile = null;
 
   @Parameter(names = {"-zi", "--zooKeeperInstanceName"}, description = "use a zookeeper instance with the given instance name. "
@@ -200,30 +197,33 @@ public class ShellOptionsJC {
 
   public String getUsername() throws Exception {
     if (null == username) {
-      final Properties clientProps = getClientProperties();
-      if (Boolean.parseBoolean(clientProps.getProperty(ClientProperty.SASL_ENABLED.getKey()))) {
-        if (!UserGroupInformation.isSecurityEnabled()) {
-          throw new RuntimeException("Kerberos security is not enabled");
+      username = getClientProperties().getProperty(ClientProperty.AUTH_USERNAME.getKey());
+      if (username == null || username.isEmpty()) {
+        if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
+          if (!UserGroupInformation.isSecurityEnabled()) {
+            throw new IllegalArgumentException("Kerberos security is not enabled. Run with --sasl or set 'sasl.enabled' in accumulo-client.properties");
+          }
+          UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+          username = ugi.getUserName();
+        } else {
+          throw new IllegalArgumentException("Username is not set. Run with '-u myuser' or set 'auth.username' in accumulo-client.properties");
         }
-        UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-        username = ugi.getUserName();
-      } else {
-        username = System.getProperty("user.name", "root");
       }
     }
     return username;
   }
 
   public String getPassword() {
+    if (password == null) {
+      password = getClientProperties().getProperty(ClientProperty.AUTH_PASSWORD.getKey());
+    }
     return password;
   }
 
   public AuthenticationToken getAuthenticationToken() throws Exception {
     if (null == authenticationToken) {
-      final Properties clientProps = getClientProperties();
-      // Automatically use a KerberosToken if the client conf is configured for SASL
-      final boolean saslEnabled = Boolean.parseBoolean(clientProps.getProperty(ClientProperty.SASL_ENABLED.getKey()));
-      if (saslEnabled) {
+      // Automatically use a KerberosToken if shell is configured for SASL
+      if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
         authenticationToken = new KerberosToken();
       }
     }
@@ -262,10 +262,6 @@ public class ShellOptionsJC {
     return execFileVerbose;
   }
 
-  public boolean isHdfsZooInstance() {
-    return hdfsZooInstance;
-  }
-
   public List<String> getZooKeeperInstance() {
     return zooKeeperInstance;
   }
@@ -298,17 +294,31 @@ public class ShellOptionsJC {
   }
 
   public String getClientConfigFile() {
+    if (clientConfigFile == null) {
+      List<String> searchPaths = new LinkedList<>();
+      searchPaths.add(System.getProperty("user.home") + "/.accumulo/accumulo-client.properties");
+      if (System.getenv("ACCUMULO_CONF_DIR") != null) {
+        searchPaths.add(System.getenv("ACCUMULO_CONF_DIR") + "/accumulo-client.properties");
+      }
+      searchPaths.add("/etc/accumulo/accumulo-client.properties");
+      for (String path : searchPaths) {
+        File file = new File(path);
+        if (file.isFile() && file.canRead()) {
+          clientConfigFile = file.getAbsolutePath();
+          break;
+        }
+      }
+    }
     return clientConfigFile;
   }
 
   public Properties getClientProperties() {
     Properties props = new Properties();
-    if (clientConfigFile != null) {
-      try (InputStream is = new FileInputStream(clientConfigFile)) {
+    if (getClientConfigFile() != null) {
+      try (InputStream is = new FileInputStream(getClientConfigFile())) {
         props.load(is);
       } catch (IOException e) {
-        log.error("Failed to load properties from " + clientConfigFile);
-        throw new IllegalArgumentException(e);
+        throw new IllegalArgumentException("Failed to load properties from " + getClientConfigFile());
       }
     }
     if (useSsl()) {

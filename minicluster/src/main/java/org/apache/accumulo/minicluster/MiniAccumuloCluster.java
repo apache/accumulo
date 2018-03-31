@@ -118,7 +118,9 @@ public class MiniAccumuloCluster {
 
   /**
    * @since 1.6.0
+   * @deprecated since 2.0.0
    */
+  @Deprecated
   public ClientConfiguration getClientConfig() {
     return impl.getClientConfig();
   }
