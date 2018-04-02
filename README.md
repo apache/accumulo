@@ -32,7 +32,7 @@ news and general information.
 * Run the [Accumulo examples][examples] to learn how to write Accumulo clients
 * View the [Javadocs][javadocs] to learn the Accumulo API
 
-More resources can be found on the [project website][accumulo].
+More resources can be found on the [project website][accumulo].  To commit to the other Accumulo sub projects checkout the [website github][website], [testing], and [wikisearch] repositories.
 
 ## Building
 
@@ -108,6 +108,9 @@ more details on bouncycastle's cryptography features.
 [Maven]: https://maven.apache.org
 [docs]: https://accumulo.apache.org/latest/accumulo_user_manual
 [examples]: https://github.com/apache/accumulo-examples
+[testing]: https://github.com/apache/accumulo-testing
+[website]: https://github.com/apache/accumulo-website
+[wikisearch]: https://github.com/apache/accumulo-wikisearch
 [javadocs]: https://accumulo.apache.org/latest/apidocs
 [semver]: http://semver.org/spec/v2.0.0
 [regex]: http://checkstyle.sourceforge.net/config_regexp.html
