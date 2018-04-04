@@ -16,48 +16,66 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 
+@SuppressWarnings("deprecation")
 public class ClientConfConverter {
+
+  private static Map<String, String> confProps = new HashMap<>();
+  private static Map<String, String> propsConf = new HashMap<>();
+
+  static {
+    propsConf.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(),
+        ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST.getKey());
+    propsConf.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getKey(),
+        ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT.getKey());
+    propsConf.put(ClientProperty.SSL_ENABLED.getKey(),
+        ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_ENABLED.getKey());
+    propsConf.put(ClientProperty.SSL_KEYSTORE_PATH.getKey(),
+        ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PATH.getKey());
+    propsConf.put(ClientProperty.SSL_KEYSTORE_TYPE.getKey(),
+        ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_TYPE.getKey());
+    propsConf.put(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(),
+        ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PASSWORD.getKey());
+    propsConf.put(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(),
+        ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PATH.getKey());
+    propsConf.put(ClientProperty.SSL_TRUSTSTORE_TYPE.getKey(),
+        ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_TYPE.getKey());
+    propsConf.put(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey(),
+        ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+    propsConf.put(ClientProperty.SSL_USE_JSSE.getKey(),
+        ClientConfiguration.ClientProperty.RPC_USE_JSSE.getKey());
+    propsConf.put(ClientProperty.SASL_ENABLED.getKey(),
+        ClientConfiguration.ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey());
+    propsConf.put(ClientProperty.SASL_QOP.getKey(),
+        ClientConfiguration.ClientProperty.RPC_SASL_QOP.getKey());
+    propsConf.put(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(),
+        ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+
+    for (Map.Entry<String, String> entry : propsConf.entrySet()) {
+      confProps.put(entry.getValue(), entry.getKey());
+    }
+  }
 
   public static ClientConfiguration toClientConf(Properties properties) {
     ClientConfiguration config = ClientConfiguration.create();
     for (Object keyObj : properties.keySet()) {
-      String key = (String) keyObj;
-      String val = properties.getProperty(key);
-      if (key.equals(ClientProperty.INSTANCE_ZOOKEEPERS.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST, val);
-      } else if (key.equals(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT, val);
-      } else if (key.equals(ClientProperty.SSL_ENABLED.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_ENABLED, val);
-      } else if (key.equals(ClientProperty.SSL_KEYSTORE_PATH.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PATH, val);
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, "true");
-      } else if (key.equals(ClientProperty.SSL_KEYSTORE_TYPE.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_TYPE, val);
-      } else if (key.equals(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, val);
-      } else if (key.equals(ClientProperty.SSL_TRUSTSTORE_PATH.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PATH, val);
-      } else if (key.equals(ClientProperty.SSL_TRUSTSTORE_TYPE.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_TYPE, val);
-      } else if (key.equals(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD, val);
-      } else if (key.equals(ClientProperty.SSL_USE_JSSE.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_USE_JSSE, val);
-      } else if (key.equals(ClientProperty.SASL_ENABLED.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SASL_ENABLED, val);
-      } else if (key.equals(ClientProperty.SASL_QOP.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.RPC_SASL_QOP, val);
-      } else if (key.equals(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())) {
-        config.setProperty(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY, val);
+      String propKey = (String) keyObj;
+      String val = properties.getProperty(propKey);
+      String confKey = propsConf.get(propKey);
+      if (confKey == null) {
+        config.setProperty(propKey, val);
       } else {
-        config.setProperty(key, val);
+        config.setProperty(confKey, val);
+      }
+      if (propKey.equals(ClientProperty.SSL_KEYSTORE_PATH.getKey())) {
+        config.setProperty(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, "true");
       }
     }
     return config;
@@ -65,39 +83,17 @@ public class ClientConfConverter {
 
   public static Properties toProperties(ClientConfiguration clientConf) {
     Properties props = new Properties();
-
     Iterator<String> clientConfIter = clientConf.getKeys();
     while (clientConfIter.hasNext()) {
-      String key = clientConfIter.next();
-      String val = clientConf.getString(key);
-      if (key.equals(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST.getKey())) {
-        props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT.getKey())) {
-        props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_ENABLED.getKey())) {
-        props.setProperty(ClientProperty.SSL_ENABLED.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PATH.getKey())) {
-        props.setProperty(ClientProperty.SSL_KEYSTORE_PATH.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_TYPE.getKey())) {
-        props.setProperty(ClientProperty.SSL_KEYSTORE_TYPE.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PASSWORD.getKey())) {
-        props.setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PATH.getKey())) {
-        props.setProperty(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_TYPE.getKey())) {
-        props.setProperty(ClientProperty.SSL_TRUSTSTORE_TYPE.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD.getKey())) {
-        props.setProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.RPC_USE_JSSE.getKey())) {
-        props.setProperty(ClientProperty.SSL_USE_JSSE.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.INSTANCE_RPC_SASL_ENABLED.getKey())) {
-        props.setProperty(ClientProperty.SASL_ENABLED.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.RPC_SASL_QOP.getKey())) {
-        props.setProperty(ClientProperty.SASL_QOP.getKey(), val);
-      } else if (key.equals(ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
-        props.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), val);
+      String confKey = clientConfIter.next();
+      String val = clientConf.getString(confKey);
+      String propKey = confProps.get(confKey);
+      if (propKey == null) {
+        if (!confKey.equals(ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey())) {
+          props.setProperty(confKey, val);
+        }
       } else {
-        props.setProperty(key, val);
+        props.setProperty(propKey, val);
       }
     }
     return props;
