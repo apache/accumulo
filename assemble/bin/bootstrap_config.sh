@@ -155,7 +155,7 @@ _2GB_memoryMapMax="512M"
 native_2GB_nativeEnabled="true"
 _2GB_cacheDataSize="30M"
 _2GB_cacheIndexSize="80M"
-_2GB_sortBufferSize="50M"
+_2GB_sortBufferSize="100M"
 _2GB_waLogMaxSize="512M"
 
 #Native 3GB
@@ -184,8 +184,8 @@ _512MB_shell="${_512MB_other}"
 _512MB_memoryMapMax="80M"
 native_512MB_nativeEnabled="true"
 _512MB_cacheDataSize="7M"
-_512MB_cacheIndexSize="20M"
-_512MB_sortBufferSize="50M"
+_512MB_cacheIndexSize="16M"
+_512MB_sortBufferSize="20M"
 _512MB_waLogMaxSize="100M"
 
 #JVM 1GB
