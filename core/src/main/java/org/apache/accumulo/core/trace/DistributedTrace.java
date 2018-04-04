@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -56,7 +56,7 @@ public class DistributedTrace {
   private static final HashSet<SpanReceiver> receivers = new HashSet<>();
 
   /**
-   * @deprecated since 1.7, use {@link DistributedTrace#enable(String, String, org.apache.accumulo.core.client.ClientConfiguration)} instead
+   * @deprecated since 1.7, use {@link DistributedTrace#enable(String, String, Properties)} instead
    */
   @Deprecated
   public static void enable(Instance instance, ZooReader zoo, String application, String address) throws IOException, KeeperException, InterruptedException {
@@ -82,7 +82,7 @@ public class DistributedTrace {
    * of the class will be used.
    */
   public static void enable(String hostname, String service) {
-    enable(hostname, service, ClientConfiguration.loadDefault());
+    enable(hostname, service, new Properties());
   }
 
   /**
@@ -90,13 +90,13 @@ public class DistributedTrace {
    * of the class will be used. Properties required in the client configuration include
    * {@link org.apache.accumulo.core.client.ClientConfiguration.ClientProperty#TRACE_SPAN_RECEIVERS} and any properties specific to the span receiver.
    */
-  public static void enable(String hostname, String service, ClientConfiguration conf) {
-    String spanReceivers = conf.get(ClientProperty.TRACE_SPAN_RECEIVERS);
-    String zookeepers = conf.get(ClientProperty.INSTANCE_ZK_HOST);
-    long timeout = ConfigurationTypeHelper.getTimeInMillis(conf.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
-    String zkPath = conf.get(ClientProperty.TRACE_ZK_PATH);
-    Map<String,String> properties = conf.getAllPropertiesWithPrefix(ClientProperty.TRACE_SPAN_RECEIVER_PREFIX);
-    enableTracing(hostname, service, spanReceivers, zookeepers, timeout, zkPath, properties);
+  public static void enable(String hostname, String service, Properties properties) {
+    String spanReceivers = ClientProperty.TRACE_SPAN_RECEIVERS.getValue(properties);
+    String zookeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(properties);
+    long timeout = ConfigurationTypeHelper.getTimeInMillis(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT_SEC.getValue(properties));
+    String zkPath = ClientProperty.TRACE_ZOOKEEPER_PATH.getValue(properties);
+    Map<String,String> props = ClientProperty.toMap(ClientProperty.getPrefix(properties, ClientProperty.TRACE_SPAN_RECEIVER_PREFIX));
+    enableTracing(hostname, service, spanReceivers, zookeepers, timeout, zkPath, props);
   }
 
   /**
@@ -164,7 +164,7 @@ public class DistributedTrace {
         log.warn("Failed to load SpanReceiver {}", className);
       } else {
         receivers.add(rcvr);
-        log.info("SpanReceiver {} was loaded successfully.", className);
+        log.debug("SpanReceiver {} was loaded successfully.", className);
       }
     }
     for (SpanReceiver rcvr : receivers) {

@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
@@ -43,7 +42,6 @@ public class WriteLotsIT extends AccumuloClusterHarness {
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     final AtomicReference<Exception> ref = new AtomicReference<>();
-    final ClientConfiguration clientConfig = getCluster().getClientConfig();
     final int THREADS = 5;
     ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(THREADS));
     for (int i = 0; i < THREADS; i++) {
@@ -56,8 +54,8 @@ public class WriteLotsIT extends AccumuloClusterHarness {
             opts.startRow = index * 10000;
             opts.rows = 10000;
             opts.setTableName(tableName);
-            if (clientConfig.hasSasl()) {
-              opts.updateKerberosCredentials(clientConfig);
+            if (saslEnabled()) {
+              opts.updateKerberosCredentials();
             } else {
               opts.setPrincipal(getAdminPrincipal());
             }
@@ -80,8 +78,8 @@ public class WriteLotsIT extends AccumuloClusterHarness {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.rows = 10000 * THREADS;
     vopts.setTableName(tableName);
-    if (clientConfig.hasSasl()) {
-      vopts.updateKerberosCredentials(clientConfig);
+    if (saslEnabled()) {
+      vopts.updateKerberosCredentials();
     } else {
       vopts.setPrincipal(getAdminPrincipal());
     }

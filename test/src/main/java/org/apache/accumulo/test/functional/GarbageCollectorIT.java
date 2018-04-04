@@ -32,12 +32,13 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -92,11 +93,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private void killMacGc() throws ProcessNotFoundException, InterruptedException, KeeperException {
+  private void killMacGc() throws ProcessNotFoundException, InterruptedException, KeeperException, AccumuloSecurityException, AccumuloException {
     // kill gc started by MAC
     getCluster().killProcess(ServerType.GARBAGE_COLLECTOR, getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    String path = ZooUtil.getRoot(new ZooKeeperInstance(getCluster().getClientConfig())) + Constants.ZGC_LOCK;
+    String path = ZooUtil.getRoot(getConnector().getInstance()) + Constants.ZGC_LOCK;
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
     try {
       ZooLock.deleteLock(zk, path);

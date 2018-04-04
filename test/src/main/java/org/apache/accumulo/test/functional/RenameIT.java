@@ -18,7 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
@@ -43,9 +43,9 @@ public class RenameIT extends AccumuloClusterHarness {
     opts.createTable = true;
     opts.setTableName(name1);
 
-    final ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.hasSasl()) {
-      opts.updateKerberosCredentials(clientConfig);
+    final ConnectionInfo connectionInfo = cluster.getConnectionInfo();
+    if (connectionInfo.saslEnabled()) {
+      opts.updateKerberosCredentials(connectionInfo.saslEnabled());
     } else {
       opts.setPrincipal(getAdminPrincipal());
     }
@@ -56,8 +56,8 @@ public class RenameIT extends AccumuloClusterHarness {
     TestIngest.ingest(c, opts, bwOpts);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
 
-    if (clientConfig.hasSasl()) {
-      vopts.updateKerberosCredentials(clientConfig);
+    if (connectionInfo.saslEnabled()) {
+      vopts.updateKerberosCredentials(connectionInfo.saslEnabled());
     } else {
       vopts.setPrincipal(getAdminPrincipal());
     }

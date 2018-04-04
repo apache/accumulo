@@ -26,13 +26,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -156,10 +153,8 @@ public class BatchWriterIterator extends WrappingIterator {
   }
 
   private void initBatchWriter() {
-    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost).withZkTimeout(zookeeperTimeout);
-    Instance instance = new ZooKeeperInstance(cc);
     try {
-      connector = instance.getConnector(username, auth);
+      connector = Connector.builder().forInstance(instanceName, zookeeperHost).usingToken(username, auth).withZkTimeout(zookeeperTimeout).build();
     } catch (Exception e) {
       log.error("failed to connect to Accumulo instance " + instanceName, e);
       throw new RuntimeException(e);

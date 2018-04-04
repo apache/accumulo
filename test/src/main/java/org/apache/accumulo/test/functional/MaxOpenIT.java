@@ -24,7 +24,6 @@ import java.util.Random;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
@@ -92,7 +91,6 @@ public class MaxOpenIT extends AccumuloClusterHarness {
   public void run() throws Exception {
     final Connector c = getConnector();
     final String tableName = getUniqueNames(1)[0];
-    final ClientConfiguration clientConf = cluster.getClientConfig();
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
     c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
@@ -106,8 +104,8 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       opts.cols = 1;
       opts.random = i;
       opts.setTableName(tableName);
-      if (clientConf.hasSasl()) {
-        opts.updateKerberosCredentials(clientConf);
+      if (saslEnabled()) {
+        opts.updateKerberosCredentials();
       } else {
         opts.setPrincipal(getAdminPrincipal());
       }

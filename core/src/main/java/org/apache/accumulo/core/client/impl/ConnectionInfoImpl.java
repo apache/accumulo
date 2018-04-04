@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.io.File;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.ConnectionInfo;
@@ -38,7 +39,7 @@ public class ConnectionInfoImpl implements ConnectionInfo {
   }
 
   @Override
-  public String getZookeepers() {
+  public String getZooKeepers() {
     return getString(ClientProperty.INSTANCE_ZOOKEEPERS);
   }
 
@@ -55,6 +56,20 @@ public class ConnectionInfoImpl implements ConnectionInfo {
   @Override
   public AuthenticationToken getAuthenticationToken() {
     return token;
+  }
+
+  @Override
+  public File getKeytab() {
+    String keyTab = getString(ClientProperty.AUTH_KERBEROS_KEYTAB_PATH);
+    if (keyTab == null) {
+      return null;
+    }
+    return new File(keyTab);
+  }
+
+  @Override
+  public boolean saslEnabled() {
+    return Boolean.valueOf(getString(ClientProperty.SASL_ENABLED));
   }
 
   private String getString(ClientProperty property) {

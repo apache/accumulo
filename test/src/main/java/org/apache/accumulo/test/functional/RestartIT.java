@@ -33,7 +33,6 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -125,9 +124,8 @@ public class RestartIT extends AccumuloClusterHarness {
       ClusterUser rootUser = getAdminUser();
       args = new String[] {"-u", getAdminPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
           cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName};
-      ClientConfiguration clientConfig = cluster.getClientConfig();
-      OPTS.updateKerberosCredentials(clientConfig);
-      VOPTS.updateKerberosCredentials(clientConfig);
+      OPTS.updateKerberosCredentials(saslEnabled());
+      VOPTS.updateKerberosCredentials(saslEnabled());
     } else {
       throw new RuntimeException("Unknown token");
     }
@@ -157,10 +155,9 @@ public class RestartIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
-    ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.hasSasl()) {
-      OPTS.updateKerberosCredentials(clientConfig);
-      VOPTS.updateKerberosCredentials(clientConfig);
+    if (saslEnabled()) {
+      OPTS.updateKerberosCredentials();
+      VOPTS.updateKerberosCredentials();
     } else {
       OPTS.setPrincipal(getAdminPrincipal());
       VOPTS.setPrincipal(getAdminPrincipal());
@@ -224,9 +221,8 @@ public class RestartIT extends AccumuloClusterHarness {
       ClusterUser rootUser = getAdminUser();
       args = new String[] {"-u", getAdminPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
           cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
-      ClientConfiguration clientConfig = cluster.getClientConfig();
-      OPTS.updateKerberosCredentials(clientConfig);
-      VOPTS.updateKerberosCredentials(clientConfig);
+      OPTS.updateKerberosCredentials(saslEnabled());
+      VOPTS.updateKerberosCredentials(saslEnabled());
     } else {
       throw new RuntimeException("Unknown token");
     }
@@ -268,10 +264,9 @@ public class RestartIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
-    ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.hasSasl()) {
-      OPTS.updateKerberosCredentials(clientConfig);
-      VOPTS.updateKerberosCredentials(clientConfig);
+    if (saslEnabled()) {
+      OPTS.updateKerberosCredentials();
+      VOPTS.updateKerberosCredentials();
     } else {
       OPTS.setPrincipal(getAdminPrincipal());
       VOPTS.setPrincipal(getAdminPrincipal());
@@ -304,9 +299,8 @@ public class RestartIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
-    ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.hasSasl()) {
-      OPTS.updateKerberosCredentials(clientConfig);
+    if (saslEnabled()) {
+      OPTS.updateKerberosCredentials();
     } else {
       OPTS.setPrincipal(getAdminPrincipal());
     }
@@ -324,10 +318,9 @@ public class RestartIT extends AccumuloClusterHarness {
     Connector c = getConnector();
     String tableName = getUniqueNames(1)[0];
     VOPTS.setTableName(tableName);
-    ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.hasSasl()) {
-      OPTS.updateKerberosCredentials(clientConfig);
-      VOPTS.updateKerberosCredentials(clientConfig);
+    if (saslEnabled()) {
+      OPTS.updateKerberosCredentials();
+      VOPTS.updateKerberosCredentials();
     } else {
       OPTS.setPrincipal(getAdminPrincipal());
       VOPTS.setPrincipal(getAdminPrincipal());
@@ -346,8 +339,8 @@ public class RestartIT extends AccumuloClusterHarness {
       c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "20K");
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.setTableName(tableName);
-      if (clientConfig.hasSasl()) {
-        opts.updateKerberosCredentials(clientConfig);
+      if (saslEnabled()) {
+        opts.updateKerberosCredentials();
       } else {
         opts.setPrincipal(getAdminPrincipal());
       }

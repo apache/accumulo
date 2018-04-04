@@ -44,7 +44,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -160,14 +160,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public Shell shell;
 
     TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile) throws IOException {
-      ClientConfiguration clientConf;
-      clientConf = ClientConfiguration.fromFile(configFile);
+      ConnectionInfo info = Connector.builder().usingProperties(configFile.getAbsolutePath()).info();
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();
       shell = new Shell(new ConsoleReader(input, output));
       shell.setLogErrorsToConsole();
-      if (clientConf.hasSasl()) {
+      if (info.saslEnabled()) {
         // Pull the kerberos principal out when we're using SASL
         shell.config("-u", user, "-z", instanceName, zookeepers, "--config-file", configFile.getAbsolutePath());
       } else {
@@ -291,7 +290,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Before
   public void setupShell() throws Exception {
     ts = new TestShell(getPrincipal(), getRootPassword(), getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(), getCluster()
-        .getConfig().getClientConfFile());
+        .getConfig().getClientPropsFile());
   }
 
   @AfterClass
@@ -342,7 +341,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("exporttable -t " + table + " " + exportUri, true);
     DistCp cp = newDistCp(new Configuration(false));
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import").toString();
-    if (getCluster().getClientConfig().hasSasl()) {
+    if (getCluster().getConnectionInfo().saslEnabled()) {
       // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it ourselves by hand.
       FileSystem fs = getCluster().getFileSystem();
       FileSystem localFs = FileSystem.getLocal(new Configuration(false));

@@ -224,7 +224,7 @@ public class ClientConfiguration {
     }
     // We couldn't find the client configuration anywhere
     if (configs.isEmpty()) {
-      log.warn("Found no client.conf in default paths. Using default client configuration values.");
+      log.debug("Found no client.conf in default paths. Using default client configuration values.");
     }
     return new ClientConfiguration(configs);
   }

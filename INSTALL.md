@@ -42,10 +42,11 @@ For convenience, consider adding `accumulo-X.Y.Z/bin/` to your shell's path.
 Accumulo requires running [Zookeeper] and [HDFS] instances which should be set up
 before configuring Accumulo.
 
-The primary configuration files for Accumulo are `accumulo-env.sh` and `accumulo-site.xml`
-which are located in the `conf/` directory.
+The primary configuration files for Accumulo are `accumulo-site.xml`, `accumulo-env.sh`,
+and `accumulo-client.properties` which are located in the `conf/` directory.
 
-Follow the steps below to configure `accumulo-site.xml`:
+The `accumulo-site.xml` file configures Accumulo server processes (i.e tablet server, master,
+monitor, etc). Follow these steps to set it up:
 
 1. Run `accumulo-util build-native` to build native code.  If this command fails, disable
    native maps by setting `tserver.memory.maps.native.enabled` to `false`.
@@ -59,7 +60,7 @@ Follow the steps below to configure `accumulo-site.xml`:
 4. (Optional) Change `instance.secret` (which is used by Accumulo processes to communicate)
    from the default. This value should match on all servers.
 
-Follow the steps below to configure `accumulo-env.sh`:
+The `accumulo-env.sh` file sets up environment variables needed by Accumulo:
 
 1. Set `HADOOP_PREFIX` and `ZOOKEEPER_HOME` to the location of your Hadoop and Zookeeper
    installations. Accumulo will use these locations to find Hadoop and Zookeeper jars and add
@@ -80,6 +81,17 @@ Follow the steps below to configure `accumulo-env.sh`:
 
 3. (Optional) Review the memory settings for the Accumulo master, garbage collector, and monitor
    in the `JAVA_OPTS` section of `accumulo-env.sh`.
+
+The `accumulo-client.properties` file is used by the Accumulo shell and can be passed to Accumulo
+clients to simplify connecting to Accumulo. Below are steps to configure it.
+
+1. Set `instance.name` and `instance.zookeepers` to the Accumulo instance and zookeeper connection
+   string of your instance.
+
+2. Pick an authentication method and set `auth.method` accordingly.  The most common `auth.method`
+   is `password` which typically requires `auth.username` and `auth.password` to be set. For the
+   Accumulo shell, `auth.password` can be commented out and the shell will prompt you for the
+   password of `auth.username` at login.
 
 ## Initialization
 

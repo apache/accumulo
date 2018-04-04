@@ -141,7 +141,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
     if (token instanceof PasswordToken) {
       VOPTS.setPrincipal(getAdminPrincipal());
     } else if (token instanceof KerberosToken) {
-      VOPTS.updateKerberosCredentials(cluster.getClientConfig());
+      VOPTS.updateKerberosCredentials(saslEnabled());
     } else {
       throw new RuntimeException("Unrecognized token");
     }

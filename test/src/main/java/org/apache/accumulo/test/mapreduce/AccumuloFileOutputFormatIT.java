@@ -159,9 +159,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
+      AccumuloInputFormat.setConnectionInfo(job, getConnectionInfo());
       AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
       AccumuloFileOutputFormat.setOutputPath(job, new Path(args[1]));
       AccumuloFileOutputFormat.setSampler(job, SAMPLER_CONFIG);
 

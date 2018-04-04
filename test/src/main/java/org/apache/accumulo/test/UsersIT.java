@@ -40,7 +40,7 @@ public class UsersIT extends AccumuloClusterHarness {
     // Ensure that the user exists
     if (!currentUsers.contains(user0.getPrincipal())) {
       PasswordToken token = null;
-      if (!getCluster().getClientConfig().hasSasl()) {
+      if (!saslEnabled()) {
         token = new PasswordToken(user0.getPassword());
       }
       conn.securityOperations().createLocalUser(user0.getPrincipal(), token);

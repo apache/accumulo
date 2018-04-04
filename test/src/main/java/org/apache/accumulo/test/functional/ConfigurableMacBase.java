@@ -27,11 +27,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
@@ -181,13 +178,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     return getCluster().exec(clazz, args);
   }
 
-  protected String getMonitor() throws KeeperException, InterruptedException {
-    Instance instance = new ZooKeeperInstance(getCluster().getClientConfig());
-    return MonitorUtil.getLocation(instance);
+  protected String getMonitor() throws KeeperException, InterruptedException, AccumuloSecurityException, AccumuloException {
+    return MonitorUtil.getLocation(getConnector().getInstance());
   }
-
-  protected ClientConfiguration getClientConfig() throws Exception {
-    return ClientConfiguration.fromFile(getCluster().getConfig().getClientConfFile());
-  }
-
 }

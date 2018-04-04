@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -122,7 +121,6 @@ public class CompactionIT extends AccumuloClusterHarness {
     int beforeCount = countFiles(c);
 
     final AtomicBoolean fail = new AtomicBoolean(false);
-    final ClientConfiguration clientConf = cluster.getClientConfig();
     final int THREADS = 5;
     for (int count = 0; count < THREADS; count++) {
       ExecutorService executor = Executors.newFixedThreadPool(THREADS);
@@ -140,8 +138,8 @@ public class CompactionIT extends AccumuloClusterHarness {
               opts.dataSize = 50;
               opts.cols = 1;
               opts.setTableName(tableName);
-              if (clientConf.hasSasl()) {
-                opts.updateKerberosCredentials(clientConf);
+              if (saslEnabled()) {
+                opts.updateKerberosCredentials();
               } else {
                 opts.setPrincipal(getAdminPrincipal());
                 PasswordToken passwordToken = (PasswordToken) getAdminToken();

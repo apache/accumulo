@@ -38,15 +38,12 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterPropertyConfiguration.class);
 
   public static final String ACCUMULO_IT_PROPERTIES_FILE = "accumulo.it.properties";
-
   public static final String ACCUMULO_CLUSTER_TYPE_KEY = "accumulo.it.cluster.type";
 
   public static final String ACCUMULO_MINI_PREFIX = "accumulo.it.cluster.mini.";
   public static final String ACCUMULO_STANDALONE_PREFIX = "accumulo.it.cluster.standalone.";
 
   public static final String ACCUMULO_CLUSTER_CLIENT_CONF_KEY = "accumulo.it.cluster.clientconf";
-
-  protected ClusterType clusterType;
 
   public static AccumuloClusterPropertyConfiguration get() {
     Properties systemProperties = System.getProperties();

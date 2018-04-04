@@ -40,13 +40,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExec;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
@@ -164,9 +160,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
    *          callback which shuts down some tablet servers.
    */
   private void suspensionTestBody(TServerKiller serverStopper) throws Exception {
-    Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-    Instance instance = new ZooKeeperInstance(getCluster().getClientConfig());
-    ClientContext ctx = new ClientContext(instance, creds, getCluster().getClientConfig());
+    ClientContext ctx = new ClientContext(getConnectionInfo());
 
     String tableName = getUniqueNames(1)[0];
 

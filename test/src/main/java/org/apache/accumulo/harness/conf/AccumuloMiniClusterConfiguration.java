@@ -16,13 +16,10 @@
  */
 package org.apache.accumulo.harness.conf;
 
-import static java.util.Objects.requireNonNull;
-
 import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -49,7 +46,6 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
 
   private final Map<String,String> conf;
   private final boolean saslEnabled;
-  private ClientConfiguration clientConf;
 
   public AccumuloMiniClusterConfiguration() {
     ClusterType type = getClusterType();
@@ -104,15 +100,5 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
   @Override
   public ClusterType getClusterType() {
     return ClusterType.MINI;
-  }
-
-  @Override
-  public ClientConfiguration getClientConf() {
-    return clientConf;
-  }
-
-  public void setClientConf(ClientConfiguration conf) {
-    requireNonNull(conf, "Client configuration was null");
-    this.clientConf = conf;
   }
 }

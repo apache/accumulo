@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
@@ -233,12 +232,10 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
 
     String user = null;
-    ClientConfiguration clientConf = cluster.getClientConfig();
-    final boolean saslEnabled = clientConf.hasSasl();
 
     ClusterUser user1 = getUser(0);
     user = user1.getPrincipal();
-    if (saslEnabled) {
+    if (saslEnabled()) {
       // The token is pointless for kerberos
       conn.securityOperations().createLocalUser(user, null);
     } else {
@@ -1197,13 +1194,11 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     // test against table user does not have read and/or write permissions for
     Connector conn = getConnector();
     String user = null;
-    ClientConfiguration clientConf = cluster.getClientConfig();
-    final boolean saslEnabled = clientConf.hasSasl();
 
     // Create a new user
     ClusterUser user1 = getUser(0);
     user = user1.getPrincipal();
-    if (saslEnabled) {
+    if (saslEnabled()) {
       conn.securityOperations().createLocalUser(user, null);
     } else {
       conn.securityOperations().createLocalUser(user, new PasswordToken(user1.getPassword()));
@@ -1426,7 +1421,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
-    DistributedTrace.enable("localhost", "testTrace", mac.getClientConfig());
+    DistributedTrace.enable("localhost", "testTrace", mac.getConnectionInfo().getProperties());
     sleepUninterruptibly(1, TimeUnit.SECONDS);
     Span root = Trace.on("traceTest");
     try (ConditionalWriter cw = conn.createConditionalWriter(tableName, new ConditionalWriterConfig())) {

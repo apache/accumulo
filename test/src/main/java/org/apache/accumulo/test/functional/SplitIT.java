@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -131,10 +130,9 @@ public class SplitIT extends AccumuloClusterHarness {
     opts.rows = 100000;
     opts.setTableName(table);
 
-    ClientConfiguration clientConfig = cluster.getClientConfig();
-    if (clientConfig.hasSasl()) {
-      opts.updateKerberosCredentials(clientConfig);
-      vopts.updateKerberosCredentials(clientConfig);
+    if (saslEnabled()) {
+      opts.updateKerberosCredentials();
+      vopts.updateKerberosCredentials();
     } else {
       opts.setPrincipal(getAdminPrincipal());
       vopts.setPrincipal(getAdminPrincipal());
@@ -166,7 +164,7 @@ public class SplitIT extends AccumuloClusterHarness {
     }
 
     String[] args;
-    if (clientConfig.hasSasl()) {
+    if (saslEnabled()) {
       ClusterUser rootUser = getAdminUser();
       args = new String[] {"-i", cluster.getInstanceName(), "-u", rootUser.getPrincipal(), "--keytab", rootUser.getKeytab().getAbsolutePath(), "-z",
           cluster.getZooKeepers()};
@@ -203,9 +201,8 @@ public class SplitIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    ClientConfiguration clientConfig = getCluster().getClientConfig();
     String password = null, keytab = null;
-    if (clientConfig.hasSasl()) {
+    if (saslEnabled()) {
       keytab = getAdminUser().getKeytab().getAbsolutePath();
     } else {
       password = new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8);

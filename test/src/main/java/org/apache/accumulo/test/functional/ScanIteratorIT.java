@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -73,11 +72,10 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     tableName = getUniqueNames(1)[0];
 
     connector.tableOperations().create(tableName);
-    ClientConfiguration clientConfig = cluster.getClientConfig();
     ClusterUser clusterUser = getUser(0);
     user = clusterUser.getPrincipal();
     PasswordToken userToken;
-    if (clientConfig.hasSasl()) {
+    if (saslEnabled()) {
       userToken = null;
       saslEnabled = true;
     } else {

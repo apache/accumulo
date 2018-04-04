@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Table;
@@ -280,7 +279,7 @@ public class NullTserver {
     opts.parseArgs(NullTserver.class.getName(), args);
 
     // modify metadata
-    ZooKeeperInstance zki = new ZooKeeperInstance(ClientConfiguration.create().withInstance(opts.iname).withZkHosts(opts.keepers));
+    ZooKeeperInstance zki = new ZooKeeperInstance(opts.iname, opts.keepers);
     Instance inst = HdfsZooInstance.getInstance();
     AccumuloServerContext context = new AccumuloServerContext(inst, new ServerConfigurationFactory(zki));
 

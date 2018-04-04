@@ -21,7 +21,6 @@ import java.util.Map;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -53,9 +52,8 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
     c.tableOperations().create(names[0]);
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.setTableName(names[0]);
-    ClientConfiguration clientConf = cluster.getClientConfig();
-    if (clientConf.hasSasl()) {
-      opts.updateKerberosCredentials(clientConf);
+    if (saslEnabled()) {
+      opts.updateKerberosCredentials();
     } else {
       opts.setPrincipal(getAdminPrincipal());
     }
@@ -69,8 +67,8 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
     c.tableOperations().rename(names[0], names[1]);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(names[1]);
-    if (clientConf.hasSasl()) {
-      vopts.updateKerberosCredentials(clientConf);
+    if (saslEnabled()) {
+      vopts.updateKerberosCredentials();
     } else {
       vopts.setPrincipal(getAdminPrincipal());
     }

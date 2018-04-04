@@ -24,11 +24,9 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.ThriftTransportKey;
 import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -55,8 +53,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
   public void testCachedTransport() {
     Connector conn = getConnector();
     Instance instance = conn.getInstance();
-    ClientConfiguration clientConf = cluster.getClientConfig();
-    ClientContext context = new ClientContext(instance, new Credentials(getAdminPrincipal(), getAdminToken()), clientConf);
+    ClientContext context = new ClientContext(getConnectionInfo());
     long rpcTimeout = ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
     // create list of servers

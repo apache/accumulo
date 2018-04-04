@@ -30,10 +30,8 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientExecReturn;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -365,8 +363,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     conn.tableOperations().flush(otherTable, null, null, true);
 
     // Get the tservers which the master deems as active
-    final ClientContext context = new ClientContext(conn.getInstance(), new Credentials("root", new PasswordToken(ConfigurableMacBase.ROOT_PASSWORD)),
-        getClientConfig());
+    final ClientContext context = new ClientContext(getConnectionInfo());
     List<String> tservers = MasterClient.execute(context, new ClientExecReturn<List<String>,MasterClientService.Client>() {
       @Override
       public List<String> execute(MasterClientService.Client client) throws Exception {

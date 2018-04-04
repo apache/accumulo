@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.io.File;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -35,7 +36,7 @@ public interface ConnectionInfo {
   /**
    * @return Zookeeper connection information for Accumulo instance
    */
-  String getZookeepers();
+  String getZooKeepers();
 
   /**
    * @return Accumulo principal/username
@@ -46,6 +47,16 @@ public interface ConnectionInfo {
    * @return {@link AuthenticationToken} used for this connection
    */
   AuthenticationToken getAuthenticationToken();
+
+  /**
+   * @return Keytab File if Kerberos is used or null
+   */
+  File getKeytab();
+
+  /**
+   * @return True if SASL enabled
+   */
+  boolean saslEnabled();
 
   /**
    * @return All Accumulo client properties set for this connection

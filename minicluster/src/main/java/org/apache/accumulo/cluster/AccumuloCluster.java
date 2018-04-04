@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -56,6 +57,11 @@ public interface AccumuloCluster {
    * Get the client configuration for the cluster
    */
   ClientConfiguration getClientConfig();
+
+  /**
+   * @return Connection Info for cluster
+   */
+  ConnectionInfo getConnectionInfo();
 
   /**
    * Get server side config derived from accumulo-site.xml

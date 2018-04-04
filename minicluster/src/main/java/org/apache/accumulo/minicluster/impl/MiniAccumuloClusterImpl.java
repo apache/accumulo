@@ -59,6 +59,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ConnectionInfo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -70,6 +71,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -441,6 +443,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     writeConfigProperties(clientConfFile,
         Maps.filterEntries(config.getSiteConfig(), v -> ClientConfiguration.ClientProperty.getPropertyByKey(v.getKey()) != null));
 
+    Map<String, String> clientProps = new HashMap<>();
+    clientProps.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), config.getZooKeepers());
+    clientProps.put(ClientProperty.INSTANCE_NAME.getKey(), config.getInstanceName());
+    clientProps.put(ClientProperty.AUTH_METHOD.getKey(), "password");
+    clientProps.put(ClientProperty.AUTH_USERNAME.getKey(), config.getRootUserName());
+    clientProps.put(ClientProperty.AUTH_PASSWORD.getKey(), config.getRootPassword());
+
+    File clientPropsFile = config.getClientPropsFile();
+    writeConfigProperties(clientPropsFile, clientProps);
+
     File siteFile = new File(config.getConfDir(), "accumulo-site.xml");
     writeConfig(siteFile, config.getSiteConfig().entrySet());
 
@@ -740,6 +752,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public ClientConfiguration getClientConfig() {
     return ClientConfiguration.fromMap(config.getSiteConfig()).withInstance(this.getInstanceName()).withZkHosts(this.getZooKeepers());
+  }
+
+  @Override
+  public ConnectionInfo getConnectionInfo() {
+    return Connector.builder().forInstance(getInstanceName(), getZooKeepers()).usingPassword(config.getRootUserName(), config.getRootPassword()).info();
   }
 
   @Override

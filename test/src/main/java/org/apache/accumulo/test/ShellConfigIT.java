@@ -67,28 +67,28 @@ public class ShellConfigIT extends AccumuloClusterHarness {
     // ensure experimental props do not show up in config output unless set
 
     AuthenticationToken token = getAdminToken();
-    File clientConfFile = null;
+    File clientPropsFile = null;
     switch (getClusterType()) {
       case MINI:
         MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
-        clientConfFile = mac.getConfig().getClientConfFile();
+        clientPropsFile = mac.getConfig().getClientPropsFile();
         break;
       case STANDALONE:
         StandaloneAccumuloClusterConfiguration standaloneConf = (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
-        clientConfFile = standaloneConf.getClientConfFile();
+        clientPropsFile = standaloneConf.getClientPropsFile();
         break;
       default:
         Assert.fail("Unknown cluster type");
     }
 
-    Assert.assertNotNull(clientConfFile);
+    Assert.assertNotNull(clientPropsFile);
 
     TestShell ts = null;
     if (token instanceof PasswordToken) {
       String passwd = new String(((PasswordToken) token).getPassword(), UTF_8);
-      ts = new TestShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientConfFile);
+      ts = new TestShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientPropsFile);
     } else if (token instanceof KerberosToken) {
-      ts = new TestShell(getAdminPrincipal(), null, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientConfFile);
+      ts = new TestShell(getAdminPrincipal(), null, getCluster().getInstanceName(), getCluster().getZooKeepers(), clientPropsFile);
     } else {
       Assert.fail("Unknown token type");
     }

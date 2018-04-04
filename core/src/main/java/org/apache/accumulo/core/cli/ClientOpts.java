@@ -229,26 +229,24 @@ public class ClientOpts extends Help {
    * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't overwrite the options if the user has provided something
    * specifically.
    */
-  public void updateKerberosCredentials() {
-    ClientConfiguration clientConfig;
-    try {
-      if (clientConfigFile == null)
-        clientConfig = ClientConfiguration.loadDefault();
-      else
-        clientConfig = ClientConfiguration.fromFile(new File(clientConfigFile));
-    } catch (Exception e) {
-      throw new IllegalArgumentException(e);
+  public void updateKerberosCredentials(String clientConfigFile) {
+    boolean saslEnabled = false;
+    if (clientConfigFile != null) {
+      saslEnabled = Connector.builder().usingProperties(clientConfigFile).info().saslEnabled();
     }
-    updateKerberosCredentials(clientConfig);
+    updateKerberosCredentials(saslEnabled);
+  }
+
+  public void updateKerberosCredentials() {
+    updateKerberosCredentials(true);
   }
 
   /**
    * Automatically update the options to use a KerberosToken when SASL is enabled for RPCs. Don't overwrite the options if the user has provided something
    * specifically.
    */
-  public void updateKerberosCredentials(ClientConfiguration clientConfig) {
-    final boolean clientConfSaslEnabled = Boolean.parseBoolean(clientConfig.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-    if ((saslEnabled || clientConfSaslEnabled) && null == tokenClassName) {
+  public void updateKerberosCredentials(boolean clientSaslEnabled) {
+    if ((saslEnabled || clientSaslEnabled) && null == tokenClassName) {
       tokenClassName = KerberosToken.CLASS_NAME;
       // ACCUMULO-3701 We need to ensure we're logged in before parseArgs returns as the MapReduce Job is going to make a copy of the current user (UGI)
       // when it is instantiated.
@@ -274,7 +272,7 @@ public class ClientOpts extends Help {
     super.parseArgs(programName, args, others);
     startDebugLogging();
     startTracing(programName);
-    updateKerberosCredentials();
+    updateKerberosCredentials(clientConfigFile);
   }
 
   protected Instance cachedInstance = null;

@@ -18,8 +18,9 @@ package org.apache.accumulo.shell;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
+import java.util.Properties;
+
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,8 +42,8 @@ public class ShellOptionsJCTest {
     jc.setProgramName("accumulo shell");
     jc.addObject(options);
     jc.parse(new String[] {"--sasl"});
-    ClientConfiguration clientConf = options.getClientConfiguration();
-    assertEquals("true", clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
+    Properties properties = options.getClientProperties();
+    assertEquals("true", properties.getProperty(ClientProperty.SASL_ENABLED.getKey()));
   }
 
   @Test
@@ -54,9 +55,8 @@ public class ShellOptionsJCTest {
     jc.setProgramName("accumulo shell");
     jc.addObject(options);
     jc.parse(new String[] {"-zh", zk});
-    ClientConfiguration clientConf = options.getClientConfiguration();
-
-    assertEquals(zk, clientConf.get(ClientProperty.INSTANCE_ZK_HOST));
+    Properties properties = options.getClientProperties();
+    assertEquals(zk, properties.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()));
   }
 
 }

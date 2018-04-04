@@ -44,7 +44,6 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.impl.Table;
@@ -274,7 +273,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String[] tableNames = getUniqueNames(2);
 
     // grab this before shutting down cluster
-    String uuid = new ZooKeeperInstance(cluster.getClientConfig()).getInstanceID();
+    String uuid = getConnector().getInstance().getInstanceID();
 
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 
@@ -317,7 +316,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String[] tableNames = getUniqueNames(2);
 
     // grab this before shutting down cluster
-    String uuid = new ZooKeeperInstance(cluster.getClientConfig()).getInstanceID();
+    String uuid = getConnector().getInstance().getInstanceID();
 
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 
@@ -501,7 +500,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getClientConfig())) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ZooUtil.getRoot(getConnector().getInstance()) + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v2.toString()));
 
@@ -562,7 +561,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1 or 2
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getClientConfig())) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ZooUtil.getRoot(getConnector().getInstance()) + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     Assert.assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
 
