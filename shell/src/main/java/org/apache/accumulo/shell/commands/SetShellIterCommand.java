@@ -18,7 +18,6 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,16 +27,17 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellCommandException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SetShellIterCommand extends SetIterCommand {
-  private Option profileOpt;
+
+  private static final Logger log = LoggerFactory.getLogger(SetShellIterCommand.class);
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
@@ -74,7 +74,6 @@ public class SetShellIterCommand extends SetIterCommand {
         iter.remove();
       }
     }
-
     tableScanIterators.add(setting);
   }
 
@@ -85,32 +84,17 @@ public class SetShellIterCommand extends SetIterCommand {
 
   @Override
   public Options getOptions() {
-    // Remove the options that specify which type of iterator this is, since
-    // they are all scan iterators with this command.
-    final HashSet<OptionGroup> groups = new HashSet<>();
-    final Options parentOptions = super.getOptions();
-    final Options modifiedOptions = new Options();
-    for (Iterator<?> it = parentOptions.getOptions().iterator(); it.hasNext();) {
-      Option o = (Option) it.next();
-      if (!IteratorScope.majc.name().equals(o.getOpt()) && !IteratorScope.minc.name().equals(o.getOpt()) && !IteratorScope.scan.name().equals(o.getOpt())
-          && !"table".equals(o.getLongOpt())) {
-        modifiedOptions.addOption(o);
-        OptionGroup group = parentOptions.getOptionGroup(o);
-        if (group != null)
-          groups.add(group);
-      }
-    }
-    for (OptionGroup group : groups) {
-      modifiedOptions.addOptionGroup(group);
-    }
+    final Options o = new Options();
+    setBaseOptions(o);
+    setProfileOptions(o);
+    return o;
+  }
 
+  private void setProfileOptions(Options o) {
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setRequired(true);
     profileOpt.setArgName("profile");
-
-    modifiedOptions.addOption(profileOpt);
-
-    return modifiedOptions;
+    o.addOption(profileOpt);
   }
 
 }
